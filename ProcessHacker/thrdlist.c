@@ -116,10 +116,11 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIDHEX, FALSE, L"TID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TOKEN_STATE, FALSE, L"Token", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TOKEN_STATE, FALSE, L"Impersonation", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PENDINGIRP, FALSE, L"Pending IRP", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL, FALSE, L"Last system call", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE, FALSE, L"Last status code", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -700,6 +701,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(PendingIrp),
                     SORT_FUNCTION(LastSystemCall),
                     SORT_FUNCTION(LastStatusCode),
+                    SORT_FUNCTION(Created), // Timeline
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1109,7 +1111,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         if (status == STATUS_NO_TOKEN)
                         {
                             node->TokenState = PH_THREAD_TOKEN_STATE_NOT_PRESENT;
-                            PhInitializeStringRef(&getCellText->Text, L"No");
+                            PhInitializeEmptyStringRef(&getCellText->Text);
                         }
                         else if (status == STATUS_CANT_OPEN_ANONYMOUS)
                         {
@@ -1192,27 +1194,36 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PPH_STRING systemCallName;
                         PH_FORMAT format[6];
 
-                        if (systemCallName = PhGetSystemCallNumberName(lastSystemCall.SystemCallNumber))
+                        if (lastSystemCall.SystemCallNumber == 0 && !lastSystemCall.FirstArgument)
                         {
-                            PhInitFormatSR(&format[0], systemCallName->sr);
-                            PhInitFormatS(&format[1], L" (0x");
-                            PhInitFormatX(&format[2], lastSystemCall.SystemCallNumber);
-                            PhInitFormatS(&format[3], L") (Arg0: 0x");
-                            PhInitFormatI64X(&format[4], (ULONG64)lastSystemCall.FirstArgument);
-                            PhInitFormatC(&format[5], L')');
-
-                            PhMoveReference(&node->LastSystemCallText, PhFormat(format, 6, 0x40));
-                            PhDereferenceObject(systemCallName);
+                            // If the thread was created in a frozen/suspended process and hasn't executed, the
+                            // ThreadLastSystemCall returns status_success but the values are invalid. (dmex)
+                            PhMoveReference(&node->LastSystemCallText, PhReferenceEmptyString());
                         }
                         else
                         {
-                            PhInitFormatS(&format[0], L"0x");
-                            PhInitFormatX(&format[1], lastSystemCall.SystemCallNumber);
-                            PhInitFormatS(&format[2], L" (Arg0: 0x");
-                            PhInitFormatI64X(&format[3], (ULONG64)lastSystemCall.FirstArgument);
-                            PhInitFormatC(&format[4], L')');
+                            if (systemCallName = PhGetSystemCallNumberName(lastSystemCall.SystemCallNumber))
+                            {
+                                PhInitFormatSR(&format[0], systemCallName->sr);
+                                PhInitFormatS(&format[1], L" (0x");
+                                PhInitFormatX(&format[2], lastSystemCall.SystemCallNumber);
+                                PhInitFormatS(&format[3], L") (Arg0: 0x");
+                                PhInitFormatI64X(&format[4], (ULONG64)lastSystemCall.FirstArgument);
+                                PhInitFormatC(&format[5], L')');
 
-                            PhMoveReference(&node->LastSystemCallText, PhFormat(format, 5, 0x40));
+                                PhMoveReference(&node->LastSystemCallText, PhFormat(format, 6, 0x40));
+                                PhDereferenceObject(systemCallName);
+                            }
+                            else
+                            {
+                                PhInitFormatS(&format[0], L"0x");
+                                PhInitFormatX(&format[1], lastSystemCall.SystemCallNumber);
+                                PhInitFormatS(&format[2], L" (Arg0: 0x");
+                                PhInitFormatI64X(&format[3], (ULONG64)lastSystemCall.FirstArgument);
+                                PhInitFormatC(&format[4], L')');
+
+                                PhMoveReference(&node->LastSystemCallText, PhFormat(format, 5, 0x40));
+                            }
                         }
 
                         node->LastSystemCallNumber = lastSystemCall.SystemCallNumber;
@@ -1347,6 +1358,70 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorGuiThreads;
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR;
+        }
+        return TRUE;
+    case TreeNewCustomDraw:
+        {
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
+            PPH_THREAD_ITEM threadItem;
+            RECT rect;
+
+            node = (PPH_THREAD_NODE)customDraw->Node;
+            threadItem = node->ThreadItem;
+            rect = customDraw->CellRect;
+
+            if (rect.right - rect.left <= 1)
+                break; // nothing to draw
+
+            switch (customDraw->Column->Id)
+            {
+            case PH_THREAD_TREELIST_COLUMN_TIMELINE:
+                {
+                    #define PhInflateRect(rect, dx, dy) \
+                    { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
+                    HBRUSH previousBrush = NULL;
+                    RECT borderRect = customDraw->CellRect;
+                    FLOAT percent = 0;
+                    LARGE_INTEGER systemTime;
+                    LARGE_INTEGER startTime;
+                    LARGE_INTEGER createTime;
+
+                    if (threadItem->CreateTime.QuadPart == 0)
+                        break; // nothing to draw
+
+                    PhQuerySystemTime(&systemTime);
+                    startTime.QuadPart = systemTime.QuadPart - context->ProcessCreateTime.QuadPart;
+                    createTime.QuadPart = systemTime.QuadPart - threadItem->CreateTime.QuadPart;
+                    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+
+                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_WINDOW));
+                    PhInflateRect(&rect, -1, -1);
+                    rect.bottom += 1;
+                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_3DFACE));
+                    SetDCBrushColor(customDraw->Dc, percent > 100.f ? RGB(128, 128, 128) : RGB(158, 202, 158));
+                    previousBrush = SelectBrush(customDraw->Dc, GetStockBrush(DC_BRUSH));
+
+                    // Prevent overflow from changing the system time to an earlier date.
+                    if (percent > 100.f) percent = 100.f;
+                    rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
+
+                    PatBlt(
+                        customDraw->Dc,
+                        rect.left,
+                        rect.top,
+                        rect.right - rect.left,
+                        rect.bottom - rect.top,
+                        PATCOPY
+                        );
+
+                    if (previousBrush) SelectBrush(customDraw->Dc, previousBrush);
+
+                    PhInflateRect(&borderRect, -1, -1);
+                    borderRect.bottom += 1;
+                    FrameRect(customDraw->Dc, &borderRect, GetStockBrush(GRAY_BRUSH));
+                }
+                break;
+            }
         }
         return TRUE;
     case TreeNewSortChanged:
