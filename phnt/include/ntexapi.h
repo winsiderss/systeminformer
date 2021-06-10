@@ -1313,15 +1313,15 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVerifierThunkExtend, // s (kernel-mode only)
     SystemSessionProcessInformation, // q: SYSTEM_SESSION_PROCESS_INFORMATION
     SystemLoadGdiDriverInSystemSpace, // s (kernel-mode only) (same as SystemLoadGdiDriverInformation)
-    SystemNumaProcessorMap, // q
+    SystemNumaProcessorMap, // q: SYSTEM_NUMA_INFORMATION
     SystemPrefetcherInformation, // q: PREFETCHER_INFORMATION; s: PREFETCHER_INFORMATION // PfSnQueryPrefetcherInformation
     SystemExtendedProcessInformation, // q: SYSTEM_PROCESS_INFORMATION
-    SystemRecommendedSharedDataAlignment, // q
-    SystemComPlusPackage, // q; s
-    SystemNumaAvailableMemory, // 60
+    SystemRecommendedSharedDataAlignment, // q: ULONG // KeGetRecommendedSharedDataAlignment
+    SystemComPlusPackage, // q; s: ULONG
+    SystemNumaAvailableMemory, // q: SYSTEM_NUMA_INFORMATION // 60
     SystemProcessorPowerInformation, // q: SYSTEM_PROCESSOR_POWER_INFORMATION
-    SystemEmulationBasicInformation,
-    SystemEmulationProcessorInformation,
+    SystemEmulationBasicInformation, // q: SYSTEM_BASIC_INFORMATION
+    SystemEmulationProcessorInformation, // q: SYSTEM_PROCESSOR_INFORMATION
     SystemExtendedHandleInformation, // q: SYSTEM_HANDLE_INFORMATION_EX
     SystemLostDelayedWriteInformation, // q: ULONG
     SystemBigPoolInformation, // q: SYSTEM_BIGPOOL_INFORMATION
@@ -1349,25 +1349,25 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessIdInformation, // q: SYSTEM_PROCESS_ID_INFORMATION
     SystemErrorPortInformation, // s (requires SeTcbPrivilege)
     SystemBootEnvironmentInformation, // q: SYSTEM_BOOT_ENVIRONMENT_INFORMATION // 90
-    SystemHypervisorInformation, // q; s (kernel-mode only)
+    SystemHypervisorInformation,
     SystemVerifierInformationEx, // q; s: SYSTEM_VERIFIER_INFORMATION_EX
-    SystemTimeZoneInformation, // s (requires SeTimeZonePrivilege)
+    SystemTimeZoneInformation, // q; s: RTL_TIME_ZONE_INFORMATION (requires SeTimeZonePrivilege)
     SystemImageFileExecutionOptionsInformation, // s: SYSTEM_IMAGE_FILE_EXECUTION_OPTIONS_INFORMATION (requires SeTcbPrivilege)
-    SystemCoverageInformation, // q; s // name:wow64:whNT32QuerySystemCoverageInformation; ExpCovQueryInformation
+    SystemCoverageInformation, // q; s // name:wow64:whNT32QuerySystemCoverageInformation; ExpCovQueryInformation (requires SeDebugPrivilege)
     SystemPrefetchPatchInformation, // SYSTEM_PREFETCH_PATCH_INFORMATION
     SystemVerifierFaultsInformation, // s: SYSTEM_VERIFIER_FAULTS_INFORMATION (requires SeDebugPrivilege)
     SystemSystemPartitionInformation, // q: SYSTEM_SYSTEM_PARTITION_INFORMATION
     SystemSystemDiskInformation, // q: SYSTEM_SYSTEM_DISK_INFORMATION
     SystemProcessorPerformanceDistribution, // q: SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION // 100
     SystemNumaProximityNodeInformation,
-    SystemDynamicTimeZoneInformation, // q; s (requires SeTimeZonePrivilege)
+    SystemDynamicTimeZoneInformation, // q; s: RTL_DYNAMIC_TIME_ZONE_INFORMATION (requires SeTimeZonePrivilege)
     SystemCodeIntegrityInformation, // q: SYSTEM_CODEINTEGRITY_INFORMATION // SeCodeIntegrityQueryInformation
     SystemProcessorMicrocodeUpdateInformation, // s: SYSTEM_PROCESSOR_MICROCODE_UPDATE_INFORMATION
-    SystemProcessorBrandString, // q // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
+    SystemProcessorBrandString, // q: CHAR[] // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
     SystemVirtualAddressInformation, // q: SYSTEM_VA_LIST_INFORMATION[]; s: SYSTEM_VA_LIST_INFORMATION[] (requires SeIncreaseQuotaPrivilege) // MmQuerySystemVaInformation
     SystemLogicalProcessorAndGroupInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // since WIN7 // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTimeInformation, // q: SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION[]
-    SystemStoreInformation, // q; s: SYSTEM_STORE_INFORMATION // SmQueryStoreInformation
+    SystemStoreInformation, // q; s: SYSTEM_STORE_INFORMATION (requires SeProfileSingleProcessPrivilege) // SmQueryStoreInformation
     SystemRegistryAppendString, // s: SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS // 110
     SystemAitSamplingValue, // s: ULONG (requires SeProfileSingleProcessPrivilege)
     SystemVhdBootInformation, // q: SYSTEM_VHD_BOOT_INFORMATION
@@ -1391,7 +1391,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCombinePhysicalMemoryInformation, // s: MEMORY_COMBINE_INFORMATION, MEMORY_COMBINE_INFORMATION_EX, MEMORY_COMBINE_INFORMATION_EX2 // 130
     SystemEntropyInterruptTimingInformation,
     SystemConsoleInformation, // q: SYSTEM_CONSOLE_INFORMATION
-    SystemPlatformBinaryInformation, // q: SYSTEM_PLATFORM_BINARY_INFORMATION
+    SystemPlatformBinaryInformation, // q: SYSTEM_PLATFORM_BINARY_INFORMATION (requires SeTcbPrivilege)
     SystemPolicyInformation, // q: SYSTEM_POLICY_INFORMATION
     SystemHypervisorProcessorCountInformation, // q: SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
     SystemDeviceDataInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
@@ -1431,7 +1431,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemInterruptCpuSetsInformation, // q: SYSTEM_INTERRUPT_CPU_SET_INFORMATION // 170
     SystemSecureBootPolicyFullInformation, // q: SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
     SystemCodeIntegrityPolicyFullInformation,
-    SystemAffinitizedInterruptProcessorInformation,
+    SystemAffinitizedInterruptProcessorInformation, // (requires SeIncreaseBasePriorityPrivilege)
     SystemRootSiloInformation, // q: SYSTEM_ROOT_SILO_INFORMATION
     SystemCpuSetInformation, // q: SYSTEM_CPU_SET_INFORMATION // since THRESHOLD2
     SystemCpuSetTagInformation, // q: SYSTEM_CPU_SET_TAG_INFORMATION
@@ -2435,6 +2435,25 @@ typedef struct _SYSTEM_SESSION_PROCESS_INFORMATION
     PVOID Buffer;
 } SYSTEM_SESSION_PROCESS_INFORMATION, *PSYSTEM_SESSION_PROCESS_INFORMATION;
 
+#ifdef _WIN64
+#define MAXIMUM_NODE_COUNT 0x40
+#else
+#define MAXIMUM_NODE_COUNT 0x10
+#endif
+
+// geoffchappell
+typedef struct _SYSTEM_NUMA_INFORMATION
+{
+    ULONG HighestNodeNumber;
+    ULONG Reserved;
+    union
+    {
+        ULONGLONG ActiveProcessorsGroupAffinity[MAXIMUM_NODE_COUNT];
+        ULONGLONG AvailableMemory[MAXIMUM_NODE_COUNT];
+        ULONGLONG Pad[MAXIMUM_NODE_COUNT * 2];
+    };
+} SYSTEM_NUMA_INFORMATION, *PSYSTEM_NUMA_INFORMATION;
+
 typedef struct _SYSTEM_PROCESSOR_POWER_INFORMATION
 {
     UCHAR CurrentFrequency;
@@ -2809,7 +2828,14 @@ typedef struct _SYSTEM_VA_LIST_INFORMATION
 // rev
 typedef enum _SYSTEM_STORE_INFORMATION_CLASS
 {
-    SystemStoreCompressionInformation = 22 // q: SYSTEM_STORE_COMPRESSION_INFORMATION
+    SystemStoreProcessStatsInformation = 2, // (requires SeProfileSingleProcessPrivilege) // SmProcessStatsRequest
+    SystemStoreProcessListInformation = 5, // SmProcessListRequest
+    SystemStoreProcessListExInformation = 8, // SmcProcessListRequest
+    SystemStoreProcessStatsExInformation = 13, // SmcProcessStatsRequest
+    SystemStoreRegistrationInformation = 15, // SmProcessRegistrationRequest
+    SystemStoreCompressionInformation = 22, // q: SYSTEM_STORE_COMPRESSION_INFORMATION // SmProcessCompressionInfoRequest
+    SystemStoreProcessStoreInformation = 23, // SmProcessProcessStoreInfoRequest
+    SystemStoreMaxInfoClass
 } SYSTEM_STORE_INFORMATION_CLASS;
 
 // rev
@@ -3947,24 +3973,24 @@ typedef enum _SYSDBG_COMMAND
     SysDbgQueryModuleInformation,
     SysDbgQueryTraceInformation,
     SysDbgSetTracepoint,
-    SysDbgSetSpecialCall,
-    SysDbgClearSpecialCalls,
+    SysDbgSetSpecialCall, // PVOID
+    SysDbgClearSpecialCalls, // void
     SysDbgQuerySpecialCalls,
     SysDbgBreakPoint,
-    SysDbgQueryVersion,
-    SysDbgReadVirtual,
-    SysDbgWriteVirtual,
-    SysDbgReadPhysical,
-    SysDbgWritePhysical,
-    SysDbgReadControlSpace,
-    SysDbgWriteControlSpace,
-    SysDbgReadIoSpace,
-    SysDbgWriteIoSpace,
-    SysDbgReadMsr,
-    SysDbgWriteMsr,
-    SysDbgReadBusData,
-    SysDbgWriteBusData,
-    SysDbgCheckLowMemory,
+    SysDbgQueryVersion, // DBGKD_GET_VERSION64
+    SysDbgReadVirtual, // SYSDBG_VIRTUAL
+    SysDbgWriteVirtual, // SYSDBG_VIRTUAL
+    SysDbgReadPhysical, // SYSDBG_PHYSICAL // 10
+    SysDbgWritePhysical, // SYSDBG_PHYSICAL
+    SysDbgReadControlSpace, // SYSDBG_CONTROL_SPACE
+    SysDbgWriteControlSpace, // SYSDBG_CONTROL_SPACE
+    SysDbgReadIoSpace, // SYSDBG_IO_SPACE
+    SysDbgWriteIoSpace, // SYSDBG_IO_SPACE
+    SysDbgReadMsr, // SYSDBG_MSR
+    SysDbgWriteMsr, // SYSDBG_MSR
+    SysDbgReadBusData, // SYSDBG_BUS_DATA
+    SysDbgWriteBusData, // SYSDBG_BUS_DATA
+    SysDbgCheckLowMemory, // 20
     SysDbgEnableKernelDebugger,
     SysDbgDisableKernelDebugger,
     SysDbgGetAutoKdEnable,
@@ -3973,15 +3999,17 @@ typedef enum _SYSDBG_COMMAND
     SysDbgSetPrintBufferSize,
     SysDbgGetKdUmExceptionEnable,
     SysDbgSetKdUmExceptionEnable,
-    SysDbgGetTriageDump,
-    SysDbgGetKdBlockEnable,
+    SysDbgGetTriageDump, // SYSDBG_TRIAGE_DUMP
+    SysDbgGetKdBlockEnable, // 30
     SysDbgSetKdBlockEnable,
     SysDbgRegisterForUmBreakInfo,
     SysDbgGetUmBreakPid,
     SysDbgClearUmBreakPid,
     SysDbgGetUmAttachPid,
     SysDbgClearUmAttachPid,
-    SysDbgGetLiveKernelDump
+    SysDbgGetLiveKernelDump, // SYSDBG_LIVEDUMP_CONTROL
+    SysDbgKdPullRemoteFile, // SYSDBG_KD_PULL_REMOTE_FILE
+    SysDbgMaxInfoClass
 } SYSDBG_COMMAND, *PSYSDBG_COMMAND;
 
 typedef struct _SYSDBG_VIRTUAL
@@ -4091,6 +4119,12 @@ typedef struct _SYSDBG_LIVEDUMP_CONTROL
     SYSDBG_LIVEDUMP_CONTROL_FLAGS Flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES AddPagesControl;
 } SYSDBG_LIVEDUMP_CONTROL, *PSYSDBG_LIVEDUMP_CONTROL;
+
+// private
+typedef struct _SYSDBG_KD_PULL_REMOTE_FILE
+{
+    UNICODE_STRING ImageFileName;
+} SYSDBG_KD_PULL_REMOTE_FILE, *PSYSDBG_KD_PULL_REMOTE_FILE;
 
 NTSYSCALLAPI
 NTSTATUS
