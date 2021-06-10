@@ -5521,7 +5521,7 @@ NTSTATUS PhEnumHandlesEx2(
     ULONG attempts = 0;
 
     bufferSize = 0x8000;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateZero(bufferSize);
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -5535,7 +5535,7 @@ NTSTATUS PhEnumHandlesEx2(
     {
         PhFree(buffer);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateZero(bufferSize);
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -5552,6 +5552,8 @@ NTSTATUS PhEnumHandlesEx2(
     {
         // NOTE: This is needed to workaround minimal processes on Windows 10
         // returning STATUS_SUCCESS with invalid handle data. (dmex)
+        // NOTE: 21H1 and above no longer set NumberOfHandles to zero before returning
+        // STATUS_SUCCESS so we first zero the entire buffer using PhAllocateZero. (dmex)
         if (buffer->NumberOfHandles == 0)
         {
             status = STATUS_UNSUCCESSFUL;
