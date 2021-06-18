@@ -708,7 +708,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
                     PhInitFormatS(&format[0], PhGetServiceStartTypeString(serviceItem->StartType));
 
-                    if (serviceItem->DelayedStart && serviceItem->HasTriggers)
+                    if (serviceItem->StartType == SERVICE_DISABLED)
+                        additional = NULL;
+                    else if (serviceItem->DelayedStart && serviceItem->HasTriggers)
                         additional = L" (delayed, trigger)";
                     else if (serviceItem->DelayedStart)
                         additional = L" (delayed)";
@@ -834,7 +836,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             else
             {
                 getNodeColor->Flags |= TN_AUTO_FORECOLOR;
-            }                
+            }
         }
         return TRUE;
     case TreeNewGetCellTooltip:
