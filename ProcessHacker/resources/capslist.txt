@@ -756,6 +756,7 @@ lpacChromeInstallFiles
 lpacClipboard
 lpacCom
 lpacCryptoServices
+lpacEdgeWdagComms
 lpacEnterprisePolicyChangeNotifications
 lpacIdentityServices
 lpacIME
