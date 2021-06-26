@@ -2351,7 +2351,7 @@ typedef struct _SYSTEM_LOOKASIDE_INFORMATION
 // private
 typedef struct _SYSTEM_RANGE_START_INFORMATION
 {
-    PVOID SystemRangeStart;
+    ULONG_PTR SystemRangeStart;
 } SYSTEM_RANGE_START_INFORMATION, *PSYSTEM_RANGE_START_INFORMATION;
 
 typedef struct _SYSTEM_VERIFIER_INFORMATION_LEGACY // pre-19H1
@@ -2435,20 +2435,21 @@ typedef struct _SYSTEM_SESSION_PROCESS_INFORMATION
     PVOID Buffer;
 } SYSTEM_SESSION_PROCESS_INFORMATION, *PSYSTEM_SESSION_PROCESS_INFORMATION;
 
+// geoffchappell
 #ifdef _WIN64
 #define MAXIMUM_NODE_COUNT 0x40
 #else
 #define MAXIMUM_NODE_COUNT 0x10
 #endif
 
-// geoffchappell
+// private
 typedef struct _SYSTEM_NUMA_INFORMATION
 {
     ULONG HighestNodeNumber;
     ULONG Reserved;
     union
     {
-        ULONGLONG ActiveProcessorsGroupAffinity[MAXIMUM_NODE_COUNT];
+        GROUP_AFFINITY ActiveProcessorsGroupAffinity[MAXIMUM_NODE_COUNT];
         ULONGLONG AvailableMemory[MAXIMUM_NODE_COUNT];
         ULONGLONG Pad[MAXIMUM_NODE_COUNT * 2];
     };
@@ -2790,6 +2791,8 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION
 #define CODEINTEGRITY_OPTION_HVCI_KMCI_AUDITMODE_ENABLED 0x800
 #define CODEINTEGRITY_OPTION_HVCI_KMCI_STRICTMODE_ENABLED 0x1000
 #define CODEINTEGRITY_OPTION_HVCI_IUM_ENABLED 0x2000
+#define CODEINTEGRITY_OPTION_WHQL_ENFORCEMENT_ENABLED 0x4000
+#define CODEINTEGRITY_OPTION_WHQL_AUDITMODE_ENABLED 0x8000
 
 // private
 typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION
@@ -3592,16 +3595,13 @@ typedef struct _SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT
 // private
 typedef struct _SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION
 {
-    struct
-    {
-        ULONG Machine : 16;
-        ULONG KernelMode : 1;
-        ULONG UserMode : 1;
-        ULONG Native : 1;
-        ULONG Process : 1;
-        ULONG WoW64Container : 1;
-        ULONG ReservedZero0 : 11;
-    };
+    ULONG Machine : 16;
+    ULONG KernelMode : 1;
+    ULONG UserMode : 1;
+    ULONG Native : 1;
+    ULONG Process : 1;
+    ULONG WoW64Container : 1;
+    ULONG ReservedZero0 : 11;
 } SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION, *PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION;
 
 // private

@@ -406,6 +406,9 @@ C_ASSERT(FIELD_OFFSET(PEB32, WaitOnAddressHashTable) == 0x25c);
 //C_ASSERT(sizeof(PEB32) == 0x460); // REDSTONE3
 C_ASSERT(sizeof(PEB32) == 0x470);
 
+// Note: Use PhGetProcessPeb32 instead. (dmex)
+//#define WOW64_GET_PEB32(peb64) ((PPEB32)PTR_ADD_OFFSET((peb64), ALIGN_UP_BY(sizeof(PEB), PAGE_SIZE)))
+
 #define GDI_BATCH_BUFFER_SIZE 310
 
 typedef struct _GDI_TEB_BATCH32
