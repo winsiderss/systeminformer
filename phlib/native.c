@@ -9905,44 +9905,70 @@ NTSTATUS PhImpersonateToken(
     )
 {
     NTSTATUS status;
-    SECURITY_QUALITY_OF_SERVICE securityService;
-    OBJECT_ATTRIBUTES objectAttributes;
-    HANDLE tokenHandle;
+    TOKEN_TYPE tokenType;
+    ULONG returnLength;
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        NULL,
-        0,
-        NULL,
-        NULL
-        );
-
-    securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
-    securityService.ImpersonationLevel = SecurityImpersonation;
-    securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
-    securityService.EffectiveOnly = FALSE;
-    objectAttributes.SecurityQualityOfService = &securityService;
-
-    status = NtDuplicateToken(
+    status = NtQueryInformationToken(
         TokenHandle,
-        TOKEN_IMPERSONATE | TOKEN_QUERY,
-        &objectAttributes,
-        FALSE,
-        TokenImpersonation,
-        &tokenHandle
+        TokenType,
+        &tokenType,
+        sizeof(TOKEN_TYPE),
+        &returnLength
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    status = NtSetInformationThread(
-        ThreadHandle,
-        ThreadImpersonationToken,
-        &tokenHandle,
-        sizeof(HANDLE)
-        );
+    if (tokenType == TokenPrimary)
+    {
+        SECURITY_QUALITY_OF_SERVICE securityService;
+        OBJECT_ATTRIBUTES objectAttributes;
+        HANDLE tokenHandle;
 
-    NtClose(tokenHandle);
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            0,
+            NULL,
+            NULL
+            );
+
+        securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
+        securityService.ImpersonationLevel = SecurityImpersonation;
+        securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+        securityService.EffectiveOnly = FALSE;
+        objectAttributes.SecurityQualityOfService = &securityService;
+
+        status = NtDuplicateToken(
+            TokenHandle,
+            TOKEN_IMPERSONATE | TOKEN_QUERY,
+            &objectAttributes,
+            FALSE,
+            TokenImpersonation,
+            &tokenHandle
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = NtSetInformationThread(
+            ThreadHandle,
+            ThreadImpersonationToken,
+            &tokenHandle,
+            sizeof(HANDLE)
+            );
+
+        NtClose(tokenHandle);
+    }
+    else
+    {
+        status = NtSetInformationThread(
+            ThreadHandle,
+            ThreadImpersonationToken,
+            &TokenHandle,
+            sizeof(HANDLE)
+            );
+    }
 
     return status;
 }
