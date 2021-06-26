@@ -214,6 +214,52 @@ VOID PhNfLoadGuids(
     }
 }
 
+VOID PhNfCreateIconThreadDelayed(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_NF_ICON staticIcon = NULL;
+    ULONG iconCount = 0;
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            continue;
+
+        if (icon->SubId == PH_TRAY_ICON_ID_PLAIN_ICON)
+            staticIcon = icon;
+
+        iconCount++;
+    }
+
+    if (iconCount && PhBeginInitOnce(&initOnce))
+    {
+        if (NT_SUCCESS(NtCreateEvent(
+            &PhpTrayIconEventHandle,
+            EVENT_ALL_ACCESS,
+            NULL,
+            SynchronizationEvent,
+            FALSE
+            )))
+        {
+            // Set the event when the only icon is the static icon. (dmex)
+            if (iconCount == 1 && staticIcon)
+            {
+                NtSetEvent(PhpTrayIconEventHandle, NULL);
+            }
+
+            // Use a seperate thread so we don't block the main GUI or
+            // the provider threads when explorer is not responding. (dmex)
+            PhCreateThread2(PhNfpTrayIconUpdateThread, NULL);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+}
+
 VOID PhNfLoadStage2(
     VOID
     )
@@ -254,16 +300,7 @@ VOID PhNfLoadStage2(
     //    PhNfpAddNotifyIcon(icon);
     //}
 
-    if (NT_SUCCESS(NtCreateEvent(
-        &PhpTrayIconEventHandle,
-        EVENT_ALL_ACCESS,
-        NULL,
-        SynchronizationEvent,
-        FALSE
-        )))
-    {
-        PhCreateThread2(PhNfpTrayIconUpdateThread, NULL);
-    }
+    PhNfCreateIconThreadDelayed();
 
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -287,6 +324,11 @@ VOID PhNfUninitialization(
             continue;
 
         PhNfpRemoveNotifyIcon(icon);
+    }
+
+    if (PhpTrayIconEventHandle)
+    {
+        NtSetEvent(PhpTrayIconEventHandle, NULL);
     }
 }
 
@@ -441,6 +483,8 @@ VOID PhNfSetVisibleIcon(
     {
         Icon->Flags |= PH_NF_ICON_ENABLED;
         PhNfpAddNotifyIcon(Icon);
+
+        PhNfCreateIconThreadDelayed();
     }
     else
     {
