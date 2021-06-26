@@ -213,13 +213,9 @@ PPH_STRING EtpQueryDeviceProperty(
         buffer,
         &bufferSize,
         0
-        )) != CR_SUCCESS)
+        )) == CR_BUFFER_SMALL)
     {
         PhFree(buffer);
-
-        if (bufferSize == 0) // Required for ARM64 (dmex)
-            return NULL;
-
         buffer = PhAllocate(bufferSize);
 
         result = CM_Get_DevNode_Property(
@@ -323,7 +319,7 @@ PPH_STRING EtpQueryDeviceRegistryProperty(
         (PBYTE)string->Buffer,
         &bufferSize,
         0
-        )) != CR_SUCCESS)
+        )) == CR_BUFFER_SMALL)
     {
         PhDereferenceObject(string);
         string = PhCreateStringEx(NULL, bufferSize);
