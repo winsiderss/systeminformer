@@ -145,7 +145,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
@@ -179,7 +179,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
@@ -212,7 +212,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineARM64</TargetMachine>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -253,7 +253,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
@@ -296,7 +296,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
@@ -336,7 +336,7 @@
       <TargetMachine>MachineARM64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
