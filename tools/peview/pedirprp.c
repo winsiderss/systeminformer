@@ -221,7 +221,7 @@ VOID PvpPeEnumerateImageDataDirectory(
     PPV_DIRECTORY_NODE directoryNode;
     ULONG directoryAddress = 0;
     ULONG directorySize = 0;
-    //BOOLEAN directoryOverlay = FALSE;
+    PVOID imageDirectoryData = NULL;
     PIMAGE_DATA_DIRECTORY directory;
     PIMAGE_SECTION_HEADER directorySection = NULL;
     WCHAR value[PH_INT64_STR_LEN_1];
@@ -243,10 +243,18 @@ VOID PvpPeEnumerateImageDataDirectory(
             directorySize = directory->Size;
         }
 
-        if (directoryAddress)
+        // TODO: The security directory should never overlap a section and this
+        // should validate the address instead of skipping based on the index. (dmex)
+        if (directoryAddress && Index != IMAGE_DIRECTORY_ENTRY_SECURITY)
         {
             directorySection = PhMappedImageRvaToSection(&PvMappedImage, directoryAddress);
         }
+
+        // The security directory is a special case using RAW instead of RVA (dmex)
+        if (Index == IMAGE_DIRECTORY_ENTRY_SECURITY)
+            imageDirectoryData = PTR_ADD_OFFSET(PvMappedImage.ViewBase, directoryAddress);
+        else
+            imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL);
 
         //if (directoryAddress && directorySize)
         //{
@@ -290,23 +298,19 @@ VOID PvpPeEnumerateImageDataDirectory(
         }
     }
 
-    if (directoryAddress && directorySize)
+    if (imageDirectoryData && directorySize)
     {
         __try
         {
-            PVOID imageDirectoryData;
             PH_HASH_CONTEXT hashContext;
             UCHAR hash[32];
 
-            if (imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL))
-            {
-                PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                PhUpdateHash(&hashContext, imageDirectoryData, directorySize);
+            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
+            PhUpdateHash(&hashContext, imageDirectoryData, directorySize);
 
-                if (PhFinalHash(&hashContext, hash, 16, NULL))
-                {
-                    directoryNode->HashString = PhBufferToHexString(hash, 16);
-                }
+            if (PhFinalHash(&hashContext, hash, 16, NULL))
+            {
+                directoryNode->HashString = PhBufferToHexString(hash, 16);
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -317,20 +321,16 @@ VOID PvpPeEnumerateImageDataDirectory(
 
         __try
         {
-            PVOID imageDirectoryData;
             DOUBLE imageDirectoryEntropy;
 
-            if (imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL))
-            {
-                imageDirectoryEntropy = PvCalculateEntropyBuffer(
-                    imageDirectoryData,
-                    directorySize,
-                    NULL
-                    );
+            imageDirectoryEntropy = PvCalculateEntropyBuffer(
+                imageDirectoryData,
+                directorySize,
+                NULL
+                );
 
-                directoryNode->DirectoryEntropy = imageDirectoryEntropy;
-                directoryNode->EntropyString = PvFormatDoubleCropZero(imageDirectoryEntropy, 2);
-            }
+            directoryNode->DirectoryEntropy = imageDirectoryEntropy;
+            directoryNode->EntropyString = PvFormatDoubleCropZero(imageDirectoryEntropy, 2);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -340,21 +340,17 @@ VOID PvpPeEnumerateImageDataDirectory(
 
         __try
         {
-            PVOID imageDirectoryData;
             PPH_STRING ssdeepHashString = NULL;
 
-            if (imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL))
-            {
-                fuzzy_hash_buffer(
-                    imageDirectoryData,
-                    directorySize,
-                    &ssdeepHashString
-                    );
+            fuzzy_hash_buffer(
+                imageDirectoryData,
+                directorySize,
+                &ssdeepHashString
+                );
 
-                if (ssdeepHashString)
-                {
-                    directoryNode->SsdeepString = ssdeepHashString;
-                }
+            if (ssdeepHashString)
+            {
+                directoryNode->SsdeepString = ssdeepHashString;
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -365,25 +361,21 @@ VOID PvpPeEnumerateImageDataDirectory(
 
         __try
         {
-            PVOID imageDirectoryData;
             PPH_STRING tlshHashString = NULL;
 
-            if (imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL))
-            {
-                //
-                // This can fail in TLSH library during finalization when
-                // "buckets must be more than 50% non-zero" (see: tlsh_impl.cpp)
-                //
-                PvGetTlshBufferHash(
-                    imageDirectoryData,
-                    directorySize,
-                    &tlshHashString
-                    );
+            //
+            // This can fail in TLSH library during finalization when
+            // "buckets must be more than 50% non-zero" (see: tlsh_impl.cpp) (jxy-s)
+            //
+            PvGetTlshBufferHash(
+                imageDirectoryData,
+                directorySize,
+                &tlshHashString
+                );
 
-                if (!PhIsNullOrEmptyString(tlshHashString))
-                {
-                    directoryNode->TlshString = tlshHashString;
-                }
+            if (!PhIsNullOrEmptyString(tlshHashString))
+            {
+                directoryNode->TlshString = tlshHashString;
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
