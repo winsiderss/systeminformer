@@ -66,6 +66,61 @@
 
 // begin_rev
 
+#if (PHNT_MODE == PHNT_MODE_KERNEL)
+typedef enum _TOKEN_INFORMATION_CLASS
+{
+    TokenUser = 1, // q: TOKEN_USER
+    TokenGroups, // q: TOKEN_GROUPS
+    TokenPrivileges, // q: TOKEN_PRIVILEGES
+    TokenOwner, // q: TOKEN_OWNER
+    TokenPrimaryGroup, // q: TOKEN_PRIMARY_GROUP
+    TokenDefaultDacl, // q: TOKEN_DEFAULT_DACL
+    TokenSource, // q: TOKEN_SOURCE
+    TokenType, // q: TOKEN_TYPE
+    TokenImpersonationLevel, // q: SECURITY_IMPERSONATION_LEVEL
+    TokenStatistics, // q: TOKEN_STATISTICS // 10
+    TokenRestrictedSids, // q: TOKEN_GROUPS
+    TokenSessionId, // q; s: ULONG (requires SeTcbPrivilege)
+    TokenGroupsAndPrivileges, // TOKEN_GROUPS_AND_PRIVILEGES
+    TokenSessionReference,
+    TokenSandBoxInert, // q: ULONG
+    TokenAuditPolicy,
+    TokenOrigin, // q: TOKEN_ORIGIN
+    TokenElevationType, // q: TOKEN_ELEVATION_TYPE
+    TokenLinkedToken, // q: TOKEN_LINKED_TOKEN
+    TokenElevation, // q: TOKEN_ELEVATION // 20
+    TokenHasRestrictions, // q: ULONG
+    TokenAccessInformation, // TOKEN_ACCESS_INFORMATION
+    TokenVirtualizationAllowed, // q: ULONG
+    TokenVirtualizationEnabled, // q: ULONG
+    TokenIntegrityLevel, // q: TOKEN_MANDATORY_LABEL
+    TokenUIAccess, // q: ULONG
+    TokenMandatoryPolicy, // q: TOKEN_MANDATORY_POLICY
+    TokenLogonSid, // q: TOKEN_GROUPS
+    TokenIsAppContainer, // q: ULONG
+    TokenCapabilities, // q: TOKEN_GROUPS // 30
+    TokenAppContainerSid, // q: TOKEN_APPCONTAINER_INFORMATION
+    TokenAppContainerNumber, // q: ULONG
+    TokenUserClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+    TokenDeviceClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+    TokenRestrictedUserClaimAttributes,
+    TokenRestrictedDeviceClaimAttributes,
+    TokenDeviceGroups,
+    TokenRestrictedDeviceGroups,
+    TokenSecurityAttributes, // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION
+    TokenIsRestricted, // q: ULONG // 40
+    TokenProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL
+    TokenPrivateNameSpace,
+    TokenSingletonAttributes,
+    TokenBnoIsolation, // TOKEN_BNO_ISOLATION_INFORMATION
+    TokenChildProcessFlags,
+    TokenIsLessPrivilegedAppContainer, // q: ULONG
+    TokenIsSandboxed, // q: ULONG
+    TokenOriginatingProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL
+    MaxTokenInfoClass
+} TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
+#endif
+
 // Types
 
 #define TOKEN_SECURITY_ATTRIBUTE_TYPE_INVALID 0x00
@@ -163,7 +218,7 @@ NtCreateToken(
     _Out_ PHANDLE TokenHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ TOKEN_TYPE TokenType,
+    _In_ TOKEN_TYPE Type,
     _In_ PLUID AuthenticationId,
     _In_ PLARGE_INTEGER ExpirationTime,
     _In_ PTOKEN_USER User,
@@ -172,7 +227,7 @@ NtCreateToken(
     _In_opt_ PTOKEN_OWNER Owner,
     _In_ PTOKEN_PRIMARY_GROUP PrimaryGroup,
     _In_opt_ PTOKEN_DEFAULT_DACL DefaultDacl,
-    _In_ PTOKEN_SOURCE TokenSource
+    _In_ PTOKEN_SOURCE Source
     );
 
 #if (PHNT_VERSION >= PHNT_WIN8)
@@ -200,7 +255,7 @@ NtCreateTokenEx(
     _Out_ PHANDLE TokenHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ TOKEN_TYPE TokenType,
+    _In_ TOKEN_TYPE Type,
     _In_ PLUID AuthenticationId,
     _In_ PLARGE_INTEGER ExpirationTime,
     _In_ PTOKEN_USER User,
@@ -209,11 +264,11 @@ NtCreateTokenEx(
     _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION UserAttributes,
     _In_opt_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION DeviceAttributes,
     _In_opt_ PTOKEN_GROUPS DeviceGroups,
-    _In_opt_ PTOKEN_MANDATORY_POLICY TokenMandatoryPolicy,
+    _In_opt_ PTOKEN_MANDATORY_POLICY MandatoryPolicy,
     _In_opt_ PTOKEN_OWNER Owner,
     _In_ PTOKEN_PRIMARY_GROUP PrimaryGroup,
     _In_opt_ PTOKEN_DEFAULT_DACL DefaultDacl,
-    _In_ PTOKEN_SOURCE TokenSource
+    _In_ PTOKEN_SOURCE Source
     );
 #endif
 
@@ -265,7 +320,7 @@ NtDuplicateToken(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ BOOLEAN EffectiveOnly,
-    _In_ TOKEN_TYPE TokenType,
+    _In_ TOKEN_TYPE Type,
     _Out_ PHANDLE NewTokenHandle
     );
 

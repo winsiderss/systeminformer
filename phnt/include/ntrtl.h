@@ -6318,8 +6318,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSelfRelativeToAbsoluteSD2(
-    _Inout_ PSECURITY_DESCRIPTOR pSelfRelativeSecurityDescriptor,
-    _Inout_ PULONG pBufferSize
+    _Inout_ PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    _Inout_ PULONG BufferSize
     );
 
 // Access masks
@@ -6428,9 +6428,9 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlFindAceByType(
-    _In_ PACL pAcl,
+    _In_ PACL Acl,
     _In_ UCHAR AceType,
-    _Out_opt_ PULONG pIndex
+    _Out_opt_ PULONG Index
     );
 #endif
 
@@ -6734,6 +6734,40 @@ RtlCopySecurityDescriptor(
     _Out_ PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
     );
 
+// private
+typedef struct _RTL_ACE_DATA
+{
+    UCHAR AceType;
+    UCHAR InheritFlags;
+    UCHAR AceFlags;
+    ACCESS_MASK AccessMask;
+    PSID* Sid;
+} RTL_ACE_DATA, *PRTL_ACE_DATA;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateUserSecurityObject(
+    _In_ PRTL_ACE_DATA AceData,
+    _In_ ULONG AceCount,
+    _In_ PSID OwnerSid,
+    _In_ PSID GroupSid,
+    _In_ BOOLEAN IsDirectoryObject,
+    _In_ PGENERIC_MAPPING GenericMapping,
+    _Out_ PSECURITY_DESCRIPTOR* NewSecurityDescriptor
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateAndSetSD(
+    _In_ PRTL_ACE_DATA AceData,
+    _In_ ULONG AceCount,
+    _In_opt_ PSID OwnerSid,
+    _In_opt_ PSID GroupSid,
+    _Out_ PSECURITY_DESCRIPTOR* NewSecurityDescriptor
+    );
+
 // Misc. security
 
 NTSYSAPI
@@ -6957,12 +6991,14 @@ RtlDeregisterWait(
     _In_ HANDLE WaitHandle
     );
 
+#define RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION ((HANDLE)(LONG_PTR)-1)
+
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeregisterWaitEx(
     _In_ HANDLE WaitHandle,
-    _In_ HANDLE Event
+    _In_opt_ HANDLE Event
     );
 
 NTSYSAPI
@@ -7049,6 +7085,8 @@ RtlUpdateTimer(
     _In_ ULONG Period
     );
 
+#define RTL_TIMER_DELETE_WAIT_FOR_COMPLETION ((HANDLE)(LONG_PTR)-1)
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -7070,7 +7108,7 @@ NTSTATUS
 NTAPI
 RtlDeleteTimerQueueEx(
     _In_ HANDLE TimerQueueHandle,
-    _In_ HANDLE Event
+    _In_opt_ HANDLE Event
     );
 
 // Registry access
@@ -7612,6 +7650,7 @@ typedef enum _IMAGE_MITIGATION_POLICY
     ImageChildProcessPolicy, // RTL_IMAGE_MITIGATION_CHILD_PROCESS_POLICY
     ImageSehopPolicy, // RTL_IMAGE_MITIGATION_SEHOP_POLICY
     ImageHeapPolicy, // RTL_IMAGE_MITIGATION_HEAP_POLICY
+    ImageUserShadowStackPolicy, // RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
     MaxImageMitigationPolicy
 } IMAGE_MITIGATION_POLICY;
 
@@ -7730,12 +7769,26 @@ typedef struct _RTL_IMAGE_MITIGATION_HEAP_POLICY
     RTL_IMAGE_MITIGATION_POLICY TerminateOnHeapErrors;
 } RTL_IMAGE_MITIGATION_HEAP_POLICY, *PRTL_IMAGE_MITIGATION_HEAP_POLICY;
 
+// rev
+typedef struct _RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
+{
+    RTL_IMAGE_MITIGATION_POLICY UserShadowStack;
+    RTL_IMAGE_MITIGATION_POLICY SetContextIpValidation;
+    RTL_IMAGE_MITIGATION_POLICY BlockNonCetBinaries;
+} RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY, *PRTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY;
+
 typedef enum _RTL_IMAGE_MITIGATION_OPTION_STATE
 {
     RtlMitigationOptionStateNotConfigured,
     RtlMitigationOptionStateOn,
-    RtlMitigationOptionStateOff
+    RtlMitigationOptionStateOff,
+    RtlMitigationOptionStateForce,
+    RtlMitigationOptionStateOption
 } RTL_IMAGE_MITIGATION_OPTION_STATE;
+
+#define RTL_IMAGE_MITIGATION_OPTION_STATEMASK 3UL
+#define RTL_IMAGE_MITIGATION_OPTION_FORCEMASK 4UL
+#define RTL_IMAGE_MITIGATION_OPTION_OPTIONMASK 8UL
 
 // rev from PROCESS_MITIGATION_FLAGS
 #define RTL_IMAGE_MITIGATION_FLAG_RESET 0x1
@@ -7897,6 +7950,14 @@ NTAPI
 RtlIsParentOfChildAppContainer(
     _In_ PSID ParentAppContainerSid,
     _In_ PSID ChildAppContainerSid
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIsApiSetImplemented(
+    _In_ PCSTR Namespace
     );
 
 // rev

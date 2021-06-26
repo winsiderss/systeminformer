@@ -153,7 +153,11 @@ typedef struct _MEMORY_REGION_INFORMATION
             ULONG SoftwareEnclave : 1; // REDSTONE3
             ULONG PageSize64K : 1;
             ULONG PlaceholderReservation : 1; // REDSTONE4
-            ULONG Reserved : 23;
+            ULONG MappedAwe : 1; // 21H1
+            ULONG MappedWriteWatch : 1;
+            ULONG PageSizeLarge : 1;
+            ULONG PageSizeHuge : 1;
+            ULONG Reserved : 19;
         };
     };
     SIZE_T RegionSize;
@@ -272,12 +276,12 @@ typedef struct _MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION
 {
     union
     {
-        ULONG AllInformation;
         struct
         {
             ULONG State : 2;
             ULONG Reserved : 30;
         };
+        ULONG AllInformation;
     };
 } MEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION;
 
@@ -349,8 +353,9 @@ typedef struct _MEMORY_FRAME_INFORMATION
     ULONGLONG Cold : 1; // 19H1
     ULONGLONG Pinned : 1; // 1 - pinned, 0 - not pinned
     ULONGLONG DontUse : 48; // *_INFORMATION overlay
-    ULONGLONG Priority : 3; // rev
-    ULONGLONG Reserved : 4; // reserved for future expansion
+    ULONGLONG Priority : 3;
+    ULONGLONG NonTradeable : 1;
+    ULONGLONG Reserved : 3;
 } MEMORY_FRAME_INFORMATION;
 
 // private
@@ -358,7 +363,7 @@ typedef struct _FILEOFFSET_INFORMATION
 {
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG Offset : 48; // mapped files
-    ULONGLONG Reserved : 7; // reserved for future expansion
+    ULONGLONG Reserved : 7;
 } FILEOFFSET_INFORMATION;
 
 // private
@@ -366,7 +371,7 @@ typedef struct _PAGEDIR_INFORMATION
 {
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG PageDirectoryBase : 48; // private pages
-    ULONGLONG Reserved : 7; // reserved for future expansion
+    ULONGLONG Reserved : 7;
 } PAGEDIR_INFORMATION;
 
 // private
@@ -374,7 +379,7 @@ typedef struct _UNIQUE_PROCESS_INFORMATION
 {
     ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
     ULONGLONG UniqueProcessKey : 48; // ProcessId
-    ULONGLONG Reserved  : 7; // reserved for future expansion
+    ULONGLONG Reserved  : 7;
 } UNIQUE_PROCESS_INFORMATION, *PUNIQUE_PROCESS_INFORMATION;
 
 // private
@@ -625,6 +630,7 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
     VmImageHotPatchInformation, // 19H1
     VmPhysicalContiguityInformation, // 20H1
     VmVirtualMachinePrepopulateInformation,
+    VmRemoveFromWorkingSetInformation,
     MaxVmInfoClass
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
 
