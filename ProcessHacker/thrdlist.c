@@ -1761,87 +1761,148 @@ VOID PhpGenerateSyscallLists(
         PhUnloadMappedImage(&mappedImage);
     }
 
-    PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"win32u.dll"));
-
-    if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
+    if (WindowsVersion >= WINDOWS_10_20H1)
     {
-        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+        // Win32k has two types of syscall filtering. The first is a process mitigation disabling every win32k syscall
+        // while the second is a specific filter for specific individual system call indexes. The CreateWin32KFilterBitmap
+        // function enumerates the exports from win32k.sys starting with __win32kstub_ for building the syscall table and
+        // more reliable than win32u.dll since syscalls are deleted instead of being replaced with RaiseFailFastException. (dmex)
+
+        PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"win32k.sys"));
+
+        if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
         {
-            PPH_LIST list = PhCreateList(exports.NumberOfEntries);
-
-            for (ULONG i = 0; i < exports.NumberOfEntries; i++)
+            if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
             {
-                if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
+                PPH_LIST list = PhCreateList(exports.NumberOfEntries);
+
+                for (ULONG i = 0; i < exports.NumberOfEntries; i++)
                 {
-                    if (!(exportEntry.Name && strncmp(exportEntry.Name, "Nt", 2) == 0))
-                        continue;
-
-                    if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
+                    if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
                     {
-                        PPH_SYSCALL_ENTRY entry;
+                        if (!(exportEntry.Name && strncmp(exportEntry.Name, "__win32kstub_", 13) == 0))
+                            continue;
 
-                        entry = PhAllocate(sizeof(PH_SYSCALL_ENTRY));
-                        entry->Address = (ULONG_PTR)exportFunction.Function;
-                        entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
-
-                        // Win10 insider added non-syscalls to win32u that break sorting by RVA.
-                        if (WindowsVersion >= WINDOWS_10_21H1 && PhOsVersion.dwBuildNumber > 19043)
+                        if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
                         {
-                            PBYTE exportAddress;
+                            PPH_SYSCALL_ENTRY entry;
 
-                            if (exportAddress = PhMappedImageRvaToVa(&mappedImage, PtrToUlong(exportFunction.Function), NULL))
-                            {
-                                PPH_SYSTEMCALL_ENTRY systemCallEntry = NULL;
+                            entry = PhAllocate(sizeof(PH_SYSCALL_ENTRY));
+                            entry->Address = (ULONG_PTR)exportFunction.Function;
+                            entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+                            PhSkipStringRef(&entry->Name->sr, 13 * sizeof(WCHAR));
 
-                            #ifdef _WIN64
-                                BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
-
-                                if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
-                                {
-                                    systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
-                                }
-                            #else
-                                BYTE prologue[1] = { 0xB8 };
-
-                                if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
-                                {
-                                    systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
-                                }
-                            #endif
-
-                                if (systemCallEntry && systemCallEntry->SystemServiceIndex == 1)
-                                {
-                                    entry->Address = systemCallEntry->SystemCallIndex;
-                                    PhAddItemList(list, entry);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            PhAddItemList(list, entry);
+                            PhAddItemList(list, entry); 
                         }
                     }
                 }
-            }
 
-            qsort_s(list->Items, list->Count, sizeof(PVOID), PhpSystemCallListIndexSort, NULL);
+                qsort_s(list->Items, list->Count, sizeof(PVOID), PhpSystemCallListIndexSort, NULL);
 
-            if (list->Count)
-            {
-                win32kSystemCallList = PhCreateList(list->Count);
-
-                for (ULONG i = 0; i < list->Count; i++)
+                if (list->Count)
                 {
-                    PPH_SYSCALL_ENTRY entry = list->Items[i];
-                    PhAddItemList(win32kSystemCallList, entry->Name);
-                    PhFree(entry);
+                    win32kSystemCallList = PhCreateList(list->Count);
+
+                    for (ULONG i = 0; i < list->Count; i++)
+                    {
+                        PPH_SYSCALL_ENTRY entry = list->Items[i];
+                        PhAddItemList(win32kSystemCallList, entry->Name);
+                        PhFree(entry);
+                    }
                 }
+
+                PhDereferenceObject(list);
             }
 
-            PhDereferenceObject(list);
+            PhUnloadMappedImage(&mappedImage);
         }
+    }
+    else
+    {
+        PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"win32u.dll"));
 
-        PhUnloadMappedImage(&mappedImage);
+        if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
+        {
+            if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+            {
+                PPH_LIST list = PhCreateList(exports.NumberOfEntries);
+
+                for (ULONG i = 0; i < exports.NumberOfEntries; i++)
+                {
+                    if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &exportEntry)))
+                    {
+                        if (!(exportEntry.Name && strncmp(exportEntry.Name, "Nt", 2) == 0))
+                            continue;
+
+                        if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, NULL, exportEntry.Ordinal, &exportFunction)))
+                        {
+                            PPH_SYSCALL_ENTRY entry;
+
+                            entry = PhAllocate(sizeof(PH_SYSCALL_ENTRY));
+                            entry->Address = (ULONG_PTR)exportFunction.Function;
+                            entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
+
+                            // NOTE: When system calls are deleted from win32k.sys the win32u.dll interface gets
+                            // replaced with stubs that call RaiseFailFastException. This breaks the sorting via
+                            // RVA based on exports since these exports still exist so we'll check the prologue. (dmex)
+                            if (WindowsVersion >= WINDOWS_10_21H1)
+                            {
+                                PBYTE exportAddress;
+
+                                if (exportAddress = PhMappedImageRvaToVa(&mappedImage, PtrToUlong(exportFunction.Function), NULL))
+                                {
+                                    PPH_SYSTEMCALL_ENTRY systemCallEntry = NULL;
+
+                                #ifdef _WIN64
+                                    BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
+                            
+                                    if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
+                                    {
+                                        systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
+                                    }
+                                #else
+                                    BYTE prologue[1] = { 0xB8 };
+                            
+                                    if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
+                                    {
+                                        systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
+                                    }
+                                #endif
+
+                                    if (systemCallEntry && systemCallEntry->SystemServiceIndex == WIN32K_SERVICE_INDEX)
+                                    {
+                                        entry->Address = systemCallEntry->SystemCallIndex;
+                                        PhAddItemList(list, entry);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                PhAddItemList(list, entry);
+                            }
+                        }
+                    }
+                }
+
+                qsort_s(list->Items, list->Count, sizeof(PVOID), PhpSystemCallListIndexSort, NULL);
+
+                if (list->Count)
+                {
+                    win32kSystemCallList = PhCreateList(list->Count);
+
+                    for (ULONG i = 0; i < list->Count; i++)
+                    {
+                        PPH_SYSCALL_ENTRY entry = list->Items[i];
+                        PhAddItemList(win32kSystemCallList, entry->Name);
+                        PhFree(entry);
+                    }
+                }
+
+                PhDereferenceObject(list);
+            }
+
+            PhUnloadMappedImage(&mappedImage);
+        }
     }
 
     *NtdllSystemCallList = ntdllSystemCallList;
