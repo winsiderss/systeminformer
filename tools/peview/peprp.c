@@ -682,6 +682,53 @@ PPH_STRING PvpGetSectionCharacteristics(
         PhAppendStringBuilder2(&stringBuilder, L"Locked, ");
     if (Characteristics & IMAGE_SCN_MEM_PRELOAD)
         PhAppendStringBuilder2(&stringBuilder, L"Preload, ");
+
+    switch (Characteristics & IMAGE_SCN_ALIGN_MASK)
+    {
+    case IMAGE_SCN_ALIGN_1BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"1 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_2BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"2 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_4BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"4 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_8BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"8 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_16BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"16 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_32BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"32 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_64BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"64 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_128BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"128 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_256BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"256 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_512BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"512 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_1024BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"1024 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_2048BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"2048 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_4096BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"4096 alignment, ");
+        break;
+    case IMAGE_SCN_ALIGN_8192BYTES:
+        PhAppendStringBuilder2(&stringBuilder, L"8192 alignment, ");
+        break;
+    }
+
     if (Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL)
         PhAppendStringBuilder2(&stringBuilder, L"Extended relocations, ");
     if (Characteristics & IMAGE_SCN_MEM_DISCARDABLE)
