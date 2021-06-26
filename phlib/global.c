@@ -148,8 +148,12 @@ VOID PhInitializeWindowsVersion(
     minorVersion = versionInfo.dwMinorVersion;
     buildVersion = versionInfo.dwBuildNumber;
 
+    if (majorVersion == 6 && minorVersion < 1 || majorVersion < 6)
+    {
+        WindowsVersion = WINDOWS_ANCIENT;
+    }
     // Windows 7, Windows Server 2008 R2
-    if (majorVersion == 6 && minorVersion == 1)
+    else if (majorVersion == 6 && minorVersion == 1)
     {
         WindowsVersion = WINDOWS_7;
     }
