@@ -185,7 +185,7 @@ VOID PhpUpdateProcessMitigationPolicies(
             if (sb.String->Length != 0)
             {
                 PhRemoveEndStringBuilder(&sb, 2);
-                PhSetDialogItemText(hwndDlg, IDC_MITIGATION, sb.String->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_MITIGATION, PhFinalStringBuilderString(&sb)->Buffer);
             }
             else
             {
@@ -230,9 +230,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     {
         return FALSE;
     }
-
-    if (!PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
-        return FALSE;
 
     switch (uMsg)
     {
