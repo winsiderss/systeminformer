@@ -326,7 +326,6 @@ NTSTATUS PhCreateThread2(
     )
 {
     NTSTATUS status;
-    HANDLE threadHandle;
     PPHP_BASE_THREAD_CONTEXT context;
 
     context = PhAllocateFromFreeList(&PhpBaseThreadContextFreeList);
@@ -342,14 +341,13 @@ NTSTATUS PhCreateThread2(
         0,
         PhpBaseThreadStart,
         context,
-        &threadHandle,
+        NULL,
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
         PHLIB_INC_STATISTIC(BaseThreadsCreated);
-        NtClose(threadHandle);
     }
     else
     {
@@ -438,7 +436,11 @@ NTSTATUS PhDelayExecution(
 {
     if (Interval == INFINITE) // HACK (dmex)
     {
-        return NtDelayExecution(FALSE, NULL);
+        LARGE_INTEGER interval;
+
+        interval.QuadPart = LLONG_MIN;
+
+        return NtDelayExecution(FALSE, &interval);
     }
     else
     {
