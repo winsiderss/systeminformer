@@ -539,6 +539,15 @@ VOID PhMwpInitializeProcessMenu(
             PhEnableEMenuItem(Menu, ID_PROCESS_SEARCHONLINE, TRUE);
         }
 
+        // Disable the restart menu for service host processes. (dmex)
+        if (
+            Processes[0]->ServiceList &&
+            Processes[0]->ServiceList->Count != 0
+            )
+        {
+            PhEnableEMenuItem(Menu, ID_PROCESS_RESTART, FALSE);
+        }
+
         if (
             PhIsNullOrEmptyString(Processes[0]->FileName) ||
             !PhDoesFileExists(Processes[0]->FileName)
