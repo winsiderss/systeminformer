@@ -37,6 +37,7 @@
 #include <settings.h>
 
 #include <apiimport.h>
+#include <appresolver.h>
 #include <hndlprv.h>
 #include <memprv.h>
 #include <modprv.h>
@@ -1915,8 +1916,9 @@ BOOLEAN PhUiRestartProcess(
     SIZE_T attributeListLength = 0;
     PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
     PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
+    BOOLEAN appContainerRevertToken = FALSE;
     PVOID environment = NULL;
-    HANDLE tokenHandle;
+    HANDLE tokenHandle = NULL;
     ULONG flags = 0;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
@@ -2041,7 +2043,29 @@ BOOLEAN PhUiRestartProcess(
             flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
         }
 
-        NtClose(tokenHandle);
+        // CreateProcess returns access_denied when restarting full-trust immersive/store processes since appcontainer information 
+        // is located in the current user registry hive. This is especially noticable when we're running elevated with a
+        // different user on the same desktop session via UAC over-the-shoulder elevation and try to restart notepad.exe 
+        // so we're required to impersonate the token before restarting full-trust immersive/store processes... sigh. (dmex)
+        if (PhIsTokenFullTrustAppPackage(tokenHandle))
+        {
+            NtClose(tokenHandle);
+            tokenHandle = NULL;
+
+            if (NT_SUCCESS(PhOpenProcessToken(
+                processHandle,
+                TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
+                &tokenHandle
+                )))
+            {
+                appContainerRevertToken = NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), tokenHandle));
+            }
+        }
+        else
+        {
+            NtClose(tokenHandle);
+            tokenHandle = NULL;
+        }
     }
 
     status = PhCreateProcessWin32Ex(
@@ -2056,6 +2080,13 @@ BOOLEAN PhUiRestartProcess(
         &newProcessHandle,
         NULL
         );
+
+    if (tokenHandle)
+    {
+        if (appContainerRevertToken)
+            PhRevertImpersonationToken(NtCurrentThread());
+        NtClose(tokenHandle);
+    }
 
     if (NT_SUCCESS(status))
     {
