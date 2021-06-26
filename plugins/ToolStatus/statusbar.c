@@ -273,11 +273,13 @@ VOID StatusBarUpdate(
 
     count = 0;
     memset(text, 0, sizeof(text));
+    memset(textLength, 0, sizeof(textLength));
 
     for (i = 0; i < StatusBarItemList->Count; i++)
     {
         SIZE size;
         ULONG width;
+        SIZE_T length;
 
         switch (PtrToUlong(StatusBarItemList->Items[i]))
         {
@@ -586,7 +588,12 @@ VOID StatusBarUpdate(
             break;
         }
 
-        if (!GetTextExtentPoint32(hdc, text[count], (UINT)((textLength[count] - sizeof(UNICODE_NULL)) / sizeof(WCHAR)), &size))
+        if (textLength[count] > sizeof(UNICODE_NULL))
+            length = textLength[count] - sizeof(UNICODE_NULL);
+        else
+            length = 0;
+
+        if (!GetTextExtentPoint32(hdc, text[count], (UINT)(length / sizeof(WCHAR)), &size))
             size.cx = 200;
 
         if (count != 0)
