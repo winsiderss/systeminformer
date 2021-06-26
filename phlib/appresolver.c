@@ -69,6 +69,23 @@ static PVOID PhpQueryStartMenuCacheInterface(
     return startMenuInterface;
 }
 
+static LPMALLOC PhpQueryStartMenuMallocInterface(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static LPMALLOC allocInterface = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        CoGetMalloc(MEMCTX_TASK, &allocInterface);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return allocInterface;
+}
+
 static BOOLEAN PhpKernelAppCoreInitialized(
     VOID
     )
@@ -142,8 +159,12 @@ BOOLEAN PhAppResolverGetAppIdForProcess(
 
     if (appIdText)
     {
+        //SIZE_T appIdTextLength = IMalloc_GetSize(PhpQueryStartMenuMallocInterface(), appIdText);
+        //*ApplicationUserModelId = PhCreateStringEx(appIdText, appIdTextLength - sizeof(UNICODE_NULL));
+        //IMalloc_Free(PhpQueryStartMenuMallocInterface(), appIdText);
+
         *ApplicationUserModelId = PhCreateString(appIdText);
-        RtlFreeHeap(RtlProcessHeap(), 0, appIdText);
+        CoTaskMemFree(appIdText);
         return TRUE;
     }
 
@@ -187,8 +208,12 @@ BOOLEAN PhAppResolverGetAppIdForWindow(
 
     if (appIdText)
     {
+        //SIZE_T appIdTextLength = IMalloc_GetSize(PhpQueryStartMenuMallocInterface(), appIdText);
+        //*ApplicationUserModelId = PhCreateStringEx(appIdText, appIdTextLength - sizeof(UNICODE_NULL));
+        //IMalloc_Free(PhpQueryStartMenuMallocInterface(), appIdText);
+
         *ApplicationUserModelId = PhCreateString(appIdText);
-        RtlFreeHeap(RtlProcessHeap(), 0, appIdText);
+        CoTaskMemFree(appIdText);
         return TRUE;
     }
 
@@ -240,7 +265,6 @@ HRESULT PhAppResolverEnablePackageDebug(
     )
 {
     HRESULT status;
-    PPH_LIST packageTasks = NULL;
     IPackageDebugSettings* packageDebugSettings;
 
     status = PhGetClassObject(
@@ -270,7 +294,6 @@ HRESULT PhAppResolverDisablePackageDebug(
     )
 {
     HRESULT status;
-    PPH_LIST packageTasks = NULL;
     IPackageDebugSettings* packageDebugSettings;
 
     status = PhGetClassObject(
@@ -555,6 +578,7 @@ PPH_STRING PhGetPackageAppDataPath(
 
                         attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
 
+                        // TODO: Lookup user specific environment path from process. (dmex)
                         if (attributePath = PhExpandEnvironmentStrings(&appdataPackages))
                         {
                             packageAppDataPath = PhConcatStringRef2(&attributePath->sr, &attributeValue->sr);
