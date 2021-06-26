@@ -34,8 +34,10 @@
 
 PPH_OBJECT_TYPE PhpProcessPropContextType = NULL;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType = NULL;
+PPH_OBJECT_TYPE PhpProcessPropPageWaitContextType = NULL;
 PH_STRINGREF PhpLoadingText = PH_STRINGREF_INIT(L"Loading...");
 static RECT MinimumSize = { -1, -1, -1, -1 };
+SLIST_HEADER WaitContextQueryListHead;
 
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     _In_opt_ HWND ParentWindowHandle,
@@ -50,6 +52,8 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     {
         PhpProcessPropContextType = PhCreateObjectType(L"ProcessPropContext", 0, PhpProcessPropContextDeleteProcedure);
         PhpProcessPropPageContextType = PhCreateObjectType(L"ProcessPropPageContext", 0, PhpProcessPropPageContextDeleteProcedure);
+        PhpProcessPropPageWaitContextType = PhCreateObjectType(L"ProcessPropPageWaitContext", 0, PhpProcessPropPageWaitContextDeleteProcedure);
+        RtlInitializeSListHead(&WaitContextQueryListHead);
         PhEndInitOnce(&initOnce);
     }
 
@@ -214,6 +218,11 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         return 0;
 
     oldWndProc = propSheetContext->PropSheetWindowHookProc;
+
+    if (RtlQueryDepthSList(&WaitContextQueryListHead))
+    {
+        PhpFlushProcessPropSheetWaitContextData();
+    }
 
     switch (uMsg)
     {
@@ -475,6 +484,132 @@ INT CALLBACK PhpStandardPropPageProc(
     return 1;
 }
 
+VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_PROCESS_WAITPROPCONTEXT context = (PPH_PROCESS_WAITPROPCONTEXT)Object;
+
+    if (context->ProcessWaitHandle)
+        RtlDeregisterWait(context->ProcessWaitHandle);
+    if (context->ProcessItem)
+        PhDereferenceObject(context->ProcessItem);
+}
+
+VOID PhpCreateProcessPropSheetWaitContext(
+    _In_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ HWND WindowHandle
+    )
+{
+    PPH_PROCESS_ITEM processItem = PropContext->ProcessItem;
+    PPH_PROCESS_WAITPROPCONTEXT waitContext;
+    HANDLE processHandle;
+
+    if (!processItem->QueryHandle)
+        return;
+    if (processItem->ProcessId == NtCurrentProcessId())
+        return;
+
+    if (!NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        SYNCHRONIZE,
+        processItem->ProcessId
+        )))
+    {
+        return;
+    }
+
+    waitContext = PhCreateObjectZero(sizeof(PH_PROCESS_WAITPROPCONTEXT), PhpProcessPropPageWaitContextType);
+    waitContext->ProcessItem = PhReferenceObject(processItem);
+    waitContext->PropSheetWindowHandle = GetParent(WindowHandle);
+
+    if (NT_SUCCESS(RtlRegisterWait(
+        &waitContext->ProcessWaitHandle,
+        processHandle,
+        PhpProcessPropertiesWaitCallback,
+        waitContext,
+        INFINITE,
+        WT_EXECUTEONLYONCE | WT_EXECUTEINIOTHREAD
+        )))
+    {
+        PropContext->ProcessWaitContext = waitContext;
+    }
+    else
+    {
+        PhDereferenceObject(waitContext->ProcessItem);
+        PhDereferenceObject(waitContext);
+    }
+
+    NtClose(processHandle);
+}
+
+VOID PhpFlushProcessPropSheetWaitContextData(
+    VOID
+    )
+{
+    PSLIST_ENTRY entry;
+    PPH_PROCESS_WAITPROPCONTEXT data;
+    PROCESS_BASIC_INFORMATION basicInfo;
+
+    //if (!RtlFirstEntrySList(&QueryListHead))
+    //    return;
+
+    entry = RtlInterlockedFlushSList(&WaitContextQueryListHead);
+
+    while (entry)
+    {
+        data = CONTAINING_RECORD(entry, PH_PROCESS_WAITPROPCONTEXT, ListEntry);
+        entry = entry->Next;
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(data->ProcessItem->QueryHandle, &basicInfo)))
+        {
+            PPH_STRING statusMessage;
+            PPH_STRING errorMessage;
+            PH_FORMAT format[5];
+
+            PhInitFormatSR(&format[0], data->ProcessItem->ProcessName->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatU(&format[2], HandleToUlong(data->ProcessItem->ProcessId));
+
+            if (errorMessage = PhGetStatusMessage(basicInfo.ExitStatus, 0))
+            {
+                PhInitFormatS(&format[3], L") exited with ");
+                PhInitFormatSR(&format[4], errorMessage->sr);
+
+                statusMessage = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                PhDereferenceObject(errorMessage);
+            }
+            else
+            {
+                PhInitFormatS(&format[3], L") exited with 0x");
+                PhInitFormatX(&format[4], basicInfo.ExitStatus);
+
+                statusMessage = PhFormat(format, RTL_NUMBER_OF(format), 0);
+            }
+
+            if (statusMessage)
+            {
+                PhSetWindowText(data->PropSheetWindowHandle, PhGetString(statusMessage));
+                PhDereferenceObject(statusMessage);
+            }
+        }
+
+        //PostMessage(data->PropSheetWindowHandle, WM_PH_PROPPAGE_EXITSTATUS, 0, (LPARAM)data);
+    }
+}
+
+VOID CALLBACK PhpProcessPropertiesWaitCallback(
+    _In_ PVOID Context,
+    _In_ BOOLEAN TimerOrWaitFired
+    )
+{
+    PPH_PROCESS_WAITPROPCONTEXT waitContext = Context;
+
+    // This avoids blocking the workqueue and avoids converting the workqueue to GUI threads. (dmex)
+    RtlInterlockedPushEntrySList(&WaitContextQueryListHead, &waitContext->ListEntry);
+}
+
 _Success_(return)
 BOOLEAN PhPropPageDlgProcHeader(
     _In_ HWND hwndDlg,
@@ -490,10 +625,24 @@ BOOLEAN PhPropPageDlgProcHeader(
 
     if (uMsg == WM_INITDIALOG)
     {
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, (PVOID)lParam);
-    }
+        PPH_PROCESS_PROPCONTEXT propContext;
 
-    propSheetPage = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        propSheetPage = (LPPROPSHEETPAGE)lParam;
+        propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+        propContext = propPageContext->PropContext;
+
+        if (!propContext->WaitInitialized)
+        {
+            PhpCreateProcessPropSheetWaitContext(propContext, hwndDlg);
+            propContext->WaitInitialized = TRUE;
+        }
+
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, propSheetPage);
+    }
+    else
+    {
+        propSheetPage = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
 
     if (!propSheetPage)
         return FALSE;
@@ -510,6 +659,12 @@ BOOLEAN PhPropPageDlgProcHeader(
     if (uMsg == WM_DESTROY)
     {
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
+        if (propPageContext->PropContext->ProcessWaitContext)
+        {
+            PhDereferenceObject(propPageContext->PropContext->ProcessWaitContext);
+            propPageContext->PropContext->ProcessWaitContext = NULL;
+        }
     }
 
     return TRUE;

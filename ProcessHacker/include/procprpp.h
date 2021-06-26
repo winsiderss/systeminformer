@@ -48,6 +48,25 @@ INT CALLBACK PhpStandardPropPageProc(
     _In_ LPPROPSHEETPAGE ppsp
     );
 
+VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    );
+
+VOID PhpCreateProcessPropSheetWaitContext(
+    _In_ PPH_PROCESS_PROPCONTEXT PropContext,
+    _In_ HWND WindowHandle
+    );
+
+VOID PhpFlushProcessPropSheetWaitContextData(
+    VOID
+    );
+
+VOID CALLBACK PhpProcessPropertiesWaitCallback(
+    _In_ PVOID Context,
+    _In_ BOOLEAN TimerOrWaitFired
+    );
+
 #define SET_BUTTON_ICON(Id, Icon) \
     SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_ICON, (LPARAM)(Icon))
 

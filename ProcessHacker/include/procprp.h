@@ -1,6 +1,14 @@
 #ifndef PH_PROCPRP_H
 #define PH_PROCPRP_H
 
+typedef struct _PH_PROCESS_WAITPROPCONTEXT
+{
+    SLIST_ENTRY ListEntry;
+    HANDLE PropSheetWindowHandle;
+    HANDLE ProcessWaitHandle;
+    PPH_PROCESS_ITEM ProcessItem;
+} PH_PROCESS_WAITPROPCONTEXT, *PPH_PROCESS_WAITPROPCONTEXT;
+
 #define PH_PROCESS_PROPCONTEXT_MAXPAGES 20
 
 typedef struct _PH_PROCESS_PROPCONTEXT
@@ -11,6 +19,9 @@ typedef struct _PH_PROCESS_PROPCONTEXT
     HPROPSHEETPAGE *PropSheetPages;
 
     HANDLE SelectThreadId;
+
+    PPH_PROCESS_WAITPROPCONTEXT ProcessWaitContext;
+    BOOLEAN WaitInitialized;
 } PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;
 
 // begin_phapppub
