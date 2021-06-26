@@ -30,6 +30,7 @@
             <LanguageStandard_C>stdc17</LanguageStandard_C>
             <StringPooling>true</StringPooling>
             <ControlFlowGuard>Guard</ControlFlowGuard>
+            <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
