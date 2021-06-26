@@ -1595,7 +1595,7 @@ VOID PhSetDesktopWinStaAccess(
 
     // TODO: Set security on the correct window station and desktop.
 
-    allAppPackagesSid = (PISID)allAppPackagesSidBuffer;
+    allAppPackagesSid = (PSID)allAppPackagesSidBuffer;
     RtlInitializeSid(allAppPackagesSid, &appPackageAuthority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
     *RtlSubAuthoritySid(allAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
     *RtlSubAuthoritySid(allAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
