@@ -71,6 +71,10 @@ PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
 
+BOOLEAN PhIsTokenFullTrustAppPackage(
+    _In_ HANDLE TokenHandle
+    );
+
 BOOLEAN PhIsPackageCapabilitySid(
     _In_ PSID AppContainerSid,
     _In_ PSID Sid
