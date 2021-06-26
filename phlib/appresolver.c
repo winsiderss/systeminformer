@@ -647,6 +647,47 @@ PPH_STRING PhGetProcessPackageFullName(
     return packageName;
 }
 
+BOOLEAN PhIsTokenFullTrustAppPackage(
+    _In_ HANDLE TokenHandle
+    )
+{
+    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    BOOLEAN tokenIsAppContainer = FALSE;
+    BOOLEAN tokenHasAppId = FALSE;
+
+    if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)))
+    {
+        if (tokenIsAppContainer)
+            return FALSE;
+    }
+
+    if (NT_SUCCESS(PhQueryTokenVariableSize(TokenHandle, TokenSecurityAttributes, &info)))
+    {
+        for (ULONG i = 0; i < info->AttributeCount; i++)
+        {
+            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+
+            if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+            {
+                PH_STRINGREF attributeNameSr;
+
+                PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
+
+                if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
+                {
+                    tokenHasAppId = TRUE;
+                    break;
+                }
+            }
+        }
+
+        PhFree(info);
+    }
+
+    return tokenHasAppId;
+}
+
 BOOLEAN PhIsPackageCapabilitySid(
     _In_ PSID AppContainerSid,
     _In_ PSID Sid
