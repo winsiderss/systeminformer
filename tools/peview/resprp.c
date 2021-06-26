@@ -215,7 +215,7 @@ PPH_STRING PvpGetResourceTypeString(
         return PhCreateString(L"RT_MANIFEST");
     }
 
-    return PhFormatString(L"%lu", (ULONG)Type);
+    return PhFormatUInt64((ULONG)Type, FALSE);
 }
 
 PPH_STRING PvpPeResourceDumpFileName(
