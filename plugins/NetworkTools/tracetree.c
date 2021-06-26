@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2015-2017 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -297,6 +297,10 @@ VOID UpdateTracertNodePingText(
     else if (Node->PingStatus[Index] == IP_REQ_TIMED_OUT)
     {
         PhInitializeStringRef(&CellText->Text, L"*");
+    }
+    else if (Node->PingStatus[Index] == IP_DEST_NO_ROUTE)
+    {
+        PhInitializeStringRef(&CellText->Text, L"The destination address route is unreachable.");
     }
     else
     {

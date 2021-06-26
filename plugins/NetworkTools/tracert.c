@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Tracert dialog
  *
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -159,6 +159,7 @@ NTSTATUS TracertHostnameLookupCallback(
     )
 {
     PTRACERT_RESOLVE_WORKITEM workitem = Parameter;
+    BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
     PPH_STRING dnsReverseNameString = NULL;
     PDNS_RECORD dnsRecordList = NULL;
@@ -172,6 +173,16 @@ NTSTATUS TracertHostnameLookupCallback(
             PhFree(workitem);
             return STATUS_SUCCESS;
         }
+
+        if (IN4_IS_ADDR_LOOPBACK(&inAddr4) ||
+            IN4_IS_ADDR_BROADCAST(&inAddr4) ||
+            IN4_IS_ADDR_MULTICAST(&inAddr4) ||
+            IN4_IS_ADDR_LINKLOCAL(&inAddr4) ||
+            IN4_IS_ADDR_MC_LINKLOCAL(&inAddr4) ||
+            IN4_IS_ADDR_RFC1918(&inAddr4))
+        {
+            dnsLocalQuery = TRUE;
+        }
     }
     else if (workitem->Type == PH_IPV6_NETWORK_TYPE)
     {
@@ -182,6 +193,14 @@ NTSTATUS TracertHostnameLookupCallback(
             PhFree(workitem);
             return STATUS_SUCCESS;
         }
+
+        if (IN6_IS_ADDR_LOOPBACK(&inAddr6) ||
+            IN6_IS_ADDR_MULTICAST(&inAddr6) ||
+            IN6_IS_ADDR_LINKLOCAL(&inAddr6) ||
+            IN6_IS_ADDR_MC_LINKLOCAL(&inAddr6))
+        {
+            dnsLocalQuery = TRUE;
+        }
     }
 
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(workitem)))
@@ -190,11 +209,25 @@ NTSTATUS TracertHostnameLookupCallback(
         return STATUS_FAIL_CHECK;
     }
 
-    if (dnsRecordList = PhDnsQuery(
-        NULL,
-        dnsReverseNameString->Buffer,
-        DNS_TYPE_PTR
-        ))
+    if (PhGetIntegerSetting(L"EnableNetworkResolveDoH") && !dnsLocalQuery)
+    {
+        dnsRecordList = PhDnsQuery(
+            NULL,
+            dnsReverseNameString->Buffer,
+            DNS_TYPE_PTR
+            );
+    }
+    else
+    {
+        dnsRecordList = PhDnsQuery2(
+            NULL,
+            dnsReverseNameString->Buffer,
+            DNS_TYPE_PTR,
+            DNS_QUERY_NO_HOSTS_FILE // DNS_QUERY_BYPASS_CACHE
+            );
+    }
+
+    if (dnsRecordList)
     {
         PH_STRING_BUILDER stringBuilder;
 
@@ -362,6 +395,7 @@ NTSTATUS NetworkTracertThreadStart(
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     SOCKADDR_STORAGE sourceAddress = { 0 };
     SOCKADDR_STORAGE destinationAddress = { 0 };
+    BOOLEAN icmpReplyStatusFatal = FALSE;
     ULONG icmpReplyCount = 0;
     ULONG icmpReplyLength = 0;
     PVOID icmpReplyBuffer = NULL;
@@ -466,6 +500,17 @@ NTSTATUS NetworkTracertThreadStart(
                     node->PingList[ii] = reply4->RoundTripTime;
                     UpdateTracertNode(context, node);
 
+                    if (reply4->Status == IP_SUCCESS)
+                    {
+                        icmpReplyStatusFatal = FALSE; // reset failure
+                    }
+
+                    if (reply4->Status == IP_DEST_NO_ROUTE)
+                    {
+                        icmpReplyStatusFatal = TRUE;
+                        //break; // add break for instant failure
+                    }
+
                     if (reply4->Status == IP_HOP_LIMIT_EXCEEDED && reply4->RoundTripTime < MIN_INTERVAL)
                     {
                         //PhDelayExecution(MIN_INTERVAL - reply4->RoundTripTime);
@@ -526,6 +571,17 @@ NTSTATUS NetworkTracertThreadStart(
                     node->PingList[ii] = reply6->RoundTripTime;
                     UpdateTracertNode(context, node);
 
+                    if (reply6->Status == IP_SUCCESS)
+                    {
+                        icmpReplyStatusFatal = FALSE; // reset failure
+                    }
+
+                    if (reply6->Status == IP_DEST_NO_ROUTE)
+                    {
+                        icmpReplyStatusFatal = TRUE;
+                        //break; // add break for instant fail
+                    }
+
                     if (reply6->Status == IP_HOP_LIMIT_EXCEEDED)
                     {
                         if (reply6->RoundTripTime < MIN_INTERVAL)
@@ -546,6 +602,14 @@ NTSTATUS NetworkTracertThreadStart(
 
         PhDereferenceObject(node);
 
+        if (icmpReplyStatusFatal)
+        {
+            // If the route becomes unavailable the error response is IP_DEST_NO_ROUTE, since this node cannot 
+            // forward packets the responses will all be from this same address so we need to end the trace
+            // and wait for the route to become available - this is also what tracert does. (dmex)
+            break;
+        }
+
         if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
         {
             if (RtlEqualMemory(&last4ReplyAddress, &((PSOCKADDR_IN)&destinationAddress)->sin_addr, sizeof(IN_ADDR)))
@@ -565,7 +629,7 @@ CleanupExit:
     if (icmpHandle != INVALID_HANDLE_VALUE)
         IcmpCloseHandle(icmpHandle);
 
-    PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, 0);
+    PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, (LPARAM)icmpReplyStatusFatal);
     PhDereferenceObject(context);
 
     if (icmpEchoBuffer)
@@ -814,7 +878,7 @@ INT_PTR CALLBACK TracertDlgProc(
                         context->IpAddressString
                         )->Buffer);
                     Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
-                        L"Tracing route to %s with %lu bytes of data....",
+                        L"Tracing route to %s with %lu bytes of data...",
                         context->IpAddressString,
                         PhGetIntegerSetting(SETTING_NAME_PING_SIZE)
                         )->Buffer);
@@ -925,16 +989,20 @@ INT_PTR CALLBACK TracertDlgProc(
         break;
     case NTM_RECEIVEDFINISH:
         {
+            BOOLEAN failed = (BOOLEAN)lParam;
+
             EnableWindow(GetDlgItem(hwndDlg, IDC_REFRESH), TRUE);
 
             Static_SetText(context->WindowHandle, PhaFormatString(
-                L"Tracing %s... complete", 
-                context->IpAddressString
+                L"Tracing %s... %s", 
+                context->IpAddressString,
+                failed ? L"error" : L"complete"
                 )->Buffer);
             Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
-                L"Tracing route to %s with %lu bytes of data... complete.", 
+                L"Tracing route to %s with %lu bytes of data... %s.", 
                 context->IpAddressString, 
-                PhGetIntegerSetting(SETTING_NAME_PING_SIZE)
+                PhGetIntegerSetting(SETTING_NAME_PING_SIZE),
+                failed ? L"error" : L"complete"
                 )->Buffer);
 
             TreeNew_NodesStructured(context->TreeNewHandle);
