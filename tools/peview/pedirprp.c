@@ -33,6 +33,8 @@ typedef enum _PV_DIRECTORY_TREE_COLUMN_ITEM
 {
     PV_DIRECTORY_TREE_COLUMN_ITEM_INDEX,
     PV_DIRECTORY_TREE_COLUMN_ITEM_NAME,
+    PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_START,
+    PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_END,
     PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_START,
     PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_END,
     PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_SIZE,
@@ -50,12 +52,16 @@ typedef struct _PV_DIRECTORY_NODE
 
     ULONG64 UniqueId;
 
+    PVOID RawStart;
+    PVOID RawEnd;
     PVOID RvaStart;
     PVOID RvaEnd;
     ULONG RvaSize;
     DOUBLE DirectoryEntropy;
     PPH_STRING UniqueIdString;
     PPH_STRING DirectoryNameString;
+    PPH_STRING RawStartString;
+    PPH_STRING RawEndString;
     PPH_STRING RvaStartString;
     PPH_STRING RvaEndString;
     PPH_STRING RvaSizeString;
@@ -180,38 +186,6 @@ VOID CALLBACK PvDirectoryTreeUpdateCallback(
     RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
-//BOOLEAN PvpPeCheckImageDataEntryAddress(
-//    _In_ ULONG Index,
-//    _In_ ULONG StartRva,
-//    _In_ ULONG EndRva
-//    )
-//{
-//    PIMAGE_DATA_DIRECTORY directory;
-//
-//    for (ULONG i = 0; i < IMAGE_NUMBEROF_DIRECTORY_ENTRIES; i++)
-//    {
-//        if (i == Index)
-//            continue;
-//
-//        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, i, &directory)))
-//        {
-//            if ((StartRva >= directory->VirtualAddress) &&
-//                (StartRva < directory->VirtualAddress + directory->Size))
-//            {
-//                return TRUE;
-//            }
-//
-//            if ((EndRva >= directory->VirtualAddress) &&
-//                (EndRva < directory->VirtualAddress + directory->Size))
-//            {
-//                return TRUE;
-//            }
-//        }
-//    }
-//
-//    return FALSE;
-//}
-
 VOID PvpPeEnumerateImageDataDirectory(
     _In_ PPV_DIRECTORY_CONTEXT Context,
     _In_ ULONG Index,
@@ -242,44 +216,53 @@ VOID PvpPeEnumerateImageDataDirectory(
         {
             directorySize = directory->Size;
         }
+    }
 
-        // TODO: The security directory should never overlap a section and this
-        // should validate the address instead of skipping based on the index. (dmex)
-        if (directoryAddress && Index != IMAGE_DIRECTORY_ENTRY_SECURITY)
-        {
-            directorySection = PhMappedImageRvaToSection(&PvMappedImage, directoryAddress);
-        }
-
+    if (directoryAddress && directorySize)
+    {
         // The security directory is a special case using RAW instead of RVA (dmex)
         if (Index == IMAGE_DIRECTORY_ENTRY_SECURITY)
+        {
             imageDirectoryData = PTR_ADD_OFFSET(PvMappedImage.ViewBase, directoryAddress);
+
+            directoryNode->RawStart = UlongToPtr(directoryAddress);
+            PhPrintPointer(value, directoryNode->RawStart);
+            directoryNode->RawStartString = PhCreateString(value);
+
+            directoryNode->RawEnd = PTR_ADD_OFFSET(directoryNode->RawStart, directorySize);
+            //directoryNode->RawEnd = ALIGN_UP_POINTER_BY(PTR_ADD_OFFSET(directoryNode->RawStart, directorySize), PvMappedImage.NtHeaders->OptionalHeader.FileAlignment);
+            PhPrintPointer(value, directoryNode->RawEnd);
+            directoryNode->RawEndString = PhCreateString(value);
+
+            directoryNode->RvaSize = directorySize;
+            directoryNode->RvaSizeString = PhFormatSize(directorySize, ULONG_MAX);
+        }
         else
-            imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, NULL);
+        {
+            imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, &directorySection);
 
-        //if (directoryAddress && directorySize)
-        //{
-        //    directoryOverlay = PvpPeCheckImageDataEntryAddress(
-        //        Index,
-        //        directoryAddress,
-        //        PtrToUlong(PTR_ADD_OFFSET(directoryAddress, directorySize))
-        //        );
-        //}
-    }
+            if (directorySection)
+            {
+                directoryNode->RawStart = PTR_ADD_OFFSET(PTR_SUB_OFFSET(directoryAddress, directorySection->VirtualAddress), directorySection->PointerToRawData);
+                PhPrintPointer(value, directoryNode->RawStart);
+                directoryNode->RawStartString = PhCreateString(value);
 
-    if (directoryAddress)
-    {
-        directoryNode->RvaStart = UlongToPtr(directoryAddress);
-        PhPrintPointer(value, directoryNode->RvaStart);
-        directoryNode->RvaStartString = PhCreateString(value);
-    }
+                //directoryNode->RawEnd = PTR_ADD_OFFSET(directoryNode->RawStart, directorySize);
+                directoryNode->RawEnd = ALIGN_UP_POINTER_BY(PTR_ADD_OFFSET(directoryNode->RawStart, directorySize), PvMappedImage.NtHeaders->OptionalHeader.FileAlignment);
+                PhPrintPointer(value, directoryNode->RawEnd);
+                directoryNode->RawEndString = PhCreateString(value);
+            }
 
-    if (directorySize)
-    {
-        directoryNode->RvaEnd = PTR_ADD_OFFSET(directoryAddress, directorySize);
-        PhPrintPointer(value, directoryNode->RvaEnd);
-        directoryNode->RvaEndString = PhCreateString(value);
-        directoryNode->RvaSize = directorySize;
-        directoryNode->RvaSizeString = PhFormatSize(directorySize, ULONG_MAX);
+            directoryNode->RvaStart = UlongToPtr(directoryAddress);
+            PhPrintPointer(value, directoryNode->RvaStart);
+            directoryNode->RvaStartString = PhCreateString(value);
+
+            directoryNode->RvaEnd = PTR_ADD_OFFSET(directoryAddress, directorySize);
+            PhPrintPointer(value, directoryNode->RvaEnd);
+            directoryNode->RvaEndString = PhCreateString(value);
+            directoryNode->RvaSize = directorySize;
+            directoryNode->RvaSizeString = PhFormatSize(directorySize, ULONG_MAX);
+        }
     }
 
     if (directorySection)
@@ -814,6 +797,18 @@ BEGIN_SORT_FUNCTION(Name)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(RawStart)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->RawStart, (ULONG_PTR)node2->RawStart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RawEnd)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->RawEnd, (ULONG_PTR)node2->RawEnd);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(RvaStart)
 {
     sortResult = uintptrcmp((ULONG_PTR)node1->RvaStart, (ULONG_PTR)node2->RvaStart);
@@ -893,6 +888,8 @@ BOOLEAN NTAPI PvDirectoryTreeNewCallback(
                 {
                     SORT_FUNCTION(Index),
                     SORT_FUNCTION(Name),
+                    SORT_FUNCTION(RawStart),
+                    SORT_FUNCTION(RawEnd),
                     SORT_FUNCTION(RvaStart),
                     SORT_FUNCTION(RvaEnd),
                     SORT_FUNCTION(RvaSize),
@@ -947,6 +944,12 @@ BOOLEAN NTAPI PvDirectoryTreeNewCallback(
                 break;
             case PV_DIRECTORY_TREE_COLUMN_ITEM_NAME:
                 getCellText->Text = PhGetStringRef(node->DirectoryNameString);
+                break;
+            case PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_START:
+                getCellText->Text = PhGetStringRef(node->RawStartString);
+                break;
+            case PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_END:
+                getCellText->Text = PhGetStringRef(node->RawEndString);
                 break;
             case PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_START:
                 getCellText->Text = PhGetStringRef(node->RvaStartString);
@@ -1123,6 +1126,8 @@ VOID PvInitializeDirectoryTree(
 
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_INDEX, TRUE, L"#", 40, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_INDEX, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 130, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_NAME, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_START, TRUE, L"RAW (start)", 100, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_START, 0, 0);
+    PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_END, TRUE, L"RAW (end)", 100, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_RAW_END, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_START, TRUE, L"RVA (start)", 100, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_START, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_END, TRUE, L"RVA (end)", 100, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_END, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_SIZE, TRUE, L"Size", 80, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_RVA_SIZE, 0, 0);
