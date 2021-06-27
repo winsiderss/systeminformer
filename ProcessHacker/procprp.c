@@ -492,7 +492,9 @@ VOID NTAPI PhpProcessPropPageWaitContextDeleteProcedure(
     PPH_PROCESS_WAITPROPCONTEXT context = (PPH_PROCESS_WAITPROPCONTEXT)Object;
 
     if (context->ProcessWaitHandle)
-        RtlDeregisterWait(context->ProcessWaitHandle);
+        RtlDeregisterWaitEx(context->ProcessWaitHandle, RTL_WAITER_DEREGISTER_WAIT_FOR_COMPLETION);
+    if (context->ProcessHandle)
+        NtClose(context->ProcessHandle);
     if (context->ProcessItem)
         PhDereferenceObject(context->ProcessItem);
 }
@@ -523,6 +525,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
     waitContext = PhCreateObjectZero(sizeof(PH_PROCESS_WAITPROPCONTEXT), PhpProcessPropPageWaitContextType);
     waitContext->ProcessItem = PhReferenceObject(processItem);
     waitContext->PropSheetWindowHandle = GetParent(WindowHandle);
+    waitContext->ProcessHandle = processHandle;
 
     if (NT_SUCCESS(RtlRegisterWait(
         &waitContext->ProcessWaitHandle,
@@ -539,9 +542,8 @@ VOID PhpCreateProcessPropSheetWaitContext(
     {
         PhDereferenceObject(waitContext->ProcessItem);
         PhDereferenceObject(waitContext);
+        NtClose(processHandle);
     }
-
-    NtClose(processHandle);
 }
 
 VOID PhpFlushProcessPropSheetWaitContextData(
@@ -564,7 +566,7 @@ VOID PhpFlushProcessPropSheetWaitContextData(
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(data->ProcessItem->QueryHandle, &basicInfo)))
         {
-            PPH_STRING statusMessage;
+            PPH_STRING statusMessage = NULL;
             PPH_STRING errorMessage;
             PH_FORMAT format[5];
 
@@ -572,19 +574,23 @@ VOID PhpFlushProcessPropSheetWaitContextData(
             PhInitFormatS(&format[1], L" (");
             PhInitFormatU(&format[2], HandleToUlong(data->ProcessItem->ProcessId));
 
-            if (errorMessage = PhGetStatusMessage(basicInfo.ExitStatus, 0))
+            if (basicInfo.ExitStatus < STATUS_WAIT_1 || basicInfo.ExitStatus > STATUS_WAIT_63)
             {
-                PhInitFormatS(&format[3], L") exited with ");
-                PhInitFormatSR(&format[4], errorMessage->sr);
+                if (errorMessage = PhGetStatusMessage(basicInfo.ExitStatus, 0))
+                {
+                    PhInitFormatS(&format[3], L") exited with ");
+                    PhInitFormatSR(&format[4], errorMessage->sr);
 
-                statusMessage = PhFormat(format, RTL_NUMBER_OF(format), 0);
-                PhDereferenceObject(errorMessage);
+                    statusMessage = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                    PhDereferenceObject(errorMessage);
+                }
             }
-            else
+
+            if (PhIsNullOrEmptyString(statusMessage))
             {
                 PhInitFormatS(&format[3], L") exited with 0x");
                 PhInitFormatX(&format[4], basicInfo.ExitStatus);
-
+                //format[4].Type |= FormatPadZeros; format[4].Width = 8;
                 statusMessage = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
 

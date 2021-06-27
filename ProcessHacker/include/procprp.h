@@ -4,8 +4,9 @@
 typedef struct _PH_PROCESS_WAITPROPCONTEXT
 {
     SLIST_ENTRY ListEntry;
-    HANDLE PropSheetWindowHandle;
+    HWND PropSheetWindowHandle;
     HANDLE ProcessWaitHandle;
+    HANDLE ProcessHandle;
     PPH_PROCESS_ITEM ProcessItem;
 } PH_PROCESS_WAITPROPCONTEXT, *PPH_PROCESS_WAITPROPCONTEXT;
 
