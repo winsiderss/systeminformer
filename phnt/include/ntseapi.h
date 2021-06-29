@@ -72,30 +72,30 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenUser = 1, // q: TOKEN_USER
     TokenGroups, // q: TOKEN_GROUPS
     TokenPrivileges, // q: TOKEN_PRIVILEGES
-    TokenOwner, // q: TOKEN_OWNER
-    TokenPrimaryGroup, // q: TOKEN_PRIMARY_GROUP
-    TokenDefaultDacl, // q: TOKEN_DEFAULT_DACL
+    TokenOwner, // q; s: TOKEN_OWNER
+    TokenPrimaryGroup, // q; s: TOKEN_PRIMARY_GROUP
+    TokenDefaultDacl, // q; s: TOKEN_DEFAULT_DACL
     TokenSource, // q: TOKEN_SOURCE
     TokenType, // q: TOKEN_TYPE
     TokenImpersonationLevel, // q: SECURITY_IMPERSONATION_LEVEL
     TokenStatistics, // q: TOKEN_STATISTICS // 10
     TokenRestrictedSids, // q: TOKEN_GROUPS
     TokenSessionId, // q; s: ULONG (requires SeTcbPrivilege)
-    TokenGroupsAndPrivileges, // TOKEN_GROUPS_AND_PRIVILEGES
-    TokenSessionReference,
+    TokenGroupsAndPrivileges, // q: TOKEN_GROUPS_AND_PRIVILEGES
+    TokenSessionReference, // s: ULONG (requires SeTcbPrivilege)
     TokenSandBoxInert, // q: ULONG
-    TokenAuditPolicy,
-    TokenOrigin, // q: TOKEN_ORIGIN
+    TokenAuditPolicy, // q; s: TOKEN_AUDIT_POLICY (requires SeSecurityPrivilege/SeTcbPrivilege)
+    TokenOrigin, // q; s: TOKEN_ORIGIN (requires SeTcbPrivilege)
     TokenElevationType, // q: TOKEN_ELEVATION_TYPE
-    TokenLinkedToken, // q: TOKEN_LINKED_TOKEN
+    TokenLinkedToken, // q; s: TOKEN_LINKED_TOKEN (requires SeCreateTokenPrivilege)
     TokenElevation, // q: TOKEN_ELEVATION // 20
     TokenHasRestrictions, // q: ULONG
-    TokenAccessInformation, // TOKEN_ACCESS_INFORMATION
-    TokenVirtualizationAllowed, // q: ULONG
-    TokenVirtualizationEnabled, // q: ULONG
-    TokenIntegrityLevel, // q: TOKEN_MANDATORY_LABEL
-    TokenUIAccess, // q: ULONG
-    TokenMandatoryPolicy, // q: TOKEN_MANDATORY_POLICY
+    TokenAccessInformation, // q: TOKEN_ACCESS_INFORMATION
+    TokenVirtualizationAllowed, // q; s: ULONG (requires SeCreateTokenPrivilege)
+    TokenVirtualizationEnabled, // q; s: ULONG
+    TokenIntegrityLevel, // q; s: TOKEN_MANDATORY_LABEL
+    TokenUIAccess, // q; s: ULONG
+    TokenMandatoryPolicy, // q; s: TOKEN_MANDATORY_POLICY (requires SeTcbPrivilege)
     TokenLogonSid, // q: TOKEN_GROUPS
     TokenIsAppContainer, // q: ULONG
     TokenCapabilities, // q: TOKEN_GROUPS // 30
@@ -103,17 +103,17 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenAppContainerNumber, // q: ULONG
     TokenUserClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     TokenDeviceClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
-    TokenRestrictedUserClaimAttributes,
-    TokenRestrictedDeviceClaimAttributes,
-    TokenDeviceGroups,
-    TokenRestrictedDeviceGroups,
-    TokenSecurityAttributes, // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION
+    TokenRestrictedUserClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+    TokenRestrictedDeviceClaimAttributes, // q: CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+    TokenDeviceGroups, // q: TOKEN_GROUPS
+    TokenRestrictedDeviceGroups, // q: TOKEN_GROUPS
+    TokenSecurityAttributes, // q; s: TOKEN_SECURITY_ATTRIBUTES_[AND_OPERATION_]INFORMATION
     TokenIsRestricted, // q: ULONG // 40
     TokenProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL
-    TokenPrivateNameSpace,
-    TokenSingletonAttributes,
-    TokenBnoIsolation, // TOKEN_BNO_ISOLATION_INFORMATION
-    TokenChildProcessFlags,
+    TokenPrivateNameSpace, // q; s: ULONG
+    TokenSingletonAttributes, // q: TOKEN_SECURITY_ATTRIBUTES_INFORMATION
+    TokenBnoIsolation, // q: TOKEN_BNO_ISOLATION_INFORMATION
+    TokenChildProcessFlags, // q; s: ULONG
     TokenIsLessPrivilegedAppContainer, // q: ULONG
     TokenIsSandboxed, // q: ULONG
     TokenOriginatingProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL
@@ -202,6 +202,23 @@ typedef struct _TOKEN_SECURITY_ATTRIBUTES_INFORMATION
         PTOKEN_SECURITY_ATTRIBUTE_V1 pAttributeV1;
     } Attribute;
 } TOKEN_SECURITY_ATTRIBUTES_INFORMATION, *PTOKEN_SECURITY_ATTRIBUTES_INFORMATION;
+
+// private
+typedef enum _TOKEN_SECURITY_ATTRIBUTE_OPERATION
+{
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_NONE,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_REPLACE_ALL,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_ADD,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_DELETE,
+    TOKEN_SECURITY_ATTRIBUTE_OPERATION_REPLACE
+} TOKEN_SECURITY_ATTRIBUTE_OPERATION, *PTOKEN_SECURITY_ATTRIBUTE_OPERATION;
+
+// private
+typedef struct _TOKEN_SECURITY_ATTRIBUTES_AND_OPERATION_INFORMATION
+{
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes;
+    PTOKEN_SECURITY_ATTRIBUTE_OPERATION Operations;
+} TOKEN_SECURITY_ATTRIBUTES_AND_OPERATION_INFORMATION, *PTOKEN_SECURITY_ATTRIBUTES_AND_OPERATION_INFORMATION;
 
 // rev
 typedef struct _TOKEN_PROCESS_TRUST_LEVEL
