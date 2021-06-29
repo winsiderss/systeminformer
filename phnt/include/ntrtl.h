@@ -2687,6 +2687,8 @@ RtlCreateUserProcess(
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
+#if (PHNT_VERSION >= PHNT_REDSTONE2)
+
 #define RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION 1
 
 // private
@@ -2712,6 +2714,8 @@ RtlCreateUserProcessEx(
     _In_opt_ PRTL_USER_PROCESS_EXTENDED_PARAMETERS ProcessExtendedParameters,
     _Out_ PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
+
+#endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 DECLSPEC_NORETURN
