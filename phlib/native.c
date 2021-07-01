@@ -2739,6 +2739,74 @@ BOOLEAN PhSetTokenPrivilege2(
     return PhSetTokenPrivilege(TokenHandle, NULL, &privilegeLuid, Attributes);
 }
 
+NTSTATUS PhAdjustPrivilege(
+    _In_opt_ PWSTR PrivilegeName,
+    _In_opt_ LONG Privilege,
+    _In_ BOOLEAN Enable
+    )
+{
+    NTSTATUS status;
+    HANDLE tokenHandle;
+    TOKEN_PRIVILEGES privileges;
+
+    status = NtOpenProcessToken(
+        NtCurrentProcess(),
+        TOKEN_ADJUST_PRIVILEGES,
+        &tokenHandle
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    privileges.PrivilegeCount = 1;
+    privileges.Privileges[0].Attributes = Enable ? SE_PRIVILEGE_ENABLED : 0;
+
+    if (Privilege)
+    {
+        LUID privilegeLuid;
+
+        privilegeLuid = RtlConvertLongToLuid(Privilege);
+
+        privileges.Privileges[0].Luid = privilegeLuid;
+    }
+    else if (PrivilegeName)
+    {
+        PH_STRINGREF privilegeName;
+
+        PhInitializeStringRef(&privilegeName, PrivilegeName);
+
+        if (!PhLookupPrivilegeValue(
+            &privilegeName,
+            &privileges.Privileges[0].Luid
+            ))
+        {
+            NtClose(tokenHandle);
+            return STATUS_UNSUCCESSFUL;
+        }
+    }
+    else
+    {
+        NtClose(tokenHandle);
+        return STATUS_INVALID_PARAMETER_1;
+    }
+
+    status = NtAdjustPrivilegesToken(
+        tokenHandle,
+        FALSE,
+        &privileges,
+        0,
+        NULL,
+        NULL
+        );
+
+    NtClose(tokenHandle);
+
+    if (status == STATUS_NOT_ALL_ASSIGNED)
+        return STATUS_PRIVILEGE_NOT_HELD;
+
+    return status;
+}
+
 /**
 * Modifies a token group.
 *

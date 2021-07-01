@@ -582,6 +582,15 @@ PhSetTokenPrivilege2(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhAdjustPrivilege(
+    _In_opt_ PWSTR PrivilegeName,
+    _In_opt_ LONG Privilege,
+    _In_ BOOLEAN Enable
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetTokenGroups(
     _In_ HANDLE TokenHandle,
     _In_opt_ PWSTR GroupName,
