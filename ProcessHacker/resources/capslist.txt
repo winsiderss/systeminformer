@@ -499,6 +499,7 @@ ID_CAP_PRIV_WPUITESTTOOLS
 ID_CAP_PRIV_ZMEDIAQUEUESVC
 ID_CAP_PRIV_ZMF
 ID_CAP_PRIV_ZMF_SERVICE
+ID_CAP_PROVISIONING_PACKAGE_API_ADMIN
 ID_CAP_PROVISIONWPCERTIFICATE
 ID_CAP_PROXIMITY
 ID_CAP_PUBLIC_FOLDER_FULL
@@ -637,6 +638,7 @@ bluetooth.rfcomm
 bluetoothAdapter
 bluetoothDeviceSettings
 bluetoothSync
+bootstrapNetworkConnection
 broadFileSystemAccess
 browserAppList
 browserCredentials
@@ -801,6 +803,7 @@ packageManagement
 packagePolicySystem
 packageQuery
 packageWriteRedirectionCompatibilityShim
+packagedServices
 perceptionMonitoring
 perceptionSensorsExperimental
 perceptionSystem
