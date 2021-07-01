@@ -773,6 +773,18 @@ BOOLEAN PhUiRestartComputer(
                 break;
             }
 
+            if (!NT_SUCCESS(PhAdjustPrivilege(NULL, SE_SYSTEM_ENVIRONMENT_PRIVILEGE, TRUE)))
+            {
+                PhShowMessage2(
+                    WindowHandle,
+                    TDCBF_OK_BUTTON,
+                    TD_ERROR_ICON,
+                    L"Unable to restart to firmware options.",
+                    L"Make sure Process Hacker is running with administrative privileges."
+                    );
+                break;
+            }
+
             if (!PhIsFirmwareSupported())
             {
                 PhShowMessage2(
