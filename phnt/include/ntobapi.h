@@ -57,8 +57,8 @@ typedef enum _OBJECT_INFORMATION_CLASS
     ObjectTypeInformation, // q: OBJECT_TYPE_INFORMATION
     ObjectTypesInformation, // q: OBJECT_TYPES_INFORMATION
     ObjectHandleFlagInformation, // qs: OBJECT_HANDLE_FLAG_INFORMATION
-    ObjectSessionInformation,
-    ObjectSessionObjectInformation,
+    ObjectSessionInformation, // s: void // change object session // (requires SeTcbPrivilege)
+    ObjectSessionObjectInformation, // s: void // change object session // (requires SeTcbPrivilege)
     MaxObjectInfoClass
 } OBJECT_INFORMATION_CLASS;
 #else
