@@ -7057,6 +7057,16 @@ LdrInitializeThunk(
     _In_ PVOID Parameter
     );
 
+// Thread execution
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlDelayExecution(
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER DelayInterval
+    );
+
 // Timer support
 
 NTSYSAPI
