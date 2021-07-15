@@ -838,7 +838,12 @@ BOOLEAN PhUiRestartComputer(
                         &osIndicationsAttributes
                         );
 
-                    if (NT_SUCCESS(status))
+                    if (status == STATUS_VARIABLE_NOT_FOUND)
+                    {
+                        osIndicationsAttributes = EFI_VARIABLE_NON_VOLATILE;
+                    }
+
+                    if (NT_SUCCESS(status) || status == STATUS_VARIABLE_NOT_FOUND)
                     {
                         osIndicationsValue |= EFI_OS_INDICATIONS_BOOT_TO_FW_UI;
 
