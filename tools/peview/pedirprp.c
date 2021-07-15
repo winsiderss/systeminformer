@@ -201,7 +201,7 @@ VOID PvpPeEnumerateImageDataDirectory(
     WCHAR value[PH_INT64_STR_LEN_1];
 
     directoryNode = PhAllocateZero(sizeof(PV_DIRECTORY_NODE));
-    directoryNode->UniqueId = Index + 1;
+    directoryNode->UniqueId = UInt32Add32To64(Index, 1);
     directoryNode->UniqueIdString = PhFormatUInt64(directoryNode->UniqueId, FALSE);
     directoryNode->DirectoryNameString = PhCreateString(Name);
 
@@ -233,9 +233,6 @@ VOID PvpPeEnumerateImageDataDirectory(
             //directoryNode->RawEnd = ALIGN_UP_POINTER_BY(PTR_ADD_OFFSET(directoryNode->RawStart, directorySize), PvMappedImage.NtHeaders->OptionalHeader.FileAlignment);
             PhPrintPointer(value, directoryNode->RawEnd);
             directoryNode->RawEndString = PhCreateString(value);
-
-            directoryNode->RvaSize = directorySize;
-            directoryNode->RvaSizeString = PhFormatSize(directorySize, ULONG_MAX);
         }
         else
         {
@@ -247,8 +244,8 @@ VOID PvpPeEnumerateImageDataDirectory(
                 PhPrintPointer(value, directoryNode->RawStart);
                 directoryNode->RawStartString = PhCreateString(value);
 
-                //directoryNode->RawEnd = PTR_ADD_OFFSET(directoryNode->RawStart, directorySize);
-                directoryNode->RawEnd = ALIGN_UP_POINTER_BY(PTR_ADD_OFFSET(directoryNode->RawStart, directorySize), PvMappedImage.NtHeaders->OptionalHeader.FileAlignment);
+                directoryNode->RawEnd = PTR_ADD_OFFSET(directoryNode->RawStart, directorySize);
+                //directoryNode->RawEnd = ALIGN_UP_POINTER_BY(PTR_ADD_OFFSET(directoryNode->RawStart, directorySize), PvMappedImage.NtHeaders->OptionalHeader.FileAlignment);
                 PhPrintPointer(value, directoryNode->RawEnd);
                 directoryNode->RawEndString = PhCreateString(value);
             }
@@ -260,9 +257,10 @@ VOID PvpPeEnumerateImageDataDirectory(
             directoryNode->RvaEnd = PTR_ADD_OFFSET(directoryAddress, directorySize);
             PhPrintPointer(value, directoryNode->RvaEnd);
             directoryNode->RvaEndString = PhCreateString(value);
-            directoryNode->RvaSize = directorySize;
-            directoryNode->RvaSizeString = PhFormatSize(directorySize, ULONG_MAX);
         }
+
+        directoryNode->RvaSize = directorySize;
+        directoryNode->RvaSizeString = PhFormatSize(directorySize, ULONG_MAX);
     }
 
     if (directorySection)
