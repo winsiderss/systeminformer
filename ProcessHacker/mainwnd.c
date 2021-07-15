@@ -533,9 +533,6 @@ NTSTATUS PhMwpLoadStage1Worker(
         SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
     }
 
-    // Register application for restart (dmex)
-    RegisterApplicationRestart(NULL, 0);
-
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
 

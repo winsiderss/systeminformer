@@ -90,6 +90,10 @@ BOOLEAN PhInitializeMitigationSignaturePolicy(
     VOID
     );
 
+BOOLEAN PhInitializeComPolicy(
+    VOID
+    );
+
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters;
@@ -123,14 +127,11 @@ INT WINAPI wWinMain(
         return 1;
     if (!PhInitializeMitigationPolicy())
         return 1;
-    //if (!PhInitializeRestartPolicy())
-    //    return 1;
+    if (!PhInitializeComPolicy())
+        return 1;
 
     PhpProcessStartupParameters();
     PhpEnablePrivileges();
-
-    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
-        return 1;
 
     if (PhStartupParameters.RunAsServiceMode)
     {
@@ -491,9 +492,9 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
             for (ULONG i = 0; i < context.WindowList->Count; i++)
             {
                 HWND windowHandle = context.WindowList->Items[i];
-                ULONG_PTR result;
+                ULONG_PTR result = 0;
 
-                SendMessageTimeout(windowHandle, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_BLOCK, 5000, &result);
+                SendMessageTimeout(windowHandle, WM_PH_ACTIVATE, PhStartupParameters.SelectPid, 0, SMTO_ABORTIFHUNG | SMTO_BLOCK, 5000, &result);
 
                 if (result == PH_ACTIVATE_REPLY)
                 {
@@ -589,40 +590,6 @@ BOOLEAN PhInitializeDirectoryPolicy(
     }
 
     PhDereferenceObject(applicationDirectory);
-    return TRUE;
-}
-
-BOOLEAN PhInitializeRestartPolicy(
-    VOID
-    )
-{
-#ifndef DEBUG
-    PH_STRINGREF commandLineSr;
-    PH_STRINGREF fileNameSr;
-    PH_STRINGREF argumentsSr;
-    PPH_STRING argumentsString = NULL;
-
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLineSr);
-
-    if (!PhParseCommandLineFuzzy(&commandLineSr, &fileNameSr, &argumentsSr, NULL))
-        return FALSE;
-
-    if (argumentsSr.Length)
-    {
-        static PH_STRINGREF commandlinePart = PH_STRINGREF_INIT(L"-nomp");
-
-        if (PhEndsWithStringRef(&argumentsSr, &commandlinePart, FALSE))
-            PhTrimStringRef(&argumentsSr, &commandlinePart, PH_TRIM_END_ONLY);
-
-        argumentsString = PhCreateString2(&argumentsSr);
-    }
-
-    // MSDN: Do not include the file name in the command line.
-    RegisterApplicationRestart(PhGetString(argumentsString), 0);
-
-    if (argumentsString)
-        PhDereferenceObject(argumentsString);
-#endif
     return TRUE;
 }
 
@@ -782,7 +749,6 @@ BOOLEAN PhInitializeExceptionPolicy(
     VOID
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
 #ifndef DEBUG
     ULONG errorMode;
     
@@ -794,8 +760,6 @@ BOOLEAN PhInitializeExceptionPolicy(
 
     RtlSetUnhandledExceptionFilter(PhpUnhandledExceptionCallback);
 #endif
-#endif
-
     return TRUE;
 }
 
@@ -1008,6 +972,83 @@ BOOLEAN PhInitializeMitigationSignaturePolicy(
 #endif
 
     return TRUE;
+}
+
+BOOLEAN PhInitializeComPolicy(
+    VOID
+    )
+{
+#ifdef PH_COM_SVC
+    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+    static SID_IDENTIFIER_AUTHORITY packageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
+    ULONG securityDescriptorAllocationLength;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+    UCHAR packagesSidSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+    PSID administratorsSid;
+    PSID packagesSid;
+    PACL dacl;
+
+    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+        return TRUE; // Continue without COM support. (dmex)
+
+    administratorsSid = (PSID)administratorsSidBuffer;
+    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
+    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+
+    packagesSid = (PSID)packagesSidSidBuffer;
+    RtlInitializeSid(packagesSid, &packageAuthority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
+    *RtlSubAuthoritySid(packagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
+    *RtlSubAuthoritySid(packagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
+
+    securityDescriptorAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
+        (ULONG)sizeof(ACL) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&PhSeAuthenticatedUserSid) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&packagesSid) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&PhSeLocalSystemSid) +
+        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
+        RtlLengthSid(&administratorsSid);
+
+    securityDescriptor = PhAllocate(securityDescriptorAllocationLength);
+    dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    // "O:BAG:BAD:(A;;0x3;;;AU)(A;;0x3;;;AC)(A;;0x3;;;SY)(A;;0x3;;;BA)"
+    RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+    RtlCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, packagesSid);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
+    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
+    RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+    RtlSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
+    RtlSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
+
+    if (!SUCCEEDED(CoInitializeSecurity(
+        securityDescriptor,
+        UINT_MAX,
+        NULL,
+        NULL,
+        RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
+        RPC_C_IMP_LEVEL_IDENTIFY,
+        NULL,
+        EOAC_NONE,
+        NULL
+        )))
+    {
+        NOTHING;
+    }
+
+    PhFree(securityDescriptor);
+    return TRUE;
+#else
+    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+        NOTHING;
+
+    return TRUE;
+#endif
 }
 
 NTSTATUS PhpReadSignature(
