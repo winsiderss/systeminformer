@@ -640,7 +640,8 @@ LdrAddLoadAsDataTable(
     _In_ PVOID Module,
     _In_ PWSTR FilePath,
     _In_ SIZE_T Size,
-    _In_ HANDLE Handle
+    _In_ HANDLE Handle,
+    _In_ HANDLE ActCtx // param added on Win10
     );
 
 // private
