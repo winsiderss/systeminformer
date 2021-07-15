@@ -3062,7 +3062,7 @@ RtlRemoteCall(
     _In_ BOOLEAN AlreadySuspended
     );
 
-// Vectored exception handlers
+// Vectored Exception Handlers
 
 NTSYSAPI
 PVOID
@@ -4927,38 +4927,6 @@ RtlReportSilentProcessExit(
     _In_ NTSTATUS ExitStatus
     );
 #endif
-
-// Vectored Exception Handlers
-
-NTSYSAPI
-PVOID
-NTAPI
-RtlAddVectoredExceptionHandler(
-    _In_ ULONG First,
-    _In_ PVECTORED_EXCEPTION_HANDLER Handler
-    );
-
-NTSYSAPI
-ULONG
-NTAPI
-RtlRemoveVectoredExceptionHandler(
-    _In_ PVOID Handle
-    );
-
-NTSYSAPI
-PVOID
-NTAPI
-RtlAddVectoredContinueHandler(
-    _In_ ULONG First,
-    _In_ PVECTORED_EXCEPTION_HANDLER Handler
-    );
-
-NTSYSAPI
-ULONG
-NTAPI
-RtlRemoveVectoredContinueHandler(
-    _In_ PVOID Handle
-    );
 
 // Random
 
