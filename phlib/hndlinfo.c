@@ -329,7 +329,7 @@ NTSTATUS PhpGetObjectName(
     ULONG bufferSize;
     ULONG attempts = 8;
 
-    bufferSize = 0x200;
+    bufferSize = sizeof(OBJECT_NAME_INFORMATION) + (MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR));
     buffer = PhAllocate(bufferSize);
 
     // A loop is needed because the I/O subsystem likes to give us the wrong return lengths... (wj32)
