@@ -449,6 +449,32 @@ PPH_STRING PhGetAppContainerName(
         appContainerName = PhCreateString(packageMonikerName);
         AppContainerFreeMemory_I(packageMonikerName);
     }
+    else // Check the local system account appcontainer mappings. (dmex)
+    {
+        static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+        static PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
+        HANDLE keyHandle;
+        PPH_STRING sidString;
+        PPH_STRING keyPath;
+
+        sidString = PhSidToStringSid(AppContainerSid);
+        keyPath = PhConcatStringRef3(&appcontainerDefaultMappings, &appcontainerMappings, &sidString->sr);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            PH_KEY_USERS,
+            &keyPath->sr,
+            0
+            )))
+        {
+            PhMoveReference(&appContainerName, PhQueryRegistryString(keyHandle, L"Moniker"));
+            NtClose(keyHandle);
+        }
+
+        PhDereferenceObject(keyPath);
+        PhDereferenceObject(sidString);
+    }
 
     return appContainerName;
 }
@@ -481,6 +507,7 @@ PPH_STRING PhGetAppContainerPackageName(
     )
 {   
     static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
+    static PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
     HANDLE keyHandle;
     PPH_STRING sidString;
     PPH_STRING keyPath;
@@ -509,6 +536,27 @@ PPH_STRING PhGetAppContainerPackageName(
     }
 
     PhDereferenceObject(keyPath);
+
+    // Check the local system account appcontainer mappings. (dmex)
+    if (PhIsNullOrEmptyString(packageName))
+    {
+        keyPath = PhConcatStringRef3(&appcontainerDefaultMappings, &appcontainerMappings, &sidString->sr);
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ,
+            PH_KEY_USERS,
+            &keyPath->sr,
+            0
+            )))
+        {
+            PhMoveReference(&packageName, PhQueryRegistryString(keyHandle, L"Moniker"));
+            NtClose(keyHandle);
+        }
+
+        PhDereferenceObject(keyPath);
+    }
+
     PhDereferenceObject(sidString);
 
     return packageName;
