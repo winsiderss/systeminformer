@@ -776,6 +776,7 @@ Microsoft.deployFullTrustOnHost_8wekyb3d8bbwe
 microsoft.eSIMManagement_8wekyb3d8bbwe
 Microsoft.firmwareRead_cw5n1h2txyewy
 Microsoft.firmwareWrite_cw5n1h2txyewy
+Microsoft.unsignedPackageManagement_8wekyb3d8bbwe
 microsoftEdgeRemoteDebugging
 mixedRealityEnvironmentInternal
 mmsTransportSystem
