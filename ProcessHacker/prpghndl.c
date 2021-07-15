@@ -3,7 +3,7 @@
  *   Process properties: Handles page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -762,7 +762,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 PhSetEnabledProvider(&handlesContext->ProviderRegistration, FALSE);
                 break;
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_LIST));
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)handlesContext->TreeNewHandle);
                 return TRUE;
             }
         }
