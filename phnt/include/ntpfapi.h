@@ -77,8 +77,12 @@ typedef enum _PREFETCHER_INFORMATION_CLASS
     PrefetcherRetrieveTrace = 1, // q: CHAR[]
     PrefetcherSystemParameters, // q: PF_SYSTEM_PREFETCH_PARAMETERS
     PrefetcherBootPhase, // s: PF_BOOT_PHASE_ID
-    PrefetcherRetrieveBootLoaderTrace, // q: CHAR[]
-    PrefetcherBootControl // s: PF_BOOT_CONTROL
+    PrefetcherSpare1, // PrefetcherRetrieveBootLoaderTrace // q: CHAR[]
+    PrefetcherBootControl, // s: PF_BOOT_CONTROL
+    PrefetcherScenarioPolicyControl,
+    PrefetcherSpare2,
+    PrefetcherAppLaunchScenarioControl,
+    PrefetcherInformationMax
 } PREFETCHER_INFORMATION_CLASS;
 
 #define PREFETCHER_INFORMATION_VERSION 23 // rev
@@ -86,11 +90,11 @@ typedef enum _PREFETCHER_INFORMATION_CLASS
 
 typedef struct _PREFETCHER_INFORMATION
 {
-    ULONG Version;
-    ULONG Magic;
-    PREFETCHER_INFORMATION_CLASS PrefetcherInformationClass;
-    PVOID PrefetcherInformation;
-    ULONG PrefetcherInformationLength;
+    _In_ ULONG Version;
+    _In_ ULONG Magic;
+    _In_ PREFETCHER_INFORMATION_CLASS PrefetcherInformationClass;
+    _Inout_ PVOID PrefetcherInformation;
+    _Inout_ ULONG PrefetcherInformationLength;
 } PREFETCHER_INFORMATION, *PPREFETCHER_INFORMATION;
 
 // Superfetch
@@ -103,6 +107,7 @@ typedef struct _PF_SYSTEM_SUPERFETCH_PARAMETERS
     ULONG SavedPageAccessTracesMax;
     ULONG ScenarioPrefetchTimeoutStandby;
     ULONG ScenarioPrefetchTimeoutHibernate;
+    ULONG ScenarioPrefetchTimeoutHiberBoot;
 } PF_SYSTEM_SUPERFETCH_PARAMETERS, *PPF_SYSTEM_SUPERFETCH_PARAMETERS;
 
 #define PF_PFN_PRIO_REQUEST_VERSION 1
@@ -271,6 +276,14 @@ typedef enum _SUPERFETCH_INFORMATION_CLASS
     SuperfetchTracingControl,
     SuperfetchTrimWhileAgingControl,
     SuperfetchRepurposedByPrefetch, // q: PF_REPURPOSED_BY_PREFETCH_INFO // rev
+    SuperfetchChannelPowerRequest,
+    SuperfetchMovePages,
+    SuperfetchVirtualQuery,
+    SuperfetchCombineStatsQuery,
+    SuperfetchSetMinWsAgeRate,
+    SuperfetchDeprioritizeOldPagesInWs,
+    SuperfetchFileExtentsQuery,
+    SuperfetchGpuUtilizationQuery, // PF_GPU_UTILIZATION_INFO
     SuperfetchInformationMax
 } SUPERFETCH_INFORMATION_CLASS;
 
@@ -281,9 +294,9 @@ typedef struct _SUPERFETCH_INFORMATION
 {
     _In_ ULONG Version;
     _In_ ULONG Magic;
-    _In_ SUPERFETCH_INFORMATION_CLASS InfoClass;
-    _Inout_ PVOID Data;
-    _Inout_ ULONG Length;
+    _In_ SUPERFETCH_INFORMATION_CLASS SuperfetchInformationClass;
+    _Inout_ PVOID SuperfetchInformation;
+    _Inout_ ULONG SuperfetchInformationLength;
 } SUPERFETCH_INFORMATION, *PSUPERFETCH_INFORMATION;
 
 // end_private
