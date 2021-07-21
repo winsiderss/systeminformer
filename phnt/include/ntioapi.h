@@ -1755,14 +1755,14 @@ typedef enum _IO_SESSION_EVENT
 
 typedef enum _IO_SESSION_STATE
 {
-    IoSessionStateCreated,
-    IoSessionStateInitialized,
-    IoSessionStateConnected,
-    IoSessionStateDisconnected,
-    IoSessionStateDisconnectedLoggedOn,
-    IoSessionStateLoggedOn,
-    IoSessionStateLoggedOff,
-    IoSessionStateTerminated,
+    IoSessionStateCreated = 1,
+    IoSessionStateInitialized = 2,
+    IoSessionStateConnected = 3,
+    IoSessionStateDisconnected = 4,
+    IoSessionStateDisconnectedLoggedOn = 5,
+    IoSessionStateLoggedOn = 6,
+    IoSessionStateLoggedOff = 7,
+    IoSessionStateTerminated = 8,
     IoSessionStateMax
 } IO_SESSION_STATE;
 
@@ -1804,23 +1804,24 @@ NtNotifyChangeSession(
 typedef enum _INTERFACE_TYPE
 {
     InterfaceTypeUndefined = -1,
-    Internal,
-    Isa,
-    Eisa,
-    MicroChannel,
-    TurboChannel,
-    PCIBus,
-    VMEBus,
-    NuBus,
-    PCMCIABus,
-    CBus,
-    MPIBus,
-    MPSABus,
-    ProcessorInternal,
-    InternalPowerBus,
-    PNPISABus,
-    PNPBus,
-    Vmcs,
+    Internal = 0,
+    Isa = 1,
+    Eisa = 2,
+    MicroChannel = 3,
+    TurboChannel = 4,
+    PCIBus = 5,
+    VMEBus = 6,
+    NuBus = 7,
+    PCMCIABus = 8,
+    CBus = 9,
+    MPIBus = 10,
+    MPSABus = 11,
+    ProcessorInternal = 12,
+    InternalPowerBus = 13,
+    PNPISABus = 14,
+    PNPBus = 15,
+    Vmcs = 16,
+    ACPIBus = 17,
     MaximumInterfaceType
 } INTERFACE_TYPE, *PINTERFACE_TYPE;
 
@@ -1829,6 +1830,8 @@ typedef enum _DMA_WIDTH
     Width8Bits,
     Width16Bits,
     Width32Bits,
+    Width64Bits,
+    WidthNoWrap,
     MaximumDmaWidth
 } DMA_WIDTH, *PDMA_WIDTH;
 
