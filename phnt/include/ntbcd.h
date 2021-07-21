@@ -314,7 +314,7 @@ typedef union _BCD_OBJECT_DATATYPE
         {
             BCD_APPLICATION_OBJECT_TYPE ApplicationType : 20;
             BCD_APPLICATION_IMAGE_TYPE ImageType : 4;
-            ULONG Reserved : 8;
+            ULONG Reserved : 4;
             ULONG ObjectType : 4;
         } Application;
         struct
@@ -905,6 +905,7 @@ typedef enum BcdLibrary_SafeBoot
     SafemodeDsRepair = 2
 } BcdLibrary_SafeBoot;
 
+// BcdLibraryElementTypes based on geoffchappell: https://www.geoffchappell.com/notes/windows/boot/bcd/elements.htm (dmex)
 typedef enum _BcdLibraryElementTypes
 {
     /// <summary>
@@ -1457,6 +1458,7 @@ typedef enum _BcdOSLoader_BootStatusPolicy
     BootStatusPolicyDisplayCheckpointFailures = 7
 } BcdOSLoaderBootStatusPolicy;
 
+// BcdOSLoaderElementTypes based on geoffchappell: https://www.geoffchappell.com/notes/windows/boot/bcd/elements.htm (dmex)
 typedef enum _BcdOSLoaderElementTypes
 {
     /// <summary>
