@@ -3,7 +3,7 @@
  *   token properties
  *
  * Copyright (C) 2010-2012 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -495,6 +495,18 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
         else if (sidString = PhGetCapabilitySidName(context->TokenGroupSid))
         {
             PhMoveReference(&sidString, PhConcatStringRefZ(&sidString->sr, L" (APP_CAPABILITY)"));
+        }
+        else
+        {
+            ULONG subAuthority;
+
+            subAuthority = *RtlSubAuthoritySid(context->TokenGroupSid, 0);
+            //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
+
+            if (subAuthority == SECURITY_UMFD_BASE_RID)
+            {
+                PhMoveReference(&sidString, PhCreateString(L"Font Driver Host\\UMFD"));
+            }
         }
 
         if (sidString)
@@ -3273,10 +3285,26 @@ PPH_STRING PhpGetTokenFolderPath(
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
-        if (tokenUserSid = PhSidToStringSid(tokenUser->User.Sid))
+        ULONG subAuthority;
+
+        subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
+        //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
+
+        if (subAuthority == SECURITY_UMFD_BASE_RID)
         {
-            profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
-            PhDereferenceObject(tokenUserSid);
+            if (tokenUserSid = PhSidToStringSid(&PhSeLocalSystemSid))
+            {
+                profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
+                PhDereferenceObject(tokenUserSid);
+            }
+        }
+        else
+        {
+            if (tokenUserSid = PhSidToStringSid(tokenUser->User.Sid))
+            {
+                profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
+                PhDereferenceObject(tokenUserSid);
+            }
         }
 
         PhFree(tokenUser);
@@ -3363,6 +3391,7 @@ PPH_STRING PhpGetTokenRegistryPath(
 }
 
 PPH_STRING PhpGetTokenAppContainerFolderPath(
+    _In_ HANDLE TokenHandle,
     _In_ PSID TokenAppContainerSid
     )
 {
@@ -3372,16 +3401,60 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
 
     appContainerSid = PhSidToStringSid(TokenAppContainerSid);
 
-    if (GetAppContainerFolderPath_Import())
+    if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
     {
-        if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
+        if (GetAppContainerFolderPath_Import())
         {
-            appContainerFolderPath = PhCreateString(folderPath);
-            CoTaskMemFree(folderPath);
+            if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
+            {
+                appContainerFolderPath = PhCreateString(folderPath);
+                CoTaskMemFree(folderPath);
+            }
         }
+
+        PhRevertImpersonationToken(NtCurrentThread());
     }
 
     PhDereferenceObject(appContainerSid);
+
+    // Workaround for psuedo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
+    if (PhIsNullOrEmptyString(appContainerFolderPath))
+    {
+        PTOKEN_USER tokenUser;
+
+        if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
+        {
+            ULONG subAuthority;
+            PPH_STRING tokenProfilePathString;
+            PPH_STRING appContainerName;
+
+            subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
+            //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
+
+            if (subAuthority == SECURITY_UMFD_BASE_RID)
+            {
+                if (tokenProfilePathString = PhpGetTokenFolderPath(TokenHandle))
+                {
+                    if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
+                    {
+                        static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
+
+                        PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
+                            &tokenProfilePathString->sr,
+                            &appDataPackagePath,
+                            &appContainerName->sr
+                            ));
+
+                        PhDereferenceObject(appContainerName);
+                    }
+
+                    PhDereferenceObject(tokenProfilePathString);
+                }
+            }
+
+            PhFree(tokenUser);
+        }
+    }
 
     return appContainerFolderPath;
 }
@@ -3641,7 +3714,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 {
                     if (appContainerInfo->TokenAppContainer)
                     {
-                        appContainerFolderPath = PhpGetTokenAppContainerFolderPath(appContainerInfo->TokenAppContainer);
+                        appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, appContainerInfo->TokenAppContainer);
                     }
 
                     PhFree(appContainerInfo);
