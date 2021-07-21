@@ -246,6 +246,14 @@ BcdMarkAsSystemStore(
     _In_ HANDLE BcdStoreHandle
     );
 
+typedef enum _BCD_OBJECT_TYPE
+{
+    BCD_OBJECT_TYPE_NONE,
+    BCD_OBJECT_TYPE_APPLICATION,
+    BCD_OBJECT_TYPE_INHERITED,
+    BCD_OBJECT_TYPE_DEVICE
+} BCD_OBJECT_TYPE;
+
 typedef enum _BCD_APPLICATION_OBJECT_TYPE
 {
     BCD_APPLICATION_OBJECT_NONE = 0,
@@ -279,12 +287,57 @@ typedef enum _BCD_INHERITED_CLASS_TYPE
     BCD_INHERITED_CLASS_DEVICE
 } BCD_INHERITED_CLASS_TYPE;
 
+#define MAKE_BCD_APPLICATION_OBJECT(ImageType, ApplicationType) \
+    (((ULONG)BCD_OBJECT_TYPE_APPLICATION << 28) | \
+    (((ULONG)(ImageType) & 0xF) << 20) | \
+    ((ULONG)(ApplicationType) & 0xFFFFF))
+
+#define GET_BCD_APPLICATION_IMAGE(DataType) \
+    ((BCD_APPLICATION_IMAGE_TYPE)(((((ULONG)DataType)) >> 20) & 0xF))
+#define GET_BCD_APPLICATION_OBJECT(DataType) \
+    ((BCD_APPLICATION_OBJECT_TYPE)((((ULONG)DataType)) & 0xFFFFF))
+
+#define GET_BCD_OBJECT_TYPE(DataType) \
+    ((BCD_OBJECT_TYPE)(((((ULONG)DataType)) >> 28) & 0xF))
+
+typedef union _BCD_OBJECT_DATATYPE
+{
+    ULONG PackedValue;
+    union
+    {
+        struct
+        {
+            ULONG Reserved : 28;
+            BCD_OBJECT_TYPE ObjectType : 4;
+        };
+        struct
+        {
+            BCD_APPLICATION_OBJECT_TYPE ApplicationType : 20;
+            BCD_APPLICATION_IMAGE_TYPE ImageType : 4;
+            ULONG Reserved : 8;
+            ULONG ObjectType : 4;
+        } Application;
+        struct
+        {
+            ULONG Value : 20;
+            BCD_INHERITED_CLASS_TYPE Class : 4;
+            ULONG Reserved : 4;
+            ULONG ObjectType : 4;
+        } Inherit;
+        struct
+        {
+            ULONG Reserved : 28;
+            ULONG ObjectType : 4;
+        } Device;
+    };
+} BCD_OBJECT_DATATYPE, *PBCD_OBJECT_DATATYPE;
+
 #define BCD_OBJECT_DESCRIPTION_VERSION 0x1
 
 typedef struct _BCD_OBJECT_DESCRIPTION
 {
-    ULONG Version;
-    ULONG Type; // BCD_OBJECT_TYPE
+    ULONG Version; // BCD_OBJECT_DESCRIPTION_VERSION
+    BCD_OBJECT_DATATYPE Type; // BCD_OBJECT_DATATYPE
 } BCD_OBJECT_DESCRIPTION, *PBCD_OBJECT_DESCRIPTION;
 
 typedef struct _BCD_OBJECT
@@ -441,6 +494,13 @@ typedef enum _BCD_ELEMENT_DEVICE_TYPE
 #define MAKE_BCDE_DATA_TYPE(Class, Format, Subtype) \
     (((((ULONG)Class) & 0xF) << 28) | ((((ULONG)Format) & 0xF) << 24) | (((ULONG)Subtype) & 0x00FFFFFF))
 
+#define GET_BCDE_DATA_CLASS(DataType) \
+    ((BCD_ELEMENT_DATATYPE_CLASS)(((((ULONG)DataType)) >> 28) & 0xF))
+#define GET_BCDE_DATA_FORMAT(DataType) \
+    ((BCD_ELEMENT_DATATYPE_FORMAT)(((((ULONG)DataType)) >> 24) & 0xF))
+#define GET_BCDE_DATA_SUBTYPE(DataType) \
+    ((ULONG)((((ULONG)DataType)) & 0x00FFFFFF))
+
 typedef struct _BCD_ELEMENT_DATATYPE
 {
     union
@@ -549,46 +609,11 @@ typedef struct _BCD_ELEMENT_BOOLEAN
     BOOLEAN Pad;
 } BCD_ELEMENT_BOOLEAN, *PBCD_ELEMENT_BOOLEAN;
 
-typedef enum _BCD_OBJECT_BASE_TYPE
-{
-    BCD_OBJECT_BASE_TYPE_NONE,
-    BCD_OBJECT_BASE_TYPE_APPLICATION,
-    BCD_OBJECT_BASE_TYPE_INHERITED,
-    BCD_OBJECT_BASE_TYPE_DEVICE
-} BCD_OBJECT_BASE_TYPE;
-
-typedef union _BCD_UNPACKED_OBJECT_TYPE
-{
-    ULONG PackedValue;
-    union
-    {
-        ULONG Reserved : 28;
-        ULONG ObjectType : 4;
-        struct
-        {
-            ULONG Type : 20;
-            ULONG ImageType : 4;
-            ULONG Reserved : 4;
-            ULONG ObjectType : 4;
-        } Application;
-        struct
-        {
-            ULONG Value : 20;
-            ULONG Class : 4;
-            ULONG Reserved : 4;
-            ULONG ObjectType : 4;
-        } Inherit;
-        struct
-        {
-            ULONG Reserved : 28;
-            ULONG ObjectType : 4;
-        } Device;
-    };
-} BCD_UNPACKED_OBJECT_TYPE, *PBCD_UNPACKED_OBJECT_TYPE;
+#define BCD_ELEMENT_DESCRIPTION_VERSION 0x1
 
 typedef struct BCD_ELEMENT_DESCRIPTION
 {
-    ULONG Version; // BCD_OBJECT_DESCRIPTION_VERSION
+    ULONG Version; // BCD_ELEMENT_DESCRIPTION_VERSION
     ULONG Type;
     ULONG DataSize;
 } BCD_ELEMENT_DESCRIPTION, *PBCD_ELEMENT_DESCRIPTION;
