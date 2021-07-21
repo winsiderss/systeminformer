@@ -239,7 +239,7 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
 
 typedef struct _POWER_REQUEST_ACTION
 {
-    HANDLE PowerRequest;
+    HANDLE PowerRequestHandle;
     POWER_REQUEST_TYPE RequestType;
     BOOLEAN Enable;
     HANDLE TargetProcess; // Windows 8+ and only for requests created via PlmPowerRequestCreate
@@ -247,8 +247,8 @@ typedef struct _POWER_REQUEST_ACTION
 
 typedef struct _POWER_REQUEST_LIST
 {
-    ULONG_PTR cElements;
-    ULONG_PTR OffsetsToRequests[ANYSIZE_ARRAY]; // PPOWER_REQUEST
+    ULONG_PTR Count;
+    ULONG_PTR PowerRequestOffsets[ANYSIZE_ARRAY]; // PPOWER_REQUEST
 } POWER_REQUEST_LIST, *PPOWER_REQUEST_LIST;
 
 typedef enum _POWER_REQUEST_ORIGIN
@@ -260,9 +260,9 @@ typedef enum _POWER_REQUEST_ORIGIN
 
 typedef struct _POWER_REQUEST_BODY
 {
-    ULONG_PTR cbSize;
-    POWER_REQUEST_ORIGIN Origin;
-    ULONG_PTR OffsetToRequester; // PWSTR
+    ULONG_PTR Size;
+    POWER_REQUEST_ORIGIN CallerType;
+    ULONG_PTR ProcessImageNameOffset; // PWSTR
     union
     {
         struct
@@ -270,9 +270,9 @@ typedef struct _POWER_REQUEST_BODY
             ULONG ProcessId;
             ULONG ServiceTag;
         };
-        ULONG_PTR OffsetToDriverName; // PWSTR
+        ULONG_PTR DeviceDescriptionOffset; // PWSTR
     };    
-    ULONG_PTR OffsetToContext; // PCOUNTED_REASON_CONTEXT_RELATIVE
+    ULONG_PTR ReasonOffset; // PCOUNTED_REASON_CONTEXT_RELATIVE
 } POWER_REQUEST_BODY, *PPOWER_REQUEST_BODY;
 
 // The number of supported request types per version
@@ -325,12 +325,12 @@ typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
     {
         struct
         {
-            ULONG_PTR OffsetToResourceFileName;
+            ULONG_PTR ResourceFileNameOffset;
             USHORT ResourceReasonId;
             ULONG StringCount;
-            ULONG_PTR OffsetToReasonStrings;
+            ULONG_PTR SubstitutionStringsOffset;
         };
-        ULONG_PTR OffsetToSimpleString;
+        ULONG_PTR SimpleStringOffset;
     };
 } COUNTED_REASON_CONTEXT_RELATIVE, *PCOUNTED_REASON_CONTEXT_RELATIVE;
 #endif
