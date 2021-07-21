@@ -7934,3 +7934,56 @@ NTSTATUS PhFreeLibraryAsImageResource(
 {
     return NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
 }
+
+NTSTATUS PhDelayExecutionEx(
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER DelayInterval
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS (NTAPI* RtlDelayExecution_I)(
+        _In_ BOOLEAN Alertable,
+        _In_opt_ PLARGE_INTEGER DelayInterval
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID ntdll;
+
+        if (ntdll = PhGetLoaderEntryDllBase(L"ntdll.dll"))
+        {
+            RtlDelayExecution_I = PhGetDllBaseProcedureAddress(ntdll, "RtlDelayExecution", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (RtlDelayExecution_I)
+    {
+        return RtlDelayExecution_I(Alertable, DelayInterval);
+    }
+
+    return NtDelayExecution(Alertable, DelayInterval);
+}
+
+NTSTATUS PhDelayExecution(
+    _In_ LONGLONG Interval
+    )
+{
+    if (Interval == INFINITE) // HACK (dmex)
+    {
+        LARGE_INTEGER interval;
+
+        interval.QuadPart = LLONG_MIN;
+
+        return PhDelayExecutionEx(FALSE, &interval);
+    }
+    else
+    {
+        LARGE_INTEGER interval;
+
+        interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
+
+        return PhDelayExecutionEx(FALSE, &interval);
+    }
+}

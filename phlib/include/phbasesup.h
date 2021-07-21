@@ -89,13 +89,6 @@ PhLocalTimeToSystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhDelayExecution(
-    _In_ LONGLONG Interval
-    );
-
 // Heap
 
 _May_raise_

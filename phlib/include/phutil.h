@@ -1509,6 +1509,13 @@ PhFreeLibraryAsImageResource(
     _In_ PVOID BaseAddress
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDelayExecution(
+    _In_ LONGLONG Interval
+    );
+
 #ifdef __cplusplus
 }
 #endif
