@@ -44,7 +44,8 @@ typedef enum _VDMSERVICECLASS
     VdmSetProcessLdtInfo,
     VdmAdlibEmulation,
     VdmPMCliControl,
-    VdmQueryVdmProcess
+    VdmQueryVdmProcess,
+    VdmPreInitialize
 } VDMSERVICECLASS, *PVDMSERVICECLASS;
 
 NTSYSCALLAPI
@@ -77,25 +78,27 @@ typedef enum _TRACE_CONTROL_INFORMATION_CLASS
     TraceControlIncrementLoggerFile = 6,
 
     TraceControlRealtimeConnect = 11,
+    TraceControlActivityIdCreate = 12,
     TraceControlWdiDispatchControl = 13,
     TraceControlRealtimeDisconnectConsumerByHandle = 14,
-
+    TraceControlRegisterGuidsCode = 15,
     TraceControlReceiveNotification = 16,
-    TraceControlEnableGuid = 17,
+    TraceControlSendDataBlock = 17, // EnableGuid
     TraceControlSendReplyDataBlock = 18,
     TraceControlReceiveReplyDataBlock = 19,
     TraceControlWdiUpdateSem = 20,
-    TraceControlGetTraceGuidList = 21,
+    TraceControlEnumTraceGuidList = 21,
     TraceControlGetTraceGuidInfo = 22,
     TraceControlEnumerateTraceGuids = 23,
-
+    TraceControlRegisterSecurityProv = 24,
     TraceControlQueryReferenceTime = 25,
     TraceControlTrackProviderBinary = 26,
     TraceControlAddNotificationEvent = 27,
     TraceControlUpdateDisallowList = 28,
-
-    TraceControlUseDescriptorTypeUm = 31,
-    TraceControlGetTraceGroupList = 32,
+    TraceControlSetEnableAllKeywordsCode = 29,
+    TraceControlSetProviderTraitsCode = 30,
+    TraceControlUseDescriptorTypeCode = 31,
+    TraceControlEnumTraceGroupList = 32,
     TraceControlGetTraceGroupInfo = 33,
     TraceControlTraceSetDisallowList= 34,
     TraceControlSetCompressionSettings = 35,
