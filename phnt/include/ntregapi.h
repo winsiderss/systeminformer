@@ -137,11 +137,11 @@ typedef struct _KEY_TRUST_INFORMATION
 // private
 typedef struct _KEY_LAYER_INFORMATION
 {
-    ULONG IsTombstone;
-    ULONG IsSupersedeLocal;
-    ULONG IsSupersedeTree;
-    ULONG ClassIsInherited;
-    ULONG Reserved;
+    ULONG IsTombstone : 1;
+    ULONG IsSupersedeLocal : 1;
+    ULONG IsSupersedeTree : 1;
+    ULONG ClassIsInherited : 1;
+    ULONG Reserved : 28;
 } KEY_LAYER_INFORMATION, *PKEY_LAYER_INFORMATION;
 
 typedef enum _KEY_SET_INFORMATION_CLASS
@@ -247,14 +247,16 @@ typedef struct _KEY_VALUE_LAYER_INFORMATION
 } KEY_VALUE_LAYER_INFORMATION, *PKEY_VALUE_LAYER_INFORMATION;
 
 // rev
-typedef enum _KEY_LOAD_ENTRY_TYPE {
+typedef enum _KEY_LOAD_ENTRY_TYPE
+{
     KeyLoadTrustClassKey = 1,
     KeyLoadEvent,
     KeyLoadToken
 } KEY_LOAD_ENTRY_TYPE;
 
 // rev
-typedef struct _KEY_LOAD_ENTRY {
+typedef struct _KEY_LOAD_ENTRY
+{
     KEY_LOAD_ENTRY_TYPE EntryType;
     union
     {
