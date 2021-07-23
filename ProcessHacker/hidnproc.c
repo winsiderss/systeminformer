@@ -1159,7 +1159,7 @@ NTSTATUS PhpEnumEtwGuidHandles(
     ULONG traceGuidListLength = 0;
 
     status = PhTraceControl(
-        TraceControlGetTraceGuidList,
+        TraceControlEnumTraceGuidList,
         NULL,
         0,
         &traceGuidList,
