@@ -2002,6 +2002,13 @@ RtlIsNameInUnUpcasedExpression(
 NTSYSAPI
 BOOLEAN
 NTAPI
+RtlDoesNameContainWildCards(
+    _In_ PUNICODE_STRING Expression
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
 RtlEqualDomainName(
     _In_ PUNICODE_STRING String1,
     _In_ PUNICODE_STRING String2
@@ -5223,6 +5230,31 @@ RtlGetSystemTimePrecise(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSAPI
+KSYSTEM_TIME
+NTAPI
+RtlGetSystemTimeAndBias(
+    _Out_ KSYSTEM_TIME TimeZoneBias,
+    _Out_opt_ PLARGE_INTEGER TimeZoneBiasEffectiveStart,
+    _Out_opt_ PLARGE_INTEGER TimeZoneBiasEffectiveEnd
+    );
+
+NTSYSAPI
+LARGE_INTEGER
+NTAPI
+RtlGetInterruptTimePrecise(
+    _Out_ PLARGE_INTEGER PerformanceCounter
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlQueryUnbiasedInterruptTime(
+    _Out_ PLARGE_INTEGER InterruptTime
+    );
+#endif
+
 // Time zones
 
 typedef struct _RTL_TIME_ZONE_INFORMATION
@@ -8217,6 +8249,7 @@ typedef enum _RTL_BSD_ITEM_TYPE
     RtlBsdItemMax
 } RTL_BSD_ITEM_TYPE;
 
+// ros
 typedef struct _RTL_BSD_DATA_POWER_TRANSITION
 {
     LARGE_INTEGER PowerButtonTimestamp;
@@ -8237,6 +8270,7 @@ typedef struct _RTL_BSD_DATA_POWER_TRANSITION
     ULONG LastUpdateBootId;
 } RTL_BSD_DATA_POWER_TRANSITION, *PRTL_BSD_DATA_POWER_TRANSITION;
 
+// ros
 typedef struct _RTL_BSD_DATA_ERROR_INFO
 {
     ULONG BootId;
@@ -8246,6 +8280,7 @@ typedef struct _RTL_BSD_DATA_ERROR_INFO
     ULONG OtherErrorCount2;
 } RTL_BSD_DATA_ERROR_INFO, *PRTL_BSD_DATA_ERROR_INFO;
 
+// ros
 typedef struct _RTL_BSD_POWER_BUTTON_PRESS_INFO
 {
     LARGE_INTEGER LastPressTime;
@@ -8319,6 +8354,22 @@ NTAPI
 RtlCheckBootStatusIntegrity(
     _In_ HANDLE FileHandle, 
     _Out_ PBOOLEAN Verified
+    );
+    
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRestoreBootStatusDefaults(
+    _In_ HANDLE FileHandle
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRestoreSystemBootStatusDefaults(
+    VOID
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE3)
