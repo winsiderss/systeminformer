@@ -117,7 +117,7 @@ BOOLEAN PhSipCpuSectionCallback(
             if (!drawInfo)
                 break;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableScaleCpuGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
 
@@ -125,6 +125,29 @@ BOOLEAN PhSipCpuSectionCallback(
             {
                 PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
                 PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, Section->GraphState.Data2, drawInfo->LineDataCount);
+
+                if (PhCsEnableScaleCpuGraph)
+                {
+                    FLOAT max = 0;
+
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT data = Section->GraphState.Data1[i] + Section->GraphState.Data2[i]; // HACK
+
+                        if (max < data)
+                            max = data;
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(Section->GraphState.Data1, max, drawInfo->LineDataCount);
+                        PhDivideSinglesBySingle(Section->GraphState.Data2, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                }
+
                 Section->GraphState.Valid = TRUE;
             }
         }
@@ -598,7 +621,7 @@ VOID PhSipNotifyCpuGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableScaleCpuGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
             if (Index == ULONG_MAX)
@@ -613,6 +636,29 @@ VOID PhSipNotifyCpuGraph(
                 {
                     PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, CpuGraphState.Data1, drawInfo->LineDataCount);
                     PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, CpuGraphState.Data2, drawInfo->LineDataCount);
+
+                    if (PhCsEnableScaleCpuGraph)
+                    {
+                        FLOAT max = 0;
+
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = CpuGraphState.Data1[i] + CpuGraphState.Data2[i]; // HACK
+
+                            if (max < data)
+                                max = data;
+                        }
+
+                        if (max != 0)
+                        {
+                            PhDivideSinglesBySingle(CpuGraphState.Data1, max, drawInfo->LineDataCount);
+                            PhDivideSinglesBySingle(CpuGraphState.Data2, max, drawInfo->LineDataCount);
+                        }
+
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = max;
+                    }
+
                     CpuGraphState.Valid = TRUE;
                 }
             }
@@ -628,6 +674,29 @@ VOID PhSipNotifyCpuGraph(
                 {
                     PhCopyCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], CpusGraphState[Index].Data1, drawInfo->LineDataCount);
                     PhCopyCircularBuffer_FLOAT(&PhCpusUserHistory[Index], CpusGraphState[Index].Data2, drawInfo->LineDataCount);
+
+                    if (PhCsEnableScaleCpuGraph)
+                    {
+                        FLOAT max = 0;
+
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = CpusGraphState[Index].Data1[i] + CpusGraphState[Index].Data2[i]; // HACK
+
+                            if (max < data)
+                                max = data;
+                        }
+
+                        if (max != 0)
+                        {
+                            PhDivideSinglesBySingle(CpusGraphState[Index].Data1, max, drawInfo->LineDataCount);
+                            PhDivideSinglesBySingle(CpusGraphState[Index].Data2, max, drawInfo->LineDataCount);
+                        }
+
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = max;
+                    }
+
                     CpusGraphState[Index].Valid = TRUE;
                 }
 

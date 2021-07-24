@@ -3,7 +3,7 @@
  *   System Information window
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1004,6 +1004,32 @@ PPH_STRING PhSiSizeLabelYFunction(
     }
 }
 
+PPH_STRING PhSiDoubleLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    DOUBLE value;
+
+    value = (DOUBLE)((DOUBLE)Value * Parameter);
+
+    if (value != 0)
+    {
+        PH_FORMAT format[2];
+
+        PhInitFormatF(&format[0], value * 100, 2);
+        PhInitFormatC(&format[1], L'%');
+
+        return PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+    else
+    {
+        return PhReferenceEmptyString();
+    }
+}
+
 VOID PhSipRegisterDialog(
     _In_ HWND DialogWindowHandle
     )
@@ -1257,7 +1283,7 @@ VOID PhSipDrawRestoreSummaryPanel(
         DrawItemStruct->rcItem.bottom - DrawItemStruct->rcItem.top
     };
 
-    if (!(hdc = GetWindowDC(DrawItemStruct->hwndItem)))
+    if (!(hdc = GetDC(DrawItemStruct->hwndItem)))
         return;
 
     bufferDc = CreateCompatibleDC(hdc);
@@ -1345,7 +1371,7 @@ VOID PhSipDrawSeparator(
         DrawItemStruct->rcItem.bottom - DrawItemStruct->rcItem.top
     };
 
-    if (!(hdc = GetWindowDC(DrawItemStruct->hwndItem)))
+    if (!(hdc = GetDC(DrawItemStruct->hwndItem)))
         return;
 
     bufferDc = CreateCompatibleDC(hdc);

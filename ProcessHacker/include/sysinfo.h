@@ -158,6 +158,16 @@ PhSiSizeLabelYFunction(
     _In_ FLOAT Value,
     _In_ FLOAT Parameter
     );
+
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhSiDoubleLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    );
 // end_phapppub
 
 VOID PhShowSystemInformationDialog(
