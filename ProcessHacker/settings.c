@@ -49,6 +49,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
+    PhpAddIntegerSetting(L"EnableScaleCpuGraph", L"0");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
@@ -352,6 +353,7 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorFanRpm);
 
     PH_UPDATE_SETTING(ImageCoherencyScanLevel);
+    PH_UPDATE_SETTING(EnableScaleCpuGraph);
 
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");

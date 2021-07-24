@@ -3,7 +3,7 @@
  *   Process properties: Performance page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2019-2020 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -149,7 +149,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                     if (header->hwndFrom == performanceContext->CpuGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableScaleCpuGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
                         PhGraphStateGetDrawInfo(
@@ -164,6 +164,38 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 performanceContext->CpuGraphState.Data1, drawInfo->LineDataCount);
                             PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
                                 performanceContext->CpuGraphState.Data2, drawInfo->LineDataCount);
+
+                            if (PhCsEnableScaleCpuGraph)
+                            {
+                                FLOAT max = 0;
+
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = performanceContext->CpuGraphState.Data1[i] +
+                                        performanceContext->CpuGraphState.Data2[i]; // HACK
+
+                                    if (max < data)
+                                        max = data;
+                                }
+
+                                if (max != 0)
+                                {
+                                    PhDivideSinglesBySingle(
+                                        performanceContext->CpuGraphState.Data1,
+                                        max,
+                                        drawInfo->LineDataCount
+                                        );
+                                    PhDivideSinglesBySingle(
+                                        performanceContext->CpuGraphState.Data2,
+                                        max,
+                                        drawInfo->LineDataCount
+                                        );
+                                }
+
+                                drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                                drawInfo->LabelYFunctionParameter = max;
+                            }
+
                             performanceContext->CpuGraphState.Valid = TRUE;
                         }
 
@@ -330,18 +362,21 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             FLOAT cpuKernel;
                             FLOAT cpuUser;
-                            PH_FORMAT format[3];
+                            PH_FORMAT format[7];
 
                             cpuKernel = PhGetItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
                             cpuUser = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
-                            // %.2f%%\n%s
+                            // %.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s
                             PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, 2);
-                            PhInitFormatS(&format[1], L"%\n");
-                            PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
+                            PhInitFormatS(&format[1], L"% (K: ");
+                            PhInitFormatF(&format[2], (DOUBLE)cpuKernel * 100, 2);
+                            PhInitFormatS(&format[3], L"%, U: ");
+                            PhInitFormatF(&format[4], (DOUBLE)cpuUser * 100, 2);
+                            PhInitFormatS(&format[5], L"%)\n");
+                            PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
-                            PhMoveReference(&performanceContext->CpuGraphState.TooltipText,
-                                PhFormat(format, RTL_NUMBER_OF(format), 64));
+                            PhMoveReference(&performanceContext->CpuGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
                         }
 
                         getTooltipText->Text = performanceContext->CpuGraphState.TooltipText->sr;

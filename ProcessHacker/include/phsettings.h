@@ -85,6 +85,7 @@ EXT ULONG PhCsUseColorServiceStop;
 EXT ULONG PhCsColorServiceStop;
 
 EXT ULONG PhCsImageCoherencyScanLevel;
+EXT ULONG PhCsEnableScaleCpuGraph;
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
 
