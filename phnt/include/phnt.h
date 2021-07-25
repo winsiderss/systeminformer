@@ -89,6 +89,7 @@ extern "C" {
 #include <ntldr.h>
 #include <ntexapi.h>
 
+#include <ntbcd.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
 #include <ntpsapi.h>
