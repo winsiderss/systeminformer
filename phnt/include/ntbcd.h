@@ -21,10 +21,6 @@
 #ifndef _NTBCD_H
 #define _NTBCD_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef PHNT_INLINE_BCD_GUIDS
 // 5189B25C-5558-4BF2-BCA4-289B11BD29E2 // {badmemory}
 GUID DECLSPEC_SELECTANY GUID_BAD_MEMORY_GROUP = { 0x5189B25C, 0x5558, 0x4BF2, { 0xBC, 0xA4, 0x28, 0x9B, 0x11, 0xBD, 0x29, 0xE2 } };
@@ -126,7 +122,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdGetSystemStorePath(
-    _Out_ PWSTR* BcdSystemStorePath
+    _Out_ PWSTR* BcdSystemStorePath // RtlFreeHeap(RtlProcessHeap(), 0, BcdSystemStorePath);
     );
 
 NTSYSAPI
@@ -2112,9 +2108,5 @@ typedef enum _BcdOSLoaderElementTypes
     /// <remarks>0x22000161</remarks>
     BcdOSLoaderString_HypervisorDebuggerNetHostIpv6 = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_STRING, 353),
 } BcdOSLoaderElementTypes;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
