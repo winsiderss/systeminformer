@@ -67,7 +67,7 @@
 #define MonitorCapabilities 40 // (kernel-mode only)
 #define SessionPowerInit 41 // (kernel-mode only)
 #define SessionDisplayState 42 // (kernel-mode only)
-#define PowerRequestCreate 43 // in: REASON_CONTEXT, out: HANDLE
+#define PowerRequestCreate 43 // in: COUNTED_REASON_CONTEXT, out: HANDLE
 #define PowerRequestAction 44 // in: POWER_REQUEST_ACTION
 #define GetPowerRequestList 45 // out: POWER_REQUEST_LIST
 #define ProcessorInformationEx 46 // in: USHORT, out: PROCESSOR_POWER_INFORMATION
@@ -96,7 +96,7 @@
 #define FirmwareTableInformationRegistered 69 // (kernel-mode only)
 #define SetShutdownSelectedTime 70 // NULL
 #define SuspendResumeInvocation 71 // (kernel-mode only)
-#define PlmPowerRequestCreate 72 // in: REASON_CONTEXT, out: HANDLE
+#define PlmPowerRequestCreate 72 // in: COUNTED_REASON_CONTEXT, out: HANDLE
 #define ScreenOff 73 // NULL (PowerMonitorOff)
 #define CsDeviceNotification 74 // (kernel-mode only)
 #define PlatformRole 75 // POWER_PLATFORM_ROLE
@@ -146,6 +146,26 @@ typedef struct _SYSTEM_HIBERFILE_INFORMATION
     ULONG NumberOfMcbPairs;
     LARGE_INTEGER Mcb[1];
 } SYSTEM_HIBERFILE_INFORMATION, *PSYSTEM_HIBERFILE_INFORMATION;
+
+#define POWER_REQUEST_CONTEXT_NOT_SPECIFIED DIAGNOSTIC_REASON_NOT_SPECIFIED
+
+// wdm
+typedef struct _COUNTED_REASON_CONTEXT
+{
+    ULONG Version;
+    ULONG Flags;
+    union
+    {
+        struct
+        {
+            UNICODE_STRING ResourceFileName;
+            USHORT ResourceReasonId;
+            ULONG StringCount;
+            _Field_size_(StringCount) PUNICODE_STRING ReasonStrings;
+        };
+        UNICODE_STRING SimpleString;
+    };
+} COUNTED_REASON_CONTEXT, *PCOUNTED_REASON_CONTEXT;
 
 typedef enum _POWER_REQUEST_TYPE_INTERNAL // POWER_REQUEST_TYPE
 {
