@@ -7921,7 +7921,7 @@ NTSTATUS PhLoadLibraryAsImageResource(
         // Windows returns the address with bitwise OR|2 for use with LDR_IS_IMAGEMAPPING (dmex)
         if (BaseAddress)
         {
-            *BaseAddress = (PVOID)((ULONG_PTR)imageBaseAddress | 2);
+            *BaseAddress = LDR_MAPPEDVIEW_TO_IMAGEMAPPING(imageBaseAddress);
         }
     }
 
@@ -7932,7 +7932,7 @@ NTSTATUS PhFreeLibraryAsImageResource(
     _In_ PVOID BaseAddress
     )
 {
-    return NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
+    return NtUnmapViewOfSection(NtCurrentProcess(), LDR_IMAGEMAPPING_TO_MAPPEDVIEW(BaseAddress));
 }
 
 NTSTATUS PhDelayExecutionEx(
