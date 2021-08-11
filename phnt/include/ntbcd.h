@@ -283,18 +283,23 @@ typedef enum _BCD_INHERITED_CLASS_TYPE
     BCD_INHERITED_CLASS_DEVICE
 } BCD_INHERITED_CLASS_TYPE;
 
-#define MAKE_BCD_APPLICATION_OBJECT(ImageType, ApplicationType) \
-    (((ULONG)BCD_OBJECT_TYPE_APPLICATION << 28) | \
+#define MAKE_BCD_OBJECT(ObjectType, ImageType, ApplicationType) \
+    (((ULONG)(ObjectType) << 28) | \
     (((ULONG)(ImageType) & 0xF) << 20) | \
     ((ULONG)(ApplicationType) & 0xFFFFF))
 
+#define MAKE_BCD_APPLICATION_OBJECT(ImageType, ApplicationType) \
+    MAKE_BCD_OBJECT(BCD_OBJECT_TYPE_APPLICATION, (ULONG)(ImageType), (ULONG)(ApplicationType))
+
+#define GET_BCD_OBJECT_TYPE(DataType) \
+    ((BCD_OBJECT_TYPE)(((((ULONG)DataType)) >> 28) & 0xF))
 #define GET_BCD_APPLICATION_IMAGE(DataType) \
     ((BCD_APPLICATION_IMAGE_TYPE)(((((ULONG)DataType)) >> 20) & 0xF))
 #define GET_BCD_APPLICATION_OBJECT(DataType) \
     ((BCD_APPLICATION_OBJECT_TYPE)((((ULONG)DataType)) & 0xFFFFF))
 
-#define GET_BCD_OBJECT_TYPE(DataType) \
-    ((BCD_OBJECT_TYPE)(((((ULONG)DataType)) >> 28) & 0xF))
+#define BCD_OBJECT_OSLOADER_TYPE \
+    MAKE_BCD_APPLICATION_OBJECT(BCD_APPLICATION_IMAGE_BOOT_APPLICATION, BCD_APPLICATION_OBJECT_WINDOWS_BOOT_LOADER);
 
 typedef union _BCD_OBJECT_DATATYPE
 {
@@ -350,7 +355,7 @@ BcdEnumerateObjects(
     _In_ PBCD_OBJECT_DESCRIPTION BcdEnumDescriptor,
     _Out_writes_bytes_opt_(*BufferSize) PVOID Buffer, // BCD_OBJECT[]
     _Inout_ PULONG BufferSize,
-    _Out_ PULONG BcdObjectCount
+    _Out_ PULONG ObjectCount
     );
 
 NTSYSAPI
@@ -602,7 +607,7 @@ typedef struct _BCD_ELEMENT_INTEGER_LIST
 typedef struct _BCD_ELEMENT_BOOLEAN
 {
     BOOLEAN Value;
-    BOOLEAN Pad;
+    //BOOLEAN Pad; // sym
 } BCD_ELEMENT_BOOLEAN, *PBCD_ELEMENT_BOOLEAN;
 
 #define BCD_ELEMENT_DESCRIPTION_VERSION 0x1
@@ -822,7 +827,12 @@ typedef enum _BcdBootMgrElementTypes
     /// Note This value is supported starting in Windows 8 and Windows Server 2012.
     /// </summary>
     /// <remarks>0x26000031</remarks>
-    BcdBootMgrBoolean_PersistBootSequence = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 49)
+    BcdBootMgrBoolean_PersistBootSequence = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 49),
+    /// <summary>
+    ///
+    /// </summary>
+    /// <remarks>0x26000032</remarks>
+    BcdBootMgrBoolean_SkipStartupSequence = MAKE_BCDE_DATA_TYPE(BCD_ELEMENT_DATATYPE_CLASS_APPLICATION, BCD_ELEMENT_DATATYPE_FORMAT_BOOLEAN, 50),
 } BcdBootMgrElementTypes;
 
 typedef enum _BcdLibrary_FirstMegabytePolicy
@@ -896,8 +906,19 @@ typedef enum _BcdLibrary_UxDisplayMessageType
 
 typedef enum BcdLibrary_SafeBoot
 {
+    /// <summary>
+    /// Load the drivers and services specified by name or group under the following registry key:
+    /// HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SafeBoot\Minimal.
+    /// </summary>
     SafemodeMinimal = 0,
+    /// <summary>
+    /// Load the drivers and services specified by name or group under the following registry key:
+    /// HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SafeBoot\Network
+    /// </summary>
     SafemodeNetwork = 1,
+    /// <summary>
+    /// Boot the system into a repair mode that restores the Active Directory service from backup medium.
+    /// </summary>
     SafemodeDsRepair = 2
 } BcdLibrary_SafeBoot;
 
