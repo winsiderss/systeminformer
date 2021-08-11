@@ -170,8 +170,8 @@ PPH_STRING NetworkAdapterQueryNameFromGuid(
         _In_ PGUID InterfaceGuid,
         _Out_opt_ PWSTR InterfaceDescription,
         _Inout_ PSIZE_T InterfaceDescriptionLength,
-        PVOID Unknown1,
-        PVOID Unknown2
+        _In_ BOOL Cache,
+        _In_ BOOL Refresh
         ) = NULL;
     GUID interfaceGuid = GUID_NULL;
 
@@ -197,8 +197,8 @@ PPH_STRING NetworkAdapterQueryNameFromGuid(
             &interfaceGuid,
             adapterDescription,
             &adapterDescriptionLength,
-            NULL,
-            NULL
+            FALSE,
+            TRUE
             )))
         {
             return PhCreateString(adapterDescription);
@@ -244,7 +244,7 @@ PPH_STRING NetworkAdapterGetInterfaceNameFromLuid(
     return NULL;
 }
 
-PPH_STRING NetworkAdapterGetInterfaceAliasFromGuid(
+PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
     _In_ PPH_STRING InterfaceGuid
     )
 {
@@ -252,8 +252,8 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromGuid(
        _In_ PGUID InterfaceGuid,
        _Out_writes_(InterfaceAliasLength) PWSTR InterfaceAlias,
        _Inout_ PSIZE_T InterfaceAliasLength,
-       PVOID Unknown1,
-       PVOID Unknown2
+       _In_ BOOL Cache,
+       _In_ BOOL Refresh
        ) = NULL;
    GUID interfaceGuid = GUID_NULL;
 
@@ -263,7 +263,7 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromGuid(
 
         if (iphlpHandle = PhLoadLibrarySafe(L"iphlpapi.dll"))
         {
-            NhGetInterfaceNameFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
+            NhGetInterfaceNameFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceNameFromGuid", 0);
         }
     }
 
@@ -279,8 +279,8 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromGuid(
             &interfaceGuid,
             adapterAlias,
             &adapterAliasLength,
-            NULL,
-            NULL
+            FALSE,
+            TRUE
             )))
         {
             return PhCreateString(adapterAlias);
