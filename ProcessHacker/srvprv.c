@@ -1262,7 +1262,7 @@ NTSTATUS PhpServiceNonPollThreadStart(
                     {
                         if (notifyContext->NotifyRegistration)
                         {
-                            if (UnsubscribeServiceChangeNotifications_I && notifyContext->NotifyRegistration)
+                            if (UnsubscribeServiceChangeNotifications_I)
                                 UnsubscribeServiceChangeNotifications_I(notifyContext->NotifyRegistration);
 
                             notifyContext->JustAddedNotifyRegistration = FALSE;
