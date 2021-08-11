@@ -740,7 +740,7 @@ VOID DotNetPerfUpdateCounterData(
     }
 
     // The ListView doesn't send LVN_GETDISPINFO (or redraw properly) when not focused so we'll force a redraw. (dmex)
-    ListView_RedrawItems(Context->CountersListViewHandle, 0, DOTNET_INDEX_MAXIMUM);
+    ListView_RedrawItems(Context->CountersListViewHandle, 0, INT_MAX);
     UpdateWindow(Context->CountersListViewHandle);
 }
 
