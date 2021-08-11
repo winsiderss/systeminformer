@@ -174,6 +174,8 @@ VOID PhPinMiniInformation(
             SetWindowPos(PhMipContainerWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
         }
 
+        PhInitializeWindowTheme(PhMipContainerWindow, PhEnableThemeSupport); // HACK
+
         ShowWindow(PhMipContainerWindow, (Flags & PH_MINIINFO_ACTIVATE_WINDOW) ? SW_SHOW : SW_SHOWNOACTIVATE);
     }
     else if (adjustPinResult == HideAdjustPinResult)
@@ -466,8 +468,6 @@ VOID PhMipOnInitDialog(
     oldWndProc = (WNDPROC)GetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC);
     PhSetWindowContext(GetDlgItem(PhMipWindow, IDC_SECTION), 0xF, oldWndProc);
     SetWindowLongPtr(GetDlgItem(PhMipWindow, IDC_SECTION), GWLP_WNDPROC, (LONG_PTR)PhMipSectionControlHookWndProc);
-
-    PhInitializeWindowTheme(PhMipWindow, PhEnableThemeSupport);
 }
 
 VOID PhMipOnShowWindow(
