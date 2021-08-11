@@ -30,25 +30,25 @@
 #define VerifySystemPolicyDc 3 // SYSTEM_POWER_POLICY
 #define SystemPowerCapabilities 4 // SYSTEM_POWER_CAPABILITIES
 #define SystemBatteryState 5 // SYSTEM_BATTERY_STATE
-#define SystemPowerStateHandler 6 // (kernel-mode only)
-#define ProcessorStateHandler 7 // (kernel-mode only)
+#define SystemPowerStateHandler 6 // POWER_STATE_HANDLER // (kernel-mode only)
+#define ProcessorStateHandler 7 // PROCESSOR_STATE_HANDLER // (kernel-mode only)
 #define SystemPowerPolicyCurrent 8 // SYSTEM_POWER_POLICY
 #define AdministratorPowerPolicy 9 // ADMINISTRATOR_POWER_POLICY
 #define SystemReserveHiberFile 10 // BOOLEAN // (requires SeCreatePagefilePrivilege) // TRUE: hibernation file created. FALSE: hibernation file deleted.
 #define ProcessorInformation 11 // PROCESSOR_POWER_INFORMATION
 #define SystemPowerInformation 12 // SYSTEM_POWER_INFORMATION
-#define ProcessorStateHandler2 13 // not implemented
-#define LastWakeTime 14 // ULONGLONG
-#define LastSleepTime 15 // ULONGLONG
+#define ProcessorStateHandler2 13 // PROCESSOR_STATE_HANDLER2 // not implemented
+#define LastWakeTime 14 // ULONGLONG // InterruptTime
+#define LastSleepTime 15 // ULONGLONG // InterruptTime
 #define SystemExecutionState 16 // EXECUTION_STATE // NtSetThreadExecutionState
-#define SystemPowerStateNotifyHandler 17 // (kernel-mode only)
-#define ProcessorPowerPolicyAc 18 // not implemented
-#define ProcessorPowerPolicyDc 19 // not implemented
-#define VerifyProcessorPowerPolicyAc 20 // not implemented
-#define VerifyProcessorPowerPolicyDc 21 // not implemented
-#define ProcessorPowerPolicyCurrent 22 // not implemented
-#define SystemPowerStateLogging 23
-#define SystemPowerLoggingEntry 24 // (kernel-mode only)
+#define SystemPowerStateNotifyHandler 17 // POWER_STATE_NOTIFY_HANDLER // (kernel-mode only)
+#define ProcessorPowerPolicyAc 18 // PROCESSOR_POWER_POLICY // not implemented
+#define ProcessorPowerPolicyDc 19 // PROCESSOR_POWER_POLICY // not implemented
+#define VerifyProcessorPowerPolicyAc 20 // PROCESSOR_POWER_POLICY // not implemented
+#define VerifyProcessorPowerPolicyDc 21 // PROCESSOR_POWER_POLICY // not implemented
+#define ProcessorPowerPolicyCurrent 22 // PROCESSOR_POWER_POLICY // not implemented
+#define SystemPowerStateLogging 23 // SYSTEM_POWER_STATE_DISABLE_REASON[]
+#define SystemPowerLoggingEntry 24 // SYSTEM_POWER_LOGGING_ENTRY[] // (kernel-mode only)
 #define SetPowerSettingValue 25 // (kernel-mode only)
 #define NotifyUserPowerSetting 26 // not implemented
 #define PowerInformationLevelUnused0 27 // not implemented
@@ -81,14 +81,14 @@
 #define ProcessorPerfCapHv 54 // (kernel-mode only)
 #define ProcessorSetIdle 55 // (debug-mode boot only) 
 #define LogicalProcessorIdling 56 // (kernel-mode only)
-#define UserPresence 57 // not implemented
+#define UserPresence 57 // POWER_USER_PRESENCE // not implemented
 #define PowerSettingNotificationName 58
 #define GetPowerSettingValue 59 // GUID
 #define IdleResiliency 60 // POWER_IDLE_RESILIENCY
-#define SessionRITState 61 // (kernel-mode only)
-#define SessionConnectNotification 62 // (kernel-mode only)
-#define SessionPowerCleanup 63 // (kernel-mode only)
-#define SessionLockState 64
+#define SessionRITState 61 // POWER_SESSION_RIT_STATE
+#define SessionConnectNotification 62 // POWER_SESSION_WINLOGON
+#define SessionPowerCleanup 63
+#define SessionLockState 64 // POWER_SESSION_WINLOGON
 #define SystemHiberbootState 65 // BOOLEAN // fast startup supported
 #define PlatformInformation 66 // BOOLEAN // connected standby supported
 #define PdcInvocation 67 // (kernel-mode only)
@@ -109,7 +109,7 @@
 #define PlatformIdleVeto 82 // (kernel-mode only) // deprecated
 #define SystemBatteryStatePrecise 83 // SYSTEM_BATTERY_STATE
 #define ThermalEvent 84  // THERMAL_EVENT // PowerReportThermalEvent
-#define PowerRequestActionInternal 85 // (kernel-mode only)
+#define PowerRequestActionInternal 85 // POWER_REQUEST_ACTION_INTERNAL
 #define BatteryDeviceState 86
 #define PowerInformationInternal 87 // POWER_INFORMATION_LEVEL_INTERNAL // PopPowerInformationInternal
 #define ThermalStandby 88 // NULL // shutdown with thermal standby as reason.
@@ -245,7 +245,7 @@ typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
 
 typedef struct _DIAGNOSTIC_BUFFER
 {
-    ULONG_PTR Size;
+    SIZE_T Size;
     REQUESTER_TYPE CallerType;
     union
     {
@@ -358,6 +358,13 @@ typedef struct _POWER_STATE_NOTIFY_HANDLER
     PVOID Context;
 } POWER_STATE_NOTIFY_HANDLER, *PPOWER_STATE_NOTIFY_HANDLER;
 
+typedef struct _POWER_REQUEST_ACTION_INTERNAL
+{
+    PVOID PowerRequestPointer;
+    POWER_REQUEST_TYPE_INTERNAL RequestType;
+    BOOLEAN SetAction;
+} POWER_REQUEST_ACTION_INTERNAL, *PPOWER_REQUEST_ACTION_INTERNAL;
+
 typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
 {
     PowerInternalAcpiInterfaceRegister,
@@ -452,14 +459,14 @@ typedef struct _POWER_S0_LOW_POWER_IDLE_INFO
         BOOLEAN Mbn : 1;
         BOOLEAN Ethernet : 1;
         BOOLEAN Reserved : 4;
-        BOOLEAN AsUCHAR;
+        UCHAR AsUCHAR;
     } CsDeviceCompliance;
     union
     {
         BOOLEAN DisconnectInStandby : 1;
         BOOLEAN EnforceDs : 1;
         BOOLEAN Reserved : 6;
-        BOOLEAN AsUCHAR;
+        UCHAR AsUCHAR;
     } Policy;
 } POWER_S0_LOW_POWER_IDLE_INFO, *PPOWER_S0_LOW_POWER_IDLE_INFO;
 
