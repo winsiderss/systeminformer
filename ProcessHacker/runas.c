@@ -2880,7 +2880,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                                         PhDereferenceObject(buttonText);
                                     }
 
-                                    ImageList_Draw(
+                                    PhImageListDrawIcon(
                                         context->ImageListHandle,
                                         0,
                                         customDraw->hdc,
