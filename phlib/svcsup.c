@@ -214,7 +214,7 @@ SC_HANDLE PhOpenService(
 NTSTATUS PhOpenServiceEx(
     _In_ PWSTR ServiceName,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ SC_HANDLE ScManagerHandle,
+    _In_opt_ SC_HANDLE ScManagerHandle,
     _Out_ SC_HANDLE* ServiceHandle
     )
 {
