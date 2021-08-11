@@ -980,13 +980,10 @@ BOOLEAN PhInitializeComPolicy(
 {
 #ifdef PH_COM_SVC
     static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-    static SID_IDENTIFIER_AUTHORITY packageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
     ULONG securityDescriptorAllocationLength;
     PSECURITY_DESCRIPTOR securityDescriptor;
     UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-    UCHAR packagesSidSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
     PSID administratorsSid;
-    PSID packagesSid;
     PACL dacl;
 
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
@@ -997,17 +994,10 @@ BOOLEAN PhInitializeComPolicy(
     *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
     *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
 
-    packagesSid = (PSID)packagesSidSidBuffer;
-    RtlInitializeSid(packagesSid, &packageAuthority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
-    *RtlSubAuthoritySid(packagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
-    *RtlSubAuthoritySid(packagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
-
     securityDescriptorAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         RtlLengthSid(&PhSeAuthenticatedUserSid) +
-        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&packagesSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         RtlLengthSid(&PhSeLocalSystemSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
@@ -1015,11 +1005,9 @@ BOOLEAN PhInitializeComPolicy(
 
     securityDescriptor = PhAllocate(securityDescriptorAllocationLength);
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
-    // "O:BAG:BAD:(A;;0x3;;;AU)(A;;0x3;;;AC)(A;;0x3;;;SY)(A;;0x3;;;BA)"
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     RtlCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
-    RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, packagesSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
     RtlAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
     RtlSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
