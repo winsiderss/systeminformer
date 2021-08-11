@@ -185,7 +185,7 @@ VOID GpuPropLayoutGraphs(
     //clientRect.bottom = panelRect.top + 10; // +10 removing extra spacing
 
     graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 4) / 4;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 3) / 4;
 
     deferHandle = BeginDeferWindowPos(8);
 
