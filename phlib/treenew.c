@@ -42,7 +42,6 @@
  */
 
 #include <ph.h>
-#include <settings.h>
 #include <treenew.h>
 
 #include <uxtheme.h>
@@ -5356,7 +5355,7 @@ VOID PhTnpPaint(
         textRect.right = viewRect.right - 20;
         textRect.bottom = viewRect.bottom - 5;
 
-        if (PhGetIntegerSetting(L"EnableThemeSupport"))
+        if (Context->ThemeSupport)
         {
             SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
         }
