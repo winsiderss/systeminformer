@@ -378,7 +378,7 @@ VOID PhpUpdateProcessStatistics(
     }
 
     // The ListView doesn't send LVN_GETDISPINFO (or redraw properly) when not focused so force the redraw. (dmex)
-    ListView_RedrawItems(Context->ListViewHandle, 0, PH_PROCESS_STATISTICS_INDEX_MAX);
+    ListView_RedrawItems(Context->ListViewHandle, 0, INT_MAX);
     UpdateWindow(Context->ListViewHandle);
 }
 
