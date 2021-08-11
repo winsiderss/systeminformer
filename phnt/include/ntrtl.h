@@ -6213,7 +6213,7 @@ RtlSetDaclSecurityDescriptor(
     _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ BOOLEAN DaclPresent,
     _In_opt_ PACL Dacl,
-    _In_opt_ BOOLEAN DaclDefaulted
+    _In_ BOOLEAN DaclDefaulted
     );
 
 NTSYSAPI
@@ -6233,7 +6233,7 @@ RtlSetSaclSecurityDescriptor(
     _Inout_ PSECURITY_DESCRIPTOR SecurityDescriptor,
     _In_ BOOLEAN SaclPresent,
     _In_opt_ PACL Sacl,
-    _In_opt_ BOOLEAN SaclDefaulted
+    _In_ BOOLEAN SaclDefaulted
     );
 
 NTSYSAPI
