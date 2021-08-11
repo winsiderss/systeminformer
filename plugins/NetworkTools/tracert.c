@@ -168,12 +168,6 @@ NTSTATUS TracertHostnameLookupCallback(
     {
         IN_ADDR inAddr4 = ((PSOCKADDR_IN)&workitem->SocketAddress)->sin_addr;
 
-        if (IN4_IS_ADDR_UNSPECIFIED(&inAddr4))
-        {
-            PhFree(workitem);
-            return STATUS_SUCCESS;
-        }
-
         if (IN4_IS_ADDR_LOOPBACK(&inAddr4) ||
             IN4_IS_ADDR_BROADCAST(&inAddr4) ||
             IN4_IS_ADDR_MULTICAST(&inAddr4) ||
@@ -187,12 +181,6 @@ NTSTATUS TracertHostnameLookupCallback(
     else if (workitem->Type == PH_IPV6_NETWORK_TYPE)
     {
         IN6_ADDR inAddr6 = ((PSOCKADDR_IN6)&workitem->SocketAddress)->sin6_addr;
-
-        if (IN6_IS_ADDR_UNSPECIFIED(&inAddr6))
-        {
-            PhFree(workitem);
-            return STATUS_SUCCESS;
-        }
 
         if (IN6_IS_ADDR_LOOPBACK(&inAddr6) ||
             IN6_IS_ADDR_MULTICAST(&inAddr6) ||
@@ -292,7 +280,6 @@ VOID TracertQueueHostLookup(
     if (Context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
     {
         IN_ADDR sockAddrIn;
-        PTRACERT_RESOLVE_WORKITEM resolve;
 
         memset(&sockAddrIn, 0, sizeof(IN_ADDR));
         memcpy(&sockAddrIn, SocketAddress, sizeof(IN_ADDR));
@@ -317,15 +304,20 @@ VOID TracertQueueHostLookup(
             }
         }
 
-        resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
-        resolve->Type = PH_IPV4_NETWORK_TYPE;
-        resolve->WindowHandle = Context->WindowHandle;
-        resolve->Index = Node->TTL;
+        if (!IN4_IS_ADDR_UNSPECIFIED(&sockAddrIn))
+        {
+            PTRACERT_RESOLVE_WORKITEM resolve;
 
-        ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_family = AF_INET;
-        ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
+            resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
+            resolve->Type = PH_IPV4_NETWORK_TYPE;
+            resolve->WindowHandle = Context->WindowHandle;
+            resolve->Index = Node->TTL;
 
-        PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
+            ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_family = AF_INET;
+            ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
+
+            PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
+        }       
 
         if (LookupSockInAddr4CountryCode(
             sockAddrIn,
@@ -340,7 +332,6 @@ VOID TracertQueueHostLookup(
     else if (Context->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE)
     {
         IN6_ADDR sockAddrIn6;
-        PTRACERT_RESOLVE_WORKITEM resolve;
 
         memset(&sockAddrIn6, 0, sizeof(IN6_ADDR));
         memcpy(&sockAddrIn6, SocketAddress, sizeof(IN6_ADDR));
@@ -365,15 +356,20 @@ VOID TracertQueueHostLookup(
             }
         }
 
-        resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
-        resolve->Type = PH_IPV6_NETWORK_TYPE;
-        resolve->WindowHandle = Context->WindowHandle;
-        resolve->Index = Node->TTL;
+        if (!IN6_IS_ADDR_UNSPECIFIED(&sockAddrIn6))
+        {
+            PTRACERT_RESOLVE_WORKITEM resolve;
 
-        ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_family = AF_INET6;
-        ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr = sockAddrIn6;
+            resolve = PhAllocateZero(sizeof(TRACERT_RESOLVE_WORKITEM));
+            resolve->Type = PH_IPV6_NETWORK_TYPE;
+            resolve->WindowHandle = Context->WindowHandle;
+            resolve->Index = Node->TTL;
 
-        PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
+            ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_family = AF_INET6;
+            ((PSOCKADDR_IN6)&resolve->SocketAddress)->sin6_addr = sockAddrIn6;
+
+            PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
+        }
 
         if (LookupSockInAddr6CountryCode(
             sockAddrIn6,
