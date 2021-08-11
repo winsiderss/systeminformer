@@ -6080,20 +6080,21 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
             status = NtOpenFile(
                 &directoryHandle,
-                GENERIC_READ | SYNCHRONIZE,
+                FILE_LIST_DIRECTORY | SYNCHRONIZE,
                 &objectAttributes,
                 &isb,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
-                FILE_SYNCHRONOUS_IO_NONALERT
+                FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 );
 
             if (NT_SUCCESS(status))
             {
-                PhInitializeArray(&pipeArray, sizeof(PHP_PIPE_NAME_HASH), 512);
+                static UNICODE_STRING pipeSearchPattern = RTL_CONSTANT_STRING(L"dotnet-diagnostic-*");
+                PhInitializeArray(&pipeArray, sizeof(PHP_PIPE_NAME_HASH), 16);
 
                 status = PhEnumDirectoryFile(
                     directoryHandle,
-                    NULL,
+                    &pipeSearchPattern,
                     PhpDotNetCorePipeHashCallback,
                     &pipeArray
                     );
