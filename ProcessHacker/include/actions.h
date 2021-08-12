@@ -101,6 +101,28 @@ PhUiShutdownComputer(
     _In_ ULONG Flags
     );
 
+PVOID PhUiCreateComputerBootDeviceMenu(
+    _In_ BOOLEAN DelayLoadMenu
+    );
+
+PVOID PhUiCreateComputerFirmwareDeviceMenu(
+    _In_ BOOLEAN DelayLoadMenu
+    );
+
+VOID PhUiHandleComputerBootApplicationMenu(
+    _In_ HWND WindowHandle,
+    _In_ ULONG MenuIndex
+    );
+
+VOID PhUiHandleComputerFirmwareApplicationMenu(
+    _In_ HWND WindowHandle,
+    _In_ ULONG MenuIndex
+    );
+
+VOID PhUiCreateSessionMenu(
+    _In_ PVOID UsersMenuItem
+    );
+
 PHAPPAPI
 BOOLEAN
 NTAPI

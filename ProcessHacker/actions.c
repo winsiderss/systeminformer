@@ -38,6 +38,8 @@
 
 #include <apiimport.h>
 #include <appresolver.h>
+#include <bcd.h>
+#include <emenu.h>
 #include <hndlprv.h>
 #include <memprv.h>
 #include <modprv.h>
@@ -691,71 +693,99 @@ BOOLEAN PhUiRestartComputer(
                 FALSE
                 ))
             {
-                static PH_STRINGREF bcdeditFileNameSr = PH_STRINGREF_INIT(L"\\System32\\bcdedit.exe");
-                PH_STRINGREF systemRootString;
-                PPH_STRING bcdeditFileName;
-                HANDLE processHandle = NULL;
-                BOOLEAN success = FALSE;
+                NTSTATUS status;
 
-                PhGetSystemRoot(&systemRootString);
-                bcdeditFileName = PhConcatStringRef2(&systemRootString, &bcdeditFileNameSr);
+                status = PhBcdSetAdvancedOptionsOneTime(
+                    TRUE
+                    );
 
-                if (PhShellExecuteEx(
-                    WindowHandle,
-                    PhGetString(bcdeditFileName),
-                    L"/set {current} onetimeadvancedoptions on",
-                    SW_HIDE,
-                    PH_SHELL_EXECUTE_ADMIN,
-                    INFINITE,
-                    &processHandle
-                    ))
+                if (NT_SUCCESS(status))
                 {
-                    if (processHandle)
+                    status = InitiateShutdown(
+                        NULL,
+                        NULL,
+                        0,
+                        SHUTDOWN_RESTART,
+                        SHTDN_REASON_FLAG_PLANNED
+                        );
+
+                    if (status == ERROR_SUCCESS)
                     {
-                        PROCESS_BASIC_INFORMATION processInfo;
-
-                        if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &processInfo)))
-                        {
-                            success = !!(processInfo.ExitStatus == ERROR_SUCCESS); // bcdedit doesn't return error codes. (dmex)
-                        }
-
-                        NtClose(processHandle);
-                    }
-
-                    if (success)
-                    {
-                        ULONG status = InitiateShutdown(
-                            NULL,
-                            NULL,
-                            0,
-                            SHUTDOWN_RESTART,
-                            SHTDN_REASON_FLAG_PLANNED
-                            );
-                        
-                        if (status != ERROR_SUCCESS)
-                        {
-                            PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
-                        }
-
-                        PhDereferenceObject(bcdeditFileName);
                         return TRUE;
                     }
-                    else
-                    {
-                        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", STATUS_UNSUCCESSFUL, 0);
-                    }
+
+                    PhShowStatus(WindowHandle, L"Unable to configure the advanced boot options.", 0, status);
                 }
                 else
                 {
-                    ULONG status = GetLastError();
-
-                    if (status != ERROR_CANCELLED) // User cancelled the UAC prompt. (dmex)
-                    {
-                        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", 0, status);
-                    }
+                    PhShowStatus(WindowHandle, L"Unable to configure the advanced boot options.", status, 0);
                 }
 
-                PhDereferenceObject(bcdeditFileName);
+                //static PH_STRINGREF bcdeditFileNameSr = PH_STRINGREF_INIT(L"\\System32\\bcdedit.exe");
+                //PH_STRINGREF systemRootString;
+                //PPH_STRING bcdeditFileName;
+                //HANDLE processHandle = NULL;
+                //BOOLEAN success = FALSE;
+                //
+                //PhGetSystemRoot(&systemRootString);
+                //bcdeditFileName = PhConcatStringRef2(&systemRootString, &bcdeditFileNameSr);
+                //
+                //if (PhShellExecuteEx(
+                //    WindowHandle,
+                //    PhGetString(bcdeditFileName),
+                //    L"/set {current} onetimeadvancedoptions on",
+                //    SW_HIDE,
+                //    PH_SHELL_EXECUTE_ADMIN,
+                //    INFINITE,
+                //    &processHandle
+                //    ))
+                //{
+                //    if (processHandle)
+                //    {
+                //        PROCESS_BASIC_INFORMATION processInfo;
+                //
+                //        if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &processInfo)))
+                //        {
+                //            success = !!(processInfo.ExitStatus == ERROR_SUCCESS); // bcdedit doesn't return error codes. (dmex)
+                //        }
+                //
+                //        NtClose(processHandle);
+                //    }
+                //
+                //    if (success)
+                //    {
+                //        ULONG status = InitiateShutdown(
+                //            NULL,
+                //            NULL,
+                //            0,
+                //            SHUTDOWN_RESTART,
+                //            SHTDN_REASON_FLAG_PLANNED
+                //            );
+                //        
+                //        if (status != ERROR_SUCCESS)
+                //        {
+                //            PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
+                //        }
+                //
+                //        PhDereferenceObject(bcdeditFileName);
+                //        return TRUE;
+                //    }
+                //    else
+                //    {
+                //        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", STATUS_UNSUCCESSFUL, 0);
+                //    }
+                //}
+                //else
+                //{
+                //    ULONG status = GetLastError();
+                //
+                //    if (status != ERROR_CANCELLED) // User cancelled the UAC prompt. (dmex)
+                //    {
+                //        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", 0, status);
+                //    }
+                //}
+                //
+                //PhDereferenceObject(bcdeditFileName);
             }
         }
         break;
@@ -999,6 +1029,327 @@ BOOLEAN PhUiShutdownComputer(
     }
 
     return FALSE;
+}
+
+PVOID PhUiCreateComputerBootDeviceMenu(
+    _In_ BOOLEAN DelayLoadMenu
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+    PPH_LIST bootApplicationList;
+
+    menuItem = PhCreateEMenuItem(PH_EMENU_DISABLED, ID_COMPUTER_RESTARTBOOTDEVICE, L"Restart to boot application", NULL, NULL);
+
+    if (!PhGetOwnTokenAttributes().Elevated)
+        return menuItem;
+
+    if (!DelayLoadMenu)
+    {
+        BOOLEAN bootEnumerateAllObjects = !!PhGetIntegerSetting(L"EnableBootObjectsEnumerate");
+
+        if (bootApplicationList = PhBcdQueryBootApplicationList(bootEnumerateAllObjects))
+        {
+            for (ULONG i = 0; i < bootApplicationList->Count; i++)
+            {
+                PPH_BCD_OBJECT_LIST entry = bootApplicationList->Items[i];
+                PPH_EMENU_ITEM menuItemNew;
+
+                menuItemNew = PhCreateEMenuItem(
+                    PH_EMENU_TEXT_OWNED,
+                    ID_COMPUTER_RESTARTBOOTDEVICE,
+                    PhAllocateCopy(entry->ObjectName->Buffer, entry->ObjectName->Length + sizeof(UNICODE_NULL)),
+                    NULL,
+                    UlongToPtr(i)
+                    );
+
+                PhInsertEMenuItem(menuItem, menuItemNew, ULONG_MAX);
+            }
+
+            if (bootApplicationList->Count)
+                PhSetEnabledEMenuItem(menuItem, TRUE);
+
+            PhBcdDestroyBootApplicationList(bootApplicationList);
+        }
+    }
+
+    return menuItem;
+}
+
+PVOID PhUiCreateComputerFirmwareDeviceMenu(
+    _In_ BOOLEAN DelayLoadMenu
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+    PPH_LIST firmwareApplicationList;
+
+    menuItem = PhCreateEMenuItem(PH_EMENU_DISABLED, ID_COMPUTER_RESTARTFWDEVICE, L"Restart to firmware application", NULL, NULL);
+
+    if (!PhGetOwnTokenAttributes().Elevated)
+        return menuItem;
+
+    if (!DelayLoadMenu)
+    {
+        if (firmwareApplicationList = PhBcdQueryFirmwareBootApplicationList())
+        {
+            for (ULONG i = 0; i < firmwareApplicationList->Count; i++)
+            {
+                PPH_BCD_OBJECT_LIST entry = firmwareApplicationList->Items[i];
+                PPH_EMENU_ITEM menuItemNew;
+
+                menuItemNew = PhCreateEMenuItem(
+                    PH_EMENU_TEXT_OWNED,
+                    ID_COMPUTER_RESTARTFWDEVICE,
+                    PhAllocateCopy(entry->ObjectName->Buffer, entry->ObjectName->Length + sizeof(UNICODE_NULL)),
+                    NULL,
+                    UlongToPtr(i)
+                    );
+
+                PhInsertEMenuItem(menuItem, menuItemNew, ULONG_MAX);
+            }
+
+            if (firmwareApplicationList->Count)
+                PhSetEnabledEMenuItem(menuItem, TRUE);
+
+            PhBcdDestroyBootApplicationList(firmwareApplicationList);
+        }
+    }
+
+    return menuItem;
+}
+
+VOID PhUiHandleComputerBootApplicationMenu(
+    _In_ HWND WindowHandle,
+    _In_ ULONG MenuIndex
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    BOOLEAN bootEnumerateAllObjects;
+    PPH_LIST bootApplicationList;
+
+    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+        WindowHandle,
+        L"restart",
+        L"the computer",
+        NULL,
+        FALSE
+        ))
+    {
+        return;
+    }
+
+    bootEnumerateAllObjects = !!PhGetIntegerSetting(L"EnableBootObjectsEnumerate");
+
+    if (bootApplicationList = PhBcdQueryBootApplicationList(bootEnumerateAllObjects))
+    {
+        if (MenuIndex < bootApplicationList->Count)
+        {
+            PPH_BCD_OBJECT_LIST entry = bootApplicationList->Items[MenuIndex];
+
+            status = PhBcdSetBootApplicationOneTime(entry->ObjectGuid);
+        }
+
+        PhBcdDestroyBootApplicationList(bootApplicationList);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = InitiateShutdown(
+            NULL,
+            NULL,
+            0,
+            SHUTDOWN_RESTART,
+            SHTDN_REASON_FLAG_PLANNED
+            );
+
+        if (status != ERROR_SUCCESS)
+        {
+            PhShowStatus(WindowHandle, L"Unable to configure the boot application.", 0, status);
+        }
+    }
+    else
+    {
+        PhShowStatus(WindowHandle, L"Unable to configure the boot application.", status, 0);
+    }
+}
+
+VOID PhUiHandleComputerFirmwareApplicationMenu(
+    _In_ HWND WindowHandle,
+    _In_ ULONG MenuIndex
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PPH_LIST firmwareApplicationList;
+
+    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+        WindowHandle,
+        L"restart",
+        L"the computer",
+        NULL,
+        FALSE
+        ))
+    {
+        return;
+    }
+
+    if (firmwareApplicationList = PhBcdQueryFirmwareBootApplicationList())
+    {
+        if (MenuIndex < firmwareApplicationList->Count)
+        {
+            PPH_BCD_OBJECT_LIST entry = firmwareApplicationList->Items[MenuIndex];
+
+            status = PhBcdSetFirmwareBootApplicationOneTime(entry->ObjectGuid);
+        }
+
+        PhBcdDestroyBootApplicationList(firmwareApplicationList);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = InitiateShutdown(
+            NULL,
+            NULL,
+            0,
+            SHUTDOWN_RESTART,
+            SHTDN_REASON_FLAG_PLANNED
+            );
+
+        if (status != ERROR_SUCCESS)
+        {
+            PhShowStatus(WindowHandle, L"Unable to configure the boot application.", 0, status);
+        }
+    }
+    else
+    {
+        PhShowStatus(WindowHandle, L"Unable to configure the boot application.", status, 0);
+    }
+}
+
+typedef struct _PHP_USERSMENU_ENTRY
+{
+    ULONG SessionId;
+    PPH_STRING UserName;
+} PHP_USERSMENU_ENTRY, *PPHP_USERSMENU_ENTRY;
+
+static int __cdecl PhpUsersMainMenuNameCompare(
+    _In_ const void* Context,
+    _In_ const void *elem1,
+    _In_ const void *elem2
+    )
+{
+    PPHP_USERSMENU_ENTRY item1 = *(PPHP_USERSMENU_ENTRY*)elem1;
+    PPHP_USERSMENU_ENTRY item2 = *(PPHP_USERSMENU_ENTRY*)elem2;
+
+    return PhCompareString(item1->UserName, item2->UserName, TRUE);
+}
+
+VOID PhUiCreateSessionMenu(
+    _In_ PVOID UsersMenuItem
+    )
+{
+    PPH_LIST userSessionList;
+    PSESSIONIDW sessions;
+    ULONG numberOfSessions;
+    ULONG i;
+    userSessionList = PhCreateList(1);
+
+    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
+    {
+        for (i = 0; i < numberOfSessions; i++)
+        {
+            WINSTATIONINFORMATION winStationInfo;
+            ULONG returnLength;
+            SIZE_T formatLength;
+            PH_FORMAT format[5];
+            PH_STRINGREF menuTextSr;
+            WCHAR formatBuffer[0x100];
+
+            if (!WinStationQueryInformationW(
+                NULL,
+                sessions[i].SessionId,
+                WinStationInformation,
+                &winStationInfo,
+                sizeof(WINSTATIONINFORMATION),
+                &returnLength
+                ))
+            {
+                winStationInfo.Domain[0] = UNICODE_NULL;
+                winStationInfo.UserName[0] = UNICODE_NULL;
+            }
+
+            if (winStationInfo.Domain[0] == UNICODE_NULL || winStationInfo.UserName[0] == UNICODE_NULL)
+            {
+                // Probably the Services or RDP-Tcp session.
+                continue;
+            }
+
+            PhInitFormatU(&format[0], sessions[i].SessionId);
+            PhInitFormatS(&format[1], L": ");
+            PhInitFormatS(&format[2], winStationInfo.Domain);
+            PhInitFormatC(&format[3], OBJ_NAME_PATH_SEPARATOR);
+            PhInitFormatS(&format[4], winStationInfo.UserName);
+
+            if (!PhFormatToBuffer(
+                format,
+                RTL_NUMBER_OF(format),
+                formatBuffer,
+                sizeof(formatBuffer),
+                &formatLength
+                ))
+            {
+                continue;
+            }
+
+            menuTextSr.Length = formatLength - sizeof(UNICODE_NULL);
+            menuTextSr.Buffer = formatBuffer;
+
+            {
+                PPHP_USERSMENU_ENTRY entry;
+
+                entry = PhCreateAlloc(sizeof(PHP_USERSMENU_ENTRY));
+                entry->SessionId = sessions[i].SessionId;
+                entry->UserName = PhCreateString2(&menuTextSr);
+
+                PhAddItemList(userSessionList, entry);
+            }
+        }
+
+        WinStationFreeMemory(sessions);
+    }
+
+    // Sort the users. (dmex)
+    qsort_s(userSessionList->Items, userSessionList->Count, sizeof(PVOID), PhpUsersMainMenuNameCompare, NULL);
+
+    // Update the users menu. (dmex)
+    for (i = 0; i < userSessionList->Count; i++)
+    {
+        PPHP_USERSMENU_ENTRY entry;
+        PPH_STRING escapedMenuText;
+        PPH_EMENU_ITEM userMenu;
+
+        entry = userSessionList->Items[i];
+        escapedMenuText = PhEscapeStringForMenuPrefix(&entry->UserName->sr);
+        userMenu = PhCreateEMenuItem(
+            PH_EMENU_TEXT_OWNED,
+            0,
+            PhAllocateCopy(escapedMenuText->Buffer, escapedMenuText->Length + sizeof(UNICODE_NULL)),
+            NULL,
+            UlongToPtr(entry->SessionId)
+            );
+        PhDereferenceObject(escapedMenuText);
+        PhDereferenceObject(entry->UserName);
+
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_CONNECT, L"&Connect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_DISCONNECT, L"&Disconnect", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_LOGOFF, L"&Logoff", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_REMOTECONTROL, L"Rem&ote control", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_SENDMESSAGE, L"Send &message...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(userMenu, PhCreateEMenuItem(0, ID_USER_PROPERTIES, L"P&roperties", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(UsersMenuItem, userMenu, ULONG_MAX);
+    }
+
+    PhDereferenceObjects(userSessionList->Items, userSessionList->Count);
+    PhDereferenceObject(userSessionList);
 }
 
 BOOLEAN PhUiConnectSession(
