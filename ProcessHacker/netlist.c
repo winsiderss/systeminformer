@@ -501,7 +501,8 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     SORT_FUNCTION(TimeStamp),
                     SORT_FUNCTION(LocalHostname),
                     SORT_FUNCTION(RemoteHostname),
-                    SORT_FUNCTION(Pid)
+                    SORT_FUNCTION(Pid),
+                    SORT_FUNCTION(TimeStamp),
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
