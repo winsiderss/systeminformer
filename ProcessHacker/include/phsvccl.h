@@ -132,7 +132,8 @@ NTSTATUS PhSvcCallSendMessage(
 // end_phapppub
 
 NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
-    _In_ PWSTR FileName
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR CommandLine
     );
 
 NTSTATUS PhSvcCallSetServiceSecurity(

@@ -937,13 +937,37 @@ VOID PhMwpOnCommand(
             {
                 if (PhUiConnectToPhSvc(WindowHandle, FALSE))
                 {
-                    PhSvcCallCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
+                    PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
                     PhUiDisconnectFromPhSvc();
                 }
             }
             else
             {
-                PhCreateProcessIgnoreIfeoDebugger(taskmgrFileName->Buffer);
+                PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+            }
+        }
+        break;
+    case ID_TOOLS_STARTRESOURCEMONITOR:
+        {
+            PPH_STRING systemDirectory;
+            PPH_STRING perfmonFileName;
+            PPH_STRING perfmonCommandLine;
+
+            systemDirectory = PH_AUTO(PhGetSystemDirectory());
+            perfmonFileName = PH_AUTO(PhConcatStrings2(systemDirectory->Buffer, L"\\perfmon.exe"));
+            perfmonCommandLine = PH_AUTO(PhConcatStrings2(perfmonFileName->Buffer, L" /res"));
+
+            if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
+            {
+                if (PhUiConnectToPhSvc(WindowHandle, FALSE))
+                {
+                    PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), PhGetString(perfmonCommandLine));
+                    PhUiDisconnectFromPhSvc();
+                }
+            }
+            else
+            {
+                PhCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), PhGetString(perfmonCommandLine));
             }
         }
         break;
@@ -2298,6 +2322,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTRESOURCEMONITOR, L"Start &Resource Monitor", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, 0, L"&Permissions", NULL, NULL);

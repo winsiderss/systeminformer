@@ -259,7 +259,8 @@ BOOLEAN PhShellProcessHackerEx(
     );
 
 BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
-    _In_ PWSTR FileName
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR CommandLine
     );
 
 // begin_phapppub

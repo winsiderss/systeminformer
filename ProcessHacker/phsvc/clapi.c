@@ -1040,12 +1040,14 @@ NTSTATUS PhSvcCallSendMessage(
 }
 
 NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
-    _In_ PWSTR FileName
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR CommandLine
     )
 {
     NTSTATUS status;
     PHSVC_API_MSG m;
     PVOID fileName = NULL;
+    PVOID commandLine = NULL;
 
     memset(&m, 0, sizeof(PHSVC_API_MSG));
 
@@ -1058,8 +1060,18 @@ NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
     if (!fileName)
         return STATUS_NO_MEMORY;
 
+    if (CommandLine)
+    {
+        commandLine = PhSvcpCreateString(CommandLine, -1, &m.p.u.CreateProcessIgnoreIfeoDebugger.i.CommandLine);
+
+        if (!commandLine)
+            return STATUS_NO_MEMORY;
+    }
+
     status = PhSvcpCallServer(&m);
 
+    if (commandLine)
+        PhSvcpFreeHeap(commandLine);
     if (fileName)
         PhSvcpFreeHeap(fileName);
 
