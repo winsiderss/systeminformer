@@ -41,6 +41,7 @@
 #define IDD_TABWINDOW                   146
 #define IDD_CHOOSECOLUMNS               166
 #define IDD_PEHEADERS                   167
+#define IDD_PECLRIMPORTS                168
 #define IDD_CONTAINER                   205
 #define IDC_TARGETMACHINE               1003
 #define IDC_LIST                        1008
