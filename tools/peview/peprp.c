@@ -260,6 +260,13 @@ VOID PvPeProperties(
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
+
+                newPage = PvCreatePropPageContext(
+                    MAKEINTRESOURCE(IDD_PECLRIMPORTS),
+                    PvpPeClrImportsDlgProc,
+                    NULL
+                    );
+                PvAddPropPage(propContext, newPage);
             }
         }
 

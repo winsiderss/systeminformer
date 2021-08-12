@@ -177,6 +177,12 @@
     <ClCompile Include="pdb.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="clrtableimports.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clrtableimportprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

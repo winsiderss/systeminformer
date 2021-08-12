@@ -466,6 +466,13 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PvpPeClrImportsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 INT_PTR CALLBACK PvpPeCgfDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -643,6 +650,37 @@ INT_PTR CALLBACK PvpExlfDynamicDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+// clrtableimport.cpp
+
+typedef struct _PV_CLR_IMAGE_IMPORT_FUNCTION
+{
+    ULONG Flags;
+    PPH_STRING FunctionName;
+} PV_CLR_IMAGE_IMPORT_FUNCTION, *PPV_CLR_IMAGE_IMPORT_FUNCTION;
+
+typedef struct _PV_CLR_IMAGE_IMPORT_DLL
+{
+    ULONG ImportToken;
+    PPH_STRING ImportName;
+    PPH_LIST Functions;
+} PV_CLR_IMAGE_IMPORT_DLL, *PPV_CLR_IMAGE_IMPORT_DLL;
+
+EXTERN_C
+PPH_STRING
+NTAPI
+PvClrImportFlagsToString(
+    _In_ ULONG Flags
+    );
+
+EXTERN_C
+HRESULT
+NTAPI
+PvGetClrImageImports(
+    _In_ PVOID ClrRuntimInfo,
+    _In_ PWSTR FileName,
+    _Out_ PPH_LIST* ClrImportsList
     );
 
 #endif
