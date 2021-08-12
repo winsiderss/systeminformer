@@ -265,6 +265,7 @@
     <ClCompile Include="appresolver.c" />
     <ClCompile Include="avltree.c" />
     <ClCompile Include="basesup.c" />
+    <ClCompile Include="bcd.cpp" />
     <ClCompile Include="circbuf.c" />
     <ClCompile Include="colorbox.c" />
     <ClCompile Include="cpysave.c" />
@@ -318,6 +319,7 @@
     <ClInclude Include="include\apiimport.h" />
     <ClInclude Include="include\appresolver.h" />
     <ClInclude Include="include\appresolverp.h" />
+    <ClInclude Include="include\bcd.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\exprodid.h" />
