@@ -656,7 +656,7 @@ PhGetMappedImageDebugEntryByType(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Type,
     _Out_opt_ ULONG* EntryLength,
-    _Out_ PVOID* EntryBuffer
+    _Out_opt_ PVOID* EntryBuffer
     );
 
 // maplib

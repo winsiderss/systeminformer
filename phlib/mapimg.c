@@ -2905,7 +2905,7 @@ NTSTATUS PhGetMappedImageDebugEntryByType(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Type,
     _Out_opt_ ULONG* DataLength,
-    _Out_ PVOID* DataBuffer
+    _Out_opt_ PVOID* DataBuffer
     )
 {
     NTSTATUS status;
