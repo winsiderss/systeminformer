@@ -545,7 +545,7 @@ CleanupExit:
     return status;
 }
 
-VOID PhBcdEnumerateOsLoaderList(
+static VOID PhpBcdEnumerateOsLoaderList(
     _In_ HANDLE StoreHandle,
     _In_ PPH_LIST ObjectList
     )
@@ -648,7 +648,7 @@ VOID PhBcdEnumerateOsLoaderList(
     PhFree(object);
 }
 
-VOID PhBcdEnumerateBootMgrList(
+static VOID PhpBcdEnumerateBootMgrList(
     _In_ HANDLE StoreHandle,
     _In_ PGUID Identifier,
     _In_ ULONG ElementType,
@@ -733,21 +733,21 @@ PPH_LIST PhBcdQueryBootApplicationList(
 
     if (EnumerateAllObjects)
     {
-        PhBcdEnumerateOsLoaderList(
+        PhpBcdEnumerateOsLoaderList(
             storeHandle,
             objectApplicationList
             );
     }
     else
     {
-        PhBcdEnumerateBootMgrList(
+        PhpBcdEnumerateBootMgrList(
             storeHandle,
             &GUID_WINDOWS_BOOTMGR,
             BcdBootMgrObjectList_DisplayOrder,
             objectApplicationList
             );
 
-        PhBcdEnumerateBootMgrList(
+        PhpBcdEnumerateBootMgrList(
             storeHandle,
             &GUID_WINDOWS_BOOTMGR,
             BcdBootMgrObjectList_ToolsDisplayOrder,
@@ -775,13 +775,13 @@ PPH_LIST PhBcdQueryFirmwareBootApplicationList(
 
     objectApplicationList = PhCreateList(5);
 
-    PhBcdEnumerateBootMgrList(
+    PhpBcdEnumerateBootMgrList(
         storeHandle,
         &GUID_FIRMWARE_BOOTMGR,
         BcdBootMgrObjectList_DisplayOrder,
         objectApplicationList
         );
-    PhBcdEnumerateBootMgrList(
+    PhpBcdEnumerateBootMgrList(
         storeHandle,
         &GUID_FIRMWARE_BOOTMGR,
         BcdBootMgrObjectList_ToolsDisplayOrder,

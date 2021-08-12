@@ -51,6 +51,14 @@ NTSTATUS PhBcdSetAdvancedOptionsOneTime(
     _In_ BOOLEAN Enable
     );
 
+NTSTATUS PhBcdSetBootApplicationOneTime(
+    _In_ GUID Identifier
+    );
+
+NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
+    _In_ GUID Identifier
+    );
+
 typedef struct _PH_BCD_OBJECT_LIST
 {
     GUID ObjectGuid;
@@ -67,14 +75,6 @@ PPH_LIST PhBcdQueryBootApplicationList(
 
 VOID PhBcdDestroyBootApplicationList(
     _In_ PPH_LIST ObjectApplicationList
-    );
-
-NTSTATUS PhBcdSetBootApplicationOneTime(
-    _In_ GUID Identifier
-    );
-
-NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
-    _In_ GUID Identifier
     );
 
 #ifdef __cplusplus
