@@ -1325,15 +1325,22 @@ NTSTATUS PhSvcApiCreateProcessIgnoreIfeoDebugger(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName;
+    PPH_STRING fileName = NULL;
+    PPH_STRING commandLine = NULL;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateProcessIgnoreIfeoDebugger.i.FileName, FALSE, &fileName)))
-    {
-        PH_AUTO(fileName);
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateProcessIgnoreIfeoDebugger.i.FileName, FALSE, &fileName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.CreateProcessIgnoreIfeoDebugger.i.CommandLine, TRUE, &commandLine)))
+        goto CleanupExit;
 
-        if (!PhCreateProcessIgnoreIfeoDebugger(fileName->Buffer))
-            status = STATUS_UNSUCCESSFUL;
-    }
+    if (!PhCreateProcessIgnoreIfeoDebugger(PhGetString(fileName), PhGetString(commandLine)))
+        status = STATUS_UNSUCCESSFUL;
+
+CleanupExit:
+    if (fileName)
+        PhDereferenceObject(fileName);
+    if (commandLine)
+        PhDereferenceObject(commandLine);
 
     return status;
 }

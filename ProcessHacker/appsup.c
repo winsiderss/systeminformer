@@ -1353,7 +1353,8 @@ BOOLEAN PhShellProcessHackerEx(
 }
 
 BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
-    _In_ PWSTR FileName
+    _In_ PWSTR FileName,
+    _In_opt_ PWSTR CommandLine
     )
 {
     BOOLEAN result;
@@ -1372,7 +1373,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
 
     if (NT_SUCCESS(PhCreateProcessWin32(
         FileName,
-        NULL,
+        CommandLine,
         NULL,
         NULL,
         PH_CREATE_PROCESS_DEBUG | PH_CREATE_PROCESS_DEBUG_ONLY_THIS_PROCESS,
