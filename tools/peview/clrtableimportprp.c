@@ -178,6 +178,7 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Flags");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageClrImportsListViewColumns", context->ListViewHandle);
+            PvConfigTreeBorders(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_CLRGROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);

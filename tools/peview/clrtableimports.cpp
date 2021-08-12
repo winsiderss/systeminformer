@@ -144,7 +144,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
         PhAddItemList(clrImportsList, importDll);
     }
 
-    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ModuleRef, NULL, &rowModuleCount, &rowModuleColumns, NULL, NULL)))
+    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ModuleRef, nullptr, &rowModuleCount, &rowModuleColumns, nullptr, nullptr)))
     {
         for (ULONG i = 1; i <= rowModuleCount; i++)
         {
@@ -167,7 +167,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
         }
     }
 
-    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ImplMap, NULL, &rowImportCount, &rowImportColumns, NULL, NULL)))
+    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ImplMap, nullptr, &rowImportCount, &rowImportColumns, nullptr, nullptr)))
     {
         for (ULONG i = 1; i <= rowImportCount; i++)
         {
