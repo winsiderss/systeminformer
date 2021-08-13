@@ -52,7 +52,8 @@ NTSTATUS PhBcdSetAdvancedOptionsOneTime(
     );
 
 NTSTATUS PhBcdSetBootApplicationOneTime(
-    _In_ GUID Identifier
+    _In_ GUID Identifier,
+    _In_opt_ BOOLEAN UpdateOneTimeFirmware
     );
 
 NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(

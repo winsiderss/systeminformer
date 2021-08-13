@@ -1124,6 +1124,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     BOOLEAN bootEnumerateAllObjects;
+    BOOLEAN bootUpdateFwBootObjects;
     PPH_LIST bootApplicationList;
 
     if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
@@ -1138,6 +1139,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
     }
 
     bootEnumerateAllObjects = !!PhGetIntegerSetting(L"EnableBootObjectsEnumerate");
+    bootUpdateFwBootObjects = !!PhGetIntegerSetting(L"EnableUpdateDefaultFirmwareBootEntry");
 
     if (bootApplicationList = PhBcdQueryBootApplicationList(bootEnumerateAllObjects))
     {
@@ -1145,7 +1147,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
         {
             PPH_BCD_OBJECT_LIST entry = bootApplicationList->Items[MenuIndex];
 
-            status = PhBcdSetBootApplicationOneTime(entry->ObjectGuid);
+            status = PhBcdSetBootApplicationOneTime(entry->ObjectGuid, bootUpdateFwBootObjects);
         }
 
         PhBcdDestroyBootApplicationList(bootApplicationList);
