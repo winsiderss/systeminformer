@@ -31,61 +31,106 @@ typedef struct _PVP_PE_CLR_IMPORTS_CONTEXT
     PPV_PROPPAGECONTEXT PropSheetContext;
 } PVP_PE_CLR_IMPORTS_CONTEXT, *PPVP_PE_CLR_IMPORTS_CONTEXT;
 
+EXTERN_GUID(CLSID_CorMetaDataDispenser, 0xe5cb7a31, 0x7512, 0x11d2, 0x89, 0xce, 0x0, 0x80, 0xc7, 0x92, 0xe5, 0xd8);
+EXTERN_GUID(IID_IMetaDataDispenser, 0x809c652e, 0x7396, 0x11d2, 0x97, 0x71, 0x00, 0xa0, 0xc9, 0xb4, 0xd5, 0x0c);
+
+_Success_(return)
+BOOLEAN PvpGetMetaDataInterface(
+    _Out_ PVOID* ClrCoreBaseAddress,
+    _Out_ PVOID* ClrMetaDataInterface
+    )
+{
+    HRESULT (WINAPI* MetaDataGetDispenser_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID* ppv) = NULL;
+    PVOID clrCoreBaseAddress = NULL;
+    PVOID clrMetadataInterface = NULL;
+
+    if (!(clrCoreBaseAddress = PhLoadLibrarySafe(L"mscoree.dll")))
+        return FALSE;
+
+    if (MetaDataGetDispenser_I = PhGetDllBaseProcedureAddress(clrCoreBaseAddress, "MetaDataGetDispenser", 0))
+    {
+        MetaDataGetDispenser_I(&CLSID_CorMetaDataDispenser, &IID_IMetaDataDispenser, &clrMetadataInterface);
+    }
+
+    if (!clrMetadataInterface)
+    {
+        PhGetClassObjectDllBase(clrCoreBaseAddress, &CLSID_CorMetaDataDispenser, &IID_IMetaDataDispenser, &clrMetadataInterface);
+    }
+
+    if (!clrMetadataInterface)
+    {
+        CLRCreateInstanceFnPtr CLRCreateInstance_I = NULL;
+        ICLRMetaHost* clrMetaHost = NULL;
+        ICLRRuntimeInfo* clrRuntimInfo = NULL;
+
+        if (CLRCreateInstance_I = PhGetDllBaseProcedureAddress(clrCoreBaseAddress, "CLRCreateInstance", 0))
+        {
+            if (SUCCEEDED(CLRCreateInstance_I(
+                &CLSID_CLRMetaHost,
+                &IID_ICLRMetaHost,
+                &clrMetaHost
+                )))
+            {
+                ULONG size = MAX_PATH;
+                WCHAR version[MAX_PATH] = L"";
+
+                if (SUCCEEDED(ICLRMetaHost_GetVersionFromFile(
+                    clrMetaHost,
+                    PvFileName->Buffer,
+                    version,
+                    &size
+                    )))
+                {
+                    if (SUCCEEDED(ICLRMetaHost_GetRuntime(
+                        clrMetaHost,
+                        version,
+                        &IID_ICLRRuntimeInfo,
+                        &clrRuntimInfo
+                        )))
+                    {
+                        ICLRRuntimeInfo_GetInterface(
+                            clrRuntimInfo,
+                            &CLSID_CorMetaDataDispenser,
+                            &IID_IMetaDataDispenser,
+                            &clrMetadataInterface
+                            );
+
+                        ICLRRuntimeInfo_Release(clrRuntimInfo);
+                    }
+                }
+
+                ICLRMetaHost_Release(clrMetaHost);
+            }
+        }
+    }
+
+    if (clrMetadataInterface)
+    {
+        *ClrCoreBaseAddress = clrCoreBaseAddress;
+        *ClrMetaDataInterface = clrMetadataInterface;
+        return TRUE;
+    }
+
+    if (clrCoreBaseAddress)
+    {
+        FreeLibrary(clrCoreBaseAddress);
+    }
+
+    return FALSE;
+}
+
 VOID PvpEnumerateClrImports(
     _In_ HWND ListViewHandle
     )
 {
+    PVOID clrCoreBaseAddress = NULL;
+    PVOID clrMetadataInterface = NULL;
     PPH_LIST clrImportsList = NULL;
-    ICLRMetaHost* clrMetaHost = NULL;
-    ICLRRuntimeInfo* clrRuntimInfo = NULL;
-    ICLRStrongName* clrStrongName = NULL;
-    CLRCreateInstanceFnPtr CLRCreateInstance_I = NULL;
-    PVOID mscoreeHandle = NULL;
-    ULONG clrTokenLength = 0;
-    ULONG clrKeyLength = 0;
-    PBYTE clrToken = NULL;
-    PBYTE clrKey = NULL;
-    ULONG size = MAX_PATH;
-    WCHAR version[MAX_PATH] = L"";
 
-    if (mscoreeHandle = PhLoadLibrarySafe(L"mscoree.dll"))
-    {
-        if (CLRCreateInstance_I = PhGetDllBaseProcedureAddress(mscoreeHandle, "CLRCreateInstance", 0))
-        {
-            if (!SUCCEEDED(CLRCreateInstance_I(&CLSID_CLRMetaHost, &IID_ICLRMetaHost, &clrMetaHost)))
-                goto CleanupExit;
-        }
-        else
-        {
-            goto CleanupExit;
-        }
-    }
-    else
-    {
-        goto CleanupExit;
-    }
+    if (!PvpGetMetaDataInterface(&clrCoreBaseAddress, &clrMetadataInterface))
+        return;
 
-    if (!SUCCEEDED(ICLRMetaHost_GetVersionFromFile(
-        clrMetaHost,
-        PvFileName->Buffer,
-        version,
-        &size
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (!SUCCEEDED(ICLRMetaHost_GetRuntime(
-        clrMetaHost,
-        version,
-        &IID_ICLRRuntimeInfo,
-        &clrRuntimInfo
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    if (SUCCEEDED(PvGetClrImageImports(clrRuntimInfo, PvFileName->Buffer, &clrImportsList)))
+    if (SUCCEEDED(PvGetClrImageImports(clrMetadataInterface, PvFileName->Buffer, &clrImportsList)))
     {
         ULONG count = 0;
         ULONG i;
@@ -125,14 +170,10 @@ VOID PvpEnumerateClrImports(
         PhDereferenceObject(clrImportsList);
     }
 
-CleanupExit:
-
-    if (clrRuntimInfo)
-        ICLRRuntimeInfo_Release(clrRuntimInfo);
-    if (clrMetaHost)
-        ICLRMetaHost_Release(clrMetaHost);
-    if (mscoreeHandle)
-        FreeLibrary(mscoreeHandle);
+    if (clrCoreBaseAddress)
+    {
+        FreeLibrary(clrCoreBaseAddress);
+    }
 }
 
 INT_PTR CALLBACK PvpPeClrImportsDlgProc(
@@ -180,11 +221,7 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
             PhLoadListViewColumnsFromSetting(L"ImageClrImportsListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_CLRGROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FLAGS), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_MVIDSTRING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TOKENSTRING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);         
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);   
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             PvpEnumerateClrImports(context->ListViewHandle);
@@ -224,7 +261,7 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_RUNTIMEVERSION));
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->ListViewHandle);
                 return TRUE;
             }
 
