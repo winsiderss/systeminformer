@@ -176,6 +176,29 @@ PhGetProcessPeb32(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessPeb(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* PebBaseAddress
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+
+    status = PhGetProcessBasicInformation(
+        ProcessHandle,
+        &basicInfo
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PebBaseAddress = (PVOID)basicInfo.PebBaseAddress;
+    }
+
+    return status;
+}
+
 /**
  * Gets a handle to a process' debug object.
  *
