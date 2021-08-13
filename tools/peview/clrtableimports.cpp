@@ -24,6 +24,7 @@
 #include "metahost.h"
 #include <cor.h>
 
+#define TBL_Method 6UL
 #define TBL_ModuleRef 26UL
 #define TBL_ImplMap 28UL
 
@@ -81,37 +82,38 @@ PPH_STRING PvClrImportFlagsToString(
 
 // TODO: Add support for dynamic imports by enumerating the types. (dmex) 
 EXTERN_C HRESULT PvGetClrImageImports(
-    _In_ PVOID ClrRuntimInfo,
+    _In_ PVOID ClrMetaDataDispenser,
     _In_ PWSTR FileName,
     _Out_ PPH_LIST* ClrImportsList
     )
 {
-    HRESULT status;
-    ICLRRuntimeInfo* clrRuntimeInfo = reinterpret_cast<ICLRRuntimeInfo*>(ClrRuntimInfo);
-    IMetaDataDispenser* metaDataDispenser = nullptr;
+    IMetaDataDispenser* metaDataDispenser = reinterpret_cast<IMetaDataDispenser*>(ClrMetaDataDispenser);
     IMetaDataImport* metaDataImport = nullptr;
     IMetaDataTables* metaDataTables = nullptr;
-    PPH_LIST clrImportsList;
+    PPH_LIST clrImportsList = nullptr;
+    HRESULT status = E_FAIL;
     ULONG rowModuleCount = 0;
     ULONG rowModuleColumns = 0;
     ULONG rowImportCount = 0;
     ULONG rowImportColumns = 0;
 
-    status = clrRuntimeInfo->GetInterface(
-        CLSID_CorMetaDataDispenser,
-        IID_IMetaDataDispenser,
-        reinterpret_cast<void**>(&metaDataDispenser)
-        );
-
-    if (!SUCCEEDED(status))
-        return status;
-
-    status = metaDataDispenser->OpenScope(
-        FileName,
+    status = metaDataDispenser->OpenScopeOnMemory(
+        PvMappedImage.ViewBase,
+        static_cast<ULONG>(PvMappedImage.Size),
         ofReadOnly,
         IID_IMetaDataImport,
         reinterpret_cast<IUnknown**>(&metaDataImport)
         );
+
+    if (!SUCCEEDED(status))
+    {
+        status = metaDataDispenser->OpenScope(
+            FileName,
+            ofReadOnly,
+            IID_IMetaDataImport,
+            reinterpret_cast<IUnknown**>(&metaDataImport)
+            );
+    }
 
     if (!SUCCEEDED(status))
     {

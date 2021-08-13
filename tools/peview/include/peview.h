@@ -43,7 +43,7 @@
 #include "..\resource.h"
 
 extern PPH_STRING PvFileName;
-extern PH_MAPPED_IMAGE PvMappedImage;
+EXTERN_C PH_MAPPED_IMAGE PvMappedImage;
 extern PIMAGE_COR20_HEADER PvImageCor20Header;
 extern PPH_SYMBOL_PROVIDER PvSymbolProvider;
 extern HICON PvImageSmallIcon;
@@ -678,7 +678,7 @@ EXTERN_C
 HRESULT
 NTAPI
 PvGetClrImageImports(
-    _In_ PVOID ClrRuntimInfo,
+    _In_ PVOID ClrMetaDataDispenser,
     _In_ PWSTR FileName,
     _Out_ PPH_LIST* ClrImportsList
     );
