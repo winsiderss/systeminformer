@@ -955,7 +955,7 @@ VOID PhMwpOnCommand(
             perfmonFileName = PH_AUTO(PhConcatStrings2(systemDirectory->Buffer, L"\\perfmon.exe"));
             perfmonCommandLine = PH_AUTO(PhConcatStrings2(perfmonFileName->Buffer, L" /res"));
 
-            if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
+            if (!PhGetOwnTokenAttributes().Elevated)
             {
                 if (PhUiConnectToPhSvc(WindowHandle, FALSE))
                 {
@@ -2105,8 +2105,6 @@ VOID PhMwpSetupComputerMenu(
             PhDestroyEMenuItem(menuItem);
         if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_RESTARTBOOTOPTIONS))
             PhDestroyEMenuItem(menuItem);
-        if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_RESTARTFWOPTIONS))
-            PhDestroyEMenuItem(menuItem);
         if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_SHUTDOWNHYBRID))
             PhDestroyEMenuItem(menuItem);
         if (menuItem = PhFindEMenuItem(Root, PH_EMENU_FIND_DESCEND, NULL, ID_COMPUTER_RESTARTFWDEVICE))
@@ -2831,13 +2829,13 @@ VOID PhMwpInitializeSubMenu(
         }
 
         // Windows 8 Task Manager requires elevation.
-        if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
+        if (!PhGetOwnTokenAttributes().Elevated)
         {
             HBITMAP shieldBitmap;
 
             if (shieldBitmap = PhGetShieldBitmap())
             {
-                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
+                if (WindowsVersion >= WINDOWS_8 && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER)))
                     menuItem->Bitmap = shieldBitmap;
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTRESOURCEMONITOR))
                     menuItem->Bitmap = shieldBitmap;
