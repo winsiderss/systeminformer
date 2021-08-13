@@ -464,7 +464,8 @@ CleanupExit:
 }
 
 NTSTATUS PhBcdSetBootApplicationOneTime(
-    _In_ GUID Identifier
+    _In_ GUID Identifier,
+    _In_opt_ BOOLEAN UpdateOneTimeFirmware
     )
 {
     NTSTATUS status;
@@ -476,6 +477,56 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
 
     if (!NT_SUCCESS(status))
         return status;
+
+    if (UpdateOneTimeFirmware)
+    {
+        HANDLE objectFirmwareHandle;
+
+        // The user might have a third party boot loader where the Windows NT {bootmgr} 
+        // is NOT the default {fwbootmgr} entry. So make the reboot seemless/effortless by
+        // synchronizing the {fwbootmgr} one-time option to the Windows NT {bootmgr}.
+        // This is a QOL optimization so you don't have to manually select Windows
+        // first for it to then launch the boot application we already selected. (dmex)
+
+        if (NT_SUCCESS(PhBcdOpenObject(
+            storeHandle,
+            &GUID_FIRMWARE_BOOTMGR,
+            &objectFirmwareHandle
+            )))
+        {
+            BCD_ELEMENT_OBJECT_LIST objectFirmwareList[32] = { 0 }; // dynamic?
+            ULONG objectFirmwareListLength = sizeof(objectFirmwareList);
+
+            if (NT_SUCCESS(PhBcdGetElementData(
+                objectFirmwareHandle,
+                BcdBootMgrObjectList_DisplayOrder,
+                objectFirmwareList,
+                &objectFirmwareListLength
+                )))
+            {
+                // Check if the default entry is some third party application.
+                if (!IsEqualGUID(GUID_WINDOWS_BOOTMGR, objectFirmwareList->ObjectList[0]))
+                {
+                    BCD_ELEMENT_OBJECT_LIST firmwareOneTimeBootEntry[1];
+
+                    firmwareOneTimeBootEntry->ObjectList[0] = GUID_WINDOWS_BOOTMGR;
+
+                    // Set the Windows NT {bootmgr} the one-time {fwbootmgr} entry.
+                    status = PhBcdSetElementData(
+                        objectFirmwareHandle,
+                        BcdBootMgrObjectList_BootSequence,
+                        firmwareOneTimeBootEntry,
+                        sizeof(firmwareOneTimeBootEntry)
+                        );
+                }
+            }
+
+            PhBcdCloseObject(objectFirmwareHandle);
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     status = PhBcdOpenObject(
         storeHandle,
