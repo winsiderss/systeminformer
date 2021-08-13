@@ -24,9 +24,17 @@
 #include "metahost.h"
 #include <cor.h>
 
+// metamodelpub.h
 #define TBL_Method 6UL
 #define TBL_ModuleRef 26UL
 #define TBL_ImplMap 28UL
+// ModuleRefRec
+#define ModuleRefRec_COL_Name 0UL
+// ImplMapRec
+#define ImplMapRec_COL_MappingFlags 0UL
+#define ImplMapRec_COL_MemberForwarded 1UL // mdField or mdMethod
+#define ImplMapRec_COL_ImportName 2UL
+#define ImplMapRec_COL_ImportScope 3UL // mdModuleRef
 
 EXTERN_C
 PPH_STRING PvClrImportFlagsToString(
@@ -153,7 +161,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
             ULONG moduleNameValue = 0;
             const char* moduleName = nullptr;
 
-            if (SUCCEEDED(metaDataTables->GetColumn(TBL_ModuleRef, 0, i, &moduleNameValue)))
+            if (SUCCEEDED(metaDataTables->GetColumn(TBL_ModuleRef, ModuleRefRec_COL_Name, i, &moduleNameValue)))
             {
                 if (SUCCEEDED(metaDataTables->GetString(moduleNameValue, &moduleName)))
                 {
@@ -179,14 +187,14 @@ EXTERN_C HRESULT PvGetClrImageImports(
             ULONG moduleTokenValue = 0;
             const char* importName = nullptr;
 
-            metaDataTables->GetColumn(TBL_ImplMap, 0, i, &importFlagsValue);
+            metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_MappingFlags, i, &importFlagsValue);
 
-            if (SUCCEEDED(metaDataTables->GetColumn(TBL_ImplMap, 2, i, &importNameValue)))
+            if (SUCCEEDED(metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_ImportName, i, &importNameValue)))
             {
                 metaDataTables->GetString(importNameValue, &importName);
             }
 
-            if (!SUCCEEDED(metaDataTables->GetColumn(TBL_ImplMap, 3, i, &moduleTokenValue)))
+            if (!SUCCEEDED(metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_ImportScope, i, &moduleTokenValue)))
             {
                 moduleTokenValue = ULONG_MAX;
             }
