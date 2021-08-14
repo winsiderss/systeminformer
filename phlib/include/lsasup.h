@@ -109,6 +109,33 @@ PhGetAccountPrivileges(
     _Out_ PTOKEN_PRIVILEGES* Privileges
     );
 
+typedef enum _LSA_USER_ACCOUNT_TYPE
+{
+    UnknownUserAccountType,
+    LocalUserAccountType,
+    PrimaryDomainUserAccountType,
+    ExternalDomainUserAccountType,
+    LocalConnectedUserAccountType,
+    AADUserAccountType,
+    InternetUserAccountType,
+    MSAUserAccountType
+} LSA_USER_ACCOUNT_TYPE, *PLSA_USER_ACCOUNT_TYPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSidAccountType(
+    _In_ PSID Sid,
+    _Out_ PLSA_USER_ACCOUNT_TYPE AccountType
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSidAccountTypeString(
+    _In_ PSID Sid
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI

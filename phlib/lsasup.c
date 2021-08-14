@@ -650,6 +650,80 @@ NTSTATUS PhGetAccountPrivileges(
     return status;
 }
 
+NTSTATUS PhGetSidAccountType(
+    _In_ PSID Sid,
+    _Out_ PLSA_USER_ACCOUNT_TYPE AccountType
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS (WINAPI* LsaLookupUserAccountType_I)(
+        _In_ PSID Sid,
+        _Out_ PLSA_USER_ACCOUNT_TYPE AccountType
+        );
+    LSA_USER_ACCOUNT_TYPE accountType = UnknownUserAccountType;
+    NTSTATUS status;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        LsaLookupUserAccountType_I = PhGetDllProcedureAddress(L"sechost.dll", "LsaLookupUserAccountType", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!LsaLookupUserAccountType_I)
+        return STATUS_UNSUCCESSFUL;
+
+    status = LsaLookupUserAccountType_I(
+        Sid,
+        &accountType
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *AccountType = accountType;
+    }
+
+    return status;
+}
+
+PPH_STRING PhGetSidAccountTypeString(
+    _In_ PSID Sid
+    )
+{
+    LSA_USER_ACCOUNT_TYPE accountType;
+
+    if (NT_SUCCESS(PhGetSidAccountType(Sid, &accountType)))
+    {
+        switch (accountType)
+        {
+        case LocalUserAccountType:
+            return PhCreateString(L"Local");
+        case PrimaryDomainUserAccountType:
+        case ExternalDomainUserAccountType:
+            return PhCreateString(L"ActiveDirectory");
+        case LocalConnectedUserAccountType:
+        case MSAUserAccountType:
+            return PhCreateString(L"MicrosoftAccount");
+        case AADUserAccountType:
+            return PhCreateString(L"AzureAD");
+        case InternetUserAccountType:
+            {
+                SID_IDENTIFIER_AUTHORITY msaAuthority = { 0, 0, 0, 0, 0, 11 };
+                SID_IDENTIFIER_AUTHORITY sidAuthority = ((PISID)Sid)->IdentifierAuthority;
+
+                // TODO: We should be using RtlIdentifierAuthoritySid here but this function
+                // isn't currently used so we'll save the import. (dmex)
+                if (RtlEqualMemory(&sidAuthority, &msaAuthority, sizeof(msaAuthority)))
+                {
+                    return PhCreateString(L"MicrosoftAccount");
+                }
+            }
+            break;
+        }
+    }
+
+    return PhCreateString(L"Unknown");
+}
+
 typedef struct _PH_CAPABILITY_ENTRY
 {
     PPH_STRING Name;
