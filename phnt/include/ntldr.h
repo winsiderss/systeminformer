@@ -772,6 +772,23 @@ LdrFindEntryForAddress(
     _Out_ PLDR_DATA_TABLE_ENTRY *Entry
     );
 
+NTSYSAPI
+PVOID
+NTAPI
+LdrLoadAlternateResourceModule(
+    _In_ PVOID DllHandle,
+    _In_opt_ PCWSTR PathToAlternateModule
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+LdrLoadAlternateResourceModuleEx(
+    _In_ LANGID LanguageId,
+    _In_ PVOID DllHandle,
+    _In_opt_ PCWSTR PathToAlternateModule
+    );
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Module information
@@ -946,16 +963,18 @@ LdrSetDefaultDllDirectories(
     );
 
 // rev
+DECLSPEC_NORETURN
 NTSYSAPI
-NTSTATUS
+VOID
 NTAPI
 LdrShutdownProcess(
     VOID
     );
 
 // rev
+DECLSPEC_NORETURN
 NTSYSAPI
-NTSTATUS
+VOID
 NTAPI
 LdrShutdownThread(
     VOID
