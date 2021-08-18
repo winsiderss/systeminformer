@@ -1839,6 +1839,21 @@ PhIsFirmwareSupported(
     VOID
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateExecutionRequiredRequest(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE PowerRequestHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDestroyExecutionRequiredRequest(
+    _In_ HANDLE PowerRequestHandle
+    );
+
 #ifdef __cplusplus
 }
 #endif

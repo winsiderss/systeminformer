@@ -10323,3 +10323,78 @@ BOOLEAN PhIsFirmwareSupported(
 
     return FALSE;
 }
+
+NTSTATUS PhCreateExecutionRequiredRequest(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PHANDLE PowerRequestHandle
+    )
+{
+    NTSTATUS status;
+    HANDLE powerRequestHandle = NULL;
+    COUNTED_REASON_CONTEXT powerRequestReason;
+    POWER_REQUEST_ACTION requestPowerAction;
+
+    memset(&powerRequestReason, 0, sizeof(COUNTED_REASON_CONTEXT));
+    powerRequestReason.Version = POWER_REQUEST_CONTEXT_VERSION;
+    powerRequestReason.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
+    RtlInitUnicodeString(&powerRequestReason.SimpleString, L"DebugInformation request");
+
+    status = NtPowerInformation(
+        PlmPowerRequestCreate,
+        &powerRequestReason,
+        sizeof(COUNTED_REASON_CONTEXT),
+        &powerRequestHandle,
+        sizeof(HANDLE)
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    memset(&requestPowerAction, 0, sizeof(POWER_REQUEST_ACTION));
+    requestPowerAction.PowerRequestHandle = powerRequestHandle;
+    requestPowerAction.RequestType = PowerRequestExecutionRequiredInternal;
+    requestPowerAction.SetAction = TRUE;
+    requestPowerAction.ProcessHandle = ProcessHandle;
+
+    status = NtPowerInformation(
+        PowerRequestAction,
+        &requestPowerAction,
+        sizeof(POWER_REQUEST_ACTION),
+        0,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PowerRequestHandle = powerRequestHandle;
+    }
+    else
+    {
+        NtClose(powerRequestHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhDestroyExecutionRequiredRequest(
+    _In_ HANDLE PowerRequestHandle
+    )
+{
+    POWER_REQUEST_ACTION requestPowerAction;
+
+    memset(&requestPowerAction, 0, sizeof(POWER_REQUEST_ACTION));
+    requestPowerAction.PowerRequestHandle = PowerRequestHandle;
+    requestPowerAction.RequestType = PowerRequestExecutionRequiredInternal;
+    requestPowerAction.SetAction = FALSE;
+    requestPowerAction.ProcessHandle = NULL;
+
+    NtPowerInformation(
+        PowerRequestAction,
+        &requestPowerAction,
+        sizeof(POWER_REQUEST_ACTION),
+        0,
+        0
+        );
+
+    return NtClose(PowerRequestHandle);
+}
