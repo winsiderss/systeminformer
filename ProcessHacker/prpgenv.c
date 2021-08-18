@@ -438,20 +438,6 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                         break;
                     }
 
-                    if (PhIsProcessSuspended(context->ProcessItem->ProcessId))
-                    {
-                        if (PhGetIntegerSetting(L"EnableWarnings") && PhShowMessage2(
-                            hwndDlg,
-                            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-                            TD_WARNING_ICON,
-                            L"The process is suspended.",
-                            L"Editing environment variable(s) of suspended processes is not supported.\n\nAre you sure you want to continue?"
-                            ) == IDNO)
-                        {
-                            break;
-                        }
-                    }
-
                     if (!PhIsNullOrEmptyString(name))
                     {
                         if (!PhEqualString2(name, context->Name, FALSE) ||
@@ -459,7 +445,8 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                         {
                             if (NT_SUCCESS(status = PhOpenProcess(
                                 &processHandle,
-                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+                                PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
                                 PROCESS_VM_READ | PROCESS_VM_WRITE,
                                 context->ProcessItem->ProcessId
                                 )))
@@ -639,7 +626,8 @@ VOID PhpShowEnvironmentNodeContextMenu(
 
                     if (NT_SUCCESS(status = PhOpenProcess(
                         &processHandle,
-                        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+                        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
                         PROCESS_VM_READ | PROCESS_VM_WRITE,
                         Context->ProcessItem->ProcessId
                         )))
