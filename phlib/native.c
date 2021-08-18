@@ -10332,12 +10332,12 @@ NTSTATUS PhCreateExecutionRequiredRequest(
     NTSTATUS status;
     HANDLE powerRequestHandle = NULL;
     COUNTED_REASON_CONTEXT powerRequestReason;
-    POWER_REQUEST_ACTION requestPowerAction;
+    POWER_REQUEST_ACTION powerRequestAction;
 
     memset(&powerRequestReason, 0, sizeof(COUNTED_REASON_CONTEXT));
     powerRequestReason.Version = POWER_REQUEST_CONTEXT_VERSION;
     powerRequestReason.Flags = POWER_REQUEST_CONTEXT_SIMPLE_STRING;
-    RtlInitUnicodeString(&powerRequestReason.SimpleString, L"DebugInformation request");
+    RtlInitUnicodeString(&powerRequestReason.SimpleString, L"DebugExecutionRequired request");
 
     status = NtPowerInformation(
         PlmPowerRequestCreate,
@@ -10350,17 +10350,17 @@ NTSTATUS PhCreateExecutionRequiredRequest(
     if (!NT_SUCCESS(status))
         return status;
 
-    memset(&requestPowerAction, 0, sizeof(POWER_REQUEST_ACTION));
-    requestPowerAction.PowerRequestHandle = powerRequestHandle;
-    requestPowerAction.RequestType = PowerRequestExecutionRequiredInternal;
-    requestPowerAction.SetAction = TRUE;
-    requestPowerAction.ProcessHandle = ProcessHandle;
+    memset(&powerRequestAction, 0, sizeof(POWER_REQUEST_ACTION));
+    powerRequestAction.PowerRequestHandle = powerRequestHandle;
+    powerRequestAction.RequestType = PowerRequestExecutionRequiredInternal;
+    powerRequestAction.SetAction = TRUE;
+    powerRequestAction.ProcessHandle = ProcessHandle;
 
     status = NtPowerInformation(
         PowerRequestAction,
-        &requestPowerAction,
+        &powerRequestAction,
         sizeof(POWER_REQUEST_ACTION),
-        0,
+        NULL,
         0
         );
 
@@ -10392,7 +10392,7 @@ NTSTATUS PhDestroyExecutionRequiredRequest(
         PowerRequestAction,
         &requestPowerAction,
         sizeof(POWER_REQUEST_ACTION),
-        0,
+        NULL,
         0
         );
 
