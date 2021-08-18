@@ -1834,6 +1834,7 @@ NTSTATUS PhLoadDllProcess(
     PVOID baseAddress = NULL;
     SIZE_T allocSize;
     HANDLE threadHandle;
+    HANDLE powerRequestHandle = NULL;
 
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
@@ -1905,6 +1906,9 @@ NTSTATUS PhLoadDllProcess(
         )))
         goto FreeExit;
 
+    if (WindowsVersion >= WINDOWS_8)
+        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
     if (!NT_SUCCESS(status = RtlCreateUserThread(
         ProcessHandle,
         NULL,
@@ -1918,10 +1922,13 @@ NTSTATUS PhLoadDllProcess(
         NULL
         )))
         goto FreeExit;
-    
+
     // Wait for the thread to finish.   
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
     NtClose(threadHandle);
+
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
 
 FreeExit:
     // Size needs to be zero if we're freeing.  
@@ -1961,6 +1968,7 @@ NTSTATUS PhUnloadDllProcess(
     BOOLEAN isModule32 = FALSE;
 #endif
     HANDLE threadHandle;
+    HANDLE powerRequestHandle = NULL;
     THREAD_BASIC_INFORMATION basicInfo;
     PVOID threadStart;
 
@@ -2034,6 +2042,9 @@ NTSTATUS PhUnloadDllProcess(
     }
 #endif
 
+    if (WindowsVersion >= WINDOWS_8)
+        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
     status = RtlCreateUserThread(
         ProcessHandle,
         NULL,
@@ -2061,6 +2072,9 @@ NTSTATUS PhUnloadDllProcess(
     }
 
     NtClose(threadHandle);
+
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
 
     return status;
 }
@@ -2097,6 +2111,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     PVOID rtlExitUserThread = NULL;
     PVOID setEnvironmentVariableW = NULL;
     HANDLE threadHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
 
     nameAllocationSize = Name->Length + sizeof(UNICODE_NULL);
 
@@ -2200,6 +2215,11 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         }
     }
 
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+    }
+
     if (!NT_SUCCESS(status = RtlCreateUserThread(
         ProcessHandle,
         NULL,
@@ -2260,6 +2280,11 @@ CleanupExit:
     if (threadHandle)
     {
         NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
     }
 
     if (nameBaseAddress)
@@ -10273,7 +10298,7 @@ NTSTATUS PhGetThreadLastStatusValue(
 
 #ifdef _WIN64
     PhGetProcessIsWow64(ProcessHandle, &isWow64);
-   
+
     if (isWow64)
     {
         status = NtReadVirtualMemory(
@@ -10324,6 +10349,7 @@ BOOLEAN PhIsFirmwareSupported(
     return FALSE;
 }
 
+// rev from RtlpCreateExecutionRequiredRequest
 NTSTATUS PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE PowerRequestHandle
@@ -10331,8 +10357,26 @@ NTSTATUS PhCreateExecutionRequiredRequest(
 {
     NTSTATUS status;
     HANDLE powerRequestHandle = NULL;
+    PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
     COUNTED_REASON_CONTEXT powerRequestReason;
     POWER_REQUEST_ACTION powerRequestAction;
+
+    status = PhGetProcessExtendedBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!basicInfo.IsFrozen)
+    {
+        // CreateToolhelp32Snapshot uses RtlpCreateExecutionRequiredRequest but it won't create an execution request
+        // when IsFrozen==false (such as when the immersive window is visible), CreateToolhelp32Snapshot proceeds to
+        // inject the debug thread but if the window closes, there's a race here where the debug thread gets frozen because
+        // RtlpCreateExecutionRequiredRequest never created the execution request. We can resolve the race condition
+        // by removing the above code checking IsFrozen but for now just copy what RtlpCreateExecutionRequiredRequest
+        // does (and copy the race condition) by returning here instead of always creating the exeution request. (dmex)
+        // TODO: We should remove the check for IsFrozen if the race condition becomes an issue at some point in the future.
+        return STATUS_UNSUCCESSFUL;
+    }
 
     memset(&powerRequestReason, 0, sizeof(COUNTED_REASON_CONTEXT));
     powerRequestReason.Version = POWER_REQUEST_CONTEXT_VERSION;
