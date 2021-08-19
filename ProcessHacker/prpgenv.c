@@ -421,10 +421,10 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                 break;
             case IDOK:
                 {
-                    NTSTATUS status;
-                    PPH_STRING name = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
-                    PPH_STRING value = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
-                    HANDLE processHandle;
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+                    HANDLE processHandle = NULL;
+                    PPH_STRING name;
+                    PPH_STRING value;
                     LARGE_INTEGER timeout;
 
                     if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
@@ -438,18 +438,37 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                         break;
                     }
 
+                    name = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
+                    value = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
+
                     if (!PhIsNullOrEmptyString(name))
                     {
                         if (!PhEqualString2(name, context->Name, FALSE) ||
                             !context->Value || !PhEqualString2(value, context->Value, FALSE))
                         {
-                            if (NT_SUCCESS(status = PhOpenProcess(
-                                &processHandle,
-                                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
-                                PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-                                PROCESS_VM_READ | PROCESS_VM_WRITE,
-                                context->ProcessItem->ProcessId
-                                )))
+                            // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+                            if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+                            {
+                                status = PhOpenProcess(
+                                    &processHandle,
+                                    PROCESS_ALL_ACCESS,
+                                    context->ProcessItem->ProcessId
+                                    );
+                            }
+
+                            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+                            if (!NT_SUCCESS(status))
+                            {
+                                status = PhOpenProcess(
+                                    &processHandle,
+                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+                                    PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                                    PROCESS_VM_READ | PROCESS_VM_WRITE,
+                                    context->ProcessItem->ProcessId
+                                    );
+                            }
+
+                            if (NT_SUCCESS(status))
                             {
                                 timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
 
@@ -610,8 +629,8 @@ VOID PhpShowEnvironmentNodeContextMenu(
             case ENVIRONMENT_TREE_COLUMN_MENU_ITEM_DELETE:
                 {
                     //PPH_ENVIRONMENT_ITEM item = PhItemArray(&Context->Items, node->Id);
-                    NTSTATUS status;
-                    HANDLE processHandle;
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+                    HANDLE processHandle = NULL;
 
                     if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
                         Context->WindowHandle,
@@ -624,13 +643,29 @@ VOID PhpShowEnvironmentNodeContextMenu(
                         break;
                     }
 
-                    if (NT_SUCCESS(status = PhOpenProcess(
-                        &processHandle,
-                        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
-                        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-                        PROCESS_VM_READ | PROCESS_VM_WRITE,
-                        Context->ProcessItem->ProcessId
-                        )))
+                    // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+                    if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+                    {
+                        status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_ALL_ACCESS,
+                            Context->ProcessItem->ProcessId
+                            );
+                    }
+
+                    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+                    if (!NT_SUCCESS(status))
+                    {
+                        status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+                            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                            PROCESS_VM_READ | PROCESS_VM_WRITE,
+                            Context->ProcessItem->ProcessId
+                            );
+                    }
+
+                    if (NT_SUCCESS(status))
                     {
                         LARGE_INTEGER timeout;
 

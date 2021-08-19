@@ -2953,10 +2953,10 @@ BOOLEAN PhUiLoadDllProcess(
         { L"All files (*.*)", L"*.*" }
     };
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE processHandle = NULL;
     PVOID fileDialog;
     PPH_STRING fileName;
-    HANDLE processHandle;
 
     fileDialog = PhCreateOpenFileDialog();
     PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
@@ -2970,13 +2970,29 @@ BOOLEAN PhUiLoadDllProcess(
     fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
     PhFreeFileDialog(fileDialog);
 
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
-        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-        PROCESS_VM_READ | PROCESS_VM_WRITE,
-        Process->ProcessId
-        )))
+    // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+    if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_ALL_ACCESS,
+            Process->ProcessId
+            );
+    }
+
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+            PROCESS_VM_READ | PROCESS_VM_WRITE,
+            Process->ProcessId
+            );
+    }
+
+    if (NT_SUCCESS(status))
     {
         LARGE_INTEGER timeout;
 
@@ -3978,9 +3994,9 @@ BOOLEAN PhUiUnloadModule(
     _In_ PPH_MODULE_ITEM Module
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE processHandle = NULL;
     BOOLEAN cont = FALSE;
-    HANDLE processHandle;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
@@ -4031,43 +4047,60 @@ BOOLEAN PhUiUnloadModule(
     {
     case PH_MODULE_TYPE_MODULE:
     case PH_MODULE_TYPE_WOW64_MODULE:
-        if (NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
-            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-            PROCESS_VM_READ | PROCESS_VM_WRITE,
-            ProcessId
-            )))
         {
-            LARGE_INTEGER timeout;
+            // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+            if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+            {
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_ALL_ACCESS,
+                    ProcessId
+                    );
+            }
 
-            timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-            status = PhUnloadDllProcess(
-                processHandle,
-                Module->BaseAddress,
-                &timeout
-                );
+            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+            if (!NT_SUCCESS(status))
+            {
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+                    PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+                    PROCESS_VM_READ | PROCESS_VM_WRITE,
+                    ProcessId
+                    );
+            }
 
-            NtClose(processHandle);
+            if (NT_SUCCESS(status))
+            {
+                LARGE_INTEGER timeout;
+
+                timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
+                status = PhUnloadDllProcess(
+                    processHandle,
+                    Module->BaseAddress,
+                    &timeout
+                    );
+
+                NtClose(processHandle);
+            }
+
+            if (status == STATUS_DLL_NOT_FOUND)
+            {
+                PhShowError(hWnd, L"%s", L"Unable to find the module to unload.");
+                return FALSE;
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(
+                    hWnd,
+                    PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer,
+                    status,
+                    0
+                    );
+                return FALSE;
+            }
         }
-
-        if (status == STATUS_DLL_NOT_FOUND)
-        {
-            PhShowError(hWnd, L"%s", L"Unable to find the module to unload.");
-            return FALSE;
-        }
-
-        if (!NT_SUCCESS(status))
-        {
-            PhShowStatus(
-                hWnd,
-                PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer,
-                status,
-                0
-                );
-            return FALSE;
-        }
-
         break;
 
     case PH_MODULE_TYPE_KERNEL_MODULE:
