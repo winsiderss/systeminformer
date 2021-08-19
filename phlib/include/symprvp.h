@@ -45,11 +45,19 @@ typedef BOOL (WINAPI *_SymGetModuleInfoW64)(
     _Out_ PIMAGEHLP_MODULEW64 ModuleInfo
     );
 
-typedef BOOL(WINAPI *_SymGetTypeFromNameW)(
+typedef BOOL (WINAPI *_SymGetTypeFromNameW)(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 BaseOfDll,
     _In_ PCWSTR Name,
     _Inout_ PSYMBOL_INFOW Symbol
+    );
+
+typedef BOOL (WINAPI* _SymGetTypeInfo)(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 BaseOfDll,
+    _In_ ULONG TypeId,
+    _In_ IMAGEHLP_SYMBOL_TYPE_INFO GetType,
+    _Out_ PVOID pInfo
     );
 
 typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
@@ -118,6 +126,51 @@ typedef BOOL (WINAPI *_StackWalk64)(
     _In_opt_ PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
     _In_opt_ PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
     _In_opt_ PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
+    );
+
+typedef BOOL (WINAPI* _StackWalkEx)(
+    _In_ ULONG MachineType,
+    _In_ HANDLE hProcess,
+    _In_ HANDLE hThread,
+    _Inout_ LPSTACKFRAME_EX StackFrame,
+    _Inout_ PVOID ContextRecord,
+    _In_opt_ PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
+    _In_opt_ PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
+    _In_opt_ PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
+    _In_opt_ PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress,
+    _In_ ULONG Flags
+    );
+
+typedef ULONG (WINAPI* _SymAddrIncludeInlineTrace)(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 Address
+    );
+
+typedef BOOL (WINAPI* _SymQueryInlineTrace)(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 StartAddress,
+    _In_ ULONG StartContext,
+    _In_ ULONG64 StartRetAddress,
+    _In_ ULONG64 CurAddress,
+    _Out_ PULONG CurContext,
+    _Out_ PULONG CurFrameIndex
+    );
+
+typedef BOOL (WINAPI* _SymFromInlineContextW)(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 Address,
+    _In_ ULONG InlineContext,
+    _Out_opt_ PULONG64 Displacement,
+    _Inout_ PSYMBOL_INFOW Symbol
+    );
+
+typedef BOOL (WINAPI* _SymGetLineFromInlineContextW)(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 Address,
+    _In_ ULONG InlineContext,
+    _In_opt_ ULONG64 ModuleBaseAddress,
+    _Out_ PULONG Displacement,
+    _Out_ PIMAGEHLP_LINEW64 Line
     );
 
 typedef BOOL (WINAPI *_MiniDumpWriteDump)(
