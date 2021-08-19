@@ -1907,7 +1907,12 @@ NTSTATUS PhLoadDllProcess(
         goto FreeExit;
 
     if (WindowsVersion >= WINDOWS_8)
-        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto FreeExit;
+    }
 
     if (!NT_SUCCESS(status = RtlCreateUserThread(
         ProcessHandle,
@@ -2043,7 +2048,12 @@ NTSTATUS PhUnloadDllProcess(
 #endif
 
     if (WindowsVersion >= WINDOWS_8)
-        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
 
     status = RtlCreateUserThread(
         ProcessHandle,
@@ -2217,7 +2227,10 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
     }
 
     if (!NT_SUCCESS(status = RtlCreateUserThread(
@@ -10368,14 +10381,15 @@ NTSTATUS PhCreateExecutionRequiredRequest(
 
     if (!basicInfo.IsFrozen)
     {
-        // CreateToolhelp32Snapshot uses RtlpCreateExecutionRequiredRequest but it won't create an execution request
+        // CreateToolhelp32Snapshot uses RtlpCreateExecutionRequiredRequest but it doesn't create an execution request
         // when IsFrozen==false (such as when the immersive window is visible), CreateToolhelp32Snapshot proceeds to
         // inject the debug thread but if the window closes, there's a race here where the debug thread gets frozen because
         // RtlpCreateExecutionRequiredRequest never created the execution request. We can resolve the race condition
         // by removing the above code checking IsFrozen but for now just copy what RtlpCreateExecutionRequiredRequest
         // does (and copy the race condition) by returning here instead of always creating the exeution request. (dmex)
         // TODO: We should remove the check for IsFrozen if the race condition becomes an issue at some point in the future.
-        return STATUS_UNSUCCESSFUL;
+        *PowerRequestHandle = NULL;
+        return STATUS_SUCCESS;
     }
 
     memset(&powerRequestReason, 0, sizeof(COUNTED_REASON_CONTEXT));
@@ -10420,6 +10434,7 @@ NTSTATUS PhCreateExecutionRequiredRequest(
     return status;
 }
 
+// rev from RtlpDestroyExecutionRequiredRequest
 NTSTATUS PhDestroyExecutionRequiredRequest(
     _In_ HANDLE PowerRequestHandle
     )
