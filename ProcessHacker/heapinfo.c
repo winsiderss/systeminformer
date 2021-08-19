@@ -409,34 +409,6 @@ VOID PhpEnumerateProcessHeaps(
 
     sizesInBytes = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_SIZESINBYTES)) == BST_CHECKED;
 
-    if (Context->ProcessItem->IsImmersive)
-    {
-        PPH_STRING appUserModelId;
-
-        if (PhAppResolverGetAppIdForProcess(Context->ProcessItem->ProcessId, &appUserModelId))
-        {
-            PhAppResolverActivateAppId(appUserModelId, NULL, NULL);
-            PhDereferenceObject(appUserModelId);
-        }
-
-        if (PhIsProcessSuspended(Context->ProcessItem->ProcessId))
-        {
-            // NOTE: Even if the immersive process is active we can still deadlock when the
-            // RtlQueryProcessDebugInformation thread hasn't completed and
-            // the UWP process is automatically suspended by the shell. (dmex)
-            //
-            // TODO: Duplicate the job object and use the JobObjectFreezeInformation class
-            // to suspend and resume the UWP process or KPH with PsFreeze.
-            PhShowError2(
-                Context->WindowHandle,
-                L"Unable to query heap information.",
-                L"%s",
-                L"Please activate the UWP immersive process before refreshing heap information."
-                );
-            return;
-        }
-    }
-
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewHandle);
 
