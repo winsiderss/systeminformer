@@ -537,7 +537,7 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
 }
 
 #define PhTimeoutFromMillisecondsEx(Milliseconds) \
-    &(LARGE_INTEGER) { -(LONGLONG)UInt32x32To64((Milliseconds), PH_TIMEOUT_MS) }
+    &(LARGE_INTEGER) { .QuadPart = -(LONGLONG)UInt32x32To64(((ULONG)Milliseconds), PH_TIMEOUT_MS) }
 
 FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus(
     VOID
