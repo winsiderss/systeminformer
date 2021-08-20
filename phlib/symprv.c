@@ -83,8 +83,6 @@ _SymGetModuleBase64 SymGetModuleBase64_I = NULL;
 _SymRegisterCallbackW64 SymRegisterCallbackW64_I = NULL;
 _StackWalk64 StackWalk64_I = NULL;
 _StackWalkEx StackWalkEx_I = NULL;
-_SymAddrIncludeInlineTrace SymAddrIncludeInlineTrace_I = NULL;
-_SymQueryInlineTrace SymQueryInlineTrace_I = NULL;
 _SymFromInlineContextW SymFromInlineContextW_I = NULL;
 _SymGetLineFromInlineContextW SymGetLineFromInlineContextW_I = NULL;
 _MiniDumpWriteDump MiniDumpWriteDump_I = NULL;
@@ -339,8 +337,6 @@ VOID PhpSymbolProviderCompleteInitialization(
         SymRegisterCallbackW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymRegisterCallbackW64", 0);
         StackWalk64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "StackWalk64", 0);
         StackWalkEx_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "StackWalkEx", 0);
-        SymAddrIncludeInlineTrace_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymAddrIncludeInlineTrace", 0);
-        SymQueryInlineTrace_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymQueryInlineTrace", 0);
         SymFromInlineContextW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromInlineContextW", 0);
         SymGetLineFromInlineContextW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetLineFromInlineContextW", 0);
         MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
@@ -469,6 +465,7 @@ BOOLEAN PhGetLineFromAddress(
     return TRUE;
 }
 
+_Success_(return != 0)
 ULONG64 PhGetModuleFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 Address,
@@ -555,6 +552,7 @@ VOID PhpSymbolInfoAnsiToUnicode(
     }
 }
 
+_Success_(return != NULL)
 PPH_STRING PhGetSymbolFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 Address,
@@ -1411,7 +1409,7 @@ BOOLEAN PhStackWalk(
 
     PH_LOCK_SYMBOLS();
 
-    if (StackWalkEx_I)
+    if (PhSymbolProviderInlineContextSupported())
     {
         result = StackWalkEx_I(
             MachineType,
@@ -1506,7 +1504,6 @@ VOID PhpConvertStackFrame(
     if (StackFrame->FuncTableEntry)
         ThreadStackFrame->Flags |= PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT;
 
-    ThreadStackFrame->StackFrameSize = StackFrame->StackFrameSize;
     ThreadStackFrame->InlineFrameContext = StackFrame->InlineFrameContext;
 }
 
@@ -1660,6 +1657,7 @@ NTSTATUS PhWalkThreadStack(
             goto SkipAmd64Stack;
 
         memset(&stackFrame, 0, sizeof(STACKFRAME_EX));
+        stackFrame.StackFrameSize = sizeof(STACKFRAME_EX);
 
         // Program counter, Stack pointer, Frame pointer
 #ifdef _ARM64_
@@ -1732,6 +1730,7 @@ SkipAmd64Stack:
 #endif
 
         memset(&stackFrame, 0, sizeof(STACKFRAME_EX));
+        stackFrame.StackFrameSize = sizeof(STACKFRAME_EX);
         stackFrame.AddrPC.Mode = AddrModeFlat;
         stackFrame.AddrPC.Offset = context.Eip;
         stackFrame.AddrStack.Mode = AddrModeFlat;
@@ -1918,6 +1917,7 @@ BOOLEAN PhEnumerateSymbols(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhGetSymbolProviderDiaSession(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 BaseOfDll,
@@ -1964,273 +1964,519 @@ VOID PhSymbolProviderFreeDiaString(
     SymFreeDiaString_I(DiaString);
 }
 
-PPH_LIST PhGetInlineStackSymbolsFromAddress(
-    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
-    _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_ BOOLEAN IncludeLineInformation
+BOOLEAN PhSymbolProviderInlineContextSupported(
+    VOID
     )
 {
-    PPH_LIST inlineSymbolList = NULL;
-    ULONG64 inlineFrameAddress = 0;
-    ULONG inlineFrameCount = 0;
-    ULONG inlineFrameContext = 0;
-    ULONG inlineFrameIndex = 0;
+    return StackWalkEx_I && SymFromInlineContextW_I;
+}
+
+_Success_(return != NULL)
+PPH_STRING PhGetSymbolFromInlineContext(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _Out_opt_ PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
+    _Out_opt_ PPH_STRING *FileName,
+    _Out_opt_ PPH_STRING *SymbolName,
+    _Out_opt_ PULONG64 Displacement,
+    _Out_opt_ PULONG64 ModuleBaseAddress
+    )
+{
+    PSYMBOL_INFOW symbolInfo;
+    ULONG nameLength;
+    PPH_STRING symbol = NULL;
+    PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
+    ULONG64 displacement;
+    PPH_STRING modFileName = NULL;
+    PPH_STRING modBaseName = NULL;
+    ULONG64 modBase = 0;
+    PPH_STRING symbolName = NULL;
 
     if (StackFrame->PcAddress == 0)
+    {
+        if (ResolveLevel) *ResolveLevel = PhsrlInvalid;
+        if (FileName) *FileName = NULL;
+        if (SymbolName) *SymbolName = NULL;
+        if (Displacement) *Displacement = 0;
+        if (ModuleBaseAddress) *ModuleBaseAddress = 0;
+
         return NULL;
+    }
 
     PhpRegisterSymbolProvider(SymbolProvider);
 
-    if (!(
-        SymAddrIncludeInlineTrace_I &&
-        SymQueryInlineTrace_I &&
-        SymFromInlineContextW_I &&
-        SymGetLineFromInlineContextW_I
-        ))
-    {
+    if (!SymFromInlineContextW_I)
         return NULL;
-    }
+
+    symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * sizeof(WCHAR));
+    symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
+    symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
 
     PH_LOCK_SYMBOLS();
 
-    inlineFrameAddress = (ULONG64)StackFrame->PcAddress - 1;
-    inlineFrameCount = SymAddrIncludeInlineTrace_I(
+    SymFromInlineContextW_I(
         SymbolProvider->ProcessHandle,
-        inlineFrameAddress
+        (ULONG64)StackFrame->PcAddress,
+        StackFrame->InlineFrameContext,
+        &displacement,
+        symbolInfo
         );
+    nameLength = symbolInfo->NameLen;
 
-    if (inlineFrameCount == 0)
+    if (nameLength + 1 > PH_MAX_SYMBOL_NAME_LEN)
     {
-        PH_UNLOCK_SYMBOLS();
-        return NULL;
-    }
-
-    if (!SymQueryInlineTrace_I(
-        SymbolProvider->ProcessHandle,
-        inlineFrameAddress,
-        StackFrame->InlineFrameContext, // INLINE_FRAME_CONTEXT_INIT
-        inlineFrameAddress,
-        inlineFrameAddress,
-        &inlineFrameContext,
-        &inlineFrameIndex
-        ))
-    {
-        PH_UNLOCK_SYMBOLS();
-        return NULL;
-    }
-
-    inlineSymbolList = PhCreateList(1);
-
-    for (ULONG i = 0; i < inlineFrameCount; i++)
-    {
-        BOOL result = FALSE;
-        ULONG64 inlineFrameDisplacement = 0;
-        ULONG64 modBaseAddress = 0;
-        PPH_STRING modFileName = NULL;
-        PPH_STRING modBaseName = NULL;
-        PSYMBOL_INFOW symbolInfo;
-        ULONG nameLength = 0;
-
-        symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * sizeof(WCHAR));
+        PhFree(symbolInfo);
+        symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + nameLength * sizeof(WCHAR) + sizeof(UNICODE_NULL));
         symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
-        symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
+        symbolInfo->MaxNameLen = nameLength + 1;
 
-        result = SymFromInlineContextW_I(
+        SymFromInlineContextW_I(
             SymbolProvider->ProcessHandle,
-            inlineFrameAddress,
-            inlineFrameContext,
-            &inlineFrameDisplacement,
+            (ULONG64)StackFrame->PcAddress,
+            StackFrame->InlineFrameContext,
+            &displacement,
             symbolInfo
             );
-        nameLength = symbolInfo->NameLen;
-
-        if (nameLength + 1 > PH_MAX_SYMBOL_NAME_LEN)
-        {
-            PhFree(symbolInfo);
-            symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + nameLength * sizeof(WCHAR) + sizeof(UNICODE_NULL));
-            symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
-            symbolInfo->MaxNameLen = nameLength + 1;
-
-            result = SymFromInlineContextW_I(
-                SymbolProvider->ProcessHandle,
-                inlineFrameAddress,
-                inlineFrameContext,
-                &inlineFrameDisplacement,
-                symbolInfo
-                );
-        }
-
-        if (!result)
-        {
-            inlineFrameContext++;
-            PhFree(symbolInfo);
-            continue;
-        }
-
-        if (symbolInfo->ModBase == 0)
-        {
-            modBaseAddress = PhGetModuleFromAddress(
-                SymbolProvider,
-                inlineFrameAddress,
-                &modFileName
-                );
-        }
-        else
-        {
-            PH_SYMBOL_MODULE lookupSymbolModule;
-            PPH_AVL_LINKS existingLinks;
-            PPH_SYMBOL_MODULE symbolModule;
-
-            lookupSymbolModule.BaseAddress = symbolInfo->ModBase;
-
-            PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
-
-            existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
-
-            if (existingLinks)
-            {
-                symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
-                PhSetReference(&modFileName, symbolModule->FileName);
-            }
-
-            PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
-        }
-
-        if (modFileName)
-        {
-            modBaseName = PhGetBaseName(modFileName);
-        }
-
-        if (result)
-        {
-            PPH_INLINE_STACK_FRAME inlineStackFrame;
-
-            inlineStackFrame = PhAllocate(sizeof(PH_INLINE_STACK_FRAME));
-            memset(inlineStackFrame, 0, sizeof(PH_INLINE_STACK_FRAME));
-
-            if (modFileName)
-            {
-                PhSetReference(&inlineStackFrame->FileName, modFileName);
-
-                if (symbolInfo->NameLen == 0)
-                {
-                    PH_FORMAT format[3];
-
-                    inlineStackFrame->ResolveLevel = PhsrlModule;
-
-                    PhInitFormatSR(&format[0], modBaseName->sr);
-                    PhInitFormatS(&format[1], L"+0x");
-                    PhInitFormatIX(&format[2], (ULONG_PTR)(inlineFrameAddress - modBaseAddress + inlineFrameDisplacement + 1)); // or address + inlineFrameDisplacement + 1 ??
-
-                    inlineStackFrame->Symbol = PhFormat(format, 3, modBaseName->Length + 6 + 32);
-                }
-                else
-                {
-                    PPH_STRING symbolName;
-
-                    inlineStackFrame->ResolveLevel = PhsrlFunction;
-
-                    symbolName = PhCreateStringEx(symbolInfo->Name, symbolInfo->NameLen * sizeof(WCHAR));
-                    PhTrimToNullTerminatorString(symbolName);
-
-                    if (inlineFrameDisplacement == 0)
-                    {
-                        PH_FORMAT format[3];
-
-                        PhInitFormatSR(&format[0], modBaseName->sr);
-                        PhInitFormatC(&format[1], L'!');
-                        PhInitFormatSR(&format[2], symbolName->sr);
-
-                        inlineStackFrame->Symbol = PhFormat(format, 3, modBaseName->Length + 2 + symbolName->Length);
-                    }
-                    else
-                    {
-                        PH_FORMAT format[5];
-
-                        PhInitFormatSR(&format[0], modBaseName->sr);
-                        PhInitFormatC(&format[1], L'!');
-                        PhInitFormatSR(&format[2], symbolName->sr);
-                        PhInitFormatS(&format[3], L"+0x");
-                        PhInitFormatIX(&format[4], (ULONG_PTR)inlineFrameDisplacement + 1); // add 1 to match the displacement for windbg (dmex)
-
-                        inlineStackFrame->Symbol = PhFormat(format, 5, modBaseName->Length + 2 + symbolName->Length + 6 + 32);
-                    }
-
-                    PhDereferenceObject(symbolName);
-                }
-            }
-            else
-            {
-                PPH_STRING symbolName;
-
-                inlineStackFrame->ResolveLevel = PhsrlAddress;
-
-                symbolName = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
-                PhPrintPointer(symbolName->Buffer, (PVOID)inlineFrameAddress);
-                PhTrimToNullTerminatorString(symbolName);
-
-                inlineStackFrame->Symbol = symbolName;
-            }
-
-            if (inlineStackFrame->Symbol)
-            {
-                PhMoveReference(
-                    &inlineStackFrame->Symbol,
-                    PhConcatStringRefZ(&inlineStackFrame->Symbol->sr, L" (Inline function)")
-                    );
-            }
-
-            if (IncludeLineInformation)
-            {
-                IMAGEHLP_LINEW64 line;
-                ULONG lineInlineDisplacement = 0;
-
-                memset(&line, 0, sizeof(IMAGEHLP_LINEW64));
-                line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
-
-                if (SymGetLineFromInlineContextW_I(
-                    SymbolProvider->ProcessHandle,
-                    inlineFrameAddress,
-                    inlineFrameContext,
-                    symbolInfo->ModBase, // optional
-                    &lineInlineDisplacement,
-                    &line
-                    ))
-                {
-                    inlineStackFrame->LineAddress = line.Address;
-                    inlineStackFrame->LineNumber = line.LineNumber;
-                    inlineStackFrame->LineDisplacement = lineInlineDisplacement;
-                    inlineStackFrame->LineFileName = PhCreateString(line.FileName);
-                }
-            }
-
-            PhAddItemList(inlineSymbolList, inlineStackFrame);
-        }
-
-        inlineFrameContext++;
-        PhClearReference(&modFileName);
-        PhClearReference(&modBaseName);
-        PhFree(symbolInfo);
     }
 
     PH_UNLOCK_SYMBOLS();
 
-    return inlineSymbolList;
-}
-
-VOID PhFreeInlineStackSymbols(
-    _In_ PPH_LIST InlineSymbolList
-    )
-{
-    for (ULONG i = 0; i < InlineSymbolList->Count; i++)
+    if (symbolInfo->ModBase == 0)
     {
-        PPH_INLINE_STACK_FRAME inlineStackFrame = InlineSymbolList->Items[i];
+        modBase = PhGetModuleFromAddress(
+            SymbolProvider,
+            (ULONG64)StackFrame->PcAddress,
+            &modFileName
+            );
+    }
+    else
+    {
+        PH_SYMBOL_MODULE lookupSymbolModule;
+        PPH_AVL_LINKS existingLinks;
+        PPH_SYMBOL_MODULE symbolModule;
 
-        PhClearReference(&inlineStackFrame->Symbol);
-        PhClearReference(&inlineStackFrame->FileName);
-        PhClearReference(&inlineStackFrame->LineFileName);
-        PhFree(inlineStackFrame);
+        lookupSymbolModule.BaseAddress = symbolInfo->ModBase;
+
+        PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
+
+        existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
+
+        if (existingLinks)
+        {
+            symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
+            PhSetReference(&modFileName, symbolModule->FileName);
+        }
+
+        PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
     }
 
-    PhDereferenceObject(InlineSymbolList);
+    if (!modFileName)
+    {
+        resolveLevel = PhsrlAddress;
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
+        PhPrintPointer(symbol->Buffer, (PVOID)(ULONG64)StackFrame->PcAddress);
+        PhTrimToNullTerminatorString(symbol);
+
+        goto CleanupExit;
+    }
+
+    modBaseName = PhGetBaseName(modFileName);
+
+    if (symbolInfo->NameLen == 0)
+    {
+        PH_FORMAT format[3];
+
+        resolveLevel = PhsrlModule;
+
+        PhInitFormatSR(&format[0], modBaseName->sr);
+        PhInitFormatS(&format[1], L"+0x");
+        PhInitFormatIX(&format[2], (ULONG_PTR)((ULONG64)StackFrame->PcAddress - modBase));
+        symbol = PhFormat(format, 3, modBaseName->Length + 6 + 32);
+
+        goto CleanupExit;
+    }
+
+    symbolName = PhCreateStringEx(symbolInfo->Name, symbolInfo->NameLen * sizeof(WCHAR));
+    PhTrimToNullTerminatorString(symbolName);
+    resolveLevel = PhsrlFunction;
+
+    if (displacement == 0)
+    {
+        PH_FORMAT format[3];
+
+        PhInitFormatSR(&format[0], modBaseName->sr);
+        PhInitFormatC(&format[1], L'!');
+        PhInitFormatSR(&format[2], symbolName->sr);
+
+        symbol = PhFormat(format, 3, modBaseName->Length + 2 + symbolName->Length);
+    }
+    else
+    {
+        PH_FORMAT format[5];
+
+        PhInitFormatSR(&format[0], modBaseName->sr);
+        PhInitFormatC(&format[1], L'!');
+        PhInitFormatSR(&format[2], symbolName->sr);
+        PhInitFormatS(&format[3], L"+0x");
+        PhInitFormatIX(&format[4], (ULONG_PTR)displacement);
+
+        symbol = PhFormat(format, 5, modBaseName->Length + 2 + symbolName->Length + 6 + 32);
+    }
+
+CleanupExit:
+
+    if (ResolveLevel)
+        *ResolveLevel = resolveLevel;
+    if (FileName)
+        PhSetReference(FileName, modFileName);
+    if (SymbolName)
+        PhSetReference(SymbolName, symbolName);
+    if (Displacement)
+        *Displacement = displacement;
+    if (ModuleBaseAddress)
+        *ModuleBaseAddress = symbolInfo->ModBase ? symbolInfo->ModBase : modBase;
+
+    PhClearReference(&modFileName);
+    PhClearReference(&modBaseName);
+    PhClearReference(&symbolName);
+    PhFree(symbolInfo);
+
+    return symbol;
 }
+
+_Success_(return)
+BOOLEAN PhGetLineFromInlineContext(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _In_opt_ ULONG64 ModuleBaseAddress,
+    _Out_ PPH_STRING *FileName,
+    _Out_opt_ PULONG Displacement,
+    _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
+    )
+{
+    IMAGEHLP_LINEW64 line;
+    BOOL result;
+    ULONG displacement;
+    PPH_STRING fileName;
+
+    PhpRegisterSymbolProvider(SymbolProvider);
+
+    if (!SymGetLineFromInlineContextW_I)
+        return FALSE;
+
+    line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+
+    PH_LOCK_SYMBOLS();
+
+    result = SymGetLineFromInlineContextW_I(
+        SymbolProvider->ProcessHandle,
+        (ULONG64)StackFrame->PcAddress,
+        StackFrame->InlineFrameContext,
+        ModuleBaseAddress,
+        &displacement,
+        &line
+        );
+
+    PH_UNLOCK_SYMBOLS();
+
+    if (result)
+        fileName = PhCreateString(line.FileName);
+    else
+        return FALSE;
+
+    *FileName = fileName;
+
+    if (Displacement)
+        *Displacement = displacement;
+
+    if (Information)
+    {
+        Information->LineNumber = line.LineNumber;
+        Information->Address = line.Address;
+    }
+
+    return TRUE;
+}
+
+// Note: StackWalk64 doesn't support inline frames, so right before calling PhGetSymbolFromAddress
+// we can call this function to get the inline frames and manually insert them without much effort.
+// StackWalkEx provides inline frames by default and does not require this function. This function
+// is basically obsolete an unused because we're using StackWalkEx by default. (dmex)
+//PPH_LIST PhGetInlineStackSymbolsFromAddress(
+//    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+//    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+//    _In_ BOOLEAN IncludeLineInformation
+//    )
+//{
+//    static _SymAddrIncludeInlineTrace SymAddrIncludeInlineTrace_I = NULL;
+//    static _SymQueryInlineTrace SymQueryInlineTrace_I = NULL;
+//    PPH_LIST inlineSymbolList = NULL;
+//    ULONG64 inlineFrameAddress = 0;
+//    ULONG inlineFrameCount = 0;
+//    ULONG inlineFrameContext = 0;
+//    ULONG inlineFrameIndex = 0;
+//
+//    if (StackFrame->PcAddress == 0)
+//        return NULL;
+//
+//    PhpRegisterSymbolProvider(SymbolProvider);
+//
+//    if (!SymAddrIncludeInlineTrace_I)
+//        SymAddrIncludeInlineTrace_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymAddrIncludeInlineTrace", 0);
+//    if (!SymQueryInlineTrace_I)
+//        SymQueryInlineTrace_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymQueryInlineTrace", 0);
+//
+//    if (!(
+//        SymAddrIncludeInlineTrace_I &&
+//        SymQueryInlineTrace_I &&
+//        SymFromInlineContextW_I &&
+//        SymGetLineFromInlineContextW_I
+//        ))
+//    {
+//        return NULL;
+//    }
+//
+//    PH_LOCK_SYMBOLS();
+//
+//    inlineFrameAddress = (ULONG64)StackFrame->PcAddress - sizeof(BYTE);
+//    inlineFrameCount = SymAddrIncludeInlineTrace_I(
+//        SymbolProvider->ProcessHandle,
+//        inlineFrameAddress
+//        );
+//
+//    if (inlineFrameCount == 0)
+//    {
+//        PH_UNLOCK_SYMBOLS();
+//        return NULL;
+//    }
+//
+//    if (!SymQueryInlineTrace_I(
+//        SymbolProvider->ProcessHandle,
+//        inlineFrameAddress,
+//        INLINE_FRAME_CONTEXT_INIT,
+//        inlineFrameAddress,
+//        inlineFrameAddress,
+//        &inlineFrameContext,
+//        &inlineFrameIndex
+//        ))
+//    {
+//        PH_UNLOCK_SYMBOLS();
+//        return NULL;
+//    }
+//
+//    inlineSymbolList = PhCreateList(1);
+//
+//    for (ULONG i = 0; i < inlineFrameCount; i++)
+//    {
+//        BOOL result = FALSE;
+//        ULONG64 inlineFrameDisplacement = 0;
+//        ULONG64 modBaseAddress = 0;
+//        PPH_STRING modFileName = NULL;
+//        PPH_STRING modBaseName = NULL;
+//        PSYMBOL_INFOW symbolInfo;
+//        ULONG nameLength = 0;
+//
+//        symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * sizeof(WCHAR));
+//        symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
+//        symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN;
+//
+//        result = SymFromInlineContextW_I(
+//            SymbolProvider->ProcessHandle,
+//            inlineFrameAddress,
+//            inlineFrameContext,
+//            &inlineFrameDisplacement,
+//            symbolInfo
+//            );
+//        nameLength = symbolInfo->NameLen;
+//
+//        if (nameLength + 1 > PH_MAX_SYMBOL_NAME_LEN)
+//        {
+//            PhFree(symbolInfo);
+//            symbolInfo = PhAllocateZero(FIELD_OFFSET(SYMBOL_INFOW, Name) + nameLength * sizeof(WCHAR) + sizeof(UNICODE_NULL));
+//            symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFOW);
+//            symbolInfo->MaxNameLen = nameLength + 1;
+//
+//            result = SymFromInlineContextW_I(
+//                SymbolProvider->ProcessHandle,
+//                inlineFrameAddress,
+//                inlineFrameContext,
+//                &inlineFrameDisplacement,
+//                symbolInfo
+//                );
+//        }
+//
+//        if (!result)
+//        {
+//            inlineFrameContext++;
+//            PhFree(symbolInfo);
+//            continue;
+//        }
+//
+//        if (symbolInfo->ModBase == 0)
+//        {
+//            modBaseAddress = PhGetModuleFromAddress(
+//                SymbolProvider,
+//                inlineFrameAddress,
+//                &modFileName
+//                );
+//        }
+//        else
+//        {
+//            PH_SYMBOL_MODULE lookupSymbolModule;
+//            PPH_AVL_LINKS existingLinks;
+//            PPH_SYMBOL_MODULE symbolModule;
+//
+//            lookupSymbolModule.BaseAddress = symbolInfo->ModBase;
+//
+//            PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
+//
+//            existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
+//
+//            if (existingLinks)
+//            {
+//                symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
+//                PhSetReference(&modFileName, symbolModule->FileName);
+//            }
+//
+//            PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+//        }
+//
+//        if (modFileName)
+//        {
+//            modBaseName = PhGetBaseName(modFileName);
+//        }
+//
+//        if (result)
+//        {
+//            PPH_INLINE_STACK_FRAME inlineStackFrame;
+//
+//            inlineStackFrame = PhAllocate(sizeof(PH_INLINE_STACK_FRAME));
+//            memset(inlineStackFrame, 0, sizeof(PH_INLINE_STACK_FRAME));
+//
+//            if (modFileName)
+//            {
+//                PhSetReference(&inlineStackFrame->FileName, modFileName);
+//
+//                if (symbolInfo->NameLen == 0)
+//                {
+//                    PH_FORMAT format[3];
+//
+//                    inlineStackFrame->ResolveLevel = PhsrlModule;
+//
+//                    PhInitFormatSR(&format[0], modBaseName->sr);
+//                    PhInitFormatS(&format[1], L"+0x");
+//                    PhInitFormatIX(&format[2], (ULONG_PTR)(inlineFrameAddress - modBaseAddress + inlineFrameDisplacement + sizeof(BYTE)));
+//                    // address + inlineFrameDisplacement + sizeof(BYTE) ??
+//
+//                    inlineStackFrame->Symbol = PhFormat(format, 3, modBaseName->Length + 6 + 32);
+//                }
+//                else
+//                {
+//                    PPH_STRING symbolName;
+//
+//                    inlineStackFrame->ResolveLevel = PhsrlFunction;
+//
+//                    symbolName = PhCreateStringEx(symbolInfo->Name, symbolInfo->NameLen * sizeof(WCHAR));
+//                    PhTrimToNullTerminatorString(symbolName);
+//
+//                    if (inlineFrameDisplacement == 0)
+//                    {
+//                        PH_FORMAT format[3];
+//
+//                        PhInitFormatSR(&format[0], modBaseName->sr);
+//                        PhInitFormatC(&format[1], L'!');
+//                        PhInitFormatSR(&format[2], symbolName->sr);
+//
+//                        inlineStackFrame->Symbol = PhFormat(format, 3, modBaseName->Length + 2 + symbolName->Length);
+//                    }
+//                    else
+//                    {
+//                        PH_FORMAT format[5];
+//
+//                        PhInitFormatSR(&format[0], modBaseName->sr);
+//                        PhInitFormatC(&format[1], L'!');
+//                        PhInitFormatSR(&format[2], symbolName->sr);
+//                        PhInitFormatS(&format[3], L"+0x");
+//                        PhInitFormatIX(&format[4], (ULONG_PTR)inlineFrameDisplacement + sizeof(BYTE)); // add byte to match the windbg displacement (dmex)
+//
+//                        inlineStackFrame->Symbol = PhFormat(format, 5, modBaseName->Length + 2 + symbolName->Length + 6 + 32);
+//                    }
+//
+//                    PhDereferenceObject(symbolName);
+//                }
+//            }
+//            else
+//            {
+//                PPH_STRING symbolName;
+//
+//                inlineStackFrame->ResolveLevel = PhsrlAddress;
+//
+//                symbolName = PhCreateStringEx(NULL, PH_PTR_STR_LEN * sizeof(WCHAR));
+//                PhPrintPointer(symbolName->Buffer, (PVOID)inlineFrameAddress);
+//                PhTrimToNullTerminatorString(symbolName);
+//
+//                inlineStackFrame->Symbol = symbolName;
+//            }
+//
+//            if (inlineStackFrame->Symbol)
+//            {
+//                PhMoveReference(
+//                    &inlineStackFrame->Symbol,
+//                    PhConcatStringRefZ(&inlineStackFrame->Symbol->sr, L" (Inline function)")
+//                    );
+//            }
+//
+//            if (IncludeLineInformation)
+//            {
+//                IMAGEHLP_LINEW64 line;
+//                ULONG lineInlineDisplacement = 0;
+//
+//                memset(&line, 0, sizeof(IMAGEHLP_LINEW64));
+//                line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+//
+//                if (SymGetLineFromInlineContextW_I(
+//                    SymbolProvider->ProcessHandle,
+//                    inlineFrameAddress,
+//                    inlineFrameContext,
+//                    symbolInfo->ModBase, // optional
+//                    &lineInlineDisplacement,
+//                    &line
+//                    ))
+//                {
+//                    inlineStackFrame->LineAddress = line.Address;
+//                    inlineStackFrame->LineNumber = line.LineNumber;
+//                    inlineStackFrame->LineDisplacement = lineInlineDisplacement;
+//                    inlineStackFrame->LineFileName = PhCreateString(line.FileName);
+//                }
+//            }
+//
+//            PhAddItemList(inlineSymbolList, inlineStackFrame);
+//        }
+//
+//        inlineFrameContext++;
+//        PhClearReference(&modFileName);
+//        PhClearReference(&modBaseName);
+//        PhFree(symbolInfo);
+//    }
+//
+//    PH_UNLOCK_SYMBOLS();
+//
+//    return inlineSymbolList;
+//}
+//
+//VOID PhFreeInlineStackSymbols(
+//    _In_ PPH_LIST InlineSymbolList
+//    )
+//{
+//    for (ULONG i = 0; i < InlineSymbolList->Count; i++)
+//    {
+//        PPH_INLINE_STACK_FRAME inlineStackFrame = InlineSymbolList->Items[i];
+//
+//        PhClearReference(&inlineStackFrame->Symbol);
+//        PhClearReference(&inlineStackFrame->FileName);
+//        PhClearReference(&inlineStackFrame->LineFileName);
+//        PhFree(inlineStackFrame);
+//    }
+//
+//    PhDereferenceObject(InlineSymbolList);
+//}
