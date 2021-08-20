@@ -1350,13 +1350,6 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
         if (symbol && PhIsStackFrameTypeInline(StackFrame->InlineFrameContext))
         {
             PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (Inline function)"));
-
-            // Zero inline frames like windbg does. (dmex)
-            StackFrame->PcAddress = 0;
-            StackFrame->ReturnAddress = 0;
-            StackFrame->FrameAddress = 0;
-            StackFrame->StackAddress = 0;
-            memset(StackFrame->Params, 0, sizeof(StackFrame->Params));
         }
     }
     else
@@ -1425,6 +1418,19 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     item->FileName = fileName;
     item->LineText = lineText;
     PhAddItemList(threadStackContext->NewList, item);
+
+    if ( // Zero inline frames so the stack matches windbg output. (dmex)
+        PhSymbolProviderInlineContextSupported() &&
+        PhIsStackFrameTypeInline(StackFrame->InlineFrameContext)
+        )
+    {
+        // Note: Only zero the item->StackFrame local copy. (dmex)
+        item->StackFrame.PcAddress = 0;
+        item->StackFrame.ReturnAddress = 0;
+        item->StackFrame.FrameAddress = 0;
+        item->StackFrame.StackAddress = 0;
+        memset(item->StackFrame.Params, 0, sizeof(item->StackFrame.Params));
+    }
 
     return TRUE;
 }
