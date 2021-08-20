@@ -65,7 +65,9 @@ typedef struct _PH_THREAD_STACK_CONTEXT
             ULONG HighlightUserPages : 1;
             ULONG HideSystemPages : 1;
             ULONG HideUserPages : 1;
-            ULONG Spare : 25;
+            ULONG HighlightInlineFrames : 1;
+            ULONG HideInlineFrames : 1;
+            ULONG Spare : 23;
         };
     };
 
@@ -100,6 +102,7 @@ typedef struct _THREAD_STACK_ITEM
     ULONG Index;
     PPH_STRING Symbol;
     PPH_STRING FileName;
+    PPH_STRING LineText;
 } THREAD_STACK_ITEM, *PTHREAD_STACK_ITEM;
 
 typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
@@ -115,6 +118,7 @@ typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
     PH_STACK_TREE_COLUMN_CONTROLADDRESS,
     PH_STACK_TREE_COLUMN_RETURNADDRESS,
     PH_STACK_TREE_COLUMN_FILENAME,
+    PH_STACK_TREE_COLUMN_LINETEXT,
     TREE_COLUMN_ITEM_MAXIMUM
 } PH_STACK_TREE_COLUMN_ITEM_NAME;
 
@@ -129,6 +133,7 @@ typedef struct _PH_STACK_TREE_ROOT_NODE
     PPH_STRING IndexString;
     PPH_STRING SymbolString;
     PPH_STRING FileNameString;
+    PPH_STRING LineTextString;
     WCHAR StackAddressString[PH_PTR_STR_LEN_1];
     WCHAR FrameAddressString[PH_PTR_STR_LEN_1];
     WCHAR Parameter1String[PH_PTR_STR_LEN_1];
@@ -243,7 +248,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareString(node1->FileNameString, node2->FileNameString, TRUE);
+    sortResult = PhCompareStringWithNull(node1->FileNameString, node2->FileNameString, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LineText)
+{
+    sortResult = PhCompareStringWithNull(node1->LineTextString, node2->LineTextString, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -284,7 +295,7 @@ ULONG ThreadStackNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (*(PPH_STACK_TREE_ROOT_NODE*)Entry)->Index;
+    return PhHashInt32((*(PPH_STACK_TREE_ROOT_NODE*)Entry)->Index);
 }
 
 VOID DestroyThreadStackNode(
@@ -295,8 +306,6 @@ VOID DestroyThreadStackNode(
         PhDereferenceObject(Node->TooltipText);
     if (Node->IndexString)
         PhDereferenceObject(Node->IndexString);
-    if (Node->SymbolString)
-        PhDereferenceObject(Node->SymbolString);
 
     PhDereferenceObject(Node);
 }
@@ -418,6 +427,7 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                     SORT_FUNCTION(ControlAddress),
                     SORT_FUNCTION(ReturnAddress),
                     SORT_FUNCTION(FileName),
+                    SORT_FUNCTION(LineText),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -495,6 +505,9 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
             case PH_STACK_TREE_COLUMN_FILENAME:
                 getCellText->Text = PhGetStringRef(node->FileNameString);
                 break;
+            case PH_STACK_TREE_COLUMN_LINETEXT:
+                getCellText->Text = PhGetStringRef(node->LineTextString);
+                break;
             default:
                 return FALSE;
             }
@@ -511,7 +524,11 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
 
             node = (PPH_STACK_TREE_ROOT_NODE)getNodeColor->Node;
 
-            if (context->HighlightSystemPages && (ULONG_PTR)node->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
+            if (context->HighlightInlineFrames && PhIsStackFrameTypeInline(node->StackFrame.InlineFrameContext))
+            {
+                getNodeColor->BackColor = PhGetIntegerSetting(L"ColorInlineThreadStack");
+            }
+            else if (context->HighlightSystemPages && (ULONG_PTR)node->StackFrame.PcAddress > PhSystemBasicInformation.MaximumUserModeAddress)
             {
                 getNodeColor->BackColor = PhGetIntegerSetting(L"ColorSystemThreadStack");
             }
@@ -540,6 +557,21 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                 WM_PH_SHOWSTACKMENU,
                 (LPARAM)contextMenuEvent
                 );
+        }
+        return TRUE;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case VK_F5:
+                SendMessage(context->WindowHandle, WM_COMMAND, IDC_REFRESH, 0);
+                break;
+            }
         }
         return TRUE;
     case TreeNewLeftDoubleClick:
@@ -630,6 +662,17 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
             }
         }
         return TRUE;
+    case TreeNewGetDialogCode:
+        {
+            PULONG code = Parameter2;
+
+            if (PtrToUlong(Parameter1) == VK_F5)
+            {
+                *code = DLGC_WANTMESSAGE;
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
 
     return FALSE;
@@ -663,6 +706,7 @@ PPH_STACK_TREE_ROOT_NODE GetSelectedThreadStackNode(
     return NULL;
 }
 
+_Success_(return)
 BOOLEAN GetSelectedThreadStackNodes(
     _In_ PPH_THREAD_STACK_CONTEXT Context,
     _Out_ PPH_STACK_TREE_ROOT_NODE **Nodes,
@@ -706,6 +750,8 @@ BOOLEAN PhpThreadStackTreeFilterCallback(
         return FALSE;
     if (stackContext->HideUserPages && (ULONG_PTR)stackNode->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
         return FALSE;
+    if (stackContext->HideInlineFrames && PhIsStackFrameTypeInline(stackNode->StackFrame.InlineFrameContext))
+        return FALSE;
 
     return TRUE;
 }
@@ -737,6 +783,7 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_CONTROLADDRESS, FALSE, L"Control address", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_LINETEXT, FALSE, L"Line number", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetTriState(Context->TreeNewHandle, FALSE);
     TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
@@ -889,6 +936,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->HighlightUserPages = !!PhGetIntegerSetting(L"UseColorUserThreadStack");
             context->HighlightSystemPages = !!PhGetIntegerSetting(L"UseColorSystemThreadStack");
+            context->HighlightInlineFrames = !!PhGetIntegerSetting(L"UseColorInlineThreadStack");
             PhSetWindowExStyle(context->TreeNewHandle, WS_EX_CLIENTEDGE, 0);
 
             PhSetApplicationWindowIcon(hwndDlg);
@@ -919,6 +967,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             PhLoadWindowPlacementFromSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
@@ -1099,27 +1148,36 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM hideUserItem;
                     PPH_EMENU_ITEM hideSystemItem;
+                    PPH_EMENU_ITEM hideInlineItem;
                     PPH_EMENU_ITEM userItem;
                     PPH_EMENU_ITEM systemItem;
+                    PPH_EMENU_ITEM inlineItem;
                     PPH_EMENU_ITEM selectedItem;
 
-                    GetWindowRect(GET_WM_COMMAND_HWND(wParam, lParam), &rect);
+                    if (!GetWindowRect(GET_WM_COMMAND_HWND(wParam, lParam), &rect))
+                        break;
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, hideUserItem = PhCreateEMenuItem(0, 1, L"Hide user frames", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, hideSystemItem = PhCreateEMenuItem(0, 2, L"Hide system frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, hideInlineItem = PhCreateEMenuItem(0, 3, L"Hide inline frames", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                    PhInsertEMenuItem(menu, userItem = PhCreateEMenuItem(0, 3, L"Highlight user frames", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, 4, L"Highlight system frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, userItem = PhCreateEMenuItem(0, 4, L"Highlight user frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, 5, L"Highlight system frames", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, inlineItem = PhCreateEMenuItem(0, 6, L"Highlight inline frames", NULL, NULL), ULONG_MAX);
 
                     if (context->HideUserPages)
                         hideUserItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HideSystemPages)
                         hideSystemItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideInlineFrames)
+                        hideInlineItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HighlightUserPages)
                         userItem->Flags |= PH_EMENU_CHECKED;
                     if (context->HighlightSystemPages)
                         systemItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightInlineFrames)
+                        inlineItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -1142,13 +1200,22 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                         }
                         else if (selectedItem->Id == 3)
                         {
-                            context->HighlightUserPages = !context->HighlightUserPages;
-                            PhSetIntegerSetting(L"UseColorUserThreadStack", context->HighlightUserPages);
+                            context->HideInlineFrames = !context->HideInlineFrames;
                         }
                         else if (selectedItem->Id == 4)
                         {
+                            context->HighlightUserPages = !context->HighlightUserPages;
+                            PhSetIntegerSetting(L"UseColorUserThreadStack", context->HighlightUserPages);
+                        }
+                        else if (selectedItem->Id == 5)
+                        {
                             context->HighlightSystemPages = !context->HighlightSystemPages;
                             PhSetIntegerSetting(L"UseColorSystemThreadStack", context->HighlightSystemPages);
+                        }
+                        else if (selectedItem->Id == 6)
+                        {
+                            context->HighlightInlineFrames = !context->HighlightInlineFrames;
+                            PhSetIntegerSetting(L"UseColorInlineThreadStack", context->HighlightInlineFrames);
                         }
 
                         PhApplyTreeNewFilters(&context->TreeFilterSupport);
@@ -1181,6 +1248,8 @@ VOID PhpFreeThreadStackItem(
 {
     if (StackItem->Symbol) PhDereferenceObject(StackItem->Symbol);
     if (StackItem->FileName) PhDereferenceObject(StackItem->FileName);
+    if (StackItem->LineText) PhDereferenceObject(StackItem->LineText);
+
     PhFree(StackItem);
 }
 
@@ -1192,52 +1261,169 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PPH_THREAD_STACK_CONTEXT threadStackContext = (PPH_THREAD_STACK_CONTEXT)Context;
     PPH_STRING symbol;
     PPH_STRING fileName = NULL;
+    PPH_STRING lineText = NULL;
     PTHREAD_STACK_ITEM item;
+    ULONG64 moduleBaseAddress = 0;
+    BOOLEAN enableStackFrameInlineInfo;
+    BOOLEAN enableStackFrameLineInfo;
 
     if (!threadStackContext)
         return FALSE;
     if (threadStackContext->StopWalk)
         return FALSE;
 
+    enableStackFrameInlineInfo = !!PhGetIntegerSetting(L"EnableThreadStackInlineSymbols");
+    enableStackFrameLineInfo = !!PhGetIntegerSetting(L"EnableThreadStackLineInformation");
+
     PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
-    PhMoveReference(&threadStackContext->StatusMessage, PhFormatString(L"Processing stack frame %u...", threadStackContext->NewList->Count));
+    {
+        PH_FORMAT format[3];
+
+        PhInitFormatS(&format[0], L"Processing stack frame ");
+        PhInitFormatU(&format[1], threadStackContext->NewList->Count);
+        PhInitFormatS(&format[2], L"...");
+
+        PhMoveReference(&threadStackContext->StatusMessage, PhFormat(format, RTL_NUMBER_OF(format), 0));
+    }
     PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
 
-    symbol = PhGetSymbolFromAddress(
-        threadStackContext->SymbolProvider,
-        (ULONG64)StackFrame->PcAddress,
-        NULL,
-        &fileName,
-        NULL,
-        NULL
-        );
-
-    if (symbol &&
-        (StackFrame->Flags & PH_THREAD_STACK_FRAME_I386) &&
-        !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
+    if (enableStackFrameInlineInfo && PhSymbolProviderInlineContextSupported())
     {
-        PhMoveReference(&symbol, PhConcatStrings2(symbol->Buffer, L" (No unwind info)"));
+        symbol = PhGetSymbolFromInlineContext(
+            threadStackContext->SymbolProvider,
+            StackFrame,
+            NULL,
+            &fileName,
+            NULL,
+            NULL,
+            &moduleBaseAddress
+            );
+
+        if (symbol &&
+            (StackFrame->Flags & PH_THREAD_STACK_FRAME_I386) &&
+            !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
+        {
+            PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (No unwind info)"));
+        }
+
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+            control.Type = PluginThreadStackResolveSymbol;
+            control.UniqueKey = threadStackContext;
+            control.u.ResolveSymbol.StackFrame = StackFrame;
+            control.u.ResolveSymbol.Symbol = symbol;
+            control.u.ResolveSymbol.FileName = fileName;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+            symbol = control.u.ResolveSymbol.Symbol;
+            fileName = control.u.ResolveSymbol.FileName;
+        }
+
+        if (enableStackFrameLineInfo)
+        {
+            PPH_STRING lineFileName;
+            PH_SYMBOL_LINE_INFORMATION lineInfo;
+
+            if (PhGetLineFromInlineContext(
+                threadStackContext->SymbolProvider,
+                StackFrame,
+                moduleBaseAddress,
+                &lineFileName,
+                NULL,
+                &lineInfo
+                ))
+            {
+                PH_FORMAT format[3];
+
+                PhInitFormatSR(&format[0], lineFileName->sr);
+                PhInitFormatS(&format[1], L" @ ");
+                PhInitFormatU(&format[2], lineInfo.LineNumber);
+
+                lineText = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                PhDereferenceObject(lineFileName);
+            }
+        }
+
+        if (symbol && PhIsStackFrameTypeInline(StackFrame->InlineFrameContext))
+        {
+            PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (Inline function)"));
+
+            // Zero inline frames like windbg does. (dmex)
+            StackFrame->PcAddress = 0;
+            StackFrame->ReturnAddress = 0;
+            StackFrame->FrameAddress = 0;
+            StackFrame->StackAddress = 0;
+            memset(StackFrame->Params, 0, sizeof(StackFrame->Params));
+        }
+    }
+    else
+    {
+        symbol = PhGetSymbolFromAddress(
+            threadStackContext->SymbolProvider,
+            (ULONG64)StackFrame->PcAddress,
+            NULL,
+            &fileName,
+            NULL,
+            NULL
+            );
+
+        if (symbol &&
+            (StackFrame->Flags & PH_THREAD_STACK_FRAME_I386) &&
+            !(StackFrame->Flags & PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT))
+        {
+            PhMoveReference(&symbol, PhConcatStringRefZ(&symbol->sr, L" (No unwind info)"));
+        }
+
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+            control.Type = PluginThreadStackResolveSymbol;
+            control.UniqueKey = threadStackContext;
+            control.u.ResolveSymbol.StackFrame = StackFrame;
+            control.u.ResolveSymbol.Symbol = symbol;
+            control.u.ResolveSymbol.FileName = fileName;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+            symbol = control.u.ResolveSymbol.Symbol;
+            fileName = control.u.ResolveSymbol.FileName;
+        }
+
+        if (enableStackFrameLineInfo)
+        {
+            PPH_STRING lineFileName;
+            PH_SYMBOL_LINE_INFORMATION lineInfo;
+
+            if (PhGetLineFromAddress(
+                threadStackContext->SymbolProvider,
+                (ULONG64)StackFrame->PcAddress,
+                &lineFileName,
+                NULL,
+                &lineInfo
+                ))
+            {
+                PH_FORMAT format[3];
+
+                PhInitFormatSR(&format[0], lineFileName->sr);
+                PhInitFormatS(&format[1], L" @ ");
+                PhInitFormatU(&format[2], lineInfo.LineNumber);
+
+                lineText = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                PhDereferenceObject(lineFileName);
+            }
+        }
     }
 
     item = PhAllocateZero(sizeof(THREAD_STACK_ITEM));
     item->StackFrame = *StackFrame;
     item->Index = threadStackContext->NewList->Count;
-
-    if (PhPluginsEnabled)
-    {
-        PH_PLUGIN_THREAD_STACK_CONTROL control;
-
-        control.Type = PluginThreadStackResolveSymbol;
-        control.UniqueKey = threadStackContext;
-        control.u.ResolveSymbol.StackFrame = StackFrame;
-        control.u.ResolveSymbol.Symbol = symbol;
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
-
-        symbol = control.u.ResolveSymbol.Symbol;
-    }
-
     item->Symbol = symbol;
     item->FileName = fileName;
+    item->LineText = lineText;
     PhAddItemList(threadStackContext->NewList, item);
 
     return TRUE;
@@ -1400,8 +1586,7 @@ VOID PhpSymbolProviderEventCallbackHandler(
                 break;
             }
 
-            if (fileName)
-                PhDereferenceObject(fileName);
+            PhClearReference(&fileName);
         }
         break;
     case CBA_READ_MEMORY:
@@ -1590,6 +1775,9 @@ static NTSTATUS PhpRefreshThreadStack(
 
             stackNode = AddThreadStackNode(Context, item->Index);
             stackNode->StackFrame = item->StackFrame;
+            stackNode->SymbolString = item->Symbol;
+            stackNode->FileNameString = item->FileName;
+            stackNode->LineTextString = item->LineText;
 
             if (item->StackFrame.StackAddress)
                 PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
@@ -1599,10 +1787,14 @@ static NTSTATUS PhpRefreshThreadStack(
             // There are no params for kernel-mode stack traces.
             if ((ULONG_PTR)item->StackFrame.PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
             {
-                PhPrintPointer(stackNode->Parameter1String, item->StackFrame.Params[0]);
-                PhPrintPointer(stackNode->Parameter2String, item->StackFrame.Params[1]);
-                PhPrintPointer(stackNode->Parameter3String, item->StackFrame.Params[2]);
-                PhPrintPointer(stackNode->Parameter4String, item->StackFrame.Params[3]);
+                if (item->StackFrame.Params[0])
+                    PhPrintPointer(stackNode->Parameter1String, item->StackFrame.Params[0]);
+                if (item->StackFrame.Params[1])
+                    PhPrintPointer(stackNode->Parameter2String, item->StackFrame.Params[1]);
+                if (item->StackFrame.Params[2])
+                    PhPrintPointer(stackNode->Parameter3String, item->StackFrame.Params[2]);
+                if (item->StackFrame.Params[3])
+                    PhPrintPointer(stackNode->Parameter4String, item->StackFrame.Params[3]);
             }
 
             if (item->StackFrame.PcAddress)
@@ -1610,16 +1802,6 @@ static NTSTATUS PhpRefreshThreadStack(
             if (item->StackFrame.ReturnAddress)
                 PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
 
-            if (!PhIsNullOrEmptyString(item->Symbol))
-                stackNode->SymbolString = PhReferenceObject(item->Symbol);
-            else
-                PhClearReference(&item->Symbol);
-
-            if (!PhIsNullOrEmptyString(item->FileName))
-                stackNode->FileNameString = PhReferenceObject(item->FileName);
-            else
-                PhClearReference(&item->FileName);
-            
             UpdateThreadStackNode(Context, stackNode);
         }
 
