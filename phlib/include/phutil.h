@@ -1513,7 +1513,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhDelayExecution(
-    _In_ LONGLONG Interval
+    _In_ ULONG Milliseconds
     );
 
 #ifdef __cplusplus

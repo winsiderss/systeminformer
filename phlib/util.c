@@ -7967,10 +7967,10 @@ NTSTATUS PhDelayExecutionEx(
 }
 
 NTSTATUS PhDelayExecution(
-    _In_ LONGLONG Interval
+    _In_ ULONG Milliseconds
     )
 {
-    if (Interval == INFINITE) // HACK (dmex)
+    if (Milliseconds == INFINITE)
     {
         LARGE_INTEGER interval;
 
@@ -7982,7 +7982,7 @@ NTSTATUS PhDelayExecution(
     {
         LARGE_INTEGER interval;
 
-        interval.QuadPart = -(LONGLONG)UInt32x32To64(Interval, PH_TIMEOUT_MS);
+        interval.QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
 
         return PhDelayExecutionEx(FALSE, &interval);
     }
