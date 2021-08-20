@@ -81,6 +81,7 @@ PhGetLineFromAddress(
     _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
     );
 
+_Success_(return != 0)
 PHLIBAPI
 ULONG64
 NTAPI
@@ -90,6 +91,7 @@ PhGetModuleFromAddress(
     _Out_opt_ PPH_STRING *FileName
     );
 
+_Success_(return != NULL)
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -178,6 +180,7 @@ PhFunctionTableAccess64(
 // Some of the types used below are defined in dbghelp.h.
 
 typedef struct _tagSTACKFRAME64 *LPSTACKFRAME64;
+typedef struct _tagSTACKFRAME_EX* LPSTACKFRAME_EX;
 typedef struct _tagADDRESS64 *LPADDRESS64;
 
 typedef BOOL (__stdcall *PREAD_PROCESS_MEMORY_ROUTINE64)(
@@ -218,7 +221,7 @@ PhStackWalk(
     _In_ ULONG MachineType,
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ThreadHandle,
-    _Inout_ LPSTACKFRAME64 StackFrame,
+    _Inout_ LPSTACKFRAME_EX StackFrame,
     _Inout_ PVOID ContextRecord,
     _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_opt_ PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
@@ -257,6 +260,7 @@ typedef struct _PH_THREAD_STACK_FRAME
     PVOID BStoreAddress;
     PVOID Params[4];
     ULONG Flags;
+    ULONG InlineFrameContext;
 } PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
 
 #define PH_WALK_I386_STACK 0x1
@@ -330,6 +334,7 @@ PhEnumerateSymbols(
     _In_opt_ PVOID UserContext
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -345,6 +350,103 @@ NTAPI
 PhSymbolProviderFreeDiaString(
     _In_ PWSTR DiaString
     );
+
+// Inline stack support
+
+typedef union _INLINE_FRAME_CONTEXT
+{
+    ULONG ContextValue;
+    struct
+    {
+        UCHAR FrameId;
+        UCHAR FrameType;
+        USHORT FrameSignature;
+    };
+} INLINE_FRAME_CONTEXT;
+
+#define STACK_FRAME_TYPE_INIT 0x00
+#define STACK_FRAME_TYPE_STACK 0x01
+#define STACK_FRAME_TYPE_INLINE 0x02
+#define STACK_FRAME_TYPE_RA 0x80 // Whether the instruction pointer is the current IP or a RA from callee frame.
+#define STACK_FRAME_TYPE_IGNORE 0xFF
+
+#ifndef INLINE_FRAME_CONTEXT_INIT
+#define INLINE_FRAME_CONTEXT_INIT 0
+#endif
+
+#ifndef INLINE_FRAME_CONTEXT_IGNORE
+#define INLINE_FRAME_CONTEXT_IGNORE 0xFFFFFFFF
+#endif
+
+FORCEINLINE
+BOOLEAN
+PhIsStackFrameTypeInline(
+    _In_ ULONG InlineFrameContext
+    )
+{
+    INLINE_FRAME_CONTEXT frameContext = { InlineFrameContext };
+
+    if (frameContext.ContextValue == INLINE_FRAME_CONTEXT_IGNORE)
+        return FALSE;
+
+    if (frameContext.FrameType & STACK_FRAME_TYPE_INLINE)
+        return TRUE;
+
+    return FALSE;
+}
+
+BOOLEAN PhSymbolProviderInlineContextSupported(
+    VOID
+    );
+
+_Success_(return != NULL)
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSymbolFromInlineContext(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _Out_opt_ PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
+    _Out_opt_ PPH_STRING* FileName,
+    _Out_opt_ PPH_STRING* SymbolName,
+    _Out_opt_ PULONG64 Displacement,
+    _Out_opt_ PULONG64 ModuleBaseAddress
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetLineFromInlineContext(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+    _In_opt_ ULONG64 ModuleBaseAddress,
+    _Out_ PPH_STRING* FileName,
+    _Out_opt_ PULONG Displacement,
+    _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
+    );
+
+//typedef struct _PH_INLINE_STACK_FRAME
+//{
+//    PH_SYMBOL_RESOLVE_LEVEL ResolveLevel;
+//    PPH_STRING Symbol;
+//    PPH_STRING FileName;
+//
+//    ULONG64 LineAddress;
+//    ULONG LineDisplacement;
+//    ULONG LineNumber;
+//    PPH_STRING LineFileName;
+//} PH_INLINE_STACK_FRAME, *PPH_INLINE_STACK_FRAME;
+//
+//PPH_LIST PhGetInlineStackSymbolsFromAddress(
+//    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+//    _In_ PPH_THREAD_STACK_FRAME StackFrame,
+//    _In_ BOOLEAN IncludeLineInformation
+//    );
+//
+//VOID PhFreeInlineStackSymbols(
+//    _In_ PPH_LIST InlineSymbolList
+//    );
 
 #ifdef __cplusplus
 }
