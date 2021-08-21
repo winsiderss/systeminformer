@@ -268,6 +268,7 @@ typedef struct _PH_PLUGIN_THREAD_STACK_CONTROL
         {
             PPH_THREAD_STACK_FRAME StackFrame;
             PPH_STRING Symbol;
+            PPH_STRING FileName;
         } ResolveSymbol;
         struct
         {
