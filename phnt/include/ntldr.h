@@ -772,21 +772,27 @@ LdrFindEntryForAddress(
     _Out_ PLDR_DATA_TABLE_ENTRY *Entry
     );
 
+// rev - Win10 type
 NTSYSAPI
-PVOID
+NTSTATUS
 NTAPI
 LdrLoadAlternateResourceModule(
     _In_ PVOID DllHandle,
-    _In_opt_ PCWSTR PathToAlternateModule
+    _Out_ PVOID *ResourceDllBase,
+    _Out_opt_ ULONG_PTR *ResourceOffset,
+    _In_ ULONG Flags
     );
 
+// rev - Win10 type
 NTSYSAPI
-PVOID
+NTSTATUS
 NTAPI
 LdrLoadAlternateResourceModuleEx(
-    _In_ LANGID LanguageId,
     _In_ PVOID DllHandle,
-    _In_opt_ PCWSTR PathToAlternateModule
+    _In_ LANGID LanguageId,
+    _Out_ PVOID *ResourceDllBase,
+    _Out_opt_ ULONG_PTR *ResourceOffset,
+    _In_ ULONG Flags
     );
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
