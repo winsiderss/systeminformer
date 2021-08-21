@@ -3,7 +3,7 @@
  *   options window
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -3108,9 +3108,11 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
             // New Objects
             ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS), PhCsColorNew);
+            ColorBox_ThemeSupport(GetDlgItem(hwndDlg, IDC_NEWOBJECTS), PhEnableThemeSupport);
 
             // Removed Objects
             ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS), PhCsColorRemoved);
+            ColorBox_ThemeSupport(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS), PhEnableThemeSupport);
 
             // Highlighting
             HighlightingListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
