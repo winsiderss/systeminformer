@@ -41,10 +41,12 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
+    PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"0");
     PhpAddIntegerSetting(L"EnableKphWarnings", L"0");
+    PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
@@ -54,16 +56,18 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
-    PhpAddIntegerSetting(L"EnableWarnings", L"1");
-    PhpAddIntegerSetting(L"EnableWindowText", L"1");
-    PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
-    PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
     PhpAddIntegerSetting(L"EnableSafeDefaultPlugins", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableShortRelativeStartTime", L"1");
     PhpAddIntegerSetting(L"EnableShutdownCriticalMenu", L"0");
-    PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
+    PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
+    PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
+    PhpAddIntegerSetting(L"EnableUpdateDefaultFirmwareBootEntry", L"1");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"1");
+    PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddIntegerSetting(L"EnableWindowText", L"1");
     PhpAddStringSetting(L"EnvironmentTreeListColumns", L"");
     PhpAddStringSetting(L"EnvironmentTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddIntegerSetting(L"EnvironmentTreeListFlags", L"0");
@@ -267,6 +271,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorSystemThreadStack", L"ffccaa");
     PhpAddIntegerSetting(L"UseColorUserThreadStack", L"0");
     PhpAddIntegerSetting(L"ColorUserThreadStack", L"aaffff");
+    PhpAddIntegerSetting(L"UseColorInlineThreadStack", L"0");
+    PhpAddIntegerSetting(L"ColorInlineThreadStack", L"00ffde");
 
     PhpAddIntegerSetting(L"GraphShowText", L"1");
     PhpAddIntegerSetting(L"GraphColorMode", L"0");
