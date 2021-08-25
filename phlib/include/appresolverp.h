@@ -273,6 +273,10 @@ DECLARE_INTERFACE_IID(IApplicationResolver62, IUnknown)
         _Out_opt_ IShellItem **ppsi
         ) PURE;
 
+    // STDMETHOD(GetLauncherAppIDForItem)(THIS)
+    // STDMETHOD(GetShortcutForAppID)(THIS)
+    // STDMETHOD(GetLauncherAppIDForItemEx)(THIS)
+
     END_INTERFACE
 };
 
@@ -368,8 +372,8 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
         _In_ REFIID riid,
         _Outptr_ PVOID *ppvObject // ppvObject == IPropertyStore, IStartMenuAppItems61
         ) PURE;
-    // STDMETHOD(Unknown)(THIS)
-    // STDMETHOD(Unknown)(THIS)
+    // STDMETHOD(GetItemByAppPath)(THIS)
+    // STDMETHOD(EnumCachedItems)(THIS)
 
     END_INTERFACE
 };
