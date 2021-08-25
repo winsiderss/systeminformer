@@ -172,6 +172,7 @@ VOID PhpSetEnvironmentListStatusMessage(
         PhGetStringOrDefault(statusMessage, L"Unknown error.")
         ));
     TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->StatusMessage->sr, 0);
+    //TreeNew_NodesStructured(Context->TreeNewHandle);
     PhClearReference(&statusMessage);
 }
 
@@ -208,6 +209,7 @@ VOID PhpRefreshEnvironmentList(
     if (!NT_SUCCESS(status))
     {
         PhpSetEnvironmentListStatusMessage(Context, status);
+        TreeNew_NodesStructured(Context->TreeNewHandle);
         return;
     }
 
@@ -342,6 +344,7 @@ VOID PhpRefreshEnvironmentList(
     }
 
     PhApplyTreeNewFilters(&Context->TreeFilterSupport);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     if (DestroyEnvironmentBlock_Import())
     {
@@ -1211,6 +1214,7 @@ VOID PhpClearEnvironmentTree(
     PhClearList(Context->NodeRootList);
 
     PhpClearEnvironmentItems(Context);
+    //TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 PPHP_PROCESS_ENVIRONMENT_TREENODE PhpGetSelectedEnvironmentNode(
@@ -1231,6 +1235,7 @@ PPHP_PROCESS_ENVIRONMENT_TREENODE PhpGetSelectedEnvironmentNode(
     return NULL;
 }
 
+_Success_(return)
 BOOLEAN PhpGetSelectedEnvironmentNodes(
     _In_ PPH_ENVIRONMENT_CONTEXT Context,
     _Out_ PPHP_PROCESS_ENVIRONMENT_TREENODE **Nodes,
