@@ -624,12 +624,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 // rev
-NTSYSAPI
-PPS_SYSTEM_DLL_INIT_BLOCK
-NTAPI
-LdrSystemDllInitBlock(
-    VOID
-    );
+NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 #endif
 
 // Load as data table
@@ -937,6 +932,7 @@ typedef PVOID (NTAPI *PDELAYLOAD_FAILURE_SYSTEM_ROUTINE)(
     _In_ PCSTR ProcName
     );
 
+#if (PHNT_VERSION >= PHNT_WIN8)
 // rev
 NTSYSAPI
 PVOID
@@ -967,6 +963,7 @@ NTAPI
 LdrSetDefaultDllDirectories(
     _In_ ULONG DirectoryFlags
     );
+#endif
 
 // rev
 DECLSPEC_NORETURN
