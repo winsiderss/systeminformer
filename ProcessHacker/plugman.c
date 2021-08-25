@@ -915,19 +915,21 @@ VOID PhpRefreshPluginDetails(
     _In_ PPH_PLUGIN SelectedPlugin
     )
 {
-    PPH_STRING fileName;
+    PPH_STRING fileName = NULL;
+    PPH_STRING baseName = NULL;
     PH_IMAGE_VERSION_INFO versionInfo;
 
-    fileName = PhGetPluginFileName(SelectedPlugin);
+    if (fileName = PhGetPluginFileName(SelectedPlugin))
+        baseName = PH_AUTO(PhGetBaseName(fileName));
 
     PhSetDialogItemText(hwndDlg, IDC_NAME, SelectedPlugin->Information.DisplayName ? SelectedPlugin->Information.DisplayName : L"(unnamed)");
     PhSetDialogItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name.Buffer);
     PhSetDialogItemText(hwndDlg, IDC_AUTHOR, SelectedPlugin->Information.Author);
-    PhSetDialogItemText(hwndDlg, IDC_FILENAME, PH_AUTO_T(PH_STRING, PhGetBaseName(fileName))->Buffer);
+    PhSetDialogItemText(hwndDlg, IDC_FILENAME, PhGetStringOrEmpty(baseName));
     PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Information.Description);
     PhSetDialogItemText(hwndDlg, IDC_URL, SelectedPlugin->Information.Url);
 
-    if (PhInitializeImageVersionInfoEx(&versionInfo, fileName, FALSE))
+    if (fileName && PhInitializeImageVersionInfoEx(&versionInfo, fileName, FALSE))
     {
         PhSetDialogItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"Unknown"));
         PhDeleteImageVersionInfo(&versionInfo);
@@ -940,7 +942,7 @@ VOID PhpRefreshPluginDetails(
     ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SelectedPlugin->Information.Url ? SW_SHOW : SW_HIDE);
     EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->Information.HasOptions);
 
-    PhDereferenceObject(fileName);
+    PhClearReference(&fileName);
 }
 
 INT_PTR CALLBACK PhpPluginPropertiesDlgProc(
