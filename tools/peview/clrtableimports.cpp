@@ -185,6 +185,8 @@ EXTERN_C HRESULT PvGetClrImageImports(
             ULONG importFlagsValue = 0;
             ULONG importNameValue = 0;
             ULONG moduleTokenValue = 0;
+            PVOID importRowValue = 0;
+            PVOID importOffsetValue = 0;
             const char* importName = nullptr;
 
             metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_MappingFlags, i, &importFlagsValue);
@@ -197,6 +199,11 @@ EXTERN_C HRESULT PvGetClrImageImports(
             if (!SUCCEEDED(metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_ImportScope, i, &moduleTokenValue)))
             {
                 moduleTokenValue = ULONG_MAX;
+            }
+
+            if (SUCCEEDED(metaDataTables->GetRow(TBL_ImplMap, i, &importRowValue)))
+            {
+                importOffsetValue = PTR_SUB_OFFSET(importRowValue, PvMappedImage.ViewBase);
             }
 
             for (ULONG i = 0; i < clrImportsList->Count; i++)
@@ -217,6 +224,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                         importFunction = (PPV_CLR_IMAGE_IMPORT_FUNCTION)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION));
                         importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
                         importFunction->Flags = importFlagsValue;
+                        importFunction->Offset = importOffsetValue;
 
                         PhAddItemList(importDll->Functions, importFunction);
                     }
@@ -242,6 +250,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                     importFunction = (PPV_CLR_IMAGE_IMPORT_FUNCTION)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION));
                     importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
                     importFunction->Flags = importFlagsValue;
+                    importFunction->Offset = importOffsetValue;
 
                     PhAddItemList(unknownImportDll->Functions, importFunction);
                 }

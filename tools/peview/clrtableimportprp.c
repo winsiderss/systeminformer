@@ -151,10 +151,12 @@ VOID PvpEnumerateClrImports(
                     PhPrintUInt32(value, ++count);
                     lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
 
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhGetString(importDll->ImportName));
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(importFunction->FunctionName));
+                    PhPrintPointer(value, importFunction->Offset);
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(importDll->ImportName));
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhGetString(importFunction->FunctionName));
                     if (importFunction->Flags)
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PH_AUTO_T(PH_STRING, PvClrImportFlagsToString(importFunction->Flags))->Buffer);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PH_AUTO_T(PH_STRING, PvClrImportFlagsToString(importFunction->Flags))->Buffer);
 
                     PhClearReference(&importFunction->FunctionName);
                     PhFree(importFunction);
@@ -214,9 +216,10 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"DLL");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 250, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Flags");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"RVA");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"DLL");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 250, L"Name");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 80, L"Flags");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageClrImportsListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
