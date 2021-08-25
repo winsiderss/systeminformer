@@ -3,6 +3,7 @@
  *   copy/save code for listviews and treelists
  *
  * Copyright (C) 2010-2012 wj32
+ * Copyright (C) 2018-2020 dmex
  *
  * This file is part of Process Hacker.
  *
