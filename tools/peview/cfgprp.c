@@ -34,7 +34,7 @@ typedef struct _PV_PE_CFG_CONTEXT
 
 VOID PvPeAddListViewCfgFunctionEntry(
     _In_ HWND ListViewHandle,
-    _In_ ULONG Count,
+    _In_ ULONG64 Count,
     _In_ ULONGLONG Index,
     _In_ CFG_ENTRY_TYPE Type,
     _In_ PPH_MAPPED_IMAGE_CFG CfgConfig
@@ -151,7 +151,7 @@ VOID PvpPeCgfEnumGuardFunctions(
     )
 {
     PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
-    ULONG count = 0;
+    ULONG64 count = 0;
 
     ExtendedListView_SetRedraw(ListViewHandle, FALSE);
     ListView_DeleteAllItems(ListViewHandle);

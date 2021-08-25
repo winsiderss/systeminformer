@@ -86,6 +86,7 @@ typedef enum _PVP_IMAGE_HEADER_INDEX
     PVP_IMAGE_HEADER_INDEX_OPT_UNINITSIZE,
     PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT,
     PVP_IMAGE_HEADER_INDEX_OPT_BASEOFCODE,
+    PVP_IMAGE_HEADER_INDEX_OPT_BASEOFDATA,
     PVP_IMAGE_HEADER_INDEX_OPT_IMAGEBASE,
     PVP_IMAGE_HEADER_INDEX_OPT_SECTIONALIGN,
     PVP_IMAGE_HEADER_INDEX_OPT_FILEALIGN,
@@ -518,6 +519,9 @@ VOID PvSetPeImageOptionalHeaderProperties(
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.BaseOfCode));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFCODE, 1, value);
 
+        PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.BaseOfData));
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFDATA, 1, value);
+
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.ImageBase));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_IMAGEBASE, 1, value);
 
@@ -617,6 +621,9 @@ VOID PvSetPeImageOptionalHeaderProperties(
 
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.BaseOfCode));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFCODE, 1, value);
+
+        //PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.BaseOfData));
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFDATA, 1, L"N/A");
 
         PhPrintPointer(value, (PVOID)imageNtHeader->OptionalHeader.ImageBase);
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_IMAGEBASE, 1, value);
@@ -869,6 +876,7 @@ VOID PvPeUpdateImageHeaderProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_UNINITSIZE, L"SizeOfUninitializedData", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_ENTRYPOINT, L"AddressOfEntryPoint", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFCODE, L"BaseOfCode", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_BASEOFDATA, L"BaseOfData", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_IMAGEBASE, L"ImageBase", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_SECTIONALIGN, L"SectionAlignment", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_FILEALIGN, L"FileAlignment", NULL);
