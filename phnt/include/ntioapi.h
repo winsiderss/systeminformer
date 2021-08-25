@@ -1570,8 +1570,8 @@ NtNotifyChangeDirectoryFile(
 // private
 typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
 {
-    DirectoryNotifyInformation, // FILE_NOTIFY_INFORMATION
-    DirectoryNotifyExtendedInformation // FILE_NOTIFY_EXTENDED_INFORMATION
+    DirectoryNotifyInformation = 1, // FILE_NOTIFY_INFORMATION
+    DirectoryNotifyExtendedInformation = 2 // FILE_NOTIFY_EXTENDED_INFORMATION
 } DIRECTORY_NOTIFY_INFORMATION_CLASS, *PDIRECTORY_NOTIFY_INFORMATION_CLASS;
 
 #if (PHNT_VERSION >= PHNT_REDSTONE3)
