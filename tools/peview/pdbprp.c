@@ -888,6 +888,49 @@ VOID PvPdbProperties(
             );
         PvAddPropPage(propContext, newPage);
 
+        // CLR page for v1.0 PDBs which are CLR metadata images. (dmex)
+        {
+            HANDLE fileHandle;
+
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &fileHandle,
+                PhGetString(PvFileName),
+                FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
+            {
+                PVOID viewBase;
+                SIZE_T size;
+
+                if (NT_SUCCESS(PhMapViewOfEntireFile(
+                    PhGetString(PvFileName),
+                    fileHandle,
+                    &viewBase,
+                    &size
+                    )))
+                {
+                    if (size > sizeof(ULONG) && RtlEqualMemory(viewBase, "BSJB", 4)) // BSJB signature 0x424a5342
+                    {
+                        newPage = PvCreatePropPageContext(
+                            MAKEINTRESOURCE(IDD_PECLR),
+                            PvpPeClrDlgProc,
+                            viewBase
+                            );
+                        PvAddPropPage(propContext, newPage);
+                    }
+                    else
+                    {
+                        NtUnmapViewOfSection(NtCurrentProcess(), viewBase);
+                    }
+                }
+
+                NtClose(fileHandle);
+            }
+        }
+
         PhModalPropertySheet(&propContext->PropSheetHeader);
 
         PhDereferenceObject(propContext);

@@ -31,6 +31,7 @@ typedef struct _PVP_PE_CLR_CONTEXT
     HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
+    PVOID PdbMetadataAddress;
 } PVP_PE_CLR_CONTEXT, *PPVP_PE_CLR_CONTEXT;
 
 // CLR structure reference:
@@ -78,22 +79,29 @@ typedef struct _MDSTREAMHEADER
 #include <poppack.h>
 
 PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
-    VOID
+    _In_opt_ PVOID PdbMetadataAddress
     )
 {
     PSTORAGESIGNATURE metaData;
 
-    metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
-
-    if (metaData)
+    if (PdbMetadataAddress)
     {
-        __try
+        metaData = PdbMetadataAddress;
+    }
+    else
+    {
+        metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
+
+        if (metaData)
         {
-            PhProbeAddress(metaData, PvImageCor20Header->MetaData.Size, PvMappedImage.ViewBase, PvMappedImage.Size, 4);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            metaData = NULL;
+            __try
+            {
+                PhProbeAddress(metaData, PvImageCor20Header->MetaData.Size, PvMappedImage.ViewBase, PvMappedImage.Size, 4);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                metaData = NULL;
+            }
         }
     }
 
@@ -178,12 +186,39 @@ PPH_STRING PvpPeClrGetMvid(
     {
         if (PhEqualBytesZ(streamHeader->Name, "#GUID", TRUE))
         {
-            guidMvidString = PhFormatGuid(PTR_ADD_OFFSET(ClrMetaData, streamHeader->Offset));
+            if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
+                &PvMappedImage,
+                IMAGE_DEBUG_TYPE_REPRO,
+                NULL,
+                NULL
+                )))
+            {
+                PPH_STRING string;
+                PPH_STRING hash;
+
+                // The MVID is a hash of both the file and the PDB file for repro images. (dmex)
+                string = PhFormatGuid(PTR_ADD_OFFSET(ClrMetaData, streamHeader->Offset));
+                hash = PhBufferToHexStringEx(PTR_ADD_OFFSET(ClrMetaData, streamHeader->Offset), sizeof(GUID), FALSE);
+
+                guidMvidString = PhFormatString(
+                    L"%s (%s) (deterministic)",
+                    PhGetStringOrEmpty(string),
+                    PhGetStringOrEmpty(hash)
+                    );
+
+                PhDereferenceObject(string);
+                PhDereferenceObject(hash);
+            }
+            else
+            {
+                guidMvidString = PhFormatGuid(PTR_ADD_OFFSET(ClrMetaData, streamHeader->Offset));
+            }
             break;
         }
 
         streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + sizeof(ANSI_NULL), ULONG));
     }
+
 
     return guidMvidString;
 }
@@ -399,6 +434,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+            context->PdbMetadataAddress = context->PropSheetContext->Context;
         }
     }
     else
@@ -439,13 +475,25 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             if (context->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
                 ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
 
-            PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, PH_AUTO_T(PH_STRING, PvpPeGetClrVersionText())->Buffer);
-            PhSetDialogItemText(hwndDlg, IDC_FLAGS, PH_AUTO_T(PH_STRING, PvpPeGetClrFlagsText())->Buffer);
+            if (!context->PdbMetadataAddress)
+            {
+                PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, PH_AUTO_T(PH_STRING, PvpPeGetClrVersionText())->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_FLAGS, PH_AUTO_T(PH_STRING, PvpPeGetClrFlagsText())->Buffer);
+            }
+            else
+            {
+                PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, L"");
+                PhSetDialogItemText(hwndDlg, IDC_FLAGS, L"");
+            }
 
-            if (clrMetaData = PvpPeGetClrMetaDataHeader())
+            if (clrMetaData = PvpPeGetClrMetaDataHeader(context->PdbMetadataAddress))
             {
                 PhSetDialogItemText(hwndDlg, IDC_VERSIONSTRING, PH_AUTO_T(PH_STRING, PvpPeGetClrStorageVersionText(clrMetaData))->Buffer);
-                PhSetDialogItemText(hwndDlg, IDC_MVIDSTRING, PH_AUTO_T(PH_STRING, PvpPeClrGetMvid(clrMetaData))->Buffer);
+
+                if (!context->PdbMetadataAddress)
+                    PhSetDialogItemText(hwndDlg, IDC_MVIDSTRING, PH_AUTO_T(PH_STRING, PvpPeClrGetMvid(clrMetaData))->Buffer);
+                else
+                    PhSetDialogItemText(hwndDlg, IDC_MVIDSTRING, L"");
 
                 PvpGetClrStrongNameToken(hwndDlg);
 

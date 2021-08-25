@@ -1606,9 +1606,45 @@ VOID PvpSetPeImageDebugPdb(
         //if (debugEntryLength == sizeof(IMAGE_DEBUG_DIRECTORY_CODEVIEW))
         if (codeviewEntry->Signature == CODEVIEW_SIGNATURE_RSDS)
         {
-            string = PhFormatGuid(&codeviewEntry->PdbGuid);
-            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, 1, string->Buffer);
-            PhDereferenceObject(string);
+            if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
+                &PvMappedImage,
+                IMAGE_DEBUG_TYPE_REPRO,
+                NULL,
+                NULL
+                )))
+            {
+                if (debugEntryLength > 0)
+                {
+                    PPH_STRING hash;
+
+                    // The PDB guid is hash of the PDB file for repro images. (dmex)
+                    string = PhFormatGuid(&codeviewEntry->PdbGuid);
+                    hash = PhBufferToHexStringEx((PUCHAR)&codeviewEntry->PdbGuid, sizeof(GUID), FALSE);
+
+                    PhMoveReference(&string, PhFormatString(
+                        L"%s (%s) (deterministic)",
+                        PhGetStringOrEmpty(string),
+                        PhGetStringOrEmpty(hash)
+                        ));
+
+                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, 1, string->Buffer);
+
+                    PhDereferenceObject(string);
+                    PhDereferenceObject(hash);
+                }
+                else
+                {
+                    string = PhFormatGuid(&codeviewEntry->PdbGuid);
+                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, 1, string->Buffer);
+                    PhDereferenceObject(string);
+                }
+            }
+            else
+            {
+                string = PhFormatGuid(&codeviewEntry->PdbGuid);
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGPDB, 1, string->Buffer);
+                PhDereferenceObject(string);
+            }
 
             string = PhConvertUtf8ToUtf16(codeviewEntry->ImageName);
             PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE, 1, string->Buffer);
@@ -1847,7 +1883,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PPVP_PE_GENERAL_CONTEXT context;
+    PPVP_PE_GENERAL_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
