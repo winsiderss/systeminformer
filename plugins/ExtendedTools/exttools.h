@@ -777,6 +777,10 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_USER,
     FW_COLUMN_PACKAGE,
     FW_COLUMN_COUNTRY,
+    FW_COLUMN_LOCALADDRESSCLASS,
+    FW_COLUMN_REMOTEADDRESSCLASS,
+    FW_COLUMN_LOCALADDRESSSSCOPE,
+    FW_COLUMN_REMOTEADDRESSSCOPE,
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
 
@@ -876,6 +880,18 @@ VOID LoadSettingsFwTreeList(
 
 VOID SaveSettingsFwTreeList(
     _In_ HWND TreeNewHandle
+    );
+
+_Success_(return)
+BOOLEAN EtFwLookupAddressClass(
+    _In_ PPH_IP_ADDRESS Address,
+    _Out_ PPH_STRINGREF ClassString
+    );
+
+_Success_(return)
+BOOLEAN EtFwLookupAddressScope(
+    _In_ PPH_IP_ADDRESS Address,
+    _Out_ PPH_STRINGREF ScopeString
     );
 
 PPH_STRING EtFwGetSidFullNameCachedSlow(
