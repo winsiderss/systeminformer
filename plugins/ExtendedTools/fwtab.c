@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   Firewall monitoring
  *
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -272,8 +272,8 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALADDRESS, TRUE, L"Local address", 220, PH_ALIGN_RIGHT, FW_COLUMN_LOCALADDRESS, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_LOCALPORT, TRUE, L"Local port", 50, PH_ALIGN_LEFT, FW_COLUMN_LOCALPORT, DT_LEFT, TRUE);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALHOSTNAME, TRUE, L"Local hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_LOCALHOSTNAME, 0);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESS, TRUE, L"Remote Address", 220, PH_ALIGN_RIGHT, FW_COLUMN_REMOTEADDRESS, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"Remote Port", 50, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
+    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESS, TRUE, L"Remote address", 220, PH_ALIGN_RIGHT, FW_COLUMN_REMOTEADDRESS, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(FwTreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"Remote port", 50, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, TRUE, L"Remote hostname", 70, PH_ALIGN_LEFT, FW_COLUMN_REMOTEHOSTNAME, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PROTOCOL, TRUE, L"Protocol", 60, PH_ALIGN_LEFT, FW_COLUMN_PROTOCOL, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, TRUE, L"Timestamp", 60, PH_ALIGN_LEFT, FW_COLUMN_TIMESTAMP, 0);
@@ -281,6 +281,10 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_USER, FALSE, L"Username", 100, PH_ALIGN_LEFT, FW_COLUMN_USER, 0);
     //PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_PACKAGE, FALSE, L"Package", 100, PH_ALIGN_LEFT, FW_COLUMN_PACKAGE, 0);
     PhAddTreeNewColumnEx2(FwTreeNewHandle, FW_COLUMN_COUNTRY, FALSE, L"Country", 80, PH_ALIGN_LEFT, FW_COLUMN_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSCLASS, TRUE, L"Local address class", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSCLASS, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSCLASS, TRUE, L"Remote address class", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSCLASS, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, TRUE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
+    PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, TRUE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
 
     LoadSettingsFwTreeList(TreeNewHandle);
 
@@ -538,6 +542,30 @@ BEGIN_SORT_FUNCTION(Country)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(LocalAddressClass)
+{
+
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RemoteAddressClass)
+{
+
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LocalAddressScope)
+{
+
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(RemoteAddressScope)
+{
+
+}
+END_SORT_FUNCTION
+
 int __cdecl EtFwNodeNoOrderSortFunction(
     _In_ void* _context,
     _In_ void const* _elem1,
@@ -607,6 +635,10 @@ BOOLEAN NTAPI FwTreeNewCallback(
                         SORT_FUNCTION(User),
                         SORT_FUNCTION(Package),
                         SORT_FUNCTION(Country),
+                        SORT_FUNCTION(LocalAddressClass),
+                        SORT_FUNCTION(RemoteAddressClass),
+                        SORT_FUNCTION(LocalAddressScope),
+                        SORT_FUNCTION(RemoteAddressScope),
                     };
                     int (__cdecl* sortFunction)(void*, void const*, void const*);
 
@@ -724,23 +756,23 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     {
                     case PH_IPV4_NETWORK_TYPE:
                         {
-                            ULONG ipvAddressStringLength = INET_ADDRSTRLEN;
+                            ULONG ipv4AddressStringLength = INET_ADDRSTRLEN;
 
-                            if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipvAddressStringLength)))
+                            if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = ipv4AddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
                     case PH_IPV6_NETWORK_TYPE:
                         {
-                            ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
+                            ULONG ipv6AddressStringLength = INET6_ADDRSTRLEN;
 
-                            if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->LocalEndpoint.Address.Ipv6, node->ScopeId, 0, node->LocalAddressString, &ipvAddressStringLength)))
+                            if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->LocalEndpoint.Address.Ipv6, node->ScopeId, 0, node->LocalAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = ipv6AddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -778,27 +810,27 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_REMOTEADDRESS:
                 {
-                    switch (node->LocalEndpoint.Address.Type)
+                    switch (node->RemoteEndpoint.Address.Type)
                     {
                     case PH_IPV4_NETWORK_TYPE:
                         {
-                            ULONG ipvAddressStringLength = INET_ADDRSTRLEN;
+                            ULONG ipv4AddressStringLength = INET_ADDRSTRLEN;
 
-                            if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipvAddressStringLength)))
+                            if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipv4AddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
                     case PH_IPV6_NETWORK_TYPE:
                         {
-                            ULONG ipvAddressStringLength = INET6_ADDRSTRLEN;
+                            ULONG ipv6AddressStringLength = INET6_ADDRSTRLEN;
 
-                            if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->RemoteEndpoint.Address.Ipv6, node->ScopeId, 0, node->RemoteAddressString, &ipvAddressStringLength)))
+                            if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->RemoteEndpoint.Address.Ipv6, node->ScopeId, 0, node->RemoteAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipvAddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipv6AddressStringLength) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -972,6 +1004,66 @@ BOOLEAN NTAPI FwTreeNewCallback(
            case FW_COLUMN_COUNTRY:
                {
                    getCellText->Text = PhGetStringRef(node->RemoteCountryName);
+               }
+               break;
+           case FW_COLUMN_LOCALADDRESSCLASS:
+               {
+                   PH_STRINGREF string;
+
+                   if (EtFwLookupAddressClass(&node->LocalEndpoint.Address, &string))
+                   {
+                       getCellText->Text.Buffer = string.Buffer;
+                       getCellText->Text.Length = string.Length;
+                   }
+                   else
+                   {
+                       PhInitializeEmptyStringRef(&getCellText->Text);
+                   }
+               }
+               break;
+           case FW_COLUMN_REMOTEADDRESSCLASS:
+               {
+                   PH_STRINGREF string;
+
+                   if (EtFwLookupAddressClass(&node->RemoteEndpoint.Address, &string))
+                   {
+                       getCellText->Text.Buffer = string.Buffer;
+                       getCellText->Text.Length = string.Length;
+                   }
+                   else
+                   {
+                       PhInitializeEmptyStringRef(&getCellText->Text);
+                   }
+               }
+               break;
+           case FW_COLUMN_LOCALADDRESSSSCOPE:
+               {
+                   PH_STRINGREF string;
+
+                   if (EtFwLookupAddressScope(&node->LocalEndpoint.Address, &string))
+                   {
+                       getCellText->Text.Buffer = string.Buffer;
+                       getCellText->Text.Length = string.Length;
+                   }
+                   else
+                   {
+                       PhInitializeEmptyStringRef(&getCellText->Text);
+                   }
+               }
+               break;
+           case FW_COLUMN_REMOTEADDRESSSCOPE:
+               {
+                   PH_STRINGREF string;
+
+                   if (EtFwLookupAddressScope(&node->RemoteEndpoint.Address, &string))
+                   {
+                       getCellText->Text.Buffer = string.Buffer;
+                       getCellText->Text.Length = string.Length;
+                   }
+                   else
+                   {
+                       PhInitializeEmptyStringRef(&getCellText->Text);
+                   }
                }
                break;
             default:

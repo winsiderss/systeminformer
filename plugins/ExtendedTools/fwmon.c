@@ -593,86 +593,13 @@ PPH_STRING EtFwGetNameFromAddress(
     case PH_IPV4_NETWORK_TYPE:
         {
             if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Unspecified]");
-
-                return PhReferenceObject(string);
-            }
-            //else if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Loopback]");
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN4_IS_ADDR_BROADCAST(&Address->InAddr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Broadcast]");
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN4_IS_ADDR_MULTICAST(&Address->InAddr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Multicast]");
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN4_IS_ADDR_LINKLOCAL(&Address->InAddr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Linklocal]");
-
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN4_IS_ADDR_MC_LINKLOCAL(&Address->InAddr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Multicast-Linklocal]");
-
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN4_IS_ADDR_RFC1918(&Address->InAddr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"RFC1918");
-            //    return PhReferenceObject(string);
-            //}
+                return NULL;
         }
         break;
     case PH_IPV6_NETWORK_TYPE:
         {
             if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
-            {
-                static PPH_STRING string = NULL;
-                if (!string) string = PhCreateString(L"[Unspecified]");
-
-                return PhReferenceObject(string);
-            }
-            //else if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Loopback]");
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN6_IS_ADDR_MULTICAST(&Address->In6Addr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Multicast]");
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Linklocal]");
-            //    return PhReferenceObject(string);
-            //}
-            //else if (IN6_IS_ADDR_MC_LINKLOCAL(&Address->In6Addr))
-            //{
-            //    static PPH_STRING string = NULL;
-            //    if (!string) string = PhCreateString(L"[Multicast-Linklocal]");
-
-            //    return PhReferenceObject(string);
-            //}
+                return NULL;
         }
         break;
     }
@@ -1189,6 +1116,238 @@ VOID EtFwRemoveFilterDisplayData(
     lookupEntry.FilterId = FilterId;
 
     PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry);
+}
+
+BOOLEAN EtFwLookupAddressClass(
+    _In_ PPH_IP_ADDRESS Address,
+    _Out_ PPH_STRINGREF ClassString
+    )
+{
+    switch (Address->Type)
+    {
+    case PH_IPV4_NETWORK_TYPE:
+        {
+            PIN_ADDR inAddr = (PIN_ADDR)&Address->Ipv4;
+
+            if (IN4_IS_ADDR_UNSPECIFIED(inAddr))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unspecified");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN4_IS_ADDR_LOOPBACK(inAddr))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Loopback");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN4_IS_ADDR_BROADCAST(inAddr))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Broadcast");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN4_IS_ADDR_MULTICAST(inAddr))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN4_IS_ADDR_LINKLOCAL(inAddr))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Linklocal");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN4_IS_ADDR_MC_LINKLOCAL(inAddr))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast-Linklocal");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN4_IS_ADDR_RFC1918(inAddr))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"RFC1918");
+                *ClassString = string;
+                return TRUE;
+            }
+            else
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unicast");
+                *ClassString = string;
+                return TRUE;
+            }
+        }
+        break;
+    case PH_IPV6_NETWORK_TYPE:
+        {
+            PIN6_ADDR inAddr6 = (PIN6_ADDR)&Address->Ipv6;
+
+            if (IN6_IS_ADDR_UNSPECIFIED(inAddr6))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unspecified");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN6_IS_ADDR_LOOPBACK(inAddr6))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Loopback");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN6_IS_ADDR_MULTICAST(inAddr6))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN6_IS_ADDR_LINKLOCAL(inAddr6))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Linklocal");
+                *ClassString = string;
+                return TRUE;
+            }
+            else if (IN6_IS_ADDR_MC_LINKLOCAL(inAddr6))
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Multicast-Linklocal");
+                *ClassString = string;
+                return TRUE;
+            }
+            else
+            {
+                static PH_STRINGREF string = PH_STRINGREF_INIT(L"Unicast");
+                *ClassString = string;
+                return TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN EtFwLookupAddressScope(
+    _In_ PPH_IP_ADDRESS Address,
+    _Out_ PPH_STRINGREF ScopeString
+    )
+{
+    switch (Address->Type)
+    {
+    case PH_IPV4_NETWORK_TYPE:
+        {
+            switch (Ipv4AddressScope((PUCHAR)&Address->Ipv4))
+            {
+            case ScopeLevelInterface:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelLink:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelSubnet:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelAdmin:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelSite:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelOrganization:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelGlobal:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            }
+        }
+        break;
+    case PH_IPV6_NETWORK_TYPE:
+        {
+            switch (Ipv6AddressScope((PUCHAR)&Address->Ipv6))
+            {
+            case ScopeLevelInterface:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelLink:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelSubnet:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelAdmin:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelSite:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelOrganization:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            case ScopeLevelGlobal:
+                {
+                    static PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
+                    *ScopeString = string;
+                    return TRUE;
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
 }
 
 typedef struct _ETFW_SID_FULL_NAME_CACHE_ENTRY
