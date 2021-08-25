@@ -115,11 +115,11 @@ BOOLEAN ProcessTreeFilterCallback(
             return TRUE;
     }
 
-    //if (!PhIsNullOrEmptyString(processNode->ProcessItem->UserName))
-    //{
-    //    if (WordMatchStringRef(&processNode->ProcessItem->UserName->sr))
-    //        return TRUE;
-    //}
+    if (!PhIsNullOrEmptyString(processNode->ProcessItem->UserName))
+    {
+        if (WordMatchStringRef(&processNode->ProcessItem->UserName->sr))
+            return TRUE;
+    }
 
     if (processNode->ProcessItem->IntegrityString)
     {
