@@ -772,7 +772,7 @@ NTSTATUS UploadFileThreadStart(
 
                 if (jsonRootObject = PhCreateJsonParser(jsonString->Buffer))
                 {
-                    errorCode = PhGetJsonValueAsLong64(jsonRootObject, "code");
+                    errorCode = PhGetJsonValueAsUInt64(jsonRootObject, "code");
 
                     if (errorCode == 0)
                     {
@@ -856,7 +856,7 @@ NTSTATUS UploadFileThreadStart(
                         }
                         else
                         {
-                            if (PhGetJsonValueAsLong64(jsonRootObject, "response_code") == 1)
+                            if (PhGetJsonValueAsUInt64(jsonRootObject, "response_code") == 1)
                             {
                                 PhMoveReference(&context->LaunchCommand, PhGetJsonValueAsString(jsonRootObject, "permalink"));
                             }
