@@ -234,7 +234,7 @@ VOID ThreadTreeNewInitializing(
     PPH_PLUGIN_TREENEW_INFORMATION info = Parameter;
     PPH_THREADS_CONTEXT threadsContext;
     PTHREAD_TREE_CONTEXT context;
-    BOOLEAN isDotNet;
+    BOOLEAN isDotNet = FALSE;
     ULONG flags = 0;
   
     threadsContext = info->SystemContext;
@@ -252,7 +252,7 @@ VOID ThreadTreeNewInitializing(
         NULL
         );
 
-    if (!isDotNet && (flags & PH_CLR_JIT_PRESENT))
+    if (!isDotNet && (flags & PH_CLR_CORELIB_PRESENT | PH_CLR_CORE_3_0_ABOVE))
         isDotNet = TRUE;
 
     if (isDotNet)
@@ -306,22 +306,7 @@ VOID UpdateThreadClrData(
         {
             if (Context->Support)
             {
-                IXCLRDataProcess *process;
-                IXCLRDataTask *task;
-                IXCLRDataAppDomain *appDomain;
-
-                process = Context->Support->DataProcess;
-
-                if (SUCCEEDED(IXCLRDataProcess_GetTaskByOSThreadID(process, HandleToUlong(DnThread->ThreadItem->ThreadId), &task)))
-                {
-                    if (SUCCEEDED(IXCLRDataTask_GetCurrentAppDomain(task, &appDomain)))
-                    {
-                        DnThread->AppDomainText = GetNameXClrDataAppDomain(appDomain);
-                        IXCLRDataAppDomain_Release(appDomain);
-                    }
-
-                    IXCLRDataTask_Release(task);
-                }
+                DnThread->AppDomainText = DnGetClrThreadAppDomain(Context->Support, DnThread->ThreadItem->ThreadId);
             }
         }
 

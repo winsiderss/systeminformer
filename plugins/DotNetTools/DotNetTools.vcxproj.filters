@@ -74,6 +74,15 @@
     <ClInclude Include="clr\perfcounterdefs.h">
       <Filter>Header Files\clr</Filter>
     </ClInclude>
+    <ClInclude Include="clr\dacprivate.h">
+      <Filter>Header Files\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="clr\sospriv.h">
+      <Filter>Header Files\clr</Filter>
+    </ClInclude>
+    <ClInclude Include="clr\xclrdata.h">
+      <Filter>Header Files\clr</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />

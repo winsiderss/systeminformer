@@ -3,6 +3,7 @@
  *   CLR data access functions
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2011-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,10 +22,11 @@
  */
 
 #include "dn.h"
+#include <json.h>
+#include <mapimg.h>
+#include <symprv.h>
 #include "clrsup.h"
-
-static GUID IID_ICLRDataTarget_I = { 0x3e11ccee, 0xd08b, 0x43e5, { 0xaf, 0x01, 0x32, 0x71, 0x7a, 0x64, 0xda, 0x03 } };
-static GUID IID_IXCLRDataProcess = { 0x5c552ab6, 0xfc09, 0x4cb3, { 0x8e, 0x36, 0x22, 0xfa, 0x03, 0xc7, 0x98, 0xb7 } };
+#include "corsym.h"
 
 static ICLRDataTargetVtbl DnCLRDataTarget_VTable =
 {
@@ -50,22 +52,29 @@ PCLR_PROCESS_SUPPORT CreateClrProcessSupport(
 {
     PCLR_PROCESS_SUPPORT support;
     ICLRDataTarget *dataTarget;
-    IXCLRDataProcess *dataProcess;
+    IXCLRDataProcess *dataProcess = NULL;
+    PVOID dacDllBase = NULL;
 
     dataTarget = DnCLRDataTarget_Create(ProcessId);
 
     if (!dataTarget)
         return NULL;
 
-    dataProcess = NULL;
-    CreateXCLRDataProcess(ProcessId, dataTarget, &dataProcess);
-    ICLRDataTarget_Release(dataTarget);
-
-    if (!dataProcess)
+    if (CreateXCLRDataProcess(
+        ProcessId,
+        dataTarget,
+        &dataProcess,
+        &dacDllBase
+        ) != S_OK)
+    {
+        ICLRDataTarget_Release(dataTarget);
         return NULL;
+    }
 
-    support = PhAllocate(sizeof(CLR_PROCESS_SUPPORT));
+    support = PhAllocateZero(sizeof(CLR_PROCESS_SUPPORT));
+    support->DataTarget = dataTarget;
     support->DataProcess = dataProcess;
+    support->DacDllBase = dacDllBase;
 
     return support;
 }
@@ -74,7 +83,14 @@ VOID FreeClrProcessSupport(
     _In_ PCLR_PROCESS_SUPPORT Support
     )
 {
-    IXCLRDataProcess_Release(Support->DataProcess);
+    if (Support->DataProcess)
+        IXCLRDataProcess_Release(Support->DataProcess);
+    if (Support->DataTarget)
+        ICLRDataTarget_Release(Support->DataTarget);
+
+    if (Support->DacDllBase)
+        FreeLibrary(Support->DacDllBase);
+
     PhFree(Support);
 }
 
@@ -139,6 +155,59 @@ PPH_STRING GetRuntimeNameByAddressClrProcess(
     return buffer;
 }
 
+PPH_STRING DnGetFileNameByAddressClrProcess(
+    _In_ PCLR_PROCESS_SUPPORT Support,
+    _In_ ULONG64 Address
+    )
+{
+    HRESULT status;
+    PPH_STRING buffer = NULL;
+    CLRDATA_ENUM clrDataEnumHandle = 0;
+    IXCLRDataMethodInstance* xclrDataMethod = NULL;
+    IXCLRDataModule* xclrDataModule = NULL;
+
+    status = IXCLRDataProcess_StartEnumMethodInstancesByAddress(
+        Support->DataProcess,
+        Address,
+        NULL,
+        &clrDataEnumHandle
+        );
+
+    if (status == S_OK)
+    {
+        status = IXCLRDataProcess_EnumMethodInstanceByAddress(Support->DataProcess, &clrDataEnumHandle, &xclrDataMethod);
+        IXCLRDataProcess_EndEnumMethodInstancesByAddress(Support->DataProcess, clrDataEnumHandle);
+    }
+
+    if (status == S_OK)
+    {
+        status = IXCLRDataMethodInstance_GetTokenAndScope(xclrDataMethod, NULL, &xclrDataModule);
+        IXCLRDataMethodInstance_Release(xclrDataMethod);
+    }
+
+    if (status == S_OK)
+    {
+        ULONG fileNameLength = 0;
+        WCHAR fileNameBuffer[MAX_LONGPATH];
+
+        status = IXCLRDataModule_GetFileName(
+            xclrDataModule,
+            RTL_NUMBER_OF(fileNameBuffer),
+            &fileNameLength,
+            fileNameBuffer
+            );
+
+        if (status == S_OK && fileNameLength >= 1)
+        {
+            buffer = PhCreateStringEx(fileNameBuffer, (fileNameLength - 1) * sizeof(WCHAR));
+        }
+
+        IXCLRDataModule_Release(xclrDataModule);
+    }
+
+    return buffer;
+}
+
 PPH_STRING GetNameXClrDataAppDomain(
     _In_ PVOID AppDomain
     )
@@ -180,7 +249,1017 @@ PPH_STRING GetNameXClrDataAppDomain(
     return buffer;
 }
 
-PVOID LoadMscordacwks(
+PPH_STRING DnGetClrThreadAppDomain(
+    _In_ PCLR_PROCESS_SUPPORT Support,
+    _In_ HANDLE ThreadId
+    )
+{
+    PPH_STRING appDomainText = NULL;
+    IXCLRDataTask* task;
+    IXCLRDataAppDomain* appDomain;
+
+    if (SUCCEEDED(IXCLRDataProcess_GetTaskByOSThreadID(Support->DataProcess, HandleToUlong(ThreadId), &task)))
+    {
+        if (SUCCEEDED(IXCLRDataTask_GetCurrentAppDomain(task, &appDomain)))
+        {
+            appDomainText = GetNameXClrDataAppDomain(appDomain);
+            IXCLRDataAppDomain_Release(appDomain);
+        }
+
+        IXCLRDataTask_Release(task);
+    }
+
+    return appDomainText;
+}
+
+PPH_LIST DnGetClrAppDomainAssemblyList(
+    _In_ PCLR_PROCESS_SUPPORT Support
+    )
+{
+    PPH_LIST processAppdomainList = NULL;
+    ISOSDacInterface* sosInterface;
+
+    if (SUCCEEDED(IXCLRDataProcess_QueryInterface(Support->DataProcess, &IID_ISOSDacInterface, &sosInterface)))
+    {
+        DnGetProcessDotNetAppDomainList(Support->DataTarget, sosInterface, &processAppdomainList);
+        IXCLRDataProcess_Release(sosInterface);
+    }
+
+    return processAppdomainList;
+}
+
+HRESULT DnGetProcessDotNetThreadList(
+    _In_ ISOSDacInterface* DacInterface
+    )
+{
+    HRESULT status;
+    DacpThreadStoreData threadStoreData = { 0 };
+    CLRDATA_ADDRESS currentThread;
+
+    status = ISOSDacInterface_GetThreadStoreData(
+        DacInterface,
+        &threadStoreData
+        );
+
+    if (status != S_OK)
+        return status;
+
+    currentThread = threadStoreData.firstThread;
+
+    while (currentThread)
+    {
+        DacpThreadData threadData;
+
+        status = ISOSDacInterface_GetThreadData(
+            DacInterface,
+            currentThread,
+            &threadData
+            );
+
+        if (status != S_OK)
+            return status;
+
+        currentThread = threadData.nextThread;
+    }
+
+    return status;
+}
+
+PPH_STRING DnGetClrModuleTypeFileName(
+    _In_ ICLRDataTarget* ClrDataTarget,
+    _In_ IXCLRDataModule* ClrDataModule,
+    _In_ CLRDataModuleExtentType ModuleExtentType
+    )
+{
+    DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)ClrDataTarget;
+    PPH_STRING clrDataModuleFileName = NULL;
+    CLRDATA_ENUM clrDataEnumHandle;
+    CLRDATA_MODULE_EXTENT clrDataModuleExtent;
+
+    if (IXCLRDataModule_StartEnumExtents(ClrDataModule, &clrDataEnumHandle) == S_OK)
+    {
+        while (IXCLRDataModule_EnumExtent(ClrDataModule, &clrDataEnumHandle, &clrDataModuleExtent) == S_OK)
+        {
+            if (clrDataModuleExtent.type == ModuleExtentType)
+            {
+                PPH_STRING fileName;
+
+                if (NT_SUCCESS(PhGetProcessMappedFileName(dataTarget->ProcessHandle, (PVOID)clrDataModuleExtent.base, &fileName)))
+                {
+                    PhMoveReference(&fileName, PhGetFileName(fileName));
+                    PhMoveReference(&clrDataModuleFileName, fileName);
+                    break;
+                }
+            }
+        }
+
+        IXCLRDataModule_EndEnumExtents(ClrDataModule, clrDataEnumHandle);
+    }
+
+    return clrDataModuleFileName;
+}
+
+PDN_DOTNET_ASSEMBLY_ENTRY DnGetDotNetAssemblyModuleDataFromAddress(
+    _In_ ICLRDataTarget* ClrDataTarget,
+    _In_ ISOSDacInterface* DacInterface,
+    _In_ CLRDATA_ADDRESS ModuleAddress
+    )
+{
+    PDN_DOTNET_ASSEMBLY_ENTRY entry;
+    DacpModuleData moduleData = { 0 };
+    IXCLRDataModule* xclrDataModule = NULL;
+    ULONG32 xclrDataModuleRequestVersion = 0;
+    CLRDATA_ADDRESS pefileBaseAddress = 0;
+    ULONG moduleFlags = 0;
+    GUID moduleId;
+    ULONG bufferLength = 0;
+    WCHAR buffer[MAX_LONGPATH];
+
+    entry = PhAllocateZero(sizeof(DN_DOTNET_ASSEMBLY_ENTRY));
+
+    entry->Status = ISOSDacInterface_GetModuleData(
+        DacInterface,
+        ModuleAddress,
+        &moduleData
+        );
+
+    if (entry->Status != S_OK)
+        goto CleanupExit;
+
+    entry->IsReflection = !!moduleData.bIsReflection;
+    entry->IsPEFile = !!moduleData.bIsPEFile;
+    entry->AssemblyID = (ULONG64)moduleData.Assembly;
+    entry->ModuleAddress = (PVOID)moduleData.Address;
+    entry->ModuleID = moduleData.dwModuleID;
+    entry->ModuleIndex = moduleData.dwModuleIndex;
+
+    if (ISOSDacInterface_GetPEFileBase(
+        DacInterface,
+        moduleData.File,
+        &pefileBaseAddress
+        ) == S_OK)
+    {
+        entry->BaseAddress = (PVOID)pefileBaseAddress;
+    }
+
+    if (ISOSDacInterface_GetPEFileName(
+        DacInterface,
+        moduleData.File,
+        RTL_NUMBER_OF(buffer),
+        buffer,
+        &bufferLength
+        ) == S_OK && bufferLength > 1)
+    {
+        entry->ModuleName = PhCreateStringEx(buffer, (bufferLength - 1) * sizeof(WCHAR));
+    }
+
+    entry->Status = ISOSDacInterface_GetModule(
+        DacInterface,
+        moduleData.Address, // ModuleAddress
+        &xclrDataModule
+        );
+
+    if (entry->Status != S_OK)
+        goto CleanupExit;
+
+    //IMetaDataImport* metadata = 0;
+    //if (IXCLRDataModule_QueryInterface(xclrDataModule, &IID_IMetaDataImport, &metadata) == S_OK)
+    //{
+    //    IMetaDataImport2* metadata2 = 0;
+    //    if (IMetaDataImport_QueryInterface(metadata, &IID_IMetaDataImport2, &metadata2) == S_OK)
+    //    {
+    //        ULONG versionLength = 0;
+    //        WCHAR version[MAX_LONGPATH];
+    //        IMetaDataImport2_GetVersionString(metadata2, version, MAX_LONGPATH, &versionLength);
+    //    }
+    //}
+
+    if (IXCLRDataModule_GetName(
+        xclrDataModule,
+        RTL_NUMBER_OF(buffer),
+        &bufferLength,
+        buffer
+        ) == S_OK && bufferLength > 1)
+    {
+        entry->DisplayName = PhCreateStringEx(buffer, (bufferLength - 1) * sizeof(WCHAR));
+    }
+
+    //IXCLRDataModule_GetFileName(
+    //    xclrDataModule,
+    //    RTL_NUMBER_OF(buffer),
+    //    &bufferLength,
+    //    buffer
+    //    );
+
+    if (IXCLRDataModule_GetFlags(xclrDataModule, &moduleFlags) == S_OK)
+    {
+        entry->ModuleFlag = moduleFlags;
+    }
+
+    if (IXCLRDataModule_GetVersionId(xclrDataModule, &moduleId) == S_OK)
+    {
+        entry->Mvid = moduleId;
+    }
+
+    entry->NativeFileName = DnGetClrModuleTypeFileName(
+        ClrDataTarget,
+        xclrDataModule,
+        CLRDATA_MODULE_PREJIT_FILE // native image
+        );
+
+CleanupExit:
+    if (xclrDataModule)
+    {
+        IXCLRDataModule_Release(xclrDataModule);
+    }
+
+    return entry;
+}
+
+PPH_LIST DnGetDotNetAppDomainAssemblyDataFromAddress(
+    _In_ ICLRDataTarget* ClrDataTarget,
+    _In_ ISOSDacInterface* DacInterface,
+    _In_ CLRDATA_ADDRESS AppDomainAddress,
+    _In_ CLRDATA_ADDRESS AssemblyAddress
+    )
+{
+    PPH_LIST assemblyList = NULL;
+    DacpAssemblyData assemblyData = { 0 };
+    CLRDATA_ADDRESS* assemblyModuleList = NULL;
+    LONG assemblyModuleListCount = 0;
+    ULONG bufferLength = 0;
+    WCHAR buffer[MAX_LONGPATH];
+    PPH_STRING assemblyName = NULL;
+
+    if (ISOSDacInterface_GetAssemblyData(
+        DacInterface,
+        AppDomainAddress,
+        AssemblyAddress,
+        &assemblyData
+        ) != S_OK)
+    {
+        return NULL;
+    }
+
+    if (ISOSDacInterface_GetAssemblyName(
+        DacInterface,
+        assemblyData.AssemblyPtr,
+        RTL_NUMBER_OF(buffer),
+        buffer,
+        &bufferLength
+        ) == S_OK && bufferLength > 1)
+    {
+        assemblyName = PhCreateStringEx(buffer, (bufferLength - 1) * sizeof(WCHAR));
+    }
+
+    if (assemblyData.ModuleCount)
+    {
+        assemblyModuleList = PhAllocateZero(sizeof(CLRDATA_ADDRESS) * assemblyData.ModuleCount);
+
+        if (ISOSDacInterface_GetAssemblyModuleList(
+            DacInterface,
+            assemblyData.AssemblyPtr,
+            assemblyData.ModuleCount,
+            assemblyModuleList,
+            &assemblyModuleListCount
+            ) == S_OK)
+        {
+            assemblyList = PhCreateList(assemblyData.ModuleCount);
+
+            for (ULONG i = 0; i < assemblyData.ModuleCount; i++)
+            {
+                PDN_DOTNET_ASSEMBLY_ENTRY moduleEntry = DnGetDotNetAssemblyModuleDataFromAddress(
+                    ClrDataTarget,
+                    DacInterface,
+                    assemblyModuleList[i]
+                    );
+
+                // Note: Project the assembly data into each module entry. (dmex)
+                PhSetReference(&moduleEntry->AssemblyName, assemblyName);
+                moduleEntry->IsDynamicAssembly = assemblyData.isDynamic;
+
+                PhAddItemList(assemblyList, moduleEntry);
+            }
+        }
+
+        PhFree(assemblyModuleList);
+    }
+
+    if (assemblyName)
+        PhDereferenceObject(assemblyName);
+
+    return assemblyList;
+}
+
+PDN_PROCESS_APPDOMAIN_ENTRY DnGetDotNetAppDomainDataFromAddress(
+    _In_ ICLRDataTarget* ClrDataTarget,
+    _In_ ISOSDacInterface* DacInterface,
+    _In_ CLRDATA_ADDRESS AppDomainAddress,
+    _In_ DN_CLR_APPDOMAIN_TYPE AppDomainType
+    )
+{
+    PDN_PROCESS_APPDOMAIN_ENTRY entry;
+    DacpAppDomainData appdomainAddressData = { 0 };
+    CLRDATA_ADDRESS* appdomainAssemblyList = NULL;
+    LONG appdomainAssemblyListCount = 0;
+
+    entry = PhAllocateZero(sizeof(DN_PROCESS_APPDOMAIN_ENTRY));
+    entry->AppDomainType = AppDomainType;
+
+    switch (AppDomainType)
+    {
+    case DN_CLR_APPDOMAIN_TYPE_SHARED:
+        entry->AppDomainName = PhCreateString(L"SharedDomain");
+        break;
+    case DN_CLR_APPDOMAIN_TYPE_SYSTEM:
+        entry->AppDomainName = PhCreateString(L"SystemDomain");
+        break;
+    case DN_CLR_APPDOMAIN_TYPE_DYNAMIC:
+        {
+            ULONG bufferLength = 0;
+            WCHAR buffer[MAX_LONGPATH];
+
+            if (ISOSDacInterface_GetAppDomainName(
+                DacInterface,
+                AppDomainAddress,
+                RTL_NUMBER_OF(buffer),
+                buffer,
+                &bufferLength
+                ) == S_OK && bufferLength > 1)
+            {
+                entry->AppDomainName = PhCreateStringEx(buffer, (bufferLength - 1) * sizeof(WCHAR));
+            }
+        }
+        break;
+    }
+
+    entry->Status = ISOSDacInterface_GetAppDomainData(
+        DacInterface,
+        AppDomainAddress,
+        &appdomainAddressData
+        );
+
+    if (entry->Status == S_OK)
+    {
+        entry->AppDomainNumber = appdomainAddressData.dwId;
+        entry->AppDomainID = (ULONG64)appdomainAddressData.AppDomainPtr;
+    }
+    else
+    {
+        return entry;
+    }
+
+    if (appdomainAddressData.AssemblyCount)
+    {
+        appdomainAssemblyList = PhAllocateZero(sizeof(CLRDATA_ADDRESS) * appdomainAddressData.AssemblyCount);
+
+        if (ISOSDacInterface_GetAssemblyList(
+            DacInterface,
+            appdomainAddressData.AppDomainPtr,
+            appdomainAddressData.AssemblyCount,
+            appdomainAssemblyList,
+            &appdomainAssemblyListCount
+            ) == S_OK)
+        {
+            entry->AssemblyList = PhCreateList(appdomainAddressData.AssemblyCount);
+
+            for (LONG i = 0; i < appdomainAddressData.AssemblyCount; i++)
+            {
+                PPH_LIST assemblyList;
+
+                if (assemblyList = DnGetDotNetAppDomainAssemblyDataFromAddress(
+                    ClrDataTarget,
+                    DacInterface,
+                    appdomainAddressData.AppDomainPtr,
+                    appdomainAssemblyList[i]
+                    ))
+                {
+                    PhAddItemsList(entry->AssemblyList, assemblyList->Items, assemblyList->Count);
+                    PhDereferenceObject(assemblyList);
+                }
+            }
+        }
+
+        PhFree(appdomainAssemblyList);
+    }
+
+    return entry;
+}
+
+HRESULT DnGetProcessDotNetAppDomainList(
+    _In_ ICLRDataTarget* ClrDataTarget,
+    _In_ ISOSDacInterface* DacInterface,
+    _Out_ PPH_LIST* ProcessAppdomainList
+    )
+{
+    HRESULT status;
+    PPH_LIST processAppdomainList = NULL;
+    DacpAppDomainStoreData appdomainStoreData = { 0 };
+    CLRDATA_ADDRESS* appdomainAddressList = NULL;
+    LONG appdomainAddressCount = 0;
+
+    status = ISOSDacInterface_GetAppDomainStoreData(DacInterface, &appdomainStoreData);
+
+    if (status == S_OK)
+    {
+        appdomainAddressList = PhAllocateZero(sizeof(CLRDATA_ADDRESS) * appdomainStoreData.DomainCount);
+
+        status = ISOSDacInterface_GetAppDomainList(
+            DacInterface,
+            appdomainStoreData.DomainCount,
+            appdomainAddressList,
+            &appdomainAddressCount
+            );
+    }
+
+    if (status == S_OK)
+    {
+        processAppdomainList = PhCreateList(appdomainStoreData.DomainCount + 2);
+
+        if (appdomainStoreData.sharedDomain)
+        {
+            PDN_PROCESS_APPDOMAIN_ENTRY appdomainEntry;
+
+            appdomainEntry = DnGetDotNetAppDomainDataFromAddress(
+                ClrDataTarget,
+                DacInterface,
+                appdomainStoreData.sharedDomain,
+                DN_CLR_APPDOMAIN_TYPE_SHARED
+                );
+
+            PhAddItemList(processAppdomainList, appdomainEntry);
+        }
+
+        if (appdomainStoreData.systemDomain)
+        {
+            PDN_PROCESS_APPDOMAIN_ENTRY appdomainEntry;
+
+            appdomainEntry = DnGetDotNetAppDomainDataFromAddress(
+                ClrDataTarget,
+                DacInterface,
+                appdomainStoreData.systemDomain,
+                DN_CLR_APPDOMAIN_TYPE_SYSTEM
+                );
+
+            PhAddItemList(processAppdomainList, appdomainEntry);
+        }
+
+        for (LONG i = 0; i < appdomainStoreData.DomainCount; i++)
+        {
+            PDN_PROCESS_APPDOMAIN_ENTRY appdomainEntry;
+
+            appdomainEntry = DnGetDotNetAppDomainDataFromAddress(
+                ClrDataTarget,
+                DacInterface,
+                appdomainAddressList[i],
+                DN_CLR_APPDOMAIN_TYPE_DYNAMIC
+                );
+
+            PhAddItemList(processAppdomainList, appdomainEntry);
+        }
+    }
+
+    *ProcessAppdomainList = processAppdomainList;
+
+    if (appdomainAddressList)
+        PhFree(appdomainAddressList);
+
+    return S_OK;
+}
+
+VOID DnDestroyProcessDotNetAppDomainList(
+    _In_ PPH_LIST ProcessAppdomainList
+    )
+{
+    PDN_PROCESS_APPDOMAIN_ENTRY appdomain;
+    PDN_DOTNET_ASSEMBLY_ENTRY assembly;
+
+    for (ULONG i = 0; i < ProcessAppdomainList->Count; i++)
+    {
+        appdomain = ProcessAppdomainList->Items[i];
+
+        if (appdomain->AssemblyList)
+        {
+            for (ULONG j = 0; j < appdomain->AssemblyList->Count; j++)
+            {
+                assembly = appdomain->AssemblyList->Items[j];
+
+                if (assembly->AssemblyName)
+                    PhDereferenceObject(assembly->AssemblyName);
+                if (assembly->DisplayName)
+                    PhDereferenceObject(assembly->DisplayName);
+                if (assembly->ModuleName)
+                    PhDereferenceObject(assembly->ModuleName);
+                if (assembly->NativeFileName)
+                    PhDereferenceObject(assembly->NativeFileName);
+
+                PhFree(assembly);
+            }
+
+            PhDereferenceObject(appdomain->AssemblyList);
+        }
+
+        if (appdomain->AppDomainName)
+            PhDereferenceObject(appdomain->AppDomainName);
+
+        PhFree(appdomain);
+    }
+
+    PhDereferenceObject(ProcessAppdomainList);
+}
+
+PPH_BYTES DnProcessAppDomainListSerialize(
+    _In_ PPH_LIST ProcessAppdomainList
+    )
+{
+    PPH_BYTES string;
+    PVOID jsonArray;
+    ULONG i;
+
+    jsonArray = PhCreateJsonArray();
+
+    for (i = 0; i < ProcessAppdomainList->Count; i++)
+    {
+        PDN_PROCESS_APPDOMAIN_ENTRY appdomain = ProcessAppdomainList->Items[i];
+        PVOID appdomainEntry;
+        PPH_BYTES valueUtf8;
+
+        appdomainEntry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(appdomainEntry, "AppDomainType", appdomain->AppDomainType);
+        PhAddJsonObjectUInt64(appdomainEntry, "AppDomainNumber", appdomain->AppDomainNumber);
+        PhAddJsonObjectUInt64(appdomainEntry, "AppDomainID", appdomain->AppDomainID);
+
+        valueUtf8 = PhConvertUtf16ToUtf8Ex(appdomain->AppDomainName->Buffer, appdomain->AppDomainName->Length);
+        PhAddJsonObject2(appdomainEntry, "AppDomainName", valueUtf8->Buffer, valueUtf8->Length);
+        PhDereferenceObject(valueUtf8);
+
+        if (appdomain->AssemblyList)
+        {
+            PVOID jsonAssemblyArray = PhCreateJsonArray();
+
+            for (ULONG j = 0; j < appdomain->AssemblyList->Count; j++)
+            {
+                PDN_DOTNET_ASSEMBLY_ENTRY assembly = appdomain->AssemblyList->Items[j];
+                PVOID assemblyEntry;
+
+                assemblyEntry = PhCreateJsonObject();
+                PhAddJsonObjectUInt64(assemblyEntry, "Status", assembly->Status);
+                PhAddJsonObjectUInt64(assemblyEntry, "ModuleFlag", assembly->ModuleFlag);
+                PhAddJsonObjectUInt64(assemblyEntry, "Flags", assembly->Flags);
+                PhAddJsonObjectUInt64(assemblyEntry, "BaseAddress", (ULONGLONG)assembly->BaseAddress);
+                PhAddJsonObjectUInt64(assemblyEntry, "AssemblyID", (ULONGLONG)assembly->AssemblyID);
+                PhAddJsonObjectUInt64(assemblyEntry, "ModuleID", (ULONGLONG)assembly->ModuleID);
+                PhAddJsonObjectUInt64(assemblyEntry, "ModuleIndex", (ULONGLONG)assembly->ModuleIndex);
+
+                if (assembly->AssemblyName)
+                {
+                    valueUtf8 = PhConvertUtf16ToUtf8Ex(assembly->AssemblyName->Buffer, assembly->AssemblyName->Length);
+                    PhAddJsonObject2(assemblyEntry, "AssemblyName", valueUtf8->Buffer, valueUtf8->Length);
+                    PhDereferenceObject(valueUtf8);
+                }
+
+                if (assembly->DisplayName)
+                {
+                    valueUtf8 = PhConvertUtf16ToUtf8Ex(assembly->DisplayName->Buffer, assembly->DisplayName->Length);
+                    PhAddJsonObject2(assemblyEntry, "DisplayName", valueUtf8->Buffer, valueUtf8->Length);
+                    PhDereferenceObject(valueUtf8);
+                }
+
+                if (assembly->ModuleName)
+                {
+                    valueUtf8 = PhConvertUtf16ToUtf8Ex(assembly->ModuleName->Buffer, assembly->ModuleName->Length);
+                    PhAddJsonObject2(assemblyEntry, "ModuleName", valueUtf8->Buffer, valueUtf8->Length);
+                    PhDereferenceObject(valueUtf8);
+                }
+
+                if (assembly->NativeFileName)
+                {
+                    valueUtf8 = PhConvertUtf16ToUtf8Ex(assembly->NativeFileName->Buffer, assembly->NativeFileName->Length);
+                    PhAddJsonObject2(assemblyEntry, "NativeFileName", valueUtf8->Buffer, valueUtf8->Length);
+                    PhDereferenceObject(valueUtf8);
+                }
+
+                {
+                    PPH_STRING mvidString = PhBufferToHexString((PUCHAR)&assembly->Mvid, sizeof(assembly->Mvid));
+                    valueUtf8 = PhConvertUtf16ToUtf8Ex(mvidString->Buffer, mvidString->Length);
+                    PhAddJsonObject2(assemblyEntry, "mvid", valueUtf8->Buffer, valueUtf8->Length);
+                    PhDereferenceObject(valueUtf8);
+                    PhDereferenceObject(mvidString);
+                }
+
+                PhAddJsonArrayObject(jsonAssemblyArray, assemblyEntry);
+            }
+
+            PhAddJsonObjectValue(appdomainEntry, "assemblies", jsonAssemblyArray);
+        }
+
+        PhAddJsonArrayObject(jsonArray, appdomainEntry);
+    }
+
+    string = PhGetJsonArrayString(jsonArray, FALSE);
+    PhFreeJsonParser(jsonArray);
+
+    return string;
+}
+
+PPH_LIST DnProcessAppDomainListDeserialize(
+    _In_ PPH_BYTES String
+    )
+{
+    PPH_LIST processAppdomainList = NULL;
+    PVOID jsonArray;
+    ULONG arrayLength;
+
+    if (!(jsonArray = PhCreateJsonParser(String->Buffer)))
+        return NULL;
+    if (PhGetJsonObjectType(jsonArray) != PH_JSON_OBJECT_TYPE_ARRAY)
+        goto CleanupExit;
+    if (!(arrayLength = PhGetJsonArrayLength(jsonArray)))
+        goto CleanupExit;
+
+    processAppdomainList = PhCreateList(arrayLength);
+
+    for (ULONG i = 0; i < arrayLength; i++)
+    {
+        PDN_PROCESS_APPDOMAIN_ENTRY appdomain;
+        PVOID jsonArrayObject;
+        PVOID jsonAssemblyArray;
+        ULONG jsonAssemblyArrayLength;
+
+        if (!(jsonArrayObject = PhGetJsonArrayIndexObject(jsonArray, i)))
+            continue;
+
+        appdomain = PhAllocateZero(sizeof(DN_PROCESS_APPDOMAIN_ENTRY));
+        appdomain->AppDomainType = (ULONG32)PhGetJsonValueAsUInt64(jsonArrayObject, "AppDomainType");
+        appdomain->AppDomainNumber = (ULONG32)PhGetJsonValueAsUInt64(jsonArrayObject, "AppDomainNumber");
+        appdomain->AppDomainID = PhGetJsonValueAsUInt64(jsonArrayObject, "AppDomainID");
+        appdomain->AppDomainName = PhGetJsonValueAsString(jsonArrayObject, "AppDomainName");
+
+        if (jsonAssemblyArray = PhGetJsonObject(jsonArrayObject, "assemblies"))
+        {
+            if (jsonAssemblyArrayLength = PhGetJsonArrayLength(jsonAssemblyArray))
+            {
+                appdomain->AssemblyList = PhCreateList(jsonAssemblyArrayLength);
+
+                for (ULONG j = 0; j < jsonAssemblyArrayLength; j++)
+                {
+                    PDN_DOTNET_ASSEMBLY_ENTRY assembly;
+                    PVOID jsonAssemblyObject;
+
+                    if (!(jsonAssemblyObject = PhGetJsonArrayIndexObject(jsonAssemblyArray, j)))
+                        continue;
+
+                    assembly = PhAllocateZero(sizeof(DN_DOTNET_ASSEMBLY_ENTRY));
+                    assembly->Status = (HRESULT)PhGetJsonValueAsUInt64(jsonAssemblyObject, "Status");
+                    assembly->ModuleFlag = PhGetJsonValueAsUInt64(jsonAssemblyObject, "ModuleFlag");
+                    assembly->Flags = (BOOLEAN)PhGetJsonValueAsUInt64(jsonAssemblyObject, "Flags");
+                    assembly->BaseAddress = (PVOID)PhGetJsonValueAsUInt64(jsonAssemblyObject, "BaseAddress");
+                    assembly->AssemblyID = PhGetJsonValueAsUInt64(jsonAssemblyObject, "AssemblyID");
+                    assembly->ModuleID = PhGetJsonValueAsUInt64(jsonAssemblyObject, "ModuleID");
+                    assembly->ModuleIndex = PhGetJsonValueAsUInt64(jsonAssemblyObject, "ModuleIndex");
+                    assembly->AssemblyName = PhGetJsonValueAsString(jsonAssemblyObject, "AssemblyName");
+                    assembly->DisplayName = PhGetJsonValueAsString(jsonAssemblyObject, "DisplayName");
+                    assembly->ModuleName = PhGetJsonValueAsString(jsonAssemblyObject, "ModuleName");
+                    assembly->NativeFileName = PhGetJsonValueAsString(jsonAssemblyObject, "NativeFileName");
+
+                    {
+                        PPH_STRING mvidString;
+                        GUID mvid = { 0 };
+
+                        if (mvidString = PhGetJsonValueAsString(jsonAssemblyObject, "mvid"))
+                        {
+                            if (PhHexStringToBufferEx(&mvidString->sr, sizeof(mvid), &mvid))
+                            {
+                                memcpy_s(&assembly->Mvid, sizeof(assembly->Mvid), &mvid, sizeof(mvid));
+                            }
+
+                            PhDereferenceObject(mvidString);
+                        }
+                    }
+
+                    PhAddItemList(appdomain->AssemblyList, assembly);
+                }
+            }
+        }
+
+        PhAddItemList(processAppdomainList, appdomain);
+    }
+
+CleanupExit:
+    PhFreeJsonParser(jsonArray);
+
+    return processAppdomainList;
+}
+
+typedef struct _DN_PROCESS_CLR_RUNTIME_ENTRY
+{
+    PPH_STRING RuntimeVersion;
+    PPH_STRING FileName;
+    PVOID DllBase;
+} DN_PROCESS_CLR_RUNTIME_ENTRY, *PDN_PROCESS_CLR_RUNTIME_ENTRY;
+
+typedef struct _DN_PROCESS_CLR_RUNTIME_CONTEXT
+{
+    PH_STRINGREF ImageName;
+    PPH_LIST RuntimeList;
+} DN_PROCESS_CLR_RUNTIME_CONTEXT, *PDN_PROCESS_CLR_RUNTIME_CONTEXT;
+
+static BOOLEAN NTAPI DnpGetClrRuntimeCallback(
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_ PVOID Context
+    )
+{
+    PDN_PROCESS_CLR_RUNTIME_CONTEXT context = Context;
+    PH_STRINGREF baseDllName;
+
+    PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
+
+    if (PhEqualStringRef(&baseDllName, &context->ImageName, TRUE))
+    {
+        PDN_PROCESS_CLR_RUNTIME_ENTRY entry;
+        PH_IMAGE_VERSION_INFO versionInfo;
+
+        entry = PhAllocateZero(sizeof(DN_PROCESS_CLR_RUNTIME_ENTRY));
+        entry->FileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
+        entry->DllBase = Module->DllBase;
+
+        if (PhInitializeImageVersionInfo(&versionInfo, entry->FileName->Buffer))
+        {
+            entry->RuntimeVersion = PhReferenceObject(versionInfo.FileVersion);
+            PhDeleteImageVersionInfo(&versionInfo);
+        }
+
+        PhAddItemList(context->RuntimeList, entry);
+    }
+
+    return TRUE;
+}
+
+// Note: The CLR debuggers query the process runtimes by enumerating the process modules
+// and creating a list of clr/coreclr image base addresses and version numbers. (dmex)
+VOID DnGetProcessDotNetRuntimes(
+    _In_ ICLRDataTarget* DataTarget
+    )
+{
+    DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)DataTarget;
+    DN_PROCESS_CLR_RUNTIME_CONTEXT context = { 0 };
+
+    context.RuntimeList = PhCreateList(1);
+
+    PhInitializeStringRefLongHint(&context.ImageName, L"coreclr.dll");
+    PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+
+#ifdef _WIN64
+    if (dataTarget->IsWow64)
+        PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+#endif
+
+    PhInitializeStringRefLongHint(&context.ImageName, L"clr.dll");
+    PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+
+#ifdef _WIN64
+    if (dataTarget->IsWow64)
+        PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+#endif
+
+    for (ULONG i = 0; i < context.RuntimeList->Count; i++)
+    {
+        PDN_PROCESS_CLR_RUNTIME_ENTRY entry = context.RuntimeList->Items[i];
+
+        dprintf(
+            "Runtime version: %S @ 0x%I64x [%S]\n",
+            entry->RuntimeVersion->Buffer,
+            entry->DllBase,
+            entry->FileName->Buffer
+            );
+
+        PhClearReference(&entry->FileName);
+        PhClearReference(&entry->RuntimeVersion);
+        PhFree(entry);
+    }
+
+    PhDereferenceObject(context.RuntimeList);
+}
+
+typedef struct _DNP_GET_IMAGE_BASE_CONTEXT
+{
+    PH_STRINGREF ImageName;
+    PPH_STRING FileName;
+    PVOID DllBase;
+} DNP_GET_IMAGE_BASE_CONTEXT, *PDNP_GET_IMAGE_BASE_CONTEXT;
+
+typedef struct _CLR_DEBUG_RESOURCE
+{
+    ULONG Version;
+    GUID Signature;
+    ULONG DacTimeStamp;
+    ULONG DacSizeOfImage;
+    ULONG DbiTimeStamp;
+    ULONG DbiSizeOfImage;
+} CLR_DEBUG_RESOURCE, *PCLR_DEBUG_RESOURCE;
+
+static BOOLEAN NTAPI DnpGetCoreClrPathCallback(
+    _In_ PLDR_DATA_TABLE_ENTRY Module,
+    _In_ PVOID Context
+    )
+{
+    PDNP_GET_IMAGE_BASE_CONTEXT context = Context;
+    PH_STRINGREF baseDllName;
+
+    PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
+
+    if (PhEqualStringRef(&baseDllName, &context->ImageName, TRUE))
+    {
+        context->FileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
+        context->DllBase = Module->DllBase;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return)
+BOOLEAN DnGetProcessDotNetDebugData(
+    _In_ ICLRDataTarget* DataTarget,
+    _Out_ PULONG TimeStamp,
+    _Out_ PULONG SizeOfImage
+    )
+{
+    DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)DataTarget;
+    DNP_GET_IMAGE_BASE_CONTEXT context = { 0 };
+    PVOID imageBaseAddress;
+    ULONG dataTargetTimeStamp = 0;
+    ULONG dataTargetSizeOfImage = 0;
+
+    PhInitializeStringRefLongHint(&context.ImageName, L"coreclr.dll");
+    PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+
+#ifdef _WIN64
+    if (dataTarget->IsWow64)
+        PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+#endif
+
+    if (!context.FileName)
+    {
+        PhInitializeStringRefLongHint(&context.ImageName, L"clr.dll");
+        PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+
+#ifdef _WIN64
+        if (dataTarget->IsWow64)
+            PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+#endif
+    }
+
+    if (!context.FileName)
+        return FALSE;
+
+    // DAC copies the debuginfo resource from the process memory. (dmex)
+    //PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
+    //PhLoadRemoteMappedImage(dataTarget->ProcessHandle, context.DllBase, &remoteMappedImage);
+    //PhLoadRemoteMappedImageResource(&remoteMappedImage, L"CLRDEBUGINFO", RT_RCDATA, &debugVersionInfo);
+
+    if (imageBaseAddress = LoadLibraryEx(
+        PhGetString(context.FileName),
+        NULL,
+        LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
+        ))
+    {
+        PCLR_DEBUG_RESOURCE debugVersionInfo;
+
+        if (PhLoadResource(
+            imageBaseAddress,
+            L"CLRDEBUGINFO",
+            RT_RCDATA,
+            NULL,
+            &debugVersionInfo
+            ))
+        {
+            if (
+                debugVersionInfo->Version == 0 &&
+                IsEqualGUID(&debugVersionInfo->Signature, &CLR_ID_ONECORE_CLR)
+                )
+            {
+                dataTargetTimeStamp = debugVersionInfo->DacTimeStamp;
+                dataTargetSizeOfImage = debugVersionInfo->DacSizeOfImage;
+            }
+        }
+
+        FreeLibrary(imageBaseAddress);
+    }
+
+    PhDereferenceObject(context.FileName);
+
+    if (dataTargetTimeStamp && dataTargetSizeOfImage)
+    {
+        *TimeStamp = dataTargetTimeStamp;
+        *SizeOfImage = dataTargetSizeOfImage;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN DnpMscordaccoreDirectoryCallback(
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PPH_LIST CandidateList
+    )
+{
+    PH_STRINGREF baseName;
+
+    baseName.Buffer = Information->FileName;
+    baseName.Length = Information->FileNameLength;
+
+    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
+        return TRUE;
+
+    if (Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        PhAddItemList(CandidateList, PhCreateString2(&baseName));
+    }
+
+    return TRUE;
+}
+
+PVOID DnLoadMscordaccore(
+    _In_ HANDLE ProcessId,
+    _In_ ICLRDataTarget *Target
+    )
+{
+    // \dotnet\shared\Microsoft.NETCore.App\ is the same path used by the CLR for DAC detection. (dmex)
+    static PH_STRINGREF mscordaccorePathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
+    static PH_STRINGREF mscordaccoreNameSr = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
+    HANDLE directoryHandle;
+    PPH_STRING directoryPath;
+    PPH_LIST directoryList;
+    PVOID mscordacBaseAddress = NULL;
+    ULONG dataTargetTimeStamp = 0;
+    ULONG dataTargetSizeOfImage = 0;
+
+    if (!DnGetProcessDotNetDebugData(Target, &dataTargetTimeStamp, &dataTargetSizeOfImage))
+        return NULL;
+
+    if (!(directoryPath = PhExpandEnvironmentStrings(&mscordaccorePathSr)))
+        return NULL;
+
+    directoryList = PhCreateList(2);
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(directoryPath),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        PhEnumDirectoryFile(directoryHandle, NULL, DnpMscordaccoreDirectoryCallback, directoryList);
+        NtClose(directoryHandle);
+    }
+
+    for (ULONG i = 0; i < directoryList->Count; i++)
+    {
+        PPH_STRING directoryName = directoryList->Items[i];
+        PPH_STRING fileName;
+
+        fileName = PhConcatStringRef3(
+            &directoryPath->sr,
+            &directoryName->sr,
+            &mscordaccoreNameSr
+            );
+
+        if (dataTargetTimeStamp && dataTargetSizeOfImage)
+        {
+            PH_MAPPED_IMAGE mappedImage;
+
+            if (NT_SUCCESS(PhLoadMappedImage(PhGetString(fileName), NULL, &mappedImage)))
+            {
+                if (
+                    dataTargetTimeStamp == mappedImage.NtHeaders->FileHeader.TimeDateStamp &&
+                    dataTargetSizeOfImage == mappedImage.NtHeaders->OptionalHeader.SizeOfImage
+                    )
+                {
+                    mscordacBaseAddress = PhLoadLibrarySafe(PhGetString(fileName));
+                }
+
+                PhUnloadMappedImage(&mappedImage);
+            }
+        }
+
+        PhDereferenceObject(fileName);
+
+        if (mscordacBaseAddress)
+            break;
+    }
+
+    PhDereferenceObjects(directoryList->Items, directoryList->Count);
+    PhDereferenceObject(directoryList);
+    PhDereferenceObject(directoryPath);
+
+    return mscordacBaseAddress;
+}
+
+PVOID DnLoadMscordacwks(
     _In_ BOOLEAN IsClrV4
     )
 {
@@ -189,9 +1268,8 @@ PVOID LoadMscordacwks(
     PH_STRINGREF mscordacwksPathString;
     PPH_STRING mscordacwksFileName;
 
-    PhLoadLibrarySafe(L"mscoree.dll");
-
-    PhGetSystemRoot(&systemRootString);
+    // This was required in the past for legacy runtimes, unsure if still required. (dmex)
+    //PhLoadLibrarySafe(L"mscoree.dll");
 
     if (IsClrV4)
     {
@@ -210,8 +1288,9 @@ PVOID LoadMscordacwks(
 #endif
     }
 
+    PhGetSystemRoot(&systemRootString);
     mscordacwksFileName = PhConcatStringRef2(&systemRootString, &mscordacwksPathString);
-    dllBase = PhLoadLibrarySafe(mscordacwksFileName->Buffer);
+    dllBase = PhLoadLibrarySafe(PhGetString(mscordacwksFileName));
     PhDereferenceObject(mscordacwksFileName);
 
     return dllBase;
@@ -220,60 +1299,58 @@ PVOID LoadMscordacwks(
 HRESULT CreateXCLRDataProcess(
     _In_ HANDLE ProcessId,
     _In_ ICLRDataTarget *Target,
-    _Out_ struct IXCLRDataProcess **DataProcess
+    _Out_ struct IXCLRDataProcess **DataProcess,
+    _Out_ PVOID *BaseAddress
     )
 {
-    ULONG flags;
-    BOOLEAN clrV4;
-    HMODULE dllBase;
-    PFN_CLRDataCreateInstance clrDataCreateInstance;
+    HRESULT status;
+    PFN_CLRDataCreateInstance ClrDataCreateInstance;
+    ULONG flags = 0;
+    PVOID dllBase;
 
-    clrV4 = FALSE;
-
-    if (NT_SUCCESS(PhGetProcessIsDotNetEx(ProcessId, NULL, 0, NULL, &flags)))
-    {
-        if (flags & PH_CLR_VERSION_4_ABOVE)
-            clrV4 = TRUE;
-    }
+    if (!NT_SUCCESS(PhGetProcessIsDotNetEx(ProcessId, NULL, PH_CLR_USE_SECTION_CHECK, NULL, &flags)))
+        return E_FAIL;
 
     // Load the correct version of mscordacwks.dll.
 
-    if (clrV4)
+    if (flags & PH_CLR_CORE_3_0_ABOVE)
     {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static HMODULE mscordacwksDllBase;
-
-        if (PhBeginInitOnce(&initOnce))
-        {
-            mscordacwksDllBase = LoadMscordacwks(TRUE);
-            PhEndInitOnce(&initOnce);
-        }
-
-        dllBase = mscordacwksDllBase;
+        dllBase = DnLoadMscordaccore(ProcessId, Target);
+    }
+    else if (flags & PH_CLR_VERSION_4_ABOVE)
+    {
+        dllBase = DnLoadMscordacwks(TRUE);
     }
     else
     {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static HMODULE mscordacwksDllBase;
-
-        if (PhBeginInitOnce(&initOnce))
-        {
-            mscordacwksDllBase = LoadMscordacwks(FALSE);
-            PhEndInitOnce(&initOnce);
-        }
-
-        dllBase = mscordacwksDllBase;
+        dllBase = DnLoadMscordacwks(FALSE);
     }
 
     if (!dllBase)
         return E_FAIL;
 
-    clrDataCreateInstance = PhGetProcedureAddress(dllBase, "CLRDataCreateInstance", 0);
+    ClrDataCreateInstance = PhGetProcedureAddress(dllBase, "CLRDataCreateInstance", 0);
 
-    if (!clrDataCreateInstance)
+    if (!ClrDataCreateInstance)
+    {
+        FreeLibrary(dllBase);
         return E_FAIL;
+    }
 
-    return clrDataCreateInstance(&IID_IXCLRDataProcess, Target, DataProcess);
+    status = ClrDataCreateInstance(
+        &IID_IXCLRDataProcess,
+        Target,
+        DataProcess
+        );
+
+    if (status != S_OK)
+    {
+        FreeLibrary(dllBase);
+        return status;
+    }
+
+    *BaseAddress = dllBase;
+    return S_OK;
 }
 
 ICLRDataTarget *DnCLRDataTarget_Create(
@@ -297,7 +1374,7 @@ ICLRDataTarget *DnCLRDataTarget_Create(
     isWow64 = FALSE;
 #endif
 
-    dataTarget = PhAllocate(sizeof(DnCLRDataTarget));
+    dataTarget = PhAllocateZero(sizeof(DnCLRDataTarget));
     dataTarget->VTable = &DnCLRDataTarget_VTable;
     dataTarget->RefCount = 1;
 
@@ -314,9 +1391,11 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_QueryInterface(
     _Out_ PVOID *Object
     )
 {
+    DnCLRDataTarget* this = (DnCLRDataTarget*)This;
+
     if (
         IsEqualIID(Riid, &IID_IUnknown) ||
-        IsEqualIID(Riid, &IID_ICLRDataTarget_I)
+        IsEqualIID(Riid, &IID_ICLRDataTarget)
         )
     {
         DnCLRDataTarget_AddRef(This);
@@ -396,6 +1475,12 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
 
     return S_OK;
 }
+
+typedef struct _PHP_GET_IMAGE_BASE_CONTEXT
+{
+    PH_STRINGREF ImagePath;
+    PVOID BaseAddress;
+} PHP_GET_IMAGE_BASE_CONTEXT, *PPHP_GET_IMAGE_BASE_CONTEXT;
 
 BOOLEAN NTAPI PhpGetImageBaseCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
@@ -551,13 +1636,20 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
 
     if (NT_SUCCESS(status))
     {
+#pragma warning(push)
+#pragma warning(disable: 6386)
         memcpy_s(context, contextSize, &buffer, sizeof(CONTEXT));
+#pragma warning(pop)
 
         return S_OK;
     }
     else
     {
-        return HRESULT_FROM_WIN32(RtlNtStatusToDosError(status));
+        ULONG result;
+
+        result = RtlNtStatusToDosError(status);
+
+        return HRESULT_FROM_WIN32(result);
     }
 }
 

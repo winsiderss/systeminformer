@@ -5,9 +5,11 @@
 #define IDD_PROCDOTNETPERF              101
 #define IDD_PROCDOTNETASM               102
 #define ID_CLR_OPENFILELOCATION         103
-#define ID_CLR_COPY                     104
-#define ID_CLR_INSPECT                  105
-#define ID_COPY                         106
+#define ID_CLR_OPENNATIVELOCATION       104
+#define ID_CLR_COPY                     105
+#define ID_CLR_INSPECT                  106
+#define ID_CLR_INSPECTNATIVE            107
+#define ID_COPY                         108
 #define IDC_OPTIONS                     1002
 #define IDC_COUNTERS                    1003
 #define IDC_REFRESH                     1003
