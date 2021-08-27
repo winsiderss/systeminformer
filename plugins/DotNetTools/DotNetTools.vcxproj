@@ -72,21 +72,39 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link />
+    <Link>
+      <DelayLoadDLLs>advapi32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link />
+    <Link>
+      <DelayLoadDLLs>advapi32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link />
+    <Link>
+      <DelayLoadDLLs>advapi32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link />
+    <Link>
+      <DelayLoadDLLs>advapi32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link />
+    <Link>
+      <DelayLoadDLLs>advapi32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link />
+    <Link>
+      <DelayLoadDLLs>advapi32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="asmpage.c" />
@@ -106,6 +124,9 @@
     <ClInclude Include="clr\ipcheader.h" />
     <ClInclude Include="clr\ipcshared.h" />
     <ClInclude Include="clr\perfcounterdefs.h" />
+    <ClInclude Include="clr\sospriv.h" />
+    <ClInclude Include="clr\xclrdata.h" />
+    <ClInclude Include="clr\dacprivate.h" />
     <ClInclude Include="dn.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="svcext.h" />

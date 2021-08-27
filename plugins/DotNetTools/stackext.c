@@ -3,6 +3,7 @@
  *   thread stack extensions
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -123,6 +124,7 @@ VOID ProcessThreadStackControl(
         {
             PTHREAD_STACK_CONTEXT context = FindThreadStackContext(Control->UniqueKey);
             PPH_STRING managedSymbol = NULL;
+            PPH_STRING managedFileName = NULL;
             ULONG64 displacement;
 
             if (!context)
@@ -163,6 +165,11 @@ VOID ProcessThreadStackControl(
                     (ULONG64)Control->u.ResolveSymbol.StackFrame->PcAddress,
                     &displacement
                     );
+
+                managedFileName = DnGetFileNameByAddressClrProcess(
+                    context->Support,
+                    (ULONG64)Control->u.ResolveSymbol.StackFrame->PcAddress
+                    );
             }
 #ifdef _WIN64
             else if (context->IsWow64 && context->ConnectedToPhSvc)
@@ -198,18 +205,44 @@ VOID ProcessThreadStackControl(
                     (ULONG64)Control->u.ResolveSymbol.StackFrame->PcAddress,
                     &displacement
                     );
+
+                managedFileName = CallGetFileNameByAddress(
+                    context->ProcessId,
+                    (ULONG64)Control->u.ResolveSymbol.StackFrame->PcAddress
+                    );
             }
 #endif
 
             if (managedSymbol)
             {
                 if (displacement != 0)
-                    PhMoveReference(&managedSymbol, PhFormatString(L"%s + 0x%I64x", managedSymbol->Buffer, displacement));
+                {
+                    PH_FORMAT format[3];
+
+                    PhInitFormatSR(&format[0], managedSymbol->sr);
+                    PhInitFormatS(&format[1], L" + 0x");
+                    PhInitFormatI64X(&format[2], displacement);
+
+                    PhMoveReference(&managedSymbol, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                }
 
                 if (Control->u.ResolveSymbol.Symbol)
-                    PhMoveReference(&managedSymbol, PhFormatString(L"%s <-- %s", managedSymbol->Buffer, Control->u.ResolveSymbol.Symbol->Buffer));
+                {
+                    PH_FORMAT format[3];
+
+                    PhInitFormatSR(&format[0], managedSymbol->sr);
+                    PhInitFormatS(&format[1], L" <-- ");
+                    PhInitFormatSR(&format[2], Control->u.ResolveSymbol.Symbol->sr);
+
+                    PhMoveReference(&managedSymbol, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                }
 
                 PhMoveReference(&Control->u.ResolveSymbol.Symbol, managedSymbol);
+            }
+
+            if (managedFileName)
+            {
+                PhMoveReference(&Control->u.ResolveSymbol.FileName, managedFileName);
             }
         }
         break;

@@ -3,7 +3,7 @@
  *   .NET Performance property page
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -162,6 +162,8 @@ typedef struct _PERFPAGE_CONTEXT
     Perf_Jit DotNetPerfJit;
     Perf_Security DotNetPerfSecurity;
 } PERFPAGE_CONTEXT, *PPERFPAGE_CONTEXT;
+
+#define MSG_UPDATE (WM_APP + 1)
 
 VOID NTAPI DotNetPerfProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,

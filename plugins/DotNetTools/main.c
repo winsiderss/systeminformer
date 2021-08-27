@@ -134,7 +134,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
             AddAsmPageToPropContext(propContext);
             AddPerfPageToPropContext(propContext);
         }
-        else if (flags & PH_CLR_JIT_PRESENT)
+        else if (flags & PH_CLR_CORELIB_PRESENT)
         {
             isDotNet = TRUE;
             AddAsmPageToPropContext(propContext);
@@ -231,6 +231,7 @@ LOGICAL DllMain(
             {
                 { StringSettingType, SETTING_NAME_ASM_TREE_LIST_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_ASM_TREE_LIST_FLAGS, L"0" },
+                { IntegerPairSettingType, SETTING_NAME_ASM_TREE_LIST_SORT, L"0,0" },
                 { IntegerSettingType, SETTING_NAME_DOT_NET_CATEGORY_INDEX, L"5" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_DOT_NET_COUNTERS_SORTCOLUMN, L"" },
