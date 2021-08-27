@@ -710,13 +710,18 @@ EXPORTS
     PhCreateJsonParser
     PhFreeJsonParser
     PhGetJsonValueAsString
-    PhGetJsonValueAsLong64
+    PhGetJsonValueAsInt64
+    PhGetJsonValueAsUInt64
     PhCreateJsonObject
     PhGetJsonObject
     PhGetJsonObjectType
     PhGetJsonObjectLength
     PhGetJsonObjectBool
     PhAddJsonObject
+    PhAddJsonObject2
+    PhAddJsonObjectInt64
+    PhAddJsonObjectUInt64
+    PhAddJsonObjectValue
     PhGetJsonObjectAsArrayList
     PhCreateJsonArray
     PhAddJsonArrayObject

@@ -56,9 +56,17 @@ PhGetJsonValueAsString(
     );
 
 PHLIBAPI
-INT64
+LONGLONG
 NTAPI
-PhGetJsonValueAsLong64(
+PhGetJsonValueAsInt64(
+    _In_ PVOID Object,
+    _In_ PSTR Key
+    );
+
+PHLIBAPI
+ULONGLONG
+NTAPI
+PhGetJsonValueAsUInt64(
     _In_ PVOID Object,
     _In_ PSTR Key
     );
@@ -115,10 +123,29 @@ PhGetJsonObjectBool(
 PHLIBAPI
 VOID
 NTAPI
+PhAddJsonObjectValue(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PVOID Value
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhAddJsonObject(
     _In_ PVOID Object,
-    _In_ PSTR Key,
+    _In_ PCSTR Key,
     _In_ PSTR Value
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAddJsonObject2(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PSTR Value,
+    _In_ SIZE_T Length
     );
 
 PHLIBAPI
@@ -126,7 +153,16 @@ VOID
 NTAPI
 PhAddJsonObjectInt64(
     _In_ PVOID Object,
-    _In_ PSTR Key,
+    _In_ PCSTR Key,
+    _In_ LONGLONG Value
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhAddJsonObjectUInt64(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
     _In_ ULONGLONG Value
     );
 
@@ -135,7 +171,7 @@ VOID
 NTAPI
 PhAddJsonObjectDouble(
     _In_ PVOID Object,
-    _In_ PSTR Key,
+    _In_ PCSTR Key,
     _In_ DOUBLE Value
     );
 
@@ -155,10 +191,11 @@ PhAddJsonArrayObject(
     );
 
 PHLIBAPI
-PPH_STRING
+PVOID
 NTAPI
 PhGetJsonArrayString(
-    _In_ PVOID Object
+    _In_ PVOID Object,
+    _In_ BOOLEAN Unicode
     );
 
 PHLIBAPI
@@ -166,11 +203,11 @@ INT64
 NTAPI
 PhGetJsonArrayLong64(
     _In_ PVOID Object,
-    _In_ INT Index
+    _In_ ULONG Index
     );
 
 PHLIBAPI
-INT
+ULONG
 NTAPI
 PhGetJsonArrayLength(
     _In_ PVOID Object
@@ -181,7 +218,7 @@ PVOID
 NTAPI
 PhGetJsonArrayIndexObject(
     _In_ PVOID Object,
-    _In_ INT Index
+    _In_ ULONG Index
     );
 
 PHLIBAPI
