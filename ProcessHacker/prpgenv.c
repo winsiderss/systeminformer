@@ -63,10 +63,10 @@ typedef enum _ENVIRONMENT_TREE_COLUMN_ITEM_NAME
 
 typedef enum _PROCESS_ENVIRONMENT_TREENODE_TYPE
 {
-    PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP,
-    PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS,
-    PROCESS_ENVIRONMENT_TREENODE_TYPE_USER,
-    PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM
+    PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP = 0x1,
+    PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS = 0x2,
+    PROCESS_ENVIRONMENT_TREENODE_TYPE_USER = 0x4,
+    PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM = 0x8
 } PROCESS_ENVIRONMENT_TREENODE_TYPE;
 
 typedef struct _PHP_PROCESS_ENVIRONMENT_TREENODE
@@ -196,9 +196,9 @@ VOID PhpRefreshEnvironmentList(
     SIZE_T i;
 
     PhpClearEnvironmentTree(Context);
-    processRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"Process"), NULL);
-    userRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"User"), NULL);
-    systemRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP, PhaCreateString(L"System"), NULL);
+    processRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS, PhaCreateString(L"Process"), NULL);
+    userRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_USER, PhaCreateString(L"User"), NULL);
+    systemRootNode = PhpAddEnvironmentNode(Context, NULL, PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP | PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM, PhaCreateString(L"System"), NULL);
 
     status = PhOpenProcess(
         &processHandle,
@@ -586,7 +586,7 @@ VOID PhpShowEnvironmentNodeContextMenu(
     if (!(node = PhpGetSelectedEnvironmentNode(Context)))
         return;
 
-    if (node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+    if (node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
         return;
 
     menu = PhCreateEMenu();
@@ -1127,19 +1127,19 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
 
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)getNodeColor->Node;
 
-            if (node->HasChildren)
-            {
-                NOTHING;
-            }
-            else
+            //if (node->HasChildren)
+            //{
+            //    NOTHING;
+            //}
+            //else
             {
                 if (context->HighlightCmdEnvironment && node->IsCmdVariable)
                     getNodeColor->BackColor = PhCsColorDebuggedProcesses;
-                else if (context->HighlightProcessEnvironment && node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
+                else if (context->HighlightProcessEnvironment && node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
                     getNodeColor->BackColor = PhCsColorServiceProcesses;
-                else if (context->HighlightUserEnvironment && node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_USER)
+                else if (context->HighlightUserEnvironment && node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_USER)
                     getNodeColor->BackColor = PhCsColorOwnProcesses;
-                else if (context->HighlightSystemEnvironment && node->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM)
+                else if (context->HighlightSystemEnvironment && node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM)
                     getNodeColor->BackColor = PhCsColorSystemProcesses;
             }
 
@@ -1323,11 +1323,11 @@ BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
     if (context->TreeNewSortOrder != NoSortOrder && environmentNode->HasChildren)
         return FALSE;
 
-    if (context->HideProcessEnvironment && environmentNode->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
+    if (context->HideProcessEnvironment && environmentNode->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_PROCESS)
         return FALSE;
-    if (context->HideUserEnvironment && environmentNode->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_USER)
+    if (context->HideUserEnvironment && environmentNode->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_USER)
         return FALSE;
-    if (context->HideSystemEnvironment && environmentNode->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM)
+    if (context->HideSystemEnvironment && environmentNode->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_SYSTEM)
         return FALSE;
     if (context->HideCmdTypeEnvironment && environmentNode->IsCmdVariable)
         return FALSE;
@@ -1551,7 +1551,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PPHP_PROCESS_ENVIRONMENT_TREENODE item = PhpGetSelectedEnvironmentNode(context);
                     BOOLEAN refresh;
 
-                    if (!item || item->Type == PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+                    if (!item || item->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
                         break;
 
                     if (PhpShowEditEnvDialog(
