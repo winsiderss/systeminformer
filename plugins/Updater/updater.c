@@ -416,7 +416,7 @@ BOOLEAN QueryUpdateData(
     Context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
     Context->CommitHash = PhGetJsonValueAsString(jsonObject, "commit");
     Context->SetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "setup_url");
-    Context->SetupFileLength = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "setup_length"), 2);
+    Context->SetupFileLength = PhFormatSize(PhGetJsonValueAsUInt64(jsonObject, "setup_length"), 2);
     Context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
     Context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
 
@@ -1088,7 +1088,7 @@ VOID ShowStartupUpdateDialog(
             context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
             context->CommitHash = PhGetJsonValueAsString(jsonObject, "commit");
             context->SetupFileDownloadUrl = PhGetJsonValueAsString(jsonObject, "setup_url");
-            context->SetupFileLength = PhFormatSize(PhGetJsonValueAsLong64(jsonObject, "setup_length"), 2);
+            context->SetupFileLength = PhFormatSize(PhGetJsonValueAsUInt64(jsonObject, "setup_length"), 2);
             context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
             context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
             context->CurrentVersion = ParseVersionString(context->CurrentVersionString);

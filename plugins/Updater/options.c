@@ -243,7 +243,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
             if (jsonCommitObject = PhGetJsonObject(jsonArrayObject, "commit"))
             {
                 entry->CommitMessageString = PhGetJsonValueAsString(jsonCommitObject, "message");
-                entry->CommitMessageCommentCount = PhGetJsonValueAsLong64(jsonCommitObject, "comment_count");
+                entry->CommitMessageCommentCount = PhGetJsonValueAsUInt64(jsonCommitObject, "comment_count");
 
                 if (jsonAuthorObject = PhGetJsonObject(jsonCommitObject, "author"))
                 {
