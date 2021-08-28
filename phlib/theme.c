@@ -407,7 +407,7 @@ VOID PhInitializeThemeWindowFrame(
                     DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
                 }
 
-                //if (WindowsVersion > WINDOWS_10_21H1) // TODO: Add Win11
+                //if (WindowsVersion > WINDOWS_11)
                 //{
                 //    DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
                 //}
@@ -420,7 +420,7 @@ VOID PhInitializeThemeWindowFrame(
                     DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
                 }
 
-                if (WindowsVersion > WINDOWS_10_21H1) // TODO: Add Win11
+                if (WindowsVersion >= WINDOWS_11)
                 {
                     DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, &PhpThemeWindowBackgroundColor, sizeof(COLORREF));
                 }
