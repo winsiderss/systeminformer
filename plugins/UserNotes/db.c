@@ -419,6 +419,7 @@ NTSTATUS SaveDb(
     return status;
 }
 
+_Success_(return)
 BOOLEAN FindIfeoObject(
     _In_ PPH_STRINGREF Name,
     _Out_opt_ PULONG CpuPriorityClass,
