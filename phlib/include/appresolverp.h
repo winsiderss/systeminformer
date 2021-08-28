@@ -586,4 +586,111 @@ DEFINE_PROPERTYKEY(PKEY_Tile_FencePost, 0x86D40B4D, 0x9069, 0x443C, 0x81, 0x9A, 
 DEFINE_PROPERTYKEY(PKEY_Tile_InstallProgress, 0x86D40B4D, 0x9069, 0x443C, 0x81, 0x9A, 0x2A, 0x54, 0x09, 0x0D, 0xCC, 0xEC, 22);
 DEFINE_PROPERTYKEY(PKEY_Tile_EncodedTargetPath, 0x86D40B4D, 0x9069, 0x443C, 0x81, 0x9A, 0x2A, 0x54, 0x09, 0x0D, 0xCC, 0xEC, 23);
 
+// Immersive PLM task support
+
+// "07fc2b94-5285-417e-8ac3-c2ce5240b0fa"
+static CLSID CLSID_OSTaskCompletion_I = { 0x07fc2b94, 0x5285, 0x417e, { 0x8a, 0xc3, 0xc2, 0xce, 0x52, 0x40, 0xb0, 0xfa } };
+// "c7e40572-c36a-43ea-9a40-f3b168da5558"
+static IID IID_IOSTaskCompletion_I = { 0xc7e40572, 0xc36a, 0x43ea, { 0x9a, 0x40, 0xf3, 0xb1, 0x68, 0xda, 0x55, 0x58 } };
+
+typedef enum _PLM_TASKCOMPLETION_CATEGORY_FLAGS
+{
+    PT_TC_NONE = 0,
+    PT_TC_PBM = 1,
+    PT_TC_FILEOPENPICKER = 2,
+    PT_TC_SHARING = 4,
+    PT_TC_PRINTING = 8,
+    PT_TC_GENERIC = 16,
+    PT_TC_CAMERA_DCA = 32,
+    PT_TC_PRINTER_DCA = 64,
+    PT_TC_PLAYTO = 128,
+    PT_TC_FILESAVEPICKER = 256,
+    PT_TC_CONTACTPICKER = 512,
+    PT_TC_CACHEDFILEUPDATER_LOCAL = 1024,
+    PT_TC_CACHEDFILEUPDATER_REMOTE = 2048,
+    PT_TC_ERROR_REPORT = 8192,
+    PT_TC_DATA_PACKAGE = 16384,
+    PT_TC_CRASHDUMP = 0x10000,
+    PT_TC_STREAMEDFILE = 0x20000,
+    PT_TC_PBM_COMMUNICATION = 0x80000,
+    PT_TC_HOSTEDAPPLICATION = 0x100000,
+    PT_TC_MEDIA_CONTROLS_ACTIVE = 0x200000,
+    PT_TC_EMPTYHOST = 0x400000,
+    PT_TC_SCANNING = 0x800000,
+    PT_TC_ACTIONS = 0x1000000,
+    PT_TC_KERNEL_MODE = 0x20000000,
+    PT_TC_REALTIMECOMM = 0x40000000,
+    PT_TC_IGNORE_NAV_LEVEL_FOR_CS = 0x80000000
+} PLM_TASKCOMPLETION_CATEGORY_FLAGS;
+
+#undef INTERFACE
+#define INTERFACE IOSTaskCompletion
+DECLARE_INTERFACE_IID(IOSTaskCompletion, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IOSTaskCompletion
+    STDMETHOD(BeginTask)(THIS, ULONG ProcessId, PLM_TASKCOMPLETION_CATEGORY_FLAGS Flags) PURE;
+    STDMETHOD(BeginTaskByHandle)(THIS, HANDLE ProcessHandle, PLM_TASKCOMPLETION_CATEGORY_FLAGS Flags) PURE;
+    STDMETHOD(EndTask)(THIS) PURE;
+    STDMETHOD_(ULONG, ValidateStreamedFileTaskCompletionUsage)(THIS, HANDLE ProcessHandle, ULONG ProcessId) PURE; // returns PsmKey
+
+    END_INTERFACE
+};
+
+#define IOSTaskCompletion_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject)) 
+#define IOSTaskCompletion_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IOSTaskCompletion_Release(This) \
+    ((This)->lpVtbl->Release(This)) 
+#define IOSTaskCompletion_BeginTask(This, ProcessId, Flags) \
+    ((This)->lpVtbl->BeginTask(This, ProcessId, Flags)) 
+#define IOSTaskCompletion_BeginTaskByHandle(This, ProcessHandle, Flags) \
+    ((This)->lpVtbl->BeginTaskByHandle(This, ProcessHandle, Flags))
+#define IOSTaskCompletion_EndTask(This) \
+    ((This)->lpVtbl->EndTask(This))
+#define IOSTaskCompletion_ValidateStreamedFileTaskCompletionUsage(This, ProcessHandle, ProcessId) \
+    ((This)->lpVtbl->ValidateStreamedFileTaskCompletionUsage(This, ProcessHandle, ProcessId))
+
+#undef INTERFACE
+#define INTERFACE IOSTaskCompletion2
+DECLARE_INTERFACE_IID(IOSTaskCompletion2, IOSTaskCompletion)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IOSTaskCompletion2
+    STDMETHOD(InternalGetTrustLevelStatic)(THIS) PURE;
+    STDMETHOD(InternalGetTrustLevelStatic2)(THIS) PURE;
+    STDMETHOD(EndAllTasksAndWait)(THIS) PURE;
+    STDMETHOD(BeginTaskByHandleEx)(THIS, HANDLE ProcessHandle, PLM_TASKCOMPLETION_CATEGORY_FLAGS Flags, enum PLM_TASKCOMPLETION_BEGIN_TASK_FLAGS TaskFlags) PURE;
+
+    END_INTERFACE
+};
+
+#define IOSTaskCompletion_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject)) 
+#define IOSTaskCompletion_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IOSTaskCompletion_Release(This) \
+    ((This)->lpVtbl->Release(This)) 
+#define IOSTaskCompletion_InternalGetTrustLevelStatic(This) \
+    ((This)->lpVtbl->InternalGetTrustLevelStatic(This)) 
+#define IOSTaskCompletion_InternalGetTrustLevelStatic2(This) \
+    ((This)->lpVtbl->InternalGetTrustLevelStatic2(This))
+#define IOSTaskCompletion_EndAllTasksAndWait(This) \
+    ((This)->lpVtbl->EndAllTasksAndWait(This))
+#define IOSTaskCompletion_BeginTaskByHandleEx(This, ProcessHandle, Flags, TaskFlags) \
+    ((This)->lpVtbl->BeginTaskByHandleEx(This, ProcessHandle, Flags, TaskFlags))
+
 #endif

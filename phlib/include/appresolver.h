@@ -55,6 +55,10 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
     _In_ PPH_STRING PackageFullName
     );
 
+HRESULT PhAppResolverPackageStopSessionRedirection(
+    _In_ PPH_STRING PackageFullName
+    );
+
 PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     );
@@ -86,6 +90,17 @@ PPH_STRING PhGetPackagePath(
 
 PPH_LIST PhGetPackageAssetsFromResourceFile(
     _In_ PWSTR FilePath
+    );
+
+// Immersive PLM task support
+
+HRESULT PhAppResolverBeginCrashDumpTask(
+    _In_ HANDLE ProcessId,
+    _Out_ HANDLE* TaskHandle
+    );
+
+HRESULT PhAppResolverEndCrashDumpTask(
+    _In_ HANDLE TaskHandle
     );
 
 #ifdef __cplusplus
