@@ -3,7 +3,7 @@
  *   server API
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2019 dmex
+ * Copyright (C) 2019-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1429,6 +1429,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
 {
     MINIDUMP_CALLBACK_INFORMATION callbackInfo = { 0 };
     HANDLE processHandle = UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle);
+    ULONG processDumpType = Payload->u.WriteMiniDumpProcess.i.DumpType;
     HPSS snapshotHandle = NULL;
 
     if (PssCaptureSnapshot_Import())
@@ -1436,12 +1437,24 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
         PssCaptureSnapshot_Import()(
             processHandle,
             PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
-            PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
+            PSS_CAPTURE_IPT_TRACE | PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
             PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
             PSS_CAPTURE_THREADS | PSS_CAPTURE_THREAD_CONTEXT | PSS_CREATE_USE_VM_ALLOCATIONS,
             CONTEXT_ALL,
             &snapshotHandle
             );
+
+        if (snapshotHandle)
+        {
+            processDumpType =
+                MiniDumpWithFullMemory |
+                MiniDumpWithHandleData |
+                MiniDumpWithUnloadedModules |
+                MiniDumpWithFullMemoryInfo |
+                MiniDumpWithThreadInfo |
+                MiniDumpIgnoreInaccessibleMemory |
+                MiniDumpWithIptTrace;
+        }
     }
 
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
@@ -1451,7 +1464,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
         snapshotHandle ? snapshotHandle : processHandle,
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.ProcessId),
         UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalFileHandle),
-        Payload->u.WriteMiniDumpProcess.i.DumpType,
+        processDumpType,
         NULL,
         NULL,
         &callbackInfo
