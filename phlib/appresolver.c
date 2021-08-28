@@ -428,6 +428,33 @@ PPH_LIST PhAppResolverEnumeratePackageBackgroundTasks(
         return NULL;
 }
 
+HRESULT PhAppResolverPackageStopSessionRedirection(
+    _In_ PPH_STRING PackageFullName
+    )
+{
+    HRESULT status;
+    IPackageDebugSettings* packageDebugSettings;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_PackageDebugSettings,
+        &IID_IPackageDebugSettings,
+        &packageDebugSettings
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IPackageDebugSettings_StopSessionRedirection(
+            packageDebugSettings,
+            PhGetString(PackageFullName)
+            );
+
+        IPackageDebugSettings_Release(packageDebugSettings);
+    }
+
+    return status;
+}
+
 PPH_STRING PhGetAppContainerName(
     _In_ PSID AppContainerSid
     )
@@ -819,6 +846,55 @@ CleanupExit:
         IMrtResourceManager_Release(resourceManager);
 
     return resourceList;
+}
+
+HRESULT PhAppResolverBeginCrashDumpTask(
+    _In_ HANDLE ProcessId,
+    _Out_ HANDLE *TaskHandle
+    )
+{
+    HRESULT status;
+    IOSTaskCompletion* taskCompletionManager;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_OSTaskCompletion_I,
+        &IID_IOSTaskCompletion_I,
+        &taskCompletionManager
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IOSTaskCompletion_BeginTask(
+            taskCompletionManager,
+            HandleToUlong(ProcessId),
+            PT_TC_CRASHDUMP
+            );
+    }
+
+    if (SUCCEEDED(status))
+    {
+        *TaskHandle = taskCompletionManager;
+    }
+    else if (taskCompletionManager)
+    {
+        IOSTaskCompletion_Release(taskCompletionManager);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverEndCrashDumpTask(
+    _In_ HANDLE TaskHandle
+    )
+{
+    IOSTaskCompletion* taskCompletionManager = TaskHandle;
+    HRESULT status;
+
+    status = IOSTaskCompletion_EndTask(taskCompletionManager);
+    IOSTaskCompletion_Release(taskCompletionManager);
+
+    return status;
 }
 
 // TODO: FIXME

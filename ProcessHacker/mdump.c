@@ -23,6 +23,7 @@
 
 #include <phapp.h>
 #include <apiimport.h>
+#include <appresolver.h>
 
 #include <dbghelp.h>
 #include <processsnapshot.h>
@@ -325,6 +326,12 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         }
     }
 
+    // Note: Task Manager will disable package tasks and signal the crashdump task. (dmex)
+    // TODO: Determine if we should uncomment this code and do the same?
+    //HANDLE packageTaskHandle = NULL;
+    //PhAppResolverPackageStopSessionRedirection(context->PackageFullName);
+    //PhAppResolverBeginCrashDumpTask(context->ProcessId, &packageTaskHandle);
+
     if (PhWriteMiniDumpProcess(
         snapshotHandle ? snapshotHandle : context->ProcessHandle,
         context->ProcessId,
@@ -376,6 +383,9 @@ Completed:
         PH_MINIDUMP_COMPLETED,
         0
         );
+
+    //if (packageTaskHandle)
+    //    PhAppResolverEndCrashDumpTask(packageTaskHandle);
 
     return STATUS_SUCCESS;
 }
