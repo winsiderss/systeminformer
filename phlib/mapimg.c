@@ -3513,7 +3513,7 @@ NTSTATUS PhGetMappedImageExceptions(
 
     for (ULONG i = 0; i < exceptionTotal; i++)
     {
-        PVOID entry = PTR_ADD_OFFSET(exceptionDirectory, i * exceptionEntrySize);
+        PVOID entry = PTR_ADD_OFFSET(exceptionDirectory, UInt32Mul32To64(i, exceptionEntrySize));
 
         PhAddItemArray(&exceptionArray, entry);
     }
