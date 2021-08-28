@@ -1082,6 +1082,7 @@ PhImageListDrawEx(
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 PHLIBAPI extern HBRUSH PhMenuBackgroundBrush;
+extern COLORREF PhThemeWindowForegroundColor;
 
 PHLIBAPI
 VOID
