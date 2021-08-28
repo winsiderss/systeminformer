@@ -233,6 +233,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CODEPAGE, FALSE, L"Code page", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx2(hwnd, PHPRTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_POWERTHROTTLING, FALSE, L"Power throttling", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_ARCHITECTURE, FALSE, L"Architecture", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -2091,6 +2092,12 @@ BEGIN_SORT_FUNCTION(ImageCoherency)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Architecture)
+{
+    sortResult = uintcmp(processItem1->Architecture, processItem2->Architecture);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(ErrorMode)
 {
     PhpUpdateProcessNodeErrorMode(node1);
@@ -2248,6 +2255,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(CodePage),
                         SORT_FUNCTION(StartTime), // Timeline
                         SORT_FUNCTION(PowerThrottling),
+                        SORT_FUNCTION(Architecture),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3254,6 +3262,38 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                 }
                 break;
+            case PHPRTLC_ARCHITECTURE:
+                {
+                    switch (processItem->Architecture)
+                    {
+                    case IMAGE_FILE_MACHINE_I386:
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"x86");
+                            break;
+                        }
+                    case IMAGE_FILE_MACHINE_AMD64:
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"x64");
+                            break;
+                        }
+                    case IMAGE_FILE_MACHINE_ARM:
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"ARM");
+                            break;
+                        }
+                    case IMAGE_FILE_MACHINE_ARM64:
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L"ARM64");
+                            break;
+                        }
+                    case IMAGE_FILE_MACHINE_UNKNOWN:
+                    default:
+                        {
+                            break;
+                        }
+                    }
+                    break;
+                }
             default:
                 return FALSE;
             }

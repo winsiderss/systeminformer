@@ -153,7 +153,7 @@
 #define IDC_REFERENCES                  1045
 #define IDC_INTERNALNAME                1045
 #define IDC_HANDLES                     1046
-#define IDC_PROCESSTYPELABEL            1046
+//#define IDC_PROCESSTYPELABEL            1046
 #define IDC_AUTHOR                      1046
 #define IDC_PAGED                       1047
 #define IDC_PROCESSTYPETEXT             1047
