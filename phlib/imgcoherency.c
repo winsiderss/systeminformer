@@ -355,10 +355,10 @@ VOID PhpAnalyzeImageCoherencyInsepct(
 * 
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Rva - Relative virtual address to inspect.
-* \param[in] Buffer - Supplied buffer to use, this is an optimization to
-* minimize re-allocations in some situations. This buffer is used to store a
-* specified number of bytes read from the process at the supplied RVA.
+* \param[in] Size - Size of data to inspect from the RVA.
 * \param[in] Context - Image coherency context.
+* \param[in] SkipCallback - Optional skip callback used to skip analysis.
+* \param[in] SkipCallbackContext - Context passed to the skip callback.
 */
 VOID PhpAnalyzeImageCoherencyCommonByRva(
     _In_ HANDLE ProcessHandle,
@@ -375,9 +375,11 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
     PBYTE fileBytes;
     SIZE_T bytesRead;
     SIZE_T remainingView;
+    ULONG rva;
 
     remainingBytes = Size;
     buffer = PhAllocateZero(PAGE_SIZE);
+    rva = Rva;
 
     while (remainingBytes > 0)
     {
@@ -386,14 +388,13 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
         {
             chunk = remainingBytes;
         }
-        remainingBytes -= chunk;
 
         //
         // Try to read the remote process
         //
         if (!NT_SUCCESS(Context->ReadVirtualMemory(ProcessHandle,
                                                    PTR_ADD_OFFSET(Context->RemoteImageBase,
-                                                                  Rva),
+                                                                  rva),
                                                    buffer,
                                                    chunk,
                                                    &bytesRead)))
@@ -404,7 +405,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
             bytesRead = 0;
         }
 
-        fileBytes = PhMappedImageRvaToVa(&Context->MappedImage, Rva, NULL);
+        fileBytes = PhMappedImageRvaToVa(&Context->MappedImage, rva, NULL);
         if (fileBytes)
         {
             //
@@ -432,6 +433,9 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
                                         Context,
                                         SkipCallback,
                                         SkipCallbackContext);
+
+        rva += chunk;
+        remainingBytes -= chunk;
     }
 
     PhFree(buffer);
