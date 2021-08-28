@@ -3,6 +3,7 @@
  *   minidump writer
  *
  * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -58,8 +59,7 @@ typedef struct _PROCESS_MINIDUMP_CONTEXT
 BOOLEAN PhpCreateProcessMiniDumpWithProgress(
     _In_ HWND hWnd,
     _In_ HANDLE ProcessId,
-    _In_ PWSTR FileName,
-    _In_ MINIDUMP_TYPE DumpType
+    _In_ PWSTR FileName
     );
 
 INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
@@ -98,21 +98,14 @@ BOOLEAN PhUiCreateDumpFileProcess(
     return PhpCreateProcessMiniDumpWithProgress(
         hWnd,
         Process->ProcessId,
-        fileName->Buffer,
-        // task manager uses these flags
-        MiniDumpWithFullMemory |
-        MiniDumpWithHandleData |
-        MiniDumpWithUnloadedModules |
-        MiniDumpWithFullMemoryInfo |
-        MiniDumpWithThreadInfo
+        fileName->Buffer
         );
 }
 
 BOOLEAN PhpCreateProcessMiniDumpWithProgress(
     _In_ HWND hWnd,
     _In_ HANDLE ProcessId,
-    _In_ PWSTR FileName,
-    _In_ MINIDUMP_TYPE DumpType
+    _In_ PWSTR FileName
     )
 {
     NTSTATUS status;
@@ -121,16 +114,47 @@ BOOLEAN PhpCreateProcessMiniDumpWithProgress(
     memset(&context, 0, sizeof(PROCESS_MINIDUMP_CONTEXT));
     context.ProcessId = ProcessId;
     context.FileName = FileName;
-    context.DumpType = DumpType;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &context.ProcessHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessId
-        )))
+    // task manager uses these flags (wj32)
+    if (WindowsVersion >= WINDOWS_10)
     {
-        PhShowStatus(hWnd, L"Unable to open the process", status, 0);
-        return FALSE;
+        context.DumpType =
+            MiniDumpWithFullMemory |
+            MiniDumpWithHandleData |
+            MiniDumpWithUnloadedModules |
+            MiniDumpWithFullMemoryInfo |
+            MiniDumpWithThreadInfo |
+            MiniDumpIgnoreInaccessibleMemory |
+            MiniDumpWithIptTrace;
+
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &context.ProcessHandle,
+            PROCESS_ALL_ACCESS,
+            ProcessId
+            )))
+        {
+            goto LimitedDump;
+        }
+    }
+    else
+    {
+LimitedDump:
+        context.DumpType =
+            MiniDumpWithFullMemory |
+            MiniDumpWithHandleData |
+            MiniDumpWithUnloadedModules |
+            MiniDumpWithFullMemoryInfo |
+            MiniDumpWithThreadInfo;
+
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &context.ProcessHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            ProcessId
+            )))
+        {
+            PhShowStatus(hWnd, L"Unable to open the process", status, 0);
+            return FALSE;
+        }
     }
 
 #ifdef _WIN64
@@ -141,7 +165,7 @@ BOOLEAN PhpCreateProcessMiniDumpWithProgress(
         &context.FileHandle,
         FileName,
         FILE_GENERIC_WRITE | DELETE,
-        0,
+        FILE_ATTRIBUTE_NORMAL,
         0,
         FILE_OVERWRITE_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
@@ -288,7 +312,7 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         PssCaptureSnapshot_Import()(
             context->ProcessHandle,
             PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
-            PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
+            PSS_CAPTURE_IPT_TRACE | PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
             PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
             PSS_CAPTURE_THREADS | PSS_CAPTURE_THREAD_CONTEXT | PSS_CREATE_USE_VM_ALLOCATIONS,
             CONTEXT_ALL,

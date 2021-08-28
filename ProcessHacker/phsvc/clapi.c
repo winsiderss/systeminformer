@@ -3,6 +3,7 @@
  *   phsvc client
  *
  * Copyright (C) 2011-2015 wj32
+ * Copyright (C) 2017-2021 wj32
  *
  * This file is part of Process Hacker.
  *
@@ -1186,9 +1187,9 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
         ProcessHandle,
         serverHandle, 
         &remoteProcessHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 
         0, 
-        0
+        0, 
+        DUPLICATE_SAME_ACCESS
         );
 
     if (!NT_SUCCESS(status))
