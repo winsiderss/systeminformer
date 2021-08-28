@@ -170,7 +170,11 @@ VOID PhInitializeWindowsVersion(
     // Windows 10, Windows Server 2016
     else if (majorVersion == 10 && minorVersion == 0)
     {
-        if (buildVersion >= 19043)
+        if (buildVersion >= 22000)
+        {
+            WindowsVersion = WINDOWS_11;
+        }
+        else if (buildVersion >= 19043)
         {
             WindowsVersion = WINDOWS_10_21H1;
         }
