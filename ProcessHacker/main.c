@@ -598,7 +598,8 @@ BOOLEAN PhInitializeDirectoryPolicy(
 #include <minidumpapiset.h>
 
 VOID PhpCreateUnhandledExceptionCrashDump(
-    _In_ PEXCEPTION_POINTERS ExceptionInfo
+    _In_ PEXCEPTION_POINTERS ExceptionInfo,
+    _In_ BOOLEAN MoreInfoDump
     )
 {
     static PH_STRINGREF dumpFilePath = PH_STRINGREF_INIT(L"%USERPROFILE%\\Desktop\\");
@@ -634,15 +635,31 @@ VOID PhpCreateUnhandledExceptionCrashDump(
         exceptionInfo.ExceptionPointers = ExceptionInfo;
         exceptionInfo.ClientPointers = FALSE;
 
-        PhWriteMiniDumpProcess(
-            NtCurrentProcess(),
-            NtCurrentProcessId(),
-            fileHandle,
-            MiniDumpNormal,
-            &exceptionInfo,
-            NULL,
-            NULL
-            );
+        if (MoreInfoDump)
+        {
+            // Note: This isn't a full dump, still very limited but just enough to see filenames on the stack. (dmex)
+            PhWriteMiniDumpProcess(
+                NtCurrentProcess(),
+                NtCurrentProcessId(),
+                fileHandle,
+                MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithProcessThreadData,
+                &exceptionInfo,
+                NULL,
+                NULL
+                );
+        }
+        else
+        {
+            PhWriteMiniDumpProcess(
+                NtCurrentProcess(),
+                NtCurrentProcessId(),
+                fileHandle,
+                MiniDumpNormal,
+                &exceptionInfo,
+                NULL,
+                NULL
+                );
+        }
 
         NtClose(fileHandle);
     }
@@ -673,28 +690,36 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     if (TaskDialogIndirect)
     {
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
-        TASKDIALOG_BUTTON buttons[2];
+        TASKDIALOG_BUTTON buttons[4];
 
         buttons[0].nButtonID = IDYES;
-        buttons[0].pszButtonText = L"Minidump";
-        buttons[1].nButtonID = IDRETRY;
-        buttons[1].pszButtonText = L"Restart";
+        buttons[0].pszButtonText = L"Normaldump";
+        buttons[1].nButtonID = IDNO;
+        buttons[1].pszButtonText = L"Minidump";
+        buttons[2].nButtonID = IDABORT;
+        buttons[2].pszButtonText = L"Restart";
+        buttons[3].nButtonID = IDCANCEL;
+        buttons[3].pszButtonText = L"Exit";
 
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
-        config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
         config.pszWindowTitle = PhApplicationName;
         config.pszMainIcon = TD_ERROR_ICON;
         config.pszMainInstruction = L"Process Hacker has crashed :(";
         config.pszContent = PhGetStringOrEmpty(message);
         config.cButtons = RTL_NUMBER_OF(buttons);
         config.pButtons = buttons;
-        config.nDefaultButton = IDCLOSE;
+        config.nDefaultButton = IDCANCEL;
 
         if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)))
         {
             switch (result)
             {
-            case IDRETRY:
+            case IDCANCEL:
+                {
+                    PhExitApplication(ExceptionInfo->ExceptionRecord->ExceptionCode);
+                }
+                break;
+            case IDABORT:
                 {
                     PhShellProcessHacker(
                         NULL,
@@ -708,7 +733,10 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
                 }
                 break;
             case IDYES:
-                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo); 
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, TRUE);
+                break;
+            case IDNO:
+                PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
                 break;
             }
         }
@@ -722,7 +750,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
             L"Do you want to create a minidump on the Desktop?"
             ) == IDYES)
         {
-            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo);
+            PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, FALSE);
         }
 
         PhShellProcessHacker(
