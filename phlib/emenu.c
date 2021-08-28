@@ -469,8 +469,13 @@ HMENU PhEMenuToHMenu(
 
         if (WindowsVersion < WINDOWS_10_19H2 && PhGetIntegerSetting(L"EnableThemeSupport"))
         {
+            static HBRUSH themeBrush = NULL;
+
+            if (!themeBrush)
+                themeBrush = CreateSolidBrush(PhThemeWindowForegroundColor); // LEAK (dmex)
+
             menuInfo.fMask |= MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
-            menuInfo.hbrBack = CreateSolidBrush(RGB(28, 28, 28)); // LEAK (dmex)
+            menuInfo.hbrBack = themeBrush;
         }
 
         SetMenuInfo(menuHandle, &menuInfo);

@@ -127,6 +127,10 @@ BOOL (WINAPI *AllowDarkModeForWindow_I)(
     _In_ HWND WindowHandle,
     _In_ BOOL Enabled
     ) = NULL;
+// Win10-RS5 (uxtheme.dll ordinal 136)
+BOOL (WINAPI* FlushMenuThemes_I)(
+    VOID
+    ) = NULL;
 
 typedef enum _PreferredAppMode
 {
@@ -168,7 +172,7 @@ ULONG PhpThemeColorMode = 0;
 BOOLEAN PhpThemeEnable = FALSE;
 BOOLEAN PhpThemeBorderEnable = TRUE;
 HBRUSH PhMenuBackgroundBrush = NULL;
-COLORREF PhpThemeWindowForegroundColor = RGB(28, 28, 28);
+COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhpThemeWindowBackgroundColor = RGB(43, 43, 43);
 COLORREF PhpThemeWindowTextColor = RGB(0xff, 0xff, 0xff);
 HFONT PhpTabControlFontHandle = NULL;
@@ -207,6 +211,7 @@ VOID PhInitializeWindowTheme(
                 {
                     AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(module, NULL, 133);
                     SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(module, NULL, 135);
+                    //FlushMenuThemes_I = PhGetDllBaseProcedureAddress(module, NULL, 136);
                 }
 
                 if (SetPreferredAppMode_I)
@@ -221,6 +226,9 @@ VOID PhInitializeWindowTheme(
                         break;
                     }
                 }
+
+                //if (FlushMenuThemes_I)
+                //    FlushMenuThemes_I();
             }
 
             PhEndInitOnce(&initOnce);
@@ -384,6 +392,9 @@ VOID PhInitializeThemeWindowFrame(
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
+#ifndef DWMWA_CAPTION_COLOR
+#define DWMWA_CAPTION_COLOR 35
+#endif
 
     if (WindowsVersion >= WINDOWS_10_RS5 && DwmSetWindowAttribute_I)
     {
@@ -395,6 +406,11 @@ VOID PhInitializeThemeWindowFrame(
                 {
                     DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
                 }
+
+                //if (WindowsVersion > WINDOWS_10_21H1) // TODO: Add Win11
+                //{
+                //    DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
+                //}
             }
             break;
         case 1: // Old colors
@@ -402,6 +418,11 @@ VOID PhInitializeThemeWindowFrame(
                 if (FAILED(DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
                 {
                     DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+                }
+
+                if (WindowsVersion > WINDOWS_10_21H1) // TODO: Add Win11
+                {
+                    DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, &PhpThemeWindowBackgroundColor, sizeof(COLORREF));
                 }
             }
             break;
@@ -519,12 +540,16 @@ VOID PhInitializeWindowThemeMainMenu(
     _In_ HMENU MenuHandle
     )
 {
+    static HBRUSH themeBrush = NULL;
     MENUINFO menuInfo;
+
+    if (!themeBrush)
+        themeBrush = CreateSolidBrush(PhThemeWindowForegroundColor);
 
     memset(&menuInfo, 0, sizeof(MENUINFO));
     menuInfo.cbSize = sizeof(MENUINFO);
     menuInfo.fMask = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
-    menuInfo.hbrBack = CreateSolidBrush(PhpThemeWindowForegroundColor);
+    menuInfo.hbrBack = themeBrush;
 
     SetMenuInfo(MenuHandle, &menuInfo);
 }
@@ -1464,10 +1489,17 @@ LRESULT CALLBACK PhThemeWindowDrawRebar(
     _In_ LPNMCUSTOMDRAW DrawInfo
     )
 {
+    // temp chevron workaround until location/state supported.
+    if (DrawInfo->dwDrawStage != CDDS_PREPAINT)
+        return CDRF_DODEFAULT;
+
     switch (DrawInfo->dwDrawStage)
     {
     case CDDS_PREPAINT:
         {
+            //REBARBANDINFO bandinfo = { sizeof(REBARBANDINFO), RBBIM_CHILD | RBBIM_STYLE | RBBIM_CHEVRONLOCATION | RBBIM_CHEVRONSTATE };
+            //BOOL havebandinfo = (BOOL)SendMessage(DrawInfo->hdr.hwndFrom, RB_GETBANDINFO, DrawInfo->dwItemSpec, (LPARAM)&bandinfo);
+
             SetTextColor(DrawInfo->hdc, PhpThemeWindowTextColor);
             SetDCBrushColor(DrawInfo->hdc, PhpThemeWindowBackgroundColor);
             FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
@@ -2310,7 +2342,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
                             if (TabCtrl_GetCurSel(WindowHandle) == i)
                             {
                                 SetTextColor(hdc, PhpThemeWindowTextColor);
-                                SetDCBrushColor(hdc, PhpThemeWindowForegroundColor);
+                                SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
                                 FillRect(hdc, &itemRect, GetStockBrush(DC_BRUSH));
                             }
                             else
