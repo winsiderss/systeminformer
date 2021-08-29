@@ -240,6 +240,9 @@ typedef struct _PH_PROCESS_ITEM
 
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
+
+    WORD Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
+
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
 

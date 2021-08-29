@@ -93,6 +93,64 @@ PPH_STRING PhGetProcessItemProtectionText(
     return PhCreateString(L"N/A");
 }
 
+PPH_STRING PhGetProcessItemImageTypeText (
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PWSTR arch;
+    PWSTR bits;
+
+    switch (ProcessItem->Architecture)
+    {
+    case IMAGE_FILE_MACHINE_I386:
+        {
+            arch = L"I386 ";
+            break;
+        }
+    case IMAGE_FILE_MACHINE_AMD64:
+        {
+            arch = L"AMD64 ";
+            break;
+        }
+    case IMAGE_FILE_MACHINE_ARM:
+        {
+            arch = L"ARM ";
+            break;
+        }
+    case IMAGE_FILE_MACHINE_ARM64:
+        {
+            arch = L"ARM64 ";
+            break;
+        }
+    case IMAGE_FILE_MACHINE_UNKNOWN:
+    default:
+        {
+            arch = L"";
+            break;
+        }
+    }
+
+#if _WIN64
+    if (ProcessItem->IsWow64Valid)
+    {
+        bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
+    }
+    else
+    {
+        bits = L"";
+    }
+#else
+    bits = L"(32-bit)";
+#endif
+
+    if ((arch[0] == L'\0') && (bits[0] == L'\0'))
+    {
+        return PhCreateString(L"N/A");
+    }
+
+    return PhConcatStrings2(arch, bits);
+}
+
 NTSTATUS PhpProcessGeneralOpenProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -451,22 +509,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_PROTECTION, PH_AUTO_T(PH_STRING, PhGetProcessItemProtectionText(processItem))->Buffer);
 
-#ifdef _WIN64
-            if (processItem->IsWow64Valid)
-            {
-                if (processItem->IsWow64)
-                    PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"32-bit");
-                else
-                    PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"64-bit");
-            }
-            else
-            {
-                PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"N/A");
-            }
+            // Image type
 
-            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), SW_SHOW);
-            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_SHOW);
-#endif
+            PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
 
             if (PhEnableThemeSupport)
                 PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
@@ -498,8 +543,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME_LINK), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VERSION), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSPECT), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENFILENAME), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
