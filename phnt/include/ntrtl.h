@@ -1390,8 +1390,8 @@ NTSYSAPI
 VOID
 NTAPI
 RtlUpperString(
-    _In_ PSTRING DestinationString,
-    _In_ PSTRING SourceString
+    _Inout_ PSTRING DestinationString,
+    _In_ const STRING* SourceString
     );
 
 FORCEINLINE
@@ -1490,7 +1490,7 @@ VOID
 NTAPI
 RtlCopyUnicodeString(
     _In_ PUNICODE_STRING DestinationString,
-    _In_ PUNICODE_STRING SourceString
+    _In_opt_ PCUNICODE_STRING SourceString
     );
 
 NTSYSAPI
@@ -1616,7 +1616,7 @@ NTSTATUS
 NTAPI
 RtlAppendUnicodeStringToString(
     _In_ PUNICODE_STRING Destination,
-    _In_ PUNICODE_STRING Source
+    _In_ PCUNICODE_STRING Source
     );
 
 NTSYSAPI
@@ -2983,6 +2983,15 @@ RtlInitializeExtendedContext(
     _Out_ PCONTEXT Context,
     _In_ ULONG ContextFlags,
     _Out_ PCONTEXT_EX* ContextEx
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCopyContext(
+    _Inout_ PCONTEXT Context,
+    _In_ ULONG ContextFlags,
+    _Out_ PCONTEXT Source
     );
 
 NTSYSAPI

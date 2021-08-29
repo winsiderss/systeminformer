@@ -359,6 +359,14 @@ DbgUiConvertStateChangeStructure(
     _Out_ LPDEBUG_EVENT DebugEvent
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+DbgUiConvertStateChangeStructureEx(
+    _In_ PDBGUI_WAIT_STATE_CHANGE StateChange,
+    _Out_ LPDEBUG_EVENT DebugEvent
+    );
+
 struct _EVENT_FILTER_DESCRIPTOR;
 
 typedef VOID (NTAPI *PENABLECALLBACK)(
