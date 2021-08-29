@@ -983,6 +983,7 @@ LdrShutdownThread(
     VOID
     );
 
+#if (PHNT_VERSION >= PHNT_WINBLUE)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -998,6 +999,7 @@ NTAPI
 LdrControlFlowGuardEnforced(
     VOID
     );
+#endif
 
 #if (PHNT_VERSION >= PHNT_19H1)
 // rev
