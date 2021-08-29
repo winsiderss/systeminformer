@@ -66,6 +66,8 @@
 #include <phplug.h>
 #include <srvprv.h>
 
+#include <mapimg.h>
+
 #define PROCESS_ID_BUCKETS 64
 #define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) ((HandleToUlong(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
 
@@ -101,9 +103,11 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
             ULONG IsBeingDebugged : 1;
             ULONG IsImmersive : 1;
             ULONG IsFilteredHandle : 1;
-            ULONG Spare : 25;
+            ULONG Architecture : 16; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
+            ULONG Spare : 9;
         };
     };
+
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
 
 typedef struct _PH_PROCESS_QUERY_S2_DATA
@@ -894,6 +898,84 @@ VOID PhpProcessQueryStage1(
         }
     }
 
+    // Architecture
+    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+    {
+        status = STATUS_NOT_FOUND;
+
+        //
+        // First try to use the new API if it makes sense to.
+        //
+        if ((WindowsVersion >= WINDOWS_10_21H1) && processItem->QueryHandle)
+        {
+            ULONG returnLength;
+            PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION arches;
+
+            //
+            // Essentially KernelBase!QueryProcessMachine
+            //
+
+            arches = PhAllocate(sizeof(*arches) * 5);
+            status = NtQuerySystemInformationEx(SystemSupportedProcessorArchitectures2,
+                                                &processItem->QueryHandle,
+                                                sizeof(processItem->QueryHandle),
+                                                arches,
+                                                (sizeof(*arches) * 5),
+                                                &returnLength);
+            if (status == STATUS_BUFFER_TOO_SMALL)
+            {
+                arches = PhReAllocate(arches, returnLength);
+                status = NtQuerySystemInformationEx(SystemSupportedProcessorArchitectures2,
+                                                    &processItem->QueryHandle,
+                                                    sizeof(processItem->QueryHandle),
+                                                    arches,
+                                                    returnLength,
+                                                    &returnLength);
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                status = STATUS_NOT_FOUND;
+                for (ULONG i = 0; i < returnLength / sizeof(*arches); i++)
+                {
+                    if (arches[i].Process)
+                    {
+                        Data->Architecture = (WORD)arches[i].Machine;
+                        status = STATUS_SUCCESS;
+                        break;
+                    }
+                }
+
+            }
+
+            PhFree(arches);
+        }
+
+        //
+        // Check if we succeeded above.
+        //
+        if (!NT_SUCCESS(status))
+        {
+            //
+            // For backward compatibility we'll read the Machine from the file.
+            // If we fail to access the file we could go read from the remote
+            // process memory, but for now we only read from the file.
+            //
+            if (processItem->FileName && !processItem->IsSubsystemProcess)
+            {
+                PH_MAPPED_IMAGE mappedImage;
+                status = PhLoadMappedImageEx(processItem->FileName,
+                                             NULL,
+                                             &mappedImage);
+                if (NT_SUCCESS(status))
+                {
+                    Data->Architecture = (WORD)mappedImage.NtHeaders->FileHeader.Machine;
+                    PhUnloadMappedImage(&mappedImage);
+                }
+            }
+        }
+    }
+
     if (processItem->Sid)
     {
         // Note: We delay resolving the SID name because the local LSA cache might still be
@@ -1078,6 +1160,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
     processItem->IsImmersive = Data->IsImmersive;
     processItem->IsProtectedHandle = Data->IsFilteredHandle;
+    processItem->Architecture = (WORD)Data->Architecture;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 
