@@ -612,7 +612,7 @@ SIZE_T PhCountStringZ(
     _In_ PWSTR String
     )
 {
-#if (PH_LEGACY_CRT_SUPPORT && !_ARM64_)
+#if (PH_LEGACY_CRT_SUPPORT && !defined(_ARM64_))
     if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
     {
         PWSTR p;
@@ -1433,7 +1433,7 @@ ULONG_PTR PhFindCharInStringRef(
 
     if (!IgnoreCase)
     {
-#if (PH_LEGACY_CRT_SUPPORT && !_ARM64_)
+#if (PH_LEGACY_CRT_SUPPORT && !defined(_ARM64_))
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
@@ -1526,7 +1526,7 @@ ULONG_PTR PhFindLastCharInStringRef(
 
     if (!IgnoreCase)
     {
-#if (PH_LEGACY_CRT_SUPPORT && !_ARM64_)
+#if (PH_LEGACY_CRT_SUPPORT && !defined(_ARM64_))
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
