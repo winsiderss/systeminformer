@@ -727,7 +727,11 @@ ULONG64 EtLookupProcessGpuDedicated(
     _In_opt_ HANDLE ProcessId
     );
 
-ULONG64 EtLookupTotalGpuDedicated(
+ULONG64 EtLookupTotalProcessGpuDedicated(
+    VOID
+    );
+
+ULONG64 EtLookupTotalAdapterGpuDedicated(
     VOID
     );
 
