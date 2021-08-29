@@ -994,7 +994,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
         gpuTotal = EtLookupTotalGpuUtilization();
         sharedTotal = EtLookupTotalGpuShared();
-        dedicatedTotal = EtLookupTotalGpuDedicated();
+        dedicatedTotal = EtLookupTotalAdapterGpuDedicated();
+        //dedicatedTotal = EtLookupTotalProcessGpuDedicated();
         //commitTotal = EtLookupTotalGpuCommit();
 
         if (gpuTotal > 1)
