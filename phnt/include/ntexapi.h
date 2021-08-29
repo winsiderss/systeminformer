@@ -2447,7 +2447,7 @@ typedef struct _SYSTEM_GDI_DRIVER_INFORMATION
     PVOID ImageAddress;
     PVOID SectionPointer;
     PVOID EntryPoint;
-    PIMAGE_EXPORT_DIRECTORY ExportSectionPointer;
+    struct _IMAGE_EXPORT_DIRECTORY* ExportSectionPointer;
     ULONG ImageLength;
 } SYSTEM_GDI_DRIVER_INFORMATION, *PSYSTEM_GDI_DRIVER_INFORMATION;
 
