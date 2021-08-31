@@ -857,7 +857,7 @@ PPH_BYTES DnProcessAppDomainListSerialize(
     }
 
     string = PhGetJsonArrayString(jsonArray, FALSE);
-    PhFreeJsonParser(jsonArray);
+    PhFreeJsonObject(jsonArray);
 
     return string;
 }
@@ -946,7 +946,7 @@ PPH_LIST DnProcessAppDomainListDeserialize(
     }
 
 CleanupExit:
-    PhFreeJsonParser(jsonArray);
+    PhFreeJsonObject(jsonArray);
 
     return processAppdomainList;
 }

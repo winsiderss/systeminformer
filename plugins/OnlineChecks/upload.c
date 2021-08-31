@@ -803,7 +803,7 @@ NTSTATUS UploadFileThreadStart(
                         goto CleanupExit;
                     }
 
-                    PhFreeJsonParser(jsonRootObject);
+                    PhFreeJsonObject(jsonRootObject);
                 }
                 else
                 {
@@ -867,7 +867,7 @@ NTSTATUS UploadFileThreadStart(
                         PhMoveReference(&context->LaunchCommand, PhGetJsonValueAsString(jsonRootObject, "permalink"));
                     }
 
-                    PhFreeJsonParser(jsonRootObject);
+                    PhFreeJsonObject(jsonRootObject);
                 }
                 
                 if (PhIsNullOrEmptyString(context->LaunchCommand))
@@ -902,7 +902,7 @@ NTSTATUS UploadFileThreadStart(
                         PhDereferenceObject(redirectUrl);
                     }
 
-                    PhFreeJsonParser(jsonRootObject);
+                    PhFreeJsonObject(jsonRootObject);
                 }
 
                 PhDereferenceObject(jsonString);
@@ -1093,7 +1093,7 @@ NTSTATUS UploadCheckThreadStart(
                 }
 
                 PhClearReference(&errorMessage);
-                PhFreeJsonParser(rootJsonObject);
+                PhFreeJsonObject(rootJsonObject);
             }
             else
             {
@@ -1228,7 +1228,7 @@ NTSTATUS UploadCheckThreadStart(
                         if (vt3RootJsonObject = PhCreateJsonParser(vt3UploadRequestBuffer->Buffer))
                         {
                             context->UploadUrl = PhGetJsonValueAsString(vt3RootJsonObject, "data");
-                            PhFreeJsonParser(vt3RootJsonObject);
+                            PhFreeJsonObject(vt3RootJsonObject);
                         }
 
                         PhClearReference(&vt3UploadRequestBuffer);
@@ -1245,7 +1245,7 @@ NTSTATUS UploadCheckThreadStart(
                     }
                 }
  
-                PhFreeJsonParser(rootJsonObject);
+                PhFreeJsonObject(rootJsonObject);
             }
             else
             {

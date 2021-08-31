@@ -708,7 +708,7 @@ EXPORTS
 
 ; json
     PhCreateJsonParser
-    PhFreeJsonParser
+    PhFreeJsonObject
     PhGetJsonValueAsString
     PhGetJsonValueAsInt64
     PhGetJsonValueAsUInt64
