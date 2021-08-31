@@ -428,7 +428,7 @@ BOOLEAN QueryUpdateData(
     Context->LatestVersion = ParseVersionString(Context->Version);
 #endif
 
-    PhFreeJsonParser(jsonObject);
+    PhFreeJsonObject(jsonObject);
 
     if (PhIsNullOrEmptyString(Context->Version))
         goto CleanupExit;
@@ -1097,7 +1097,7 @@ VOID ShowStartupUpdateDialog(
 #else
             context->LatestVersion = ParseVersionString(context->Version);
 #endif
-            PhFreeJsonParser(jsonObject);
+            PhFreeJsonObject(jsonObject);
         }
 
         PhDereferenceObject(jsonStringUtf8);

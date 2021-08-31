@@ -477,7 +477,7 @@ CleanupExit:
         PhHttpSocketDestroy(httpContext);
 
     if (jsonRootObject)
-        PhFreeJsonParser(jsonRootObject);
+        PhFreeJsonObject(jsonRootObject);
 
     PhClearReference(&jsonString);
     PhClearReference(&versionString);
@@ -604,7 +604,7 @@ CleanupExit:
         PhHttpSocketDestroy(httpContext);
 
     if (jsonRootObject)
-        PhFreeJsonParser(jsonRootObject);
+        PhFreeJsonObject(jsonRootObject);
 
     PhClearReference(&jsonString);
     PhClearReference(&versionString);
@@ -711,7 +711,7 @@ CleanupExit:
         PhHttpSocketDestroy(httpContext);
 
     if (jsonRootObject)
-        PhFreeJsonParser(jsonRootObject);
+        PhFreeJsonObject(jsonRootObject);
 
     PhClearReference(&jsonString);
     PhClearReference(&versionString);
@@ -841,7 +841,7 @@ CleanupExit:
         
         if (rootJsonObject)
         {
-            PhFreeJsonParser(rootJsonObject);
+            PhFreeJsonObject(rootJsonObject);
         }
 
         if (jsonArrayToSendString)
@@ -849,7 +849,7 @@ CleanupExit:
 
         if (jsonArray)
         {
-            PhFreeJsonParser(jsonArray);
+            PhFreeJsonObject(jsonArray);
         }
 
         if (jsonApiResult)

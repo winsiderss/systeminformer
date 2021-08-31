@@ -51,7 +51,7 @@ PVOID PhCreateJsonParser(
     return json_tokener_parse(JsonString);
 }
 
-VOID PhFreeJsonParser(
+VOID PhFreeJsonObject(
     _In_ PVOID Object
     )
 {

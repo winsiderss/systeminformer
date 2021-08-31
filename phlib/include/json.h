@@ -43,7 +43,7 @@ PhCreateJsonParser(
 PHLIBAPI
 VOID
 NTAPI
-PhFreeJsonParser(
+PhFreeJsonObject(
     _In_ PVOID Object
     );
 

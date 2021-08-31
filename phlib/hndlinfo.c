@@ -454,7 +454,7 @@ VOID PhInitializeEtwTraceGuidCache(
 
     if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))
     {
-        PhFreeJsonParser(jsonObject);
+        PhFreeJsonObject(jsonObject);
         return;
     }
 
@@ -488,7 +488,7 @@ VOID PhInitializeEtwTraceGuidCache(
         PhDereferenceObject(guidString);
     }
 
-    PhFreeJsonParser(jsonObject);
+    PhFreeJsonObject(jsonObject);
     PhDereferenceObject(capabilityListString);
 }
 
