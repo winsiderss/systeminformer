@@ -2431,3 +2431,99 @@ BOOLEAN PhImageListDrawEx(
 
     return SUCCEEDED(IImageList2_Draw((IImageList2*)ImageListHandle, &imagelistDraw));
 }
+
+VOID PhCustomDrawTreeTimeLine(
+    _In_ HDC Hdc,
+    _In_ RECT CellRect,
+    _In_ BOOLEAN DarkTheme,
+    _In_ PLARGE_INTEGER CreateTime
+    )
+{
+    #define PhInflateRect(rect, dx, dy) \
+    { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
+    HBRUSH previousBrush = NULL;
+    RECT rect = CellRect;
+    RECT borderRect = CellRect;
+    FLOAT percent = 0;
+    static LARGE_INTEGER bootTime = { 0 };
+    LARGE_INTEGER systemTime;
+    LARGE_INTEGER startTime;
+    LARGE_INTEGER createTime;
+
+    if (bootTime.QuadPart == 0)
+    {
+        SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+        if (NT_SUCCESS(NtQuerySystemInformation(
+            SystemTimeOfDayInformation,
+            &timeOfDayInfo,
+            sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+            NULL
+            )))
+        {
+            bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
+            bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
+            bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
+        }
+
+        //if (NT_SUCCESS(NtQuerySystemInformation(
+        //    SystemTimeOfDayInformation,
+        //    &timeOfDayInfo,
+        //    RTL_SIZEOF_THROUGH_FIELD(SYSTEM_TIMEOFDAY_INFORMATION, CurrentTime),
+        //    NULL
+        //    )))
+        //{
+        //    startTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
+        //    createTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - processItem->CreateTime.QuadPart;
+        //    percent = round((DOUBLE)((FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100));
+        //}
+    }
+
+    PhQuerySystemTime(&systemTime);
+    startTime.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
+    createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
+    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+    // Prevent overflow from changing the system time to an earlier date.
+    if (percent > 100.f) percent = 100.f;
+
+    if (DarkTheme)
+        FillRect(Hdc, &rect, PhMenuBackgroundBrush);
+    else
+        FillRect(Hdc, &rect, GetSysColorBrush(COLOR_WINDOW));
+
+    PhInflateRect(&rect, -1, -1);
+    rect.bottom += 1;
+
+    if (DarkTheme)
+    {
+        FillRect(Hdc, &rect, PhMenuBackgroundBrush);
+        SetDCBrushColor(Hdc, RGB(0, 130, 135));
+        previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+    }
+    else
+    {
+        FillRect(Hdc, &rect, GetSysColorBrush(COLOR_3DFACE));
+        SetDCBrushColor(Hdc, RGB(158, 202, 158));
+        previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+    }
+
+    // TODO: This still loses a small fraction of precision compared to PE here causing a 1px difference.
+    //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
+    //rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
+    rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
+
+    PatBlt(
+        Hdc,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        PATCOPY
+        );
+
+    if (previousBrush) SelectBrush(Hdc, previousBrush);
+
+    PhInflateRect(&borderRect, -1, -1);
+    borderRect.bottom += 1;
+    FrameRect(Hdc, &borderRect, GetStockBrush(GRAY_BRUSH));
+}

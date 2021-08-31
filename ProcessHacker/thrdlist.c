@@ -1366,6 +1366,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             PPH_THREAD_ITEM threadItem;
             RECT rect;
 
+            if (!customDraw)
+                break;
+
             node = (PPH_THREAD_NODE)customDraw->Node;
             threadItem = node->ThreadItem;
             rect = customDraw->CellRect;
@@ -1377,48 +1380,15 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             {
             case PH_THREAD_TREELIST_COLUMN_TIMELINE:
                 {
-                    #define PhInflateRect(rect, dx, dy) \
-                    { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
-                    HBRUSH previousBrush = NULL;
-                    RECT borderRect = customDraw->CellRect;
-                    FLOAT percent = 0;
-                    LARGE_INTEGER systemTime;
-                    LARGE_INTEGER startTime;
-                    LARGE_INTEGER createTime;
-
                     if (threadItem->CreateTime.QuadPart == 0)
                         break; // nothing to draw
 
-                    PhQuerySystemTime(&systemTime);
-                    startTime.QuadPart = systemTime.QuadPart - context->ProcessCreateTime.QuadPart;
-                    createTime.QuadPart = systemTime.QuadPart - threadItem->CreateTime.QuadPart;
-                    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
-
-                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_WINDOW));
-                    PhInflateRect(&rect, -1, -1);
-                    rect.bottom += 1;
-                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_3DFACE));
-                    SetDCBrushColor(customDraw->Dc, percent > 100.f ? RGB(128, 128, 128) : RGB(158, 202, 158));
-                    previousBrush = SelectBrush(customDraw->Dc, GetStockBrush(DC_BRUSH));
-
-                    // Prevent overflow from changing the system time to an earlier date.
-                    if (percent > 100.f) percent = 100.f;
-                    rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
-
-                    PatBlt(
+                    PhCustomDrawTreeTimeLine(
                         customDraw->Dc,
-                        rect.left,
-                        rect.top,
-                        rect.right - rect.left,
-                        rect.bottom - rect.top,
-                        PATCOPY
+                        customDraw->CellRect,
+                        PhEnableThemeSupport,
+                        &threadItem->CreateTime
                         );
-
-                    if (previousBrush) SelectBrush(customDraw->Dc, previousBrush);
-
-                    PhInflateRect(&borderRect, -1, -1);
-                    borderRect.bottom += 1;
-                    FrameRect(customDraw->Dc, &borderRect, GetStockBrush(GRAY_BRUSH));
                 }
                 break;
             }
