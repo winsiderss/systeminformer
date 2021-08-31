@@ -268,7 +268,7 @@ TpSetTimer(
     _In_opt_ ULONG WindowLength
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WIN8)
 // winbase:SetThreadpoolTimerEx
 NTSYSAPI
 NTSTATUS
@@ -328,7 +328,7 @@ TpSetWait(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WIN8)
 // winbase:SetThreadpoolWaitEx
 NTSYSAPI
 NTSTATUS
