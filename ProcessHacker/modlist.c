@@ -1227,48 +1227,15 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             {
             case PHMOTLC_TIMELINE:
                 {
-                    #define PhInflateRect(rect, dx, dy) \
-                    { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
-                    HBRUSH previousBrush = NULL;
-                    RECT borderRect = customDraw->CellRect;
-                    FLOAT percent = 0;
-                    LARGE_INTEGER systemTime;
-                    LARGE_INTEGER startTime;
-                    LARGE_INTEGER createTime;
-
                     if (moduleItem->LoadTime.QuadPart == 0)
                         break; // nothing to draw
 
-                    PhQuerySystemTime(&systemTime);
-                    startTime.QuadPart = systemTime.QuadPart - context->ProcessCreateTime.QuadPart;
-                    createTime.QuadPart = systemTime.QuadPart - moduleItem->LoadTime.QuadPart;
-                    percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
-                    // Prevent overflow from changing the system time to an earlier date.
-                    if (percent > 100.f) percent = 100.f;
-
-                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_WINDOW));
-                    PhInflateRect(&rect, -1, -1);
-                    rect.bottom += 1;
-                    FillRect(customDraw->Dc, &rect, GetSysColorBrush(COLOR_3DFACE));
-
-                    SetDCBrushColor(customDraw->Dc, RGB(158, 202, 158));
-                    previousBrush = SelectBrush(customDraw->Dc, GetStockBrush(DC_BRUSH));
-                    rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
-
-                    PatBlt(
+                    PhCustomDrawTreeTimeLine(
                         customDraw->Dc,
-                        rect.left,
-                        rect.top,
-                        rect.right - rect.left,
-                        rect.bottom - rect.top,
-                        PATCOPY
+                        customDraw->CellRect,
+                        PhEnableThemeSupport,
+                        &moduleItem->LoadTime
                         );
-
-                    if (previousBrush) SelectBrush(customDraw->Dc, previousBrush);
-
-                    PhInflateRect(&borderRect, -1, -1);
-                    borderRect.bottom += 1;
-                    FrameRect(customDraw->Dc, &borderRect, GetStockBrush(GRAY_BRUSH));
                 }
                 break;
             }

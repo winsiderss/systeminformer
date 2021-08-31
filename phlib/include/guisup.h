@@ -1077,6 +1077,16 @@ PhImageListDrawEx(
     _In_ UINT Style
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhCustomDrawTreeTimeLine(
+    _In_ HDC Hdc,
+    _In_ RECT CellRect,
+    _In_ BOOLEAN DarkTheme,
+    _In_ PLARGE_INTEGER CreateTime
+    );
+
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
