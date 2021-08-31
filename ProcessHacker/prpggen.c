@@ -93,41 +93,27 @@ PPH_STRING PhGetProcessItemProtectionText(
     return PhCreateString(L"N/A");
 }
 
-PPH_STRING PhGetProcessItemImageTypeText (
+PPH_STRING PhGetProcessItemImageTypeText(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PWSTR arch;
-    PWSTR bits;
+    PWSTR arch = L"";
+    PWSTR bits = L"";
 
     switch (ProcessItem->Architecture)
     {
     case IMAGE_FILE_MACHINE_I386:
-        {
-            arch = L"I386 ";
-            break;
-        }
+        arch = L"I386 ";
+        break;
     case IMAGE_FILE_MACHINE_AMD64:
-        {
-            arch = L"AMD64 ";
-            break;
-        }
+        arch = L"AMD64 ";
+        break;
     case IMAGE_FILE_MACHINE_ARM:
-        {
-            arch = L"ARM ";
-            break;
-        }
+        arch = L"ARM ";
+        break;
     case IMAGE_FILE_MACHINE_ARM64:
-        {
-            arch = L"ARM64 ";
-            break;
-        }
-    case IMAGE_FILE_MACHINE_UNKNOWN:
-    default:
-        {
-            arch = L"";
-            break;
-        }
+        arch = L"ARM64 ";
+        break;
     }
 
 #if _WIN64
@@ -135,18 +121,12 @@ PPH_STRING PhGetProcessItemImageTypeText (
     {
         bits = ProcessItem->IsWow64 ? L"(32-bit)" : L"(64-bit)";
     }
-    else
-    {
-        bits = L"";
-    }
 #else
     bits = L"(32-bit)";
 #endif
 
-    if ((arch[0] == L'\0') && (bits[0] == L'\0'))
-    {
+    if (arch[0] == UNICODE_NULL && bits[0] == UNICODE_NULL)
         return PhCreateString(L"N/A");
-    }
 
     return PhConcatStrings2(arch, bits);
 }
