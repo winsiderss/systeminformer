@@ -983,8 +983,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSaveListViewGroupStatesToSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
-            if (tokenPageContext->ListViewImageList)
-                PhImageListDestroy(tokenPageContext->ListViewImageList);
+            // Note: Don't destroy the imagelist here unless we're using LVS_SHAREIMAGELISTS. (dmex)
+            //if (tokenPageContext->ListViewImageList)
+            //    PhImageListDestroy(tokenPageContext->ListViewImageList);
 
             PhpTokenPageFreeListViewEntries(tokenPageContext);
 
