@@ -3173,7 +3173,8 @@ typedef struct _DYNAMIC_FUNCTION_TABLE
     PWSTR OutOfProcessCallbackDll;
     FUNCTION_TABLE_TYPE Type;
     ULONG EntryCount;
-    RTL_BALANCED_NODE TreeNode;
+    RTL_BALANCED_NODE TreeNodeMin;
+    RTL_BALANCED_NODE TreeNodeMax;
 } DYNAMIC_FUNCTION_TABLE, *PDYNAMIC_FUNCTION_TABLE;
 
 // rev
@@ -6788,7 +6789,7 @@ VOID
 NTAPI
 RtlRunEncodeUnicodeString(
     _Inout_ PUCHAR Seed,
-    _In_ PUNICODE_STRING String
+    _Inout_ PUNICODE_STRING String
     );
 
 NTSYSAPI
@@ -6796,7 +6797,7 @@ VOID
 NTAPI
 RtlRunDecodeUnicodeString(
     _In_ UCHAR Seed,
-    _In_ PUNICODE_STRING String
+    _Inout_ PUNICODE_STRING String
     );
 
 NTSYSAPI
@@ -6963,7 +6964,6 @@ RtlGetNtGlobalFlags(
     VOID
     );
 
-#if (PHNT_VERSION >= PHNT_REDSTONE)
 // rev
 NTSYSAPI
 BOOLEAN
@@ -6971,9 +6971,8 @@ NTAPI
 RtlGetNtProductType(
     _Out_ PNT_PRODUCT_TYPE NtProductType
     );
-#endif
 
-#if (PHNT_VERSION >= PHNT_REDSTONE2)
+#if (PHNT_VERSION >= PHNT_REDSTONE)
 // private
 NTSYSAPI
 ULONG
