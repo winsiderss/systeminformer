@@ -29,6 +29,7 @@
 #include <symprvp.h>
 #include <fastlock.h>
 #include <kphuser.h>
+#include <verify.h>
 
 typedef struct _PH_SYMBOL_MODULE
 {
@@ -1173,7 +1174,31 @@ NTSTATUS PhpAccessCallbackFunctionTable(
     NtClose(keyHandle);
 
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-        return STATUS_ACCESS_DISABLED_BY_POLICY_DEFAULT;
+    {
+        VERIFY_RESULT verifyResult;
+        PPH_STRING signerName;
+
+        // Note: .NET Core does not create a KnownFunctionTableDlls entry similar to how it doesn't create
+        // the MiniDumpAuxiliaryDlls entry: https://github.com/dotnet/runtime/issues/7675
+        // We have to load the CLR function table DLL for stack enumeration and minidump support,
+        // check the signature and load when it's valid just like windbg does. (dmex)
+
+        verifyResult = PhVerifyFile(
+            OutOfProcessCallbackDllString->Buffer,
+            &signerName
+            );
+
+        if (!(
+            verifyResult == VrTrusted &&
+            signerName && PhEqualString2(signerName, L"Microsoft Corporation", TRUE)
+            ))
+        {
+            PhClearReference(&signerName);
+            return STATUS_ACCESS_DISABLED_BY_POLICY_DEFAULT;
+        }
+
+        PhClearReference(&signerName);
+    }
 
     status = LdrLoadDll(NULL, NULL, OutOfProcessCallbackDllString, &dllHandle);
 
