@@ -1086,6 +1086,7 @@ typedef enum _PH_IMGCOHERENCY_SCAN_TYPE
     * - Image header information
     * - Complete scan of all executable sections, this will include the entry point
     * - .NET manifests if appropriate
+    * - Scans for code caves in tail of mapped sections (virtual mapping > size on disk) 
     */
     PhImageCoherencyFull
 
