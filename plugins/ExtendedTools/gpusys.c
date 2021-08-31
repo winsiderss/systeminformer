@@ -3,7 +3,7 @@
  *   GPU system information section
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -101,17 +101,45 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
+            BOOLEAN enableScaleGraph;
 
             if (!drawInfo)
                 break;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            enableScaleGraph = !!PhGetIntegerSetting(L"EnableScaleCpuGraph");
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (enableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, EtGpuNodeHistory.Count);
 
             if (!Section->GraphState.Valid)
             {
                 PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
+
+                if (enableScaleGraph)
+                {
+                    FLOAT max = 0;
+
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT data = Section->GraphState.Data1[i]; // HACK
+
+                        if (max < data)
+                            max = data;
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(
+                            Section->GraphState.Data1,
+                            max,
+                            drawInfo->LineDataCount
+                            );
+                    }
+
+                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                }
+
                 Section->GraphState.Valid = TRUE;
             }
         }
@@ -626,8 +654,9 @@ VOID EtpNotifyGpuGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            BOOLEAN enableScaleGraph = !!PhGetIntegerSetting(L"EnableScaleCpuGraph");
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (enableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -639,6 +668,33 @@ VOID EtpNotifyGpuGraph(
             if (!GpuGraphState.Valid)
             {
                 PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, GpuGraphState.Data1, drawInfo->LineDataCount);
+
+                if (enableScaleGraph)
+                {
+                    FLOAT max = 0;
+
+                    for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                    {
+                        FLOAT data = GpuGraphState.Data1[i]; // HACK
+
+                        if (max < data)
+                            max = data;
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(
+                            GpuGraphState.Data1,
+                            max,
+                            drawInfo->LineDataCount
+                            );
+                    }
+
+                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                }
+
+
                 GpuGraphState.Valid = TRUE;
             }
         }

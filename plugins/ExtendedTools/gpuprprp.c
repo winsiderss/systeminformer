@@ -427,13 +427,40 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                     if (header->hwndFrom == context->GpuGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+                        BOOLEAN enableScaleGraph = !!PhGetIntegerSetting(L"EnableScaleCpuGraph");
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (enableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
                         PhGraphStateGetDrawInfo(&context->GpuGraphState, getDrawInfo, context->Block->GpuHistory.Count);
 
                         if (!context->GpuGraphState.Valid)
                         {
                             PhCopyCircularBuffer_FLOAT(&context->Block->GpuHistory, context->GpuGraphState.Data1, drawInfo->LineDataCount);
+
+                            if (enableScaleGraph)
+                            {
+                                FLOAT max = 0;
+
+                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                                {
+                                    FLOAT data = context->GpuGraphState.Data1[i]; // HACK
+
+                                    if (max < data)
+                                        max = data;
+                                }
+
+                                if (max != 0)
+                                {
+                                    PhDivideSinglesBySingle(
+                                        context->GpuGraphState.Data1,
+                                        max,
+                                        drawInfo->LineDataCount
+                                        );
+                                }
+
+                                drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                                drawInfo->LabelYFunctionParameter = max;
+                            }
+
                             context->GpuGraphState.Valid = TRUE;
                         }
 
