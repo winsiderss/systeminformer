@@ -829,8 +829,9 @@ NtAreMappedFilesTheSame(
      MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
 #endif
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
-typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
+typedef enum _PARTITION_INFORMATION_CLASS
 {
     SystemMemoryPartitionInformation, // q: MEMORY_PARTITION_CONFIGURATION_INFORMATION
     SystemMemoryPartitionMoveMemory, // s: MEMORY_PARTITION_TRANSFER_INFORMATION
@@ -838,8 +839,31 @@ typedef enum _MEMORY_PARTITION_INFORMATION_CLASS
     SystemMemoryPartitionCombineMemory, // q; s: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
     SystemMemoryPartitionInitialAddMemory, // q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
     SystemMemoryPartitionGetMemoryEvents, // MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION // since REDSTONE2
+    SystemMemoryPartitionSetAttributes,
+    SystemMemoryPartitionNodeInformation,
+    SystemMemoryPartitionCreateLargePages,
+    SystemMemoryPartitionDedicatedMemoryInformation,
+    SystemMemoryPartitionOpenDedicatedMemory,
+    SystemMemoryPartitionMemoryChargeAttributes,
+    SystemMemoryPartitionClearAttributes,
     SystemMemoryPartitionMax
-} MEMORY_PARTITION_INFORMATION_CLASS;
+} PARTITION_INFORMATION_CLASS, *PPARTITION_INFORMATION_CLASS;
+#else
+#define SystemMemoryPartitionInformation 0x0
+#define SystemMemoryPartitionMoveMemory 0x1
+#define SystemMemoryPartitionAddPagefile 0x2
+#define SystemMemoryPartitionCombineMemory 0x3
+#define SystemMemoryPartitionInitialAddMemory 0x4
+#define SystemMemoryPartitionGetMemoryEvents 0x5
+#define SystemMemoryPartitionSetAttributes 0x6
+#define SystemMemoryPartitionNodeInformation 0x7
+#define SystemMemoryPartitionCreateLargePages 0x8
+#define SystemMemoryPartitionDedicatedMemoryInformation 0x9
+#define SystemMemoryPartitionOpenDedicatedMemory 0xA
+#define SystemMemoryPartitionMemoryChargeAttributes 0xB
+#define SystemMemoryPartitionClearAttributes 0xC
+#define SystemMemoryPartitionMax 0xD
+#endif
 
 // private
 typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
@@ -952,8 +976,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtManagePartition(
-    _In_ MEMORY_PARTITION_INFORMATION_CLASS PartitionInformationClass,
-    _In_ PVOID PartitionInformation,
+    _In_ HANDLE TargetHandle,
+    _In_opt_ HANDLE SourceHandle,
+    _In_ PARTITION_INFORMATION_CLASS PartitionInformationClass,
+    _Inout_updates_bytes_(PartitionInformationLength) PVOID PartitionInformation,
     _In_ ULONG PartitionInformationLength
     );
 
