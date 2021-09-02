@@ -3821,6 +3821,19 @@ RtlGetExePath(
 
 #endif
 
+#if (PHNT_VERSION >= PHNT_20H1)
+// rev
+NTSYSAPI
+ULONG
+NTAPI
+RtlReplaceSystemDirectoryInPath(
+    _Inout_ PUNICODE_STRING Destination,
+    _In_ ULONG Machine, // IMAGE_FILE_MACHINE_I386
+    _In_ ULONG TargetMachine, // IMAGE_FILE_MACHINE_TARGET_HOST
+    _In_ BOOLEAN IncludePathSeperator
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_REDSTONE2)
 
 // private
