@@ -3276,7 +3276,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             PhInitializeStringRef(&getCellText->Text, L"x64");
                             break;
                         }
-                    case IMAGE_FILE_MACHINE_ARM:
+                    case IMAGE_FILE_MACHINE_ARMNT:
                         {
                             PhInitializeStringRef(&getCellText->Text, L"ARM");
                             break;
