@@ -3,7 +3,7 @@
  *   service properties
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -286,7 +286,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
 
             PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, PhGetStringOrEmpty(serviceItem->DisplayName));
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), PhGetServiceTypeString(serviceItem->Type), FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), PhGetServiceTypeString(serviceItem->Type)->Buffer, FALSE);
 
             startType = serviceItem->StartType;
             errorControl = serviceItem->ErrorControl;
@@ -331,8 +331,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 CloseServiceHandle(serviceHandle);
             }
 
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhGetServiceStartTypeString(startType), FALSE);
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhGetServiceErrorControlString(errorControl), FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhGetServiceStartTypeString(startType)->Buffer, FALSE);
+            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhGetServiceErrorControlString(errorControl)->Buffer, FALSE);
 
             PhSetDialogItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
