@@ -9,8 +9,8 @@ extern WCHAR *PhServiceTypeStrings[12];
 extern WCHAR *PhServiceStartTypeStrings[5];
 extern WCHAR *PhServiceErrorControlStrings[4];
 
-PHLIBAPI
 _Success_(return != NULL)
+PHLIBAPI
 PVOID
 NTAPI
 PhEnumServices(
@@ -78,14 +78,14 @@ PhSetServiceDelayedAutoStart(
     );
 
 PHLIBAPI
-PWSTR
+PPH_STRINGREF
 NTAPI
 PhGetServiceStateString(
     _In_ ULONG ServiceState
     );
 
 PHLIBAPI
-PWSTR
+PPH_STRINGREF
 NTAPI
 PhGetServiceTypeString(
     _In_ ULONG ServiceType
@@ -99,7 +99,7 @@ PhGetServiceTypeInteger(
     );
 
 PHLIBAPI
-PWSTR
+PPH_STRINGREF
 NTAPI
 PhGetServiceStartTypeString(
     _In_ ULONG ServiceStartType
@@ -113,7 +113,7 @@ PhGetServiceStartTypeInteger(
     );
 
 PHLIBAPI
-PWSTR
+PPH_STRINGREF
 NTAPI
 PhGetServiceErrorControlString(
     _In_ ULONG ServiceErrorControl

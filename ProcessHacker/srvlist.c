@@ -695,18 +695,35 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 getCellText->Text = PhGetStringRef(serviceItem->DisplayName);
                 break;
             case PHSVTLC_TYPE:
-                PhInitializeStringRefLongHint(&getCellText->Text, PhGetServiceTypeString(serviceItem->Type));
+                {
+                    PPH_STRINGREF string;
+
+                    string = PhGetServiceTypeString(serviceItem->Type);
+                    getCellText->Text.Buffer = string->Buffer;
+                    getCellText->Text.Length = string->Length;
+                }
                 break;
             case PHSVTLC_STATUS:
-                PhInitializeStringRefLongHint(&getCellText->Text, PhGetServiceStateString(serviceItem->State));
+                {
+                    PPH_STRINGREF string;
+
+                    string = PhGetServiceStateString(serviceItem->State);
+                    getCellText->Text.Buffer = string->Buffer;
+                    getCellText->Text.Length = string->Length;
+                }
                 break;
             case PHSVTLC_STARTTYPE:
                 {
                     PH_FORMAT format[2];
+                    PPH_STRINGREF string;
                     PWSTR additional = NULL;
                     SIZE_T returnLength;
 
-                    PhInitFormatS(&format[0], PhGetServiceStartTypeString(serviceItem->StartType));
+                    string = PhGetServiceStartTypeString(serviceItem->StartType);
+                    format[0].Type = StringFormatType;
+                    format[0].u.String.Buffer = string->Buffer;
+                    format[0].u.String.Length = string->Length;
+                    //PhInitFormatSR(&format[0], PhGetServiceStartTypeString(serviceItem->StartType));
 
                     if (serviceItem->StartType == SERVICE_DISABLED)
                         additional = NULL;
@@ -743,7 +760,13 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->BinaryPath);
                 break;
             case PHSVTLC_ERRORCONTROL:
-                PhInitializeStringRefLongHint(&getCellText->Text, PhGetServiceErrorControlString(serviceItem->ErrorControl));
+                {
+                    PPH_STRINGREF string;
+
+                    string = PhGetServiceErrorControlString(serviceItem->ErrorControl);
+                    getCellText->Text.Buffer = string->Buffer;
+                    getCellText->Text.Length = string->Length;
+                }
                 break;
             case PHSVTLC_GROUP:
                 PhpUpdateServiceNodeConfig(node);
