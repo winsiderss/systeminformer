@@ -1839,4 +1839,70 @@ PhGetSystemShadowStackInformation(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetSystemProcessorIdleCycleTime(
+    _Out_ PLARGE_INTEGER Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformation(
+        SystemProcessorIdleCycleTimeInformation,
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetSystemProcessorIdleCycleTimeEx(
+    _In_ USHORT Group,
+    _Out_ PLARGE_INTEGER Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformationEx(
+        SystemProcessorIdleCycleTimeInformation,
+        &Group,
+        sizeof(Group),
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetSystemProcessorCycleTime(
+    _Out_ PLARGE_INTEGER Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformation(
+        SystemProcessorCycleTimeInformation,
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetSystemProcessorCycleTimeEx(
+    _In_ USHORT Group,
+    _Out_ PLARGE_INTEGER Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformationEx(
+        SystemProcessorCycleTimeInformation,
+        &Group,
+        sizeof(Group),
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
+
 #endif

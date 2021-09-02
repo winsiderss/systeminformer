@@ -1553,11 +1553,9 @@ VOID PhpUpdateCpuCycleInformation(
     // We need to query this separately because the idle cycle time in SYSTEM_PROCESS_INFORMATION
     // doesn't give us data for individual processors.
 
-    NtQuerySystemInformation(
-        SystemProcessorIdleCycleTimeInformation,
+    PhGetSystemProcessorIdleCycleTime(
         PhCpuIdleCycleTime,
-        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
-        NULL
+        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
         );
 
     total = 0;
@@ -1573,11 +1571,9 @@ VOID PhpUpdateCpuCycleInformation(
 
     // System
 
-    NtQuerySystemInformation(
-        SystemProcessorCycleTimeInformation,
+    PhGetSystemProcessorCycleTime(
         PhCpuSystemCycleTime,
-        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
-        NULL
+        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
         );
 
     total = 0;

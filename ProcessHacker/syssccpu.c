@@ -1384,6 +1384,10 @@ NTSTATUS PhSipQueryProcessorLogicalInformation(
     ULONG bufferSize;
     ULONG attempts;
 
+    //PROCESSOR_NUMBER processorNumber;
+    //RtlGetCurrentProcessorNumberEx(&processorNumber);
+    //NtQuerySystemInformationEx(&processorNumber.Group, sizeof(processorNumber.Group), SystemLogicalProcessorInformation)
+
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
 
@@ -1402,6 +1406,57 @@ NTSTATUS PhSipQueryProcessorLogicalInformation(
 
         status = NtQuerySystemInformation(
             SystemLogicalProcessorInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+        attempts++;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+        *BufferLength = bufferSize;
+    }
+    else
+        PhFree(buffer);
+
+    return status;
+}
+
+NTSTATUS PhSipQueryProcessorLogicalInformationEx(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
+    _Out_ PVOID *Buffer,
+    _Out_ PULONG BufferLength
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG attempts;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQuerySystemInformationEx(
+        SystemLogicalProcessorAndGroupInformation,
+        &RelationshipType,
+        sizeof(LOGICAL_PROCESSOR_RELATIONSHIP),
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+    attempts = 0;
+
+    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQuerySystemInformationEx(
+            SystemLogicalProcessorAndGroupInformation,
+            &RelationshipType,
+            sizeof(LOGICAL_PROCESSOR_RELATIONSHIP),
             buffer,
             bufferSize,
             &bufferSize
