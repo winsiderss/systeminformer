@@ -906,49 +906,19 @@ VOID PhpProcessQueryStage1(
         //
         // First try to use the new API if it makes sense to.
         //
-        if ((WindowsVersion >= WINDOWS_10_21H1) && processItem->QueryHandle)
+        if (WindowsVersion >= WINDOWS_11 && processItem->QueryHandle)
         {
-            ULONG returnLength;
-            PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION arches;
+            USHORT processArchitecture;
 
-            //
-            // Essentially KernelBase!QueryProcessMachine
-            //
-
-            arches = PhAllocate(sizeof(*arches) * 5);
-            status = NtQuerySystemInformationEx(SystemSupportedProcessorArchitectures2,
-                                                &processItem->QueryHandle,
-                                                sizeof(processItem->QueryHandle),
-                                                arches,
-                                                (sizeof(*arches) * 5),
-                                                &returnLength);
-            if (status == STATUS_BUFFER_TOO_SMALL)
-            {
-                arches = PhReAllocate(arches, returnLength);
-                status = NtQuerySystemInformationEx(SystemSupportedProcessorArchitectures2,
-                                                    &processItem->QueryHandle,
-                                                    sizeof(processItem->QueryHandle),
-                                                    arches,
-                                                    returnLength,
-                                                    &returnLength);
-            }
+            status = PhGetProcessArchitecture(
+                processItem->QueryHandle,
+                &processArchitecture
+                );
 
             if (NT_SUCCESS(status))
             {
-                status = STATUS_NOT_FOUND;
-                for (ULONG i = 0; i < returnLength / sizeof(*arches); i++)
-                {
-                    if (arches[i].Process)
-                    {
-                        Data->Architecture = (WORD)arches[i].Machine;
-                        status = STATUS_SUCCESS;
-                        break;
-                    }
-                }
-
+                Data->Architecture = processArchitecture;
             }
-
-            PhFree(arches);
         }
 
         //
@@ -969,7 +939,7 @@ VOID PhpProcessQueryStage1(
                                              &mappedImage);
                 if (NT_SUCCESS(status))
                 {
-                    Data->Architecture = (WORD)mappedImage.NtHeaders->FileHeader.Machine;
+                    Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
                     PhUnloadMappedImage(&mappedImage);
                 }
             }
