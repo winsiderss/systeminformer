@@ -402,16 +402,16 @@ BOOLEAN ServiceTreeFilterCallback(
     if (PhIsNullOrEmptyString(SearchboxText))
         return TRUE;
 
-    if (WordMatchStringZ(PhGetServiceTypeString(serviceNode->ServiceItem->Type)))
+    if (WordMatchStringRef(PhGetServiceTypeString(serviceNode->ServiceItem->Type)))
         return TRUE;
 
-    if (WordMatchStringZ(PhGetServiceStateString(serviceNode->ServiceItem->State)))
+    if (WordMatchStringRef(PhGetServiceStateString(serviceNode->ServiceItem->State)))
         return TRUE;
 
-    if (WordMatchStringZ(PhGetServiceStartTypeString(serviceNode->ServiceItem->StartType)))
+    if (WordMatchStringRef(PhGetServiceStartTypeString(serviceNode->ServiceItem->StartType)))
         return TRUE;
 
-    if (WordMatchStringZ(PhGetServiceErrorControlString(serviceNode->ServiceItem->ErrorControl)))
+    if (WordMatchStringRef(PhGetServiceErrorControlString(serviceNode->ServiceItem->ErrorControl)))
         return TRUE;
 
     if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->Name))

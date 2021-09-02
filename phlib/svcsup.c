@@ -28,48 +28,51 @@
 #define SIP(String, Integer) \
     { (String), (PVOID)(Integer) }
 
+#define SREF(String) (PVOID)&(PH_STRINGREF)PH_STRINGREF_INIT((String))
+static PH_STRINGREF PhpServiceUnknownString = PH_STRINGREF_INIT(L"Unknown");
+
 static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
 {
-    SIP(L"Stopped", SERVICE_STOPPED),
-    SIP(L"Start pending", SERVICE_START_PENDING),
-    SIP(L"Stop pending", SERVICE_STOP_PENDING),
-    SIP(L"Running", SERVICE_RUNNING),
-    SIP(L"Continue pending", SERVICE_CONTINUE_PENDING),
-    SIP(L"Pause pending", SERVICE_PAUSE_PENDING),
-    SIP(L"Paused", SERVICE_PAUSED)
+    SIP(SREF(L"Stopped"), SERVICE_STOPPED),
+    SIP(SREF(L"Start pending"), SERVICE_START_PENDING),
+    SIP(SREF(L"Stop pending"), SERVICE_STOP_PENDING),
+    SIP(SREF(L"Running"), SERVICE_RUNNING),
+    SIP(SREF(L"Continue pending"), SERVICE_CONTINUE_PENDING),
+    SIP(SREF(L"Pause pending"), SERVICE_PAUSE_PENDING),
+    SIP(SREF(L"Paused"), SERVICE_PAUSED)
 };
 
 static PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
 {
-    SIP(L"Driver", SERVICE_KERNEL_DRIVER),
-    SIP(L"FS driver", SERVICE_FILE_SYSTEM_DRIVER),
-    SIP(L"Own process", SERVICE_WIN32_OWN_PROCESS),
-    SIP(L"Share process", SERVICE_WIN32_SHARE_PROCESS),
-    SIP(L"Own interactive process", SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS),
-    SIP(L"Share interactive process", SERVICE_WIN32_SHARE_PROCESS | SERVICE_INTERACTIVE_PROCESS),
-    SIP(L"User own process", SERVICE_USER_OWN_PROCESS),
-    SIP(L"User own process (instance)", SERVICE_USER_OWN_PROCESS | SERVICE_USERSERVICE_INSTANCE),
-    SIP(L"User share process", SERVICE_USER_SHARE_PROCESS),
-    SIP(L"User share process (instance)", SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE),
-    SIP(L"Package own process", SERVICE_PKG_SERVICE | SERVICE_WIN32_OWN_PROCESS),
-    SIP(L"Package share process", SERVICE_PKG_SERVICE | SERVICE_WIN32_SHARE_PROCESS),
+    SIP(SREF(L"Driver"), SERVICE_KERNEL_DRIVER),
+    SIP(SREF(L"FS driver"), SERVICE_FILE_SYSTEM_DRIVER),
+    SIP(SREF(L"Own process"), SERVICE_WIN32_OWN_PROCESS),
+    SIP(SREF(L"Share process"), SERVICE_WIN32_SHARE_PROCESS),
+    SIP(SREF(L"Own interactive process"), SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS),
+    SIP(SREF(L"Share interactive process"), SERVICE_WIN32_SHARE_PROCESS | SERVICE_INTERACTIVE_PROCESS),
+    SIP(SREF(L"User own process"), SERVICE_USER_OWN_PROCESS),
+    SIP(SREF(L"User own process (instance)"), SERVICE_USER_OWN_PROCESS | SERVICE_USERSERVICE_INSTANCE),
+    SIP(SREF(L"User share process"), SERVICE_USER_SHARE_PROCESS),
+    SIP(SREF(L"User share process (instance)"), SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE),
+    SIP(SREF(L"Package own process"), SERVICE_PKG_SERVICE | SERVICE_WIN32_OWN_PROCESS),
+    SIP(SREF(L"Package share process"), SERVICE_PKG_SERVICE | SERVICE_WIN32_SHARE_PROCESS),
 };
 
 static PH_KEY_VALUE_PAIR PhpServiceStartTypePairs[] =
 {
-    SIP(L"Disabled", SERVICE_DISABLED),
-    SIP(L"Boot start", SERVICE_BOOT_START),
-    SIP(L"System start", SERVICE_SYSTEM_START),
-    SIP(L"Auto start", SERVICE_AUTO_START),
-    SIP(L"Demand start", SERVICE_DEMAND_START)
+    SIP(SREF(L"Disabled"), SERVICE_DISABLED),
+    SIP(SREF(L"Boot start"), SERVICE_BOOT_START),
+    SIP(SREF(L"System start"), SERVICE_SYSTEM_START),
+    SIP(SREF(L"Auto start"), SERVICE_AUTO_START),
+    SIP(SREF(L"Demand start"), SERVICE_DEMAND_START)
 };
 
 static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
 {
-    SIP(L"Ignore", SERVICE_ERROR_IGNORE),
-    SIP(L"Normal", SERVICE_ERROR_NORMAL),
-    SIP(L"Severe", SERVICE_ERROR_SEVERE),
-    SIP(L"Critical", SERVICE_ERROR_CRITICAL)
+    SIP(SREF(L"Ignore"), SERVICE_ERROR_IGNORE),
+    SIP(SREF(L"Normal"), SERVICE_ERROR_NORMAL),
+    SIP(SREF(L"Severe"), SERVICE_ERROR_SEVERE),
+    SIP(SREF(L"Critical"), SERVICE_ERROR_CRITICAL)
 };
 
 PWSTR PhServiceTypeStrings[] =
@@ -105,6 +108,7 @@ PWSTR PhServiceErrorControlStrings[4] =
     L"Critical"
 };
 
+_Success_(return != NULL)
 PVOID PhEnumServices(
     _In_ SC_HANDLE ScManagerHandle,
     _In_opt_ ULONG Type,
@@ -383,38 +387,38 @@ BOOLEAN PhSetServiceDelayedAutoStart(
         );
 }
 
-PWSTR PhGetServiceStateString(
+PPH_STRINGREF PhGetServiceStateString(
     _In_ ULONG ServiceState
     )
 {
-    PWSTR string;
+    PPH_STRINGREF string;
 
     if (PhFindStringSiKeyValuePairs(
         PhpServiceStatePairs,
         sizeof(PhpServiceStatePairs),
         ServiceState,
-        &string
+        (PWSTR*)&string
         ))
         return string;
     else
-        return L"Unknown";
+        return &PhpServiceUnknownString;
 }
 
-PWSTR PhGetServiceTypeString(
+PPH_STRINGREF PhGetServiceTypeString(
     _In_ ULONG ServiceType
     )
 {
-    PWSTR string;
+    PPH_STRINGREF string;
 
     if (PhFindStringSiKeyValuePairs(
         PhpServiceTypePairs,
         sizeof(PhpServiceTypePairs),
         ServiceType,
-        &string
+        (PWSTR*)&string
         ))
         return string;
     else
-        return L"Unknown";
+        return &PhpServiceUnknownString;
 }
 
 ULONG PhGetServiceTypeInteger(
@@ -434,21 +438,21 @@ ULONG PhGetServiceTypeInteger(
         return ULONG_MAX;
 }
 
-PWSTR PhGetServiceStartTypeString(
+PPH_STRINGREF PhGetServiceStartTypeString(
     _In_ ULONG ServiceStartType
     )
 {
-    PWSTR string;
+    PPH_STRINGREF string;
 
     if (PhFindStringSiKeyValuePairs(
         PhpServiceStartTypePairs,
         sizeof(PhpServiceStartTypePairs),
         ServiceStartType,
-        &string
+        (PWSTR*)&string
         ))
         return string;
     else
-        return L"Unknown";
+        return &PhpServiceUnknownString;
 }
 
 ULONG PhGetServiceStartTypeInteger(
@@ -468,21 +472,21 @@ ULONG PhGetServiceStartTypeInteger(
         return ULONG_MAX;
 }
 
-PWSTR PhGetServiceErrorControlString(
+PPH_STRINGREF PhGetServiceErrorControlString(
     _In_ ULONG ServiceErrorControl
     )
 {
-    PWSTR string;
+    PPH_STRINGREF string;
 
     if (PhFindStringSiKeyValuePairs(
         PhpServiceErrorControlPairs,
         sizeof(PhpServiceErrorControlPairs),
         ServiceErrorControl,
-        &string
+        (PWSTR*)&string
         ))
         return string;
     else
-        return L"Unknown";
+        return &PhpServiceUnknownString;
 }
 
 ULONG PhGetServiceErrorControlInteger(
