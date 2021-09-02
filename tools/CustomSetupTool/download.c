@@ -338,7 +338,7 @@ CleanupExit:
         WinHttpCloseHandle(httpSessionHandle);
 
     if (jsonObject)
-        PhFreeJsonParser(jsonObject);
+        PhFreeJsonObject(jsonObject);
 
     if (stringBuffer)
         PhFree(stringBuffer);
