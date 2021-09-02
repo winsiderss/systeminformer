@@ -10217,7 +10217,7 @@ NTSTATUS PhGetProcessArchitecture(
 {
     USHORT architecture;
     NTSTATUS status;
-    PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION buffer;
+    SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION* buffer;
     ULONG bufferLength;
     ULONG returnLength;
 
