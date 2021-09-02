@@ -1381,7 +1381,7 @@ NTSYSCALLAPI
 ULONG
 NTAPI
 NtGetCurrentProcessorNumberEx(
-    _Out_opt_ PPROCESSOR_NUMBER ProcNumber
+    _Out_opt_ PPROCESSOR_NUMBER ProcessorNumber
     );
 #endif
 
