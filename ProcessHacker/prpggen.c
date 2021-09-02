@@ -108,7 +108,7 @@ PPH_STRING PhGetProcessItemImageTypeText(
     case IMAGE_FILE_MACHINE_AMD64:
         arch = L"AMD64 ";
         break;
-    case IMAGE_FILE_MACHINE_ARM:
+    case IMAGE_FILE_MACHINE_ARMNT:
         arch = L"ARM ";
         break;
     case IMAGE_FILE_MACHINE_ARM64:
