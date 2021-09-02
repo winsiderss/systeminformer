@@ -1818,6 +1818,14 @@ PhQueryProcessHeapInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessArchitecture(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUSHORT ProcessArchitecture
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessCodePage(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessCodePage

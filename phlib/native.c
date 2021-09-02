@@ -10210,6 +10210,71 @@ NTSTATUS PhQueryProcessHeapInformation(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS PhGetProcessArchitecture(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUSHORT ProcessArchitecture
+    )
+{
+    USHORT architecture;
+    NTSTATUS status;
+    PSYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION buffer;
+    ULONG bufferLength;
+    ULONG returnLength;
+
+    // Essentially KernelBase!QueryProcessMachine (jxy-s)
+    bufferLength = sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[5]);
+    buffer = PhAllocate(bufferLength);
+
+    status = NtQuerySystemInformationEx(
+        SystemSupportedProcessorArchitectures2,
+        &ProcessHandle,
+        sizeof(ProcessHandle),
+        buffer,
+        bufferLength,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        PhFree(buffer);
+        bufferLength = returnLength;
+        buffer = PhAllocate(bufferLength);
+
+        status = NtQuerySystemInformationEx(
+            SystemSupportedProcessorArchitectures2,
+            &ProcessHandle,
+            sizeof(ProcessHandle),
+            buffer,
+            bufferLength,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = STATUS_NOT_FOUND;
+
+        for (ULONG i = 0; i < returnLength / sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION); i++)
+        {
+            if (buffer[i].Process)
+            {
+                architecture = (USHORT)buffer[i].Machine;
+                status = STATUS_SUCCESS;
+                break;
+            }
+        }
+    }
+
+    PhFree(buffer);
+
+    if (NT_SUCCESS(status))
+    {
+        *ProcessArchitecture = architecture;
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetProcessCodePage(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessCodePage
