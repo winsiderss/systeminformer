@@ -467,7 +467,7 @@ static int __cdecl AppdomainNodeTypeCompareFunction(
     PDNA_NODE node1 = *(PDNA_NODE *)elem1;
     PDNA_NODE node2 = *(PDNA_NODE *)elem2;
 
-    return uintcmp(node1->u.AppDomain.AppDomainType, node2->u.AppDomain.AppDomainType);
+    return uint64cmp(node1->u.AppDomain.AppDomainID, node2->u.AppDomain.AppDomainID);
 }
 
 VOID DotNetAsmExpandAllTreeNodes(
