@@ -57,6 +57,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageImportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageSectionsTreeListColumns", L"");
     PhpAddStringSetting(L"ImageSectionsTreeListSort", L"0,1"); // 0, AscendingSortOrder
+    PhpAddIntegerSetting(L"ImageSectionsTreeListFlags", L"1e0");
     PhpAddStringSetting(L"ImageResourcesTreeListColumns", L"");
     PhpAddStringSetting(L"ImageResourcesTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");

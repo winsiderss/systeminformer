@@ -94,6 +94,24 @@ typedef struct _PV_SECTION_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
 
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Reserved : 1;
+            ULONG HideWriteSection : 1;
+            ULONG HideExecuteSection : 1;
+            ULONG HideCodeSection : 1;
+            ULONG HideReadSection : 1;
+            ULONG HighlightWriteSection : 1;
+            ULONG HighlightExecuteSection : 1;
+            ULONG HighlightCodeSection : 1;
+            ULONG HighlightReadSection : 1;
+            ULONG Spare : 23;
+        };
+    };
+
     ULONG SearchResultsAddIndex;
     PPH_LIST SearchResults;
     PH_QUEUED_LOCK SearchResultsLock;
@@ -105,6 +123,24 @@ typedef struct _PV_SECTION_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
 } PV_SECTION_CONTEXT, *PPV_SECTION_CONTEXT;
+
+typedef enum _SECTION_TREE_MENU_ITEM
+{
+    SECTION_TREE_MENU_ITEM_HIDE_WRITE = 1,
+    SECTION_TREE_MENU_ITEM_HIDE_EXECUTE,
+    SECTION_TREE_MENU_ITEM_HIDE_CODE,
+    SECTION_TREE_MENU_ITEM_HIDE_READ,
+    SECTION_TREE_MENU_ITEM_HIGHLIGHT_WRITE,
+    SECTION_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE,
+    SECTION_TREE_MENU_ITEM_HIGHLIGHT_CODE,
+    SECTION_TREE_MENU_ITEM_HIGHLIGHT_READ,
+    SECTION_TREE_MENU_ITEM_MAXIMUM
+} SECTION_TREE_MENU_ITEM;
+
+VOID PvSetOptionsSectionList(
+    _Inout_ PPV_SECTION_CONTEXT Context,
+    _In_ ULONG Options
+    );
 
 BOOLEAN PvSectionNodeHashtableCompareFunction(
     _In_ PVOID Entry1,
@@ -545,6 +581,82 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
                 }
                 break;
             }
+
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDC_SETTINGS:
+                {
+                    RECT rect;
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM writableMenuItem;
+                    PPH_EMENU_ITEM executableMenuItem;
+                    PPH_EMENU_ITEM codeMenuItem;
+                    PPH_EMENU_ITEM readMenuItem;
+                    PPH_EMENU_ITEM highlightWriteMenuItem;
+                    PPH_EMENU_ITEM highlightExecuteMenuItem;
+                    PPH_EMENU_ITEM highlightCodeMenuItem;
+                    PPH_EMENU_ITEM highlightReadMenuItem;
+                    PPH_EMENU_ITEM selectedItem;
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
+
+                    writableMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIDE_WRITE, L"Hide writable", NULL, NULL);
+                    executableMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIDE_EXECUTE, L"Hide executable", NULL, NULL);
+                    codeMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIDE_CODE, L"Hide code", NULL, NULL);
+                    readMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIDE_READ, L"Hide readable", NULL, NULL);
+                    highlightWriteMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIGHLIGHT_WRITE, L"Highlight writable", NULL, NULL);
+                    highlightExecuteMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE, L"Highlight executable", NULL, NULL);
+                    highlightCodeMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIGHLIGHT_CODE, L"Highlight code", NULL, NULL);
+                    highlightReadMenuItem = PhCreateEMenuItem(0, SECTION_TREE_MENU_ITEM_HIGHLIGHT_READ, L"Highlight readable", NULL, NULL);
+
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, writableMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, executableMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, codeMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, readMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightWriteMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightExecuteMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightCodeMenuItem, ULONG_MAX);
+                    PhInsertEMenuItem(menu, highlightReadMenuItem, ULONG_MAX);
+
+                    if (context->HideWriteSection)
+                        writableMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideExecuteSection)
+                        executableMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideCodeSection)
+                        codeMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HideReadSection)
+                        readMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightWriteSection)
+                        highlightWriteMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightExecuteSection)
+                        highlightExecuteMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightCodeSection)
+                        highlightCodeMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (context->HighlightReadSection)
+                        highlightReadMenuItem->Flags |= PH_EMENU_CHECKED;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        rect.left,
+                        rect.bottom
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        PvSetOptionsSectionList(context, selectedItem->Id);
+                        PhSaveSettingsSectionList(context);
+                        PhApplyTreeNewFilters(&context->FilterSupport);
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+                break;
+            }
         }
         break;
     case WM_PV_SEARCH_FINISHED:
@@ -622,7 +734,7 @@ VOID PhLoadSettingsSectionList(
     
     settings = PhGetStringSetting(L"ImageSectionsTreeListColumns");
     sortSettings = PhGetStringSetting(L"ImageSectionsTreeListSort");
-    //Context->Flags = PhGetIntegerSetting(L"ImageSectionsTreeListFlags");
+    Context->Flags = PhGetIntegerSetting(L"ImageSectionsTreeListFlags");
 
     PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &settings->sr, &sortSettings->sr);
 
@@ -639,7 +751,7 @@ VOID PhSaveSettingsSectionList(
     
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
     
-    //PhSetIntegerSetting(L"ImageSectionsTreeListFlags", Context->Flags);
+    PhSetIntegerSetting(L"ImageSectionsTreeListFlags", Context->Flags);
     PhSetStringSetting2(L"ImageSectionsTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ImageSectionsTreeListSort", &sortSettings->sr);
     
@@ -789,6 +901,40 @@ VOID PvDestroySectionNode(
     //    PhDereferenceObject(Node->TlshString);
 
     PhFree(Node);
+}
+
+VOID PvSetOptionsSectionList(
+    _Inout_ PPV_SECTION_CONTEXT Context,
+    _In_ ULONG Options
+    )
+{
+    switch (Options)
+    {
+    case SECTION_TREE_MENU_ITEM_HIDE_WRITE:
+        Context->HideWriteSection = !Context->HideWriteSection;
+        break;
+    case SECTION_TREE_MENU_ITEM_HIDE_EXECUTE:
+        Context->HideExecuteSection = !Context->HideExecuteSection;
+        break;
+    case SECTION_TREE_MENU_ITEM_HIDE_CODE:
+        Context->HideCodeSection = !Context->HideCodeSection;
+        break;
+    case SECTION_TREE_MENU_ITEM_HIDE_READ:
+        Context->HideReadSection = !Context->HideReadSection;
+        break;
+    case SECTION_TREE_MENU_ITEM_HIGHLIGHT_WRITE:
+        Context->HighlightWriteSection = !Context->HighlightWriteSection;
+        break;
+    case SECTION_TREE_MENU_ITEM_HIGHLIGHT_EXECUTE:
+        Context->HighlightExecuteSection = !Context->HighlightExecuteSection;
+        break;
+    case SECTION_TREE_MENU_ITEM_HIGHLIGHT_CODE:
+        Context->HighlightCodeSection = !Context->HighlightCodeSection;
+        break;
+    case SECTION_TREE_MENU_ITEM_HIGHLIGHT_READ:
+        Context->HighlightReadSection = !Context->HighlightReadSection;
+        break;
+    }
 }
 
 #define SORT_FUNCTION(Column) PvSectionTreeNewCompare##Column
@@ -1025,18 +1171,18 @@ BOOLEAN NTAPI PvSectionTreeNewCallback(
 
             node = (PPV_SECTION_NODE)getNodeColor->Node;
 
-            //if (!node)
-            //    NOTHING; // Dummy
-            //else if (node->Characteristics & IMAGE_SCN_MEM_WRITE)
-            //    getNodeColor->BackColor = RGB(0xf0, 0xa0, 0xa0);
-            //else if (node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
-            //    getNodeColor->BackColor = RGB(0xff, 0x93, 0x14);
-            //else if (node->Characteristics & IMAGE_SCN_CNT_CODE)
-            //    getNodeColor->BackColor = RGB(0xe0, 0xf0, 0xe0);
-            //else if (node->Characteristics & IMAGE_SCN_MEM_READ)
-            //    getNodeColor->BackColor = RGB(0xc0, 0xf0, 0xc0);
+            if (!node)
+                NOTHING; // Dummy
+            else if (context->HighlightWriteSection && node->Characteristics & IMAGE_SCN_MEM_WRITE)
+                getNodeColor->BackColor = RGB(0xf0, 0xa0, 0xa0);
+            else if (context->HighlightExecuteSection && node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+                getNodeColor->BackColor = RGB(0xff, 0x93, 0x14);
+            else if (context->HighlightCodeSection && node->Characteristics & IMAGE_SCN_CNT_CODE)
+                getNodeColor->BackColor = RGB(0xe0, 0xf0, 0xe0);
+            else if (context->HighlightReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
+                getNodeColor->BackColor = RGB(0xc0, 0xf0, 0xc0);
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
@@ -1224,6 +1370,15 @@ BOOLEAN PvSectionTreeFilterCallback(
 {
     PPV_SECTION_CONTEXT context = Context;
     PPV_SECTION_NODE node = (PPV_SECTION_NODE)Node;
+
+    if (context->HideWriteSection && node->Characteristics & IMAGE_SCN_MEM_WRITE)
+        return FALSE;
+    if (context->HideExecuteSection && node->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+        return FALSE;
+    if (context->HideCodeSection && node->Characteristics & IMAGE_SCN_CNT_CODE)
+        return FALSE;
+    if (context->HideReadSection && node->Characteristics & IMAGE_SCN_MEM_READ)
+        return FALSE;
 
     if (PhIsNullOrEmptyString(context->SearchboxText))
         return TRUE;
