@@ -418,18 +418,15 @@ VOID NTAPI LayoutPaddingCallback(
         GetClientRect(PhMainWindowHandle, &clientRect);
         GetClientRect(RebarHandle, &rebarRect);
 
-        //SendMessage(RebarHandle, WM_SIZE, 0, 0);
         SetWindowPos(
             RebarHandle,
             NULL,
-            rebarRect.left,
+            layoutPadding->Padding.left,
             layoutPadding->Padding.top,
             clientRect.right - clientRect.left,
             rebarRect.bottom - rebarRect.top,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
-
-        UpdateWindow(RebarHandle);
 
         // Adjust the PH client area and exclude the rebar width.
         layoutPadding->Padding.top += rebarRect.bottom;
