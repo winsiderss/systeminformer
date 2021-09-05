@@ -3797,7 +3797,7 @@ RtlComputePrivatizedDllName_U(
 
 // rev
 NTSYSAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 RtlGetSearchPath(
     _Out_ PWSTR *SearchPath
@@ -3813,10 +3813,11 @@ RtlSetSearchPathMode(
 
 // rev
 NTSYSAPI
-PWSTR
+NTSTATUS
 NTAPI
 RtlGetExePath(
-    VOID
+    _In_ PCWSTR DosPathName,
+    _Out_ PWSTR* SearchPath
     );
 
 #endif
