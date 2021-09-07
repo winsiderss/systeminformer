@@ -3,7 +3,7 @@
  *   service list
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -140,6 +140,7 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFICATIONSTATUS, FALSE, L"Verification status", 70, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_VERIFIEDSIGNER, FALSE, L"Verified signer", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -422,7 +423,6 @@ static VOID PhpUpdateServiceNodeKey(
     if (!(ServiceNode->ValidMask & PHSN_KEY))
     {
         static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
-
         HANDLE keyHandle;
         PPH_STRING keyName;
 
@@ -637,7 +637,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(KeyModifiedTime),
                     SORT_FUNCTION(VerificationStatus),
                     SORT_FUNCTION(VerifiedSigner),
-                    SORT_FUNCTION(FileName)
+                    SORT_FUNCTION(FileName),
+                    SORT_FUNCTION(KeyModifiedTime), // Timeline
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -886,6 +887,42 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             else
             {
                 return FALSE;
+            }
+        }
+        return TRUE;
+    case TreeNewCustomDraw:
+        {
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
+            PPH_SERVICE_ITEM serviceItem;
+            RECT rect;
+
+            if (!customDraw)
+                break;
+
+            node = (PPH_SERVICE_NODE)customDraw->Node;
+            serviceItem = node->ServiceItem;
+            rect = customDraw->CellRect;
+
+            if (rect.right - rect.left <= 1)
+                break; // nothing to draw
+
+            switch (customDraw->Column->Id)
+            {
+            case PHSVTLC_TIMELINE:
+                {
+                    PhpUpdateServiceNodeKey(node);
+
+                    if (node->KeyLastWriteTime.QuadPart == 0)
+                        break; // nothing to draw
+
+                    PhCustomDrawTreeTimeLine(
+                        customDraw->Dc,
+                        customDraw->CellRect,
+                        PhEnableThemeSupport,
+                        &node->KeyLastWriteTime
+                        );
+                }
+                break;
             }
         }
         return TRUE;
