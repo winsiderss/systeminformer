@@ -2435,7 +2435,8 @@ BOOLEAN PhImageListDrawEx(
 VOID PhCustomDrawTreeTimeLine(
     _In_ HDC Hdc,
     _In_ RECT CellRect,
-    _In_ BOOLEAN DarkTheme,
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER StartTime,
     _In_ PLARGE_INTEGER CreateTime
     )
 {
@@ -2445,48 +2446,57 @@ VOID PhCustomDrawTreeTimeLine(
     RECT rect = CellRect;
     RECT borderRect = CellRect;
     FLOAT percent = 0;
-    static LARGE_INTEGER bootTime = { 0 };
     LARGE_INTEGER systemTime;
     LARGE_INTEGER startTime;
     LARGE_INTEGER createTime;
 
-    if (bootTime.QuadPart == 0)
+    if (StartTime)
     {
-        SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+        PhQuerySystemTime(&systemTime);
+        startTime.QuadPart = systemTime.QuadPart - StartTime->QuadPart;
+        createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
+    }
+    else
+    {
+        static LARGE_INTEGER bootTime = { 0 };
 
-        if (NT_SUCCESS(NtQuerySystemInformation(
-            SystemTimeOfDayInformation,
-            &timeOfDayInfo,
-            sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
-            NULL
-            )))
+        if (bootTime.QuadPart == 0)
         {
-            bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
-            bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
-            bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
+            SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+
+            if (NT_SUCCESS(NtQuerySystemInformation(
+                SystemTimeOfDayInformation,
+                &timeOfDayInfo,
+                sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+                NULL
+                )))
+            {
+                bootTime.LowPart = timeOfDayInfo.BootTime.LowPart;
+                bootTime.HighPart = timeOfDayInfo.BootTime.HighPart;
+                bootTime.QuadPart -= timeOfDayInfo.BootTimeBias;
+            }
+
+            //if (NT_SUCCESS(NtQuerySystemInformation(
+            //    SystemTimeOfDayInformation,
+            //    &timeOfDayInfo,
+            //    RTL_SIZEOF_THROUGH_FIELD(SYSTEM_TIMEOFDAY_INFORMATION, CurrentTime),
+            //    NULL
+            //    )))
+            //{
+            //    startTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
+            //    createTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - processItem->CreateTime.QuadPart;
+            //    percent = round((DOUBLE)((FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100));
+            //}
         }
 
-        //if (NT_SUCCESS(NtQuerySystemInformation(
-        //    SystemTimeOfDayInformation,
-        //    &timeOfDayInfo,
-        //    RTL_SIZEOF_THROUGH_FIELD(SYSTEM_TIMEOFDAY_INFORMATION, CurrentTime),
-        //    NULL
-        //    )))
-        //{
-        //    startTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart;
-        //    createTime.QuadPart = timeOfDayInfo.CurrentTime.QuadPart - processItem->CreateTime.QuadPart;
-        //    percent = round((DOUBLE)((FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100));
-        //}
+        PhQuerySystemTime(&systemTime);
+        startTime.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
+        createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
     }
 
-    PhQuerySystemTime(&systemTime);
-    startTime.QuadPart = systemTime.QuadPart - bootTime.QuadPart;
-    createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
     percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
-    // Prevent overflow from changing the system time to an earlier date.
-    if (percent > 100.f) percent = 100.f;
 
-    if (DarkTheme)
+    if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
         FillRect(Hdc, &rect, PhMenuBackgroundBrush);
     else
         FillRect(Hdc, &rect, GetSysColorBrush(COLOR_WINDOW));
@@ -2494,20 +2504,32 @@ VOID PhCustomDrawTreeTimeLine(
     PhInflateRect(&rect, -1, -1);
     rect.bottom += 1;
 
-    if (DarkTheme)
+    if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
     {
         FillRect(Hdc, &rect, PhMenuBackgroundBrush);
-        SetDCBrushColor(Hdc, RGB(0, 130, 135));
+
+        if (Flags & PH_DRAW_TIMELINE_OVERFLOW) // System threads created before startup. (dmex)
+            SetDCBrushColor(Hdc, percent > 100.f ? RGB(128, 128, 128) : RGB(0, 130, 135));
+        else
+            SetDCBrushColor(Hdc, RGB(0, 130, 135));
+
         previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
     }
     else
     {
         FillRect(Hdc, &rect, GetSysColorBrush(COLOR_3DFACE));
-        SetDCBrushColor(Hdc, RGB(158, 202, 158));
+
+        if (Flags & PH_DRAW_TIMELINE_OVERFLOW) // System threads created before startup. (dmex)
+            SetDCBrushColor(Hdc, percent > 100.f ? RGB(128, 128, 128) : RGB(158, 202, 158));
+        else
+            SetDCBrushColor(Hdc, RGB(158, 202, 158));
+
         previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
     }
 
-    // TODO: This still loses a small fraction of precision compared to PE here causing a 1px difference.
+    // Prevent overflow from changing the system time to an earlier date. (dmex)
+    if (percent > 100.f) percent = 100.f;
+    // TODO: This still loses a small fraction of precision compared to PE here causing a 1px difference. (dmex)
     //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
     //rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
     rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));

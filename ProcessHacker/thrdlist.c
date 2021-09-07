@@ -1386,7 +1386,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     PhCustomDrawTreeTimeLine(
                         customDraw->Dc,
                         customDraw->CellRect,
-                        PhEnableThemeSupport,
+                        PhEnableThemeSupport ? PH_DRAW_TIMELINE_OVERFLOW | PH_DRAW_TIMELINE_DARKTHEME : PH_DRAW_TIMELINE_OVERFLOW,
+                        &context->ProcessCreateTime,
                         &threadItem->CreateTime
                         );
                 }
