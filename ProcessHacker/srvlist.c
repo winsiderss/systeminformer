@@ -430,18 +430,38 @@ static VOID PhpUpdateServiceNodeKey(
 
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,
-            KEY_READ,
+            KEY_QUERY_VALUE,
             PH_KEY_LOCAL_MACHINE,
             &keyName->sr,
             0
             )))
         {
-            PKEY_BASIC_INFORMATION basicInfo;
+            NTSTATUS status;
+            KEY_BASIC_INFORMATION basicInfo = { 0 };
+            ULONG bufferLength = 0;
 
-            if (NT_SUCCESS(PhQueryKey(keyHandle, KeyBasicInformation, &basicInfo)))
+            status = NtQueryKey(
+                keyHandle,
+                KeyBasicInformation,
+                &basicInfo,
+                UFIELD_OFFSET(KEY_BASIC_INFORMATION, Name),
+                &bufferLength
+                );
+
+            // We can query the write time without allocating the key name. (dmex)
+            if (status == STATUS_SUCCESS || status == STATUS_BUFFER_OVERFLOW)
             {
-                ServiceNode->KeyLastWriteTime = basicInfo->LastWriteTime;
-                PhFree(basicInfo);
+                ServiceNode->KeyLastWriteTime = basicInfo.LastWriteTime;
+            }
+            else
+            {
+                PKEY_BASIC_INFORMATION buffer;
+
+                if (NT_SUCCESS(PhQueryKey(keyHandle, KeyBasicInformation, &buffer)))
+                {
+                    ServiceNode->KeyLastWriteTime = buffer->LastWriteTime;
+                    PhFree(buffer);
+                }
             }
 
             NtClose(keyHandle);
