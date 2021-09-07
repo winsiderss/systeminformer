@@ -3619,7 +3619,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhCustomDrawTreeTimeLine(
                             customDraw->Dc,
                             customDraw->CellRect,
-                            PhEnableThemeSupport,
+                            PhEnableThemeSupport ? PH_DRAW_TIMELINE_DARKTHEME : 0,
+                            NULL,
                             &processItem->CreateTime
                             );
                     }
@@ -3633,7 +3634,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhCustomDrawTreeTimeLine(
                             customDraw->Dc,
                             customDraw->CellRect,
-                            PhEnableThemeSupport,
+                            PhEnableThemeSupport ? PH_DRAW_TIMELINE_DARKTHEME : 0,
+                            NULL,
                             &createTime
                             );
                     }

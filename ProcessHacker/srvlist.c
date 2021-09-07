@@ -918,7 +918,8 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     PhCustomDrawTreeTimeLine(
                         customDraw->Dc,
                         customDraw->CellRect,
-                        PhEnableThemeSupport,
+                        PhEnableThemeSupport ? PH_DRAW_TIMELINE_DARKTHEME : 0,
+                        NULL,
                         &node->KeyLastWriteTime
                         );
                 }

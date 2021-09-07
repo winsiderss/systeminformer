@@ -1077,13 +1077,17 @@ PhImageListDrawEx(
     _In_ UINT Style
     );
 
+#define PH_DRAW_TIMELINE_OVERFLOW 0x1
+#define PH_DRAW_TIMELINE_DARKTHEME 0x2
+
 PHLIBAPI
 VOID
 NTAPI
 PhCustomDrawTreeTimeLine(
     _In_ HDC Hdc,
     _In_ RECT CellRect,
-    _In_ BOOLEAN DarkTheme,
+    _In_ ULONG Flags,
+    _In_opt_ PLARGE_INTEGER StartTime,
     _In_ PLARGE_INTEGER CreateTime
     );
 
