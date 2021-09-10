@@ -3820,6 +3820,14 @@ RtlGetExePath(
     _Out_ PWSTR* SearchPath
     );
 
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlReleasePath(
+    _In_ PWSTR Path
+    );
+
 #endif
 
 #if (PHNT_VERSION >= PHNT_20H1)
