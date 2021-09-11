@@ -835,6 +835,26 @@ BOOLEAN PhFindStringSiKeyValuePairs(
     return FALSE;
 }
 
+_Success_(return)
+BOOLEAN PhFindIntegerSiKeyValuePairsStringRef(
+    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ PPH_STRINGREF String,
+    _Out_ PULONG Integer
+    )
+{
+    for (ULONG i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    {
+        if (PhEqualStringRef(KeyValuePairs[i].Key, String, TRUE))
+        {
+            *Integer = PtrToUlong(KeyValuePairs[i].Value);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 /**
  * Creates a random (type 4) UUID.
  *

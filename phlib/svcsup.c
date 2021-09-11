@@ -422,12 +422,12 @@ PPH_STRINGREF PhGetServiceTypeString(
 }
 
 ULONG PhGetServiceTypeInteger(
-    _In_ PWSTR ServiceType
+    _In_ PPH_STRINGREF ServiceType
     )
 {
     ULONG integer;
 
-    if (PhFindIntegerSiKeyValuePairs(
+    if (PhFindIntegerSiKeyValuePairsStringRef(
         PhpServiceTypePairs,
         sizeof(PhpServiceTypePairs),
         ServiceType,
@@ -456,12 +456,12 @@ PPH_STRINGREF PhGetServiceStartTypeString(
 }
 
 ULONG PhGetServiceStartTypeInteger(
-    _In_ PWSTR ServiceStartType
+    _In_ PPH_STRINGREF ServiceStartType
     )
 {
     ULONG integer;
 
-    if (PhFindIntegerSiKeyValuePairs(
+    if (PhFindIntegerSiKeyValuePairsStringRef(
         PhpServiceStartTypePairs,
         sizeof(PhpServiceStartTypePairs),
         ServiceStartType,
@@ -490,12 +490,12 @@ PPH_STRINGREF PhGetServiceErrorControlString(
 }
 
 ULONG PhGetServiceErrorControlInteger(
-    _In_ PWSTR ServiceErrorControl
+    _In_ PPH_STRINGREF ServiceErrorControl
     )
 {
     ULONG integer;
 
-    if (PhFindIntegerSiKeyValuePairs(
+    if (PhFindIntegerSiKeyValuePairsStringRef(
         PhpServiceErrorControlPairs,
         sizeof(PhpServiceErrorControlPairs),
         ServiceErrorControl,

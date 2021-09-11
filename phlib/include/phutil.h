@@ -308,6 +308,17 @@ PhFindStringSiKeyValuePairs(
     _Out_ PWSTR *String
     );
 
+PHLIBAPI
+_Success_(return)
+BOOLEAN
+NTAPI
+PhFindIntegerSiKeyValuePairsStringRef(
+    _In_ PPH_KEY_VALUE_PAIR KeyValuePairs,
+    _In_ ULONG SizeOfKeyValuePairs,
+    _In_ PPH_STRINGREF String,
+    _Out_ PULONG Integer
+    );
+
 #define GUID_VERSION_MAC 1
 #define GUID_VERSION_DCE 2
 #define GUID_VERSION_MD5 3

@@ -111,9 +111,9 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                     serviceTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
                     serviceStartTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
                     serviceErrorControlString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
-                    serviceType = PhGetServiceTypeInteger(serviceTypeString->Buffer);
-                    serviceStartType = PhGetServiceStartTypeInteger(serviceStartTypeString->Buffer);
-                    serviceErrorControl = PhGetServiceErrorControlInteger(serviceErrorControlString->Buffer);
+                    serviceType = PhGetServiceTypeInteger(&serviceTypeString->sr);
+                    serviceStartType = PhGetServiceStartTypeInteger(&serviceStartTypeString->sr);
+                    serviceErrorControl = PhGetServiceErrorControlInteger(&serviceErrorControlString->sr);
 
                     serviceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
 

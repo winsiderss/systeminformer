@@ -95,7 +95,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetServiceTypeInteger(
-    _In_ PWSTR ServiceType
+    _In_ PPH_STRINGREF ServiceType
     );
 
 PHLIBAPI
@@ -109,7 +109,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetServiceStartTypeInteger(
-    _In_ PWSTR ServiceStartType
+    _In_ PPH_STRINGREF ServiceStartType
     );
 
 PHLIBAPI
@@ -123,7 +123,7 @@ PHLIBAPI
 ULONG
 NTAPI
 PhGetServiceErrorControlInteger(
-    _In_ PWSTR ServiceErrorControl
+    _In_ PPH_STRINGREF ServiceErrorControl
     );
 
 PHLIBAPI
