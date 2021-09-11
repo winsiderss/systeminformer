@@ -1315,8 +1315,33 @@ NTSYSAPI
 VOID
 NTAPI
 RtlFreeAnsiString(
-    _In_ PANSI_STRING AnsiString
+    _Inout_ _At_(AnsiString->Buffer, _Frees_ptr_opt_) PANSI_STRING AnsiString
     );
+
+#if (PHNT_VERSION >= PHNT_19H2)
+NTSYSAPI
+VOID
+NTAPI
+RtlInitUTF8String(
+    _Out_ PUTF8_STRING DestinationString,
+    _In_opt_z_ PCSZ SourceString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitUTF8StringEx(
+    _Out_ PUTF8_STRING DestinationString,
+    _In_opt_z_ PCSZ SourceString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFreeUTF8String(
+    _Inout_ _At_(utf8String->Buffer, _Frees_ptr_opt_) PUTF8_STRING Utf8String
+    );
+#endif
 
 NTSYSAPI
 VOID
@@ -1470,7 +1495,7 @@ NTSYSAPI
 VOID
 NTAPI
 RtlFreeUnicodeString(
-    _In_ PUNICODE_STRING UnicodeString
+    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
     );
 
 #define RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE (0x00000001)
@@ -1669,6 +1694,26 @@ RtlUnicodeStringToAnsiString(
     _In_ PUNICODE_STRING SourceString,
     _In_ BOOLEAN AllocateDestinationString
     );
+
+#if (PHNT_VERSION >= PHNT_19H2)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeStringToUTF8String(
+    _Inout_ PUTF8_STRING DestinationString,
+    _In_ PCUNICODE_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUTF8StringToUnicodeString(
+    _Inout_ PUNICODE_STRING DestinationString,
+    _In_ PUTF8_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString
+    );
+#endif
 
 NTSYSAPI
 WCHAR

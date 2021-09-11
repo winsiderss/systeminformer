@@ -132,6 +132,9 @@ typedef struct _STRING
     _Field_size_bytes_part_opt_(MaximumLength, Length) PCHAR Buffer;
 } STRING, *PSTRING, ANSI_STRING, *PANSI_STRING, OEM_STRING, *POEM_STRING;
 
+typedef STRING UTF8_STRING;
+typedef PSTRING PUTF8_STRING;
+
 typedef const STRING *PCSTRING;
 typedef const ANSI_STRING *PCANSI_STRING;
 typedef const OEM_STRING *PCOEM_STRING;
