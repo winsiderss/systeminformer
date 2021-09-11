@@ -503,9 +503,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     newServiceTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
                     newServiceStartTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
                     newServiceErrorControlString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
-                    newServiceType = PhGetServiceTypeInteger(newServiceTypeString->Buffer);
-                    newServiceStartType = PhGetServiceStartTypeInteger(newServiceStartTypeString->Buffer);
-                    newServiceErrorControl = PhGetServiceErrorControlInteger(newServiceErrorControlString->Buffer);
+                    newServiceType = PhGetServiceTypeInteger(&newServiceTypeString->sr);
+                    newServiceStartType = PhGetServiceStartTypeInteger(&newServiceStartTypeString->sr);
+                    newServiceErrorControl = PhGetServiceErrorControlInteger(&newServiceErrorControlString->sr);
 
                     if (PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_GROUP)))
                         newServiceGroup = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
