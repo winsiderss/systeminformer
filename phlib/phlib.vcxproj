@@ -129,7 +129,7 @@
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <AdditionalDependencies>thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -153,7 +153,7 @@
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <AdditionalDependencies>thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -175,7 +175,7 @@
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
       <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <AdditionalDependencies>thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -203,7 +203,7 @@
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <AdditionalDependencies>thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -231,7 +231,7 @@
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <AdditionalDependencies>thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -256,7 +256,7 @@
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
       <AdditionalLibraryDirectories>..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>thirdparty.lib</AdditionalDependencies>
+      <AdditionalDependencies>thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>

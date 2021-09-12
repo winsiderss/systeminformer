@@ -35,7 +35,7 @@
             <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
-            <AdditionalDependencies>ProcessHacker.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalDependencies>ProcessHacker.lib;thirdparty.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <SubSystem>Windows</SubSystem>
             <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
@@ -76,7 +76,7 @@
     <!-- ARM64 Builds -->
     <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
         <Link>
-            <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\arm64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\arm64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineARM64</TargetMachine>
             <MinimumRequiredVersion>10.0</MinimumRequiredVersion>
         </Link>
@@ -89,7 +89,7 @@
             <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\i386;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\i386;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineX86</TargetMachine>
             <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
         </Link>
@@ -101,7 +101,7 @@
             <CallingConvention>StdCall</CallingConvention>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalLibraryDirectories>$(SolutionDir)..\sdk\lib\amd64;$(SolutionDir)..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <TargetMachine>MachineX64</TargetMachine>
             <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
         </Link>
