@@ -71,8 +71,9 @@
 #include <string.h>
 
 
-// dmex: 
-#include "..\nettools.h"
+#include <phbase.h>
+#include <phnative.h> // dmex
+
 
 
 #ifndef NOUNCRYPT
@@ -1007,10 +1008,10 @@ local int unz64local_GetCurrentFileInfoInternal(
                     *p = '\\';
             }
 
-            string = PhFormatString(L"%S", str);
-            wcscpy_s(szFileName, _TRUNCATE, string->Buffer);
-
+            string = PhConvertUtf8ToUtf16(str);
+            wcscpy(szFileName, string->Buffer);
             PhDereferenceObject(string);
+
             free(str);
         }
 
