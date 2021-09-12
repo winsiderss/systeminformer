@@ -5,13 +5,6 @@ extern "C" {
 #ifndef MAXMINDDB_H
 #define MAXMINDDB_H
 
-#ifndef __cplusplus
-// This is needed to workaround C17 preprocessor errors when using legacy versions of the Windows SDK. (dmex)
-#ifndef MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS
-#define MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS 0
-#endif
-#endif
-
 /* Request POSIX.1-2008. However, we want to remain compatible with
  * POSIX.1-2001 (since we have been historically and see no reason to drop
  * compatibility). By requesting POSIX.1-2008, we can conditionally use
@@ -35,7 +28,7 @@ extern "C" {
 #include <winsock2.h>
 #include <ws2tcpip.h>
 /* libmaxminddb package version from configure */
-#define PACKAGE_VERSION "1.5.2"
+#define PACKAGE_VERSION "1.6.0"
 
 typedef ADDRESS_FAMILY sa_family_t;
 
@@ -198,7 +191,7 @@ typedef struct MMDB_ipv4_start_node_s {
  * library is upgraded */
 typedef struct MMDB_s {
     uint32_t flags;
-    const wchar_t* filename;
+    const wchar_t *filename;
     ssize_t file_size;
     const uint8_t *file_content;
     const uint8_t *data_section;
@@ -222,7 +215,7 @@ typedef struct MMDB_search_node_s {
 } MMDB_search_node_s;
 
 extern int
-MMDB_open(const wchar_t* const filename, uint32_t flags, MMDB_s *const mmdb);
+MMDB_open(const wchar_t *const filename, uint32_t flags, MMDB_s *const mmdb);
 extern MMDB_lookup_result_s MMDB_lookup_string(const MMDB_s *const mmdb,
                                                const char *const ipstr,
                                                int *const gai_error,

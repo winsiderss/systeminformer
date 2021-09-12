@@ -110,8 +110,6 @@
   <ItemGroup>
     <ClCompile Include="country.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="maxminddb\data-pool.c" />
-    <ClCompile Include="maxminddb\maxminddb.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="ping.c" />
     <ClCompile Include="pages.c" />
@@ -122,10 +120,6 @@
     <ClCompile Include="whois.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="maxminddb\data-pool.h" />
-    <ClInclude Include="maxminddb\maxminddb-compat-util.h" />
-    <ClInclude Include="maxminddb\maxminddb.h" />
-    <ClInclude Include="maxminddb\maxminddb_config.h" />
     <ClInclude Include="nettools.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="tracert.h" />

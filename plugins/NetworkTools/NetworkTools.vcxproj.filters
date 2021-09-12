@@ -54,17 +54,11 @@
     <ClCompile Include="update.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="maxminddb\maxminddb.c">
-      <Filter>Source Files\maxmind</Filter>
-    </ClCompile>
     <ClCompile Include="ports.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tracetree.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="maxminddb\data-pool.c">
-      <Filter>Source Files\maxmind</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -74,20 +68,8 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="maxminddb\maxminddb.h">
-      <Filter>Header Files\maxminddb</Filter>
-    </ClInclude>
-    <ClInclude Include="maxminddb\maxminddb_config.h">
-      <Filter>Header Files\maxminddb</Filter>
-    </ClInclude>
-    <ClInclude Include="maxminddb\maxminddb-compat-util.h">
-      <Filter>Header Files\maxminddb</Filter>
-    </ClInclude>
     <ClInclude Include="tracert.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="maxminddb\data-pool.h">
-      <Filter>Header Files\maxminddb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
