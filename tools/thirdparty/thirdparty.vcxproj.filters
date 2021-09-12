@@ -34,6 +34,9 @@
     <Filter Include="gzip\Headers">
       <UniqueIdentifier>{228f20b4-adb4-4646-a32c-2602b245eac9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="maxminddb">
+      <UniqueIdentifier>{010e4e1c-b7bc-440d-b60a-d14a00f5d24e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -407,6 +410,12 @@
     </ClCompile>
     <ClCompile Include="gzip\zutil.c">
       <Filter>gzip</Filter>
+    </ClCompile>
+    <ClCompile Include="maxminddb\data-pool.c">
+      <Filter>maxminddb</Filter>
+    </ClCompile>
+    <ClCompile Include="maxminddb\maxminddb.c">
+      <Filter>maxminddb</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -796,6 +805,18 @@
     </ClInclude>
     <ClInclude Include="gzip\zutil.h">
       <Filter>gzip\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\data-pool.h">
+      <Filter>maxminddb</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb.h">
+      <Filter>maxminddb</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb_config.h">
+      <Filter>maxminddb</Filter>
+    </ClInclude>
+    <ClInclude Include="maxminddb\maxminddb-compat-util.h">
+      <Filter>maxminddb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

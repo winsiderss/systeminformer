@@ -1,6 +1,6 @@
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif
+//#if HAVE_CONFIG_H
+//#include <config.h>
+//#endif
 #include "data-pool.h"
 #include "maxminddb-compat-util.h"
 #include "maxminddb.h"
@@ -233,7 +233,7 @@ static char *bytes_to_hex(uint8_t *bytes, uint32_t size);
         (p) = NULL;                                                            \
     }
 
-int MMDB_open(const wchar_t* const filename, uint32_t flags, MMDB_s *const mmdb) {
+int MMDB_open(const wchar_t *const filename, uint32_t flags, MMDB_s *const mmdb) {
     int status = MMDB_SUCCESS;
 
     mmdb->file_content = NULL;
@@ -243,7 +243,7 @@ int MMDB_open(const wchar_t* const filename, uint32_t flags, MMDB_s *const mmdb)
     mmdb->metadata.languages.names = NULL;
     mmdb->metadata.description.count = 0;
 
-    mmdb->filename = _wcsdup(filename); // dmex: modified for wchar_t ...  mmdb_strdup(filename);
+    mmdb->filename = filename; // dmex: modified for wchar_t
     if (NULL == mmdb->filename) {
         status = MMDB_OUT_OF_MEMORY_ERROR;
         goto cleanup;
@@ -258,10 +258,10 @@ int MMDB_open(const wchar_t* const filename, uint32_t flags, MMDB_s *const mmdb)
         goto cleanup;
     }
 
-#ifdef _WIN32
-    //WSADATA wsa; // dmex: disabled since hostname lookup is not used.
-    //WSAStartup(MAKEWORD(2, 2), &wsa);
-#endif
+//#ifdef _WIN32 // dmex: disabled since hostname lookup is not used.
+//    WSADATA wsa;
+//    WSAStartup(MAKEWORD(2, 2), &wsa);
+//#endif
 
     uint32_t metadata_size = 0;
     const uint8_t *metadata =
@@ -1790,9 +1790,9 @@ static void free_mmdb_struct(MMDB_s *const mmdb) {
         return;
     }
 
-    if (NULL != mmdb->filename) {
-        FREE_AND_SET_NULL(mmdb->filename);
-    }
+    //if (NULL != mmdb->filename) {
+    //    FREE_AND_SET_NULL(mmdb->filename);
+    //}
     if (NULL != mmdb->file_content) {
 #ifdef _WIN32
         UnmapViewOfFile(mmdb->file_content);
