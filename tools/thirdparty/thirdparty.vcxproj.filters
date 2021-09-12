@@ -22,6 +22,12 @@
     <Filter Include="Capstone">
       <UniqueIdentifier>{9f1f3b9d-8cd8-487d-a808-8a92eae8dfb0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ssdeep">
+      <UniqueIdentifier>{b11c7d47-2468-48da-bef8-cbdb1a83e4d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tlsh">
+      <UniqueIdentifier>{407366db-5825-4bc3-aa28-1a584dc8430e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -314,6 +320,21 @@
     </ClCompile>
     <ClCompile Include="capstone\arch\XCore\XCoreModule.c">
       <Filter>Capstone</Filter>
+    </ClCompile>
+    <ClCompile Include="ssdeep\fuzzy.c">
+      <Filter>ssdeep</Filter>
+    </ClCompile>
+    <ClCompile Include="tlsh\tlsh.cpp">
+      <Filter>tlsh</Filter>
+    </ClCompile>
+    <ClCompile Include="tlsh\tlsh_impl.cpp">
+      <Filter>tlsh</Filter>
+    </ClCompile>
+    <ClCompile Include="tlsh\tlsh_util.cpp">
+      <Filter>tlsh</Filter>
+    </ClCompile>
+    <ClCompile Include="tlsh\tlsh_wrapper.cpp">
+      <Filter>tlsh</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -631,6 +652,27 @@
     </ClInclude>
     <ClInclude Include="capstone\arch\ARM\ARMBaseInfo.h">
       <Filter>Capstone</Filter>
+    </ClInclude>
+    <ClInclude Include="ssdeep\fuzzy.h">
+      <Filter>ssdeep</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\tlsh.h">
+      <Filter>tlsh</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\tlsh_impl.h">
+      <Filter>tlsh</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\tlsh_util.h">
+      <Filter>tlsh</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\tlsh_wrapper.h">
+      <Filter>tlsh</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\win_version.h">
+      <Filter>tlsh</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\WinFunctions.h">
+      <Filter>tlsh</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
