@@ -22,7 +22,7 @@
 
 #include "nettools.h"
 #include <commonutil.h>
-#include "maxminddb\maxminddb.h"
+#include "..\..\tools\thirdparty\maxminddb\maxminddb.h"
 
 BOOLEAN GeoDbLoaded = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
