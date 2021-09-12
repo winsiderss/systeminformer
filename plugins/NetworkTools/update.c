@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   GeoIP database updater
  *
- * Copyright (C) 2016-2019 dmex
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,10 +21,10 @@
  */
 
 #include "nettools.h"
-#include "zlib\zlib.h"
-#include "zlib\gzguts.h"
 #include <commonutil.h>
 #include <shellapi.h>
+#include "..\..\tools\thirdparty\gzip\zlib.h"
+#include "..\..\tools\thirdparty\gzip\gzguts.h"
 
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
@@ -434,7 +434,7 @@ NTSTATUS GeoIPUpdateThread(
                     {
                         INT bytes = gzread(gzfile, buffer, sizeof(buffer));
 
-                        if (bytes == INT_MAX)
+                        if (bytes == -1)
                         {
                             NtClose(mmdbFileHandle);
                             goto CleanupExit;
