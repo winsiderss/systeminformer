@@ -37,6 +37,9 @@
     <Filter Include="maxminddb">
       <UniqueIdentifier>{010e4e1c-b7bc-440d-b60a-d14a00f5d24e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="miniz">
+      <UniqueIdentifier>{71dc3ef6-3e43-4dae-80a0-13b067da4a05}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -387,12 +390,6 @@
     <ClCompile Include="gzip\iowin32.c">
       <Filter>gzip</Filter>
     </ClCompile>
-    <ClCompile Include="gzip\miniunz.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\minizip.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
     <ClCompile Include="gzip\mztools.c">
       <Filter>gzip</Filter>
     </ClCompile>
@@ -416,6 +413,9 @@
     </ClCompile>
     <ClCompile Include="maxminddb\maxminddb.c">
       <Filter>maxminddb</Filter>
+    </ClCompile>
+    <ClCompile Include="miniz\minizip.c">
+      <Filter>miniz</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -817,6 +817,9 @@
     </ClInclude>
     <ClInclude Include="maxminddb\maxminddb-compat-util.h">
       <Filter>maxminddb</Filter>
+    </ClInclude>
+    <ClInclude Include="miniz\miniz.h">
+      <Filter>miniz</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

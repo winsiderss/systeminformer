@@ -16,15 +16,6 @@
     <Filter Include="Source Files\pages">
       <UniqueIdentifier>{c394360d-d423-4249-a23e-70558948e7f2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\zip">
-      <UniqueIdentifier>{5c3f4462-038f-468f-8ab2-7e153d301c33}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\zip">
-      <UniqueIdentifier>{7a7dfb06-20d6-4ea2-8992-26ea6e6cf1d9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\json">
-      <UniqueIdentifier>{8d69960b-e11c-4029-b39e-dee698bb871b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource Files\Content">
       <UniqueIdentifier>{3f81aff6-dff1-4573-bb20-ac132fa9297b}</UniqueIdentifier>
     </Filter>
@@ -35,9 +26,6 @@
     </ClCompile>
     <ClCompile Include="extract.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="miniz\minizip.c">
-      <Filter>Source Files\zip</Filter>
     </ClCompile>
     <ClCompile Include="update.c">
       <Filter>Source Files</Filter>
@@ -76,9 +64,6 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="miniz\miniz.h">
-      <Filter>Header Files\zip</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

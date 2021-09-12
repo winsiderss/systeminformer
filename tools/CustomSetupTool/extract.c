@@ -19,7 +19,7 @@
  */
 
 #include <setup.h>
-#include "miniz\miniz.h"
+#include "..\thirdparty\miniz\miniz.h"
 
 BOOLEAN SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
