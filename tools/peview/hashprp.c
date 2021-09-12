@@ -22,7 +22,7 @@
 
 #include <peview.h>
 #include <bcrypt.h>
-#include "tlsh/tlsh_wrapper.h"
+#include "..\thirdparty\tlsh\tlsh_wrapper.h"
 
 typedef struct _PV_PE_HASH_CONTEXT
 {

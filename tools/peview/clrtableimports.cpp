@@ -21,7 +21,7 @@
  */
 
 #include <peview.h>
-#include "metahost.h"
+#include <metahost.h>
 #include <cor.h>
 
 // metamodelpub.h
