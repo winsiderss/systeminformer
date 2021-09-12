@@ -313,8 +313,6 @@
     <ClCompile Include="gzip\inftrees.c" />
     <ClCompile Include="gzip\ioapi.c" />
     <ClCompile Include="gzip\iowin32.c" />
-    <ClCompile Include="gzip\miniunz.c" />
-    <ClCompile Include="gzip\minizip.c" />
     <ClCompile Include="gzip\mztools.c" />
     <ClCompile Include="gzip\trees.c" />
     <ClCompile Include="gzip\uncompr.c" />
@@ -337,6 +335,7 @@
     <ClCompile Include="jsonc\strerror_override.c" />
     <ClCompile Include="maxminddb\data-pool.c" />
     <ClCompile Include="maxminddb\maxminddb.c" />
+    <ClCompile Include="miniz\minizip.c" />
     <ClCompile Include="mxml\mxml-attr.c" />
     <ClCompile Include="mxml\mxml-entity.c" />
     <ClCompile Include="mxml\mxml-file.c" />
@@ -499,6 +498,7 @@
     <ClInclude Include="maxminddb\maxminddb-compat-util.h" />
     <ClInclude Include="maxminddb\maxminddb.h" />
     <ClInclude Include="maxminddb\maxminddb_config.h" />
+    <ClInclude Include="miniz\miniz.h" />
     <ClInclude Include="mxml\config.h" />
     <ClInclude Include="mxml\mxml-private.h" />
     <ClInclude Include="mxml\mxml.h" />
