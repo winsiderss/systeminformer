@@ -49,7 +49,9 @@
   *     http://ssdeep.sf.net/
   */
 
-#include <peview.h>
+#include <phbase.h>
+#include <phnative.h>
+
 #include "fuzzy.h"
 
 #if defined(__GNUC__) && __GNUC__ >= 3

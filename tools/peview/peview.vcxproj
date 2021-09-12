@@ -394,29 +394,16 @@
     <ClCompile Include="resprp.c" />
     <ClCompile Include="searchbox.c" />
     <ClCompile Include="settings.c" />
-    <ClCompile Include="ssdeep\fuzzy.c" />
     <ClCompile Include="streams.c" />
-    <ClCompile Include="tlsh\tlsh.cpp" />
-    <ClCompile Include="tlsh\tlsh_impl.cpp" />
-    <ClCompile Include="tlsh\tlsh_util.cpp" />
-    <ClCompile Include="tlsh\tlsh_wrapper.cpp" />
     <ClCompile Include="tlsprp.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="colmgr.h" />
     <ClInclude Include="include\cvconst.h" />
     <ClInclude Include="include\dia2.h" />
-    <ClInclude Include="include\metahost.h" />
-    <ClInclude Include="include\mscoree.h" />
     <ClInclude Include="include\peview.h" />
     <ClInclude Include="include\prpsh.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="ssdeep\fuzzy.h" />
-    <ClInclude Include="tlsh\tlsh.h" />
-    <ClInclude Include="tlsh\tlsh_impl.h" />
-    <ClInclude Include="tlsh\tlsh_util.h" />
-    <ClInclude Include="tlsh\win_version.h" />
-    <ClInclude Include="tlsh\tlsh_wrapper.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="peview.rc" />

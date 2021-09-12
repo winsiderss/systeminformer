@@ -25,14 +25,11 @@
     <Filter Include="Source Files\ssdeep">
       <UniqueIdentifier>{84ecc5ac-b90d-41b6-a9f2-5cf08691450e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\ssdeep">
-      <UniqueIdentifier>{d4f51c2b-a25b-4233-a6e5-5b08792ed641}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\tlsh">
       <UniqueIdentifier>{349c41fa-6b58-4e7f-a61e-0b384b92ca8f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\tlsh">
-      <UniqueIdentifier>{dba25291-2fb0-40d7-a890-b04b8a285641}</UniqueIdentifier>
+    <Filter Include="Header Files\DIA-SDK">
+      <UniqueIdentifier>{ce2627d7-7f04-4e4b-ab4b-64e8e5cd0e25}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -141,23 +138,8 @@
     <ClCompile Include="layout.c">
       <Filter>Source Files\Pages</Filter>
     </ClCompile>
-    <ClCompile Include="ssdeep\fuzzy.c">
-      <Filter>Source Files\ssdeep</Filter>
-    </ClCompile>
     <ClCompile Include="hashprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="tlsh\tlsh.cpp">
-      <Filter>Source Files\tlsh</Filter>
-    </ClCompile>
-    <ClCompile Include="tlsh\tlsh_impl.cpp">
-      <Filter>Source Files\tlsh</Filter>
-    </ClCompile>
-    <ClCompile Include="tlsh\tlsh_util.cpp">
-      <Filter>Source Files\tlsh</Filter>
-    </ClCompile>
-    <ClCompile Include="tlsh\tlsh_wrapper.cpp">
-      <Filter>Source Files\tlsh</Filter>
     </ClCompile>
     <ClCompile Include="chcol.c">
       <Filter>Source Files</Filter>
@@ -198,34 +180,10 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cvconst.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\DIA-SDK</Filter>
     </ClInclude>
     <ClInclude Include="include\dia2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\metahost.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\mscoree.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ssdeep\fuzzy.h">
-      <Filter>Header Files\ssdeep</Filter>
-    </ClInclude>
-    <ClInclude Include="tlsh\tlsh.h">
-      <Filter>Header Files\tlsh</Filter>
-    </ClInclude>
-    <ClInclude Include="tlsh\tlsh_impl.h">
-      <Filter>Header Files\tlsh</Filter>
-    </ClInclude>
-    <ClInclude Include="tlsh\tlsh_util.h">
-      <Filter>Header Files\tlsh</Filter>
-    </ClInclude>
-    <ClInclude Include="tlsh\tlsh_wrapper.h">
-      <Filter>Header Files\tlsh</Filter>
-    </ClInclude>
-    <ClInclude Include="tlsh\win_version.h">
-      <Filter>Header Files\tlsh</Filter>
+      <Filter>Header Files\DIA-SDK</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
