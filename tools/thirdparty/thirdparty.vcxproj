@@ -338,7 +338,7 @@
     <ClCompile Include="jsonc\strerror_override.c" />
     <ClCompile Include="maxminddb\data-pool.c" />
     <ClCompile Include="maxminddb\maxminddb.c" />
-    <ClCompile Include="miniz\minizip.c" />
+    <ClCompile Include="miniz\miniz.c" />
     <ClCompile Include="mxml\mxml-attr.c" />
     <ClCompile Include="mxml\mxml-entity.c" />
     <ClCompile Include="mxml\mxml-file.c" />

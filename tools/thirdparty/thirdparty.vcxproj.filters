@@ -414,7 +414,7 @@
     <ClCompile Include="maxminddb\maxminddb.c">
       <Filter>maxminddb</Filter>
     </ClCompile>
-    <ClCompile Include="miniz\minizip.c">
+    <ClCompile Include="miniz\miniz.c">
       <Filter>miniz</Filter>
     </ClCompile>
   </ItemGroup>
