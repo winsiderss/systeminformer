@@ -45,7 +45,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"0");
-    PhpAddIntegerSetting(L"EnableKphWarnings", L"0");
+    PhpAddIntegerSetting(L"EnableKphWarnings", L"1");
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
