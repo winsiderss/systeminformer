@@ -472,7 +472,7 @@ HMENU PhEMenuToHMenu(
             static HBRUSH themeBrush = NULL;
 
             if (!themeBrush)
-                themeBrush = CreateSolidBrush(PhThemeWindowForegroundColor); // LEAK (dmex)
+                themeBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
 
             menuInfo.fMask |= MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
             menuInfo.hbrBack = themeBrush;
