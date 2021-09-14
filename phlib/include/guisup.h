@@ -43,6 +43,9 @@ typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
 
 typedef HANDLE HTHEME;
 
+#define DCX_USESTYLE 0x00010000
+#define DCX_NODELETERGN 0x00040000
+
 extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
@@ -1097,6 +1100,7 @@ PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 PHLIBAPI extern HBRUSH PhMenuBackgroundBrush;
 extern COLORREF PhThemeWindowForegroundColor;
+extern COLORREF PhThemeWindowBackgroundColor;
 
 PHLIBAPI
 VOID
