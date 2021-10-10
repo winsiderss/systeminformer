@@ -6953,10 +6953,15 @@ RtlQueryValidationRunlevel(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+// rev
+#define BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID 0x0001
+
 // begin_private
 
+_Ret_maybenull_
+_Success_(return != NULL)
 NTSYSAPI
-HANDLE
+POBJECT_BOUNDARY_DESCRIPTOR
 NTAPI
 RtlCreateBoundaryDescriptor(
     _In_ PUNICODE_STRING Name,
@@ -6967,14 +6972,14 @@ NTSYSAPI
 VOID
 NTAPI
 RtlDeleteBoundaryDescriptor(
-    _In_ HANDLE BoundaryDescriptor
+    _In_ _Post_invalid_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddSIDToBoundaryDescriptor(
-    _Inout_ PHANDLE BoundaryDescriptor,
+    _Inout_ POBJECT_BOUNDARY_DESCRIPTOR *BoundaryDescriptor,
     _In_ PSID RequiredSid
     );
 
@@ -6984,7 +6989,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddIntegrityLabelToBoundaryDescriptor(
-    _Inout_ PHANDLE BoundaryDescriptor,
+    _Inout_ POBJECT_BOUNDARY_DESCRIPTOR *BoundaryDescriptor,
     _In_ PSID IntegrityLabel
     );
 #endif

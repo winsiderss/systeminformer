@@ -330,14 +330,50 @@ NtQueryDirectoryObject(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+// private
+typedef enum _BOUNDARY_ENTRY_TYPE
+{
+    OBNS_Invalid,
+    OBNS_Name,
+    OBNS_SID,
+    OBNS_IL
+} BOUNDARY_ENTRY_TYPE;
+
+// private
+typedef struct _OBJECT_BOUNDARY_ENTRY
+{
+    BOUNDARY_ENTRY_TYPE EntryType;
+    ULONG EntrySize;
+} OBJECT_BOUNDARY_ENTRY, *POBJECT_BOUNDARY_ENTRY;
+
+// rev
+#define OBJECT_BOUNDARY_DESCRIPTOR_VERSION 1
+
+// private
+typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
+{
+    ULONG Version;
+    ULONG Items;
+    ULONG TotalSize;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG AddAppContainerSid : 1;
+            ULONG Reserved : 31;
+        };
+    };
+} OBJECT_BOUNDARY_DESCRIPTOR, *POBJECT_BOUNDARY_DESCRIPTOR;
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePrivateNamespace(
     _Out_ PHANDLE NamespaceHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ PVOID BoundaryDescriptor
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
     );
 
 NTSYSCALLAPI
@@ -347,7 +383,7 @@ NtOpenPrivateNamespace(
     _Out_ PHANDLE NamespaceHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ PVOID BoundaryDescriptor
+    _In_ POBJECT_BOUNDARY_DESCRIPTOR BoundaryDescriptor
     );
 
 NTSYSCALLAPI
