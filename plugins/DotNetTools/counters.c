@@ -513,7 +513,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
 {
     BOOLEAN result = FALSE;
     PPH_STRING legacyBoundaryDescriptorName;
-    HANDLE boundaryDescriptorHandle = NULL;
+    POBJECT_BOUNDARY_DESCRIPTOR boundaryDescriptorHandle = NULL;
     HANDLE privateNamespaceHandle = NULL;
     HANDLE blockTableHandle = NULL;
     HANDLE tokenHandle = NULL;
