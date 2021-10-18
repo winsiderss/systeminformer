@@ -8007,3 +8007,63 @@ NTSTATUS PhDelayExecution(
         return PhDelayExecutionEx(FALSE, &interval);
     }
 }
+
+ULONGLONG PhReadTimeStampCounter(
+    VOID
+    )
+{
+#if (_M_IX86 || _M_AMD64)
+    return ReadTimeStampCounter();
+#elif _M_ARM
+    return __rdpmccntr64();
+#elif _M_ARM64
+    // The Windows SDK uses PMCCNTR on ARM64 instead of CNTVCT? (dmex)
+    return _ReadStatusReg(ARM64_CNTVCT);
+#endif
+}
+
+VOID PhQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter,
+    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    )
+{
+    if (PerformanceFrequency)
+    {
+        RtlQueryPerformanceFrequency(PerformanceFrequency);
+    }
+
+    RtlQueryPerformanceCounter(PerformanceCounter);
+
+    //if (RtlQueryPerformanceCounter(PerformanceCounter))
+    //{
+    //    if (PerformanceFrequency)
+    //    {
+    //        if (RtlQueryPerformanceFrequency(PerformanceFrequency))
+    //            return TRUE;
+    //    }
+    //    else
+    //    {
+    //        return TRUE;
+    //    }
+    //}
+    //
+    //return NT_SUCCESS(NtQueryPerformanceCounter(PerformanceCounter, PerformanceFrequency));
+}
+
+VOID PhQueryPerformanceFrequency(
+    _Out_ PLARGE_INTEGER PerformanceFrequency
+    )
+{
+    RtlQueryPerformanceFrequency(PerformanceFrequency);
+
+    //if (RtlQueryPerformanceFrequency(PerformanceFrequency))
+    //{
+    //    return TRUE;
+    //}
+    //else
+    //{
+    //    LARGE_INTEGER performanceCounter;
+    //
+    //    return NT_SUCCESS(NtQueryPerformanceCounter(&performanceCounter, PerformanceFrequency));
+    //}
+}
