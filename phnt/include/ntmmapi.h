@@ -98,6 +98,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryEnclaveImageInformation, // MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
     MemoryBasicInformationCapped, // 10
     MemoryPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
+    MemoryBadInformation, // since WIN11
     MaxMemoryInfoClass
 } MEMORY_INFORMATION_CLASS;
 #else
@@ -113,6 +114,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MemoryEnclaveImageInformation 0x9
 #define MemoryBasicInformationCapped 0xA
 #define MemoryPhysicalContiguityInformation 0xB
+#define MemoryBadInformation 0xC
 #endif
 
 typedef struct _MEMORY_WORKING_SET_BLOCK

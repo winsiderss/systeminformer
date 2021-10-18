@@ -1490,6 +1490,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemDpcWatchdogInformation2,
     SystemSupportedProcessorArchitectures2,// q: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx  // 230
     SystemSingleProcessorRelationshipInformation,
+    SystemXfgCheckFailureInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -3426,14 +3427,13 @@ typedef struct _PROCESS_DISK_COUNTERS
 // private
 typedef union _ENERGY_STATE_DURATION
 {
-    union
+    ULONGLONG Value;
+    struct
     {
-        ULONGLONG Value;
         ULONG LastChangeTime;
+        ULONG Duration : 31;
+        ULONG IsInState : 1;
     };
-
-    ULONG Duration : 31;
-    ULONG IsInState : 1;
 } ENERGY_STATE_DURATION, *PENERGY_STATE_DURATION;
 
 typedef struct _PROCESS_ENERGY_VALUES
@@ -3462,11 +3462,14 @@ typedef struct _PROCESS_ENERGY_VALUES
     ULONGLONG WorkOnBehalfCycles[4][2];
 } PROCESS_ENERGY_VALUES, *PPROCESS_ENERGY_VALUES;
 
-typedef struct _TIMELINE_BITMAP
+typedef union _TIMELINE_BITMAP
 {
     ULONGLONG Value;
-    ULONG EndTime;
-    ULONG Bitmap;
+    struct
+    {
+        ULONG EndTime;
+        ULONG Bitmap;
+    };
 } TIMELINE_BITMAP, *PTIMELINE_BITMAP;
 
 typedef struct _PROCESS_ENERGY_VALUES_EXTENSION

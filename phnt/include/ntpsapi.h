@@ -224,6 +224,9 @@ typedef enum _PROCESSINFOCLASS
     ProcessAltSystemCallInformation, // qs: BOOLEAN (kernel-mode only) // INT2E // since 20H1 // 100
     ProcessDynamicEHContinuationTargets, // PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
     ProcessDynamicEnforcedCetCompatibleRanges, // PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION // since 20H2
+    ProcessCreateStateChange, // since WIN11
+    ProcessApplyStateChange,
+    ProcessEnableOptionalXStateFeatures,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -282,6 +285,8 @@ typedef enum _THREADINFOCLASS
     ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ThreadPowerThrottlingState, // POWER_THROTTLING_THREAD_STATE
     ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
+    ThreadCreateStateChange, // since WIN11
+    ThreadApplyStateChange,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -677,6 +682,7 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy;
         PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy;
         PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy;
+        PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
@@ -1316,6 +1322,68 @@ NtQueryPortInformationProcess(
     );
 
 #endif
+
+#define STATECHANGE_SET_INFORMATION 0x0001
+
+typedef enum _PROCESS_STATE_CHANGE_TYPE
+{
+    ProcessStateChangeSuspend,
+    ProcessStateChangeResume,
+    ProcessStateChangeMax,
+} PROCESS_STATE_CHANGE_TYPE, *PPROCESS_STATE_CHANGE_TYPE;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateProcessStateChange(
+    _Out_ PHANDLE ProcessStateChangeHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ ULONG64 Reserved
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtChangeProcessState(
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_STATE_CHANGE_TYPE StateChangeType,
+    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ SIZE_T ExtendedInformationLength,
+    _In_opt_ ULONG64 Reserved
+    );
+
+typedef enum _THREAD_STATE_CHANGE_TYPE
+{
+    ThreadStateChangeSuspend,
+    ThreadStateChangeResume,
+    ThreadStateChangeMax,
+} THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateThreadStateChange(
+    _Out_ PHANDLE ThreadStateChangeHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ ULONG64 Reserved
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtChangeThreadState(
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle,
+    _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
+    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ SIZE_T ExtendedInformationLength,
+    _In_opt_ ULONG64 Reserved
+    );
 
 // Threads
 
