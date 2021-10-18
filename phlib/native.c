@@ -671,19 +671,42 @@ NTSTATUS PhGetProcessImageFileNameWin32(
     )
 {
     NTSTATUS status;
-    PUNICODE_STRING fileName;
+    PUNICODE_STRING buffer;
+    ULONG bufferLength;
+    ULONG returnLength = 0;
 
-    status = PhpQueryProcessVariableSize(
+    bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+    buffer = PhAllocate(bufferLength);
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessImageFileNameWin32,
-        &fileName
+        buffer,
+        bufferLength,
+        &returnLength
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferLength = returnLength;
+        buffer = PhAllocate(bufferLength);
 
-    *FileName = PhCreateStringFromUnicodeString(fileName);
-    PhFree(fileName);
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessImageFileNameWin32,
+            buffer,
+            bufferLength,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *FileName = PhCreateStringFromUnicodeString(buffer);
+    }
+
+    PhFree(buffer);
 
     return status;
 }
@@ -1030,21 +1053,44 @@ NTSTATUS PhGetProcessCommandLine(
     if (WindowsVersion >= WINDOWS_8_1)
     {
         NTSTATUS status;
-        PUNICODE_STRING commandLine;
+        PUNICODE_STRING buffer;
+        ULONG bufferLength;
+        ULONG returnLength = 0;
 
-        status = PhpQueryProcessVariableSize(
+        bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+        buffer = PhAllocate(bufferLength);
+
+        status = NtQueryInformationProcess(
             ProcessHandle,
             ProcessCommandLineInformation,
-            &commandLine
+            buffer,
+            bufferLength,
+            &returnLength
             );
+
+        if (status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            bufferLength = returnLength;
+            buffer = PhAllocate(bufferLength);
+
+            status = NtQueryInformationProcess(
+                ProcessHandle,
+                ProcessCommandLineInformation,
+                buffer,
+                bufferLength,
+                &returnLength
+                );
+        }
 
         if (NT_SUCCESS(status))
         {
-            *CommandLine = PhCreateStringFromUnicodeString(commandLine);
-            PhFree(commandLine);
-
-            return status;
+            *CommandLine = PhCreateStringFromUnicodeString(buffer);
         }
+
+        PhFree(buffer);
+
+        return status;
     }
 
     return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
@@ -6818,11 +6864,12 @@ VOID PhUpdateDosDevicePrefixes(
         deviceNameBuffer[4] = (WCHAR)('A' + i);
         deviceName.Buffer = deviceNameBuffer;
         deviceName.Length = 6 * sizeof(WCHAR);
+        deviceName.MaximumLength = deviceName.Length + sizeof(UNICODE_NULL);
 
         InitializeObjectAttributes(
             &objectAttributes,
             &deviceName,
-            OBJ_CASE_INSENSITIVE,
+            OBJ_CASE_INSENSITIVE | OBJ_DONT_REPARSE,
             NULL,
             NULL
             );
@@ -7983,7 +8030,7 @@ NTSTATUS PhQueryValueKey(
     ULONG bufferSize;
     ULONG attempts = 16;
 
-    if (ValueName)
+    if (ValueName && ValueName->Length) // Length check for PhQueryRegistryString backwards compat (dmex)
     {
         if (!PhStringRefToUnicodeString(ValueName, &valueName))
             return STATUS_NAME_TOO_LONG;
@@ -9046,7 +9093,7 @@ NTSTATUS PhMoveFileWin32(
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
         );
 
     if (!NT_SUCCESS(status))
@@ -9061,6 +9108,7 @@ NTSTATUS PhMoveFileWin32(
     renameInfo->RootDirectory = NULL;
     renameInfo->FileNameLength = newFileName.Length;
     memcpy(renameInfo->FileName, newFileName.Buffer, newFileName.Length);
+    RtlFreeUnicodeString(&newFileName);
 
     status = NtSetInformationFile(
         fileHandle,
@@ -9089,7 +9137,7 @@ NTSTATUS PhMoveFileWin32(
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,
             FILE_OVERWRITE_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY,
             NULL
             );
 
@@ -9148,7 +9196,6 @@ NTSTATUS PhMoveFileWin32(
 
 CleanupExit:
     NtClose(fileHandle);
-    RtlFreeUnicodeString(&newFileName);
     PhFree(renameInfo);
 
     return status;
@@ -9406,7 +9453,7 @@ NTSTATUS PhConnectPipe(
         NULL,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_OPEN,
+        FILE_OPEN_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL,
         0
