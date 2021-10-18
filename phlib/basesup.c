@@ -5234,6 +5234,53 @@ ULONG PhHashStringRef(
     return hash;
 }
 
+ULONG PhHashStringRefEx(
+    _In_ PPH_STRINGREF String,
+    _In_ BOOLEAN IgnoreCase,
+    _In_ PH_STRING_HASH HashAlgorithm
+    )
+{
+    switch (HashAlgorithm)
+    {
+    case PH_STRING_HASH_DEFAULT:
+    case PH_STRING_HASH_FNV1A:
+        return PhHashStringRef(String, IgnoreCase);
+    case PH_STRING_HASH_X65599:
+        {
+            ULONG hash = 0;
+            SIZE_T count;
+            PWCHAR p;
+
+            if (String->Length == 0)
+                return 0;
+
+            count = String->Length / sizeof(WCHAR);
+            p = String->Buffer;
+
+            if (IgnoreCase)
+            {
+                do
+                {
+                    hash *= 0x1003F;
+                    hash += (USHORT)RtlUpcaseUnicodeChar(*p++);
+                } while (--count != 0);
+            }
+            else
+            {
+                do
+                {
+                    hash *= 0x1003F;
+                    hash += *p++;
+                } while (--count != 0);
+            }
+
+            return hash;
+        }
+    }
+
+    return 0;
+}
+
 BOOLEAN NTAPI PhpSimpleHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
