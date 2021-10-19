@@ -1990,6 +1990,7 @@ VOID PhMwpLoadSettings(
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
+    PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");

@@ -98,6 +98,7 @@ PH_WORK_QUEUE PhNetworkProviderWorkQueue;
 SLIST_HEADER PhNetworkItemQueryListHead;
 
 BOOLEAN PhEnableNetworkProviderResolve = TRUE;
+BOOLEAN PhEnableNetworkBoundConnections = TRUE;
 static BOOLEAN NetworkImportDone = FALSE;
 static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
@@ -1091,24 +1092,31 @@ BOOLEAN PhGetNetworkConnections(
         udp6Table = NULL;
     }
 
-    // Bound TCP IPv4
-
-    if (InternalGetBoundTcpEndpointTable && InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+    if (PhEnableNetworkBoundConnections)
     {
-        boundTcpTable = table;
-        count += boundTcpTable->dwNumEntries;
-    }
-    else
-    {
-        boundTcpTable = NULL;
-    }
+        // Bound TCP IPv4
 
-    // Bound TCP IPv6
+        if (InternalGetBoundTcpEndpointTable && InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        {
+            boundTcpTable = table;
+            count += boundTcpTable->dwNumEntries;
+        }
+        else
+        {
+            boundTcpTable = NULL;
+        }
 
-    if (InternalGetBoundTcp6EndpointTable && InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
-    {
-        boundTcp6Table = table;
-        count += boundTcp6Table->dwNumEntries;
+        // Bound TCP IPv6
+
+        if (InternalGetBoundTcp6EndpointTable && InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        {
+            boundTcp6Table = table;
+            count += boundTcp6Table->dwNumEntries;
+        }
+        else
+        {
+            boundTcp6Table = NULL;
+        }
     }
     else
     {
@@ -1233,53 +1241,56 @@ BOOLEAN PhGetNetworkConnections(
         PhFree(udp6Table);
     }
 
-    if (boundTcpTable)
+    if (PhEnableNetworkBoundConnections)
     {
-        for (i = 0; i < boundTcpTable->dwNumEntries; i++)
+        if (boundTcpTable)
         {
-            connections[index].ProtocolType = PH_TCP4_NETWORK_PROTOCOL;
+            for (i = 0; i < boundTcpTable->dwNumEntries; i++)
+            {
+                connections[index].ProtocolType = PH_TCP4_NETWORK_PROTOCOL;
 
-            connections[index].LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-            connections[index].LocalEndpoint.Address.Ipv4 = boundTcpTable->table[i].dwLocalAddr;
-            connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)boundTcpTable->table[i].dwLocalPort);
+                connections[index].LocalEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                connections[index].LocalEndpoint.Address.Ipv4 = boundTcpTable->table[i].dwLocalAddr;
+                connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)boundTcpTable->table[i].dwLocalPort);
 
-            connections[index].RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
-            connections[index].RemoteEndpoint.Address.Ipv4 = boundTcpTable->table[i].dwRemoteAddr;
-            connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)boundTcpTable->table[i].dwRemotePort);
+                connections[index].RemoteEndpoint.Address.Type = PH_IPV4_NETWORK_TYPE;
+                connections[index].RemoteEndpoint.Address.Ipv4 = boundTcpTable->table[i].dwRemoteAddr;
+                connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)boundTcpTable->table[i].dwRemotePort);
 
-            connections[index].State = boundTcpTable->table[i].dwState;
-            connections[index].ProcessId = UlongToHandle(boundTcpTable->table[i].dwOwningPid);
+                connections[index].State = boundTcpTable->table[i].dwState;
+                connections[index].ProcessId = UlongToHandle(boundTcpTable->table[i].dwOwningPid);
 
-            index++;
+                index++;
+            }
+
+            PhFree(boundTcpTable);
         }
 
-        PhFree(boundTcpTable);
-    }
-
-    if (boundTcp6Table)
-    {
-        for (i = 0; i < boundTcp6Table->dwNumEntries; i++)
+        if (boundTcp6Table)
         {
-            connections[index].ProtocolType = PH_TCP6_NETWORK_PROTOCOL;
+            for (i = 0; i < boundTcp6Table->dwNumEntries; i++)
+            {
+                connections[index].ProtocolType = PH_TCP6_NETWORK_PROTOCOL;
 
-            connections[index].LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-            memcpy(connections[index].LocalEndpoint.Address.Ipv6, boundTcp6Table->table[i].LocalAddr.s6_addr, 16);
-            connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)boundTcp6Table->table[i].dwLocalPort);
+                connections[index].LocalEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                memcpy(connections[index].LocalEndpoint.Address.Ipv6, boundTcp6Table->table[i].LocalAddr.s6_addr, 16);
+                connections[index].LocalEndpoint.Port = _byteswap_ushort((USHORT)boundTcp6Table->table[i].dwLocalPort);
 
-            connections[index].RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
-            memcpy(connections[index].RemoteEndpoint.Address.Ipv6, boundTcp6Table->table[i].RemoteAddr.s6_addr, 16);
-            connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)boundTcp6Table->table[i].dwRemotePort);
+                connections[index].RemoteEndpoint.Address.Type = PH_IPV6_NETWORK_TYPE;
+                memcpy(connections[index].RemoteEndpoint.Address.Ipv6, boundTcp6Table->table[i].RemoteAddr.s6_addr, 16);
+                connections[index].RemoteEndpoint.Port = _byteswap_ushort((USHORT)boundTcp6Table->table[i].dwRemotePort);
 
-            connections[index].State = boundTcp6Table->table[i].State;
-            connections[index].ProcessId = UlongToHandle(boundTcp6Table->table[i].dwOwningPid);
+                connections[index].State = boundTcp6Table->table[i].State;
+                connections[index].ProcessId = UlongToHandle(boundTcp6Table->table[i].dwOwningPid);
 
-            connections[index].LocalScopeId = boundTcp6Table->table[i].dwLocalScopeId;
-            connections[index].RemoteScopeId = boundTcp6Table->table[i].dwRemoteScopeId;
+                connections[index].LocalScopeId = boundTcp6Table->table[i].dwLocalScopeId;
+                connections[index].RemoteScopeId = boundTcp6Table->table[i].dwRemoteScopeId;
 
-            index++;
+                index++;
+            }
+
+            PhFree(boundTcp6Table);
         }
-
-        PhFree(boundTcp6Table);
     }
 
     *NumberOfConnections = count;

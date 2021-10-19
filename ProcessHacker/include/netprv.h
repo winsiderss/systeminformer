@@ -3,6 +3,7 @@
 
 extern PPH_OBJECT_TYPE PhNetworkItemType;
 extern BOOLEAN PhEnableNetworkProviderResolve;
+extern BOOLEAN PhEnableNetworkBoundConnections;
 
 // begin_phapppub
 #define PH_NETWORK_OWNER_INFO_SIZE 16
