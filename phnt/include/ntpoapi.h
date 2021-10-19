@@ -536,12 +536,14 @@ NtSetThreadExecutionState(
     _Out_ EXECUTION_STATE *PreviousFlags
     );
 
+#if (PHNT_VERSION < PHNT_WIN7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRequestWakeupLatency(
     _In_ LATENCY_TIME latency
     );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
