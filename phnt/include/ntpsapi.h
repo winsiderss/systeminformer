@@ -58,7 +58,8 @@
 #define JOB_OBJECT_QUERY 0x0004
 #define JOB_OBJECT_TERMINATE 0x0008
 #define JOB_OBJECT_SET_SECURITY_ATTRIBUTES 0x0010
-#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f)
+#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3F)
+//#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f) // pre-Vista full access
 #endif
 
 #define GDI_HANDLE_BUFFER_SIZE32 34
@@ -1323,7 +1324,9 @@ NtQueryPortInformationProcess(
 
 #endif
 
-#define STATECHANGE_SET_INFORMATION 0x0001
+#if (PHNT_VERSION >= PHNT_WS03)
+
+#define STATECHANGE_SET_ATTRIBUTES 0x0001
 
 typedef enum _PROCESS_STATE_CHANGE_TYPE
 {
@@ -1384,6 +1387,8 @@ NtChangeThreadState(
     _In_opt_ SIZE_T ExtendedInformationLength,
     _In_opt_ ULONG64 Reserved
     );
+
+#endif
 
 // Threads
 
