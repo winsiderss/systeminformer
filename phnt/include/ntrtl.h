@@ -8646,7 +8646,7 @@ RtlQueryFeatureUsageNotificationSubscriptions(
     _Inout_ PULONG FeatureConfigurationCount
     );
 
-typedef VOID (NTAPI *PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICAION)(
+typedef VOID (NTAPI *PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICATION)(
     _In_opt_ PVOID Context
     );
 
@@ -8655,7 +8655,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRegisterFeatureConfigurationChangeNotification(
-    _In_ PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICAION Callback,
+    _In_ PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICATION Callback,
     _In_opt_ PVOID Context,
     _Inout_opt_ PULONGLONG ChangeStamp,
     _Out_ PHANDLE NotificationHandle
