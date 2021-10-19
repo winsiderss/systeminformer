@@ -424,6 +424,36 @@ NTSTATUS PhSaveXmlObjectToFile(
     return status;
 }
 
+PVOID PhLoadXmlObjectFromString(
+    _In_ PWSTR String
+    )
+{
+    mxml_node_t* currentNode;
+    PPH_BYTES string;
+
+    string = PhConvertUtf16ToUtf8(String);
+
+    currentNode = mxmlLoadString(
+        NULL,
+        string->Buffer,
+        MXML_OPAQUE_CALLBACK
+        );
+
+    if (currentNode)
+    {
+        if (mxmlGetType(currentNode) == MXML_ELEMENT)
+        {
+            PhDereferenceObject(string);
+            return currentNode;
+        }
+
+        mxmlDelete(currentNode);
+    }
+
+    PhDereferenceObject(string);   
+    return NULL;
+}
+
 PVOID PhCreateXmlNode(
     _In_opt_ PVOID ParentNode,
     _In_ PSTR Name
