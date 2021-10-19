@@ -1223,7 +1223,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             case ID_PRIORITY_LOWEST:
             case ID_PRIORITY_IDLE:
                 {
-                    ULONG threadPriorityWin32 = ULONG_MAX;
+                    LONG threadPriorityWin32 = LONG_MAX;
 
                     switch (GET_WM_COMMAND_ID(wParam, lParam))
                     {
@@ -1250,7 +1250,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         break;
                     }
 
-                    if (threadPriorityWin32 != ULONG_MAX)
+                    if (threadPriorityWin32 != LONG_MAX)
                     {
                         ULONG numberOfThreads;
                         PPH_THREAD_ITEM* threads;
