@@ -244,7 +244,10 @@ BOOLEAN PhMainWndInitialization(
         PhShowSystemInformationDialog(PhStartupParameters.SysInfo->Buffer);
 
     if (ShowCommand != SW_HIDE)
+    {
         ShowWindow(PhMainWndHandle, ShowCommand);
+        SetForegroundWindow(PhMainWndHandle);
+    }
 
     if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
         PhPinMiniInformation(MiniInfoManualPinType, 1, 0, PH_MINIINFO_LOAD_POSITION, NULL, NULL);
