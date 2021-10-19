@@ -258,6 +258,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorRelocatedModules", L"80c0ff");
     PhpAddIntegerSetting(L"UseColorProtectedHandles", L"1");
     PhpAddIntegerSetting(L"ColorProtectedHandles", L"777777");
+    PhpAddIntegerSetting(L"UseColorProtectedProcess", L"0");
+    PhpAddIntegerSetting(L"ColorProtectedProcess", L"ff8080");
     PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
     PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
     PhpAddIntegerSetting(L"UseColorServiceDisabled", L"1");
@@ -337,6 +339,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(UseColorProtectedHandles);
     PH_UPDATE_SETTING(ColorProtectedHandles);
     PH_UPDATE_SETTING(UseColorInheritHandles);
+    PH_UPDATE_SETTING(ColorProtectedProcess);
+    PH_UPDATE_SETTING(UseColorProtectedProcess);
     PH_UPDATE_SETTING(ColorInheritHandles);
     PH_UPDATE_SETTING(UseColorServiceDisabled);
     PH_UPDATE_SETTING(ColorServiceDisabled);
