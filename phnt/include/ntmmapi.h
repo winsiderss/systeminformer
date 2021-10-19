@@ -845,7 +845,7 @@ typedef enum _PARTITION_INFORMATION_CLASS
     SystemMemoryPartitionNodeInformation,
     SystemMemoryPartitionCreateLargePages,
     SystemMemoryPartitionDedicatedMemoryInformation,
-    SystemMemoryPartitionOpenDedicatedMemory,
+    SystemMemoryPartitionOpenDedicatedMemory, // 10
     SystemMemoryPartitionMemoryChargeAttributes,
     SystemMemoryPartitionClearAttributes,
     SystemMemoryPartitionMax
