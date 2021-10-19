@@ -10048,6 +10048,23 @@ NTSTATUS PhGetThreadName(
     return status;
 }
 
+NTSTATUS PhSetThreadName(
+    _In_ HANDLE ThreadHandle,
+    _In_ PCWSTR ThreadName
+    )
+{
+    THREAD_NAME_INFORMATION threadNameInfo;
+
+    RtlInitUnicodeString(&threadNameInfo.ThreadName, ThreadName);
+
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadNameInformation,
+        &threadNameInfo,
+        sizeof(THREAD_NAME_INFORMATION)
+        );
+}
+
 NTSTATUS PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle

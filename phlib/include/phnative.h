@@ -1761,6 +1761,14 @@ PhGetThreadName(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetThreadName(
+    _In_ HANDLE ThreadHandle,
+    _In_ PCWSTR ThreadName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle
