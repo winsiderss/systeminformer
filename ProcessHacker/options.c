@@ -350,9 +350,6 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             PhDereferenceObject(SectionList);
             SectionList = NULL;
 
-            if (OptionsTreeImageList)
-                PhImageListDestroy(OptionsTreeImageList);
-
             PhUnregisterWindowCallback(hwndDlg);
 
             PhUnregisterDialog(PhOptionsWindowHandle);
@@ -1557,9 +1554,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             if (CurrentFontInstance)
                 DeleteFont(CurrentFontInstance);
-
-            if (GeneralListviewImageList)
-                PhImageListDestroy(GeneralListviewImageList);
 
             PhClearReference(&NewFontSelection);
             PhClearReference(&OldTaskMgrDebugger);
