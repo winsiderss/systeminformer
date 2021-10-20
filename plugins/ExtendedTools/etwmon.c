@@ -496,7 +496,7 @@ ULONG EtStartEtwRundown(
     EtpRundownTraceProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     EtpRundownTraceProperties->MinimumBuffers = 1;
     EtpRundownTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-    EtpRundownTraceProperties->BufferSize = 64;
+    EtpRundownTraceProperties->BufferSize = 1024; // 1MB session buffer (dmex)
     EtpRundownTraceProperties->FlushTimer = 1;
     EtpRundownTraceProperties->LogFileNameOffset = 0;
     EtpRundownTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
