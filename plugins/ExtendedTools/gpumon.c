@@ -108,6 +108,26 @@ VOID EtGpuMonitorInitialization(
     }
 }
 
+//BOOLEAN EtQueryBrokenGpuCountersExist(VOID)
+//{
+//    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Perflib\\_V2Providers\\{5c3b2414-fd1d-44fb-8b00-e3194209dd1a}");
+//    HANDLE keyHandle;
+//
+//    if (NT_SUCCESS(PhOpenKey(
+//        &keyHandle,
+//        KEY_READ,
+//        PH_KEY_LOCAL_MACHINE,
+//        &keyName,
+//        0
+//        )))
+//    {
+//        NtClose(keyHandle);
+//        return TRUE;
+//    }
+//
+//    return FALSE;
+//}
+
 NTSTATUS EtQueryAdapterInformation(
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ KMTQUERYADAPTERINFOTYPE InformationClass, 
@@ -968,7 +988,7 @@ VOID EtpUpdateSystemNodeInformation(
         }
     }
 
-    NtQueryPerformanceCounter(&performanceCounter, &EtClockTotalRunningTimeFrequency);
+    PhQueryPerformanceCounter(&performanceCounter, &EtClockTotalRunningTimeFrequency);
     PhUpdateDelta(&EtClockTotalRunningTimeDelta, performanceCounter.QuadPart);
 }
 

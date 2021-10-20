@@ -3,7 +3,7 @@
  *   GPU process properties page
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -450,11 +450,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                                 if (max != 0)
                                 {
-                                    PhDivideSinglesBySingle(
-                                        context->GpuGraphState.Data1,
-                                        max,
-                                        drawInfo->LineDataCount
-                                        );
+                                    PhDivideSinglesBySingle(context->GpuGraphState.Data1, max, drawInfo->LineDataCount);
                                 }
 
                                 drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
@@ -470,7 +466,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                             PH_FORMAT format[2];
 
                             // %.2f%%
-                            PhInitFormatF(&format[0], (DOUBLE)context->Block->CurrentGpuUsage * 100, 2);
+                            PhInitFormatF(&format[0], context->Block->CurrentGpuUsage * 100, 2);
                             PhInitFormatC(&format[1], L'%');
 
                             PhMoveReference(&context->GpuGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
@@ -494,26 +490,30 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
-                        PhGraphStateGetDrawInfo(
-                            &context->MemoryGraphState,
-                            getDrawInfo,
-                            context->Block->MemoryHistory.Count
-                            );
+                        PhGraphStateGetDrawInfo(&context->MemoryGraphState, getDrawInfo, context->Block->MemoryHistory.Count);
 
                         if (!context->MemoryGraphState.Valid)
                         {
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                            {
-                                context->MemoryGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemoryHistory, i);
-                            }
+                            FLOAT max = 0;
 
                             if (EtGpuDedicatedLimit != 0)
                             {
-                                PhDivideSinglesBySingle(
-                                    context->MemoryGraphState.Data1,
-                                    (FLOAT)EtGpuDedicatedLimit / PAGE_SIZE,
-                                    drawInfo->LineDataCount
-                                    );
+                                max = (FLOAT)EtGpuDedicatedLimit / PAGE_SIZE;
+                            }
+
+                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            {
+                                FLOAT data1;
+
+                                context->MemoryGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemoryHistory, i);
+
+                                if (max < data1)
+                                    max = data1;
+                            }
+
+                            if (max != 0)
+                            {
+                                PhDivideSinglesBySingle(context->MemoryGraphState.Data1, max, drawInfo->LineDataCount);
                             }
 
                             context->MemoryGraphState.Valid = TRUE;
@@ -545,26 +545,30 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
-                        PhGraphStateGetDrawInfo(
-                            &context->MemorySharedGraphState,
-                            getDrawInfo,
-                            context->Block->MemorySharedHistory.Count
-                            );
+                        PhGraphStateGetDrawInfo(&context->MemorySharedGraphState, getDrawInfo, context->Block->MemorySharedHistory.Count);
 
                         if (!context->MemorySharedGraphState.Valid)
                         {
-                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                            {
-                                context->MemorySharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemorySharedHistory, i);
-                            }
+                            FLOAT max = 0;
 
                             if (EtGpuSharedLimit != 0)
                             {
-                                PhDivideSinglesBySingle(
-                                    context->MemorySharedGraphState.Data1,
-                                    (FLOAT)EtGpuSharedLimit / PAGE_SIZE,
-                                    drawInfo->LineDataCount
-                                    );
+                                max = (FLOAT)EtGpuSharedLimit / PAGE_SIZE;
+                            }
+
+                            for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                            {
+                                FLOAT data1;
+
+                                context->MemorySharedGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemorySharedHistory, i);
+
+                                if (max < data1)
+                                    max = data1;
+                            }
+
+                            if (max != 0)
+                            {
+                                PhDivideSinglesBySingle(context->MemorySharedGraphState.Data1, max, drawInfo->LineDataCount);
                             }
 
                             context->MemorySharedGraphState.Valid = TRUE;
@@ -596,16 +600,12 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
-                        PhGraphStateGetDrawInfo(
-                            &context->GpuCommittedGraphState,
-                            getDrawInfo,
-                            context->Block->GpuCommittedHistory.Count
-                            );
+                        PhGraphStateGetDrawInfo(&context->GpuCommittedGraphState, getDrawInfo, context->Block->GpuCommittedHistory.Count);
 
                         if (!context->GpuCommittedGraphState.Valid)
                         {
                             ULONG i;
-                            static FLOAT max = 1024 * 1024; // minimum scaling
+                            FLOAT max = 1024 * 1024; // minimum scaling
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
@@ -617,12 +617,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                     max = data1;
                             }
 
-                            // Scale the data.
-                            PhDivideSinglesBySingle(
-                                context->GpuCommittedGraphState.Data1,
-                                max,
-                                drawInfo->LineDataCount
-                                );
+                            PhDivideSinglesBySingle(context->GpuCommittedGraphState.Data1, max, drawInfo->LineDataCount);
 
                             context->GpuCommittedGraphState.Valid = TRUE;
                         }
@@ -670,7 +665,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                     );
 
                                 // %.2f%%\n%s
-                                PhInitFormatF(&format[0], (DOUBLE)gpuUsage * 100, 2);
+                                PhInitFormatF(&format[0], gpuUsage * 100, 2);
                                 PhInitFormatS(&format[1], L"%\n");
                                 PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
