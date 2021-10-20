@@ -1179,6 +1179,8 @@ BOOLEAN NTAPI FwTreeNewCallback(
         return TRUE;
     case TreeNewCustomDraw:
         {
+            #define TNP_CELL_LEFT_MARGIN 6
+            #define TNP_ICON_RIGHT_PADDING 4
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             HDC hdc;
             RECT rect;
@@ -1196,8 +1198,9 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 {
                     if (node->CountryIconIndex != INT_MAX)
                     {
+                        rect.left += TNP_CELL_LEFT_MARGIN;
                         EtFwDrawCountryIcon(hdc, rect, node->CountryIconIndex);
-                        rect.left += 16 + 2;
+                        rect.left += 16 + TNP_ICON_RIGHT_PADDING;
                     }
 
                     DrawText(
@@ -1221,17 +1224,20 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             }
 
+            // Padding
+            rect.left += TNP_CELL_LEFT_MARGIN;
+
             PhImageListDrawIcon(
                 PhGetProcessSmallImageList(),
                 (ULONG)(ULONG_PTR)node->ProcessIconIndex, // HACK (dmex)
                 hdc,
                 rect.left,
-                rect.top,
+                rect.top + ((rect.bottom - rect.top) - 16) / 2,
                 ILD_NORMAL | ILD_TRANSPARENT
                 );
 
             // Padding
-            rect.left += EtFwIconWidth + 2;
+            rect.left += EtFwIconWidth + TNP_ICON_RIGHT_PADDING;
 
             if (PhIsNullOrEmptyString(node->ProcessBaseString))
             {
