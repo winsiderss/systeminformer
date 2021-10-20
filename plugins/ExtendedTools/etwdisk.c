@@ -87,9 +87,12 @@ VOID EtInitializeDiskInformation(
     RtlInitializeSListHead(&EtDiskPacketListHead);
     EtFileNameHashtable = PhCreateSimpleHashtable(128);
 
-    NtQueryPerformanceCounter(&performanceCounter, &EtpPerformanceFrequency);
+    PhQueryPerformanceCounter(&performanceCounter, &EtpPerformanceFrequency);
 
     EtDiskEnabled = TRUE;
+
+    // Collect all existing file names.
+    EtStartEtwRundown();
 
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
