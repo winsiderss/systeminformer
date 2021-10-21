@@ -1120,6 +1120,7 @@ BOOLEAN PhGetNetworkConnections(
     }
     else
     {
+        boundTcpTable = NULL;
         boundTcp6Table = NULL;
     }
 
