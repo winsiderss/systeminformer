@@ -412,21 +412,10 @@ VOID NTAPI LayoutPaddingCallback(
     if (RebarHandle && ToolStatusConfig.ToolBarEnabled)
     {
         RECT rebarRect;
-        RECT clientRect;
-        //INT x, y, cx, cy;
 
-        GetClientRect(PhMainWindowHandle, &clientRect);
+        SendMessage(RebarHandle, WM_SIZE, 0, 0);
+
         GetClientRect(RebarHandle, &rebarRect);
-
-        SetWindowPos(
-            RebarHandle,
-            NULL,
-            layoutPadding->Padding.left,
-            layoutPadding->Padding.top,
-            clientRect.right - clientRect.left,
-            rebarRect.bottom - rebarRect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER
-            );
 
         // Adjust the PH client area and exclude the rebar width.
         layoutPadding->Padding.top += rebarRect.bottom;
