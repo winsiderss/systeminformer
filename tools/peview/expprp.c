@@ -206,7 +206,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 {
                     PPH_STRING forwardName;
 
-                    forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+                    forwardName = PhConvertUtf8ToUtf16(exportFunction.ForwardedName);
 
                     if (forwardName->Buffer[0] == L'?')
                     {
@@ -228,7 +228,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 {
                     PPH_STRING exportName;
 
-                    exportName = PhZeroExtendToUtf16(exportEntry.Name);
+                    exportName = PhConvertUtf8ToUtf16(exportEntry.Name);
 
                     if (exportName->Buffer[0] == L'?')
                     {
