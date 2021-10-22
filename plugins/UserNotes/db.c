@@ -107,6 +107,9 @@ PDB_OBJECT FindDbObject(
     PDB_OBJECT lookupObjectPtr;
     PDB_OBJECT *objectPtr;
 
+    if (GetNumberOfDbObjects() == 0)
+        return NULL;
+
     lookupObject.Tag = Tag;
     lookupObject.Key = *Name;
     lookupObjectPtr = &lookupObject;
