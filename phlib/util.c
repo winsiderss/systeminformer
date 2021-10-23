@@ -6318,8 +6318,8 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
 
         if (
             (!DllBase || entry->DllBase == DllBase) &&
-            (!FullDllName || PhEqualStringRef(&fullDllName, FullDllName, TRUE)) &&
-            (!BaseDllName || PhEqualStringRef(&baseDllName, BaseDllName, TRUE))
+            (!FullDllName || PhStartsWithStringRef(&fullDllName, FullDllName, TRUE)) &&
+            (!BaseDllName || PhStartsWithStringRef(&baseDllName, BaseDllName, TRUE))
             )
         {
             result = entry;
