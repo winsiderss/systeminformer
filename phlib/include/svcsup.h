@@ -23,19 +23,16 @@ PhEnumServices(
 PHLIBAPI
 SC_HANDLE
 NTAPI
-PhOpenService(
-    _In_ PWSTR ServiceName,
-    _In_ ACCESS_MASK DesiredAccess
+PhGetServiceManagerHandle(
+    VOID
     );
 
 PHLIBAPI
-NTSTATUS
+SC_HANDLE
 NTAPI
-PhOpenServiceEx(
+PhOpenService(
     _In_ PWSTR ServiceName,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ SC_HANDLE ScManagerHandle,
-    _Out_ SC_HANDLE* ServiceHandle
+    _In_ ACCESS_MASK DesiredAccess
     );
 
 PHLIBAPI
