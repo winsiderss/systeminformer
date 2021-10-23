@@ -615,6 +615,8 @@ VOID PhMwpInitializeProcessMenu(
             ID_PROCESS_TERMINATE,
             ID_PROCESS_SUSPEND,
             ID_PROCESS_RESUME,
+            ID_PROCESS_THAW,
+            ID_PROCESS_FREEZE,
             ID_MISCELLANEOUS_REDUCEWORKINGSET,
             ID_PROCESS_COPY
         };
