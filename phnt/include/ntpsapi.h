@@ -936,7 +936,7 @@ typedef struct _PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
 } PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION, *PPROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION;
 
 // private
-typedef struct _PROCESS_LOGGING_INFORMATION
+typedef union _PROCESS_LOGGING_INFORMATION
 {
     ULONG Flags;
     struct
@@ -1324,8 +1324,6 @@ NtQueryPortInformationProcess(
 
 #endif
 
-#if (PHNT_VERSION >= PHNT_WS03)
-
 #define STATECHANGE_SET_ATTRIBUTES 0x0001
 
 typedef enum _PROCESS_STATE_CHANGE_TYPE
@@ -1334,6 +1332,8 @@ typedef enum _PROCESS_STATE_CHANGE_TYPE
     ProcessStateChangeResume,
     ProcessStateChangeMax,
 } PROCESS_STATE_CHANGE_TYPE, *PPROCESS_STATE_CHANGE_TYPE;
+
+#if (PHNT_VERSION >= PHNT_WIN11)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1358,12 +1358,16 @@ NtChangeProcessState(
     _In_opt_ ULONG64 Reserved
     );
 
+#endif
+
 typedef enum _THREAD_STATE_CHANGE_TYPE
 {
     ThreadStateChangeSuspend,
     ThreadStateChangeResume,
     ThreadStateChangeMax,
 } THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
+
+#if (PHNT_VERSION >= PHNT_WIN11)
 
 NTSYSCALLAPI
 NTSTATUS
