@@ -6146,7 +6146,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
             objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameSr.Buffer = formatBuffer;
-            pipeNameHash = PhHashStringRef(&objectNameSr, TRUE);
+            pipeNameHash = PhHashStringRefEx(&objectNameSr, TRUE, PH_STRING_HASH_X65599);
 
             RtlInitUnicodeString(&objectNameUs, DEVICE_NAMED_PIPE);
             InitializeObjectAttributes(

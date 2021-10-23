@@ -99,7 +99,7 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
-    return PhHashBytes((PUCHAR)setting->Name.Buffer, setting->Name.Length);
+    return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_X65599);
 }
 
 static ULONG PhpGetCurrentScale(
