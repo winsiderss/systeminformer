@@ -6419,6 +6419,29 @@ RtlSelfRelativeToAbsoluteSD2(
 
 // Access masks
 
+#ifndef PHNT_NO_INLINE_ACCESSES_GRANTED
+FORCEINLINE
+BOOLEAN
+NTAPI
+RtlAreAllAccessesGranted(
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    return (~GrantedAccess & DesiredAccess) == 0;
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+RtlAreAnyAccessesGranted(
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    return (GrantedAccess & DesiredAccess) != 0;
+}
+#else
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -6434,6 +6457,7 @@ RtlAreAnyAccessesGranted(
     _In_ ACCESS_MASK GrantedAccess,
     _In_ ACCESS_MASK DesiredAccess
     );
+#endif
 
 NTSYSAPI
 VOID
