@@ -73,6 +73,8 @@
 #define PH_VECTOR_LEVEL_SSE2 1
 #define PH_VECTOR_LEVEL_AVX 2
 
+#define PH_NATIVE_STRING_CONVERSION 1
+
 typedef struct _PHP_BASE_THREAD_CONTEXT
 {
     PUSER_THREAD_START_ROUTINE StartAddress;
@@ -143,7 +145,10 @@ BOOLEAN PhBaseInitialization(
     // NOTE: This is unused for now.
     /*if (USER_SHARED_DATA->XState.EnabledFeatures & XSTATE_MASK_AVX)
         PhpVectorLevel = PH_VECTOR_LEVEL_AVX;
-    else*/ if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+    else if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;*/
+
+    if (IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE))
         PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
     PhStringType = PhCreateObjectType(L"String", 0, NULL);
@@ -5241,30 +5246,56 @@ ULONG PhHashStringRefEx(
     case PH_STRING_HASH_X65599:
         {
             ULONG hash = 0;
-            SIZE_T count;
+            PWCHAR end;
             PWCHAR p;
 
             if (String->Length == 0)
                 return 0;
 
-            count = String->Length / sizeof(WCHAR);
-            p = String->Buffer;
+            end = String->Buffer + (String->Length / sizeof(WCHAR));
 
             if (IgnoreCase)
             {
-                do
+                // This is the fastest implementation (copied from ReactOS) (dmex)
+                for (p = String->Buffer; p != end; p++)
                 {
-                    hash *= 0x1003F;
-                    hash += (USHORT)RtlUpcaseUnicodeChar(*p++);
-                } while (--count != 0);
+                    hash = ((65599 * (hash)) + (ULONG)(((*p) >= L'a' && (*p) <= L'z') ? (*p) - L'a' + L'A' : (*p)));
+                }
+
+                // Medium fast
+                //UNICODE_STRING unicodeString;
+                //
+                //if (!PhStringRefToUnicodeString(String, &unicodeString))
+                //    return 0;
+                //
+                //if (!NT_SUCCESS(RtlHashUnicodeString(&unicodeString, TRUE, HASH_STRING_ALGORITHM_X65599, &hash)))
+                //    return 0;
+                //
+                // Slower than the above two (based on PhHashBytes) (dmex)
+                //SIZE_T count = String->Length / sizeof(WCHAR);
+                //PWCHAR p = String->Buffer;
+                //do
+                //{
+                //    hash += (USHORT)RtlUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
+                //    hash *= 0x1003F;
+                //} while (--count != 0);
             }
             else
             {
-                do
+                // This is the fastest implementation (copied from ReactOS) (dmex)
+                for (p = String->Buffer; p != end; p++)
                 {
-                    hash *= 0x1003F;
-                    hash += *p++;
-                } while (--count != 0);
+                    hash = ((65599 * (hash)) + (ULONG)(*p));
+                }
+
+                // This is fast but slightly slower (based on PhHashBytes) (dmex)
+                //SIZE_T count = String->Length / sizeof(WCHAR);
+                //PWCHAR p = String->Buffer;
+                //do
+                //{
+                //    hash *= 0x1003F;
+                //    hash += *p++;
+                //} while (--count != 0);
             }
 
             return hash;
