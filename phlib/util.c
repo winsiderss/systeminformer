@@ -6749,7 +6749,10 @@ PVOID PhGetLoaderEntryImageExportFunction(
             libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
             libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
-            if (libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer))
+            if (!(libraryModule = PhGetLoaderEntryDllBase(libraryNameString->Buffer)))
+                libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer);
+
+            if (libraryModule)
             {
                 if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
                 {
@@ -6842,7 +6845,10 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                     libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
                     libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
-                    if (libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer))
+                    if (!(libraryModule = PhGetLoaderEntryDllBase(libraryNameString->Buffer)))
+                        libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer);
+
+                    if (libraryModule)
                     {
                         if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
                         {
