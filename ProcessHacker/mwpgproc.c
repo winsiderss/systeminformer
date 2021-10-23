@@ -599,6 +599,14 @@ VOID PhMwpInitializeProcessMenu(
                 }
             }
         }
+
+        if (WindowsVersion < WINDOWS_11)
+        {
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_FREEZE))
+                PhDestroyEMenuItem(item);
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_THAW))
+                PhDestroyEMenuItem(item);
+        }
     }
     else
     {
@@ -654,6 +662,20 @@ VOID PhMwpInitializeProcessMenu(
                 PhDestroyEMenuItem(item);
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_RESUMETREE))
                 PhDestroyEMenuItem(item);
+        }
+
+        if (PH_IS_REAL_PROCESS_ID(Processes[0]->ProcessId))
+        {
+            if (PhIsProcessStateFrozen(Processes[0]->ProcessId))
+            {
+                if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_FREEZE))
+                    PhDestroyEMenuItem(item);
+            }
+            else
+            {
+                if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_THAW))
+                    PhDestroyEMenuItem(item);
+            }
         }
     }
 
@@ -740,6 +762,8 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_SUSPENDTREE, L"Suspend tree", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Res&ume", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESUMETREE, L"Resume tree", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_FREEZE, L"Freeze", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_THAW, L"Thaw", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_RESTART, L"Res&tart", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create dump fi&le...", NULL, NULL), ULONG_MAX);

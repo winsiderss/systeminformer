@@ -1148,6 +1148,30 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_PROCESS_FREEZE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiFreezeTreeProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_THAW:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiThawTreeProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_PROCESS_RESTART:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();

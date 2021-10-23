@@ -1870,6 +1870,27 @@ PhDestroyExecutionRequiredRequest(
     _In_ HANDLE PowerRequestHandle
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsProcessStateFrozen(
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFreezeProcess(
+    _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhThawProcess(
+    _In_ HANDLE ProcessId
+    );
+
 #ifdef __cplusplus
 }
 #endif

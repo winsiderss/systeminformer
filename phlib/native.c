@@ -10581,3 +10581,212 @@ NTSTATUS PhDestroyExecutionRequiredRequest(
 
     return NtClose(PowerRequestHandle);
 }
+
+// Process freeze/thaw support
+
+static PH_INITONCE PhProcessStateInitOnce = PH_INITONCE_INIT;
+static PPH_HASHTABLE PhProcessStateHashtable = NULL;
+
+typedef struct _PH_STATEHANDLE_CACHE_ENTRY
+{
+    HANDLE ProcessId;
+    HANDLE StateHandle;
+} PH_STATEHANDLE_CACHE_ENTRY, *PPH_STATEHANDLE_CACHE_ENTRY;
+
+static BOOLEAN NTAPI PhProcessStateHandleHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    return
+        ((PPH_STATEHANDLE_CACHE_ENTRY)Entry1)->ProcessId ==
+        ((PPH_STATEHANDLE_CACHE_ENTRY)Entry2)->ProcessId;
+}
+
+static ULONG NTAPI PhProcessStateHandleHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return HandleToUlong(((PPH_STATEHANDLE_CACHE_ENTRY)Entry)->ProcessId) / 4;
+}
+
+BOOLEAN PhInitializeProcessStateHandleTable(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhProcessStateInitOnce))
+    {
+        PhProcessStateHashtable = PhCreateHashtable(
+            sizeof(PH_STATEHANDLE_CACHE_ENTRY),
+            PhProcessStateHandleHashtableEqualFunction,
+            PhProcessStateHandleHashtableHashFunction,
+            1
+            );
+
+        PhEndInitOnce(&PhProcessStateInitOnce);
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhIsProcessStateFrozen(
+    _In_ HANDLE ProcessId
+    )
+{
+    if (PhInitializeProcessStateHandleTable())
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhProcessStateHashtable, &entry))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+NTSTATUS PhFreezeProcess(
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE processHandle;
+    HANDLE stateHandle;
+
+    if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
+        return STATUS_UNSUCCESSFUL;
+
+    if (PhInitializeProcessStateHandleTable())
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhProcessStateHashtable, &entry))
+        {
+            return STATUS_SUCCESS;
+        }
+    }
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateProcessStateChange_Import()(
+        &stateHandle,
+        STATECHANGE_SET_ATTRIBUTES,
+        &objectAttributes,
+        processHandle,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(processHandle);
+        return status;
+    }
+
+    status = NtChangeProcessState_Import()(
+        stateHandle,
+        processHandle,
+        ProcessStateChangeSuspend,
+        NULL,
+        0,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+        entry.StateHandle = stateHandle;
+
+        PhAddEntryHashtable(PhProcessStateHashtable, &entry);
+    }
+
+    NtClose(processHandle);
+
+    return status;
+}
+
+NTSTATUS PhThawProcess(
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE stateHandle = NULL;
+    HANDLE processHandle;
+
+    if (!NtChangeProcessState_Import())
+        return STATUS_UNSUCCESSFUL;
+
+    if (PhInitializeProcessStateHandleTable())
+    {
+        PH_STATEHANDLE_CACHE_ENTRY lookupEntry;
+        PPH_STATEHANDLE_CACHE_ENTRY entry;
+
+        lookupEntry.ProcessId = ProcessId;
+
+        if (entry = PhFindEntryHashtable(PhProcessStateHashtable, &lookupEntry))
+        {
+            stateHandle = entry->StateHandle;
+        }
+    }
+
+    if (!stateHandle)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtChangeProcessState_Import()(
+        stateHandle,
+        processHandle,
+        ProcessStateChangeResume,
+        NULL,
+        0,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhRemoveEntryHashtable(PhProcessStateHashtable, &entry))
+        {
+            NtClose(stateHandle);
+        }
+    }
+
+    NtClose(processHandle);
+
+    return status;
+}

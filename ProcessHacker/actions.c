@@ -2271,6 +2271,61 @@ BOOLEAN PhUiResumeTreeProcess(
     return success;
 }
 
+BOOLEAN PhUiFreezeTreeProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    BOOLEAN cont = FALSE;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            WindowHandle,
+            L"freeze",
+            Process->ProcessName->Buffer,
+            L"Freezing will not persist after exiting Process Hacker.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    status = PhFreezeProcess(Process->ProcessId);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(WindowHandle, L"freeze", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhUiThawTreeProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+
+    status = PhThawProcess(Process->ProcessId);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(WindowHandle, L"thaw", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiRestartProcess(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM Process

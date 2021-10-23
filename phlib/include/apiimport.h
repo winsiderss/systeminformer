@@ -60,6 +60,23 @@ typedef NTSTATUS (NTAPI *_NtQueryOpenSubKeysEx)(
     _Out_ PULONG RequiredSize
     );
 
+typedef NTSTATUS (NTAPI* _NtCreateProcessStateChange)(
+    _Out_ PHANDLE ProcessStateChangeHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ ULONG64 Reserved
+    );
+
+typedef NTSTATUS (NTAPI* _NtChangeProcessState)(
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_STATE_CHANGE_TYPE StateChangeType,
+    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ SIZE_T ExtendedInformationLength,
+    _In_opt_ ULONG64 Reserved
+    );
+
 typedef NTSTATUS (NTAPI* _RtlDefaultNpAcl)(
     _Out_ PACL* Acl
     );
@@ -227,6 +244,8 @@ PH_DECLARE_IMPORT(NtQueryDefaultLocale);
 PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
 PH_DECLARE_IMPORT(NtTraceControl);
 PH_DECLARE_IMPORT(NtQueryOpenSubKeysEx);
+PH_DECLARE_IMPORT(NtCreateProcessStateChange);
+PH_DECLARE_IMPORT(NtChangeProcessState);
 
 PH_DECLARE_IMPORT(RtlDefaultNpAcl);
 PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
