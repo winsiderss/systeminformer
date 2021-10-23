@@ -10055,6 +10055,7 @@ NTSTATUS PhSetThreadName(
 {
     THREAD_NAME_INFORMATION threadNameInfo;
 
+    memset(&threadNameInfo, 0, sizeof(THREAD_NAME_INFORMATION));
     RtlInitUnicodeString(&threadNameInfo.ThreadName, ThreadName);
 
     return NtSetInformationThread(
@@ -10655,7 +10656,7 @@ NTSTATUS PhFreezeProcess(
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE processHandle;
-    HANDLE stateHandle;
+    HANDLE stateHandle = NULL;
 
     if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
         return STATUS_UNSUCCESSFUL;
@@ -10720,6 +10721,10 @@ NTSTATUS PhFreezeProcess(
         entry.StateHandle = stateHandle;
 
         PhAddEntryHashtable(PhProcessStateHashtable, &entry);
+    }
+    else
+    {
+        NtClose(stateHandle);
     }
 
     NtClose(processHandle);
