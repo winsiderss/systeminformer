@@ -127,7 +127,7 @@ NTSTATUS KphInitializeDynamicPackage(
         Package->StructData.ObDecodeShift = 16;
         Package->StructData.ObAttributesShift = 17;
     }
-    // Windows 10, Windows Server 2016
+    // Windows 10, Windows Server 2016, Windows 11, Windows Server 2022
     else if (majorVersion == 10 && minorVersion == 0)
     {
         ULONG revisionNumber = KphpGetKernelRevisionNumber();
@@ -181,6 +181,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 19043:
             Package->BuildNumber = 19043;
             Package->ResultingNtVersion = PHNT_21H1;
+            break;
+        case 22000:
+            Package->BuildNumber = 22000;
+            Package->ResultingNtVersion = PHNT_WIN11;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
