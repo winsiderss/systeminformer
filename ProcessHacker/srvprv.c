@@ -186,7 +186,6 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
         serviceItem->Flags = Information->ServiceStatusProcess.dwServiceFlags;
         serviceItem->ProcessId = UlongToHandle(Information->ServiceStatusProcess.dwProcessId);
-
     }
 
     PhEmCallObjectOperation(EmServiceItemType, serviceItem, EmObjectCreate);
