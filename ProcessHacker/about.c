@@ -121,6 +121,40 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             }
         }
         break;
+
+    case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            RECT rect;
+            HDC hdc;
+
+            hdc = BeginPaint (hwndDlg, &ps);
+
+            if (hdc)
+            {
+                GetClientRect (hwndDlg, &rect);
+                FillRect (hdc, &rect, GetSysColorBrush (COLOR_WINDOW));
+
+                EndPaint (hwndDlg, &ps);
+            }
+
+        }
+        break;
+
+    case WM_CTLCOLORSTATIC:
+        {
+            HDC hdc;
+
+            hdc = (HDC)wParam;
+
+            SetBkMode (hdc, TRANSPARENT);
+
+            SetTextColor (hdc, GetSysColor (COLOR_WINDOWTEXT));
+            SetDCBrushColor (hdc, GetSysColor (COLOR_WINDOW));
+
+            return (INT_PTR)GetStockObject (DC_BRUSH);
+        }
+
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
