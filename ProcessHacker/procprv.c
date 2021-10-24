@@ -873,7 +873,7 @@ VOID PhpProcessQueryStage1(
             NULL
             )))
         {
-            if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
+            if (!RtlAreAllAccessesGranted(basicInfo.GrantedAccess, PROCESS_QUERY_INFORMATION))
                 Data->IsFilteredHandle = TRUE;
         }
         else
@@ -2520,7 +2520,7 @@ VOID PhProcessProviderUpdate(
                     NULL
                     )))
                 {
-                    if ((basicInfo.GrantedAccess & PROCESS_QUERY_INFORMATION) != PROCESS_QUERY_INFORMATION)
+                    if (!RtlAreAllAccessesGranted(basicInfo.GrantedAccess, PROCESS_QUERY_INFORMATION))
                     {
                         filteredHandle = TRUE;
                     }
