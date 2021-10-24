@@ -511,13 +511,13 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     _Out_ PVOID* BlockTableAddress
     )
 {
+    static SID everyoneSid = { SID_REVISION, 1, SECURITY_WORLD_SID_AUTHORITY, { SECURITY_WORLD_RID } };
     BOOLEAN result = FALSE;
     PPH_STRING legacyBoundaryDescriptorName;
     POBJECT_BOUNDARY_DESCRIPTOR boundaryDescriptorHandle = NULL;
     HANDLE privateNamespaceHandle = NULL;
     HANDLE blockTableHandle = NULL;
     HANDLE tokenHandle = NULL;
-    PSID everyoneSIDHandle = NULL;
     PVOID blockTableAddress = NULL;
     LARGE_INTEGER sectionOffset = { 0 };
     SIZE_T viewSize = 0;
@@ -540,10 +540,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
     if (!(boundaryDescriptorHandle = RtlCreateBoundaryDescriptor(&boundaryNameUs, 0)))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(RtlAllocateAndInitializeSid(&SIDWorldAuth, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &everyoneSIDHandle)))
-        goto CleanupExit;
-
-    if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, everyoneSIDHandle)))
+    if (!NT_SUCCESS(RtlAddSIDToBoundaryDescriptor(&boundaryDescriptorHandle, &everyoneSid)))
         goto CleanupExit;
 
     if (IsImmersive && PhWindowsVersion >= WINDOWS_8)
@@ -645,11 +642,6 @@ CleanupExit:
     if (privateNamespaceHandle)
     {
         NtClose(privateNamespaceHandle);
-    }
-
-    if (everyoneSIDHandle)
-    {
-        RtlFreeSid(everyoneSIDHandle);
     }
 
     if (boundaryDescriptorHandle)
