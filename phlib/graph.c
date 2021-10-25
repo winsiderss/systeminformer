@@ -38,8 +38,18 @@ typedef struct _PHP_GRAPH_CONTEXT
     ULONG_PTR Id;
     PH_GRAPH_DRAW_INFO DrawInfo;
     PH_GRAPH_OPTIONS Options;
-    BOOLEAN NeedsUpdate;
-    BOOLEAN NeedsDraw;
+
+    union
+    {
+        USHORT Flags;
+        struct
+        {
+            USHORT NeedsUpdate : 1;
+            USHORT NeedsDraw : 1;
+            USHORT Hot : 1;
+            USHORT Spare : 13;
+        };
+    };
 
     HDC BufferedContext;
     HBITMAP BufferedOldBitmap;
@@ -1207,6 +1217,28 @@ LRESULT CALLBACK PhpGraphWndProc(
                     SendMessage(context->TooltipHandle, TTM_UPDATE, 0, 0);
                     context->LastCursorLocation = point;
                 }
+
+                if (!context->Hot)
+                {
+                    TRACKMOUSEEVENT trackMouseEvent;
+
+                    context->Hot = TRUE;
+                    trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+                    trackMouseEvent.dwFlags = TME_LEAVE;
+                    trackMouseEvent.hwndTrack = hwnd;
+                    trackMouseEvent.dwHoverTime = 0;
+                    TrackMouseEvent(&trackMouseEvent);
+                }
+            }
+        }
+        break;
+    case WM_MOUSELEAVE:
+        {
+            context->Hot = FALSE;
+
+            if (context->TooltipHandle)
+            {
+                SendMessage(context->TooltipHandle, TTM_POP, 0, 0);
             }
         }
         break;
