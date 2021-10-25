@@ -25,6 +25,7 @@
 #include <json.h>
 #include <mapimg.h>
 #include <symprv.h>
+#include <verify.h>
 #include "clrsup.h"
 #include "corsym.h"
 
@@ -1079,34 +1080,34 @@ static BOOLEAN NTAPI DnpGetCoreClrPathCallback(
 }
 
 _Success_(return)
-BOOLEAN DnGetProcessDotNetDebugData(
+BOOLEAN DnGetProcessCoreClrPath(
     _In_ ICLRDataTarget* DataTarget,
-    _Out_ PULONG TimeStamp,
-    _Out_ PULONG SizeOfImage
+    _Out_ PPH_STRING *FileName
     )
 {
     DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)DataTarget;
     DNP_GET_IMAGE_BASE_CONTEXT context = { 0 };
-    PVOID imageBaseAddress;
-    ULONG dataTargetTimeStamp = 0;
-    ULONG dataTargetSizeOfImage = 0;
+    PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
 
     PhInitializeStringRefLongHint(&context.ImageName, L"coreclr.dll");
-    PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+    parameters.Callback = DnpGetCoreClrPathCallback;
+    parameters.Context = &context;
+    parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
+    PhEnumProcessModulesEx(dataTarget->ProcessHandle, &parameters);
 
 #ifdef _WIN64
     if (dataTarget->IsWow64)
-        PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+        PhEnumProcessModules32Ex(dataTarget->ProcessHandle, &parameters);
 #endif
 
     if (!context.FileName)
     {
         PhInitializeStringRefLongHint(&context.ImageName, L"clr.dll");
-        PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+        PhEnumProcessModulesEx(dataTarget->ProcessHandle, &parameters);
 
 #ifdef _WIN64
         if (dataTarget->IsWow64)
-            PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetCoreClrPathCallback, &context);
+            PhEnumProcessModules32Ex(dataTarget->ProcessHandle, &parameters);
 #endif
     }
 
@@ -1118,50 +1119,13 @@ BOOLEAN DnGetProcessDotNetDebugData(
     //PhLoadRemoteMappedImage(dataTarget->ProcessHandle, context.DllBase, &remoteMappedImage);
     //PhLoadRemoteMappedImageResource(&remoteMappedImage, L"CLRDEBUGINFO", RT_RCDATA, &debugVersionInfo);
 
-    if (imageBaseAddress = LoadLibraryEx(
-        PhGetString(context.FileName),
-        NULL,
-        LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
-        ))
-    {
-        PCLR_DEBUG_RESOURCE debugVersionInfo;
-
-        if (PhLoadResource(
-            imageBaseAddress,
-            L"CLRDEBUGINFO",
-            RT_RCDATA,
-            NULL,
-            &debugVersionInfo
-            ))
-        {
-            if (
-                debugVersionInfo->Version == 0 &&
-                IsEqualGUID(&debugVersionInfo->Signature, &CLR_ID_ONECORE_CLR)
-                )
-            {
-                dataTargetTimeStamp = debugVersionInfo->DacTimeStamp;
-                dataTargetSizeOfImage = debugVersionInfo->DacSizeOfImage;
-            }
-        }
-
-        FreeLibrary(imageBaseAddress);
-    }
-
-    PhDereferenceObject(context.FileName);
-
-    if (dataTargetTimeStamp && dataTargetSizeOfImage)
-    {
-        *TimeStamp = dataTargetTimeStamp;
-        *SizeOfImage = dataTargetSizeOfImage;
-        return TRUE;
-    }
-
-    return FALSE;
+    *FileName = context.FileName;
+    return TRUE;
 }
 
 static BOOLEAN DnpMscordaccoreDirectoryCallback(
     _In_ PFILE_DIRECTORY_INFORMATION Information,
-    _In_ PPH_LIST CandidateList
+    _In_ PPH_LIST DirectoryList
     )
 {
     PH_STRINGREF baseName;
@@ -1174,7 +1138,7 @@ static BOOLEAN DnpMscordaccoreDirectoryCallback(
 
     if (Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
-        PhAddItemList(CandidateList, PhCreateString2(&baseName));
+        PhAddItemList(DirectoryList, PhCreateString2(&baseName));
     }
 
     return TRUE;
@@ -1188,18 +1152,49 @@ PVOID DnLoadMscordaccore(
     // \dotnet\shared\Microsoft.NETCore.App\ is the same path used by the CLR for DAC detection. (dmex)
     static PH_STRINGREF mscordaccorePathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
     static PH_STRINGREF mscordaccoreNameSr = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
-    HANDLE directoryHandle;
-    PPH_STRING directoryPath;
-    PPH_LIST directoryList;
     PVOID mscordacBaseAddress = NULL;
+    HANDLE directoryHandle;
+    PPH_LIST directoryList;
+    PPH_STRING directoryPath;
+    PPH_STRING dataTargetFileName = NULL;
+    PPH_STRING dataTargetDirectory = NULL;
     ULONG dataTargetTimeStamp = 0;
     ULONG dataTargetSizeOfImage = 0;
 
-    if (!DnGetProcessDotNetDebugData(Target, &dataTargetTimeStamp, &dataTargetSizeOfImage))
-        return NULL;
+    if (DnGetProcessCoreClrPath(Target, &dataTargetFileName))
+    {
+        PVOID imageBaseAddress;
+
+        if (NT_SUCCESS(PhLoadLibraryAsImageResource(dataTargetFileName, &imageBaseAddress)))
+        {
+            PCLR_DEBUG_RESOURCE debugVersionInfo;
+
+            if (PhLoadResource(
+                imageBaseAddress,
+                L"CLRDEBUGINFO",
+                RT_RCDATA,
+                NULL,
+                &debugVersionInfo
+                ))
+            {
+                if (
+                    debugVersionInfo->Version == 0 &&
+                    IsEqualGUID(&debugVersionInfo->Signature, &CLR_ID_ONECORE_CLR)
+                    )
+                {
+                    dataTargetTimeStamp = debugVersionInfo->DacTimeStamp;
+                    dataTargetSizeOfImage = debugVersionInfo->DacSizeOfImage;
+                }
+            }
+
+            PhFreeLibraryAsImageResource(imageBaseAddress);
+        }
+
+        dataTargetDirectory = PhGetBaseDirectory(dataTargetFileName);
+    }
 
     if (!(directoryPath = PhExpandEnvironmentStrings(&mscordaccorePathSr)))
-        return NULL;
+        goto TryAppLocal;
 
     directoryList = PhCreateList(2);
 
@@ -1228,7 +1223,7 @@ PVOID DnLoadMscordaccore(
             &mscordaccoreNameSr
             );
 
-        if (dataTargetTimeStamp && dataTargetSizeOfImage)
+        if (PhDoesFileExistsWin32(PhGetString(fileName)))
         {
             PH_MAPPED_IMAGE mappedImage;
 
@@ -1255,6 +1250,41 @@ PVOID DnLoadMscordaccore(
     PhDereferenceObjects(directoryList->Items, directoryList->Count);
     PhDereferenceObject(directoryList);
     PhDereferenceObject(directoryPath);
+
+TryAppLocal:
+    if (!mscordacBaseAddress && dataTargetDirectory)
+    {
+        VERIFY_RESULT verifyResult;
+        PPH_STRING signerName;
+        PPH_STRING fileName;
+
+        // We couldn't find any compatible versions of the CLR installed. Try loading
+        // the version of the CLR included with the application after checking the
+        // digitial signature was from Microsoft. (dmex)
+
+        fileName = PhConcatStringRef2(
+            &dataTargetDirectory->sr,
+            &mscordaccoreNameSr
+            );
+
+        verifyResult = PhVerifyFile(
+            PhGetString(fileName),
+            &signerName
+            );
+
+        if (
+            verifyResult == VrTrusted &&
+            signerName && PhEqualString2(signerName, L"Microsoft Corporation", TRUE)
+            )
+        {
+            mscordacBaseAddress = PhLoadLibrarySafe(PhGetString(fileName));
+        }
+
+        PhClearReference(&signerName);
+        PhClearReference(&fileName);
+    }
+
+    PhClearReference(&dataTargetDirectory);
 
     return mscordacBaseAddress;
 }
