@@ -5995,7 +5995,7 @@ static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
 
     objectName.Length = fileInfo->FileNameLength;
     objectName.Buffer = fileInfo->FileName;
-    objectPipe.Hash = PhHashStringRef(&objectName, TRUE);
+    objectPipe.Hash = PhHashStringRefEx(&objectName, TRUE, PH_STRING_HASH_X65599);
 
     PhAddItemArray(Context, &objectPipe);
 
