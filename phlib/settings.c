@@ -74,7 +74,7 @@ VOID PhSettingsInitialization(
         sizeof(PH_SETTING),
         PhpSettingsHashtableEqualFunction,
         PhpSettingsHashtableHashFunction,
-        256
+        512
         );
     PhIgnoredSettings = PhCreateList(4);
 
