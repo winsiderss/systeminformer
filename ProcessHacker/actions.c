@@ -2285,7 +2285,7 @@ BOOLEAN PhUiFreezeTreeProcess(
             WindowHandle,
             L"freeze",
             Process->ProcessName->Buffer,
-            L"Freezing will not persist after exiting Process Hacker.",
+            L"Freezing does not persist after exiting Process Hacker.",
             FALSE
             );
     }
