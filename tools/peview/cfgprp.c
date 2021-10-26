@@ -52,7 +52,7 @@ VOID PvPeAddListViewCfgFunctionEntry(
     if (!NT_SUCCESS(PhGetMappedImageCfgEntry(CfgConfig, Index, Type, &cfgFunctionEntry)))
         return;
 
-    PhPrintUInt64(value, Count + 1);
+    PhPrintUInt64(value, Count);
     lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
 
     PhPrintPointer(value, UlongToPtr(cfgFunctionEntry.Rva));
