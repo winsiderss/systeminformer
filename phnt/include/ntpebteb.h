@@ -443,6 +443,9 @@ typedef struct _TEB
     PVOID ReservedForWdf;
     ULONGLONG ReservedForCrt;
     GUID EffectiveContainerId;
+    ULONGLONG LastSleepCounter; // Win11
+    ULONG SpinCallCount;
+    ULONGLONG ExtendedFeatureDisableMask;
 } TEB, *PTEB;
 
 #endif
