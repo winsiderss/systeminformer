@@ -10487,6 +10487,95 @@ NTSTATUS PhGetThreadLastStatusValue(
     return status;
 }
 
+NTSTATUS PhGetThreadApartmentState(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ POLETLSFLAGS ApartmentState
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    BOOLEAN openedProcessHandle = FALSE;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+    ULONG_PTR oletlsDataAddress = 0;
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    if (!ProcessHandle)
+    {
+        if (!NT_SUCCESS(status = PhOpenThreadProcess(
+            ThreadHandle,
+            PROCESS_VM_READ,
+            &ProcessHandle
+            )))
+            return status;
+
+        openedProcessHandle = TRUE;
+    }
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForOle)),
+            &oletlsDataAddress,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+    else
+#endif
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForOle)),
+            &oletlsDataAddress,
+            sizeof(ULONG_PTR),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status) && oletlsDataAddress)
+    {
+        PVOID apartmentStateOffset;
+
+        // Note: Teb->ReservedForOle is the SOleTlsData structure
+        // and ApartmentState is the dwFlags field. (dmex)
+
+#ifdef _WIN64
+        if (isWow64)
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0xC);
+        else
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0x14);
+#else
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0xC);
+#endif
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            apartmentStateOffset,
+            ApartmentState,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+    if (openedProcessHandle)
+        NtClose(ProcessHandle);
+
+    return status;
+}
+
 BOOLEAN PhIsFirmwareSupported(
     VOID
     )
