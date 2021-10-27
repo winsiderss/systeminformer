@@ -7891,15 +7891,17 @@ NTSTATUS PhLoadAppKey(
     NTSTATUS status;
     GUID guid;
     UNICODE_STRING fileName;
-    UNICODE_STRING objectName; 
-    UNICODE_STRING guidStringUs;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES targetAttributes;
     OBJECT_ATTRIBUTES sourceAttributes;
-    WCHAR objectNameBuffer[MAX_PATH] = L"";
-
-    RtlInitEmptyUnicodeString(&objectName, objectNameBuffer, sizeof(objectNameBuffer));
 
     PhGenerateGuid(&guid);
+
+#if (PHNT_USE_NATIVE_APPEND)
+    UNICODE_STRING guidStringUs;
+    WCHAR objectNameBuffer[MAXIMUM_FILENAME_LENGTH];
+
+    RtlInitEmptyUnicodeString(&objectName, objectNameBuffer, sizeof(objectNameBuffer));
 
     if (!NT_SUCCESS(status = RtlStringFromGUID(&guid, &guidStringUs)))
         return status;
@@ -7909,6 +7911,21 @@ NTSTATUS PhLoadAppKey(
 
     if (!NT_SUCCESS(status = RtlAppendUnicodeStringToString(&objectName, &guidStringUs)))
         goto CleanupExit;
+#else
+    static PH_STRINGREF namespaceString = PH_STRINGREF_INIT(L"\\REGISTRY\\A\\");
+    PPH_STRING guidString;
+
+    if (!(guidString = PhFormatGuid(&guid)))
+        return STATUS_UNSUCCESSFUL;
+
+    PhMoveReference(&guidString, PhConcatStringRef2(&namespaceString, &guidString->sr));
+
+    if (!PhStringRefToUnicodeString(&guidString->sr, &objectName))
+    {
+        PhDereferenceObject(guidString);
+        return STATUS_UNSUCCESSFUL;
+    }
+#endif
 
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
@@ -7947,8 +7964,13 @@ NTSTATUS PhLoadAppKey(
 
     RtlFreeUnicodeString(&fileName);
 
+#if (PHNT_USE_NATIVE_APPEND)
 CleanupExit:
     RtlFreeUnicodeString(&guidStringUs);
+#else
+CleanupExit:
+    PhDereferenceObject(guidString);
+#endif
 
     return status;
 #else
