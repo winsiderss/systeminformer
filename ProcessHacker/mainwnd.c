@@ -2897,6 +2897,7 @@ VOID PhMwpLayoutTabControl(
     )
 {
     RECT rect;
+    RECT tabrect;
 
     if (!LayoutPaddingValid)
     {
@@ -2906,13 +2907,22 @@ VOID PhMwpLayoutTabControl(
 
     GetClientRect(PhMainWndHandle, &rect);
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
-    TabCtrl_AdjustRect(TabControlHandle, FALSE, &rect);
+    tabrect = rect;
+    TabCtrl_AdjustRect(TabControlHandle, FALSE, &tabrect);
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
-        *DeferHandle = DeferWindowPos(*DeferHandle, CurrentPage->WindowHandle, NULL,
-            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER);
+        // Remove the tabctrl padding (dmex)
+        *DeferHandle = DeferWindowPos(
+            *DeferHandle,
+            CurrentPage->WindowHandle,
+            NULL,
+            rect.left,
+            tabrect.top - 1, // 1=GetSystemMetrics(SM_CXBORDER)
+            rect.right - rect.left,
+            (tabrect.bottom - tabrect.top) + (rect.bottom - tabrect.bottom),
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
     }
 }
 
