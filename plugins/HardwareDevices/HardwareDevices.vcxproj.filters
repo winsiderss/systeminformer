@@ -16,6 +16,9 @@
     <Filter Include="Source Files\Network">
       <UniqueIdentifier>{c7c48d78-64cd-4559-87c1-74e2141dcd2e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\RAPL">
+      <UniqueIdentifier>{b8808621-a8f2-4a5f-a996-2e576e66ac45}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -68,6 +71,15 @@
     </ClCompile>
     <ClCompile Include="prpsh.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="power.c">
+      <Filter>Source Files\RAPL</Filter>
+    </ClCompile>
+    <ClCompile Include="powergraph.c">
+      <Filter>Source Files\RAPL</Filter>
+    </ClCompile>
+    <ClCompile Include="poweroptions.c">
+      <Filter>Source Files\RAPL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
