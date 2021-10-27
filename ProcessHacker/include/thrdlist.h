@@ -35,6 +35,7 @@ typedef enum _PH_THREAD_TREELIST_COLUMN
     PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL,
     PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE,
     PH_THREAD_TREELIST_COLUMN_TIMELINE,
+    PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE,
     PH_THREAD_TREELIST_COLUMN_MAXIMUM
 } PH_THREAD_TREELIST_COLUMN;
 
@@ -83,6 +84,7 @@ typedef struct _PH_THREAD_NODE
     BOOLEAN PendingIrp;
     USHORT LastSystemCallNumber;
     ULONG LastStatusCode;
+    ULONG ApartmentState;
     PH_THREAD_TOKEN_STATE TokenState;
     WCHAR ThreadIdText[PH_INT32_STR_LEN_1];
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
@@ -94,6 +96,7 @@ typedef struct _PH_THREAD_NODE
     PPH_STRING StateText;
     PPH_STRING LastSystemCallText;
     PPH_STRING LastErrorCodeText;
+    PPH_STRING ApartmentStateText;
     WCHAR ContextSwitchesText[PH_INT64_STR_LEN_1];
     WCHAR PriorityText[PH_INT32_STR_LEN_1];
     WCHAR BasePriorityText[PH_INT32_STR_LEN_1];
