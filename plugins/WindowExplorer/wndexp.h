@@ -114,7 +114,7 @@ HWND WeGetMainWindowHandle(
     );
 
 PVOID WeGetProcedureAddress(
-    _In_ PSTR Name
+    _In_ PCSTR Name
     );
 
 VOID WeInvertWindowBorder(
