@@ -80,6 +80,7 @@ static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"PhEtRundownLo
 static TRACEHANDLE EtpRundownSessionHandle = INVALID_PROCESSTRACE_HANDLE;
 static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties = NULL;
 static BOOLEAN EtpRundownActive = FALSE;
+static BOOLEAN EtpRundownEnabled = FALSE;
 
 VOID EtEtwMonitorInitialization(
     VOID
@@ -266,8 +267,6 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case EVENT_TRACE_TYPE_IO_WRITE:
             diskEvent.Type = EtEtwDiskWriteType;
-            break;
-        default:
             break;
         }
 
@@ -535,14 +534,6 @@ ULONG EtStartEtwRundown(
     if (result != ERROR_SUCCESS)
         return result;
 
-    result = EnableTraceEx(&KernelRundownGuid_I, NULL, EtpRundownSessionHandle, 1, 0, 0x10, 0, 0, NULL);
-
-    if (result != ERROR_SUCCESS)
-    {
-        EtpStopEtwRundownSession();
-        return result;
-    }
-
     EtpRundownActive = TRUE;
     PhCreateThread2(EtpRundownEtwMonitorThreadStart, NULL);
 
@@ -623,16 +614,25 @@ NTSTATUS EtpRundownEtwMonitorThreadStart(
     logFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD;
     logFile.BufferCallback = EtpRundownEtwBufferCallback;
     logFile.EventRecordCallback = EtpRundownEtwEventCallback;
-    logFile.Context = &traceHandle;
 
     traceHandle = OpenTrace(&logFile);
 
     if (traceHandle != INVALID_PROCESSTRACE_HANDLE)
     {
+        // Note: The rundown session must only be enabled after we've opened the trace otherwise
+        // the provider will generate eventlog warnings about no realtime listeners and drop events.
+        // Wdc.dll will only enable the trace after the first IO_READ/IO_WRITE event so we'll enable
+        // here. However if we're still losing events and getting eventlog warnings then move this code
+        // into EtpEtwEventCallback and enable after the first IO_READ/IO_WRITE event. (dmex)
+        if (!EtpRundownEnabled && EtpRundownSessionHandle != INVALID_PROCESSTRACE_HANDLE)
+        {
+            EnableTraceEx(&KernelRundownGuid_I, NULL, EtpRundownSessionHandle, 1, 0, 0x10, 0, 0, NULL);
+            EtpRundownEnabled = TRUE;
+        }
+
         ProcessTrace(&traceHandle, 1, NULL, NULL);
 
-        if (traceHandle != INVALID_PROCESSTRACE_HANDLE)
-            CloseTrace(traceHandle);
+        CloseTrace(traceHandle);
     }
 
     return STATUS_SUCCESS;
