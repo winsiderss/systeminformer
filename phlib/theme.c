@@ -914,7 +914,13 @@ BOOLEAN PhThemeWindowDrawItem(
     case ODT_MENU:
         {
             PPH_EMENU_ITEM menuItemInfo = (PPH_EMENU_ITEM)DrawInfo->itemData;
+            ULONG drawTextFlags = DT_SINGLELINE | DT_NOCLIP;
             HFONT oldFont = NULL;
+
+            if (DrawInfo->itemState & ODS_NOACCEL)
+            {
+                drawTextFlags |= DT_HIDEPREFIX;
+            }
 
             if (PhpMenuFontHandle)
             {
@@ -1115,7 +1121,7 @@ BOOLEAN PhThemeWindowDrawItem(
                         firstPart.Buffer,
                         (UINT)firstPart.Length / sizeof(WCHAR),
                         &DrawInfo->rcItem,
-                        DT_LEFT | DT_CENTER | DT_SINGLELINE | DT_HIDEPREFIX | DT_NOCLIP
+                        DT_LEFT | DT_SINGLELINE | DT_CENTER | DT_VCENTER | drawTextFlags
                         );
                 }
                 else
@@ -1125,7 +1131,7 @@ BOOLEAN PhThemeWindowDrawItem(
                         firstPart.Buffer,
                         (UINT)firstPart.Length / sizeof(WCHAR),
                         &DrawInfo->rcItem,
-                        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX | DT_NOCLIP
+                        DT_LEFT | DT_VCENTER | drawTextFlags
                         );
                 }
  
@@ -1135,7 +1141,7 @@ BOOLEAN PhThemeWindowDrawItem(
                     secondPart.Buffer,
                     (UINT)secondPart.Length / sizeof(WCHAR),
                     &DrawInfo->rcItem,
-                    DT_RIGHT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX | DT_NOCLIP
+                    DT_RIGHT | DT_VCENTER | drawTextFlags
                     );
             }
 
