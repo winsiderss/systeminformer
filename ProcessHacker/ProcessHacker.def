@@ -583,7 +583,6 @@ EXPORTS
     PhImageListDrawEx
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
-    PhWindowThemeControlColor
 
 ; hndlinfo
     PhEnumObjectTypes
