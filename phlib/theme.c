@@ -1918,6 +1918,39 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         if (PhThemeWindowDrawItem((LPDRAWITEMSTRUCT)lParam))
             return TRUE;
         break;
+    case WM_NCPAINT:
+    case WM_NCACTIVATE:
+        {
+            LRESULT result = CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+
+            if (GetMenu(hWnd))
+            {
+                RECT clientRect;
+                RECT windowRect;
+                HDC hdc;
+
+                GetClientRect(hWnd, &clientRect);
+                GetWindowRect(hWnd, &windowRect);
+
+                MapWindowPoints(hWnd, NULL, (PPOINT)&clientRect, 2);
+                OffsetRect(&clientRect, -windowRect.left, -windowRect.top);
+
+                // the rcBar is offset by the window rect (thanks to adzm) (dmex)
+                RECT rcAnnoyingLine = clientRect;
+                rcAnnoyingLine.bottom = rcAnnoyingLine.top;
+                rcAnnoyingLine.top--;
+
+                if (hdc = GetWindowDC(hWnd))
+                {
+                    SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
+                    FillRect(hdc, &rcAnnoyingLine, GetStockBrush(DC_BRUSH));
+                    ReleaseDC(hWnd, hdc);
+                }
+            }
+
+            return result;
+        }
+        break;
     }
 
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
