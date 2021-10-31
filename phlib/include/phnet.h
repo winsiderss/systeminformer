@@ -177,6 +177,21 @@ PhHttpSocketDestroy(
     _In_ _Frees_ptr_ PPH_HTTP_CONTEXT HttpContext
     );
 
+typedef enum _PH_HTTP_SOCKET_CLOSE_TYPE
+{
+    PH_HTTP_SOCKET_CLOSE_SESSION = 0x0,
+    PH_HTTP_SOCKET_CLOSE_CONNECTION = 0x1,
+    PH_HTTP_SOCKET_CLOSE_REQUEST = 0x2,
+} PH_HTTP_SOCKET_CLOSE_TYPE;
+
+PHLIBAPI
+VOID
+NTAPI
+PhHttpSocketClose(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PH_HTTP_SOCKET_CLOSE_TYPE Type
+    );
+
 #define PH_HTTP_DEFAULT_PORT 0 // use the protocol-specific default port
 #define PH_HTTP_DEFAULT_HTTP_PORT 80
 #define PH_HTTP_DEFAULT_HTTPS_PORT 443
