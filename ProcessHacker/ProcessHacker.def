@@ -165,6 +165,7 @@ EXPORTS
     PhGetPrimeNumber
     PhHashBytes
     PhHashStringRef
+    PhHashStringRefEx
     PhHexStringToBuffer
     PhHexStringToBufferEx
     PhHungWindowFromGhostWindow
@@ -192,8 +193,11 @@ EXPORTS
     PhNtStatusToDosError
     PhPredecessorElementAvlTree
     PhPrintTimeSpan
+    PhQueryPerformanceCounter
+    PhQueryPerformanceFrequency
     PhQuerySystemTime
     PhQueryTimeZoneBias
+    PhReadTimeStampCounter
     PhReAllocate
     PhReAllocateSafe
     PhReferenceEmptyString
@@ -318,6 +322,7 @@ EXPORTS
     PhSetFilePosition
     PhSetFileSize
     PhSetObjectSecurity
+    PhSetThreadName
     PhSetTokenIsVirtualizationEnabled
     PhSetTokenPrivilege
     PhSetTokenPrivilege2
@@ -365,6 +370,7 @@ EXPORTS
     PhFormatTimeSpanRelative
     PhFormatUInt64
     PhFreeFileDialog
+    PhFreeLibraryAsImageResource
     PhGenerateGuid
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
@@ -395,6 +401,8 @@ EXPORTS
     PhIsExecutablePacked
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
+    PhLoadLibrary
+    PhLoadLibraryAsImageResource
     PhMapFlags1
     PhMapFlags2
     PhMatchWildcards
@@ -422,7 +430,6 @@ EXPORTS
     PhShowStatus
     PhStringToGuid
     PhUpdateHash
-    PhLoadLibrarySafe
 
 ; circbuf
     PhClearCircularBuffer_FLOAT
