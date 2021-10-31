@@ -1361,6 +1361,15 @@ PhGetDllBaseProcedureAddress(
 PHLIBAPI
 PVOID
 NTAPI
+PhGetDllBaseProcedureAddressWithHint(
+    _In_ PVOID BaseAddress,
+    _In_ PSTR ProcedureName,
+    _In_ USHORT ProcedureHint
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
 PhGetDllProcedureAddress(
     _In_ PWSTR DllName,
     _In_opt_ PSTR ProcedureName,
@@ -1450,6 +1459,14 @@ NTAPI
 PhLoaderEntryLoadDll(
     _In_ PPH_STRING FileName,
     _Out_ PVOID* BaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoaderEntryLoadAllImportsForDll(
+    _In_ PVOID BaseAddress,
+    _In_ PSTR ImportDllName
     );
 
 PHLIBAPI
