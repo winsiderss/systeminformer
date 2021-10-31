@@ -7873,11 +7873,17 @@ PVOID PhLoadLibrary(
     }
 
     // Include the application directory now.
-    return LoadLibraryEx(
+
+    if (baseAddress = LoadLibraryEx(
         LibFileName,
         NULL,
         LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_APPLICATION_DIR
-        );
+        ))
+    {
+        return baseAddress;
+    }
+
+    return NULL;
 }
 
 // rev from LoadLibraryEx with LOAD_LIBRARY_AS_IMAGE_RESOURCE

@@ -1743,3 +1743,114 @@ VOID PhpEnablePrivileges(
         NtClose(tokenHandle);
     }
 }
+
+// CRT delayload support
+// NOTE: The default delayload handler throws exceptions
+// when imports are unavailable instead of returning NULL
+// breaking backwards compatibility. (dmex)
+// TODO: Move to a better location. (dmex)
+
+_Success_(return != NULL)
+PVOID WINAPI __delayLoadHelper2(
+    _In_ PIMAGE_DELAYLOAD_DESCRIPTOR Entry,
+    _Inout_ PVOID* ImportAddress
+    )
+{
+    BOOLEAN importNeedsFree = FALSE;
+    PSTR importDllName;
+    PVOID procedureAddress;
+    PVOID moduleHandle;
+    PVOID* importHandle;
+    PIMAGE_THUNK_DATA importEntry;
+    PIMAGE_THUNK_DATA importTable;
+    PIMAGE_THUNK_DATA importNameTable;
+    PIMAGE_NT_HEADERS imageNtHeaders;
+    SIZE_T importDirectorySectionSize;
+    PVOID importDirectorySectionAddress;
+    ULONG importSectionProtect;
+
+    importDllName = PTR_ADD_OFFSET(PhInstanceHandle, Entry->DllNameRVA);
+    importHandle = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ModuleHandleRVA);
+    importTable = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ImportAddressTableRVA);
+    importNameTable = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ImportNameTableRVA);
+
+    if (!(moduleHandle = *importHandle))
+    {
+        PPH_STRING importDllNameSr = PhZeroExtendToUtf16(importDllName);
+
+        if (!(moduleHandle = PhLoadLibrary(importDllNameSr->Buffer)))
+        {
+            PhDereferenceObject(importDllNameSr);
+            return NULL;
+        }
+
+        PhDereferenceObject(importDllNameSr);
+        importNeedsFree = TRUE;
+    }
+
+    importEntry = PTR_ADD_OFFSET(importNameTable, PTR_SUB_OFFSET(ImportAddress, importTable));
+
+    if (IMAGE_SNAP_BY_ORDINAL(importEntry->u1.Ordinal))
+    {
+        USHORT procedureOrdinal = IMAGE_ORDINAL(importEntry->u1.Ordinal);
+        procedureAddress = PhGetDllBaseProcedureAddress(moduleHandle, NULL, procedureOrdinal);
+    }
+    else
+    {
+        PIMAGE_IMPORT_BY_NAME importByName = PTR_ADD_OFFSET(PhInstanceHandle, importEntry->u1.AddressOfData);
+        procedureAddress = PhGetDllBaseProcedureAddressWithHint(moduleHandle, importByName->Name, importByName->Hint);
+    }
+
+    if (!procedureAddress)
+        return NULL;
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(
+        PhInstanceHandle,
+        &imageNtHeaders
+        )))
+    {
+        return NULL;
+    }
+
+    if (!NT_SUCCESS(PhGetLoaderEntryImageVaToSection(
+        PhInstanceHandle,
+        imageNtHeaders,
+        importTable,
+        &importDirectorySectionAddress,
+        &importDirectorySectionSize
+        )))
+    {
+        return NULL;
+    }
+
+    if (!NT_SUCCESS(NtProtectVirtualMemory(
+        NtCurrentProcess(),
+        &importDirectorySectionAddress,
+        &importDirectorySectionSize,
+        PAGE_READWRITE,
+        &importSectionProtect
+        )))
+    {
+        return NULL;
+    }
+
+    InterlockedExchangePointer(ImportAddress, procedureAddress);
+
+    if (!NT_SUCCESS(NtProtectVirtualMemory(
+        NtCurrentProcess(),
+        &importDirectorySectionAddress,
+        &importDirectorySectionSize,
+        importSectionProtect,
+        &importSectionProtect
+        )))
+    {
+        return NULL;
+    }
+
+    if ((InterlockedExchangePointer(importHandle, moduleHandle) == moduleHandle) && importNeedsFree)
+    {
+        FreeLibrary(moduleHandle); // A different thread has already updated the cache. (dmex)
+    }
+
+    return procedureAddress;
+}

@@ -688,6 +688,7 @@ VOID PhNetworkProviderUpdate(
         WSADATA wsaData;
         // Make sure WSA is initialized. (wj32)
         WSAStartup(WINSOCK_VERSION, &wsaData);
+        PhLoaderEntryLoadAllImportsForDll(PhInstanceHandle, "iphlpapi.dll");
         NetworkImportDone = TRUE;
     }
 
