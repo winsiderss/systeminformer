@@ -453,6 +453,7 @@ PVOID PhMappedImageRvaToVa(
 
 _Must_inspect_result_
 _Ret_maybenull_
+_Success_(return != NULL)
 PVOID PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Va,
@@ -2148,6 +2149,163 @@ NTSTATUS PhGetMappedImageResources(
     Resources->ResourceEntries = PhFinalArrayItems(&resourceArray);
 
     return status;
+}
+
+NTSTATUS PhGetMappedImageResource(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_ USHORT Language,
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_opt_ PVOID *ResourceBuffer
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_RESOURCE_DIRECTORY resourceDirectory;
+    PIMAGE_RESOURCE_DIRECTORY nameDirectory;
+    PIMAGE_RESOURCE_DIRECTORY languageDirectory;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
+    PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
+    ULONG resourceCount = 0;
+    ULONG resourceTypeCount;
+    ULONG resourceNameCount;
+    ULONG resourceLanguageCount;
+
+    // Get a pointer to the resource directory.
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_RESOURCE,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    resourceDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!resourceDirectory)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    resourceType = PTR_ADD_OFFSET(resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+    resourceTypeCount = resourceDirectory->NumberOfNamedEntries + resourceDirectory->NumberOfIdEntries;
+
+    for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
+    {
+        if (!resourceType->DataIsDirectory)
+            continue;
+
+        nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
+        resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+        resourceNameCount = nameDirectory->NumberOfNamedEntries + nameDirectory->NumberOfIdEntries;
+
+        for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
+        {
+            if (!resourceName->DataIsDirectory)
+                continue;
+
+            languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
+            resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+            resourceLanguageCount = languageDirectory->NumberOfNamedEntries + languageDirectory->NumberOfIdEntries;
+
+            for (ULONG k = 0; k < resourceLanguageCount; ++k, ++resourceLanguage)
+            {
+                PIMAGE_RESOURCE_DATA_ENTRY resourceData;
+
+                if (resourceLanguage->DataIsDirectory)
+                    continue;
+
+                if (IS_INTRESOURCE(Type))
+                {
+                    if (resourceType->NameIsString)
+                        continue;
+                    if (resourceType->Id != PtrToUshort(Type))
+                        continue;
+                }
+                else
+                {
+                    PIMAGE_RESOURCE_DIR_STRING_U resourceString;
+                    PH_STRINGREF string1;
+                    PH_STRINGREF string2;
+
+                    if (!resourceType->NameIsString)
+                        continue;
+
+                    resourceString = PTR_ADD_OFFSET(resourceDirectory, resourceType->NameOffset);
+                    string1.Buffer = resourceString->NameString;
+                    string1.Length = resourceString->Length * sizeof(WCHAR);
+                    PhInitializeStringRefLongHint(&string2, (PWSTR)Type);
+
+                    if (!PhEqualStringRef(&string1, &string2, TRUE))
+                        continue;
+                }
+
+                if (IS_INTRESOURCE(Name))
+                {
+                    if (resourceName->NameIsString)
+                        continue;
+                    if (resourceName->Id != PtrToUshort(Name))
+                        continue;
+                }
+                else
+                {
+                    PIMAGE_RESOURCE_DIR_STRING_U resourceString;
+                    PH_STRINGREF string1;
+                    PH_STRINGREF string2;
+
+                    if (!resourceName->NameIsString)
+                        continue;
+
+                    resourceString = PTR_ADD_OFFSET(resourceDirectory, resourceName->NameOffset);
+                    string1.Buffer = resourceString->NameString;
+                    string1.Length = resourceString->Length * sizeof(WCHAR);
+                    PhInitializeStringRefLongHint(&string2, (PWSTR)Name);
+
+                    if (!PhEqualStringRef(&string1, &string2, TRUE))
+                        continue;
+                }
+
+                if (Language)
+                {
+                    if (resourceLanguage->NameIsString)
+                        continue;
+                    if (resourceLanguage->Id != Language)
+                        continue;
+                }
+
+                resourceData = PTR_ADD_OFFSET(resourceDirectory, resourceLanguage->OffsetToData);
+
+                if (ResourceLength)
+                {
+                    *ResourceLength = resourceData->Size;
+                }
+
+                if (ResourceBuffer)
+                {
+                    *ResourceBuffer = PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
+                }
+
+                return STATUS_SUCCESS;
+            }
+        }
+    }
+
+    return STATUS_UNSUCCESSFUL;
 }
 
 NTSTATUS PhGetMappedImageTlsCallbackDirectory32(
