@@ -231,7 +231,7 @@ BOOLEAN PhShowRunFileDialog(
     //    );
     //PVOID shell32Handle;
     //
-    //if (shell32Handle = PhLoadLibrarySafe(L"shell32.dll"))
+    //if (shell32Handle = PhLoadLibrary(L"shell32.dll"))
     //{
     //    if (RunFileDlg_I = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61))
     //    {
@@ -387,7 +387,7 @@ BOOLEAN PhpInitializeNetApi(VOID)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (netapiModuleHandle = PhLoadLibrarySafe(L"netapi32.dll"))
+        if (netapiModuleHandle = PhLoadLibrary(L"netapi32.dll"))
         {
             NetUserEnum_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetUserEnum", 0);
             NetApiBufferFree_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetApiBufferFree", 0);
@@ -415,7 +415,7 @@ BOOLEAN PhpInitializeMRUList(VOID)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (comctl32ModuleHandle = PhLoadLibrarySafe(L"comctl32.dll"))
+        if (comctl32ModuleHandle = PhLoadLibrary(L"comctl32.dll"))
         {
             CreateMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "CreateMRUListW", 0);
             AddMRUString_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "AddMRUStringW", 0);
@@ -1319,7 +1319,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
                                 startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
                                 startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-                                startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+                                startupInfo.StartupInfo.wShowWindow = SW_SHOWDEFAULT;
 
                                 status = PhOpenProcess(
                                     &processHandle,
@@ -2106,7 +2106,7 @@ NTSTATUS PhpRunAsShellExecute(
     info.lpParameters = Parameters;
     info.lpDirectory = PhGetString(parentDirectory);
     info.fMask = SEE_MASK_FLAG_NO_UI;
-    info.nShow = SW_SHOWNORMAL;
+    info.nShow = SW_SHOWDEFAULT;
     info.hwnd = hWnd;
 
     if (Elevated)
@@ -2146,7 +2146,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     INT cmdlineArgCount;
     PWSTR* cmdlineArgList;
 
-    if (!(wdcLibraryHandle = PhLoadLibrarySafe(L"wdc.dll")))
+    if (!(wdcLibraryHandle = PhLoadLibrary(L"wdc.dll")))
         return FALSE;
 
     if (!(WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(wdcLibraryHandle, "WdcRunTaskAsInteractiveUser", 0)))
@@ -2305,7 +2305,7 @@ NTSTATUS PhpRunFileProgram(
         memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
         startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
         startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-        startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+        startupInfo.StartupInfo.wShowWindow = SW_SHOWDEFAULT;
         parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
 
         if (!(shellWindow = GetShellWindow()))
@@ -2518,7 +2518,7 @@ NTSTATUS RunAsCreateProcessThread(
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
     startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
+    startupInfo.StartupInfo.wShowWindow = SW_SHOWDEFAULT;
 
     if (!(serviceHandle = PhOpenService(L"TrustedInstaller", SERVICE_QUERY_STATUS | SERVICE_START)))
     {

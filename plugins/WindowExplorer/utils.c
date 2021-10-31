@@ -40,10 +40,10 @@ HWND WeGetMainWindowHandle(
 }
 
 PVOID WeGetProcedureAddress(
-    _In_ PSTR Name
+    _In_ PCSTR Name
     )
 {
-    return PhGetProcedureAddress(NtCurrentPeb()->ImageBaseAddress, Name, 0);
+    return GetProcAddress(NtCurrentPeb()->ImageBaseAddress, Name);
 }
 
 VOID WeFormatLocalObjectName(

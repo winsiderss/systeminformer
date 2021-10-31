@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -34,6 +34,10 @@ PPH_OBJECT_TYPE DiskDriveEntryType = NULL;
 PPH_LIST DiskDrivesList = NULL;
 PH_QUEUED_LOCK DiskDrivesListLock = PH_QUEUED_LOCK_INIT;
 
+PPH_OBJECT_TYPE RaplDeviceEntryType = NULL;
+PPH_LIST RaplDevicesList = NULL;
+PH_QUEUED_LOCK RaplDevicesListLock = PH_QUEUED_LOCK_INIT;
+
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -48,9 +52,11 @@ VOID NTAPI LoadCallback(
 {
     DiskDrivesInitialize();
     NetAdaptersInitialize();
+    RaplDeviceInitialize();
 
     DiskDrivesLoadList();
     NetAdaptersLoadList();
+    RaplDevicesLoadList();
 }
 
 VOID NTAPI UnloadCallback(
@@ -86,6 +92,14 @@ VOID NTAPI ShowOptionsCallback(
         NetworkAdapterOptionsDlgProc,
         NULL
         );
+
+    optionsEntry->CreateSection(
+        L"RAPL Devices",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_RAPLDEVICE_OPTIONS),
+        RaplDeviceOptionsDlgProc,
+        NULL
+        );
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -103,6 +117,7 @@ VOID NTAPI ProcessesUpdatedCallback(
 {
     DiskDrivesUpdate();
     NetAdaptersUpdate();
+    RaplDevicesUpdate();
 }
 
 VOID NTAPI SystemInformationInitializingCallback(
@@ -152,6 +167,25 @@ VOID NTAPI SystemInformationInitializingCallback(
     }
 
     PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
+
+    // RAPL Devices
+
+    PhAcquireQueuedLockShared(&RaplDevicesListLock);
+
+    for (ULONG i = 0; i < RaplDevicesList->Count; i++)
+    {
+        PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
+
+        if (!entry)
+            continue;
+
+        if (entry->DevicePresent)
+        {
+            RaplDeviceSysInfoInitializing(pluginEntry, entry);
+        }
+    }
+
+    PhReleaseQueuedLockShared(&RaplDevicesListLock);
 }
 
 PPH_STRING TrimString(
@@ -267,7 +301,7 @@ BOOLEAN HardwareDeviceShowProperties(
     //    _In_opt_ PWSTR MachineName,
     //    _In_ PWSTR DeviceID);
 
-    if (devMgrHandle = PhLoadLibrarySafe(L"devmgr.dll"))
+    if (devMgrHandle = PhLoadLibrary(L"devmgr.dll"))
     {
         if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
         {
@@ -464,7 +498,8 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_DISK_POSITION, L"100,100" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_DISK_SIZE, L"@96|309,265" },
                 { StringSettingType, SETTING_NAME_DISK_COUNTERS_COLUMNS, L"" },
-                { StringSettingType, SETTING_NAME_SMART_COUNTERS_COLUMNS, L"" }, 
+                { StringSettingType, SETTING_NAME_SMART_COUNTERS_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_RAPL_LIST, L"" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

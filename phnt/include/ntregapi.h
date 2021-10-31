@@ -242,8 +242,8 @@ typedef struct _KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
 // private
 typedef struct _KEY_VALUE_LAYER_INFORMATION
 {
-    ULONG IsTombstone;
-    ULONG Reserved;
+    ULONG IsTombstone : 1;
+    ULONG Reserved : 31;
 } KEY_VALUE_LAYER_INFORMATION, *PKEY_VALUE_LAYER_INFORMATION;
 
 // rev

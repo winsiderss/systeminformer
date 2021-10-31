@@ -53,7 +53,11 @@ static POINT IconClickLocation;
 static PH_NF_MSG_SHOWMINIINFOSECTION_DATA IconClickShowMiniInfoSectionData;
 static BOOLEAN IconClickUpDueToDown = FALSE;
 static BOOLEAN IconDisableHover = FALSE;
+static HANDLE PhpTrayIconThreadHandle = NULL;
 static HANDLE PhpTrayIconEventHandle = NULL;
+#ifdef PH_NF_ENABLE_WORKQUEUE
+static SLIST_HEADER PhpTrayIconWorkQueueListHead;
+#endif
 
 VOID PhNfLoadStage1(
     VOID
@@ -62,6 +66,9 @@ VOID PhNfLoadStage1(
     PhTrayIconItemList = PhCreateList(20);
 
     PhNfpPointers.BeginBitmap = PhNfpBeginBitmap;
+#ifdef PH_NF_ENABLE_WORKQUEUE
+    RtlInitializeSListHead(&PhpTrayIconWorkQueueListHead);
+#endif
 }
 
 VOID PhNfLoadSettings(
@@ -253,7 +260,7 @@ VOID PhNfCreateIconThreadDelayed(
 
             // Use a seperate thread so we don't block the main GUI or
             // the provider threads when explorer is not responding. (dmex)
-            PhCreateThread2(PhNfpTrayIconUpdateThread, NULL);
+            PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL);
         }
 
         PhEndInitOnce(&initOnce);
@@ -314,6 +321,12 @@ VOID PhNfUninitialization(
     VOID
     )
 {
+    if (PhpTrayIconEventHandle)
+    {
+        NtSetEvent(PhpTrayIconEventHandle, NULL);
+    }
+
+#ifndef PH_NF_ENABLE_WORKQUEUE
     // Remove all icons to prevent them hanging around after we exit.
 
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
@@ -325,11 +338,17 @@ VOID PhNfUninitialization(
 
         PhNfpRemoveNotifyIcon(icon);
     }
+#else
 
-    if (PhpTrayIconEventHandle)
+    if (PhpTrayIconThreadHandle)
     {
-        NtSetEvent(PhpTrayIconEventHandle, NULL);
+        LARGE_INTEGER timeout;
+
+        timeout.QuadPart = -(LONGLONG)UInt32x32To64(2000, PH_TIMEOUT_MS);
+
+        NtWaitForSingleObject(PhpTrayIconThreadHandle, FALSE, &timeout);
     }
+#endif
 }
 
 VOID PhNfForwardMessage(
@@ -482,15 +501,41 @@ VOID PhNfSetVisibleIcon(
     if (Visible)
     {
         Icon->Flags |= PH_NF_ICON_ENABLED;
-        PhNfpAddNotifyIcon(Icon);
 
-        PhNfCreateIconThreadDelayed();
+#ifndef PH_NF_ENABLE_WORKQUEUE
+        PhNfpAddNotifyIcon(Icon);
+#else
+        PPH_NF_WORKQUEUE_DATA data;
+
+        data = PhAllocateZero(sizeof(PH_NF_WORKQUEUE_DATA));
+        data->Add = TRUE;
+        data->Icon = Icon;
+
+        RtlInterlockedPushEntrySList(&PhpTrayIconWorkQueueListHead, &data->ListEntry);
+#endif
     }
     else
     {
         Icon->Flags &= ~PH_NF_ICON_ENABLED;
+
+#ifndef PH_NF_ENABLE_WORKQUEUE
         PhNfpRemoveNotifyIcon(Icon);
+#else
+        PPH_NF_WORKQUEUE_DATA data;
+
+        data = PhAllocateZero(sizeof(PH_NF_WORKQUEUE_DATA));
+        data->Delete = TRUE;
+        data->Icon = Icon;
+
+        RtlInterlockedPushEntrySList(&PhpTrayIconWorkQueueListHead, &data->ListEntry);
+#endif
     }
+#ifdef PH_NF_ENABLE_WORKQUEUE
+    PhNfCreateIconThreadDelayed();
+
+    if (PhpTrayIconEventHandle)
+        NtSetEvent(PhpTrayIconEventHandle, NULL);
+#endif
 }
 
 BOOLEAN PhNfShowBalloonTip(
@@ -944,21 +989,47 @@ BOOLEAN PhNfpModifyNotifyIcon(
 //    return FALSE;
 //}
 
+#ifdef PH_NF_ENABLE_WORKQUEUE
+VOID PhNfTrayIconFlushWorkQueueData(
+    VOID
+    )
+{
+    PSLIST_ENTRY entry;
+    PPH_NF_WORKQUEUE_DATA data;
+
+    entry = RtlInterlockedFlushSList(&PhpTrayIconWorkQueueListHead);
+
+    while (entry)
+    {
+        data = CONTAINING_RECORD(entry, PH_NF_WORKQUEUE_DATA, ListEntry);
+        entry = entry->Next;
+
+        if (data->Add)
+        {
+            PhNfpAddNotifyIcon(data->Icon);
+        }
+
+        if (data->Delete)
+        {
+            PhNfpRemoveNotifyIcon(data->Icon);
+        }
+
+        PhFree(data);
+    }
+}
+#endif
+
 NTSTATUS PhNfpTrayIconUpdateThread(
     _In_opt_ PVOID Context
     )
 {
-    //LARGE_INTEGER timeout;
-    //
-    //timeout.QuadPart = -(LONGLONG)UInt32x32To64(500, PH_TIMEOUT_MS);
-
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
-    
+
         if (!(icon->Flags & PH_NF_ICON_ENABLED))
             continue;
-    
+
         PhNfpAddNotifyIcon(icon);
     }
 
@@ -973,8 +1044,11 @@ NTSTATUS PhNfpTrayIconUpdateThread(
             continue;
         }
 
-        if (NT_SUCCESS(NtWaitForSingleObject(PhpTrayIconEventHandle, FALSE, NULL))) // &timeout
+        if (NT_SUCCESS(NtWaitForSingleObject(PhpTrayIconEventHandle, FALSE, NULL)))
         {
+#ifdef PH_NF_ENABLE_WORKQUEUE
+            PhNfTrayIconFlushWorkQueueData();
+#endif
             for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
             {
                 PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
@@ -990,6 +1064,19 @@ NTSTATUS PhNfpTrayIconUpdateThread(
         }
     }
 
+#ifdef PH_NF_ENABLE_WORKQUEUE
+    // Remove all icons to prevent them hanging around after we exit.
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            continue;
+
+        PhNfpRemoveNotifyIcon(icon);
+    }
+#endif
     return STATUS_SUCCESS;
 }
 

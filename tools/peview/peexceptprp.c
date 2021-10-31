@@ -122,7 +122,7 @@ VOID PvEnumerateExceptionEntries(
             WCHAR value[PH_INT64_STR_LEN_1];
 
             PhPrintUInt64(value, ++count);
-            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
+            lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, entry);
 
             PhPrintPointer(value, UlongToPtr(entry->BeginAddress));
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
@@ -178,6 +178,18 @@ VOID PvEnumerateExceptionEntries(
 
     //ExtendedListView_SortItems(ListViewHandle);
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
+}
+
+INT NTAPI PvpPeExceptionSizeCompareFunction(
+    _In_ PVOID Item1,
+    _In_ PVOID Item2,
+    _In_ PVOID Context
+    )
+{
+    PIMAGE_RUNTIME_FUNCTION_ENTRY entry1 = Item1;
+    PIMAGE_RUNTIME_FUNCTION_ENTRY entry2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)entry1->EndAddress - entry1->BeginAddress, (ULONG_PTR)entry2->EndAddress - entry2->BeginAddress);
 }
 
 INT_PTR CALLBACK PvpPeExceptionDlgProc(
@@ -244,6 +256,8 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Section");
                 PhLoadListViewColumnsFromSetting(L"ImageExceptions64ListViewColumns", context->ListViewHandle);
+
+                ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PvpPeExceptionSizeCompareFunction);
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);

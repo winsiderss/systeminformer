@@ -201,6 +201,22 @@ PhUiResumeTreeProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiFreezeTreeProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiThawTreeProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM Process
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiRestartProcess(
     _In_ HWND hWnd,
     _In_ PPH_PROCESS_ITEM Process

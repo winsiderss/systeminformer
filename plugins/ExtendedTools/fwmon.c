@@ -255,8 +255,7 @@ VOID FwProcessFirewallEvent(
     entry->RemoteCountryName = firewallEvent->RemoteCountryName;
 
     // Add the item to the age list.
-    entry->AddTime = RunId;
-    entry->FreshTime = RunId;
+    entry->RunId = RunId;
     InsertHeadList(&EtFwAgeListHead, &entry->AgeListEntry);
 
     // Queue hostname lookup.
@@ -1118,6 +1117,7 @@ VOID EtFwRemoveFilterDisplayData(
     PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry);
 }
 
+_Success_(return)
 BOOLEAN EtFwLookupAddressClass(
     _In_ PPH_IP_ADDRESS Address,
     _Out_ PPH_STRINGREF ClassString
@@ -1226,6 +1226,7 @@ BOOLEAN EtFwLookupAddressClass(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN EtFwLookupAddressScope(
     _In_ PPH_IP_ADDRESS Address,
     _Out_ PPH_STRINGREF ScopeString
@@ -1788,7 +1789,7 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
         item = CONTAINING_RECORD(ageListEntry, FW_EVENT_ITEM, AgeListEntry);
         ageListEntry = ageListEntry->Blink;
 
-        if (FwRunCount - item->FreshTime < EtFwMaxEventAge)
+        if (FwRunCount - item->RunId < EtFwMaxEventAge)
         {
             BOOLEAN modified = FALSE;
 
@@ -1847,7 +1848,7 @@ ULONG EtFwMonitorInitialize(
         20
         );
 
-    if (!(baseAddress = PhLoadLibrarySafe(L"fwpuclnt.dll")))
+    if (!(baseAddress = PhLoadLibrary(L"fwpuclnt.dll")))
         return GetLastError();
     if (!FwpmNetEventSubscribe_I)
         FwpmNetEventSubscribe_I = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe4", 0);

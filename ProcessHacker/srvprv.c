@@ -186,7 +186,6 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
         serviceItem->Flags = Information->ServiceStatusProcess.dwServiceFlags;
         serviceItem->ProcessId = UlongToHandle(Information->ServiceStatusProcess.dwProcessId);
-
     }
 
     PhEmCallObjectOperation(EmServiceItemType, serviceItem, EmObjectCreate);
@@ -228,7 +227,7 @@ ULONG PhpServiceHashtableHashFunction(
 {
     PPH_SERVICE_ITEM serviceItem = *(PPH_SERVICE_ITEM *)Entry;
 
-    return PhHashStringRef(&serviceItem->Key, TRUE);
+    return PhHashStringRefEx(&serviceItem->Key, TRUE, PH_STRING_HASH_X65599);
 }
 
 PPH_SERVICE_ITEM PhpLookupServiceItem(
@@ -518,7 +517,7 @@ static ULONG PhpHashServiceNameEntry(
     _In_ PPHP_SERVICE_NAME_ENTRY Value
     )
 {
-    return PhHashStringRef(&Value->Name, TRUE);
+    return PhHashStringRefEx(&Value->Name, TRUE, PH_STRING_HASH_X65599);
 }
 
 VOID PhpServiceQueryStage1(
@@ -1376,7 +1375,7 @@ VOID PhpInitializeServiceNonPoll(
     {
         PVOID sechostHandle;
 
-        if (sechostHandle = PhLoadLibrarySafe(L"sechost.dll"))
+        if (sechostHandle = PhLoadLibrary(L"sechost.dll"))
         {
             SubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "SubscribeServiceChangeNotifications", 0);
             UnsubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "UnsubscribeServiceChangeNotifications", 0);

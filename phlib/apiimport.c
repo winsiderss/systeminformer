@@ -41,7 +41,7 @@ PVOID PhpImportProcedure(
         module = PhGetLoaderEntryDllBase(ModuleName);
 
         if (!module)
-            module = PhLoadLibrarySafe(ModuleName);
+            module = PhLoadLibrary(ModuleName);
 
         if (module)
         {
@@ -79,6 +79,8 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultLocale);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryDefaultUILanguage);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtTraceControl);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtQueryOpenSubKeysEx);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateProcessStateChange);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtChangeProcessState);
 
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlDefaultNpAcl);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);

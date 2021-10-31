@@ -53,6 +53,7 @@ PET_DISK_ITEM EtGetSelectedDiskItem(
     VOID
     );
 
+_Success_(return)
 BOOLEAN EtGetSelectedDiskItems(
     _Out_ PET_DISK_ITEM** Nodes,
     _Out_ PULONG NumberOfNodes

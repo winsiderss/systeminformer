@@ -116,13 +116,13 @@ INT_PTR CALLBACK PhpPluginsDisabledDlgProc(
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhCompareString(node1->Name, node2->Name, TRUE);
+    sortResult = PhCompareStringWithNull(node1->Name, node2->Name, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Version)
 {
-    sortResult = PhCompareString(node1->Version, node2->Version, TRUE);
+    sortResult = PhCompareStringWithNull(node1->Version, node2->Version, TRUE);
 }
 END_SORT_FUNCTION
 

@@ -44,7 +44,7 @@ BOOLEAN PvpGetMetaDataInterface(
     PVOID clrCoreBaseAddress = NULL;
     PVOID clrMetadataInterface = NULL;
 
-    if (!(clrCoreBaseAddress = PhLoadLibrarySafe(L"mscoree.dll")))
+    if (!(clrCoreBaseAddress = PhLoadLibrary(L"mscoree.dll")))
         return FALSE;
 
     if (MetaDataGetDispenser_I = PhGetDllBaseProcedureAddress(clrCoreBaseAddress, "MetaDataGetDispenser", 0))

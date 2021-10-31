@@ -693,4 +693,39 @@ DECLARE_INTERFACE_IID(IOSTaskCompletion2, IOSTaskCompletion)
 #define IOSTaskCompletion_BeginTaskByHandleEx(This, ProcessHandle, Flags, TaskFlags) \
     ((This)->lpVtbl->BeginTaskByHandleEx(This, ProcessHandle, Flags, TaskFlags))
 
+// EDP
+
+typedef enum _EDP_CONTEXT_STATES
+{
+    EDP_CONTEXT_NONE = 0,
+    EDP_CONTEXT_IS_EXEMPT = 1,
+    EDP_CONTEXT_IS_ENLIGHTENED = 2,
+    EDP_CONTEXT_IS_UNENLIGHTENED_ALLOWED = 4,
+    EDP_CONTEXT_IS_PERMISSIVE = 8,
+    EDP_CONTEXT_IS_COPY_EXEMPT = 16,
+    EDP_CONTEXT_IS_DENIED = 32,
+} EDP_CONTEXT_STATES;
+
+typedef struct _EDP_CONTEXT
+{
+    EDP_CONTEXT_STATES contextStates;
+    ULONG allowedEnterpriseIdCount;
+    PWSTR enterpriseIdForUIEnforcement;
+    WCHAR allowedEnterpriseIds[1];
+} EDP_CONTEXT, *PEDP_CONTEXT;
+
+static HRESULT (WINAPI* EdpGetContextForWindow_I)(
+    _In_ HWND WindowHandle,
+    _Out_ PEDP_CONTEXT* EdpContext
+    ) = NULL;
+
+static HRESULT (WINAPI* EdpGetContextForProcess_I)(
+    _In_ ULONG ProcessId,
+    _Out_ PEDP_CONTEXT* EdpContext
+    ) = NULL;
+
+static VOID (WINAPI* EdpFreeContext_I)(
+    _In_ PEDP_CONTEXT EdpContext
+    ) = NULL;
+
 #endif

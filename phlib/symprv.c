@@ -293,19 +293,19 @@ VOID PhpSymbolProviderCompleteInitialization(
 #endif
         if (dbgcoreName = PhConcatStringRef2(&winsdkPath->sr, &dbgcoreFileName))
         {
-            dbgcoreHandle = PhLoadLibrarySafe(dbgcoreName->Buffer);
+            dbgcoreHandle = PhLoadLibrary(dbgcoreName->Buffer);
             PhDereferenceObject(dbgcoreName);
         }
 
         if (dbghelpName = PhConcatStringRef2(&winsdkPath->sr, &dbghelpFileName))
         {
-            dbghelpHandle = PhLoadLibrarySafe(dbghelpName->Buffer);
+            dbghelpHandle = PhLoadLibrary(dbghelpName->Buffer);
             PhDereferenceObject(dbghelpName);
         }
 
         if (symsrvName = PhConcatStringRef2(&winsdkPath->sr, &symsrvFileName))
         {
-            symsrvHandle = PhLoadLibrarySafe(symsrvName->Buffer);
+            symsrvHandle = PhLoadLibrary(symsrvName->Buffer);
             PhDereferenceObject(symsrvName);
         }
 
@@ -313,11 +313,11 @@ VOID PhpSymbolProviderCompleteInitialization(
     }
 
     if (!dbgcoreHandle)
-        dbgcoreHandle = PhLoadLibrarySafe(L"dbgcore.dll");
+        dbgcoreHandle = PhLoadLibrary(L"dbgcore.dll");
     if (!dbghelpHandle)
-        dbghelpHandle = PhLoadLibrarySafe(L"dbghelp.dll");
+        dbghelpHandle = PhLoadLibrary(L"dbghelp.dll");
     if (!symsrvHandle)
-        symsrvHandle = PhLoadLibrarySafe(L"symsrv.dll");
+        symsrvHandle = PhLoadLibrary(L"symsrv.dll");
 
     if (dbghelpHandle)
     {

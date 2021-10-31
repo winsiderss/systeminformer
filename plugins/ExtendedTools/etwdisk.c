@@ -87,9 +87,12 @@ VOID EtInitializeDiskInformation(
     RtlInitializeSListHead(&EtDiskPacketListHead);
     EtFileNameHashtable = PhCreateSimpleHashtable(128);
 
-    NtQueryPerformanceCounter(&performanceCounter, &EtpPerformanceFrequency);
+    PhQueryPerformanceCounter(&performanceCounter, &EtpPerformanceFrequency);
 
     EtDiskEnabled = TRUE;
+
+    // Collect all existing file names.
+    EtStartEtwRundown();
 
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -144,7 +147,7 @@ ULONG NTAPI EtpDiskHashtableHashFunction(
 {
     PET_DISK_ITEM diskItem = *(PET_DISK_ITEM *)Entry;
 
-    return (HandleToUlong(diskItem->ProcessId) / 4) ^ PhHashStringRef(&diskItem->FileName->sr, TRUE);
+    return (HandleToUlong(diskItem->ProcessId) / 4) ^ PhHashStringRefEx(&diskItem->FileName->sr, TRUE, PH_STRING_HASH_X65599);
 }
 
 PET_DISK_ITEM EtReferenceDiskItem(

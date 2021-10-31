@@ -1052,14 +1052,14 @@ VOID PhSipUpdateCpuPanel(
 
 #ifndef _ARM64_
     // Do not optimize (dmex)
-    NtQueryPerformanceCounter(&performanceCounterStart, NULL);
-    timeStampCounterStart = ReadTimeStampCounter();
+    PhQueryPerformanceCounter(&performanceCounterStart, NULL);
+    timeStampCounterStart = PhReadTimeStampCounter();
     MemoryBarrier();
     CpuIdEx(cpubrand, 0, 0);
     MemoryBarrier();
-    timeStampCounterEnd = ReadTimeStampCounter();
+    timeStampCounterEnd = PhReadTimeStampCounter();
     MemoryBarrier();
-    NtQueryPerformanceCounter(&performanceCounterEnd, NULL);
+    PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 
     if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 && cpubrand[0] == 0 && cpubrand[3] == 0)

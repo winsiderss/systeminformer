@@ -45,7 +45,7 @@ ULONG NTAPI ProcessObjectDbHashFunction(
 {
     PPROCESS_DB_OBJECT object = *(PPROCESS_DB_OBJECT *)Entry;
 
-    return PhHashStringRef(&object->FileName, TRUE);
+    return PhHashStringRefEx(&object->FileName, TRUE, PH_STRING_HASH_X65599);
 }
 
 VOID InitializeProcessDb(

@@ -120,7 +120,8 @@
 #define EnergyTrackerQuery 93
 #define UpdateBlackBoxRecorder 94
 #define SessionAllowExternalDmaDevices 95
-#define PowerInformationLevelMaximum 96
+#define SendSuspendResumeNotification 96 // since WIN11
+#define PowerInformationLevelMaximum 97
 #endif
 
 typedef struct _PROCESSOR_POWER_INFORMATION
@@ -435,6 +436,25 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalClearConstraints,
     PowerInternalSoftParkVelocityEnabled,
     PowerInternalQueryIntelPepCapabilities,
+    PowerInternalGetSystemIdleLoopEnablement, // since WIN11
+    PowerInternalGetVmPerfControlSupport,
+    PowerInternalGetVmPerfControlConfig, // 70
+    PowerInternalSleepDetailedDiagUpdate,
+    PowerInternalProcessorClassFrequencyBandsStats,
+    PowerInternalHostGlobalUserPresenceStateUpdate,
+    PowerInternalCpuNodeIdleIntervalStats,
+    PowerInternalClassIdleIntervalStats,
+    PowerInternalCpuNodeConcurrencyStats,
+    PowerInternalClassConcurrencyStats,
+    PowerInternalQueryProcMeasurementCapabilities,
+    PowerInternalQueryProcMeasurementValues,
+    PowerInternalPrepareForSystemInitiatedReboot, // 80
+    PowerInternalGetAdaptiveSessionState,
+    PowerInternalSetConsoleLockedState,
+    PowerInternalOverrideSystemInitiatedRebootState,
+    PowerInternalFanImpactStats,
+    PowerInternalFanRpmBuckets,
+    PowerInternalPowerBootAppDiagInfo,
     PowerInformationInternalMaximum
 } POWER_INFORMATION_LEVEL_INTERNAL;
 
@@ -536,12 +556,14 @@ NtSetThreadExecutionState(
     _Out_ EXECUTION_STATE *PreviousFlags
     );
 
+#if (PHNT_VERSION < PHNT_WIN7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtRequestWakeupLatency(
     _In_ LATENCY_TIME latency
     );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS

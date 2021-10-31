@@ -119,6 +119,9 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="ndis.c" />
     <ClCompile Include="netoptions.c" />
+    <ClCompile Include="power.c" />
+    <ClCompile Include="powergraph.c" />
+    <ClCompile Include="poweroptions.c" />
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="storage.c" />
   </ItemGroup>

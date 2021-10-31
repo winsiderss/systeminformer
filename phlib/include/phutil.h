@@ -1499,10 +1499,9 @@ PhGetClassObject(
     );
 
 PHLIBAPI
-_Ret_maybenull_
 PVOID
 NTAPI
-PhLoadLibrarySafe(
+PhLoadLibrary(
     _In_ PCWSTR LibFileName
     );
 
@@ -1526,6 +1525,28 @@ NTSTATUS
 NTAPI
 PhDelayExecution(
     _In_ ULONG Milliseconds
+    );
+
+PHLIBAPI
+ULONGLONG
+NTAPI
+PhReadTimeStampCounter(
+    VOID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter,
+    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhQueryPerformanceFrequency(
+    _Out_ PLARGE_INTEGER PerformanceFrequency
     );
 
 #ifdef __cplusplus

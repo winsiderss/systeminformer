@@ -2364,7 +2364,7 @@ static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
 {
     PPH_FILE_VERSIONINFO_CACHE_ENTRY entry = Entry;
 
-    return PhHashStringRef(&entry->FileName->sr, TRUE);
+    return PhHashStringRefEx(&entry->FileName->sr, TRUE, PH_STRING_HASH_X65599);
 }
 
 _Success_(return)
@@ -6318,8 +6318,8 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
 
         if (
             (!DllBase || entry->DllBase == DllBase) &&
-            (!FullDllName || PhEqualStringRef(&fullDllName, FullDllName, TRUE)) &&
-            (!BaseDllName || PhEqualStringRef(&baseDllName, BaseDllName, TRUE))
+            (!FullDllName || PhStartsWithStringRef(&fullDllName, FullDllName, TRUE)) &&
+            (!BaseDllName || PhStartsWithStringRef(&baseDllName, BaseDllName, TRUE))
             )
         {
             result = entry;
@@ -6749,7 +6749,10 @@ PVOID PhGetLoaderEntryImageExportFunction(
             libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
             libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
-            if (libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer))
+            if (!(libraryModule = PhGetLoaderEntryDllBase(libraryNameString->Buffer)))
+                libraryModule = PhLoadLibrary(libraryNameString->Buffer);
+
+            if (libraryModule)
             {
                 if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
                 {
@@ -6842,7 +6845,10 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                     libraryNameString = PhCreateStringEx(dllNameRef.Buffer, dllNameRef.Length);
                     libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
-                    if (libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer))
+                    if (!(libraryModule = PhGetLoaderEntryDllBase(libraryNameString->Buffer)))
+                        libraryModule = PhLoadLibrary(libraryNameString->Buffer);
+
+                    if (libraryModule)
                     {
                         if (libraryFunctionString->Buffer[0] == L'#') // This is a forwarder RVA with an ordinal import.
                         {
@@ -6945,7 +6951,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
             if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
             {
-                if (importBaseAddress = PhLoadLibrarySafe(importNameSr->Buffer))
+                if (importBaseAddress = PhLoadLibrary(importNameSr->Buffer))
                     status = STATUS_SUCCESS;
                 else
                     status = PhGetLastWin32ErrorAsNtStatus();
@@ -7143,7 +7149,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
                 if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
                 {
-                    if (importBaseAddress = PhLoadLibrarySafe(importNameSr->Buffer))
+                    if (importBaseAddress = PhLoadLibrary(importNameSr->Buffer))
                     {
                         importNeedsFree = TRUE;
                         status = STATUS_SUCCESS;
@@ -7832,7 +7838,7 @@ HRESULT PhGetClassObject(
 
     if (!(baseAddress = PhGetLoaderEntryDllBase(DllName)))
     {
-        if (!(baseAddress = PhLoadLibrarySafe(DllName)))
+        if (!(baseAddress = PhLoadLibrary(DllName)))
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     }
 
@@ -7840,7 +7846,7 @@ HRESULT PhGetClassObject(
 }
 
 /*!
-    @brief PhLoadLibrarySafe prevents the loader from searching in an unsafe
+    @brief PhLoadLibrary prevents the loader from searching in an unsafe
      order by first requiring the loader try to load and resolve through
      System32. Then upping the loading flags until the library is loaded.
 
@@ -7848,33 +7854,30 @@ HRESULT PhGetClassObject(
 
     @return HMODULE to the library on success, null on failure.
 */
-_Ret_maybenull_
-PVOID
-PhLoadLibrarySafe(
+PVOID PhLoadLibrary(
     _In_ PCWSTR LibFileName
     )
 {
     PVOID baseAddress;
 
-    //
     // Force LOAD_LIBRARY_SEARCH_SYSTEM32. If the library file name is a fully
     // qualified path this will succeed.
-    //
-    baseAddress = LoadLibraryExW(LibFileName,
-                                 NULL,
-                                 LOAD_LIBRARY_SEARCH_SYSTEM32);
-    if (baseAddress)
+
+    if (baseAddress = LoadLibraryEx(
+        LibFileName,
+        NULL,
+        LOAD_LIBRARY_SEARCH_SYSTEM32
+        ))
     {
         return baseAddress;
     }
 
-    //
     // Include the application directory now.
-    //
-    return LoadLibraryExW(LibFileName,
-                          NULL,
-                          LOAD_LIBRARY_SEARCH_SYSTEM32 |
-                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    return LoadLibraryEx(
+        LibFileName,
+        NULL,
+        LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_APPLICATION_DIR
+        );
 }
 
 // rev from LoadLibraryEx with LOAD_LIBRARY_AS_IMAGE_RESOURCE
@@ -8006,4 +8009,64 @@ NTSTATUS PhDelayExecution(
 
         return PhDelayExecutionEx(FALSE, &interval);
     }
+}
+
+ULONGLONG PhReadTimeStampCounter(
+    VOID
+    )
+{
+#if (_M_IX86 || _M_AMD64)
+    return ReadTimeStampCounter();
+#elif _M_ARM
+    return __rdpmccntr64();
+#elif _M_ARM64
+    // The Windows SDK uses PMCCNTR on ARM64 instead of CNTVCT? (dmex)
+    return _ReadStatusReg(ARM64_CNTVCT);
+#endif
+}
+
+VOID PhQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter,
+    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    )
+{
+    if (PerformanceFrequency)
+    {
+        RtlQueryPerformanceFrequency(PerformanceFrequency);
+    }
+
+    RtlQueryPerformanceCounter(PerformanceCounter);
+
+    //if (RtlQueryPerformanceCounter(PerformanceCounter))
+    //{
+    //    if (PerformanceFrequency)
+    //    {
+    //        if (RtlQueryPerformanceFrequency(PerformanceFrequency))
+    //            return TRUE;
+    //    }
+    //    else
+    //    {
+    //        return TRUE;
+    //    }
+    //}
+    //
+    //return NT_SUCCESS(NtQueryPerformanceCounter(PerformanceCounter, PerformanceFrequency));
+}
+
+VOID PhQueryPerformanceFrequency(
+    _Out_ PLARGE_INTEGER PerformanceFrequency
+    )
+{
+    RtlQueryPerformanceFrequency(PerformanceFrequency);
+
+    //if (RtlQueryPerformanceFrequency(PerformanceFrequency))
+    //{
+    //    return TRUE;
+    //}
+    //else
+    //{
+    //    LARGE_INTEGER performanceCounter;
+    //
+    //    return NT_SUCCESS(NtQueryPerformanceCounter(&performanceCounter, PerformanceFrequency));
+    //}
 }

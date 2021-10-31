@@ -244,7 +244,10 @@ BOOLEAN PhMainWndInitialization(
         PhShowSystemInformationDialog(PhStartupParameters.SysInfo->Buffer);
 
     if (ShowCommand != SW_HIDE)
+    {
         ShowWindow(PhMainWndHandle, ShowCommand);
+        SetForegroundWindow(PhMainWndHandle);
+    }
 
     if (PhGetIntegerSetting(L"MiniInfoWindowPinned"))
         PhPinMiniInformation(MiniInfoManualPinType, 1, 0, PH_MINIINFO_LOAD_POSITION, NULL, NULL);
@@ -1145,6 +1148,30 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_PROCESS_FREEZE:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiFreezeTreeProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
+    case ID_PROCESS_THAW:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                PhReferenceObject(processItem);
+                PhUiThawTreeProcess(WindowHandle, processItem);
+                PhDereferenceObject(processItem);
+            }
+        }
+        break;
     case ID_PROCESS_RESTART:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
@@ -1987,6 +2014,7 @@ VOID PhMwpLoadSettings(
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
+    PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
@@ -2869,6 +2897,7 @@ VOID PhMwpLayoutTabControl(
     )
 {
     RECT rect;
+    RECT tabrect;
 
     if (!LayoutPaddingValid)
     {
@@ -2878,13 +2907,22 @@ VOID PhMwpLayoutTabControl(
 
     GetClientRect(PhMainWndHandle, &rect);
     PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
-    TabCtrl_AdjustRect(TabControlHandle, FALSE, &rect);
+    tabrect = rect;
+    TabCtrl_AdjustRect(TabControlHandle, FALSE, &tabrect);
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
-        *DeferHandle = DeferWindowPos(*DeferHandle, CurrentPage->WindowHandle, NULL,
-            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER);
+        // Remove the tabctrl padding (dmex)
+        *DeferHandle = DeferWindowPos(
+            *DeferHandle,
+            CurrentPage->WindowHandle,
+            NULL,
+            rect.left,
+            tabrect.top - 1, // 1=GetSystemMetrics(SM_CXBORDER)
+            rect.right - rect.left,
+            (tabrect.bottom - tabrect.top) + (rect.bottom - tabrect.bottom),
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
     }
 }
 
