@@ -1512,6 +1512,8 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     context->TraceResult = ProcessDotNetTrace(context);
 
     ControlTrace(sessionHandle, NULL, properties, EVENT_TRACE_CONTROL_STOP);
+    CloseTrace(sessionHandle);
+
     PhFree(properties);
 
     return context->TraceResult;
