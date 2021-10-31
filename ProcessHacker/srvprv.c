@@ -1375,7 +1375,7 @@ VOID PhpInitializeServiceNonPoll(
     {
         PVOID sechostHandle;
 
-        if (sechostHandle = PhLoadLibrarySafe(L"sechost.dll"))
+        if (sechostHandle = PhLoadLibrary(L"sechost.dll"))
         {
             SubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "SubscribeServiceChangeNotifications", 0);
             UnsubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "UnsubscribeServiceChangeNotifications", 0);

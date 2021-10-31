@@ -6750,7 +6750,7 @@ PVOID PhGetLoaderEntryImageExportFunction(
             libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
             if (!(libraryModule = PhGetLoaderEntryDllBase(libraryNameString->Buffer)))
-                libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer);
+                libraryModule = PhLoadLibrary(libraryNameString->Buffer);
 
             if (libraryModule)
             {
@@ -6846,7 +6846,7 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
                     libraryFunctionString = PhConvertUtf16ToUtf8Ex(dllProcedureRef.Buffer, dllProcedureRef.Length);
 
                     if (!(libraryModule = PhGetLoaderEntryDllBase(libraryNameString->Buffer)))
-                        libraryModule = PhLoadLibrarySafe(libraryNameString->Buffer);
+                        libraryModule = PhLoadLibrary(libraryNameString->Buffer);
 
                     if (libraryModule)
                     {
@@ -6951,7 +6951,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
 
             if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
             {
-                if (importBaseAddress = PhLoadLibrarySafe(importNameSr->Buffer))
+                if (importBaseAddress = PhLoadLibrary(importNameSr->Buffer))
                     status = STATUS_SUCCESS;
                 else
                     status = PhGetLastWin32ErrorAsNtStatus();
@@ -7149,7 +7149,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
                 if (!(importBaseAddress = PhGetLoaderEntryDllBase(importNameSr->Buffer)))
                 {
-                    if (importBaseAddress = PhLoadLibrarySafe(importNameSr->Buffer))
+                    if (importBaseAddress = PhLoadLibrary(importNameSr->Buffer))
                     {
                         importNeedsFree = TRUE;
                         status = STATUS_SUCCESS;
@@ -7838,7 +7838,7 @@ HRESULT PhGetClassObject(
 
     if (!(baseAddress = PhGetLoaderEntryDllBase(DllName)))
     {
-        if (!(baseAddress = PhLoadLibrarySafe(DllName)))
+        if (!(baseAddress = PhLoadLibrary(DllName)))
             return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
     }
 
@@ -7846,7 +7846,7 @@ HRESULT PhGetClassObject(
 }
 
 /*!
-    @brief PhLoadLibrarySafe prevents the loader from searching in an unsafe
+    @brief PhLoadLibrary prevents the loader from searching in an unsafe
      order by first requiring the loader try to load and resolve through
      System32. Then upping the loading flags until the library is loaded.
 
@@ -7854,33 +7854,30 @@ HRESULT PhGetClassObject(
 
     @return HMODULE to the library on success, null on failure.
 */
-_Ret_maybenull_
-PVOID
-PhLoadLibrarySafe(
+PVOID PhLoadLibrary(
     _In_ PCWSTR LibFileName
     )
 {
     PVOID baseAddress;
 
-    //
     // Force LOAD_LIBRARY_SEARCH_SYSTEM32. If the library file name is a fully
     // qualified path this will succeed.
-    //
-    baseAddress = LoadLibraryExW(LibFileName,
-                                 NULL,
-                                 LOAD_LIBRARY_SEARCH_SYSTEM32);
-    if (baseAddress)
+
+    if (baseAddress = LoadLibraryEx(
+        LibFileName,
+        NULL,
+        LOAD_LIBRARY_SEARCH_SYSTEM32
+        ))
     {
         return baseAddress;
     }
 
-    //
     // Include the application directory now.
-    //
-    return LoadLibraryExW(LibFileName,
-                          NULL,
-                          LOAD_LIBRARY_SEARCH_SYSTEM32 |
-                          LOAD_LIBRARY_SEARCH_APPLICATION_DIR);
+    return LoadLibraryEx(
+        LibFileName,
+        NULL,
+        LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_APPLICATION_DIR
+        );
 }
 
 // rev from LoadLibraryEx with LOAD_LIBRARY_AS_IMAGE_RESOURCE

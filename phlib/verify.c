@@ -58,8 +58,8 @@ static VOID PhpVerifyInitialization(
     PVOID wintrust;
     PVOID crypt32;
 
-    wintrust = PhLoadLibrarySafe(L"wintrust.dll");
-    crypt32 = PhLoadLibrarySafe(L"crypt32.dll");
+    wintrust = PhLoadLibrary(L"wintrust.dll");
+    crypt32 = PhLoadLibrary(L"crypt32.dll");
 
     if (wintrust)
     {
@@ -180,7 +180,7 @@ VOID PhpViewSignerInfo(
     {
         HMODULE cryptui;
 
-        if (cryptui = PhLoadLibrarySafe(L"cryptui.dll"))
+        if (cryptui = PhLoadLibrary(L"cryptui.dll"))
         {
             cryptUIDlgViewSignerInfo = PhGetDllBaseProcedureAddress(cryptui, "CryptUIDlgViewSignerInfoW", 0);
         }
@@ -926,7 +926,7 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
     {
         PVOID wintrust;
 
-        if (wintrust = PhLoadLibrarySafe(L"wintrust.dll"))
+        if (wintrust = PhLoadLibrary(L"wintrust.dll"))
         {
             WTGetSignatureInfo_I = PhGetDllBaseProcedureAddress(wintrust, "WTGetSignatureInfo", 0);
         }

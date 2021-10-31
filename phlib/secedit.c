@@ -1720,7 +1720,7 @@ PVOID PhpInitializePowerPolicyApi(VOID)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        imageBaseAddress = PhLoadLibrarySafe(L"powrprof.dll");
+        imageBaseAddress = PhLoadLibrary(L"powrprof.dll");
         PhEndInitOnce(&initOnce);
     }
 
@@ -1858,7 +1858,7 @@ PVOID PhpInitializeRemoteDesktopServiceApi(VOID)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        imageBaseAddress = PhLoadLibrarySafe(L"wtsapi32.dll");
+        imageBaseAddress = PhLoadLibrary(L"wtsapi32.dll");
         PhEndInitOnce(&initOnce);
     }
 
@@ -1982,7 +1982,7 @@ PVOID PhGetWbemProxDllBase(
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
             {
                 if (!(imageBaseAddress = PhGetLoaderEntryFullDllBase(PhGetString(systemFileName))))
-                    imageBaseAddress = PhLoadLibrarySafe(PhGetString(systemFileName));
+                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
 
                 PhDereferenceObject(systemFileName);
             }

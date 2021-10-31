@@ -231,7 +231,7 @@ BOOLEAN PhShowRunFileDialog(
     //    );
     //PVOID shell32Handle;
     //
-    //if (shell32Handle = PhLoadLibrarySafe(L"shell32.dll"))
+    //if (shell32Handle = PhLoadLibrary(L"shell32.dll"))
     //{
     //    if (RunFileDlg_I = PhGetDllBaseProcedureAddress(shell32Handle, NULL, 61))
     //    {
@@ -387,7 +387,7 @@ BOOLEAN PhpInitializeNetApi(VOID)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (netapiModuleHandle = PhLoadLibrarySafe(L"netapi32.dll"))
+        if (netapiModuleHandle = PhLoadLibrary(L"netapi32.dll"))
         {
             NetUserEnum_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetUserEnum", 0);
             NetApiBufferFree_I = PhGetDllBaseProcedureAddress(netapiModuleHandle, "NetApiBufferFree", 0);
@@ -415,7 +415,7 @@ BOOLEAN PhpInitializeMRUList(VOID)
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (comctl32ModuleHandle = PhLoadLibrarySafe(L"comctl32.dll"))
+        if (comctl32ModuleHandle = PhLoadLibrary(L"comctl32.dll"))
         {
             CreateMRUList_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "CreateMRUListW", 0);
             AddMRUString_I = PhGetDllBaseProcedureAddress(comctl32ModuleHandle, "AddMRUStringW", 0);
@@ -2146,7 +2146,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     INT cmdlineArgCount;
     PWSTR* cmdlineArgList;
 
-    if (!(wdcLibraryHandle = PhLoadLibrarySafe(L"wdc.dll")))
+    if (!(wdcLibraryHandle = PhLoadLibrary(L"wdc.dll")))
         return FALSE;
 
     if (!(WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(wdcLibraryHandle, "WdcRunTaskAsInteractiveUser", 0)))

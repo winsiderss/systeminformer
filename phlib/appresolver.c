@@ -99,7 +99,7 @@ static BOOLEAN PhpKernelAppCoreInitialized(
         {
             PVOID kernelBaseModuleHandle;
 
-            if (kernelBaseModuleHandle = PhLoadLibrarySafe(L"kernelbase.dll")) // kernel.appcore.dll
+            if (kernelBaseModuleHandle = PhLoadLibrary(L"kernelbase.dll")) // kernel.appcore.dll
             {
                 AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerDeriveSidFromMoniker", 0);
                 AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerLookupMoniker", 0);
@@ -912,7 +912,7 @@ HRESULT PhAppResolverGetEdpContextForWindow(
         {
             PVOID edputilModuleHandle;
 
-            if (edputilModuleHandle = PhLoadLibrarySafe(L"edputil.dll"))
+            if (edputilModuleHandle = PhLoadLibrary(L"edputil.dll"))
             {
                 EdpGetContextForWindow_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpGetContextForWindow", 0);
                 EdpFreeContext_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpFreeContext", 0);
@@ -954,7 +954,7 @@ HRESULT PhAppResolverGetEdpContextForProcess(
         {
             PVOID edputilModuleHandle;
 
-            if (edputilModuleHandle = PhLoadLibrarySafe(L"edputil.dll"))
+            if (edputilModuleHandle = PhLoadLibrary(L"edputil.dll"))
             {
                 EdpGetContextForProcess_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpGetContextForProcess", 0);
                 EdpFreeContext_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpFreeContext", 0);

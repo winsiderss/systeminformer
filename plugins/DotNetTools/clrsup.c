@@ -1234,7 +1234,7 @@ PVOID DnLoadMscordaccore(
                     dataTargetSizeOfImage == mappedImage.NtHeaders->OptionalHeader.SizeOfImage
                     )
                 {
-                    mscordacBaseAddress = PhLoadLibrarySafe(PhGetString(fileName));
+                    mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
                 }
 
                 PhUnloadMappedImage(&mappedImage);
@@ -1277,7 +1277,7 @@ TryAppLocal:
             signerName && PhEqualString2(signerName, L"Microsoft Corporation", TRUE)
             )
         {
-            mscordacBaseAddress = PhLoadLibrarySafe(PhGetString(fileName));
+            mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
         }
 
         PhClearReference(&signerName);
@@ -1299,7 +1299,7 @@ PVOID DnLoadMscordacwks(
     PPH_STRING mscordacwksFileName;
 
     // This was required in the past for legacy runtimes, unsure if still required. (dmex)
-    //PhLoadLibrarySafe(L"mscoree.dll");
+    //PhLoadLibrary(L"mscoree.dll");
 
     if (IsClrV4)
     {
@@ -1320,7 +1320,7 @@ PVOID DnLoadMscordacwks(
 
     PhGetSystemRoot(&systemRootString);
     mscordacwksFileName = PhConcatStringRef2(&systemRootString, &mscordacwksPathString);
-    dllBase = PhLoadLibrarySafe(PhGetString(mscordacwksFileName));
+    dllBase = PhLoadLibrary(PhGetString(mscordacwksFileName));
     PhDereferenceObject(mscordacwksFileName);
 
     return dllBase;

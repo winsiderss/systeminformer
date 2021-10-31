@@ -41,7 +41,7 @@ PVOID PhpImportProcedure(
         module = PhGetLoaderEntryDllBase(ModuleName);
 
         if (!module)
-            module = PhLoadLibrarySafe(ModuleName);
+            module = PhLoadLibrary(ModuleName);
 
         if (module)
         {

@@ -1752,7 +1752,7 @@ HICON PhGetInternalWindowIcon(
     {
         PVOID shell32Handle;
 
-        if (shell32Handle = PhLoadLibrarySafe(L"shell32.dll"))
+        if (shell32Handle = PhLoadLibrary(L"shell32.dll"))
         {
             InternalGetWindowIcon_I = PhGetDllBaseProcedureAddress(shell32Handle, "InternalGetWindowIcon", 0);
         }

@@ -1499,10 +1499,9 @@ PhGetClassObject(
     );
 
 PHLIBAPI
-_Ret_maybenull_
 PVOID
 NTAPI
-PhLoadLibrarySafe(
+PhLoadLibrary(
     _In_ PCWSTR LibFileName
     );
 
