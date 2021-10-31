@@ -58,7 +58,8 @@
 #define JOB_OBJECT_QUERY 0x0004
 #define JOB_OBJECT_TERMINATE 0x0008
 #define JOB_OBJECT_SET_SECURITY_ATTRIBUTES 0x0010
-#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f)
+#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3F)
+//#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f) // pre-Vista full access
 #endif
 
 #define GDI_HANDLE_BUFFER_SIZE32 34
@@ -224,6 +225,9 @@ typedef enum _PROCESSINFOCLASS
     ProcessAltSystemCallInformation, // qs: BOOLEAN (kernel-mode only) // INT2E // since 20H1 // 100
     ProcessDynamicEHContinuationTargets, // PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
     ProcessDynamicEnforcedCetCompatibleRanges, // PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION // since 20H2
+    ProcessCreateStateChange, // since WIN11
+    ProcessApplyStateChange,
+    ProcessEnableOptionalXStateFeatures,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -282,6 +286,8 @@ typedef enum _THREADINFOCLASS
     ThreadManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ThreadPowerThrottlingState, // POWER_THROTTLING_THREAD_STATE
     ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
+    ThreadCreateStateChange, // since WIN11
+    ThreadApplyStateChange,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -677,6 +683,7 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_CHILD_PROCESS_POLICY ChildProcessPolicy;
         PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy;
         PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy;
+        PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
@@ -929,7 +936,7 @@ typedef struct _PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
 } PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION, *PPROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION;
 
 // private
-typedef struct _PROCESS_LOGGING_INFORMATION
+typedef union _PROCESS_LOGGING_INFORMATION
 {
     ULONG Flags;
     struct
@@ -1313,6 +1320,76 @@ NTSTATUS
 NTAPI
 NtQueryPortInformationProcess(
     VOID
+    );
+
+#endif
+
+#define STATECHANGE_SET_ATTRIBUTES 0x0001
+
+typedef enum _PROCESS_STATE_CHANGE_TYPE
+{
+    ProcessStateChangeSuspend,
+    ProcessStateChangeResume,
+    ProcessStateChangeMax,
+} PROCESS_STATE_CHANGE_TYPE, *PPROCESS_STATE_CHANGE_TYPE;
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateProcessStateChange(
+    _Out_ PHANDLE ProcessStateChangeHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ ULONG64 Reserved
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtChangeProcessState(
+    _In_ HANDLE ProcessStateChangeHandle,
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_STATE_CHANGE_TYPE StateChangeType,
+    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ SIZE_T ExtendedInformationLength,
+    _In_opt_ ULONG64 Reserved
+    );
+
+#endif
+
+typedef enum _THREAD_STATE_CHANGE_TYPE
+{
+    ThreadStateChangeSuspend,
+    ThreadStateChangeResume,
+    ThreadStateChangeMax,
+} THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateThreadStateChange(
+    _Out_ PHANDLE ThreadStateChangeHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ ULONG64 Reserved
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtChangeThreadState(
+    _In_ HANDLE ThreadStateChangeHandle,
+    _In_ HANDLE ThreadHandle,
+    _In_ THREAD_STATE_CHANGE_TYPE StateChangeType,
+    _In_opt_ PVOID ExtendedInformation,
+    _In_opt_ SIZE_T ExtendedInformationLength,
+    _In_opt_ ULONG64 Reserved
     );
 
 #endif

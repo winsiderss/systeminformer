@@ -3,6 +3,7 @@
 
 extern PPH_OBJECT_TYPE PhNetworkItemType;
 extern BOOLEAN PhEnableNetworkProviderResolve;
+extern BOOLEAN PhEnableNetworkBoundConnections;
 
 // begin_phapppub
 #define PH_NETWORK_OWNER_INFO_SIZE 16
@@ -92,5 +93,40 @@ PhGetTcpStateName(
     _In_ ULONG State
     );
 // end_phapppub
+
+// iphlpapi imports
+
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetTcpTableWithOwnerModule(
+//    _Out_ PVOID* Tcp4Table, // PMIB_TCPTABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetTcp6TableWithOwnerModule(
+//    _Out_ PVOID* Tcp6Table, // PMIB_TCP6TABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetUdpTableWithOwnerModule(
+//    _Out_ PVOID* Udp4Table, // PMIB_UDPTABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
+//DECLSPEC_IMPORT ULONG WINAPI InternalGetUdp6TableWithOwnerModule(
+//    _Out_ PVOID* Udp6Table, // PMIB_UDP6TABLE_OWNER_MODULE
+//    _In_ PVOID HeapHandle,
+//    _In_opt_ ULONG HeapFlags
+//    );
+
+DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcpEndpointTable(
+    _Out_ PVOID* BoundTcpTable, // PMIB_TCPTABLE2
+    _In_ PVOID HeapHandle,
+    _In_opt_ ULONG HeapFlags
+    );
+
+DECLSPEC_IMPORT ULONG WINAPI InternalGetBoundTcp6EndpointTable(
+    _Out_ PVOID* BoundTcpTable, // PMIB_TCP6TABLE2
+    _In_ PVOID HeapHandle,
+    _In_opt_ ULONG HeapFlags
+    );
 
 #endif

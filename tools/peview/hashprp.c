@@ -35,7 +35,6 @@ typedef struct _PV_PE_HASH_CONTEXT
 
 typedef struct _PVP_HASH_CONTEXT
 {
-    BCRYPT_ALG_HANDLE SignAlgHandle;
     BCRYPT_ALG_HANDLE HashAlgHandle;
     BCRYPT_KEY_HANDLE KeyHandle;
     BCRYPT_HASH_HANDLE HashHandle;
@@ -168,9 +167,6 @@ VOID PvpDestroyHashHandle(
 {
     if (Context->HashAlgHandle)
         BCryptCloseAlgorithmProvider(Context->HashAlgHandle, 0);
-
-    if (Context->SignAlgHandle)
-        BCryptCloseAlgorithmProvider(Context->SignAlgHandle, 0);
 
     if (Context->HashHandle)
         BCryptDestroyHash(Context->HashHandle);

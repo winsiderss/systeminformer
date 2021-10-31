@@ -34,7 +34,7 @@ extern ULONG WindowsVersion;
 #define WINDOWS_10_20H1 109 // May, 2020
 #define WINDOWS_10_20H2 110 // October, 2020
 #define WINDOWS_10_21H1 111 // May, 2021
-#define WINDOWS_11 112
+#define WINDOWS_11 112 // October, 2021
 #define WINDOWS_NEW ULONG_MAX
 
 // Debugging

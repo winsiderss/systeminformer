@@ -99,7 +99,7 @@ static BOOLEAN PhpKernelAppCoreInitialized(
         {
             PVOID kernelBaseModuleHandle;
 
-            if (kernelBaseModuleHandle = PhLoadLibrarySafe(L"kernelbase.dll")) // kernel.appcore.dll
+            if (kernelBaseModuleHandle = PhLoadLibrary(L"kernelbase.dll")) // kernel.appcore.dll
             {
                 AppContainerDeriveSidFromMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerDeriveSidFromMoniker", 0);
                 AppContainerLookupMoniker_I = PhGetDllBaseProcedureAddress(kernelBaseModuleHandle, "AppContainerLookupMoniker", 0);
@@ -893,6 +893,90 @@ HRESULT PhAppResolverEndCrashDumpTask(
 
     status = IOSTaskCompletion_EndTask(taskCompletionManager);
     IOSTaskCompletion_Release(taskCompletionManager);
+
+    return status;
+}
+
+HRESULT PhAppResolverGetEdpContextForWindow(
+    _In_ HWND WindowHandle,
+    _Out_ EDP_CONTEXT_STATES* State
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    HRESULT status;
+    PEDP_CONTEXT context;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            PVOID edputilModuleHandle;
+
+            if (edputilModuleHandle = PhLoadLibrary(L"edputil.dll"))
+            {
+                EdpGetContextForWindow_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpGetContextForWindow", 0);
+                EdpFreeContext_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpFreeContext", 0);
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(EdpGetContextForWindow_I && EdpFreeContext_I))
+        return E_FAIL;
+
+    status = EdpGetContextForWindow_I(
+        WindowHandle,
+        &context
+        );
+
+    if (SUCCEEDED(status))
+    {
+        *State = context->contextStates;
+        EdpFreeContext_I(context);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverGetEdpContextForProcess(
+    _In_ HANDLE ProcessId,
+    _Out_ EDP_CONTEXT_STATES* State
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    HRESULT status;
+    PEDP_CONTEXT context;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            PVOID edputilModuleHandle;
+
+            if (edputilModuleHandle = PhLoadLibrary(L"edputil.dll"))
+            {
+                EdpGetContextForProcess_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpGetContextForProcess", 0);
+                EdpFreeContext_I = PhGetDllBaseProcedureAddress(edputilModuleHandle, "EdpFreeContext", 0);
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(EdpGetContextForWindow_I && EdpFreeContext_I))
+        return E_FAIL;
+
+    status = EdpGetContextForProcess_I(
+        HandleToUlong(ProcessId),
+        &context
+        );
+
+    if (SUCCEEDED(status))
+    {
+        *State = context->contextStates;
+        EdpFreeContext_I(context);
+    }
 
     return status;
 }

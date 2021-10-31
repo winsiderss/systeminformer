@@ -179,7 +179,7 @@ PPH_STRING NetworkAdapterQueryNameFromGuid(
     {
         PVOID iphlpHandle;
 
-        if (iphlpHandle = PhLoadLibrarySafe(L"iphlpapi.dll"))
+        if (iphlpHandle = PhLoadLibrary(L"iphlpapi.dll"))
         {
             NhGetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
         }
@@ -261,7 +261,7 @@ PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
     {
         PVOID iphlpHandle;
 
-        if (iphlpHandle = PhLoadLibrarySafe(L"iphlpapi.dll"))
+        if (iphlpHandle = PhLoadLibrary(L"iphlpapi.dll"))
         {
             NhGetInterfaceNameFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceNameFromGuid", 0);
         }

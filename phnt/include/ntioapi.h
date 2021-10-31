@@ -272,6 +272,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileLinkInformationExBypassAccessCheck, // (kernel-mode only); FILE_LINK_INFORMATION_EX
     FileStorageReserveIdInformation, // FILE_SET_STORAGE_RESERVE_ID_INFORMATION
     FileCaseSensitiveInformationForceAccessCheck, // FILE_CASE_SENSITIVE_INFORMATION
+    FileKnownFolderInformation, // FILE_KNOWN_FOLDER_INFORMATION // since WIN11
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -822,6 +823,26 @@ typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 {
     ULONG Flags;
 } FILE_CASE_SENSITIVE_INFORMATION, *PFILE_CASE_SENSITIVE_INFORMATION;
+
+// private
+typedef enum _FILE_KNOWN_FOLDER_TYPE
+{
+    KnownFolderNone,
+    KnownFolderDesktop,
+    KnownFolderDocuments,
+    KnownFolderDownloads,
+    KnownFolderMusic,
+    KnownFolderPictures,
+    KnownFolderVideos,
+    KnownFolderOther,
+    KnownFolderMax
+} FILE_KNOWN_FOLDER_TYPE;
+
+// private
+typedef struct _FILE_KNOWN_FOLDER_INFORMATION
+{
+    FILE_KNOWN_FOLDER_TYPE Type;
+} FILE_KNOWN_FOLDER_INFORMATION, *PFILE_KNOWN_FOLDER_INFORMATION;
 
 // NtQueryDirectoryFile types
 

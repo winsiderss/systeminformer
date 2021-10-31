@@ -58,11 +58,19 @@ VOID EtEtwMonitorUninitialization(
     VOID
     );
 
-ULONG EtEtwControlEtwSession(
-    _In_ ULONG ControlCode
+VOID EtStartEtwSession(
+    VOID
+    );
+
+VOID EtStopEtwSession(
+    VOID
     );
 
 VOID EtFlushEtwSession(
+    VOID
+    );
+
+ULONG EtStartEtwRundown(
     VOID
     );
 

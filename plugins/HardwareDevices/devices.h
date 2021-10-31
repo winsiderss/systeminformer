@@ -36,6 +36,7 @@
 #define SETTING_NAME_DISK_SIZE (PLUGIN_NAME L".DiskWindowSize")
 #define SETTING_NAME_DISK_COUNTERS_COLUMNS (PLUGIN_NAME L".DiskListColumns")
 #define SETTING_NAME_SMART_COUNTERS_COLUMNS (PLUGIN_NAME L".SmartListColumns")
+#define SETTING_NAME_RAPL_LIST (PLUGIN_NAME L".RaplList")
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -60,6 +61,10 @@ extern PH_QUEUED_LOCK NetworkAdaptersListLock;
 extern PPH_OBJECT_TYPE DiskDriveEntryType;
 extern PPH_LIST DiskDrivesList;
 extern PH_QUEUED_LOCK DiskDrivesListLock;
+
+extern PPH_OBJECT_TYPE RaplDeviceEntryType;
+extern PPH_LIST RaplDevicesList;
+extern PH_QUEUED_LOCK RaplDevicesListLock;
 
 // main.c
 
@@ -888,6 +893,172 @@ VOID DiskDriveSysInfoInitializing(
 VOID NetAdapterSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
+    );
+
+// power.c
+
+typedef enum _EV_EMI_DEVICE_INDEX
+{
+    EV_EMI_DEVICE_INDEX_PACKAGE,
+    EV_EMI_DEVICE_INDEX_CORE,
+    EV_EMI_DEVICE_INDEX_DIMM,
+    EV_EMI_DEVICE_INDEX_GPUDISCRETE,
+    EV_EMI_DEVICE_INDEX_CPUDISCRETE, // Pseudo
+    EV_EMI_DEVICE_INDEX_MAX // Pseudo
+} EV_EMI_DEVICE_INDEX;
+
+typedef struct _EV_MEASUREMENT_DATA
+{
+    ULONGLONG AbsoluteEnergy;
+    ULONGLONG AbsoluteTime;
+} EV_MEASUREMENT_DATA;
+
+typedef struct _DV_RAPL_ID
+{
+    PPH_STRING DevicePath;
+} DV_RAPL_ID, *PDV_RAPL_ID;
+
+typedef struct _DV_RAPL_ENTRY
+{
+    DV_RAPL_ID Id;
+    PPH_STRING DeviceName;
+    HANDLE DeviceHandle;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN UserReference : 1;
+            BOOLEAN CheckedDeviceSupport : 1;
+            BOOLEAN DeviceSupported : 1;
+            BOOLEAN DevicePresent : 1;
+            BOOLEAN Spare : 4;
+        };
+    };
+
+    PH_CIRCULAR_BUFFER_FLOAT PackageBuffer;
+    PH_CIRCULAR_BUFFER_FLOAT CoreBuffer;
+    PH_CIRCULAR_BUFFER_FLOAT DimmBuffer;
+    PH_CIRCULAR_BUFFER_FLOAT TotalBuffer;
+
+    FLOAT CurrentProcessorPower;
+    FLOAT CurrentCorePower;
+    FLOAT CurrentDramPower;
+    FLOAT CurrentDiscreteGpuPower;
+    FLOAT CurrentComponentPower;
+    FLOAT CurrentTotalPower;
+
+    PVOID ChannelDataBuffer;
+    ULONG ChannelDataBufferLength;
+    ULONG ChannelIndex[EV_EMI_DEVICE_INDEX_MAX];
+    EV_MEASUREMENT_DATA ChannelData[EV_EMI_DEVICE_INDEX_MAX];
+} DV_RAPL_ENTRY, *PDV_RAPL_ENTRY;
+
+typedef struct _DV_RAPL_SYSINFO_CONTEXT
+{
+    PDV_RAPL_ENTRY DeviceEntry;
+
+    HWND WindowHandle;
+    HWND ProcessorGraphHandle;
+    HWND CoreGraphHandle;
+    HWND DimmGraphHandle;
+    HWND TotalGraphHandle;
+
+    PPH_SYSINFO_SECTION SysinfoSection;
+    PH_LAYOUT_MANAGER LayoutManager;
+    RECT GraphMargin;
+
+    PH_GRAPH_STATE ProcessorGraphState;
+    PH_GRAPH_STATE CoreGraphState;
+    PH_GRAPH_STATE DimmGraphState;
+    PH_GRAPH_STATE TotalGraphState;
+
+    HWND RaplDevicePanel;
+    HWND RaplDeviceProcessorUsageLabel;
+    HWND RaplDeviceCoreUsageLabel;
+    HWND RaplDeviceDimmUsageLabel;
+    HWND RaplDeviceGpuLimitLabel;
+    HWND RaplDeviceComponentUsageLabel;
+    HWND RaplDeviceTotalUsageLabel;
+} DV_RAPL_SYSINFO_CONTEXT, *PDV_RAPL_SYSINFO_CONTEXT;
+
+typedef struct _DV_RAPL_OPTIONS_CONTEXT
+{
+    HWND ListViewHandle;
+    HIMAGELIST ImageList;
+    BOOLEAN OptionsChanged;
+    PH_LAYOUT_MANAGER LayoutManager;
+} DV_RAPL_OPTIONS_CONTEXT, *PDV_RAPL_OPTIONS_CONTEXT;
+
+VOID RaplDeviceInitialize(
+    VOID
+    );
+
+VOID RaplDevicesLoadList(
+    VOID
+    );
+
+VOID RaplDevicesUpdate(
+    VOID
+    );
+
+VOID RaplDeviceUpdateDeviceInfo(
+    _In_opt_ HANDLE DeviceHandle,
+    _In_ PDV_RAPL_ENTRY DiskEntry
+    );
+
+VOID InitializeRaplDeviceId(
+    _Out_ PDV_RAPL_ID Id,
+    _In_ PPH_STRING DevicePath
+    );
+
+VOID CopyRaplDeviceId(
+    _Out_ PDV_RAPL_ID Destination,
+    _In_ PDV_RAPL_ID Source
+    );
+
+VOID DeleteRaplDeviceId(
+    _Inout_ PDV_RAPL_ID Id
+    );
+
+BOOLEAN EquivalentRaplDeviceId(
+    _In_ PDV_RAPL_ID Id1,
+    _In_ PDV_RAPL_ID Id2
+    );
+
+PDV_RAPL_ENTRY CreateRaplDeviceEntry(
+    _In_ PDV_RAPL_ID Id
+    );
+
+VOID RaplDeviceSampleData(
+    _In_ PDV_RAPL_ENTRY DeviceEntry,
+    _In_ PVOID MeasurementData,
+    _In_ EV_EMI_DEVICE_INDEX DeviceIndex
+    );
+
+// poweroptions.c
+
+_Success_(return)
+BOOLEAN QueryRaplDeviceInterfaceDescription(
+    _In_ PWSTR DeviceInterface,
+    _Out_ PPH_STRING* DeviceDescription
+    );
+
+INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+// powergraph.c
+
+#define RAPL_GRAPH_PADDING 3
+
+VOID RaplDeviceSysInfoInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
+    _In_ _Assume_refs_(1) PDV_RAPL_ENTRY DiskEntry
     );
 
 #endif _DEVICES_H_

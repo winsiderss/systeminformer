@@ -256,7 +256,7 @@ LdrGetDllHandleEx(
     _In_opt_ PWSTR DllPath,
     _In_opt_ PULONG DllCharacteristics,
     _In_ PUNICODE_STRING DllName,
-    _Out_opt_ PVOID *DllHandle
+    _Out_ PVOID *DllHandle
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)

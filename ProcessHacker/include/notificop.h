@@ -1,6 +1,25 @@
 #ifndef PH_NOTIFICOP_H
 #define PH_NOTIFICOP_H
 
+#define PH_NF_ENABLE_WORKQUEUE 1
+
+typedef struct _PH_NF_WORKQUEUE_DATA
+{
+    SLIST_ENTRY ListEntry;
+    PPH_NF_ICON Icon;
+
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Add : 1;
+            ULONG Delete : 1;
+            ULONG Spare : 30;
+        };
+    };
+} PH_NF_WORKQUEUE_DATA, *PPH_NF_WORKQUEUE_DATA;
+
 typedef struct _PH_NF_BITMAP
 {
     BOOLEAN Initialized;

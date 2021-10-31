@@ -807,8 +807,7 @@ typedef struct _FW_EVENT_ITEM
     PH_TREENEW_NODE Node;
 
     LIST_ENTRY AgeListEntry;
-    ULONG AddTime;
-    ULONG FreshTime;
+    ULONG RunId;
     ULONG64 Index;
     LARGE_INTEGER TimeStamp;
 

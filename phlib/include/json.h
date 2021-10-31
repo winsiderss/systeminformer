@@ -260,6 +260,10 @@ PhSaveXmlObjectToFile(
     _In_opt_ PVOID XmlSaveCallback
     );
 
+PVOID PhLoadXmlObjectFromString(
+    _In_ PWSTR String
+    );
+
 PHLIBAPI
 VOID
 NTAPI

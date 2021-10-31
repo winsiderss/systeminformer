@@ -350,9 +350,6 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             PhDereferenceObject(SectionList);
             SectionList = NULL;
 
-            if (OptionsTreeImageList)
-                PhImageListDestroy(OptionsTreeImageList);
-
             PhUnregisterWindowCallback(hwndDlg);
 
             PhUnregisterDialog(PhOptionsWindowHandle);
@@ -1557,9 +1554,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             if (CurrentFontInstance)
                 DeleteFont(CurrentFontInstance);
-
-            if (GeneralListviewImageList)
-                PhImageListDestroy(GeneralListviewImageList);
 
             PhClearReference(&NewFontSelection);
             PhClearReference(&OldTaskMgrDebugger);
@@ -3050,6 +3044,7 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(L"ColorGuiThreads", L"GUI threads", L"Threads that have made at least one GUI-related system call."),
     COLOR_ITEM(L"ColorRelocatedModules", L"Relocated DLLs", L"DLLs that were not loaded at their preferred image bases."),
     COLOR_ITEM(L"ColorProtectedHandles", L"Protected handles", L"Handles that are protected from being closed."),
+    COLOR_ITEM(L"ColorProtectedProcess", L"Protected processes", L"Processes with built-in protection levels."),
     COLOR_ITEM(L"ColorInheritHandles", L"Inheritable handles", L"Handles that can be inherited by child processes."),
 
     COLOR_ITEM(L"ColorHandleFiltered", L"Filtered processes", L"Processes that are protected by handle object callbacks."),

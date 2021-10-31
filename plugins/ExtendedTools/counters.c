@@ -25,20 +25,20 @@
 #include <pdh.h>
 #include <pdhmsg.h>
 
+PPH_HASHTABLE EtGpuRunningTimeHashTable = NULL;
+PH_QUEUED_LOCK EtGpuRunningTimeHashTableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtGpuDedicatedHashTable = NULL;
+PH_QUEUED_LOCK EtGpuDedicatedHashTableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtGpuSharedHashTable = NULL;
+PH_QUEUED_LOCK EtGpuSharedHashTableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtGpuCommitHashTable = NULL;
+PH_QUEUED_LOCK EtGpuCommitHashTableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtGpuAdapterDedicatedHashTable = NULL;
+PH_QUEUED_LOCK EtGpuAdapterDedicatedHashTableLock = PH_QUEUED_LOCK_INIT;
+
 NTSTATUS NTAPI EtGpuCounterQueryThread(
     _In_ PVOID ThreadParameter
     );
-
-PPH_HASHTABLE EtGpuRunningTimeHashTable = NULL;
-PH_FAST_LOCK EtGpuRunningTimeHashTableLock = PH_FAST_LOCK_INIT;
-PPH_HASHTABLE EtGpuDedicatedHashTable = NULL;
-PH_FAST_LOCK EtGpuDedicatedHashTableLock = PH_FAST_LOCK_INIT;
-PPH_HASHTABLE EtGpuSharedHashTable = NULL;
-PH_FAST_LOCK EtGpuSharedHashTableLock = PH_FAST_LOCK_INIT;
-PPH_HASHTABLE EtGpuCommitHashTable = NULL;
-PH_FAST_LOCK EtGpuCommitHashTableLock = PH_FAST_LOCK_INIT;
-PPH_HASHTABLE EtGpuAdapterDedicatedHashTable = NULL;
-PH_FAST_LOCK EtGpuAdapterDedicatedHashTableLock = PH_FAST_LOCK_INIT;
 
 typedef struct _ET_GPU_COUNTER
 {
@@ -89,10 +89,9 @@ static BOOLEAN NTAPI EtpRunningTimeEqualFunction(
     PET_GPU_COUNTER entry1 = Entry1;
     PET_GPU_COUNTER entry2 = Entry2;
 
-    return
+    return entry1->ProcessId == entry2->ProcessId &&
         entry1->EngineId == entry2->EngineId &&
-        RtlIsEqualLuid(&entry1->EngineLuid, &entry2->EngineLuid) &&
-        entry1->ProcessId == entry2->ProcessId;
+        RtlIsEqualLuid(&entry1->EngineLuid, &entry2->EngineLuid);
 }
 
 static ULONG NTAPI EtpEtpRunningTimeHashFunction(
@@ -101,11 +100,10 @@ static ULONG NTAPI EtpEtpRunningTimeHashFunction(
 {
     PET_GPU_COUNTER entry = Entry;
 
-    return
+    return (HandleToUlong(entry->ProcessId) / 4) ^
         PhHashInt32(entry->EngineId) ^
         PhHashInt32(entry->EngineLuid.LowPart) ^
-        PhHashInt32(entry->EngineLuid.HighPart) ^
-        PhHashIntPtr((ULONG_PTR)entry->ProcessId);
+        PhHashInt32(entry->EngineLuid.HighPart);
 }
 
 static BOOLEAN NTAPI EtpDedicatedEqualFunction(
@@ -116,7 +114,8 @@ static BOOLEAN NTAPI EtpDedicatedEqualFunction(
     PET_GPU_COUNTER entry1 = Entry1;
     PET_GPU_COUNTER entry2 = Entry2;
 
-    return entry1->ProcessId == entry2->ProcessId;
+    return entry1->ProcessId == entry2->ProcessId &&
+        RtlIsEqualLuid(&entry1->EngineLuid, &entry2->EngineLuid);
 }
 
 static ULONG NTAPI EtpDedicatedHashFunction(
@@ -125,8 +124,7 @@ static ULONG NTAPI EtpDedicatedHashFunction(
 {
     PET_GPU_COUNTER entry = Entry;
 
-    return
-        PhHashIntPtr((ULONG_PTR)entry->ProcessId) ^
+    return (HandleToUlong(entry->ProcessId) / 4) ^
         PhHashInt32(entry->EngineLuid.LowPart) ^
         PhHashInt32(entry->EngineLuid.HighPart);
 }
@@ -137,8 +135,7 @@ static ULONG NTAPI EtAdapterDedicatedHashFunction(
 {
     PET_GPU_ADAPTER_COUNTER entry = Entry;
 
-    return
-        PhHashInt32(entry->EngineLuid.LowPart) ^
+    return PhHashInt32(entry->EngineLuid.LowPart) ^
         PhHashInt32(entry->EngineLuid.HighPart);
 }
 
@@ -154,6 +151,66 @@ static BOOLEAN NTAPI EtAdapterDedicatedEqualFunction(
         entry1->EngineLuid.HighPart == entry2->EngineLuid.HighPart;
 }
 
+VOID EtGpuCreateRunningTimeHashTable(
+    VOID
+    )
+{
+    EtGpuRunningTimeHashTable = PhCreateHashtable(
+        sizeof(ET_GPU_COUNTER),
+        EtpRunningTimeEqualFunction,
+        EtpEtpRunningTimeHashFunction,
+        10
+        );
+}
+
+VOID EtGpuCreateDedicatedHashTable(
+    VOID
+    )
+{
+    EtGpuDedicatedHashTable = PhCreateHashtable(
+        sizeof(ET_GPU_COUNTER),
+        EtpDedicatedEqualFunction,
+        EtpDedicatedHashFunction,
+        10
+        );
+}
+
+VOID EtGpuCreateSharedHashTable(
+    VOID
+    )
+{
+    EtGpuSharedHashTable = PhCreateHashtable(
+        sizeof(ET_GPU_COUNTER),
+        EtpDedicatedEqualFunction,
+        EtpDedicatedHashFunction,
+        10
+        );
+}
+
+VOID EtGpuCreateCommitHashTable(
+    VOID
+    )
+{
+    EtGpuCommitHashTable = PhCreateHashtable(
+        sizeof(ET_GPU_COUNTER),
+        EtpDedicatedEqualFunction,
+        EtpDedicatedHashFunction,
+        10
+        );
+}
+
+VOID EtGpuCreateAdapterDedicatedHashTable(
+    VOID
+    )
+{
+    EtGpuAdapterDedicatedHashTable = PhCreateHashtable(
+        sizeof(ET_GPU_ADAPTER_COUNTER),
+        EtAdapterDedicatedEqualFunction,
+        EtAdapterDedicatedHashFunction,
+        2
+        );
+}
+
 VOID EtGpuCountersInitialization(
     VOID
     )
@@ -162,36 +219,11 @@ VOID EtGpuCountersInitialization(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        EtGpuRunningTimeHashTable = PhCreateHashtable(
-            sizeof(ET_GPU_COUNTER),
-            EtpRunningTimeEqualFunction,
-            EtpEtpRunningTimeHashFunction,
-            10
-            );
-        EtGpuDedicatedHashTable = PhCreateHashtable(
-            sizeof(ET_GPU_COUNTER),
-            EtpDedicatedEqualFunction,
-            EtpDedicatedHashFunction,
-            10
-            );
-        EtGpuSharedHashTable = PhCreateHashtable(
-            sizeof(ET_GPU_COUNTER),
-            EtpDedicatedEqualFunction,
-            EtpDedicatedHashFunction,
-            10
-            );
-        EtGpuCommitHashTable = PhCreateHashtable(
-            sizeof(ET_GPU_COUNTER),
-            EtpDedicatedEqualFunction,
-            EtpDedicatedHashFunction,
-            10
-            );
-        EtGpuAdapterDedicatedHashTable = PhCreateHashtable(
-            sizeof(ET_GPU_ADAPTER_COUNTER),
-            EtAdapterDedicatedEqualFunction,
-            EtAdapterDedicatedHashFunction,
-            1
-            );
+        EtGpuCreateRunningTimeHashTable();
+        EtGpuCreateDedicatedHashTable();
+        EtGpuCreateSharedHashTable();
+        EtGpuCreateCommitHashTable();
+        EtGpuCreateAdapterDedicatedHashTable();
 
         PhCreateThread2(EtGpuCounterQueryThread, NULL);
 
@@ -213,7 +245,7 @@ FLOAT EtLookupProcessGpuUtilization(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuRunningTimeHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
 
     enumerationKey = 0;
 
@@ -225,7 +257,7 @@ FLOAT EtLookupProcessGpuUtilization(
         }
     }
 
-    PhReleaseFastLockShared(&EtGpuRunningTimeHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
 
     if (value > 0)
         value = value / 100;
@@ -247,7 +279,7 @@ FLOAT EtLookupTotalGpuUtilization(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuRunningTimeHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
 
     enumerationKey = 0;
 
@@ -259,7 +291,7 @@ FLOAT EtLookupTotalGpuUtilization(
             value = usage;
     }
 
-    PhReleaseFastLockShared(&EtGpuRunningTimeHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
 
     if (value > 0)
         value = value / 100;
@@ -281,7 +313,7 @@ FLOAT EtLookupTotalGpuEngineUtilization(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuRunningTimeHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
 
     enumerationKey = 0;
 
@@ -296,7 +328,7 @@ FLOAT EtLookupTotalGpuEngineUtilization(
         }
     }
 
-    PhReleaseFastLockShared(&EtGpuRunningTimeHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
 
     if (value > 0)
         value = value / 100;
@@ -318,7 +350,7 @@ ULONG64 EtLookupProcessGpuDedicated(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuDedicatedHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuDedicatedHashTableLock);
 
     enumerationKey = 0;
 
@@ -330,7 +362,7 @@ ULONG64 EtLookupProcessGpuDedicated(
         }
     }
 
-    PhReleaseFastLockShared(&EtGpuDedicatedHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuDedicatedHashTableLock);
 
     return value;
 }
@@ -349,7 +381,7 @@ ULONG64 EtLookupTotalProcessGpuDedicated(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuDedicatedHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuDedicatedHashTableLock);
 
     enumerationKey = 0;
 
@@ -358,7 +390,7 @@ ULONG64 EtLookupTotalProcessGpuDedicated(
         value += entry->Value64;
     }
 
-    PhReleaseFastLockShared(&EtGpuDedicatedHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuDedicatedHashTableLock);
 
     return value;
 }
@@ -377,7 +409,7 @@ ULONG64 EtLookupTotalAdapterGpuDedicated(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuAdapterDedicatedHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuAdapterDedicatedHashTableLock);
 
     enumerationKey = 0;
 
@@ -386,7 +418,7 @@ ULONG64 EtLookupTotalAdapterGpuDedicated(
         value += entry->Value64;
     }
 
-    PhReleaseFastLockShared(&EtGpuAdapterDedicatedHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuAdapterDedicatedHashTableLock);
 
     return value;
 }
@@ -405,7 +437,7 @@ ULONG64 EtLookupProcessGpuSharedUsage(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuSharedHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuSharedHashTableLock);
 
     enumerationKey = 0;
 
@@ -417,7 +449,7 @@ ULONG64 EtLookupProcessGpuSharedUsage(
         }
     }
 
-    PhReleaseFastLockShared(&EtGpuSharedHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuSharedHashTableLock);
 
     return value;
 }
@@ -436,7 +468,7 @@ ULONG64 EtLookupTotalGpuShared(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuSharedHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuSharedHashTableLock);
 
     enumerationKey = 0;
 
@@ -445,7 +477,7 @@ ULONG64 EtLookupTotalGpuShared(
         value += entry->Value64;
     }
 
-    PhReleaseFastLockShared(&EtGpuSharedHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuSharedHashTableLock);
 
     return value;
 }
@@ -464,7 +496,7 @@ ULONG64 EtLookupProcessGpuCommitUsage(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuCommitHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuCommitHashTableLock);
 
     enumerationKey = 0;
 
@@ -476,7 +508,7 @@ ULONG64 EtLookupProcessGpuCommitUsage(
         }
     }
 
-    PhReleaseFastLockShared(&EtGpuCommitHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuCommitHashTableLock);
 
     return value;
 }
@@ -495,7 +527,7 @@ ULONG64 EtLookupTotalGpuCommit(
         return 0;
     }
 
-    PhAcquireFastLockShared(&EtGpuCommitHashTableLock);
+    PhAcquireQueuedLockShared(&EtGpuCommitHashTableLock);
 
     enumerationKey = 0;
 
@@ -504,7 +536,7 @@ ULONG64 EtLookupTotalGpuCommit(
         value += entry->Value64;
     }
 
-    PhReleaseFastLockShared(&EtGpuCommitHashTableLock);
+    PhReleaseQueuedLockShared(&EtGpuCommitHashTableLock);
 
     return value;
 }
@@ -959,9 +991,27 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                 &buffer
                 ))
             {
-                PhAcquireFastLockExclusive(&EtGpuRunningTimeHashTableLock);
+                PhAcquireQueuedLockExclusive(&EtGpuRunningTimeHashTableLock);
 
-                PhClearHashtable(EtGpuRunningTimeHashTable);
+                // Reset hashtable once in a while.
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount = NtGetTickCount64();
+
+                    if (lastTickCount == 0)
+                        lastTickCount = tickCount;
+
+                    if (tickCount - lastTickCount >= 30 * 1000)
+                    {
+                        PhDereferenceObject(EtGpuRunningTimeHashTable);
+                        EtGpuCreateRunningTimeHashTable();;
+                        lastTickCount = tickCount;
+                    }
+                    else
+                    {
+                        PhClearHashtable(EtGpuRunningTimeHashTable);
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -975,7 +1025,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     ParseGpuEngineUtilizationCounter(entry->szName, entry->FmtValue.doubleValue);
                 }
 
-                PhReleaseFastLockExclusive(&EtGpuRunningTimeHashTableLock);
+                PhReleaseQueuedLockExclusive(&EtGpuRunningTimeHashTableLock);
 
                 PhFree(buffer);
             }
@@ -990,29 +1040,27 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                 &buffer
                 ))
             {
-                PhAcquireFastLockExclusive(&EtGpuDedicatedHashTableLock);
+                PhAcquireQueuedLockExclusive(&EtGpuDedicatedHashTableLock);
 
-                PhClearHashtable(EtGpuDedicatedHashTable);
+                // Reset hashtable once in a while.
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount = NtGetTickCount64();
 
-                //// Reset hashtable once in a while.
-                //{
-                //    static ULONG64 lastTickCount = 0;
-                //    ULONG64 tickCount;
+                    if (lastTickCount == 0)
+                        lastTickCount = tickCount;
 
-                //    tickCount = NtGetTickCount64();
-
-                //    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
-                //    {
-                //        PhDereferenceObject(EtGpuDedicatedHashTable);
-                //        EtGpuDedicatedHashTable = PhCreateHashtable(
-                //            sizeof(ET_GPU_COUNTER),
-                //            EtpDedicatedEqualFunction,
-                //            EtpDedicatedHashFunction,
-                //            10
-                //            );
-                //        lastTickCount = tickCount;
-                //    }
-                //}
+                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    {
+                        PhDereferenceObject(EtGpuDedicatedHashTable);
+                        EtGpuCreateDedicatedHashTable();
+                        lastTickCount = tickCount;
+                    }
+                    else
+                    {
+                        PhClearHashtable(EtGpuDedicatedHashTable);
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -1026,7 +1074,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     ParseGpuProcessMemoryDedicatedUsageCounter(entry->szName, entry->FmtValue.largeValue);
                 }
 
-                PhReleaseFastLockExclusive(&EtGpuDedicatedHashTableLock);
+                PhReleaseQueuedLockExclusive(&EtGpuDedicatedHashTableLock);
 
                 PhFree(buffer);
             }
@@ -1041,23 +1089,27 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                 &buffer
                 ))
             {
-                PhAcquireFastLockExclusive(&EtGpuSharedHashTableLock);
-
-                PhClearHashtable(EtGpuSharedHashTable);
+                PhAcquireQueuedLockExclusive(&EtGpuSharedHashTableLock);
 
                 // Reset hashtable once in a while.
-                //{
-                //    static ULONG64 lastTickCount = 0;
-                //    ULONG64 tickCount;
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount = NtGetTickCount64();
 
-                //    tickCount = NtGetTickCount64();
+                    if (lastTickCount == 0)
+                        lastTickCount = tickCount;
 
-                //    if (tickCount - lastTickCount >= 10 * CLOCKS_PER_SEC)
-                //    {
-                //        PhClearHashtable(EtGpuSharedHashTable);
-                //        lastTickCount = tickCount;
-                //    }
-                //}
+                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    {
+                        PhDereferenceObject(EtGpuSharedHashTable);
+                        EtGpuCreateSharedHashTable();
+                        lastTickCount = tickCount;
+                    }
+                    else
+                    {
+                        PhClearHashtable(EtGpuSharedHashTable);
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -1071,7 +1123,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     ParseGpuProcessMemorySharedUsageCounter(entry->szName, entry->FmtValue.largeValue);
                 }
 
-                PhReleaseFastLockExclusive(&EtGpuSharedHashTableLock);
+                PhReleaseQueuedLockExclusive(&EtGpuSharedHashTableLock);
 
                 PhFree(buffer);
             }
@@ -1086,23 +1138,27 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                 &buffer
                 ))
             {
-                PhAcquireFastLockExclusive(&EtGpuCommitHashTableLock);
-
-                PhClearHashtable(EtGpuCommitHashTable);
+                PhAcquireQueuedLockExclusive(&EtGpuCommitHashTableLock);
 
                 // Reset hashtable once in a while.
-                //{
-                //    static ULONG64 lastTickCount = 0;
-                //    ULONG64 tickCount;
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount = NtGetTickCount64();
 
-                //    tickCount = NtGetTickCount64();
+                    if (lastTickCount == 0)
+                        lastTickCount = tickCount;
 
-                //    if (tickCount - lastTickCount >= 10 * 1000)
-                //    {
-                //        PhClearHashtable(EtGpuCommitHashTable);
-                //        lastTickCount = tickCount;
-                //    }
-                //}
+                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    {
+                        PhDereferenceObject(EtGpuCommitHashTable);
+                        EtGpuCreateCommitHashTable();
+                        lastTickCount = tickCount;
+                    }
+                    else
+                    {
+                        PhClearHashtable(EtGpuCommitHashTable);
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -1116,7 +1172,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     ParseGpuProcessMemoryCommitUsageCounter(entry->szName, entry->FmtValue.largeValue);
                 }
 
-                PhReleaseFastLockExclusive(&EtGpuCommitHashTableLock);
+                PhReleaseQueuedLockExclusive(&EtGpuCommitHashTableLock);
 
                 PhFree(buffer);
             }
@@ -1131,23 +1187,27 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                 &buffer
                 ))
             {
-                PhAcquireFastLockExclusive(&EtGpuAdapterDedicatedHashTableLock);
-
-                PhClearHashtable(EtGpuAdapterDedicatedHashTable);
+                PhAcquireQueuedLockExclusive(&EtGpuAdapterDedicatedHashTableLock);
 
                 // Reset hashtable once in a while.
-                //{
-                //    static ULONG64 lastTickCount = 0;
-                //    ULONG64 tickCount;
+                {
+                    static ULONG64 lastTickCount = 0;
+                    ULONG64 tickCount = NtGetTickCount64();
 
-                //    tickCount = NtGetTickCount64();
+                    if (lastTickCount == 0)
+                        lastTickCount = tickCount;
 
-                //    if (tickCount - lastTickCount >= 10 * 1000)
-                //    {
-                //        PhClearHashtable(EtGpuCommitHashTable);
-                //        lastTickCount = tickCount;
-                //    }
-                //}
+                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    {
+                        PhDereferenceObject(EtGpuAdapterDedicatedHashTable);
+                        EtGpuCreateAdapterDedicatedHashTable();
+                        lastTickCount = tickCount;
+                    }
+                    else
+                    {
+                        PhClearHashtable(EtGpuAdapterDedicatedHashTable);
+                    }
+                }
 
                 for (ULONG i = 0; i < bufferCount; i++)
                 {
@@ -1161,7 +1221,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     ParseGpuAdapterDedicatedUsageCounter(entry->szName, entry->FmtValue.largeValue);
                 }
 
-                PhReleaseFastLockExclusive(&EtGpuAdapterDedicatedHashTableLock);
+                PhReleaseQueuedLockExclusive(&EtGpuAdapterDedicatedHashTableLock);
 
                 PhFree(buffer);
             }

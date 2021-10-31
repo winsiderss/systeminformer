@@ -3,7 +3,7 @@
  *   graph control
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -33,12 +33,23 @@
 typedef struct _PHP_GRAPH_CONTEXT
 {
     HWND Handle;
+    HWND ParentHandle;
     ULONG Style;
     ULONG_PTR Id;
     PH_GRAPH_DRAW_INFO DrawInfo;
     PH_GRAPH_OPTIONS Options;
-    BOOLEAN NeedsUpdate;
-    BOOLEAN NeedsDraw;
+
+    union
+    {
+        USHORT Flags;
+        struct
+        {
+            USHORT NeedsUpdate : 1;
+            USHORT NeedsDraw : 1;
+            USHORT Hot : 1;
+            USHORT Spare : 13;
+        };
+    };
 
     HDC BufferedContext;
     HBITMAP BufferedOldBitmap;
@@ -910,7 +921,7 @@ VOID PhpUpdateDrawInfo(
     getDrawInfo.Header.code = GCN_GETDRAWINFO;
     getDrawInfo.DrawInfo = &Context->DrawInfo;
 
-    SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
+    SendMessage(Context->ParentHandle, WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
 }
 
 VOID PhpDrawGraphControl(
@@ -961,7 +972,7 @@ VOID PhpDrawGraphControl(
         drawPanel.hdc = Context->BufferedContext;
         drawPanel.Rect = Context->BufferedContextRect;
 
-        SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&drawPanel);
+        SendMessage(Context->ParentHandle, WM_NOTIFY, 0, (LPARAM)&drawPanel);
     }
 }
 
@@ -1016,6 +1027,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             CREATESTRUCT *createStruct = (CREATESTRUCT *)lParam;
 
             context->Handle = hwnd;
+            context->ParentHandle = GetParent(hwnd);
             context->Style = createStruct->style;
             context->Id = (ULONG_PTR)createStruct->hMenu;
         }
@@ -1170,7 +1182,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                         getTooltipText.Text.Buffer = NULL;
                         getTooltipText.Text.Length = 0;
 
-                        SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getTooltipText);
+                        SendMessage(context->ParentHandle, WM_NOTIFY, 0, (LPARAM)&getTooltipText);
 
                         if (getTooltipText.Text.Buffer)
                         {
@@ -1205,6 +1217,28 @@ LRESULT CALLBACK PhpGraphWndProc(
                     SendMessage(context->TooltipHandle, TTM_UPDATE, 0, 0);
                     context->LastCursorLocation = point;
                 }
+
+                if (!context->Hot)
+                {
+                    TRACKMOUSEEVENT trackMouseEvent;
+
+                    context->Hot = TRUE;
+                    trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+                    trackMouseEvent.dwFlags = TME_LEAVE;
+                    trackMouseEvent.hwndTrack = hwnd;
+                    trackMouseEvent.dwHoverTime = 0;
+                    TrackMouseEvent(&trackMouseEvent);
+                }
+            }
+        }
+        break;
+    case WM_MOUSELEAVE:
+        {
+            context->Hot = FALSE;
+
+            if (context->TooltipHandle)
+            {
+                SendMessage(context->TooltipHandle, TTM_POP, 0, 0);
             }
         }
         break;
@@ -1231,7 +1265,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             mouseEvent.Index = (clientRect.right - mouseEvent.Point.x - 1) / context->DrawInfo.Step;
             mouseEvent.TotalCount = context->DrawInfo.LineDataCount;
 
-            SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&mouseEvent);
+            SendMessage(context->ParentHandle, WM_NOTIFY, 0, (LPARAM)&mouseEvent);
         }
         break;
     case GCM_GETDRAWINFO:

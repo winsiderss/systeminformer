@@ -67,6 +67,9 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 PPH_STRING PhGetSystemCallNumberName(
     _In_ USHORT SystemCallNumber
     );
+PPH_STRING PhGetApartmentStateString(
+    _In_ OLETLSFLAGS ApartmentState
+    );
 
 VOID PhInitializeThreadList(
     _In_ HWND ParentWindowHandle,
@@ -121,6 +124,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL, FALSE, L"Last system call", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE, FALSE, L"Last status code", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE, FALSE, L"COM apartment", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -646,6 +650,12 @@ BEGIN_SORT_FUNCTION(LastStatusCode)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ApartmentState)
+{
+    sortResult = uintcmp(node1->ApartmentState, node2->ApartmentState);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -702,6 +712,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(LastSystemCall),
                     SORT_FUNCTION(LastStatusCode),
                     SORT_FUNCTION(Created), // Timeline
+                    SORT_FUNCTION(ApartmentState),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1330,6 +1341,72 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     getCellText->Text = PhGetStringRef(node->LastErrorCodeText);
                 }
                 break;
+            case PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE:
+                {
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+                    OLETLSFLAGS apartmentState = 0;
+
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
+
+                    if (!node->ThreadReadVmHandleValid)
+                    {
+                        if (!node->ThreadReadVmHandle)
+                        {
+                            if (threadItem->ThreadHandle)
+                            {
+                                HANDLE processHandle;
+
+                                if (NT_SUCCESS(PhOpenThreadProcess(
+                                    threadItem->ThreadHandle,
+                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                                    &processHandle
+                                    )))
+                                {
+                                    node->ThreadReadVmHandle = processHandle;
+                                }
+                            }
+                        }
+
+                        node->ThreadReadVmHandleValid = TRUE;
+                    }
+
+                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
+                    {
+                        status = PhGetThreadApartmentState(
+                            threadItem->ThreadHandle,
+                            node->ThreadReadVmHandle,
+                            &apartmentState
+                            );
+                    }
+
+                    if (NT_SUCCESS(status) && apartmentState)
+                    {
+                        PPH_STRING apartmentStateString;
+
+                        if (apartmentStateString = PhGetApartmentStateString(apartmentState))
+                        {
+                            PhMoveReference(&node->ApartmentStateText, apartmentStateString);
+                        }
+                        else
+                        {
+                            PhClearReference(&node->ApartmentStateText);
+                        }
+
+                        node->ApartmentState = apartmentState;
+                    }
+                    else
+                    {
+                        node->ApartmentState = 0;
+                        PhClearReference(&node->ApartmentStateText);
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->ApartmentStateText);
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -1922,4 +1999,87 @@ PPH_STRING PhGetSystemCallNumberName(
     }
 
     return NULL;
+}
+
+PPH_STRING PhGetApartmentStateString(
+    _In_ OLETLSFLAGS ApartmentState
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (ApartmentState & OLETLS_LOCALTID)
+        PhAppendStringBuilder2(&stringBuilder, L"Local TID, ");
+    if (ApartmentState & OLETLS_UUIDINITIALIZED)
+        PhAppendStringBuilder2(&stringBuilder, L"UUID initialized, ");
+    if (ApartmentState & OLETLS_INTHREADDETACH)
+        PhAppendStringBuilder2(&stringBuilder, L"Inside thread detach, ");
+    if (ApartmentState & OLETLS_CHANNELTHREADINITIALZED)
+        PhAppendStringBuilder2(&stringBuilder, L"Channel thread initialzed, ");
+    if (ApartmentState & OLETLS_WOWTHREAD)
+        PhAppendStringBuilder2(&stringBuilder, L"WOW Thread, ");
+    if (ApartmentState & OLETLS_THREADUNINITIALIZING)
+        PhAppendStringBuilder2(&stringBuilder, L"Thread Uninitializing, ");
+    if (ApartmentState & OLETLS_DISABLE_OLE1DDE)
+        PhAppendStringBuilder2(&stringBuilder, L"OLE1DDE disabled, ");
+    if (ApartmentState & OLETLS_APARTMENTTHREADED)
+        PhAppendStringBuilder2(&stringBuilder, L"Single threaded (STA), ");
+    if (ApartmentState & OLETLS_MULTITHREADED)
+        PhAppendStringBuilder2(&stringBuilder, L"Multi threaded (MTA), ");
+    if (ApartmentState & OLETLS_IMPERSONATING)
+        PhAppendStringBuilder2(&stringBuilder, L"Impersonating, ");
+    if (ApartmentState & OLETLS_DISABLE_EVENTLOGGER)
+        PhAppendStringBuilder2(&stringBuilder, L"Eventlogger disabled, ");
+    if (ApartmentState & OLETLS_INNEUTRALAPT)
+        PhAppendStringBuilder2(&stringBuilder, L"Neutral threaded (NTA), ");
+    if (ApartmentState & OLETLS_DISPATCHTHREAD)
+        PhAppendStringBuilder2(&stringBuilder, L"Dispatch thread, ");
+    if (ApartmentState & OLETLS_HOSTTHREAD)
+        PhAppendStringBuilder2(&stringBuilder, L"HOSTTHREAD, ");
+    if (ApartmentState & OLETLS_ALLOWCOINIT)
+        PhAppendStringBuilder2(&stringBuilder, L"ALLOWCOINIT, ");
+    if (ApartmentState & OLETLS_PENDINGUNINIT)
+        PhAppendStringBuilder2(&stringBuilder, L"PENDINGUNINIT, ");
+    if (ApartmentState & OLETLS_FIRSTMTAINIT)
+        PhAppendStringBuilder2(&stringBuilder, L"FIRSTMTAINIT, ");
+    if (ApartmentState & OLETLS_FIRSTNTAINIT)
+        PhAppendStringBuilder2(&stringBuilder, L"FIRSTNTAINIT, ");
+    if (ApartmentState & OLETLS_APTINITIALIZING)
+        PhAppendStringBuilder2(&stringBuilder, L"APTIN Itializing, ");
+    if (ApartmentState & OLETLS_UIMSGSINMODALLOOP)
+        PhAppendStringBuilder2(&stringBuilder, L"UIMSGS IN MODAL LOOP, ");
+    if (ApartmentState & OLETLS_MARSHALING_ERROR_OBJECT)
+        PhAppendStringBuilder2(&stringBuilder, L"Marshaling error object, ");
+    if (ApartmentState & OLETLS_WINRT_INITIALIZE)
+        PhAppendStringBuilder2(&stringBuilder, L"WinRT initialized, ");
+    if (ApartmentState & OLETLS_APPLICATION_STA)
+        PhAppendStringBuilder2(&stringBuilder, L"ApplicationSTA, ");
+    if (ApartmentState & OLETLS_IN_SHUTDOWN_CALLBACKS)
+        PhAppendStringBuilder2(&stringBuilder, L"IN_SHUTDOWN_CALLBACKS, ");
+    if (ApartmentState & OLETLS_POINTER_INPUT_BLOCKED)
+        PhAppendStringBuilder2(&stringBuilder, L"POINTER_INPUT_BLOCKED, ");
+    if (ApartmentState & OLETLS_IN_ACTIVATION_FILTER)
+        PhAppendStringBuilder2(&stringBuilder, L"IN_ACTIVATION_FILTER, ");
+    if (ApartmentState & OLETLS_ASTATOASTAEXEMPT_QUIRK)
+        PhAppendStringBuilder2(&stringBuilder, L"ASTATOASTAEXEMPT_QUIRK, ");
+    if (ApartmentState & OLETLS_ASTATOASTAEXEMPT_PROXY)
+        PhAppendStringBuilder2(&stringBuilder, L"ASTATOASTAEXEMPT_PROXY, ");
+    if (ApartmentState & OLETLS_ASTATOASTAEXEMPT_INDOUBT)
+        PhAppendStringBuilder2(&stringBuilder, L"ASTATOASTAEXEMPT_INDOUBT, ");
+    if (ApartmentState & OLETLS_DETECTED_USER_INITIALIZED)
+        PhAppendStringBuilder2(&stringBuilder, L"DETECTED_USER_INITIALIZED, ");
+    if (ApartmentState & OLETLS_BRIDGE_STA)
+        PhAppendStringBuilder2(&stringBuilder, L"BRIDGE_STA, ");
+    if (ApartmentState & OLETLS_NAINITIALIZING)
+        PhAppendStringBuilder2(&stringBuilder, L"NAINITIALIZING, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhPrintPointer(pointer, UlongToPtr(ApartmentState));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+    return PhFinalStringBuilderString(&stringBuilder);
 }

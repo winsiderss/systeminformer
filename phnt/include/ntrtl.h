@@ -1245,6 +1245,20 @@ RtlWakeAddressSingle(
 
 // Strings
 
+FORCEINLINE
+VOID
+NTAPI
+RtlInitEmptyAnsiString(
+    _Out_ PANSI_STRING AnsiString,
+    _Pre_maybenull_ _Pre_readable_size_(MaximumLength) PCHAR Buffer,
+    _In_ USHORT MaximumLength
+    )
+{
+    memset(AnsiString, 0, sizeof(ANSI_STRING));
+    AnsiString->MaximumLength = MaximumLength;
+    AnsiString->Buffer = Buffer;
+}
+
 #ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitString(
     _Out_ PSTRING DestinationString,
@@ -1252,7 +1266,7 @@ FORCEINLINE VOID RtlInitString(
     )
 {
     if (SourceString)
-        DestinationString->MaximumLength = (DestinationString->Length = (USHORT)strlen(SourceString)) + 1;
+        DestinationString->MaximumLength = (DestinationString->Length = (USHORT)strlen(SourceString)) + sizeof(ANSI_NULL);
     else
         DestinationString->MaximumLength = DestinationString->Length = 0;
 
@@ -1285,7 +1299,7 @@ FORCEINLINE VOID RtlInitAnsiString(
     )
 {
     if (SourceString)
-        DestinationString->MaximumLength = (DestinationString->Length = (USHORT)strlen(SourceString)) + 1;
+        DestinationString->MaximumLength = (DestinationString->Length = (USHORT)strlen(SourceString)) + sizeof(ANSI_NULL);
     else
         DestinationString->MaximumLength = DestinationString->Length = 0;
 
@@ -1433,13 +1447,13 @@ VOID
 NTAPI
 RtlInitEmptyUnicodeString(
     _Out_ PUNICODE_STRING DestinationString,
-    _In_opt_ PWCHAR Buffer,
+    _Writable_bytes_(MaximumLength) _When_(MaximumLength != 0, _Notnull_) PWCHAR Buffer,
     _In_ USHORT MaximumLength
     )
 {
-    DestinationString->Buffer = Buffer;
+    memset(DestinationString, 0, sizeof(UNICODE_STRING));
     DestinationString->MaximumLength = MaximumLength;
-    DestinationString->Length = 0;
+    DestinationString->Buffer = Buffer;
 }
 
 #ifndef PHNT_NO_INLINE_INIT_STRING
@@ -6405,6 +6419,29 @@ RtlSelfRelativeToAbsoluteSD2(
 
 // Access masks
 
+#ifndef PHNT_NO_INLINE_ACCESSES_GRANTED
+FORCEINLINE
+BOOLEAN
+NTAPI
+RtlAreAllAccessesGranted(
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    return (~GrantedAccess & DesiredAccess) == 0;
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+RtlAreAnyAccessesGranted(
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    return (GrantedAccess & DesiredAccess) != 0;
+}
+#else
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -6420,6 +6457,7 @@ RtlAreAnyAccessesGranted(
     _In_ ACCESS_MASK GrantedAccess,
     _In_ ACCESS_MASK DesiredAccess
     );
+#endif
 
 NTSYSAPI
 VOID
@@ -8632,7 +8670,7 @@ RtlQueryFeatureUsageNotificationSubscriptions(
     _Inout_ PULONG FeatureConfigurationCount
     );
 
-typedef VOID (NTAPI *PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICAION)(
+typedef VOID (NTAPI *PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICATION)(
     _In_opt_ PVOID Context
     );
 
@@ -8641,7 +8679,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRegisterFeatureConfigurationChangeNotification(
-    _In_ PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICAION Callback,
+    _In_ PRTL_FEATURE_CONFIGURATION_CHANGE_NOTIFICATION Callback,
     _In_opt_ PVOID Context,
     _Inout_opt_ PULONGLONG ChangeStamp,
     _Out_ PHANDLE NotificationHandle

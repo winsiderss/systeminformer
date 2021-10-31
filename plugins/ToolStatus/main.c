@@ -412,21 +412,10 @@ VOID NTAPI LayoutPaddingCallback(
     if (RebarHandle && ToolStatusConfig.ToolBarEnabled)
     {
         RECT rebarRect;
-        RECT clientRect;
-        //INT x, y, cx, cy;
 
-        GetClientRect(PhMainWindowHandle, &clientRect);
+        SendMessage(RebarHandle, WM_SIZE, 0, 0);
+
         GetClientRect(RebarHandle, &rebarRect);
-
-        SetWindowPos(
-            RebarHandle,
-            NULL,
-            layoutPadding->Padding.left,
-            layoutPadding->Padding.top,
-            clientRect.right - clientRect.left,
-            rebarRect.bottom - rebarRect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER
-            );
 
         // Adjust the PH client area and exclude the rebar width.
         layoutPadding->Padding.top += rebarRect.bottom;
@@ -1342,6 +1331,28 @@ LRESULT CALLBACK MainWndSubclassProc(
             }
 
             goto DefaultWndProc;
+        }
+        break;
+    case WM_PH_ACTIVATE:
+        {
+            // Don't do anything when search autofocus disabled. (dmex)
+            if (!ToolStatusConfig.SearchAutoFocus)
+                break;
+
+            // Let Process Hacker perform the default processing. (dmex)
+            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+
+            // Re-focus the searchbox when we're already running and we're moved
+            // into the foreground by the new instance. Fixes GH #178 (dmex)
+            if (result == PH_ACTIVATE_REPLY)
+            {
+                if (IsWindowVisible(hWnd))
+                {
+                    SetFocus(SearchboxHandle);
+                }
+            }
+
+            return result;
         }
         break;
     }

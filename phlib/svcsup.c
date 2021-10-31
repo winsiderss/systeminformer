@@ -196,68 +196,62 @@ PVOID PhEnumServices(
     return buffer;
 }
 
+SC_HANDLE PhGetServiceManagerHandle(
+    VOID
+    )
+{
+    static SC_HANDLE cachedServiceManagerHandle = NULL;
+    SC_HANDLE serviceManagerHandle;
+    SC_HANDLE newServiceManagerHandle;
+
+    // Use the cached value if possible.
+
+    serviceManagerHandle = InterlockedCompareExchangePointer(&cachedServiceManagerHandle, NULL, NULL);
+
+    // If there is no cached handle, open one.
+
+    if (!serviceManagerHandle)
+    {
+        if (newServiceManagerHandle = OpenSCManager(
+            NULL,
+            NULL,
+            SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE
+            ))
+        {
+            // We succeeded in opening a policy handle, and since we did not have a cached handle
+            // before, we will now store it.
+            serviceManagerHandle = InterlockedCompareExchangePointer(
+                &cachedServiceManagerHandle,
+                newServiceManagerHandle,
+                NULL
+                );
+
+            if (!serviceManagerHandle)
+            {
+                // Success. Use our handle.
+                serviceManagerHandle = newServiceManagerHandle;
+            }
+            else
+            {
+                // Someone already placed a handle in the cache. Close our handle and use their handle.
+                CloseServiceHandle(newServiceManagerHandle);
+            }
+        }
+    }
+
+    return serviceManagerHandle;
+}
+
 SC_HANDLE PhOpenService(
     _In_ PWSTR ServiceName,
     _In_ ACCESS_MASK DesiredAccess
     )
 {
-    SC_HANDLE scManagerHandle;
     SC_HANDLE serviceHandle;
 
-    scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-
-    if (!scManagerHandle)
-        return NULL;
-
-    serviceHandle = OpenService(scManagerHandle, ServiceName, DesiredAccess);
-    CloseServiceHandle(scManagerHandle);
+    serviceHandle = OpenService(PhGetServiceManagerHandle(), ServiceName, DesiredAccess);
 
     return serviceHandle;
-}
-
-NTSTATUS PhOpenServiceEx(
-    _In_ PWSTR ServiceName,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ SC_HANDLE ScManagerHandle,
-    _Out_ SC_HANDLE* ServiceHandle
-    )
-{
-    SC_HANDLE serviceHandle;
-
-    if (ScManagerHandle)
-    {
-        if (serviceHandle = OpenService(ScManagerHandle, ServiceName, DesiredAccess))
-        {
-            *ServiceHandle = serviceHandle;
-            return STATUS_SUCCESS;
-        }
-
-        return PhGetLastWin32ErrorAsNtStatus();
-    }
-    else
-    {
-        NTSTATUS status;
-        SC_HANDLE scManagerHandle;
-
-        if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT)))
-        {
-            return PhGetLastWin32ErrorAsNtStatus();
-        }
-
-        if (serviceHandle = OpenService(ScManagerHandle, ServiceName, DesiredAccess))
-        {
-            *ServiceHandle = serviceHandle;
-            status = STATUS_SUCCESS;
-        }
-        else
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-        }
-        
-        CloseServiceHandle(scManagerHandle);
-
-        return status;
-    }
 }
 
 PVOID PhGetServiceConfig(

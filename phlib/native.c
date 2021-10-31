@@ -671,19 +671,42 @@ NTSTATUS PhGetProcessImageFileNameWin32(
     )
 {
     NTSTATUS status;
-    PUNICODE_STRING fileName;
+    PUNICODE_STRING buffer;
+    ULONG bufferLength;
+    ULONG returnLength = 0;
 
-    status = PhpQueryProcessVariableSize(
+    bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+    buffer = PhAllocate(bufferLength);
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessImageFileNameWin32,
-        &fileName
+        buffer,
+        bufferLength,
+        &returnLength
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferLength = returnLength;
+        buffer = PhAllocate(bufferLength);
 
-    *FileName = PhCreateStringFromUnicodeString(fileName);
-    PhFree(fileName);
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessImageFileNameWin32,
+            buffer,
+            bufferLength,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *FileName = PhCreateStringFromUnicodeString(buffer);
+    }
+
+    PhFree(buffer);
 
     return status;
 }
@@ -1030,21 +1053,44 @@ NTSTATUS PhGetProcessCommandLine(
     if (WindowsVersion >= WINDOWS_8_1)
     {
         NTSTATUS status;
-        PUNICODE_STRING commandLine;
+        PUNICODE_STRING buffer;
+        ULONG bufferLength;
+        ULONG returnLength = 0;
 
-        status = PhpQueryProcessVariableSize(
+        bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
+        buffer = PhAllocate(bufferLength);
+
+        status = NtQueryInformationProcess(
             ProcessHandle,
             ProcessCommandLineInformation,
-            &commandLine
+            buffer,
+            bufferLength,
+            &returnLength
             );
+
+        if (status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            bufferLength = returnLength;
+            buffer = PhAllocate(bufferLength);
+
+            status = NtQueryInformationProcess(
+                ProcessHandle,
+                ProcessCommandLineInformation,
+                buffer,
+                bufferLength,
+                &returnLength
+                );
+        }
 
         if (NT_SUCCESS(status))
         {
-            *CommandLine = PhCreateStringFromUnicodeString(commandLine);
-            PhFree(commandLine);
-
-            return status;
+            *CommandLine = PhCreateStringFromUnicodeString(buffer);
         }
+
+        PhFree(buffer);
+
+        return status;
     }
 
     return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
@@ -5949,7 +5995,7 @@ static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
 
     objectName.Length = fileInfo->FileNameLength;
     objectName.Buffer = fileInfo->FileName;
-    objectPipe.Hash = PhHashStringRef(&objectName, TRUE);
+    objectPipe.Hash = PhHashStringRefEx(&objectName, TRUE, PH_STRING_HASH_X65599);
 
     PhAddItemArray(Context, &objectPipe);
 
@@ -6100,7 +6146,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
 
             objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameSr.Buffer = formatBuffer;
-            pipeNameHash = PhHashStringRef(&objectNameSr, TRUE);
+            pipeNameHash = PhHashStringRefEx(&objectNameSr, TRUE, PH_STRING_HASH_X65599);
 
             RtlInitUnicodeString(&objectNameUs, DEVICE_NAMED_PIPE);
             InitializeObjectAttributes(
@@ -6818,11 +6864,12 @@ VOID PhUpdateDosDevicePrefixes(
         deviceNameBuffer[4] = (WCHAR)('A' + i);
         deviceName.Buffer = deviceNameBuffer;
         deviceName.Length = 6 * sizeof(WCHAR);
+        deviceName.MaximumLength = deviceName.Length + sizeof(UNICODE_NULL);
 
         InitializeObjectAttributes(
             &objectAttributes,
             &deviceName,
-            OBJ_CASE_INSENSITIVE,
+            OBJ_CASE_INSENSITIVE | OBJ_DONT_REPARSE,
             NULL,
             NULL
             );
@@ -7844,15 +7891,17 @@ NTSTATUS PhLoadAppKey(
     NTSTATUS status;
     GUID guid;
     UNICODE_STRING fileName;
-    UNICODE_STRING objectName; 
-    UNICODE_STRING guidStringUs;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES targetAttributes;
     OBJECT_ATTRIBUTES sourceAttributes;
-    WCHAR objectNameBuffer[MAX_PATH] = L"";
-
-    RtlInitEmptyUnicodeString(&objectName, objectNameBuffer, sizeof(objectNameBuffer));
 
     PhGenerateGuid(&guid);
+
+#if (PHNT_USE_NATIVE_APPEND)
+    UNICODE_STRING guidStringUs;
+    WCHAR objectNameBuffer[MAXIMUM_FILENAME_LENGTH];
+
+    RtlInitEmptyUnicodeString(&objectName, objectNameBuffer, sizeof(objectNameBuffer));
 
     if (!NT_SUCCESS(status = RtlStringFromGUID(&guid, &guidStringUs)))
         return status;
@@ -7862,6 +7911,21 @@ NTSTATUS PhLoadAppKey(
 
     if (!NT_SUCCESS(status = RtlAppendUnicodeStringToString(&objectName, &guidStringUs)))
         goto CleanupExit;
+#else
+    static PH_STRINGREF namespaceString = PH_STRINGREF_INIT(L"\\REGISTRY\\A\\");
+    PPH_STRING guidString;
+
+    if (!(guidString = PhFormatGuid(&guid)))
+        return STATUS_UNSUCCESSFUL;
+
+    PhMoveReference(&guidString, PhConcatStringRef2(&namespaceString, &guidString->sr));
+
+    if (!PhStringRefToUnicodeString(&guidString->sr, &objectName))
+    {
+        PhDereferenceObject(guidString);
+        return STATUS_UNSUCCESSFUL;
+    }
+#endif
 
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
@@ -7900,8 +7964,13 @@ NTSTATUS PhLoadAppKey(
 
     RtlFreeUnicodeString(&fileName);
 
+#if (PHNT_USE_NATIVE_APPEND)
 CleanupExit:
     RtlFreeUnicodeString(&guidStringUs);
+#else
+CleanupExit:
+    PhDereferenceObject(guidString);
+#endif
 
     return status;
 #else
@@ -7983,7 +8052,7 @@ NTSTATUS PhQueryValueKey(
     ULONG bufferSize;
     ULONG attempts = 16;
 
-    if (ValueName)
+    if (ValueName && ValueName->Length) // Length check for PhQueryRegistryString backwards compat (dmex)
     {
         if (!PhStringRefToUnicodeString(ValueName, &valueName))
             return STATUS_NAME_TOO_LONG;
@@ -9046,7 +9115,7 @@ NTSTATUS PhMoveFileWin32(
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
         );
 
     if (!NT_SUCCESS(status))
@@ -9061,6 +9130,7 @@ NTSTATUS PhMoveFileWin32(
     renameInfo->RootDirectory = NULL;
     renameInfo->FileNameLength = newFileName.Length;
     memcpy(renameInfo->FileName, newFileName.Buffer, newFileName.Length);
+    RtlFreeUnicodeString(&newFileName);
 
     status = NtSetInformationFile(
         fileHandle,
@@ -9089,7 +9159,7 @@ NTSTATUS PhMoveFileWin32(
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,
             FILE_OVERWRITE_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY,
             NULL
             );
 
@@ -9148,7 +9218,6 @@ NTSTATUS PhMoveFileWin32(
 
 CleanupExit:
     NtClose(fileHandle);
-    RtlFreeUnicodeString(&newFileName);
     PhFree(renameInfo);
 
     return status;
@@ -9406,7 +9475,7 @@ NTSTATUS PhConnectPipe(
         NULL,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_OPEN,
+        FILE_OPEN_IF,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
         NULL,
         0
@@ -10001,6 +10070,24 @@ NTSTATUS PhGetThreadName(
     return status;
 }
 
+NTSTATUS PhSetThreadName(
+    _In_ HANDLE ThreadHandle,
+    _In_ PCWSTR ThreadName
+    )
+{
+    THREAD_NAME_INFORMATION threadNameInfo;
+
+    memset(&threadNameInfo, 0, sizeof(THREAD_NAME_INFORMATION));
+    RtlInitUnicodeString(&threadNameInfo.ThreadName, ThreadName);
+
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadNameInformation,
+        &threadNameInfo,
+        sizeof(THREAD_NAME_INFORMATION)
+        );
+}
+
 NTSTATUS PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle
@@ -10400,6 +10487,95 @@ NTSTATUS PhGetThreadLastStatusValue(
     return status;
 }
 
+NTSTATUS PhGetThreadApartmentState(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ POLETLSFLAGS ApartmentState
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    BOOLEAN openedProcessHandle = FALSE;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+    ULONG_PTR oletlsDataAddress = 0;
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    if (!ProcessHandle)
+    {
+        if (!NT_SUCCESS(status = PhOpenThreadProcess(
+            ThreadHandle,
+            PROCESS_VM_READ,
+            &ProcessHandle
+            )))
+            return status;
+
+        openedProcessHandle = TRUE;
+    }
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, ReservedForOle)),
+            &oletlsDataAddress,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+    else
+#endif
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, ReservedForOle)),
+            &oletlsDataAddress,
+            sizeof(ULONG_PTR),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status) && oletlsDataAddress)
+    {
+        PVOID apartmentStateOffset;
+
+        // Note: Teb->ReservedForOle is the SOleTlsData structure
+        // and ApartmentState is the dwFlags field. (dmex)
+
+#ifdef _WIN64
+        if (isWow64)
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0xC);
+        else
+            apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0x14);
+#else
+        apartmentStateOffset = PTR_ADD_OFFSET(oletlsDataAddress, 0xC);
+#endif
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            apartmentStateOffset,
+            ApartmentState,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+    if (openedProcessHandle)
+        NtClose(ProcessHandle);
+
+    return status;
+}
+
 BOOLEAN PhIsFirmwareSupported(
     VOID
     )
@@ -10516,4 +10692,217 @@ NTSTATUS PhDestroyExecutionRequiredRequest(
         );
 
     return NtClose(PowerRequestHandle);
+}
+
+// Process freeze/thaw support
+
+static PH_INITONCE PhProcessStateInitOnce = PH_INITONCE_INIT;
+static PPH_HASHTABLE PhProcessStateHashtable = NULL;
+
+typedef struct _PH_STATEHANDLE_CACHE_ENTRY
+{
+    HANDLE ProcessId;
+    HANDLE StateHandle;
+} PH_STATEHANDLE_CACHE_ENTRY, *PPH_STATEHANDLE_CACHE_ENTRY;
+
+static BOOLEAN NTAPI PhProcessStateHandleHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    return
+        ((PPH_STATEHANDLE_CACHE_ENTRY)Entry1)->ProcessId ==
+        ((PPH_STATEHANDLE_CACHE_ENTRY)Entry2)->ProcessId;
+}
+
+static ULONG NTAPI PhProcessStateHandleHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return HandleToUlong(((PPH_STATEHANDLE_CACHE_ENTRY)Entry)->ProcessId) / 4;
+}
+
+BOOLEAN PhInitializeProcessStateHandleTable(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhProcessStateInitOnce))
+    {
+        PhProcessStateHashtable = PhCreateHashtable(
+            sizeof(PH_STATEHANDLE_CACHE_ENTRY),
+            PhProcessStateHandleHashtableEqualFunction,
+            PhProcessStateHandleHashtableHashFunction,
+            1
+            );
+
+        PhEndInitOnce(&PhProcessStateInitOnce);
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhIsProcessStateFrozen(
+    _In_ HANDLE ProcessId
+    )
+{
+    if (PhInitializeProcessStateHandleTable())
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhProcessStateHashtable, &entry))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+NTSTATUS PhFreezeProcess(
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE processHandle;
+    HANDLE stateHandle = NULL;
+
+    if (!(NtCreateProcessStateChange_Import() && NtChangeProcessState_Import()))
+        return STATUS_UNSUCCESSFUL;
+
+    if (PhInitializeProcessStateHandleTable())
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhFindEntryHashtable(PhProcessStateHashtable, &entry))
+        {
+            return STATUS_SUCCESS;
+        }
+    }
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateProcessStateChange_Import()(
+        &stateHandle,
+        STATECHANGE_SET_ATTRIBUTES,
+        &objectAttributes,
+        processHandle,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(processHandle);
+        return status;
+    }
+
+    status = NtChangeProcessState_Import()(
+        stateHandle,
+        processHandle,
+        ProcessStateChangeSuspend,
+        NULL,
+        0,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+        entry.StateHandle = stateHandle;
+
+        PhAddEntryHashtable(PhProcessStateHashtable, &entry);
+    }
+    else
+    {
+        NtClose(stateHandle);
+    }
+
+    NtClose(processHandle);
+
+    return status;
+}
+
+NTSTATUS PhThawProcess(
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE stateHandle = NULL;
+    HANDLE processHandle;
+
+    if (!NtChangeProcessState_Import())
+        return STATUS_UNSUCCESSFUL;
+
+    if (PhInitializeProcessStateHandleTable())
+    {
+        PH_STATEHANDLE_CACHE_ENTRY lookupEntry;
+        PPH_STATEHANDLE_CACHE_ENTRY entry;
+
+        lookupEntry.ProcessId = ProcessId;
+
+        if (entry = PhFindEntryHashtable(PhProcessStateHashtable, &lookupEntry))
+        {
+            stateHandle = entry->StateHandle;
+        }
+    }
+
+    if (!stateHandle)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtChangeProcessState_Import()(
+        stateHandle,
+        processHandle,
+        ProcessStateChangeResume,
+        NULL,
+        0,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PH_STATEHANDLE_CACHE_ENTRY entry;
+
+        entry.ProcessId = ProcessId;
+
+        if (PhRemoveEntryHashtable(PhProcessStateHashtable, &entry))
+        {
+            NtClose(stateHandle);
+        }
+    }
+
+    NtClose(processHandle);
+
+    return status;
 }

@@ -63,6 +63,8 @@ EXT ULONG PhCsUseColorRelocatedModules;
 EXT ULONG PhCsColorRelocatedModules;
 EXT ULONG PhCsUseColorProtectedHandles;
 EXT ULONG PhCsColorProtectedHandles;
+EXT ULONG PhCsUseColorProtectedProcess;
+EXT ULONG PhCsColorProtectedProcess;
 EXT ULONG PhCsUseColorInheritHandles;
 EXT ULONG PhCsColorInheritHandles;
 EXT ULONG PhCsGraphShowText;

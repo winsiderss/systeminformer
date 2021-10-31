@@ -73,12 +73,7 @@
 #define PH_VECTOR_LEVEL_SSE2 1
 #define PH_VECTOR_LEVEL_AVX 2
 
-#if (_MSC_VER < 1920 || DEBUG)
-// Newer versions of the CRT support AVX/SSE vectorization for string routines
-// but keep using our vectorization for debug builds since optimizations are
-// disabled for the debug CRT and slower than our routines in this case. (dmex)
-#define PH_LEGACY_CRT_SUPPORT 1
-#endif
+#define PH_NATIVE_STRING_CONVERSION 1
 
 typedef struct _PHP_BASE_THREAD_CONTEXT
 {
@@ -150,7 +145,10 @@ BOOLEAN PhBaseInitialization(
     // NOTE: This is unused for now.
     /*if (USER_SHARED_DATA->XState.EnabledFeatures & XSTATE_MASK_AVX)
         PhpVectorLevel = PH_VECTOR_LEVEL_AVX;
-    else*/ if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+    else if (USER_SHARED_DATA->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE])
+        PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;*/
+
+    if (IsProcessorFeaturePresent(PF_XMMI64_INSTRUCTIONS_AVAILABLE))
         PhpVectorLevel = PH_VECTOR_LEVEL_SSE2;
 
     PhStringType = PhCreateObjectType(L"String", 0, NULL);
@@ -612,7 +610,7 @@ SIZE_T PhCountStringZ(
     _In_ PWSTR String
     )
 {
-#if (PH_LEGACY_CRT_SUPPORT && !defined(_ARM64_))
+#ifndef _ARM64_
     if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
     {
         PWSTR p;
@@ -1433,7 +1431,7 @@ ULONG_PTR PhFindCharInStringRef(
 
     if (!IgnoreCase)
     {
-#if (PH_LEGACY_CRT_SUPPORT && !defined(_ARM64_))
+#ifndef _ARM64_
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
@@ -1526,7 +1524,7 @@ ULONG_PTR PhFindLastCharInStringRef(
 
     if (!IgnoreCase)
     {
-#if (PH_LEGACY_CRT_SUPPORT && !defined(_ARM64_))
+#ifndef _ARM64_
         if (PhpVectorLevel >= PH_VECTOR_LEVEL_SSE2)
         {
             SIZE_T length16;
@@ -5232,6 +5230,79 @@ ULONG PhHashStringRef(
     }
 
     return hash;
+}
+
+ULONG PhHashStringRefEx(
+    _In_ PPH_STRINGREF String,
+    _In_ BOOLEAN IgnoreCase,
+    _In_ PH_STRING_HASH HashAlgorithm
+    )
+{
+    switch (HashAlgorithm)
+    {
+    case PH_STRING_HASH_DEFAULT:
+    case PH_STRING_HASH_FNV1A:
+        return PhHashStringRef(String, IgnoreCase);
+    case PH_STRING_HASH_X65599:
+        {
+            ULONG hash = 0;
+            PWCHAR end;
+            PWCHAR p;
+
+            if (String->Length == 0)
+                return 0;
+
+            end = String->Buffer + (String->Length / sizeof(WCHAR));
+
+            if (IgnoreCase)
+            {
+                // This is the fastest implementation (copied from ReactOS) (dmex)
+                for (p = String->Buffer; p != end; p++)
+                {
+                    hash = ((65599 * (hash)) + (ULONG)(((*p) >= L'a' && (*p) <= L'z') ? (*p) - L'a' + L'A' : (*p)));
+                }
+
+                // Medium fast
+                //UNICODE_STRING unicodeString;
+                //
+                //if (!PhStringRefToUnicodeString(String, &unicodeString))
+                //    return 0;
+                //
+                //if (!NT_SUCCESS(RtlHashUnicodeString(&unicodeString, TRUE, HASH_STRING_ALGORITHM_X65599, &hash)))
+                //    return 0;
+                //
+                // Slower than the above two (based on PhHashBytes) (dmex)
+                //SIZE_T count = String->Length / sizeof(WCHAR);
+                //PWCHAR p = String->Buffer;
+                //do
+                //{
+                //    hash += (USHORT)RtlUpcaseUnicodeChar(*p++); // __ascii_towupper(*p++);
+                //    hash *= 0x1003F;
+                //} while (--count != 0);
+            }
+            else
+            {
+                // This is the fastest implementation (copied from ReactOS) (dmex)
+                for (p = String->Buffer; p != end; p++)
+                {
+                    hash = ((65599 * (hash)) + (ULONG)(*p));
+                }
+
+                // This is fast but slightly slower (based on PhHashBytes) (dmex)
+                //SIZE_T count = String->Length / sizeof(WCHAR);
+                //PWCHAR p = String->Buffer;
+                //do
+                //{
+                //    hash *= 0x1003F;
+                //    hash += *p++;
+                //} while (--count != 0);
+            }
+
+            return hash;
+        }
+    }
+
+    return 0;
 }
 
 BOOLEAN NTAPI PhpSimpleHashtableEqualFunction(

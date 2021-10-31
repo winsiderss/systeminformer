@@ -42,7 +42,7 @@ static BOOLEAN PhpBcdApiInitialized(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (BcdDllBaseAddress = PhLoadLibrarySafe(L"bcd.dll"))
+        if (BcdDllBaseAddress = PhLoadLibrary(L"bcd.dll"))
         {
             BcdOpenSystemStore_I = reinterpret_cast<decltype(&BcdOpenSystemStore)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdOpenSystemStore"), 0));
             BcdCloseStore_I = reinterpret_cast<decltype(&BcdCloseStore)>(PhGetDllBaseProcedureAddress(BcdDllBaseAddress, const_cast<char*>("BcdCloseStore"), 0));

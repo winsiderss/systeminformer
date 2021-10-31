@@ -72,7 +72,7 @@ ULONG NTAPI ObjectDbHashFunction(
 {
     PDB_OBJECT object = *(PDB_OBJECT *)Entry;
 
-    return object->Tag + PhHashStringRef(&object->Key, TRUE);
+    return object->Tag + PhHashStringRefEx(&object->Key, TRUE, PH_STRING_HASH_X65599);
 }
 
 ULONG GetNumberOfDbObjects(
@@ -106,6 +106,9 @@ PDB_OBJECT FindDbObject(
     DB_OBJECT lookupObject;
     PDB_OBJECT lookupObjectPtr;
     PDB_OBJECT *objectPtr;
+
+    if (GetNumberOfDbObjects() == 0)
+        return NULL;
 
     lookupObject.Tag = Tag;
     lookupObject.Key = *Name;

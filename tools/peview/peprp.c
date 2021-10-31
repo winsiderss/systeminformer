@@ -63,6 +63,7 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
     PVP_IMAGE_GENERAL_INDEX_FILEINDEX,
     PVP_IMAGE_GENERAL_INDEX_FILEID,
     PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID,
+    PVP_IMAGE_GENERAL_INDEX_FILEUSN,
 
     PVP_IMAGE_GENERAL_INDEX_DEBUGPDB,
     PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE,
@@ -1522,6 +1523,40 @@ VOID PvpSetPeImageFileProperties(
             PhDereferenceObject(string);
         }
 
+        {
+            ULONG fileUsnRecordLength;
+            PUSN_RECORD_UNION fileUsnRecord;
+
+            fileUsnRecordLength = sizeof(USN_RECORD_UNION) + (MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR));
+            fileUsnRecord = PhAllocateZero(fileUsnRecordLength);
+
+            if (NT_SUCCESS(NtFsControlFile(
+                fileHandle,
+                NULL,
+                NULL,
+                NULL,
+                &isb,
+                FSCTL_READ_FILE_USN_DATA,
+                NULL,
+                0,
+                fileUsnRecord,
+                fileUsnRecordLength
+                )))
+            {
+                switch (fileUsnRecord->Header.MajorVersion)
+                {
+                case 2:
+                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEUSN, 1, PhaFormatUInt64(fileUsnRecord->V2.Usn, FALSE)->Buffer);
+                    break;
+                case 3:
+                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEUSN, 1, PhaFormatUInt64(fileUsnRecord->V3.Usn, FALSE)->Buffer);
+                    break;
+                case 4:
+                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEUSN, 1, PhaFormatUInt64(fileUsnRecord->V4.Usn, FALSE)->Buffer);
+                    break;
+                }
+            }
+        }
         NtClose(fileHandle);
     }
 }
@@ -1721,6 +1756,7 @@ VOID PvpSetPeImageProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEINDEX, L"File index", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEID, L"File identifier", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, L"File object identifier", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEUSN, L"File last USN", NULL);
 
     PvpSetPeImageMachineType(Context->ListViewHandle);
     PvpSetPeImageTimeStamp(Context->ListViewHandle);
