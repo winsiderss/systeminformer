@@ -869,7 +869,7 @@ BOOLEAN RaplDeviceSectionCallback(
             value = PhGetItemCircularBuffer_FLOAT(&context->DeviceEntry->TotalBuffer, getTooltipText->Index);
 
             // %.2f W\%s
-            PhInitFormatF(&format[0], context->DeviceEntry->CurrentTotalPower, 2);
+            PhInitFormatF(&format[0], value, 2);
             PhInitFormatS(&format[1], L" W\n");
             PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
