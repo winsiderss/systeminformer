@@ -6869,7 +6869,7 @@ VOID PhUpdateDosDevicePrefixes(
         InitializeObjectAttributes(
             &objectAttributes,
             &deviceName,
-            OBJ_CASE_INSENSITIVE | OBJ_DONT_REPARSE,
+            OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
             NULL,
             NULL
             );
