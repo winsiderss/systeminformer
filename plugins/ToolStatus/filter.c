@@ -596,12 +596,8 @@ BOOLEAN NetworkTreeFilterCallback(
         WordMatchStringZ(PhGetTcpStateName(networkNode->NetworkItem->State)))
         return TRUE;
 
-    if (networkNode->PidText)
     {
         PPH_PROCESS_NODE processNode;
-
-        if (WordMatchStringRef(&networkNode->PidText->sr))
-            return TRUE;
 
         // Search the process node
         if (processNode = PhFindProcessNode(networkNode->NetworkItem->ProcessId))
