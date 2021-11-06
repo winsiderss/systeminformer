@@ -26,7 +26,7 @@ Windows 7 or higher, 32-bit or 64-bit.
 * View detailed stack traces with kernel-mode, WOW64 and .NET support.
 * Go beyond services.msc: create, edit and control services.
 * Small, portable and no installation required.
-* 100% [Free Software](http://www.gnu.org/philosophy/free-sw.en.html) ([GPL v3](http://www.gnu.org/licenses/gpl-3.0.en.html))
+* 100% [Free Software](https://www.gnu.org/philosophy/free-sw.en.html) ([GPL v3](https://www.gnu.org/licenses/gpl-3.0.en.html))
 
 
 ## Building the project
