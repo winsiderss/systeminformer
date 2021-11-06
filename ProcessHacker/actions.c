@@ -911,6 +911,33 @@ BOOLEAN PhUiRestartComputer(
             }
         }
         break;
+    case PH_POWERACTION_TYPE_UPDATE:
+        {
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"update and restart",
+                L"the computer",
+                NULL,
+                FALSE
+                ))
+            {
+                ULONG status;
+
+                status = InitiateShutdown(
+                    NULL,
+                    NULL,
+                    0,
+                    SHUTDOWN_RESTART | SHUTDOWN_INSTALL_UPDATES,
+                    SHTDN_REASON_FLAG_PLANNED
+                    );
+
+                if (status == ERROR_SUCCESS)
+                    return TRUE;
+
+                PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
+            }
+        }
+        break;
     }
 
     return FALSE;
@@ -1023,6 +1050,33 @@ BOOLEAN PhUiShutdownComputer(
                     return TRUE;
 
                 PhShowStatus(WindowHandle, L"Unable to shut down the computer.", status, 0);
+            }
+        }
+        break;
+    case PH_POWERACTION_TYPE_UPDATE:
+        {
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"update and shutdown",
+                L"the computer",
+                NULL,
+                FALSE
+                ))
+            {
+                ULONG status;
+
+                status = InitiateShutdown(
+                    NULL,
+                    NULL,
+                    0,
+                    SHUTDOWN_POWEROFF | SHUTDOWN_INSTALL_UPDATES,
+                    SHTDN_REASON_FLAG_PLANNED
+                    );
+
+                if (status == ERROR_SUCCESS)
+                    return TRUE;
+
+                PhShowStatus(WindowHandle, L"Unable to shut down the computer.", 0, status);
             }
         }
         break;
