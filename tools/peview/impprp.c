@@ -193,7 +193,7 @@ PPH_STRING PvpQueryModuleOrdinalName(
                     {
                         if (exportEntry.Name)
                         {
-                            exportName = PhZeroExtendToUtf16(exportEntry.Name);
+                            exportName = PhConvertUtf8ToUtf16(exportEntry.Name);
 
                             if (exportName->Buffer[0] == L'?')
                             {
@@ -209,7 +209,7 @@ PPH_STRING PvpQueryModuleOrdinalName(
                             {
                                 PPH_STRING forwardName;
 
-                                forwardName = PhZeroExtendToUtf16(exportFunction.ForwardedName);
+                                forwardName = PhConvertUtf8ToUtf16(exportFunction.ForwardedName);
 
                                 if (forwardName->Buffer[0] == L'?')
                                 {
@@ -300,16 +300,34 @@ VOID PvpProcessImports(
                         importNode->HintString = PhFormatUInt64(importEntry.NameHint, FALSE);
                     }
 
+                    if (importNode->DllString = PhConvertUtf8ToUtf16(importDll.Name))
+                    {
+                        PPH_STRING importDllName;
+
+                        if (importDllName = PhApiSetResolveToHost(&importNode->DllString->sr))
+                        {
+                            PhMoveReference(&importNode->DllString, PhFormatString(
+                                L"%s (%s)",
+                                PhGetString(importNode->DllString),
+                                PhGetString(importDllName))
+                                );
+                            PhDereferenceObject(importDllName);
+                        }
+                    }
+
                     if (DelayImports)
-                        importNode->DllString = PhFormatString(L"%S (Delay)", importDll.Name);
-                    else
-                        importNode->DllString = PhZeroExtendToUtf16(importDll.Name);
+                    {
+                        PhMoveReference(&importNode->DllString, PhFormatString(
+                            L"%s (Delay)",
+                            PhGetString(importNode->DllString))
+                            );
+                    }
 
                     if (importEntry.Name)
                     {
                         PPH_STRING importName;
 
-                        importName = PhZeroExtendToUtf16(importEntry.Name);
+                        importName = PhConvertUtf8ToUtf16(importEntry.Name);
 
                         if (importName->Buffer[0] == L'?')
                         {
