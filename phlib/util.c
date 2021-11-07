@@ -8076,3 +8076,63 @@ VOID PhQueryPerformanceFrequency(
     //    return NT_SUCCESS(NtQueryPerformanceCounter(&performanceCounter, PerformanceFrequency));
     //}
 }
+
+PPH_STRING PhApiSetResolveToHost(
+    _In_ PPH_STRINGREF ApiSetName
+    )
+{
+    PAPI_SET_NAMESPACE apisetMap;
+    PAPI_SET_NAMESPACE_ENTRY apisetMapEntry;
+
+    if (ApiSetName->Length >= 8)
+    {
+        ULONGLONG apisetNameBufferPrefix = ((PULONGLONG)ApiSetName->Buffer)[0] & 0xFFFFFFDFFFDFFFDF;
+
+        if (apisetNameBufferPrefix != 0x2D004900500041ULL && // L"api-"
+            apisetNameBufferPrefix != 0x2D005400580045ULL) // L"ext-"
+        {
+            return NULL;
+        }
+    }
+    else
+    {
+        return NULL;
+    }
+
+    apisetMap = NtCurrentPeb()->ApiSetMap;
+    apisetMapEntry = PTR_ADD_OFFSET(apisetMap->EntryOffset, apisetMap);
+
+    if (apisetMap->Version != 6)
+        return NULL;
+
+	for (ULONG i = 0; i < apisetMap->Count; i++)
+	{
+        PAPI_SET_VALUE_ENTRY apisetMapValue = PTR_ADD_OFFSET(apisetMap, apisetMapEntry->ValueOffset);
+        PH_STRINGREF nameStringRef;
+
+        nameStringRef.Length = apisetMapEntry->HashedLength; // NameLength
+        nameStringRef.Buffer = PTR_ADD_OFFSET(apisetMap, apisetMapEntry->NameOffset);
+
+        if (PhStartsWithStringRef(ApiSetName, &nameStringRef, TRUE))
+        {
+            for (ULONG ii = 0; ii < apisetMapEntry->ValueCount; ii++)
+            {
+                if (apisetMapValue->ValueLength)
+                {
+                    PH_STRINGREF valueStringRef;
+
+                    valueStringRef.Length = apisetMapValue->ValueLength;
+                    valueStringRef.Buffer = PTR_ADD_OFFSET(apisetMap, apisetMapValue->ValueOffset);
+
+                    return PhCreateString2(&valueStringRef);
+                }
+
+                apisetMapValue++;
+            }
+        }
+
+        apisetMapEntry++;
+	}
+
+	return NULL;
+}

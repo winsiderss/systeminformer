@@ -1566,6 +1566,13 @@ PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhApiSetResolveToHost(
+    _In_ PPH_STRINGREF ApiSetName
+    );
+
 #ifdef __cplusplus
 }
 #endif
