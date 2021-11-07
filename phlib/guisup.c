@@ -2440,8 +2440,6 @@ VOID PhCustomDrawTreeTimeLine(
     _In_ PLARGE_INTEGER CreateTime
     )
 {
-    #define PhInflateRect(rect, dx, dy) \
-    { (rect)->left -= (dx); (rect)->top -= (dy); (rect)->right += (dx); (rect)->bottom += (dy); }
     HBRUSH previousBrush = NULL;
     RECT rect = CellRect;
     RECT borderRect = CellRect;
