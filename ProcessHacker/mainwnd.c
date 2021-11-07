@@ -747,6 +747,8 @@ VOID PhMwpOnCommand(
     case ID_COMPUTER_SHUTDOWN_NATIVE:
     case ID_COMPUTER_RESTART_CRITICAL:
     case ID_COMPUTER_SHUTDOWN_CRITICAL:
+    case ID_COMPUTER_RESTART_UPDATE:
+    case ID_COMPUTER_SHUTDOWN_UPDATE:
         PhMwpExecuteComputerCommand(WindowHandle, Id);
         break;
     case ID_HACKER_EXIT:
