@@ -1213,6 +1213,34 @@ PhDuplicateFontWithNewHeight(
     return NULL;
 }
 
+FORCEINLINE
+VOID
+PhInflateRect(
+    _In_ PRECT Rect,
+    _In_ INT dx,
+    _In_ INT dy
+    )
+{
+    Rect->left -= dx;
+    Rect->top -= dy;
+    Rect->right += dx;
+    Rect->bottom += dy;
+}
+
+FORCEINLINE
+VOID
+PhOffsetRect(
+    _In_ PRECT Rect,
+    _In_ INT dx,
+    _In_ INT dy
+    )
+{
+    Rect->left += dx;
+    Rect->top += dy;
+    Rect->right += dx;
+    Rect->bottom += dy;
+}
+
 #ifdef __cplusplus
 }
 #endif

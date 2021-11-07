@@ -165,11 +165,11 @@ VOID PhpSearchGetButtonRect(
 
 VOID PhpSearchDrawButton(
     _Inout_ PEDIT_CONTEXT Context,
+    _In_ HDC Hdc,
     _In_ RECT WindowRect,
     _In_ RECT ButtonRect
     )
 {
-    HDC hdc;
     HDC bufferDc;
     HBITMAP bufferBitmap;
     HBITMAP oldBufferBitmap;
@@ -180,11 +180,8 @@ VOID PhpSearchDrawButton(
         ButtonRect.bottom - ButtonRect.top
     };
 
-    if (!(hdc = GetWindowDC(Context->WindowHandle)))
-        return;
-
-    bufferDc = CreateCompatibleDC(hdc);
-    bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
+    bufferDc = CreateCompatibleDC(Hdc);
+    bufferBitmap = CreateCompatibleBitmap(Hdc, bufferRect.right, bufferRect.bottom);
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     if (Context->Pushed)
@@ -281,7 +278,7 @@ VOID PhpSearchDrawButton(
             );
     }
 
-    BitBlt(hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
+    BitBlt(Hdc, ButtonRect.left, ButtonRect.top, ButtonRect.right, ButtonRect.bottom, bufferDc, 0, 0, SRCCOPY);
     SelectBitmap(bufferDc, oldBufferBitmap);
     DeleteBitmap(bufferBitmap);
     DeleteDC(bufferDc);
@@ -293,72 +290,70 @@ VOID PhpSearchDrawButton(
             switch (Context->ColorMode)
             {
             case 0: // New colors
-                SetDCBrushColor(hdc, RGB(0, 0, 0));
+                SetDCBrushColor(Hdc, RGB(0, 0, 0));
                 break;
             case 1: // Old colors
-                SetDCBrushColor(hdc, RGB(65, 65, 65));
+                SetDCBrushColor(Hdc, RGB(65, 65, 65));
                 break;
             }
 
-            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
-            PatBlt(hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
-            PatBlt(hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
-            PatBlt(hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
-            PatBlt(hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
+            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(Hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
+            PatBlt(Hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
 
             switch (Context->ColorMode)
             {
             case 0: // New colors
-                SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+                SetDCBrushColor(Hdc, RGB(0xff, 0xff, 0xff));
                 break;
             case 1: // Old colors
-                SetDCBrushColor(hdc, RGB(60, 60, 60));
+                SetDCBrushColor(Hdc, RGB(60, 60, 60));
                 break;
             }
 
-            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
-            PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
-            PatBlt(hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
-            PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
-            PatBlt(hdc, WindowRect.left + 1, WindowRect.bottom - 2, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
+            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
+            PatBlt(Hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
+            PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
+            PatBlt(Hdc, WindowRect.left + 1, WindowRect.bottom - 2, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
         }
         else
         {       
             switch (Context->ColorMode)
             {
             case 0: // New colors
-                SetDCBrushColor(hdc, RGB(0, 0, 0));
+                SetDCBrushColor(Hdc, RGB(0, 0, 0));
                 break;
             case 1: // Old colors
-                SetDCBrushColor(hdc, RGB(65, 65, 65));
+                SetDCBrushColor(Hdc, RGB(65, 65, 65));
                 break;
             }
 
-            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
-            PatBlt(hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
-            PatBlt(hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
-            PatBlt(hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
-            PatBlt(hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
+            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            PatBlt(Hdc, WindowRect.left, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(Hdc, WindowRect.right - 1, WindowRect.top, 1, WindowRect.bottom - WindowRect.top, PATCOPY);
+            PatBlt(Hdc, WindowRect.left, WindowRect.top, WindowRect.right - WindowRect.left, 1, PATCOPY);
+            PatBlt(Hdc, WindowRect.left, WindowRect.bottom - 1, WindowRect.right - WindowRect.left, 1, PATCOPY);
 
             switch (Context->ColorMode)
             {
             case 0: // New colors
-                SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+                SetDCBrushColor(Hdc, RGB(0xff, 0xff, 0xff));
                 break;
             case 1: // Old colors
-                SetDCBrushColor(hdc, RGB(60, 60, 60));
+                SetDCBrushColor(Hdc, RGB(60, 60, 60));
                 break;
             }
 
-            SelectBrush(hdc, GetStockBrush(DC_BRUSH));
-            PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
-            PatBlt(hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
-            PatBlt(hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
-            PatBlt(hdc, WindowRect.left + 1, WindowRect.bottom - 2, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
+            SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
+            PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
+            PatBlt(Hdc, WindowRect.right - 2, WindowRect.top + 1, 1, WindowRect.bottom - WindowRect.top - 2, PATCOPY);
+            PatBlt(Hdc, WindowRect.left + 1, WindowRect.top + 1, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
+            PatBlt(Hdc, WindowRect.left + 1, WindowRect.bottom - 2, WindowRect.right - WindowRect.left - 2, 1, PATCOPY);
         }
     }
-
-    ReleaseDC(Context->WindowHandle, hdc);
 }
 
 LRESULT CALLBACK PhpSearchWndSubclassProc(
@@ -416,22 +411,50 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         {
             RECT windowRect;
             RECT buttonRect;
+            HDC hdc;
+            ULONG flags;
+            HRGN updateRegion;
 
-            // Let Windows handle the non-client defaults.
-            CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+            updateRegion = (HRGN)wParam;
 
-            // Get the screen coordinates of the window.
-            GetWindowRect(hWnd, &windowRect);
+            if (updateRegion == (HRGN)1) // HRGN_FULL
+                updateRegion = NULL;
 
-            // Adjust the coordinates (start from 0,0).
-            OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
-            buttonRect = windowRect;
+            // Note the use of undocumented flags below. GetDCEx doesn't work without these.
+            flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
 
-            // Get the position of the inserted button.
-            PhpSearchGetButtonRect(context, &buttonRect);
+            if (updateRegion)
+                flags |= DCX_INTERSECTRGN | 0x40000;
 
-            // Draw the button.
-            PhpSearchDrawButton(context, windowRect, buttonRect);
+            if (hdc = GetDCEx(hWnd, updateRegion, flags))
+            {
+                // Get the screen coordinates of the window.
+                GetWindowRect(hWnd, &windowRect);
+                // Adjust the coordinates (start from 0,0).
+                PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+                buttonRect = windowRect;
+
+                if (GetFocus() == hWnd)
+                {
+                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
+                    PhInflateRect(&windowRect, -1, -1);
+                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+                }
+                else
+                {
+                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOWFRAME));
+                    PhInflateRect(&windowRect, -1, -1);
+                    FrameRect(hdc, &windowRect, GetSysColorBrush(COLOR_WINDOW));
+                }
+
+                // Get the position of the inserted button.
+                PhpSearchGetButtonRect(context, &buttonRect);
+
+                // Draw the button.
+                PhpSearchDrawButton(context, hdc, windowRect, buttonRect);
+
+                ReleaseDC(hWnd, hdc);
+            }
         }
         return 0;
     case WM_NCHITTEST:
@@ -648,9 +671,7 @@ VOID PhCreateSearchControl(
 {
     PEDIT_CONTEXT context;
 
-    context = (PEDIT_CONTEXT)PhAllocate(sizeof(EDIT_CONTEXT));
-    memset(context, 0, sizeof(EDIT_CONTEXT));
-
+    context = PhAllocateZero(sizeof(EDIT_CONTEXT));
     context->WindowHandle = WindowHandle;
     context->ThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport"); // HACK
     context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
@@ -815,7 +836,7 @@ CleanupExit:
     if (success)
         return bitmapHandle;
 
-    DeleteBitmap(bitmapHandle);
+    if (bitmapHandle) DeleteBitmap(bitmapHandle);
     return NULL;
 }
 
@@ -956,6 +977,6 @@ CleanupExit:
     if (success)
         return bitmapHandle;
 
-    DeleteBitmap(bitmapHandle);
+    if (bitmapHandle) DeleteBitmap(bitmapHandle);
     return NULL;
 }
