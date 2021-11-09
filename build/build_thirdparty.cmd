@@ -2,7 +2,7 @@
 @setlocal enableextensions
 @cd /d "%~dp0\..\"
 
-call "%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
+call "%ProgramFiles%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
 
 msbuild tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -verbosity:normal
 if %ERRORLEVEL% neq 0 goto end
