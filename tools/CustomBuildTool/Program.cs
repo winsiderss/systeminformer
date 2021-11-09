@@ -159,6 +159,10 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(true);
 
+                Build.BuildVersionInfo(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
+                    );
+
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose |
@@ -204,6 +208,10 @@ namespace CustomBuildTool
             else if (ProgramArgs.ContainsKey("-appveyor"))
             {
                 Build.SetupBuildEnvironment(true);
+
+                Build.BuildVersionInfo(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
+                    );
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
@@ -252,6 +260,10 @@ namespace CustomBuildTool
             else
             {
                 Build.SetupBuildEnvironment(true);
+
+                Build.BuildVersionInfo(
+                    BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
+                    );
 
                 if (!Build.BuildSolution("ProcessHacker.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
