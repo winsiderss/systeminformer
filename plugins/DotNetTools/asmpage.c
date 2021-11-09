@@ -1598,7 +1598,7 @@ NTSTATUS DotNetTraceQueryThreadStart(
         }
     }
 
-    if ((context->ClrVersions & PH_CLR_VERSION_4_ABOVE) || (context->ClrVersions & PH_CLR_CORELIB_PRESENT))
+    if ((context->ClrVersions & PH_CLR_VERSION_4_ABOVE) || (context->ClrVersions & PH_CLR_CORE_3_0_ABOVE) || (context->ClrVersions & PH_CLR_CORELIB_PRESENT))
     {
         result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
 
@@ -1779,13 +1779,22 @@ VOID CreateDotNetTraceQueryThread(
     context->NodeList = PhCreateList(64);
     context->NodeRootList = PhCreateList(2);
 
-    PhGetProcessIsDotNetEx(
+    if (!NT_SUCCESS(PhGetProcessIsDotNetEx(
         ProcessId,
         NULL,
-        0,
+        PH_CLR_USE_SECTION_CHECK,
         NULL,
         &context->ClrVersions
-        );
+        )))
+    {
+        PhGetProcessIsDotNetEx(
+            ProcessId,
+            NULL,
+            0,
+            NULL,
+            &context->ClrVersions
+            );
+    }
 
     if (EnableTrace)
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), DotNetTraceQueryThreadStart, context);

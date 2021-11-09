@@ -1081,6 +1081,7 @@ static BOOLEAN NTAPI DnpGetCoreClrPathCallback(
 
 _Success_(return)
 BOOLEAN DnGetProcessCoreClrPath(
+    _In_ HANDLE ProcessId,
     _In_ ICLRDataTarget* DataTarget,
     _Out_ PPH_STRING *FileName
     )
@@ -1112,7 +1113,33 @@ BOOLEAN DnGetProcessCoreClrPath(
     }
 
     if (!context.FileName)
+    {
+        //PPH_PROCESS_ITEM processItem;
+        //
+        //// This image is probably 'SelfContained' since we couldn't find coreclr.dll,
+        //// return the path to the executable so we can check the embedded CLRDEBUGINFO. (dmex)
+        //
+        //if (processItem = PhReferenceProcessItem(ProcessId))
+        //{
+        //    if (!PhIsNullOrEmptyString(processItem->FileName))
+        //    {
+        //        *FileName = PhReferenceObject(processItem->FileName);
+        //        PhDereferenceObject(processItem);
+        //        return TRUE;
+        //    }
+        //
+        //    PhDereferenceObject(processItem);
+        //}
+        //
+        //PPH_STRING fileName;
+        //if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
+        //{
+        //    *FileName = fileName;
+        //    return TRUE;
+        //}
+
         return FALSE;
+    }
 
     // DAC copies the debuginfo resource from the process memory. (dmex)
     //PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
@@ -1161,7 +1188,7 @@ PVOID DnLoadMscordaccore(
     ULONG dataTargetTimeStamp = 0;
     ULONG dataTargetSizeOfImage = 0;
 
-    if (DnGetProcessCoreClrPath(Target, &dataTargetFileName))
+    if (DnGetProcessCoreClrPath(ProcessId, Target, &dataTargetFileName))
     {
         PVOID imageBaseAddress;
 
@@ -1191,6 +1218,8 @@ PVOID DnLoadMscordaccore(
         }
 
         dataTargetDirectory = PhGetBaseDirectory(dataTargetFileName);
+
+        PhDereferenceObject(dataTargetFileName);
     }
 
     if (!(directoryPath = PhExpandEnvironmentStrings(&mscordaccorePathSr)))
@@ -1266,6 +1295,8 @@ TryAppLocal:
             &dataTargetDirectory->sr,
             &mscordaccoreNameSr
             );
+
+        PhMoveReference(&fileName, PhGetFileName(fileName));
 
         verifyResult = PhVerifyFile(
             PhGetString(fileName),
