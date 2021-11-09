@@ -149,6 +149,7 @@ typedef struct _DnCLRDataTarget
     HANDLE ProcessId;
     HANDLE ProcessHandle;
     BOOLEAN IsWow64;
+    BOOLEAN SelfContained;
     PVOID DataTargetDllBase;
 } DnCLRDataTarget;
 
