@@ -1059,6 +1059,19 @@ typedef struct _CLR_DEBUG_RESOURCE
     ULONG DbiSizeOfImage;
 } CLR_DEBUG_RESOURCE, *PCLR_DEBUG_RESOURCE;
 
+// The first byte of the index is the count of bytes
+typedef unsigned char SYMBOL_INDEX;
+#define RUNTIME_INFO_SIGNATURE "DotNetRuntimeInfo" // EXE export
+
+typedef struct _CLR_RUNTIME_INFO
+{
+    CHAR Signature[18];
+    INT32 Version;
+    SYMBOL_INDEX RuntimeModuleIndex[24];
+    SYMBOL_INDEX DacModuleIndex[24];
+    SYMBOL_INDEX DbiModuleIndex[24];
+} CLR_RUNTIME_INFO, *PCLR_RUNTIME_INFO;
+
 static BOOLEAN NTAPI DnpGetCoreClrPathCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
     _In_ PVOID Context
@@ -1114,30 +1127,24 @@ BOOLEAN DnGetProcessCoreClrPath(
 
     if (!context.FileName)
     {
-        //PPH_PROCESS_ITEM processItem;
-        //
-        //// This image is probably 'SelfContained' since we couldn't find coreclr.dll,
-        //// return the path to the executable so we can check the embedded CLRDEBUGINFO. (dmex)
-        //
-        //if (processItem = PhReferenceProcessItem(ProcessId))
-        //{
-        //    if (!PhIsNullOrEmptyString(processItem->FileName))
-        //    {
-        //        *FileName = PhReferenceObject(processItem->FileName);
-        //        PhDereferenceObject(processItem);
-        //        return TRUE;
-        //    }
-        //
-        //    PhDereferenceObject(processItem);
-        //}
-        //
-        //PPH_STRING fileName;
-        //if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
-        //{
-        //    *FileName = fileName;
-        //    return TRUE;
-        //}
-
+        PPH_PROCESS_ITEM processItem;
+        
+        // This image is probably 'SelfContained' since we couldn't find coreclr.dll,
+        // return the path to the executable so we can check the embedded CLRDEBUGINFO. (dmex)
+        
+        if (processItem = PhReferenceProcessItem(ProcessId))
+        {
+            if (!PhIsNullOrEmptyString(processItem->FileName))
+            {
+                *FileName = PhReferenceObject(processItem->FileName);
+                dataTarget->SelfContained = TRUE;
+                PhDereferenceObject(processItem);
+                return TRUE;
+            }
+        
+            PhDereferenceObject(processItem);
+        }
+        
         return FALSE;
     }
 
@@ -1195,6 +1202,7 @@ PVOID DnLoadMscordaccore(
         if (NT_SUCCESS(PhLoadLibraryAsImageResource(dataTargetFileName, &imageBaseAddress)))
         {
             PCLR_DEBUG_RESOURCE debugVersionInfo;
+            //PVOID mscordaccoreDllAddress;
 
             if (PhLoadResource(
                 imageBaseAddress,
@@ -1213,6 +1221,17 @@ PVOID DnLoadMscordaccore(
                     dataTargetSizeOfImage = debugVersionInfo->DacSizeOfImage;
                 }
             }
+
+            //if (PhLoadResource(
+            //    imageBaseAddress,
+            //    L"MINIDUMP_EMBEDDED_AUXILIARY_PROVIDER",
+            //    RT_RCDATA,
+            //    NULL,
+            //    &mscordaccoreDllAddress
+            //    ))
+            //{
+            //    // TODO: Extract mscordaccore.dll from resource and PhVerifyFile. (dmex)
+            //}
 
             PhFreeLibraryAsImageResource(imageBaseAddress);
         }
@@ -1594,6 +1613,34 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     }
     else
     {
+        if (this->SelfContained)
+        {
+            PPH_PROCESS_ITEM processItem;
+            PPH_STRING baseName;
+
+            if (processItem = PhReferenceProcessItem(this->ProcessId))
+            {
+                if (!PhIsNullOrEmptyString(processItem->FileName))
+                {
+                    if (baseName = PhGetBaseName(processItem->FileName))
+                    {
+                        context.ImagePath = baseName->sr;
+                        PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
+                        PhDereferenceObject(baseName);
+
+                        if (context.BaseAddress)
+                        {
+                            *baseAddress = (CLRDATA_ADDRESS)context.BaseAddress;
+                            PhDereferenceObject(processItem);
+                            return S_OK;
+                        }
+                    }
+                }
+
+                PhDereferenceObject(processItem);
+            }
+        }
+
         return E_FAIL;
     }
 }
