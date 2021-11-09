@@ -37,7 +37,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -45,7 +45,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -54,7 +54,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -63,7 +63,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -71,7 +71,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -79,7 +79,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
     <SpectreMitigation>false</SpectreMitigation>
