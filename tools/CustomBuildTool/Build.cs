@@ -26,8 +26,6 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Security.Cryptography.X509Certificates;
-using Microsoft.Win32;
 
 namespace CustomBuildTool
 {
@@ -169,7 +167,7 @@ namespace CustomBuildTool
             if (ShowBuildInfo)
             {
                 Program.PrintColorMessage("Windows: ", ConsoleColor.DarkGray, false);
-                Program.PrintColorMessage("Windows NT " + Environment.OSVersion.Version.ToString(), ConsoleColor.Green, true);
+                Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green, true);
 
                 var instance = VisualStudio.GetVisualStudioInstance();
                 if (instance != null)
@@ -824,6 +822,7 @@ namespace CustomBuildTool
             if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
             {
                 StringBuilder compilerOptions = new StringBuilder();
+                StringBuilder commandLine = new StringBuilder();
                 Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
@@ -838,13 +837,17 @@ namespace CustomBuildTool
                 if (!string.IsNullOrEmpty(BuildCount))
                     compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
+                commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet ");
+                commandLine.Append("/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release "));
+                commandLine.Append("/p:Platform=Win32 ");
+                commandLine.Append("/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" ");
+                if (File.Exists("tools\\versioning\\version.res"))
+                    commandLine.Append($"/p:ExternalAdditionalDependencies=\"{Path.GetFullPath("tools\\versioning\\version.res")}\" ");
+                commandLine.Append(Solution);
+
                 int errorcode = Win32.CreateProcess(
                     msbuildExePath,
-                    "/m /nologo /nodereuse:false /verbosity:quiet " +
-                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
-                    "/p:Platform=Win32 " +
-                    "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
-                    Solution,
+                    commandLine.ToString(),
                     out string errorstring
                     );
 
@@ -858,6 +861,7 @@ namespace CustomBuildTool
             if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
             {
                 StringBuilder compilerOptions = new StringBuilder();
+                StringBuilder commandLine = new StringBuilder();
                 Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
@@ -872,13 +876,17 @@ namespace CustomBuildTool
                 if (!string.IsNullOrEmpty(BuildCount))
                     compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
+                commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet ");
+                commandLine.Append("/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release "));
+                commandLine.Append("/p:Platform=x64 ");
+                commandLine.Append("/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" ");
+                if (File.Exists("tools\\versioning\\version.res"))
+                    commandLine.Append($"/p:ExternalAdditionalDependencies=\"{Path.GetFullPath("tools\\versioning\\version.res")}\" ");
+                commandLine.Append(Solution);
+
                 int errorcode = Win32.CreateProcess(
                     msbuildExePath,
-                    "/m /nologo /nodereuse:false /verbosity:quiet " +
-                    "/p:Configuration=" + (Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug " : "Release ") +
-                    "/p:Platform=x64 " +
-                    "/p:ExternalCompilerOptions=\"" + compilerOptions.ToString() + "\" " +
-                    Solution,
+                    commandLine.ToString(),
                     out string errorstring
                     );
 
@@ -892,6 +900,51 @@ namespace CustomBuildTool
             return true;
         }
 
+        public static bool BuildVersionInfo(BuildFlags Flags)
+        {
+            if (!File.Exists("tools\\versioning\\version.rc"))
+                return true;
+
+            string windowsSdkPath = VisualStudio.GetWindowsSdkPath();
+            string windowsSdkIncludePath = VisualStudio.GetWindowsSdkIncludePath();
+            string resIncludePath = Path.GetFullPath("processhacker");
+            StringBuilder commandLine = new StringBuilder("/nologo /v ");
+            string rcExePath = windowsSdkPath + "\\x64\\rc.exe";
+
+            if (!File.Exists(rcExePath))
+            {
+                Program.PrintColorMessage("Unable to find the resource compiler.", ConsoleColor.Red);
+                return false;
+            }
+
+            commandLine.Append($"/i \"{windowsSdkIncludePath}\\um\" /i \"{windowsSdkIncludePath}\\shared\" /i \"{resIncludePath}\" ");
+
+            if (Flags.HasFlag(BuildFlags.BuildApi))
+                commandLine.Append(" /d \"PH_BUILD_API\" ");
+            if (!string.IsNullOrEmpty(BuildCommit))
+                commandLine.Append($"/d \"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\"\" ");
+            if (!string.IsNullOrEmpty(BuildRevision))
+                commandLine.Append($"/d \"PHAPP_VERSION_REVISION=\"{BuildRevision}\"\" ");
+            if (!string.IsNullOrEmpty(BuildCount))
+                commandLine.Append($"/d \"PHAPP_VERSION_BUILD=\"{BuildCount}\"\" ");
+
+            commandLine.Append("/fo tools\\versioning\\version.res tools\\versioning\\version.rc");
+
+            int errorcode = Win32.CreateProcess(
+                rcExePath,
+                commandLine.ToString(),
+                out string errorstring
+                );
+
+            if (errorcode != 0)
+            {
+                Program.PrintColorMessage("[ERROR] (" + errorcode + ") " + errorstring, ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                return false;
+            }
+
+
+            return true;
+        }
         public static bool BuildDeployUpdateConfig()
         {
             string buildBuildId;
@@ -900,7 +953,6 @@ namespace CustomBuildTool
             string buildPostApiKey;
             string buildPostSfUrl;
             string buildPostSfApiKey;
-            string buildPostString;
             string buildFilename;
             string buildBinHash;
             string buildSetupHash;
@@ -1021,7 +1073,7 @@ namespace CustomBuildTool
 
             try
             {
-                buildPostString = JsonSerializer.Serialize(new BuildUpdateRequest
+                BuildUpdateRequest buildUpdateRequest = new BuildUpdateRequest
                 {
                     BuildUpdated = TimeStart.ToString("o"),
                     BuildVersion = BuildVersion,
@@ -1035,9 +1087,11 @@ namespace CustomBuildTool
                     SetupLength = buildSetupFileLength.ToString(),
                     SetupHash = buildSetupHash,
                     SetupSig = BuildSetupSig,
-                }, new JsonSerializerOptions { IgnoreNullValues = true, PropertyNameCaseInsensitive = true });
+                };
 
-                if (string.IsNullOrEmpty(buildPostString))
+                byte[] buildPostString = JsonSerializer.SerializeToUtf8Bytes(buildUpdateRequest, BuildUpdateRequestContext.Default.BuildUpdateRequest);
+
+                if (buildPostString == null || buildPostString.LongLength == 0)
                     return false;
 
                 using (HttpClientHandler httpClientHandler = new HttpClientHandler())
@@ -1045,52 +1099,60 @@ namespace CustomBuildTool
                     httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
-                    using (StringContent httpContent = new StringContent(buildPostString, Encoding.UTF8, "application/json"))
                     {
                         httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
 
-                        var httpTask = httpClient.PostAsync(buildPostUrl, httpContent);
-                        httpTask.Wait();
-
-                        if (!httpTask.Result.IsSuccessStatusCode)
+                        using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
                         {
-                            Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
-                            return false;
+                            httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+                            var httpTask = httpClient.PostAsync(buildPostUrl, httpContent);
+                            httpTask.Wait();
+
+                            if (!httpTask.Result.IsSuccessStatusCode)
+                            {
+                                Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
+                                return false;
+                            }
                         }
                     }
+                }
+
+                try
+                {
+                    using (HttpClientHandler httpClientHandler = new HttpClientHandler())
+                    {
+                        httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
+
+                        using (HttpClient httpClient = new HttpClient(httpClientHandler))
+                        {
+                            httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
+
+                            using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
+                            {
+                                httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+                                var httpTask = httpClient.PostAsync(buildPostSfUrl, httpContent);
+                                httpTask.Wait();
+
+                                if (!httpTask.Result.IsSuccessStatusCode)
+                                {
+                                    Program.PrintColorMessage("[UpdateBuildWebService-SF] " + httpTask.Result, ConsoleColor.Red);
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Program.PrintColorMessage("[UpdateBuildWebService-SF] " + ex, ConsoleColor.Red);
+                    return false;
                 }
             }
             catch (Exception ex)
             {
                 Program.PrintColorMessage("[UpdateBuildWebService] " + ex, ConsoleColor.Red);
-                return false;
-            }
-
-            try
-            {
-                using (HttpClientHandler httpClientHandler = new HttpClientHandler())
-                {
-                    httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-
-                    using (HttpClient httpClient = new HttpClient(httpClientHandler))
-                    using (StringContent httpContent = new StringContent(buildPostString, Encoding.UTF8, "application/json"))
-                    {
-                        httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
-
-                        var httpTask = httpClient.PostAsync(buildPostSfUrl, httpContent);
-                        httpTask.Wait();
-
-                        if (!httpTask.Result.IsSuccessStatusCode)
-                        {
-                            Program.PrintColorMessage("[UpdateBuildWebService-SF] " + httpTask.Result, ConsoleColor.Red);
-                            return false;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[UpdateBuildWebService-SF] " + ex, ConsoleColor.Red);
                 return false;
             }
 
@@ -1138,7 +1200,9 @@ namespace CustomBuildTool
                         filename = Path.GetFileName(sourceFile);
                         //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
 
+                        #pragma warning disable SYSLIB0014 // Type or member is obsolete
                         request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
+                        #pragma warning restore SYSLIB0014 // Type or member is obsolete
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
                         request.Method = WebRequestMethods.Ftp.UploadFile;
                         request.Timeout = System.Threading.Timeout.Infinite;

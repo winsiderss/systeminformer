@@ -168,15 +168,40 @@ namespace CustomBuildTool
         {
             return Environment.ExpandEnvironmentVariables(Name).Replace(Name, string.Empty, StringComparison.OrdinalIgnoreCase);
         }
+
+        public static string GetKernelVersion()
+        {
+            try
+            {
+                string filePath = null;
+
+                if (Environment.Is64BitProcess)
+                    filePath = GetEnvironmentVariable("%SystemRoot%\\System32\\ntoskrnl.exe");
+                else
+                    filePath = GetEnvironmentVariable("%SystemRoot%\\Sysnative\\ntoskrnl.exe");
+
+                if (!string.IsNullOrWhiteSpace(filePath))
+                {
+                    FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(filePath);
+                    return versionInfo.FileVersion ?? string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+            return string.Empty;
+        }
     }
 
     public static class Verify
     {
-        private static Rijndael GetRijndael(string secret)
+        private static Aes GetRijndael(string secret)
         {
             using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(secret, Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="), 10000))
             {
-                Rijndael rijndael = Rijndael.Create();
+                Aes rijndael = Aes.Create();
 
                 rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
                 rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
@@ -188,7 +213,7 @@ namespace CustomBuildTool
         public static void Encrypt(string fileName, string outFileName, string secret)
         {
             using (FileStream fileOutStream = File.Create(outFileName))
-            using (Rijndael rijndael = GetRijndael(secret))
+            using (Aes rijndael = GetRijndael(secret))
             using (FileStream fileStream = File.OpenRead(fileName))
             using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateEncryptor(), CryptoStreamMode.Write, true))
             {
@@ -201,7 +226,7 @@ namespace CustomBuildTool
             try
             {
                 using (FileStream fileOutStream = File.Create(outFileName))
-                using (Rijndael rijndael = GetRijndael(secret))
+                using (Aes rijndael = GetRijndael(secret))
                 using (FileStream fileStream = File.OpenRead(FileName))
                 using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
                 {
@@ -227,7 +252,7 @@ namespace CustomBuildTool
 
             using (FileStream fileInStream = File.OpenRead(FileName))
             using (BufferedStream bufferedStream = new BufferedStream(fileInStream, 0x1000))
-            using (SHA256Managed sha = new SHA256Managed())
+            using (SHA256 sha = SHA256.Create())
             {
                 byte[] checksum = sha.ComputeHash(bufferedStream);
 
@@ -346,10 +371,7 @@ namespace CustomBuildTool
             {
                 foreach (VisualStudioInstance instance in VisualStudioInstanceList)
                 {
-                    if (
-                        instance.HasRequiredDependency &&
-                        instance.DisplayName.EndsWith("2019", StringComparison.OrdinalIgnoreCase) // HACK
-                        )
+                    if (instance.HasRequiredDependency)
                     {
                         VisualStudioInstance = instance;
                         break;
@@ -410,12 +432,13 @@ namespace CustomBuildTool
 
             if (string.IsNullOrEmpty(MsBuildFilePath))
             {
-                var vswhere = GetVswhereFilePath();
+                string vswhere = GetVswhereFilePath();
 
                 if (string.IsNullOrEmpty(vswhere))
                     return null;
 
-                var vswhereResult = Win32.ShellExecute(
+                // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
+                string vswhereResult = Win32.ShellExecute(
                     vswhere,
                     "-latest " +
                     "-prerelease " +
@@ -475,6 +498,82 @@ namespace CustomBuildTool
             if (Directory.Exists(Environment.CurrentDirectory + "\\.git"))
             {
                 return "--git-dir=\"" + Environment.CurrentDirectory + "\\.git\" --work-tree=\"" + Environment.CurrentDirectory + "\" ";
+            }
+
+            return string.Empty;
+        }
+
+        public static string GetWindowsSdkIncludePath()
+        {
+            List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
+
+            // Note: This does not use the registry lookup because .NET Core requires registry dependencies. (dmex)
+
+            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\Include");
+
+            if (Directory.Exists(kitpath32))
+            {
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
+
+                foreach (string path in windowsKitsDirectory)
+                {
+                    string name = Path.GetFileName(path);
+
+                    if (Version.TryParse(name, out var version))
+                    {
+                        versionList.Add(new KeyValuePair<Version, string>(version, path));
+                    }
+                }
+
+                versionList.Sort((first, second) => first.Key.CompareTo(second.Key));
+
+                if (versionList.Count > 0)
+                {
+                    var result = versionList[versionList.Count - 1];
+
+                    if (!string.IsNullOrEmpty(result.Value))
+                    {
+                        return result.Value;
+                    }
+                }
+            }
+
+            return string.Empty;
+        }
+
+        public static string GetWindowsSdkPath()
+        {
+            List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
+
+            // Note: This does not use the registry lookup because .NET Core requires registry dependencies. (dmex)
+
+            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin");
+
+            if (Directory.Exists(kitpath32))
+            {
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
+
+                foreach (string path in windowsKitsDirectory)
+                {
+                    string name = Path.GetFileName(path);
+
+                    if (Version.TryParse(name, out var version))
+                    {
+                        versionList.Add(new KeyValuePair<Version, string>(version, path));
+                    }
+                }
+
+                versionList.Sort((first, second) => first.Key.CompareTo(second.Key));
+
+                if (versionList.Count > 0)
+                {
+                    var result = versionList[versionList.Count - 1];
+
+                    if (!string.IsNullOrEmpty(result.Value))
+                    {
+                        return result.Value;
+                    }
+                }
             }
 
             return string.Empty;
@@ -614,7 +713,11 @@ namespace CustomBuildTool
 
         private VisualStudioPackage GetLatestSdkPackage()
         {
-            var found = this.Packages.FindAll(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK.", StringComparison.OrdinalIgnoreCase));
+            var found = this.Packages.FindAll(p =>
+            {
+                return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                    p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
+            });
 
             if (found == null)
                 return null;
@@ -674,7 +777,11 @@ namespace CustomBuildTool
 
                 hasbuild = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase));
                 hasruntimes = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase));
-                haswindowssdk = this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase));
+                haswindowssdk = this.Packages.Exists(p =>
+                {
+                    return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                        p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
+                });
 
                 return hasbuild && hasruntimes && haswindowssdk;
             }
@@ -705,7 +812,11 @@ namespace CustomBuildTool
                     list += "VC.14.Redist" + Environment.NewLine;
                 }
 
-                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase)))
+                if (!this.Packages.Exists(p =>
+                {
+                    return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                        p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
+                }))
                 {
                     list += "Windows SDK" + Environment.NewLine;
                 }
@@ -795,6 +906,13 @@ namespace CustomBuildTool
         [JsonPropertyName("setup_length")] public string SetupLength { get; set; }
         [JsonPropertyName("setup_hash")] public string SetupHash { get; set; }
         [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSerializable(typeof(BuildUpdateRequest))]
+    public partial class BuildUpdateRequestContext : JsonSerializerContext
+    {
+
     }
 
     public static class Extextensions
