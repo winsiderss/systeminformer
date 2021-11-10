@@ -151,6 +151,7 @@ typedef struct _DnCLRDataTarget
     BOOLEAN IsWow64;
     BOOLEAN SelfContained;
     PVOID DataTargetDllBase;
+    PPH_STRING DaccorePath;
 } DnCLRDataTarget;
 
 #define MAX_LONGPATH 1024
