@@ -252,7 +252,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"UseColorPacked", L"1");
     PhpAddIntegerSetting(L"ColorPacked", L"9314ff"); // Deep Pink
     PhpAddIntegerSetting(L"UseColorLowImageCoherency", L"1");
-    PhpAddIntegerSetting(L"ColorLowImageCoherency", L"ff14b9"); // Deep Purple 
+    PhpAddIntegerSetting(L"ColorLowImageCoherency", L"ff14b9"); // Deep Purple
+    PhpAddIntegerSetting(L"UseColorPartiallySuspended", L"0");
+    PhpAddIntegerSetting(L"ColorPartiallySuspended", L"c0c0c0");
     PhpAddIntegerSetting(L"UseColorGuiThreads", L"1");
     PhpAddIntegerSetting(L"ColorGuiThreads", L"77ffff");
     PhpAddIntegerSetting(L"UseColorRelocatedModules", L"1");
@@ -333,6 +335,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorPacked);
     PH_UPDATE_SETTING(UseColorLowImageCoherency);
     PH_UPDATE_SETTING(ColorLowImageCoherency);
+    PH_UPDATE_SETTING(UseColorPartiallySuspended);
+    PH_UPDATE_SETTING(ColorPartiallySuspended);
     PH_UPDATE_SETTING(UseColorGuiThreads);
     PH_UPDATE_SETTING(ColorGuiThreads);
     PH_UPDATE_SETTING(UseColorRelocatedModules);

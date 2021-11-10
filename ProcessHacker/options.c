@@ -3038,6 +3038,7 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(L"ColorPicoProcesses", L"Pico processes", L"Processes that belong to the Windows subsystem for Linux."),
     COLOR_ITEM(L"ColorImmersiveProcesses", L"Immersive processes and DLLs", L"Processes and DLLs that belong to a Modern UI app."),
     COLOR_ITEM(L"ColorSuspended", L"Suspended processes and threads", L"Processes and threads that are suspended from execution."),
+    COLOR_ITEM(L"ColorPartiallySuspended", L"Partially suspended processes and threads", L"Processes and threads that are partially suspended from execution."),
     COLOR_ITEM(L"ColorDotNet", L".NET processes and DLLs", L".NET (i.e. managed) processes and DLLs."),
     COLOR_ITEM(L"ColorPacked", L"Packed processes", L"Executables are sometimes \"packed\" to reduce their size."),
     COLOR_ITEM(L"ColorLowImageCoherency", L"Low process image coherency", L"The image file backing the process has low coherency when compared to the mapped image."),
