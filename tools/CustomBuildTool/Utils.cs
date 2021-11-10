@@ -173,23 +173,18 @@ namespace CustomBuildTool
         {
             try
             {
-                string filePath = null;
+                string filePath = GetEnvironmentVariable("%SystemRoot%\\System32\\ntoskrnl.exe");
 
-                if (Environment.Is64BitProcess)
-                    filePath = GetEnvironmentVariable("%SystemRoot%\\System32\\ntoskrnl.exe");
-                else
+                if (!File.Exists(filePath))
                     filePath = GetEnvironmentVariable("%SystemRoot%\\Sysnative\\ntoskrnl.exe");
 
-                if (!string.IsNullOrWhiteSpace(filePath))
+                if (File.Exists(filePath))
                 {
                     FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(filePath);
                     return versionInfo.FileVersion ?? string.Empty;
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            catch (Exception) { }
 
             return string.Empty;
         }
