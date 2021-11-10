@@ -2471,7 +2471,18 @@ VOID PhProcessProviderUpdate(
                 modified = TRUE;
             }
 
-            processItem->IsPartiallySuspended = isPartiallySuspended;
+            if (PhCsUseColorPartiallySuspended) // HACK // Don't invalidate for partially suspended unless enabled (dmex)
+            {
+                if (processItem->IsPartiallySuspended != isPartiallySuspended)
+                {
+                    processItem->IsPartiallySuspended = isPartiallySuspended;
+                    modified = TRUE;
+                }
+            }
+            else
+            {
+                processItem->IsPartiallySuspended = isPartiallySuspended;
+            }
 
             // .NET
             if (processItem->UpdateIsDotNet)
