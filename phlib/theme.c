@@ -510,7 +510,7 @@ VOID PhInitializeThemeWindowEditControl(
 
     // HACK: The searchbox control does its own themed drawing and it uses the
     // same window context value so we know when to ignore theming.
-    if (PhGetWindowContext(EditControlHandle, LONG_MAX))
+    if (PhGetWindowContext(EditControlHandle, SHRT_MAX))
         return;
 
     editControlWindowProc = (WNDPROC)GetWindowLongPtr(EditControlHandle, GWLP_WNDPROC);
