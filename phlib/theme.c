@@ -1706,14 +1706,28 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     0
                     ))
                 {
-                    DrawInfo->nmcd.rc.left += 5;
+                    LONG x;
+                    LONG y;
+
+                    if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
+                    {
+                        DrawInfo->nmcd.rc.left += 5;
+
+                        x = DrawInfo->nmcd.rc.left;// + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - PhSmallIconSize.X) / 2;
+                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhSmallIconSize.Y) / 2;
+                    }
+                    else
+                    {
+                        x = DrawInfo->nmcd.rc.left + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - PhSmallIconSize.X) / 2;
+                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhSmallIconSize.Y) / 2;
+                    }
 
                     PhImageListDrawIcon(
                         toolbarImageList,
                         buttonInfo.iImage,
                         DrawInfo->nmcd.hdc,
-                        DrawInfo->nmcd.rc.left,
-                        DrawInfo->nmcd.rc.top + 3,
+                        x,
+                        y,
                         ILD_NORMAL
                         );
                 }
