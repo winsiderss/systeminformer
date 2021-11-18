@@ -694,7 +694,6 @@ VOID EtpNotifyGpuGraph(
                     drawInfo->LabelYFunctionParameter = max;
                 }
 
-
                 GpuGraphState.Valid = TRUE;
             }
         }
@@ -841,19 +840,24 @@ VOID EtpNotifySharedGraph(
 
             if (!SharedGraphState.Valid)
             {
+                FLOAT max = 0;
+
+                //if (EtGpuSharedLimit != 0)
+                //{
+                //    max = (FLOAT)EtGpuSharedLimit / PAGE_SIZE;
+                //}
+
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
-                    SharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuSharedHistory, i);
+                    FLOAT data = SharedGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuSharedHistory, i);
+
+                    if (max < data)
+                        max = data;
                 }
 
-                if (EtGpuSharedLimit != 0)
+                if (max != 0)
                 {
-                    // Scale the data.
-                    PhDivideSinglesBySingle(
-                        SharedGraphState.Data1,
-                        (FLOAT)EtGpuSharedLimit,
-                        drawInfo->LineDataCount
-                        );
+                    PhDivideSinglesBySingle(SharedGraphState.Data1, max, drawInfo->LineDataCount);
                 }
 
                 SharedGraphState.Valid = TRUE;
