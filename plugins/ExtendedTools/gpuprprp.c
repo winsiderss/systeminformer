@@ -551,19 +551,19 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                         {
                             FLOAT max = 0;
 
-                            if (EtGpuSharedLimit != 0)
-                            {
-                                max = (FLOAT)EtGpuSharedLimit / PAGE_SIZE;
-                            }
+                            //if (EtGpuSharedLimit != 0)
+                            //{
+                            //    max = (FLOAT)EtGpuSharedLimit / PAGE_SIZE;
+                            //}
 
                             for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
                             {
-                                FLOAT data1;
+                                FLOAT data;
 
-                                context->MemorySharedGraphState.Data1[i] = data1 = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemorySharedHistory, i);
+                                context->MemorySharedGraphState.Data1[i] = data = (FLOAT)PhGetItemCircularBuffer_ULONG(&context->Block->MemorySharedHistory, i);
 
-                                if (max < data1)
-                                    max = data1;
+                                if (max < data)
+                                    max = data;
                             }
 
                             if (max != 0)
