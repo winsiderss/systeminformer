@@ -678,7 +678,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (
                 PhIsNullOrEmptyString(context->CueBannerText) ||
                 GetFocus() == hWnd ||
-                Edit_GetTextLength(hWnd) > 0
+                CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0) > 0 // Edit_GetTextLength
                 )
             {
                 return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
@@ -738,6 +738,55 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             }
 
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        }
+        break;
+    case WM_KEYDOWN:
+        {
+            // Delete previous word for ctrl+backspace (thanks to Katayama Hirofumi MZ) (modified) (dmex)
+            if (wParam == VK_BACK && GetAsyncKeyState(VK_CONTROL) < 0)
+            {
+                UINT textStart = 0;
+                UINT textEnd = 0;
+                UINT textLength;
+
+                textLength = (UINT)CallWindowProc(oldWndProc, hWnd, WM_GETTEXTLENGTH, 0, 0);
+                CallWindowProc(oldWndProc, hWnd, EM_GETSEL, (WPARAM)&textStart, (LPARAM)&textEnd);
+
+                if (textLength > 0 && textStart == textEnd)
+                {
+                    PWSTR textBuffer;
+
+                    textBuffer = PhAllocateZero((textLength + 1) * sizeof(WCHAR));
+                    GetWindowText(hWnd, textBuffer, textLength);
+
+                    for (; 0 < textStart; --textStart)
+                    {
+                        if (textBuffer[textStart - 1] == L' ' && iswalnum(textBuffer[textStart]))
+                        {
+                            CallWindowProc(oldWndProc, hWnd, EM_SETSEL, textStart, textEnd);
+                            CallWindowProc(oldWndProc, hWnd, EM_REPLACESEL, TRUE, (LPARAM)L"");
+                            PhFree(textBuffer);
+                            return 1;
+                        }
+                    }
+
+                    if (textStart == 0)
+                    {
+                        SetWindowText(hWnd, L"");
+                        PhFree(textBuffer);
+                        return 1;
+                    }
+
+                    PhFree(textBuffer);
+                }
+            }
+        }
+        break;
+    case WM_CHAR:
+        {
+            // Delete previous word for ctrl+backspace (dmex)
+            if (wParam == VK_F16 && GetAsyncKeyState(VK_CONTROL) < 0)
+                return 1;
         }
         break;
     }
