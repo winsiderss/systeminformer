@@ -48,10 +48,10 @@ typedef struct _EDIT_CONTEXT
     INT CXBorder;
     INT ImageWidth;
     INT ImageHeight;
-    HWND WindowHandle;
     WNDPROC DefaultWindowProc;
     HFONT WindowFont;
     HIMAGELIST ImageListHandle;
+    PPH_STRING CueBannerText;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
 
 HICON PhpSearchBitmapToIcon(
@@ -68,17 +68,19 @@ VOID PhpSearchFreeTheme(
 }
 
 VOID PhpSearchInitializeFont(
-    _Inout_ PEDIT_CONTEXT Context
+    _Inout_ PEDIT_CONTEXT Context,
+    _In_ HWND WindowHandle
     )
 {
     if (Context->WindowFont) 
         DeleteFont(Context->WindowFont);
 
-    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, Context->WindowHandle);
+    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, WindowHandle);
 }
 
 VOID PhpSearchInitializeTheme(
-    _Inout_ PEDIT_CONTEXT Context
+    _Inout_ PEDIT_CONTEXT Context,
+    _In_ HWND WindowHandle
     )
 {
     Context->CXWidth = PH_SCALE_DPI(20);
@@ -88,7 +90,7 @@ VOID PhpSearchInitializeTheme(
     {
         HTHEME themeDataHandle;
 
-        if (themeDataHandle = OpenThemeData(Context->WindowHandle, VSCLASS_EDIT))
+        if (themeDataHandle = OpenThemeData(WindowHandle, VSCLASS_EDIT))
         {
             //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
 
@@ -167,6 +169,7 @@ VOID PhpSearchGetButtonRect(
 
 VOID PhpSearchDrawButton(
     _Inout_ PEDIT_CONTEXT Context,
+    _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ RECT WindowRect,
     _In_ RECT ButtonRect
@@ -174,7 +177,7 @@ VOID PhpSearchDrawButton(
 {
     if (Context->ThemeSupport) // HACK
     {
-        if (GetFocus() == Context->WindowHandle)
+        if (GetFocus() == WindowHandle)
         {
             //switch (Context->ColorMode)
             //{
@@ -255,7 +258,7 @@ VOID PhpSearchDrawButton(
                 FillRect(Hdc, &ButtonRect, GetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
-                SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                //SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                 SetDCBrushColor(Hdc, RGB(99, 99, 99));
                 FillRect(Hdc, &ButtonRect, GetStockBrush(DC_BRUSH));
                 break;
@@ -279,7 +282,7 @@ VOID PhpSearchDrawButton(
                 FillRect(Hdc, &ButtonRect, GetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
-                SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                //SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                 SetDCBrushColor(Hdc, RGB(78, 78, 78));
                 FillRect(Hdc, &ButtonRect, GetStockBrush(DC_BRUSH));
                 break;
@@ -302,7 +305,7 @@ VOID PhpSearchDrawButton(
                 FillRect(Hdc, &ButtonRect, GetSysColorBrush(COLOR_WINDOW));
                 break;
             case 1: // Old colors
-                SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                //SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                 SetDCBrushColor(Hdc, RGB(60, 60, 60));
                 FillRect(Hdc, &ButtonRect, GetStockBrush(DC_BRUSH));
                 break;
@@ -315,7 +318,7 @@ VOID PhpSearchDrawButton(
         }
     }
 
-    if (Edit_GetTextLength(Context->WindowHandle) > 0)
+    if (Edit_GetTextLength(WindowHandle) > 0)
     {
         PhImageListDrawIcon(
             Context->ImageListHandle,
@@ -370,6 +373,12 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             {
                 PhImageListDestroy(context->ImageListHandle);
                 context->ImageListHandle = NULL;
+            }
+
+            if (context->CueBannerText)
+            {
+                PhDereferenceObject(context->CueBannerText);
+                context->CueBannerText = NULL;
             }
 
             SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
@@ -451,11 +460,12 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 {
                     if (context->ThemeSupport)
                     {
-                        FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOWFRAME));
+                        SetDCBrushColor(bufferDc, RGB(0x8f, 0x8f, 0x8f));
+                        FrameRect(bufferDc, &windowRect, GetStockBrush(DC_BRUSH));
                     }
                     else
                     {
-                        SetDCBrushColor(bufferDc, RGB(0, 0, 0)); // RGB(65, 65, 65)
+                        SetDCBrushColor(bufferDc, RGB(43, 43, 43));
                         FrameRect(bufferDc, &windowRect, GetStockBrush(DC_BRUSH));
                     }
 
@@ -466,8 +476,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 {
                     if (context->ThemeSupport)
                     {
-                        SetDCBrushColor(bufferDc, RGB(0, 0, 0)); // RGB(65, 65, 65)
-                        FrameRect(bufferDc, &windowRect, GetStockBrush(DC_BRUSH));
+                        //SetDCBrushColor(bufferDc, RGB(43, 43, 43));
+                        FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_WINDOWFRAME));
                     }
                     else
                     {
@@ -479,7 +489,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 }
 
                 // Draw the button.
-                PhpSearchDrawButton(context, bufferDc, windowRect, buttonRect);
+                PhpSearchDrawButton(context, hWnd, bufferDc, windowRect, buttonRect);
 
                 BitBlt(hdc, bufferRect.left, bufferRect.top, bufferRect.right, bufferRect.bottom, bufferDc, 0, 0, SRCCOPY);
                 SelectBitmap(bufferDc, oldBufferBitmap);
@@ -586,8 +596,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_THEMECHANGED:
         {
             PhpSearchFreeTheme(context);
-            PhpSearchInitializeTheme(context);
-            PhpSearchInitializeFont(context);
+            PhpSearchInitializeTheme(context, hWnd);
+            PhpSearchInitializeFont(context, hWnd);
 
             // Reset the client area margins.
             SendMessage(hWnd, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
@@ -663,6 +673,73 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
+    case WM_PAINT:
+        {
+            if (
+                PhIsNullOrEmptyString(context->CueBannerText) ||
+                GetFocus() == hWnd ||
+                Edit_GetTextLength(hWnd) > 0
+                )
+            {
+                return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+            }
+
+            HDC hdc = (HDC)wParam ? (HDC)wParam : GetDC(hWnd);
+
+            if (hdc)
+            {
+                HDC bufferDc;
+                RECT clientRect;
+                HFONT oldFont;
+                HBITMAP bufferBitmap;
+                HBITMAP oldBufferBitmap;
+
+                GetClientRect(hWnd, &clientRect);
+
+                bufferDc = CreateCompatibleDC(hdc);
+                bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
+                oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+
+                SetBkMode(bufferDc, TRANSPARENT);
+
+                if (context->ThemeSupport)
+                {
+                    SetTextColor(bufferDc, RGB(170, 170, 170));
+                    SetDCBrushColor(bufferDc, RGB(60, 60, 60));
+                    FillRect(bufferDc, &clientRect, GetStockBrush(DC_BRUSH));
+                }
+                else
+                {
+                    SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
+                    FillRect(bufferDc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+                }
+
+                oldFont = SelectFont(bufferDc, GetWindowFont(hWnd));
+                clientRect.left += 2;
+                DrawText(
+                    bufferDc,
+                    context->CueBannerText->Buffer,
+                    (UINT)context->CueBannerText->Length / 2,
+                    &clientRect,
+                    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP
+                    );
+                clientRect.left -= 2;
+                SelectFont(bufferDc, oldFont);
+
+                BitBlt(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom, bufferDc, 0, 0, SRCCOPY);
+                SelectBitmap(bufferDc, oldBufferBitmap);
+                DeleteBitmap(bufferBitmap);
+                DeleteDC(bufferDc);
+
+                if (!(HDC)wParam)
+                {
+                    ReleaseDC(hWnd, hdc);
+                }
+            }
+
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        }
+        break;
     }
 
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
@@ -703,7 +780,6 @@ VOID PhCreateSearchControl(
     PEDIT_CONTEXT context;
 
     context = PhAllocateZero(sizeof(EDIT_CONTEXT));
-    context->WindowHandle = WindowHandle;
     context->ThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport"); // HACK
     context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
 
@@ -712,7 +788,7 @@ VOID PhCreateSearchControl(
 
     // Set initial text
     if (BannerText)
-        Edit_SetCueBannerText(WindowHandle, BannerText);
+        context->CueBannerText = PhCreateString(BannerText);
 
     // Subclass the Edit control window procedure.
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
