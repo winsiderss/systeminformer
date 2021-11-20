@@ -184,10 +184,6 @@ PWSTR ToolbarGetText(
     _In_ INT CommandID
     );
 
-LONG ToolbarGetFontSize(
-    VOID
-    );
-
 HBITMAP ToolbarGetImage(
     _In_ INT CommandID
     );
@@ -212,13 +208,14 @@ VOID RebarAdjustBandHeightLayout(
     _In_ LONG Height
     );
 
+LONG ToolStatusGetWindowFontSize(
+    _In_ HWND WindowHandle,
+    _In_ HFONT WindowFont
+    );
+
 // main.c
 
 HWND GetCurrentTreeNewHandle(
-    VOID
-    );
-
-HFONT ToolStatusGetTreeWindowFont(
     VOID
     );
 
