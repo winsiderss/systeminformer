@@ -1590,15 +1590,22 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                         PhMoveReference(&NewFontSelection, PhBufferToHexString((PUCHAR)&font, sizeof(LOGFONT)));
 
                         // Update the button's font.
-
-                        if (CurrentFontInstance)
-                            DeleteFont(CurrentFontInstance);
-
+                        if (CurrentFontInstance) DeleteFont(CurrentFontInstance);
                         CurrentFontInstance = CreateFontIndirect(&font);
 
                         SetWindowFont(OptionsTreeControl, CurrentFontInstance, TRUE); // HACK
                         SetWindowFont(GetDlgItem(hwndDlg, IDC_SETTINGS), CurrentFontInstance, TRUE);
                         SetWindowFont(GetDlgItem(hwndDlg, IDC_FONT), CurrentFontInstance, TRUE);
+
+                        // Re-add the listview items for the new font (dmex)
+                        GeneralListViewStateInitializing = TRUE;
+                        HWND listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+                        ExtendedListView_SetRedraw(listviewHandle, FALSE);
+                        ListView_DeleteAllItems(listviewHandle);
+                        PhpAdvancedPageLoad(hwndDlg);
+                        ExtendedListView_SetRedraw(listviewHandle, TRUE);
+                        GeneralListViewStateInitializing = FALSE;
+
                         RestartRequired = TRUE; // HACK: Fix ToolStatus plugin toolbar resize on font change
                     }
                 }
