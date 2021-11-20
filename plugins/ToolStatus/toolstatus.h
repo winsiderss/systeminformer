@@ -184,6 +184,10 @@ PWSTR ToolbarGetText(
     _In_ INT CommandID
     );
 
+LONG ToolbarGetFontSize(
+    VOID
+    );
+
 HBITMAP ToolbarGetImage(
     _In_ INT CommandID
     );
@@ -202,6 +206,10 @@ VOID ReBarLoadLayoutSettings(
 
 VOID ReBarSaveLayoutSettings(
     VOID
+    );
+
+VOID RebarAdjustBandHeightLayout(
+    _In_ LONG Height
     );
 
 // main.c

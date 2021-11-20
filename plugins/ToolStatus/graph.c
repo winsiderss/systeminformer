@@ -200,7 +200,7 @@ BOOLEAN ToolbarAddGraph(
 {
     if (!Graph->GraphHandle && RebarHandle && ToolStatusConfig.ToolBarEnabled)
     {
-        UINT rebarHeight = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
+        UINT rebarHeight = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
 
         if (Graph->GraphHandle = CreateWindow(
             PH_GRAPH_CLASSNAME,

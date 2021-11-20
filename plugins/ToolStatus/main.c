@@ -1288,6 +1288,15 @@ LRESULT CALLBACK MainWndSubclassProc(
                 SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
                 SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
 
+                {
+                    //ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+                    LONG toolbarButtonHeight = ToolbarGetFontSize();
+                    toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
+
+                    RebarAdjustBandHeightLayout(toolbarButtonHeight);
+                    SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+                }
+
                 ToolbarLoadSettings();
             }
 
