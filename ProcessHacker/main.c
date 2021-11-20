@@ -551,9 +551,7 @@ VOID PhInitializeFont(
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
-
-    if (PhApplicationFont)
-        DeleteObject(PhApplicationFont);
+    HFONT oldFont = PhApplicationFont;
 
     if (
         !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
@@ -565,6 +563,8 @@ VOID PhInitializeFont(
         else
             PhApplicationFont = NULL;
     }
+
+    if (oldFont) DeleteFont(oldFont);
 }
 
 BOOLEAN PhInitializeDirectoryPolicy(

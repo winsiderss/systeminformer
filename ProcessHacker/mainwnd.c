@@ -577,10 +577,10 @@ VOID PhMwpOnSettingChange(
 {
     PhInitializeFont();
 
-    if (TabControlHandle)
-    {
-        SetWindowFont(TabControlHandle, PhApplicationFont, TRUE);
-    }
+    //if (TabControlHandle)
+    //{
+    //    SetWindowFont(TabControlHandle, PhApplicationFont, TRUE);
+    //}
 }
 
 static NTSTATUS PhpOpenServiceControlManager(
@@ -3564,6 +3564,7 @@ VOID PhMwpInvokeUpdateWindowFont(
     _In_ PVOID Parameter
     )
 {
+    HFONT oldFont = PhTreeWindowFont;
     PPH_STRING fontHexString;
     LOGFONT font;
 
@@ -3576,19 +3577,17 @@ VOID PhMwpInvokeUpdateWindowFont(
     {
         HFONT newFont;
 
-        newFont = CreateFontIndirect(&font);
-
-        if (newFont)
-        {
-            if (PhTreeWindowFont)
-                DeleteFont(PhTreeWindowFont);
+        if (newFont = CreateFontIndirect(&font))
+        {      
             PhTreeWindowFont = newFont;
-
-            PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
+            PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);           
         }
     }
 
+    SetWindowFont(TabControlHandle, PhTreeWindowFont, TRUE);
     SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+
+    if (oldFont) DeleteFont(oldFont);
 }
 
 VOID PhMwpInvokePrepareEarlyExit(
