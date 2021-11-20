@@ -507,7 +507,7 @@ VOID NTAPI LayoutPaddingCallback(
         // Adjust the PH client area and exclude the StatusBar width.
         layoutPadding->Padding.bottom += statusBarRect.bottom;
 
-        InvalidateRect(StatusBarHandle, NULL, TRUE);
+        //InvalidateRect(StatusBarHandle, NULL, TRUE);
     }
 }
 
@@ -1275,30 +1275,32 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_PH_UPDATE_FONT:
         {
-            HFONT newFont;
-
             // Let Process Hacker perform the default processing.
             CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
-            if (newFont = ProcessHacker_GetFont())
+            ToolbarWindowFont = ProcessHacker_GetFont();
+            SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
+            SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
+
             {
-                if (ToolbarWindowFont) DeleteFont(ToolbarWindowFont);
-                ToolbarWindowFont = newFont;
+                //ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+                LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
+                toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
 
-                SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
-                SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
-
-                {
-                    //ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
-                    LONG toolbarButtonHeight = ToolbarGetFontSize();
-                    toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
-
-                    RebarAdjustBandHeightLayout(toolbarButtonHeight);
-                    SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
-                }
-
-                ToolbarLoadSettings();
+                RebarAdjustBandHeightLayout(toolbarButtonHeight);
+                SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
             }
+
+            {
+                LONG statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
+                statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
+
+                SendMessage(StatusBarHandle, SB_SETMINHEIGHT, statusbarButtonHeight, 0);
+                //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
+                StatusBarUpdate(TRUE);
+            }
+
+            ToolbarLoadSettings();
 
             goto DefaultWndProc;
         }
