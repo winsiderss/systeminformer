@@ -108,12 +108,12 @@ LRESULT CALLBACK PhpHexEditWndProc(
 {
     PPHP_HEXEDIT_CONTEXT context;
 
-    context = (PPHP_HEXEDIT_CONTEXT)GetWindowLongPtr(hwnd, 0);
+    context = PhGetWindowContext(hwnd, MAXCHAR);
 
     if (uMsg == WM_CREATE)
     {
         PhpCreateHexEditContext(&context);
-        SetWindowLongPtr(hwnd, 0, (LONG_PTR)context);
+        PhSetWindowContext(hwnd, MAXCHAR, context);
     }
 
     if (!context)
@@ -128,7 +128,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
         break;
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
+            PhRemoveWindowContext(hwnd, MAXCHAR);
             PhpFreeHexEditContext(context);
         }
         break;
