@@ -3,7 +3,7 @@
  *   service provider
  *
  * Copyright (C) 2009-2015 wj32
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -69,7 +69,8 @@ typedef struct _PHP_SERVICE_NOTIFY_CONTEXT
         {
             BOOLEAN IsServiceManager : 1;
             BOOLEAN JustAddedNotifyRegistration : 1;
-            BOOLEAN Spare : 6;
+            BOOLEAN NonPollDisabled : 1;
+            BOOLEAN Spare : 5;
         };
     };
     PHP_SERVICE_NOTIFY_STATE State;
@@ -124,6 +125,11 @@ VOID PhpRemoveProcessItemService(
     _In_ PPH_SERVICE_ITEM ServiceItem
     );
 
+VOID PhpSubscribeServiceChangeNotifications(
+    _In_ SC_HANDLE ScManagerHandle,
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    );
+
 VOID PhpInitializeServiceNonPoll(
     VOID
     );
@@ -160,6 +166,17 @@ BOOLEAN PhServiceProviderInitialization(
         );
 
     RtlInitializeSListHead(&PhpServiceQueryDataListHead);
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        PVOID sechostHandle;
+
+        if (sechostHandle = PhLoadLibrary(L"sechost.dll"))
+        {
+            SubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "SubscribeServiceChangeNotifications", 0);
+            UnsubscribeServiceChangeNotifications_I = PhGetDllBaseProcedureAddress(sechostHandle, "UnsubscribeServiceChangeNotifications", 0);
+        }
+    }
 
     return TRUE;
 }
@@ -863,8 +880,12 @@ VOID PhServiceProviderUpdate(
                 // Create the service item and fill in basic information.
 
                 serviceItem = PhCreateServiceItem(serviceEntry);
-
                 PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
+
+                if (!PhEnableServiceNonPoll)
+                {
+                    PhpSubscribeServiceChangeNotifications(scManagerHandle, serviceItem);
+                }
 
                 // Add the service to its process, if appropriate.
                 if (
@@ -1119,7 +1140,9 @@ VOID PhpDestroyServiceNotifyContext(
     if (NotifyContext->Buffer.pszServiceNames)
         LocalFree(NotifyContext->Buffer.pszServiceNames);
 
-    CloseServiceHandle(NotifyContext->ServiceHandle);
+    if (NotifyContext->ServiceHandle)
+        CloseServiceHandle(NotifyContext->ServiceHandle);
+
     PhClearReference(&NotifyContext->ServiceName);
     PhFree(NotifyContext);
 }
@@ -1132,10 +1155,17 @@ VOID CALLBACK PhpServicePropertyChangeNotifyCallback(
     PPHP_SERVICE_NOTIFY_CONTEXT notifyContext = Context;
     PPH_SERVICE_ITEM serviceItem;
 
-    // Note: Ignore deleted nofications since we handle this elsewhere and our
+    // Note: Ignore deleted nofications since NonPoll handles these elsewhere and our
     // notify context gets destroyed before services.exe invokes this callback. (dmex)
     if (ServiceNotifyFlags == SERVICE_NOTIFY_DELETED)
+    {
+        // Note: We can handle delete notifications only when NonPoll is disabled. (dmex)
+        if (notifyContext && notifyContext->NonPollDisabled)
+        {
+            PhpDestroyServiceNotifyContext(notifyContext);
+        }
         return;
+    }
 
     if (!notifyContext)
         return;
@@ -1155,6 +1185,51 @@ VOID CALLBACK PhpServicePropertyChangeNotifyCallback(
             PhDereferenceObject(serviceItem);
         }
     }
+}
+
+VOID PhpSubscribeServiceChangeNotifications(
+    _In_ SC_HANDLE ScManagerHandle,
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    PSC_NOTIFICATION_REGISTRATION serviceNotifyRegistration;
+    PPHP_SERVICE_NOTIFY_CONTEXT notifyContext;
+    SC_HANDLE serviceHandle;
+
+    if (!SubscribeServiceChangeNotifications_I)
+        return;
+
+    serviceHandle = OpenService(
+        ScManagerHandle,
+        PhGetStringOrEmpty(ServiceItem->Name),
+        SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG
+        );
+
+    if (!serviceHandle)
+        return;
+
+    notifyContext = PhAllocateZero(sizeof(PHP_SERVICE_NOTIFY_CONTEXT));
+    notifyContext->ServiceName = PhReferenceObject(ServiceItem->Name);
+    notifyContext->JustAddedNotifyRegistration = TRUE;
+    notifyContext->NonPollDisabled = TRUE;
+
+    if (SubscribeServiceChangeNotifications_I(
+        serviceHandle,
+        SC_EVENT_PROPERTY_CHANGE,
+        PhpServicePropertyChangeNotifyCallback,
+        notifyContext,
+        &serviceNotifyRegistration
+        ) == ERROR_SUCCESS)
+    {
+        notifyContext->NotifyRegistration = serviceNotifyRegistration;
+    }
+    else
+    {
+        PhDereferenceObject(notifyContext->ServiceName);
+        PhFree(notifyContext);
+    }
+
+    CloseServiceHandle(serviceHandle);
 }
 
 NTSTATUS PhpServiceNonPollThreadStart(
