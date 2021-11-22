@@ -147,12 +147,12 @@ LRESULT CALLBACK PhpColorBoxWndProc(
 {
     PPHP_COLORBOX_CONTEXT context;
 
-    context = (PPHP_COLORBOX_CONTEXT)GetWindowLongPtr(hwnd, 0);
+    context = PhGetWindowContext(hwnd, MAXCHAR);
 
     if (uMsg == WM_CREATE)
     {
         PhpCreateColorBoxContext(&context);
-        SetWindowLongPtr(hwnd, 0, (LONG_PTR)context);
+        PhSetWindowContext(hwnd, MAXCHAR, context);
     }
 
     if (!context)
@@ -167,7 +167,7 @@ LRESULT CALLBACK PhpColorBoxWndProc(
         break;
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
+            PhRemoveWindowContext(hwnd, MAXCHAR);
             PhpFreeColorBoxContext(context);
         }
         break;

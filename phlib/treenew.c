@@ -92,12 +92,12 @@ LRESULT CALLBACK PhTnpWndProc(
 {
     PPH_TREENEW_CONTEXT context;
 
-    context = (PPH_TREENEW_CONTEXT)GetWindowLongPtr(hwnd, 0);
+    context = PhGetWindowContext(hwnd, MAXCHAR);
 
     if (uMsg == WM_CREATE)
     {
         PhTnpCreateTreeNewContext(&context);
-        SetWindowLongPtr(hwnd, 0, (LONG_PTR)context);
+        PhSetWindowContext(hwnd, MAXCHAR, context);
     }
 
     if (!context)
@@ -123,7 +123,7 @@ LRESULT CALLBACK PhTnpWndProc(
         {
             context->Callback(hwnd, TreeNewDestroying, NULL, NULL, context->CallbackContext);
             PhTnpDestroyTreeNewContext(context);
-            SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
+            PhRemoveWindowContext(hwnd, MAXCHAR);
         }
         return 0;
     case WM_SIZE:
