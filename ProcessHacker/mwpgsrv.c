@@ -3,7 +3,7 @@
  *   Main window: Services tab
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -501,7 +501,8 @@ VOID PhMwpOnServiceAdded(
 }
 
 VOID PhMwpOnServiceModified(
-    _In_ PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
+    _In_ PPH_SERVICE_MODIFIED_DATA ServiceModifiedData,
+    _In_ ULONG RunId
     )
 {
     PH_SERVICE_CHANGE serviceChange;
@@ -529,14 +530,15 @@ VOID PhMwpOnServiceModified(
         logEntryType = PH_LOG_ENTRY_SERVICE_PAUSE;
         break;
     default:
-        logEntryType = 0;
+        // HACK: We can't use JustProcessed here, so use the RunId instead. (dmex)
+        logEntryType = (RunId && RunId > 2) ? PH_LOG_ENTRY_SERVICE_MODIFIED : 0;
         break;
     }
 
     if (logEntryType != 0)
         PhLogServiceEntry(logEntryType, ServiceModifiedData->Service->Name, ServiceModifiedData->Service->DisplayName);
 
-    if (PhMwpNotifyIconNotifyMask & (PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
+    if (PhMwpNotifyIconNotifyMask & (PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP | PH_NOTIFY_SERVICE_MODIFIED))
     {
         PPH_SERVICE_ITEM serviceItem;
 
@@ -596,6 +598,35 @@ VOID PhMwpOnServiceModified(
                 else
                 {
                     PhShowIconNotification(L"Service Stopped",
+                        PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
+                }
+            }
+        }
+        else if (serviceChange == -1 && PhMwpNotifyIconNotifyMask & PH_NOTIFY_SERVICE_MODIFIED && (RunId && RunId > 2))
+        {
+            if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_MODIFIED, serviceItem))
+            {
+                PH_FORMAT format[5];
+                WCHAR formatBuffer[260];
+
+                PhMwpClearLastNotificationDetails();
+                PhMwpLastNotificationType = PH_NOTIFY_SERVICE_MODIFIED;
+                PhSwapReference(&PhMwpLastNotificationDetails.ServiceName, serviceItem->Name);
+
+                // The service %s (%s) has been modified.
+                PhInitFormatS(&format[0], L"The service ");
+                PhInitFormatSR(&format[1], serviceItem->Name->sr);
+                PhInitFormatS(&format[2], L" (");
+                PhInitFormatSR(&format[3], serviceItem->DisplayName->sr);
+                PhInitFormatS(&format[4], L") was modified");
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                {
+                    PhShowIconNotification(L"Service modified", formatBuffer);
+                }
+                else
+                {
+                    PhShowIconNotification(L"Service modified",
                         PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
                 }
             }
@@ -667,7 +698,7 @@ VOID PhMwpOnServicesUpdated(
                 PhMwpOnServiceAdded(serviceItem, events[i].RunId);
                 break;
             case ProviderModifiedEvent:
-                PhMwpOnServiceModified((PPH_SERVICE_MODIFIED_DATA)serviceItem);
+                PhMwpOnServiceModified((PPH_SERVICE_MODIFIED_DATA)serviceItem, events[i].RunId);
                 break;
             case ProviderRemovedEvent:
                 PhMwpOnServiceRemoved(serviceItem);

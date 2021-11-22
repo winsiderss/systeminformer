@@ -383,6 +383,24 @@ PPH_STRING PhFormatLogEntry(
             //    );
             return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
         }
+    case PH_LOG_ENTRY_SERVICE_MODIFIED:
+        {
+            PH_FORMAT format[5];
+
+            // Service modified: %s (%s)
+            PhInitFormatS(&format[0], L"Service modified: ");
+            PhInitFormatSR(&format[1], Entry->Service.Name->sr);
+            PhInitFormatS(&format[2], L" (");
+            PhInitFormatSR(&format[3], Entry->Service.DisplayName->sr);
+            PhInitFormatC(&format[4], L')');
+
+            //return PhFormatString(
+            //    L"Service modified: %s (%s)",
+            //    Entry->Service.Name->Buffer,
+            //    Entry->Service.DisplayName->Buffer
+            //    );
+            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+        }
     case PH_LOG_ENTRY_MESSAGE:
         PhReferenceObject(Entry->Message);
         return Entry->Message;
