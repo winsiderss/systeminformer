@@ -719,7 +719,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 DrawText(
                     bufferDc,
                     context->CueBannerText->Buffer,
-                    (UINT)context->CueBannerText->Length / 2,
+                    (UINT)context->CueBannerText->Length / sizeof(WCHAR),
                     &clientRect,
                     DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP
                     );
@@ -789,6 +789,15 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 return 1;
         }
         break;
+    case EM_SETCUEBANNER:
+        {
+            PWSTR text = (PWSTR)lParam;
+
+            PhMoveReference(&context->CueBannerText, PhCreateString(text));
+            
+            RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        }
+        return TRUE;
     }
 
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
