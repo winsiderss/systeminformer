@@ -765,6 +765,7 @@ VOID PhMwpOnCommand(
     case ID_NOTIFICATIONS_STARTEDSERVICES:
     case ID_NOTIFICATIONS_STOPPEDSERVICES:
     case ID_NOTIFICATIONS_DELETEDSERVICES:
+    case ID_NOTIFICATIONS_MODIFIEDSERVICES:
         {
             PhMwpExecuteNotificationMenuCommand(WindowHandle, Id);
         }
@@ -2637,6 +2638,7 @@ PPH_EMENU PhpCreateNotificationMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STARTEDSERVICES, L"St&arted services", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_STOPPEDSERVICES, L"St&opped services", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_DELETEDSERVICES, L"&Deleted services", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_MODIFIEDSERVICES, L"&Modified services", NULL, NULL), ULONG_MAX);
 
     for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
     {
@@ -2661,6 +2663,9 @@ PPH_EMENU PhpCreateNotificationMenu(
                 break;
             case PH_NOTIFY_SERVICE_STOP:
                 id = ID_NOTIFICATIONS_STOPPEDSERVICES;
+                break;
+            case PH_NOTIFY_SERVICE_MODIFIED:
+                id = ID_NOTIFICATIONS_MODIFIEDSERVICES;
                 break;
             }
 
@@ -2690,6 +2695,7 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     case ID_NOTIFICATIONS_STARTEDSERVICES:
     case ID_NOTIFICATIONS_STOPPEDSERVICES:
     case ID_NOTIFICATIONS_DELETEDSERVICES:
+    case ID_NOTIFICATIONS_MODIFIEDSERVICES:
         {
             ULONG bit;
 
@@ -2712,6 +2718,9 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
                 break;
             case ID_NOTIFICATIONS_DELETEDSERVICES:
                 bit = PH_NOTIFY_SERVICE_DELETE;
+                break;
+            case ID_NOTIFICATIONS_MODIFIEDSERVICES:
+                bit = PH_NOTIFY_SERVICE_MODIFIED;
                 break;
             }
 

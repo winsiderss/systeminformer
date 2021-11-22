@@ -396,6 +396,7 @@ VOID NTAPI NotifyEventCallback(
     case PH_NOTIFY_SERVICE_DELETE:
     case PH_NOTIFY_SERVICE_START:
     case PH_NOTIFY_SERVICE_STOP:
+    case PH_NOTIFY_SERVICE_MODIFIED:
         serviceItem = notifyEvent->Parameter;
 
         MatchFilterList(ServiceFilterList, serviceItem->Name, &filterType);
