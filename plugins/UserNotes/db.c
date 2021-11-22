@@ -510,6 +510,9 @@ NTSTATUS CreateIfeoObject(
 
     if (!NT_SUCCESS(status))
     {
+        if (status == STATUS_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
+            status = STATUS_ELEVATION_REQUIRED;
+
         PhDereferenceObject(keyPath);
         return status;
     }
@@ -565,6 +568,9 @@ NTSTATUS CreateIfeoObject(
     NtClose(keyRootHandle);
     PhDereferenceObject(keyPath);
 
+    if (status == STATUS_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
+        status = STATUS_ELEVATION_REQUIRED;
+
     return status;
 }
 
@@ -600,6 +606,9 @@ NTSTATUS DeleteIfeoObject(
 
     if (!NT_SUCCESS(status))
     {
+        if (status == STATUS_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
+            status = STATUS_ELEVATION_REQUIRED;
+
         PhDereferenceObject(keyPath);
         return status;
     }
@@ -656,6 +665,9 @@ NTSTATUS DeleteIfeoObject(
 
     NtClose(keyRootHandle);
     PhDereferenceObject(keyPath);
+
+    if (status == STATUS_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
+        status = STATUS_ELEVATION_REQUIRED;
 
     return status;
 }
