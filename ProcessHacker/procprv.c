@@ -1295,6 +1295,7 @@ VOID PhpFillProcessItem(
         {
             PTOKEN_USER tokenUser;
             TOKEN_ELEVATION_TYPE elevationType;
+            BOOLEAN isElevated;
             MANDATORY_LEVEL integrityLevel;
             PWSTR integrityString;
 
@@ -1311,7 +1312,11 @@ VOID PhpFillProcessItem(
             if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
             {
                 ProcessItem->ElevationType = elevationType;
-                ProcessItem->IsElevated = elevationType == TokenElevationTypeFull;
+            }
+
+            if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+            {
+                ProcessItem->IsElevated = isElevated;
             }
 
             // Integrity

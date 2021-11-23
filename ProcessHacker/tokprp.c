@@ -866,7 +866,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PTOKEN_USER tokenUser;
                 PPH_STRING stringUserSid;
                 ULONG sessionId;
-                TOKEN_ELEVATION_TYPE elevationType;
+                BOOLEAN isElevated;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
@@ -904,8 +904,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
                     PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
-                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetElevationTypeString(elevationType));
+                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, isElevated ? L"Yes" : L"No");
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -1872,6 +1872,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 PTOKEN_OWNER tokenOwner;
                 PTOKEN_PRIMARY_GROUP tokenPrimaryGroup;
                 TOKEN_ELEVATION_TYPE elevationType;
+                BOOLEAN isElevated;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 BOOLEAN isUIAccessEnabled;
@@ -1901,8 +1902,12 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                 {
-                    tokenElevated = PhGetElevationTypeString(elevationType);
                     hasLinkedToken = elevationType != TokenElevationTypeDefault;
+                }
+
+                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                {
+                    tokenElevated = isElevated ? L"Yes" : L"No";
                 }
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
