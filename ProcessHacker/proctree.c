@@ -3350,7 +3350,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorProtectedProcess;
             else if (PhCsUseColorHandleFiltered && processItem->IsProtectedHandle)
                 getNodeColor->BackColor = PhCsColorHandleFiltered;
-            else if (PhCsUseColorElevatedProcesses && processItem->IsElevated)
+            else if (PhCsUseColorElevatedProcesses && processItem->IsElevated && processItem->ElevationType == TokenElevationTypeFull)
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
             else if (PhCsUseColorPicoProcesses && processItem->IsSubsystemProcess)
                 getNodeColor->BackColor = PhCsColorPicoProcesses;

@@ -2347,6 +2347,7 @@ VOID PhProcessProviderUpdate(
                     )))
                 {
                     PTOKEN_USER tokenUser;
+                    BOOLEAN isElevated;
                     TOKEN_ELEVATION_TYPE elevationType;
                     MANDATORY_LEVEL integrityLevel;
                     PWSTR integrityString;
@@ -2372,12 +2373,21 @@ VOID PhProcessProviderUpdate(
                     }
 
                     // Elevation
+
+                    if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    {
+                        if (processItem->IsElevated != isElevated)
+                        {
+                            processItem->IsElevated = isElevated;
+                            modified = TRUE;
+                        }
+                    }
+
                     if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                     {
                         if (processItem->ElevationType != elevationType)
                         {
                             processItem->ElevationType = elevationType;
-                            processItem->IsElevated = elevationType == TokenElevationTypeFull;
                             modified = TRUE;
                         }
                     }

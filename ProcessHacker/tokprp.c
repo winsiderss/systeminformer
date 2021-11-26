@@ -428,19 +428,25 @@ PWSTR PhGetPrivilegeAttributesString(
     }
 }
 
-PWSTR PhGetElevationTypeString(
+PPH_STRING PhGetElevationTypeString(
+    _In_ BOOLEAN isElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType
-    )
+)
 {
-    switch (ElevationType)
-    {
-    case TokenElevationTypeFull:
-        return L"Yes";
-    case TokenElevationTypeLimited:
-        return L"No";
-    default:
-        return L"N/A";
-    }
+    PH_STRING_BUILDER sb;
+
+    PhInitializeStringBuilder(&sb, 25);
+
+    PhAppendStringBuilder2(&sb, isElevated ? L"Yes" : L"No");
+
+    if (ElevationType == TokenElevationTypeFull)
+        PhAppendStringBuilder2(&sb, L" (Full)");
+    else if (ElevationType == TokenElevationTypeLimited)
+        PhAppendStringBuilder2(&sb, L" (Limited)");
+    else
+        PhAppendStringBuilder2(&sb, L" (Default)");
+
+    return PhFinalStringBuilderString(&sb);
 }
 
 VOID PhpTokenPageFreeListViewEntries(
@@ -867,6 +873,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PPH_STRING stringUserSid;
                 ULONG sessionId;
                 BOOLEAN isElevated;
+                TOKEN_ELEVATION_TYPE elevationType;
+                PPH_STRING tokenElevated = NULL;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
@@ -904,8 +912,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
                     PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
-                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
-                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, isElevated ? L"Yes" : L"No");
+                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
+                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                {
+                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
+                }
+                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"N/A"));
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -1852,7 +1864,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PPH_STRING tokenOwnerName = NULL;
             PPH_STRING tokenPrimaryGroupName = NULL;
             ULONG tokenSessionId = ULONG_MAX;
-            PWSTR tokenElevated = L"N/A";
+            PPH_STRING tokenElevated = NULL;
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
             PWSTR tokenUIAccess = L"Unknown";
@@ -1900,14 +1912,11 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 PhGetTokenSessionId(tokenHandle, &tokenSessionId);
 
-                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
+                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                 {
+                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
                     hasLinkedToken = elevationType != TokenElevationTypeDefault;
-                }
-
-                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
-                {
-                    tokenElevated = isElevated ? L"Yes" : L"No";
                 }
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
@@ -1967,7 +1976,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             else
                 PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
+            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"N/A"));
             PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
             PhSetDialogItemText(hwndDlg, IDC_UIACCESS, tokenUIAccess);
             PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
