@@ -2009,9 +2009,7 @@ VOID PhMwpLoadSettings(
     )
 {
     ULONG opacity;
-    PPH_STRING customFont;
 
-    customFont = PhaGetStringSetting(L"Font");
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
@@ -2036,10 +2034,9 @@ VOID PhMwpLoadSettings(
     if (opacity != 0)
         PhSetWindowOpacity(WindowHandle, opacity);
 
-    PhNfLoadStage1();
+    PhMwpInvokeUpdateWindowFont(NULL);
 
-    if (customFont->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
-        ProcessHacker_UpdateFont();
+    PhNfLoadStage1();
 
     PhMwpNotifyAllPages(MainTabPageLoadSettings, NULL, NULL);
 }
@@ -3570,10 +3567,11 @@ VOID PhMwpInvokeShowMemoryResultsDialog(
 }
 
 VOID PhMwpInvokeUpdateWindowFont(
-    _In_ PVOID Parameter
+    _In_opt_ PVOID Parameter
     )
 {
     HFONT oldFont = PhTreeWindowFont;
+    HFONT newFont;
     PPH_STRING fontHexString;
     LOGFONT font;
 
@@ -3584,17 +3582,22 @@ VOID PhMwpInvokeUpdateWindowFont(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
-        HFONT newFont;
-
-        if (newFont = CreateFontIndirect(&font))
-        {      
-            PhTreeWindowFont = newFont;
-            PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);           
-        }
+        if (!(newFont = CreateFontIndirect(&font)))
+            return;
+    }
+    else
+    {
+        if (!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &font, 0))
+            return;
+        if (!(newFont = CreateFontIndirect(&font)))
+            return;
     }
 
+    PhTreeWindowFont = newFont;
+
     SetWindowFont(TabControlHandle, PhTreeWindowFont, TRUE);
-    SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+    PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
+    SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0); // notify plugins of font change. (dmex)
 
     if (oldFont) DeleteFont(oldFont);
 }
@@ -3783,7 +3786,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT:
         {
-            return (PVOID)GetWindowFont(PhMwpProcessTreeNewHandle);
+            return PhTreeWindowFont; // (PVOID)GetWindowFont(PhMwpProcessTreeNewHandle);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:

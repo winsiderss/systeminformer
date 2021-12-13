@@ -53,6 +53,10 @@ NTSTATUS PhMwpLoadStage1Worker(
     _In_ PVOID Parameter
     );
 
+VOID PhMwpInvokeUpdateWindowFont(
+    _In_opt_ PVOID Parameter
+    );
+
 // Event handlers
 
 VOID PhMwpOnDestroy(
