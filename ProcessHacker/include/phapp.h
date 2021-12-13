@@ -300,7 +300,7 @@ BOOLEAN
 NTAPI
 PhShowProcessAffinityDialog2(
     _In_ HWND ParentWindowHandle,
-    _In_ ULONG_PTR AffinityMask,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PULONG_PTR NewAffinityMask
     );
 // end_phapppub
