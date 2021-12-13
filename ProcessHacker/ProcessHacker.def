@@ -398,7 +398,6 @@ EXPORTS
     PhGetWin32Message
     PhInitializeHash
     PhInitializeImageVersionInfo
-    PhIsExecutablePacked
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
     PhLoadLibrary
@@ -583,6 +582,7 @@ EXPORTS
     PhImageListDrawEx
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
+    PhWindowThemeControlColor
 
 ; hndlinfo
     PhEnumObjectTypes
