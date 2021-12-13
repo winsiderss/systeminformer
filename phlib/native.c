@@ -3554,6 +3554,55 @@ NTSTATUS PhGetProcessIdsUsingFile(
         );
 }
 
+NTSTATUS PhGetFileUsn(
+    _In_ HANDLE FileHandle,
+    _Out_ PLONGLONG Usn
+    )
+{
+    NTSTATUS status;
+    ULONG recordLength;
+    PUSN_RECORD_V2 recordBuffer; // USN_RECORD_UNION
+    IO_STATUS_BLOCK isb;
+
+    recordLength = sizeof(USN_RECORD_V2) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR);
+    recordBuffer = PhAllocate(recordLength);
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_READ_FILE_USN_DATA,
+        NULL, // READ_FILE_USN_DATA
+        0,
+        recordBuffer,
+        recordLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *Usn = recordBuffer->Usn;
+
+        //switch (recordBuffer->Header.MajorVersion)
+        //{
+        //case 2:
+        //    *Usn = recordBuffer->V2.Usn;
+        //    break;
+        //case 3:
+        //    *Usn = recordBuffer->V3.Usn;
+        //    break;
+        //case 4:
+        //    *Usn = recordBuffer->V4.Usn;
+        //    break;
+        //}
+    }
+
+    PhFree(recordBuffer);
+
+    return status;
+}
+
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     _In_ HANDLE TransactionManagerHandle,
     _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
