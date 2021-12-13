@@ -523,16 +523,11 @@ NTSTATUS PhMwpLoadStage1Worker(
 
     PhNfLoadStage2();
 
-    if (WindowsVersion < WINDOWS_10)
-    {
-        // Make sure we get closed late in the shutdown process.
-        SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-    }
-    else
-    {
-        // Same values as taskmgr.exe on Win10 (dmex)
-        SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
-    }
+    // Make sure we get closed late in the shutdown process.
+    SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
+    // Note: Windows excludes Task Manager from the shutdown dialog but doesn't exclude other applications.
+    // If we use the same values as TM then we're always visible and users have assumed we're delaying shutdown. (dmex)
+    //SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
 
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
