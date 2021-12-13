@@ -2490,7 +2490,7 @@ NTSTATUS PhpQueryTokenVariableSize(
     ULONG returnLength;
 
     returnLength = 0;
-    bufferSize = 0x40;
+    bufferSize = 0x80;
     buffer = PhAllocate(bufferSize);
 
     status = NtQueryInformationToken(
