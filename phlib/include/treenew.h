@@ -111,6 +111,7 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_NO_COLUMN_HEADER 0x80
 #define TN_STYLE_CUSTOM_COLORS 0x100
 #define TN_STYLE_ALWAYS_SHOW_SELECTION 0x200
+#define TN_STYLE_CUSTOM_HEADERDRAW 0x400
 
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1
@@ -228,6 +229,8 @@ typedef enum _PH_TREENEW_MESSAGE
 
     TreeNewDestroying,
     TreeNewGetDialogCode, // ULONG Parameter1, PULONG Parameter2
+
+    TreeNewGetHeaderText,
 
     MaxTreeNewMessage
 } PH_TREENEW_MESSAGE;
