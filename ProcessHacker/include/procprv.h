@@ -241,7 +241,7 @@ typedef struct _PH_PROCESS_ITEM
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
 
-    WORD Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
+    USHORT Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
@@ -333,7 +333,12 @@ VERIFY_RESULT PhVerifyFileCached(
     _In_ PPH_STRING FileName,
     _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName,
+    _In_ BOOLEAN NativeFileName,
     _In_ BOOLEAN CachedOnly
+    );
+
+VOID PhFlushVerifyCache(
+    VOID
     );
 
 // begin_phapppub
