@@ -717,7 +717,7 @@ PhCreateCommonFont(
         ANSI_CHARSET,
         OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY | ANTIALIASED_QUALITY,
+        CLEARTYPE_QUALITY,
         DEFAULT_PITCH,
         logFont.lfFaceName
         );
