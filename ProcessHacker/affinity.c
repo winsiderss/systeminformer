@@ -3,7 +3,7 @@
  *   process affinity editor
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2020-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,7 +36,6 @@ typedef struct _AFFINITY_DIALOG_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PPH_THREAD_ITEM ThreadItem;
-    ULONG_PTR AffinityMask;
     ULONG_PTR NewAffinityMask;
 
     // Multiple selected items (dmex)
@@ -78,16 +77,15 @@ VOID PhShowProcessAffinityDialog(
 _Success_(return)
 BOOLEAN PhShowProcessAffinityDialog2(
     _In_ HWND ParentWindowHandle,
-    _In_ ULONG_PTR AffinityMask,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PULONG_PTR NewAffinityMask
     )
 {
     AFFINITY_DIALOG_CONTEXT context;
 
     memset(&context, 0, sizeof(AFFINITY_DIALOG_CONTEXT));
-    context.ProcessItem = NULL;
+    context.ProcessItem = ProcessItem;
     context.ThreadItem = NULL;
-    context.AffinityMask = AffinityMask;
 
     if (DialogBoxParam(
         PhInstanceHandle,
@@ -218,10 +216,10 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
     {
     case WM_INITDIALOG:
         {
-            NTSTATUS status;
+            NTSTATUS status = STATUS_UNSUCCESSFUL;
             BOOLEAN differentAffinity = FALSE;
             ULONG_PTR systemAffinityMask = 0;
-            ULONG_PTR affinityMask;
+            ULONG_PTR affinityMask = 0;
             ULONG i;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -321,11 +319,6 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                         NtClose(processHandle);
                     }
                 }
-            }
-            else
-            {
-                affinityMask = context->AffinityMask;
-                status = STATUS_SUCCESS;
             }
 
             if (NT_SUCCESS(status) && systemAffinityMask == 0)
@@ -429,6 +422,11 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                             status = PhSetProcessAffinityMask(processHandle, affinityMask);
                             NtClose(processHandle);
                         }
+
+                        if (NT_SUCCESS(status))
+                        {
+                            context->NewAffinityMask = affinityMask;
+                        }
                     }
                     else if (context->ThreadItem)
                     {
@@ -459,11 +457,6 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                             //        break;
                             //}
                         }
-                    }
-                    else
-                    {
-                        context->NewAffinityMask = affinityMask;
-                        status = STATUS_SUCCESS;
                     }
 
                     if (NT_SUCCESS(status))

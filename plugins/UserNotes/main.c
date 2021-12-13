@@ -1284,27 +1284,21 @@ VOID NTAPI MenuHookCallback(
         break;
     case PHAPP_ID_PROCESS_AFFINITY:
         {
-            NTSTATUS status;
             BOOLEAN changed = FALSE;
-            ULONG_PTR affinityMask;
+            //ULONG_PTR affinityMask;
             ULONG_PTR newAffinityMask;
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
             if (!processItem)
                 break;
 
-            // Query the current process affinity.
-            if (!NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
-            {
-                // TODO: Fix issue saving affinity for system processes.
-                break;
-            }
+            PhReferenceObject(processItem);
 
             // Don't show the default Process Hacker affinity dialog.
             menuHookInfo->Handled = TRUE;
 
             // Show the affinity dialog (with our values).
-            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, affinityMask, &newAffinityMask))
+            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, processItem, &newAffinityMask))
             {
                 PDB_OBJECT object;
 
@@ -1326,23 +1320,9 @@ VOID NTAPI MenuHookCallback(
                 {
                     SaveDb();
                 }
-
-                // Update the process affinity in Windows (if the system values are different).
-                if (affinityMask != newAffinityMask)
-                {
-                    HANDLE processHandle;
-
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        PROCESS_SET_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        PhSetProcessAffinityMask(processHandle, newAffinityMask);
-                        NtClose(processHandle);
-                    }
-                }
             }
+
+            PhDereferenceObject(processItem);
         }
         break;
     case PHAPP_ID_PAGEPRIORITY_VERYLOW:
