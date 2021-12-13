@@ -949,14 +949,15 @@ VOID PhpProcessQueryStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
-    if (PhEnableProcessQueryStage2 && processItem->FileNameWin32 && !processItem->IsSubsystemProcess)
+    if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
         NTSTATUS status;
 
         Data->VerifyResult = PhVerifyFileCached(
-            processItem->FileNameWin32,
+            processItem->FileName,
             processItem->PackageFullName,
             &Data->VerifySignerName,
+            TRUE,
             FALSE
             );
 
@@ -995,22 +996,16 @@ VOID PhpProcessQueryStage2(
 
             switch (PhCsImageCoherencyScanLevel)
             {
-                case 1:
-                {
-                    type = PhImageCoherencyQuick;
-                    break;
-                }
-                case 2:
-                {
-                    type = PhImageCoherencyNormal;
-                    break;
-                }
-                case 3:
-                default:
-                {
-                    type = PhImageCoherencyFull;
-                    break;
-                }
+            case 1:
+                type = PhImageCoherencyQuick;
+                break;
+            case 2:
+                type = PhImageCoherencyNormal;
+                break;
+            case 3:
+            default:
+                type = PhImageCoherencyFull;
+                break;
             }
 
             Data->ImageCoherencyStatus = PhGetProcessImageCoherency(
@@ -1913,6 +1908,8 @@ VOID PhProcessProviderUpdate(
         PhImageListFlushCache();
 
         PhFlushImageVersionInfoCache();
+
+        //PhFlushVerifyCache();
     }
 
     if (!PhProcessStatisticsInitialized)
