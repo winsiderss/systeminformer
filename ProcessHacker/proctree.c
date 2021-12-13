@@ -3267,30 +3267,17 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     switch (processItem->Architecture)
                     {
                     case IMAGE_FILE_MACHINE_I386:
-                        {
-                            PhInitializeStringRef(&getCellText->Text, L"x86");
-                            break;
-                        }
+                        PhInitializeStringRef(&getCellText->Text, L"x86");
+                        break;
                     case IMAGE_FILE_MACHINE_AMD64:
-                        {
-                            PhInitializeStringRef(&getCellText->Text, L"x64");
-                            break;
-                        }
+                        PhInitializeStringRef(&getCellText->Text, L"x64");
+                        break;
                     case IMAGE_FILE_MACHINE_ARMNT:
-                        {
-                            PhInitializeStringRef(&getCellText->Text, L"ARM");
-                            break;
-                        }
+                        PhInitializeStringRef(&getCellText->Text, L"ARM");
+                        break;
                     case IMAGE_FILE_MACHINE_ARM64:
-                        {
-                            PhInitializeStringRef(&getCellText->Text, L"ARM64");
-                            break;
-                        }
-                    case IMAGE_FILE_MACHINE_UNKNOWN:
-                    default:
-                        {
-                            break;
-                        }
+                        PhInitializeStringRef(&getCellText->Text, L"ARM64");
+                        break;
                     }
                     break;
                 }
@@ -3742,6 +3729,120 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhUpdateProcessNode(node);
         }
         return TRUE;
+    case TreeNewGetHeaderText:
+        {
+            PPH_TREENEW_COLUMN column = Parameter1;
+            PPH_STRING* columnString = Parameter2;
+            FLOAT decimal = 0;
+            ULONG64 number = 0;
+
+            if (!(
+                column->Id == PHPRTLC_CPU ||
+                column->Id == PHPRTLC_IOTOTALRATE ||
+                column->Id == PHPRTLC_PRIVATEBYTES ||
+                column->Id == PHPRTLC_PRIVATEWS
+                ))
+            {
+                return FALSE;
+            }
+
+            // NOTE: Windows Task Manager doesn't loop subitems when summing the totals but instead just returns the system totals.
+            // We could do the same for some columns like CPU when/if the loop becomes a performance issue but sum the real values for now. (dmex)
+
+            for (ULONG i = 0; i < ProcessNodeList->Count; i++)
+            {
+                node = ProcessNodeList->Items[i];
+
+                if (!PhTestEvent(&node->ProcessItem->Stage1Event))
+                    continue; // break; only check the first item?
+
+                switch (column->Id)
+                {
+                case PHPRTLC_CPU:
+                    {
+                        if (node->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+                            continue;
+
+                        PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &decimal);
+                    }
+                    break;
+                case PHPRTLC_IOTOTALRATE:
+                    {
+                        if (node->ProcessItem->IoReadDelta.Delta != node->ProcessItem->IoReadDelta.Value) // delta is wrong on first run of process provider
+                        {
+                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number);
+                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number);
+                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number);
+                        }
+                    }
+                    break;
+                case PHPRTLC_PRIVATEBYTES:
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PagefileUsage), &number);
+                    break;
+                case PHPRTLC_PRIVATEWS:
+                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &number);
+                    break;
+                }
+            }
+
+            switch (column->Id)
+            {
+            case PHPRTLC_CPU:
+                {
+                    PH_FORMAT format[2];
+
+                    if (decimal == 0.0)
+                        break;
+
+                    decimal *= 100;
+                    PhInitFormatF(&format[0], decimal, 2);
+                    PhInitFormatC(&format[1], L'%');
+
+                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                }
+                return TRUE;
+            case PHPRTLC_IOTOTALRATE:
+                {
+                    PH_FORMAT format[2];
+
+                    if (number == 0)
+                        break;
+
+                    number *= 1000;
+                    number /= PhCsUpdateInterval;
+                    PhInitFormatSize(&format[0], number);
+                    PhInitFormatS(&format[1], L"/s");
+
+                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                }
+                return TRUE;
+            case PHPRTLC_PRIVATEBYTES:
+                {
+                    PH_FORMAT format[1];
+
+                    if (number == 0)
+                        break;
+
+                    PhInitFormatSize(&format[0], number);
+
+                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                }
+                return TRUE;
+            case PHPRTLC_PRIVATEWS:
+                {
+                    PH_FORMAT format[1];
+
+                    if (number == 0)
+                        break;
+
+                    PhInitFormatSize(&format[0], number);
+
+                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                }
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
 
     return FALSE;

@@ -217,6 +217,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"TreeListCustomColorFocus", L"0");
     PhpAddIntegerSetting(L"TreeListCustomColorSelection", L"0");
     PhpAddIntegerSetting(L"TreeListCustomRowSize", L"0");
+    PhpAddIntegerSetting(L"TreeListEnableHeaderTotals", L"1");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"WmiProviderEnableHiddenMenu", L"0");
     PhpAddStringSetting(L"WmiProviderListViewColumns", L"");
