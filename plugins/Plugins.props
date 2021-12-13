@@ -33,6 +33,7 @@
             <StringPooling>true</StringPooling>
             <ControlFlowGuard>Guard</ControlFlowGuard>
             <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+            <SupportJustMyCode>false</SupportJustMyCode>
         </ClCompile>
         <Link>
             <AdditionalDependencies>ProcessHacker.lib;thirdparty.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
