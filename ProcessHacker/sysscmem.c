@@ -877,7 +877,6 @@ NTSTATUS PhSipLoadMmAddresses(
     PRTL_PROCESS_MODULES kernelModules;
     PPH_SYMBOL_PROVIDER symbolProvider;
     PPH_STRING kernelFileName;
-    PPH_STRING newFileName;
     PH_SYMBOL_INFORMATION symbolInfo;
 
     if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
@@ -888,11 +887,10 @@ NTSTATUS PhSipLoadMmAddresses(
             PhLoadSymbolProviderOptions(symbolProvider);
 
             kernelFileName = PH_AUTO(PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName));
-            newFileName = PH_AUTO(PhGetFileName(kernelFileName));
 
             PhLoadModuleSymbolProvider(
                 symbolProvider,
-                newFileName->Buffer,
+                kernelFileName,
                 (ULONG64)kernelModules->Modules[0].ImageBase,
                 kernelModules->Modules[0].ImageSize
                 );

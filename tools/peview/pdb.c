@@ -1250,14 +1250,21 @@ NTSTATUS PeDumpFileSymbols(
 
             if (PvpLoadDbgHelp(&PvSymbolProvider))
             {
-                if (PhLoadModuleSymbolProvider(
-                    PvSymbolProvider,
-                    PvFileName->Buffer,
-                    (ULONG64)viewBase,
-                    (ULONG)size
-                    ))
+                PPH_STRING fileName;
+
+                if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), viewBase, &fileName)))
                 {
-                    baseOfDll = (ULONG64)viewBase;
+                    if (PhLoadModuleSymbolProvider(
+                        PvSymbolProvider,
+                        fileName,
+                        (ULONG64)viewBase,
+                        (ULONG)size
+                        ))
+                    {
+                        baseOfDll = (ULONG64)viewBase;
+                    }
+
+                    PhDereferenceObject(fileName);
                 }
             }
 

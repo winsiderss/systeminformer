@@ -125,26 +125,30 @@ VOID PvPeProperties(
 
     if (PvpLoadDbgHelp(&PvSymbolProvider))
     {
-        // Load current PE pdb
-        // TODO: Move into seperate thread.
+        PPH_STRING fileName;
 
-        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PvMappedImage.ViewBase, &fileName)))
         {
-            PhLoadModuleSymbolProvider(
-                PvSymbolProvider,
-                PvFileName->Buffer,
-                (ULONG64)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
-                PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
-                );
-        }
-        else
-        {
-            PhLoadModuleSymbolProvider(
-                PvSymbolProvider,
-                PvFileName->Buffer,
-                (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
-                PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
-                );
+            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                PhLoadModuleSymbolProvider(
+                    PvSymbolProvider,
+                    fileName,
+                    (ULONG64)PvMappedImage.NtHeaders32->OptionalHeader.ImageBase,
+                    PvMappedImage.NtHeaders32->OptionalHeader.SizeOfImage
+                    );
+            }
+            else
+            {
+                PhLoadModuleSymbolProvider(
+                    PvSymbolProvider,
+                    fileName,
+                    (ULONG64)PvMappedImage.NtHeaders->OptionalHeader.ImageBase,
+                    PvMappedImage.NtHeaders->OptionalHeader.SizeOfImage
+                    );
+            }
+
+            PhDereferenceObject(fileName);
         }
 
         PhLoadModulesForProcessSymbolProvider(PvSymbolProvider, NtCurrentProcessId());
