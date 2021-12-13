@@ -1101,6 +1101,7 @@ PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 PHLIBAPI extern HBRUSH PhMenuBackgroundBrush;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
+extern COLORREF PhThemeWindowTextColor;
 
 PHLIBAPI
 VOID
@@ -1129,6 +1130,16 @@ VOID
 NTAPI
 PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+HBRUSH
+NTAPI
+PhWindowThemeControlColor(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_ HWND ChildWindowHandle,
+    _In_ INT Type
     );
 
 PHLIBAPI
