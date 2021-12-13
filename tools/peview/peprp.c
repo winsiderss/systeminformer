@@ -584,6 +584,8 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
 {
     static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
     static PH_STRINGREF windowsAppsPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\WindowsApps\\");
+    NTSTATUS status;
+    HANDLE fileHandle;
     VERIFY_RESULT result;
     PH_VERIFY_FILE_INFO info;
     PPH_STRING windowsAppsPath;
@@ -591,8 +593,25 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
 
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName->Buffer,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        signatures = NULL;
+        numberOfSignatures = 0;
+        return VrNoSignature;
+    }
+
     memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-    info.FileName = FileName->Buffer;
+    info.FileHandle = fileHandle;
     info.Flags = Flags;
     info.hWnd = hWnd;
 
@@ -644,6 +663,8 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     }
 
     PhFreeVerifySignatures(signatures, numberOfSignatures);
+
+    NtClose(fileHandle);
 
     return result;
 }

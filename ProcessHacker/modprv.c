@@ -386,9 +386,10 @@ NTSTATUS PhpModuleQueryWorker(
     if (PhEnableProcessQueryStage2) // HACK (dmex)
     {
         data->VerifyResult = PhVerifyFileCached(
-            data->ModuleItem->FileNameWin32,
+            data->ModuleItem->FileName,
             data->ModuleProvider->PackageFullName,
             &data->VerifySignerName,
+            TRUE,
             FALSE
             );
     }
@@ -799,7 +800,7 @@ VOID PhModuleProviderUpdate(
             if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
             {
                 // See if the file has already been verified; if not, queue for verification.
-                moduleItem->VerifyResult = PhVerifyFileCached(moduleItem->FileNameWin32, NULL, &moduleItem->VerifySignerName, TRUE);
+                moduleItem->VerifyResult = PhVerifyFileCached(moduleItem->FileName, NULL, &moduleItem->VerifySignerName, TRUE, TRUE);
 
                 //if (moduleItem->VerifyResult == VrUnknown) // (dmex)
                 PhpQueueModuleQuery(moduleProvider, moduleItem);
