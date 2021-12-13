@@ -45,9 +45,8 @@ _CertFreeCertificateContext CertFreeCertificateContext_I;
 static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
 static GUID WinTrustActionGenericVerifyV2 = WINTRUST_ACTION_GENERIC_VERIFY_V2;
 static GUID DriverActionVerify = DRIVER_ACTION_VERIFY;
-
 #ifdef PH_ENABLE_VERIFY_CACHE
-static PH_AVL_TREE PhpVerifyCacheSet = PH_AVL_TREE_INIT(PhpVerifyCacheCompareFunction);
+static PPH_HASHTABLE PhpVerifyCacheHashTable = NULL;
 static PH_QUEUED_LOCK PhpVerifyCacheLock = PH_QUEUED_LOCK_INIT;
 #endif
 
@@ -81,6 +80,29 @@ static VOID PhpVerifyInitialization(
         CertNameToStr_I = PhGetDllBaseProcedureAddress(crypt32, "CertNameToStrW", 0);
         CertDuplicateCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertDuplicateCertificateContext", 0);
         CertFreeCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertFreeCertificateContext", 0);
+    }
+
+    if (
+        CryptCATAdminCalcHashFromFileHandle &&
+        CryptCATAdminAcquireContext &&
+        CryptCATAdminEnumCatalogFromHash &&
+        CryptCATCatalogInfoFromContext &&
+        CryptCATAdminReleaseCatalogContext &&
+        CryptCATAdminReleaseContext &&
+        WTHelperProvDataFromStateData_I &&
+        WTHelperGetProvSignerFromChain_I &&
+        WinVerifyTrust_I &&
+        CertNameToStr_I &&
+        CertDuplicateCertificateContext_I &&
+        CertFreeCertificateContext_I
+        )
+    {
+        PhpVerifyCacheHashTable = PhCreateHashtable(
+            sizeof(PH_VERIFY_CACHE_ENTRY),
+            PhpVerifyCacheHashtableEqualFunction,
+            PhpVerifyCacheHashtableHashFunction,
+            100
+            );
     }
 }
 
@@ -218,8 +240,9 @@ VERIFY_RESULT PhpVerifyFile(
     )
 {
     LONG status;
-    WINTRUST_DATA trustData = { 0 };
+    WINTRUST_DATA trustData;
 
+    memset(&trustData, 0, sizeof(WINTRUST_DATA));
     trustData.cbStruct = sizeof(WINTRUST_DATA);
     trustData.pPolicyCallbackData = PolicyCallbackData;
     trustData.dwUIChoice = WTD_UI_NONE;
@@ -255,7 +278,7 @@ VERIFY_RESULT PhpVerifyFile(
 _Success_(return)
 BOOLEAN PhpCalculateFileHash(
     _In_ HANDLE FileHandle,
-    _In_ PWSTR HashAlgorithm,
+    _In_opt_ PWSTR HashAlgorithm,
     _Out_ PUCHAR *FileHash,
     _Out_ PULONG FileHashLength,
     _Out_ HANDLE *CatAdminHandle
@@ -328,7 +351,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     VERIFY_RESULT verifyResult = VrNoSignature;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
-    WINTRUST_CATALOG_INFO catalogInfo = { 0 };
+    WINTRUST_CATALOG_INFO catalogInfo;
     LARGE_INTEGER fileSize;
     ULONG fileSizeLimit;
     PUCHAR fileHash;
@@ -374,7 +397,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 
         if (catInfoHandle)
         {
-            CATALOG_INFO ci = { 0 };
+            CATALOG_INFO ci = { sizeof(CATALOG_INFO) };
             DRIVER_VER_INFO verInfo = { 0 };
 
             if (CryptCATCatalogInfoFromContext(catInfoHandle, &ci, 0))
@@ -382,9 +405,10 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 // Disable OS version checking by passing in a DRIVER_VER_INFO structure.
                 verInfo.cbStruct = sizeof(DRIVER_VER_INFO);
 
+                memset(&catalogInfo, 0, sizeof(catalogInfo));
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
-                catalogInfo.pcwszMemberFilePath = Information->FileName;
+                catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
                 catalogInfo.hMemberFile = FileHandle;
                 catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
                 catalogInfo.pbCalculatedFileHash = fileHash;
@@ -406,9 +430,10 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             {
                 PhFreeVerifySignatures(signatures, numberOfSignatures);
 
+                memset(&catalogInfo, 0, sizeof(catalogInfo));
                 catalogInfo.cbStruct = sizeof(catalogInfo);
                 catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
-                catalogInfo.pcwszMemberFilePath = Information->FileName;
+                catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
                 catalogInfo.hMemberFile = FileHandle;
                 catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
                 catalogInfo.pbCalculatedFileHash = fileHash;
@@ -439,12 +464,10 @@ NTSTATUS PhVerifyFileEx(
     _Out_opt_ PULONG NumberOfSignatures
     )
 {
-    NTSTATUS status;
-    HANDLE fileHandle;
     VERIFY_RESULT verifyResult;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
-    WINTRUST_FILE_INFO fileInfo = { 0 };
+    WINTRUST_FILE_INFO fileInfo;
 
     if (PhBeginInitOnce(&PhpVerifyInitOnce))
     {
@@ -452,52 +475,49 @@ NTSTATUS PhVerifyFileEx(
         PhEndInitOnce(&PhpVerifyInitOnce);
     }
 
-    // Make sure we have successfully imported the required functions.
-    if (
-        !CryptCATAdminCalcHashFromFileHandle ||
-        !CryptCATAdminAcquireContext ||
-        !CryptCATAdminEnumCatalogFromHash ||
-        !CryptCATCatalogInfoFromContext ||
-        !CryptCATAdminReleaseCatalogContext ||
-        !CryptCATAdminReleaseContext ||
-        !WinVerifyTrust_I ||
-        !WTHelperProvDataFromStateData_I ||
-        !WTHelperGetProvSignerFromChain_I ||
-        !CertNameToStr_I ||
-        !CertDuplicateCertificateContext_I ||
-        !CertFreeCertificateContext_I
-        )
+    if (!PhpVerifyCacheHashTable)
         return STATUS_NOT_SUPPORTED;
 
-    if (!NT_SUCCESS(status = PhCreateFileWin32(
-        &fileHandle,
-        Information->FileName,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        )))
-        return status;
-
+    memset(&fileInfo, 0, sizeof(WINTRUST_FILE_INFO));
     fileInfo.cbStruct = sizeof(WINTRUST_FILE_INFO);
-    fileInfo.pcwszFilePath = Information->FileName;
-    fileInfo.hFile = fileHandle;
+    fileInfo.hFile = Information->FileHandle;
 
-    verifyResult = PhpVerifyFile(Information, WTD_CHOICE_FILE, &fileInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
+    verifyResult = PhpVerifyFile(
+        Information,
+        WTD_CHOICE_FILE,
+        &fileInfo,
+        &WinTrustActionGenericVerifyV2,
+        NULL,
+        &signatures,
+        &numberOfSignatures
+        );
 
     if (verifyResult == VrNoSignature)
     {
         if (CryptCATAdminAcquireContext2 && CryptCATAdminCalcHashFromFileHandle2)
         {
             PhFreeVerifySignatures(signatures, numberOfSignatures);
-            verifyResult = PhpVerifyFileFromCatalog(Information, fileHandle, BCRYPT_SHA256_ALGORITHM, &signatures, &numberOfSignatures);
+
+            verifyResult = PhpVerifyFileFromCatalog(
+                Information,
+                Information->FileHandle,
+                BCRYPT_SHA256_ALGORITHM,
+                &signatures,
+                &numberOfSignatures
+                );
         }
 
         if (verifyResult != VrTrusted)
         {
             PhFreeVerifySignatures(signatures, numberOfSignatures);
-            verifyResult = PhpVerifyFileFromCatalog(Information, fileHandle, NULL, &signatures, &numberOfSignatures);
+
+            verifyResult = PhpVerifyFileFromCatalog(
+                Information,
+                Information->FileHandle,
+                NULL,
+                &signatures,
+                &numberOfSignatures
+                );
         }
     }
 
@@ -510,8 +530,6 @@ NTSTATUS PhVerifyFileEx(
 
     if (NumberOfSignatures)
         *NumberOfSignatures = numberOfSignatures;
-
-    NtClose(fileHandle);
 
     return STATUS_SUCCESS;
 }
@@ -659,12 +677,29 @@ VERIFY_RESULT PhVerifyFile(
     )
 {
     PH_VERIFY_FILE_INFO info = { 0 };
+    HANDLE fileHandle;
     VERIFY_RESULT verifyResult;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
 
-    info.FileName = FileName;
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        if (SignerName)
+            *SignerName = NULL;
+
+        return VrNoSignature;
+    }
+
     info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+    info.FileHandle = fileHandle;
 
     if (NT_SUCCESS(PhVerifyFileEx(&info, &verifyResult, &signatures, &numberOfSignatures)))
     {
@@ -677,6 +712,9 @@ VERIFY_RESULT PhVerifyFile(
         }
 
         PhFreeVerifySignatures(signatures, numberOfSignatures);
+
+        NtClose(fileHandle);
+
         return verifyResult;
     }
     else
@@ -684,19 +722,63 @@ VERIFY_RESULT PhVerifyFile(
         if (SignerName)
             *SignerName = NULL;
 
+        NtClose(fileHandle);
+
         return VrNoSignature;
     }
 }
 
-INT NTAPI PhpVerifyCacheCompareFunction(
-    _In_ PPH_AVL_LINKS Links1,
-    _In_ PPH_AVL_LINKS Links2
+BOOLEAN PhpVerifyCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
     )
 {
-    PPH_VERIFY_CACHE_ENTRY entry1 = CONTAINING_RECORD(Links1, PH_VERIFY_CACHE_ENTRY, Links);
-    PPH_VERIFY_CACHE_ENTRY entry2 = CONTAINING_RECORD(Links2, PH_VERIFY_CACHE_ENTRY, Links);
+    PPH_VERIFY_CACHE_ENTRY entry1 = Entry1;
+    PPH_VERIFY_CACHE_ENTRY entry2 = Entry2;
 
-    return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
+    return entry1->SequenceNumber == entry2->SequenceNumber && PhEqualString(entry1->FileName, entry2->FileName, TRUE);
+}
+
+ULONG PhpVerifyCacheHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_VERIFY_CACHE_ENTRY entry = Entry;
+
+    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, TRUE, PH_STRING_HASH_X65599);
+}
+
+VOID PhFlushVerifyCache(
+    VOID
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_VERIFY_CACHE_ENTRY entry;
+
+    if (!PhpVerifyCacheHashTable)
+        return;
+
+    PhAcquireQueuedLockExclusive(&PhpVerifyCacheLock);
+
+    PhBeginEnumHashtable(PhpVerifyCacheHashTable, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+    {
+        if (entry->FileName)
+            PhDereferenceObject(entry->FileName);
+        if (entry->VerifySignerName)
+            PhDereferenceObject(entry->VerifySignerName);
+    }
+
+    PhDereferenceObject(PhpVerifyCacheHashTable);
+    PhpVerifyCacheHashTable = PhCreateHashtable(
+        sizeof(PH_VERIFY_CACHE_ENTRY),
+        PhpVerifyCacheHashtableEqualFunction,
+        PhpVerifyCacheHashtableHashFunction,
+        100
+        );
+
+    PhReleaseQueuedLockExclusive(&PhpVerifyCacheLock);
 }
 
 VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
@@ -706,7 +788,6 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
     )
 {
     static PH_STRINGREF codeIntegrityFileName = PH_STRINGREF_INIT(L"\\AppxMetadata\\CodeIntegrity.cat");
-
     VERIFY_RESULT result;
     PPH_STRING additionalCatalogFileName = NULL;
     PCERT_CONTEXT *signatures;
@@ -768,26 +849,78 @@ VERIFY_RESULT PhVerifyFileCached(
     _In_ PPH_STRING FileName,
     _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName,
+    _In_ BOOLEAN NativeFileName,
     _In_ BOOLEAN CachedOnly
     )
 {
 #ifdef PH_ENABLE_VERIFY_CACHE
-    PPH_AVL_LINKS links;
+    HANDLE fileHandle;
+    LONGLONG sequenceNumber = 0;
     PPH_VERIFY_CACHE_ENTRY entry;
-    PH_VERIFY_CACHE_ENTRY lookupEntry;
 
-    lookupEntry.FileName = FileName;
-
-    PhAcquireQueuedLockShared(&PhpVerifyCacheLock);
-    links = PhFindElementAvlTree(&PhpVerifyCacheSet, &lookupEntry.Links);
-    PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
-
-    if (links)
+    if (PhBeginInitOnce(&PhpVerifyInitOnce))
     {
-        entry = CONTAINING_RECORD(links, PH_VERIFY_CACHE_ENTRY, Links);
+        PhpVerifyInitialization();
+        PhEndInitOnce(&PhpVerifyInitOnce);
+    }
 
+    if (!PhpVerifyCacheHashTable)
+    {
+        if (SignerName) *SignerName = NULL;
+        return VrNoSignature;
+    }
+
+    if (NativeFileName)
+    {
+        if (!NT_SUCCESS(PhCreateFile(
+            &fileHandle,
+            FileName,
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            if (SignerName) *SignerName = NULL;
+            return VrNoSignature;
+        }
+    }
+    else
+    {
+        if (!NT_SUCCESS(PhCreateFileWin32(
+            &fileHandle,
+            FileName->Buffer,
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            if (SignerName) *SignerName = NULL;
+            return VrNoSignature;
+        }
+    }
+
+    {
+        PH_VERIFY_CACHE_ENTRY lookupEntry;
+
+        PhGetFileUsn(fileHandle, &sequenceNumber);
+        lookupEntry.FileName = FileName;
+        lookupEntry.SequenceNumber = sequenceNumber;
+
+        PhAcquireQueuedLockShared(&PhpVerifyCacheLock);
+        entry = PhFindEntryHashtable(PhpVerifyCacheHashTable, &lookupEntry);
+        PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
+    }
+
+    if (entry)
+    {
         if (SignerName)
             PhSetReference(SignerName, entry->VerifySignerName);
+
+        NtClose(fileHandle);
 
         return entry->VerifyResult;
     }
@@ -801,8 +934,8 @@ VERIFY_RESULT PhVerifyFileCached(
             PH_VERIFY_FILE_INFO info;
 
             memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-            info.FileName = FileName->Buffer;
             info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+            info.FileHandle = fileHandle;
             result = PhVerifyFileWithAdditionalCatalog(&info, PackageFullName, &signerName);
 
             if (result != VrTrusted)
@@ -816,29 +949,25 @@ VERIFY_RESULT PhVerifyFileCached(
 
         if (result != VrUnknown)
         {
-            entry = PhAllocate(sizeof(PH_VERIFY_CACHE_ENTRY));
-            entry->FileName = FileName;
-            entry->VerifyResult = result;
-            entry->VerifySignerName = signerName;
+            PH_VERIFY_CACHE_ENTRY newEntry;
+
+            newEntry.FileName = FileName;
+            newEntry.SequenceNumber = sequenceNumber;
+            newEntry.VerifyResult = result;
+            newEntry.VerifySignerName = signerName;
 
             PhAcquireQueuedLockExclusive(&PhpVerifyCacheLock);
-            links = PhAddElementAvlTree(&PhpVerifyCacheSet, &entry->Links);
-            PhReleaseQueuedLockExclusive(&PhpVerifyCacheLock);
 
-            if (!links)
+            if (PhAddEntryHashtable(PhpVerifyCacheHashTable, &newEntry))
             {
                 // We successfully added the cache entry. Add references.
+                PhReferenceObject(FileName);
 
-                PhReferenceObject(entry->FileName);
+                if (signerName)
+                    PhReferenceObject(signerName);
+            }
 
-                if (entry->VerifySignerName)
-                    PhReferenceObject(entry->VerifySignerName);
-            }
-            else
-            {
-                // Entry already exists.
-                PhFree(entry);
-            }
+            PhReleaseQueuedLockExclusive(&PhpVerifyCacheLock);
         }
 
         if (SignerName)
@@ -850,6 +979,8 @@ VERIFY_RESULT PhVerifyFileCached(
             if (signerName)
                 PhDereferenceObject(signerName);
         }
+
+        NtClose(fileHandle);
 
         return result;
     }

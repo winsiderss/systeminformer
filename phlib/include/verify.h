@@ -27,7 +27,7 @@ typedef enum _VERIFY_RESULT
 
 typedef struct _PH_VERIFY_FILE_INFO
 {
-    PWSTR FileName;
+    HANDLE FileHandle;
     ULONG Flags; // PH_VERIFY_*
 
     ULONG FileSizeLimitForHash; // 0 for PH_VERIFY_DEFAULT_SIZE_LIMIT, -1 for unlimited

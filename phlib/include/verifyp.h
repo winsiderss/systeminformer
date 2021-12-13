@@ -1,20 +1,21 @@
 #ifndef _PH_VERIFYP_H
 #define _PH_VERIFYP_H
 
-#include <commdlg.h>
-
 typedef struct _PH_VERIFY_CACHE_ENTRY
 {
-    PH_AVL_LINKS Links;
-
     PPH_STRING FileName;
+    ULONGLONG SequenceNumber;
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 } PH_VERIFY_CACHE_ENTRY, *PPH_VERIFY_CACHE_ENTRY;
 
-INT NTAPI PhpVerifyCacheCompareFunction(
-    _In_ PPH_AVL_LINKS Links1,
-    _In_ PPH_AVL_LINKS Links2
+BOOLEAN PhpVerifyCacheHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+
+ULONG PhpVerifyCacheHashtableHashFunction(
+    _In_ PVOID Entry
     );
 
 typedef struct _CATALOG_INFO
@@ -35,7 +36,7 @@ typedef struct tagCRYPTUI_VIEWSIGNERINFO_STRUCT {
     ULONG cStores;
     HCERTSTORE *rghStores;
     ULONG cPropSheetPages;
-    LPCPROPSHEETPAGE rgPropSheetPages;
+    PVOID rgPropSheetPages;
 } CRYPTUI_VIEWSIGNERINFO_STRUCT, *PCRYPTUI_VIEWSIGNERINFO_STRUCT;
 
 typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle)(
@@ -179,7 +180,7 @@ typedef struct _SIGNATURE_INFO
 } SIGNATURE_INFO, *PSIGNATURE_INFO;
 
 typedef HRESULT (WINAPI* _WTGetSignatureInfo)(
-    _In_ PCWSTR pszFile,
+    _In_opt_ PCWSTR pszFile,
     _In_opt_ HANDLE hFile,
     _In_ SIGNATURE_INFO_FLAGS sigInfoFlags,
     _Inout_ PSIGNATURE_INFO psiginfo,
