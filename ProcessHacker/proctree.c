@@ -3199,7 +3199,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PH_FORMAT format[2];
                     SIZE_T returnLength;
 
-                    if (!PhEnableProcessQueryStage2)
+                    if (!PhEnableImageCoherencySupport)
                         break;
 
                     if (processItem->ImageCoherencyStatus == STATUS_PENDING)

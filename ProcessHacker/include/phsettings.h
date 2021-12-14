@@ -88,6 +88,7 @@ EXT ULONG PhCsColorServiceDisabled;
 EXT ULONG PhCsUseColorServiceStop;
 EXT ULONG PhCsColorServiceStop;
 
+EXT BOOLEAN PhEnableImageCoherencySupport;
 EXT ULONG PhCsImageCoherencyScanLevel;
 EXT ULONG PhCsEnableScaleCpuGraph;
 

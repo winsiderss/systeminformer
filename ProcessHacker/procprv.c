@@ -980,6 +980,24 @@ VOID PhpProcessQueryStage2(
             Data->ImportFunctions = ULONG_MAX;
         }
 
+        if (processItem->Architecture == USHRT_MAX)
+        {
+            PH_MAPPED_IMAGE mappedImage;
+
+            // For backward compatibility we'll read the Machine from the file.
+            // If we fail to access the file we could go read from the remote
+            // process memory, but for now we only read from the file. (jxy-s)
+
+            if (NT_SUCCESS(PhLoadMappedImageEx(processItem->FileName, NULL, &mappedImage)))
+            {
+                Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
+                PhUnloadMappedImage(&mappedImage);
+            }
+        }
+    }
+
+    if (PhEnableImageCoherencySupport && processItem->FileName && !processItem->IsSubsystemProcess)
+    {
         if (PhCsImageCoherencyScanLevel == 0)
         {
             //
@@ -1014,21 +1032,6 @@ VOID PhpProcessQueryStage2(
                 type,
                 &Data->ImageCoherency
                 );
-        }
-
-        if (processItem->Architecture == USHRT_MAX)
-        {
-            PH_MAPPED_IMAGE mappedImage;
-
-            // For backward compatibility we'll read the Machine from the file.
-            // If we fail to access the file we could go read from the remote
-            // process memory, but for now we only read from the file. (jxy-s)
-
-            if (NT_SUCCESS(PhLoadMappedImageEx(processItem->FileName, NULL, &mappedImage)))
-            {
-                Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
-                PhUnloadMappedImage(&mappedImage);
-            }
         }
     }
 
