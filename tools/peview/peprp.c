@@ -1549,39 +1549,14 @@ VOID PvpSetPeImageFileProperties(
         }
 
         {
-            ULONG fileUsnRecordLength;
-            PUSN_RECORD_UNION fileUsnRecord;
+            LONGLONG fileUsn;
 
-            fileUsnRecordLength = sizeof(USN_RECORD_UNION) + (MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR));
-            fileUsnRecord = PhAllocateZero(fileUsnRecordLength);
-
-            if (NT_SUCCESS(NtFsControlFile(
-                fileHandle,
-                NULL,
-                NULL,
-                NULL,
-                &isb,
-                FSCTL_READ_FILE_USN_DATA,
-                NULL,
-                0,
-                fileUsnRecord,
-                fileUsnRecordLength
-                )))
+            if (NT_SUCCESS(PhGetFileUsn(fileHandle, &fileUsn)))
             {
-                switch (fileUsnRecord->Header.MajorVersion)
-                {
-                case 2:
-                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEUSN, 1, PhaFormatUInt64(fileUsnRecord->V2.Usn, FALSE)->Buffer);
-                    break;
-                case 3:
-                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEUSN, 1, PhaFormatUInt64(fileUsnRecord->V3.Usn, FALSE)->Buffer);
-                    break;
-                case 4:
-                    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEUSN, 1, PhaFormatUInt64(fileUsnRecord->V4.Usn, FALSE)->Buffer);
-                    break;
-                }
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEUSN, 1, PhaFormatUInt64(fileUsn, FALSE)->Buffer);
             }
         }
+
         NtClose(fileHandle);
     }
 }
@@ -1998,8 +1973,10 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
             if (PeEnableThemeSupport)
+            {
                 PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+                PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            }
         }
         break;
     case WM_DESTROY:
@@ -2143,6 +2120,17 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
     case WM_CONTEXTMENU:
         {
             PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }
