@@ -437,7 +437,7 @@ NTSTATUS PhpModuleQueryWorker(
         }
     }
 
-    if (PhEnableProcessQueryStage2 && !data->ModuleProvider->IsSubsystemProcess)
+    if (PhEnableImageCoherencySupport && !data->ModuleProvider->IsSubsystemProcess)
     {
         if (data->ModuleItem->Type == PH_MODULE_TYPE_MODULE ||
             data->ModuleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||

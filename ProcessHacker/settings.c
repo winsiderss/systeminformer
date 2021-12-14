@@ -43,6 +43,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
+    PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"0");
     PhpAddIntegerSetting(L"EnableKphWarnings", L"1");
@@ -373,4 +374,5 @@ VOID PhUpdateCachedSettings(
 
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
+    PhEnableImageCoherencySupport = !!PhGetIntegerSetting(L"EnableImageCoherencySupport");
 }
