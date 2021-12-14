@@ -1130,7 +1130,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             {
                 getNodeColor->BackColor = PhCsColorUnknown;
             }
-            else if (PhEnableProcessQueryStage2 && context->HighlightLowImageCoherency && PhShouldShowModuleCoherency(moduleItem, TRUE))
+            else if (PhEnableImageCoherencySupport && context->HighlightLowImageCoherency && PhShouldShowModuleCoherency(moduleItem, TRUE))
                 getNodeColor->BackColor = PhCsColorLowImageCoherency;
             else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;
