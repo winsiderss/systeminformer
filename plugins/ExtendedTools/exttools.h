@@ -3,12 +3,15 @@
 
 #include <phdk.h>
 #include <phappresource.h>
+#include <workqueue.h>
 #include <settings.h>
 #include <math.h>
 
 #include "resource.h"
 
 #include <d3d11.h>
+
+#include "framemon.h"
 
 #define PH_RECORD_MAX_USAGE 1
 
@@ -26,6 +29,7 @@ extern ULONG ProcessesUpdatedCount;
 #define SETTING_NAME_ENABLE_DISKEXT (PLUGIN_NAME L".EnableDiskExt")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (PLUGIN_NAME L".EnableEtwMonitor")
 #define SETTING_NAME_ENABLE_GPU_MONITOR (PLUGIN_NAME L".EnableGpuMonitor")
+#define SETTING_NAME_ENABLE_FPS_MONITOR (PLUGIN_NAME L".EnableFpsMonitor")
 #define SETTING_NAME_ENABLE_SYSINFO_GRAPHS (PLUGIN_NAME L".EnableSysInfoGraphs")
 #define SETTING_NAME_GPU_NODE_BITMAP (PLUGIN_NAME L".GpuNodeBitmap")
 #define SETTING_NAME_GPU_LAST_NODE_COUNT (PLUGIN_NAME L".GpuLastNodeCount")
@@ -179,7 +183,8 @@ typedef struct _ET_DISK_NODE
 #define ETPRTNC_NETWORKRECEIVERATE 30
 #define ETPRTNC_NETWORKSENDRATE 31
 #define ETPRTNC_NETWORKTOTALRATE 32
-#define ETPRTNC_MAXIMUM 32
+#define ETPRTNC_FPS 33
+#define ETPRTNC_MAXIMUM 33
 
 // Network list columns
 
@@ -307,12 +312,27 @@ typedef struct _ET_PROCESS_BLOCK
 
     PH_UINT32_DELTA HardFaultsDelta;
 
+    FLOAT FramesPerSecond;
+    FLOAT FramesLatency;
+    FLOAT FramesMsBetweenPresents;
+    FLOAT FramesMsInPresentApi;
+    FLOAT FramesMsUntilRenderComplete;
+    FLOAT FramesMsUntilDisplayed;
+    FLOAT FramesDisplayLatency;
+    PH_CIRCULAR_BUFFER_FLOAT FramesPerSecondHistory;
+    PH_CIRCULAR_BUFFER_FLOAT FramesLatencyHistory;
+    PH_CIRCULAR_BUFFER_FLOAT FramesMsBetweenPresentsHistory;
+    PH_CIRCULAR_BUFFER_FLOAT FramesMsInPresentApiHistory;
+    PH_CIRCULAR_BUFFER_FLOAT FramesMsUntilRenderCompleteHistory;
+    PH_CIRCULAR_BUFFER_FLOAT FramesMsUntilDisplayedHistory;
+    PH_CIRCULAR_BUFFER_FLOAT FramesDisplayLatencyHistory;
+
     ULONG ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_MAX + 1];
     ULONG ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_MAX + 1];
 
     PH_QUEUED_LOCK TextCacheLock;
-    SIZE_T TextCacheLength[ETPRTNC_MAXIMUM + 1];
     BOOLEAN TextCacheValid[ETPRTNC_MAXIMUM + 1];
+    SIZE_T TextCacheLength[ETPRTNC_MAXIMUM + 1];
     WCHAR TextCache[ETPRTNC_MAXIMUM + 1][64];
 } ET_PROCESS_BLOCK, *PET_PROCESS_BLOCK;
 
@@ -494,6 +514,7 @@ VOID EtSaveSettingsDiskTreeList(
 
 extern BOOLEAN EtGpuEnabled;
 extern BOOLEAN EtD3DEnabled;
+EXTERN_C BOOLEAN EtFramesEnabled;
 extern PPH_LIST EtpGpuAdapterList;
 
 extern ULONG EtGpuTotalNodeCount;
@@ -931,40 +952,6 @@ typedef ULONG (WINAPI* _FwpmNetEventSubscribe)(
 #define FWP_DIRECTION_OUT 0x00003901L
 #define FWP_DIRECTION_FORWARD 0x00003902L
 
-HWND NTAPI FwTabCreateFunction(
-    _In_ PVOID Context
-    );
-
-VOID NTAPI FwTabSelectionChangedCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    );
-
-VOID NTAPI FwTabSaveContentCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    );
-
-VOID NTAPI FwTabFontChangedCallback(
-    _In_ PVOID Parameter1,
-    _In_ PVOID Parameter2,
-    _In_ PVOID Parameter3,
-    _In_ PVOID Context
-    );
-
-BOOLEAN FwNodeHashtableCompareFunction(
-    _In_ PVOID Entry1,
-    _In_ PVOID Entry2
-    );
-
-ULONG FwNodeHashtableHashFunction(
-    _In_ PVOID Entry
-    );
-
 VOID InitializeFwTreeList(
     _In_ HWND hwnd
     );
@@ -1072,6 +1059,12 @@ VOID NTAPI FwToolStatusActivateContent(
 
 HWND NTAPI FwToolStatusGetTreeNewHandle(
     VOID
+    );
+
+// frames
+
+VOID EtProcessFramesPropertiesInitializing(
+    _In_ PVOID Parameter
     );
 
 #endif

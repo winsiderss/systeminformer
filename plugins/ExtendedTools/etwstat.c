@@ -386,7 +386,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
         // etwmon uses our EtThreadIdToProcessId function. (wj32)
 
         // ETW is extremely lazy when it comes to flushing buffers, so we must do it manually. (wj32)
-        EtFlushEtwSession();
+        //EtFlushEtwSession();
 
         // Update global statistics.
 

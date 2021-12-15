@@ -3,6 +3,7 @@
  *   options dialog
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,6 +37,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESYSINFOGRAPHS), PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLEFPSMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_FPS_MONITOR) ? BST_CHECKED : BST_UNCHECKED);          
         }
         break;
     case WM_DESTROY:
@@ -43,8 +45,15 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEETWMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEGPUMONITOR)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESYSINFOGRAPHS)) == BST_CHECKED);
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_FPS_MONITOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEFPSMONITOR)) == BST_CHECKED);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

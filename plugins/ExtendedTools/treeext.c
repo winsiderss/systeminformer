@@ -3,7 +3,7 @@
  *   process and network tree support
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2011-2020 dmex
+ * Copyright (C) 2011-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -137,7 +137,8 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_DISKTOTALRATE, L"Disk total rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_NETWORKRECEIVERATE, L"Network receive rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_NETWORKSENDRATE, L"Network send rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_NETWORKTOTALRATE, L"Network total rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }
+        { ETPRTNC_NETWORKTOTALRATE, L"Network total rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_FPS, L"FPS", 50, PH_ALIGN_RIGHT, DT_RIGHT, TRUE }, 
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -440,6 +441,21 @@ VOID EtProcessTreeNewMessage(
                     EtFormatRate(number, block, message);
                 }
                 break;
+            case ETPRTNC_FPS:
+                {
+                    FLOAT frames = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeFloat,
+                        AggregateLocationProcessItem,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, FramesPerSecond),
+                        &frames
+                        );
+
+                    EtFormatDouble(frames, block, message);
+                }
+                break;
             }
 
             if (block->TextCacheLength[message->SubId])
@@ -476,6 +492,125 @@ VOID EtProcessTreeNewMessage(
 
             block->TextCacheValid[ETPRTNC_DISKTOTALRATE] = FALSE;
             block->TextCacheValid[ETPRTNC_NETWORKTOTALRATE] = FALSE;
+
+            block->TextCacheValid[ETPRTNC_FPS] = FALSE;
+        }
+    }
+    else if (message->Message == TreeNewGetHeaderText)
+    {
+        PPH_TREENEW_COLUMN column = message->Parameter1;
+        PPH_STRING* headerString = message->Parameter2;
+        PLIST_ENTRY listEntry;
+        FLOAT decimal = 0;
+        ULONG64 number = 0;
+
+        if (ProcessesUpdatedCount != 3)
+            return;
+
+        if (!(
+            message->SubId == ETPRTNC_DISKTOTALBYTES ||
+            message->SubId == ETPRTNC_DISKTOTALRATE ||
+            message->SubId == ETPRTNC_NETWORKTOTALBYTES ||
+            message->SubId == ETPRTNC_NETWORKTOTALRATE ||
+            message->SubId == ETPRTNC_GPU ||
+            message->SubId == ETPRTNC_GPUDEDICATEDBYTES ||
+            message->SubId == ETPRTNC_GPUSHAREDBYTES
+            ))
+        {
+            return;
+        }
+
+        listEntry = EtProcessBlockListHead.Flink;
+
+        while (listEntry != &EtProcessBlockListHead)
+        {
+            PET_PROCESS_BLOCK block;
+
+            block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+
+            switch (message->SubId)
+            {
+            case ETPRTNC_DISKTOTALBYTES:
+                number += block->DiskReadRaw + block->DiskWriteRaw;
+                break;
+            case ETPRTNC_DISKTOTALRATE:
+                number += block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKTOTALBYTES:
+                number += block->NetworkReceiveRaw + block->NetworkSendRaw;
+                break;
+            case ETPRTNC_NETWORKTOTALRATE:
+                number += block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
+                break;
+            case ETPRTNC_GPU:
+                decimal += block->GpuNodeUtilization;
+                break;
+            case ETPRTNC_GPUDEDICATEDBYTES:
+                number += block->GpuDedicatedUsage;
+                break;
+            case ETPRTNC_GPUSHAREDBYTES:
+                number += block->GpuSharedUsage;
+                break;
+            }
+
+            listEntry = listEntry->Flink;
+        }
+
+        switch (message->SubId)
+        {
+        case ETPRTNC_DISKTOTALBYTES:
+        case ETPRTNC_NETWORKTOTALBYTES:
+        case ETPRTNC_GPUDEDICATEDBYTES:
+        case ETPRTNC_GPUSHAREDBYTES:
+            {
+                PH_FORMAT format[1];
+
+                if (number == 0)
+                    break;
+
+                PhInitFormatSize(&format[0], number);
+
+                *headerString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+            }
+            break;
+        case ETPRTNC_DISKTOTALRATE:
+        case ETPRTNC_NETWORKTOTALRATE:
+            {
+                PH_FORMAT format[2];
+                ULONG64 value;
+
+                value = number;
+                value *= 1000;
+                value /= PhGetIntegerSetting(L"UpdateInterval");
+
+                if (value == 0)
+                    break;
+
+                PhInitFormatSize(&format[0], value);
+                PhInitFormatS(&format[1], L"/s");
+
+                *headerString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+            }
+            break;
+        case ETPRTNC_GPU:
+            {
+                PH_FORMAT format[2];
+
+                if (decimal == 0.0)
+                    break;
+
+                decimal *= 100;
+                PhInitFormatF(&format[0], decimal, 2);
+                PhInitFormatC(&format[1], L'%');
+
+                *headerString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+            }
+            break;
+        default:
+            {
+                //dprintf("default");
+            }
+            break;
         }
     }
 }
@@ -596,6 +731,9 @@ LONG EtpProcessTreeNewSortFunction(
         break;
     case ETPRTNC_NETWORKTOTALRATE:
         result = uint64cmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
+        break;
+    case ETPRTNC_FPS:
+        result = singlecmp(block1->FramesPerSecond, block2->FramesPerSecond);
         break;
     }
 

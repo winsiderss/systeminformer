@@ -16,6 +16,12 @@
     <Filter Include="Source Files\Video">
       <UniqueIdentifier>{d3096a42-7c1f-4edf-a5d2-d086f5e5b174}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\PresentMon">
+      <UniqueIdentifier>{1638c7c9-1ff4-45d8-bf46-305c0091a37c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\PresentMon">
+      <UniqueIdentifier>{5bf99148-85a6-4371-b0e1-9778bce40b6c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -99,6 +105,24 @@
     <ClCompile Include="wswatch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="framemon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="frameprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PresentMon\PresentMon.cpp">
+      <Filter>Source Files\PresentMon</Filter>
+    </ClCompile>
+    <ClCompile Include="PresentMon\PresentMonTraceConsumer.cpp">
+      <Filter>Source Files\PresentMon</Filter>
+    </ClCompile>
+    <ClCompile Include="PresentMon\TraceSession.cpp">
+      <Filter>Source Files\PresentMon</Filter>
+    </ClCompile>
+    <ClCompile Include="PresentMon\TraceConsumer.cpp">
+      <Filter>Source Files\PresentMon</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -127,6 +151,36 @@
     </ClInclude>
     <ClInclude Include="gpumini.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="framemon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_D3D9.h">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_Dwm_Core.h">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_DXGI.h">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_DxgKrnl.h">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_EventMetadata.h">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_Win32k.h">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\PresentMon.hpp">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\PresentMonTraceConsumer.hpp">
+      <Filter>Header Files\PresentMon</Filter>
+    </ClInclude>
+    <ClInclude Include="PresentMon\TraceConsumer.hpp">
+      <Filter>Header Files\PresentMon</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -111,6 +111,7 @@
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmini.c" />
     <ClCompile Include="etwmon.c" />
+    <ClCompile Include="frameprp.c" />
     <ClCompile Include="fwmon.c" />
     <ClCompile Include="fwtab.c" />
     <ClCompile Include="gpudetails.c" />
@@ -120,6 +121,11 @@
     <ClCompile Include="gpuprprp.c" />
     <ClCompile Include="gpusys.c" />
     <ClCompile Include="iconext.c" />
+    <ClCompile Include="framemon.cpp" />
+    <ClCompile Include="PresentMon\PresentMon.cpp" />
+    <ClCompile Include="PresentMon\PresentMonTraceConsumer.cpp" />
+    <ClCompile Include="PresentMon\TraceConsumer.cpp" />
+    <ClCompile Include="PresentMon\TraceSession.cpp" />
     <ClCompile Include="svcext.c" />
     <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />
@@ -143,6 +149,16 @@
     <ClInclude Include="gpumini.h" />
     <ClInclude Include="gpumon.h" />
     <ClInclude Include="gpusys.h" />
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_D3D9.h" />
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_Dwm_Core.h" />
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_DXGI.h" />
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_DxgKrnl.h" />
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_EventMetadata.h" />
+    <ClInclude Include="PresentMon\ETW\Microsoft_Windows_Win32k.h" />
+    <ClInclude Include="framemon.h" />
+    <ClInclude Include="PresentMon\PresentMon.hpp" />
+    <ClInclude Include="PresentMon\PresentMonTraceConsumer.hpp" />
+    <ClInclude Include="PresentMon\TraceConsumer.hpp" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

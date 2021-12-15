@@ -60,6 +60,7 @@ VOID NTAPI LoadCallback(
 {
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
+    EtFramesMonitorInitialization();
 }
 
 VOID NTAPI UnloadCallback(
@@ -69,6 +70,7 @@ VOID NTAPI UnloadCallback(
 {
     EtSaveSettingsDiskTreeList();
     EtEtwStatisticsUninitialization();
+    EtFramesMonitorUninitialization();
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -186,6 +188,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     if (Parameter)
     {
         EtProcessGpuPropertiesInitializing(Parameter);
+        EtProcessFramesPropertiesInitializing(Parameter);
         EtProcessEtwPropertiesInitializing(Parameter);
     }
 }
@@ -396,6 +399,12 @@ VOID NTAPI ProcessItemsUpdatedCallback(
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
         PhUpdateDelta(&block->HardFaultsDelta, block->ProcessItem->HardFaultCount);
+
+        // Update the frame stats for the process (dmex)
+        if (EtFramesEnabled)
+        {
+            EtProcessFramesUpdateProcessBlock(block);
+        }
 
         // Invalidate all text.
 
@@ -743,6 +752,17 @@ VOID EtInitializeProcessBlock(
     //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
     //Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
 
+    if (EtFramesEnabled)
+    {
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesPerSecondHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesLatencyHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesDisplayLatencyHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsBetweenPresentsHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsInPresentApiHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilRenderCompleteHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilDisplayedHistory, sampleCount);
+    }
+
     InsertTailList(&EtProcessBlockListHead, &Block->ListEntry);
 }
 
@@ -759,6 +779,17 @@ VOID EtDeleteProcessBlock(
     PhDeleteCircularBuffer_ULONG(&Block->MemorySharedHistory);
     PhDeleteCircularBuffer_ULONG(&Block->MemoryHistory);
     PhDeleteCircularBuffer_FLOAT(&Block->GpuHistory);
+
+    if (EtFramesEnabled)
+    {
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesPerSecondHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesLatencyHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesDisplayLatencyHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsBetweenPresentsHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsInPresentApiHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsUntilRenderCompleteHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsUntilDisplayedHistory);
+    }
 
     RemoveEntryList(&Block->ListEntry);
 }
@@ -836,6 +867,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_DISKEXT, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
                 { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
                 { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" },
