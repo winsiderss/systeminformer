@@ -1001,7 +1001,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     if (lastTickCount == 0)
                         lastTickCount = tickCount;
 
-                    if (tickCount - lastTickCount >= 30 * 1000)
+                    if (tickCount - lastTickCount >= 600 * 1000)
                     {
                         PhDereferenceObject(EtGpuRunningTimeHashTable);
                         EtGpuCreateRunningTimeHashTable();;
@@ -1050,7 +1050,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     if (lastTickCount == 0)
                         lastTickCount = tickCount;
 
-                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    if (tickCount - lastTickCount >= 600 * 1000)
                     {
                         PhDereferenceObject(EtGpuDedicatedHashTable);
                         EtGpuCreateDedicatedHashTable();
@@ -1099,7 +1099,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     if (lastTickCount == 0)
                         lastTickCount = tickCount;
 
-                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    if (tickCount - lastTickCount >= 600 * 1000)
                     {
                         PhDereferenceObject(EtGpuSharedHashTable);
                         EtGpuCreateSharedHashTable();
@@ -1148,7 +1148,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     if (lastTickCount == 0)
                         lastTickCount = tickCount;
 
-                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    if (tickCount - lastTickCount >= 600 * 1000)
                     {
                         PhDereferenceObject(EtGpuCommitHashTable);
                         EtGpuCreateCommitHashTable();
@@ -1197,7 +1197,7 @@ NTSTATUS NTAPI EtGpuCounterQueryThread(
                     if (lastTickCount == 0)
                         lastTickCount = tickCount;
 
-                    if (tickCount - lastTickCount >= 30 * CLOCKS_PER_SEC)
+                    if (tickCount - lastTickCount >= 600 * 1000)
                     {
                         PhDereferenceObject(EtGpuAdapterDedicatedHashTable);
                         EtGpuCreateAdapterDedicatedHashTable();
