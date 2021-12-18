@@ -498,9 +498,10 @@ VOID EtProcessTreeNewMessage(
     }
     else if (message->Message == TreeNewGetHeaderText)
     {
-        PPH_TREENEW_COLUMN column = message->Parameter1;
-        PPH_STRING* headerString = message->Parameter2;
+        PPH_TREENEW_GET_HEADER_TEXT getHeaderText = message->Parameter1;
+        PPH_TREENEW_COLUMN column = getHeaderText->Column;
         PLIST_ENTRY listEntry;
+        SIZE_T returnLength;
         FLOAT decimal = 0;
         ULONG64 number = 0;
 
@@ -524,9 +525,16 @@ VOID EtProcessTreeNewMessage(
 
         while (listEntry != &EtProcessBlockListHead)
         {
-            PET_PROCESS_BLOCK block;
+            PET_PROCESS_BLOCK block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-            block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+            if (block->ProcessNode)
+            {
+                if (!block->ProcessNode->Node.Visible)
+                {
+                    listEntry = listEntry->Flink;
+                    continue; // Skip filtered nodes.
+                }
+            }
 
             switch (message->SubId)
             {
@@ -570,7 +578,11 @@ VOID EtProcessTreeNewMessage(
 
                 PhInitFormatSize(&format[0], number);
 
-                *headerString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                {
+                    getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                    getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
             }
             break;
         case ETPRTNC_DISKTOTALRATE:
@@ -589,7 +601,11 @@ VOID EtProcessTreeNewMessage(
                 PhInitFormatSize(&format[0], value);
                 PhInitFormatS(&format[1], L"/s");
 
-                *headerString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                {
+                    getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                    getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
             }
             break;
         case ETPRTNC_GPU:
@@ -603,12 +619,11 @@ VOID EtProcessTreeNewMessage(
                 PhInitFormatF(&format[0], decimal, 2);
                 PhInitFormatC(&format[1], L'%');
 
-                *headerString = PhFormat(format, RTL_NUMBER_OF(format), 0);
-            }
-            break;
-        default:
-            {
-                //dprintf("default");
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                {
+                    getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                    getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
             }
             break;
         }

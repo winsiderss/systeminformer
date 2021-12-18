@@ -830,6 +830,36 @@ VOID NTAPI ProcessItemDeleteCallback(
     EtDeleteProcessBlock(Extension);
 }
 
+VOID NTAPI ProcessNodeCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_PROCESS_NODE processNode = Object;
+    PET_PROCESS_BLOCK block;
+
+    if (block = EtGetProcessBlock(processNode->ProcessItem))
+    {
+        block->ProcessNode = processNode;
+    }
+}
+
+VOID NTAPI ProcessNodeDeleteCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_PROCESS_NODE processNode = Object;
+    PET_PROCESS_BLOCK block;
+
+    if (block = EtGetProcessBlock(processNode->ProcessItem))
+    {
+        block->ProcessNode = NULL;
+    }
+}
+
 VOID NTAPI NetworkItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -1037,6 +1067,13 @@ LOGICAL DllMain(
                 sizeof(ET_PROCESS_BLOCK),
                 ProcessItemCreateCallback,
                 ProcessItemDeleteCallback
+                );
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmProcessNodeType,
+                0,
+                ProcessNodeCreateCallback,
+                ProcessNodeDeleteCallback
                 );
             PhPluginSetObjectExtension(
                 PluginInstance,
