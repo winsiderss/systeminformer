@@ -217,7 +217,8 @@ BOOLEAN PhCmForwardMessage(
         break;
     case TreeNewGetHeaderText:
         {
-            PPH_TREENEW_COLUMN tlColumn = Parameter1;
+            PPH_TREENEW_GET_HEADER_TEXT getHeaderText = Parameter1;
+            PPH_TREENEW_COLUMN tlColumn = getHeaderText->Column;
             PPH_CM_COLUMN column;
 
             if (tlColumn->Id < Manager->MinId)
