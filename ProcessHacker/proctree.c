@@ -3731,8 +3731,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         return TRUE;
     case TreeNewGetHeaderText:
         {
-            PPH_TREENEW_COLUMN column = Parameter1;
-            PPH_STRING* columnString = Parameter2;
+            PPH_TREENEW_GET_HEADER_TEXT getHeaderText = Parameter1;
+            PPH_TREENEW_COLUMN column = getHeaderText->Column;
+            SIZE_T returnLength;
             FLOAT decimal = 0;
             ULONG64 number = 0;
 
@@ -3755,6 +3756,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 if (!PhTestEvent(&node->ProcessItem->Stage1Event))
                     continue; // break; only check the first item?
+
+                if (!node->Node.Visible)
+                    continue; // Skip filtered nodes.
 
                 switch (column->Id)
                 {
@@ -3798,7 +3802,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhInitFormatF(&format[0], decimal, 2);
                     PhInitFormatC(&format[1], L'%');
 
-                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                    {
+                        getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                        getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
                 }
                 return TRUE;
             case PHPRTLC_IOTOTALRATE:
@@ -3813,21 +3821,14 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhInitFormatSize(&format[0], number);
                     PhInitFormatS(&format[1], L"/s");
 
-                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                    {
+                        getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                        getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
                 }
                 return TRUE;
             case PHPRTLC_PRIVATEBYTES:
-                {
-                    PH_FORMAT format[1];
-
-                    if (number == 0)
-                        break;
-
-                    PhInitFormatSize(&format[0], number);
-
-                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
-                }
-                return TRUE;
             case PHPRTLC_PRIVATEWS:
                 {
                     PH_FORMAT format[1];
@@ -3837,7 +3838,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     PhInitFormatSize(&format[0], number);
 
-                    *columnString = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                    {
+                        getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                        getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
                 }
                 return TRUE;
             }

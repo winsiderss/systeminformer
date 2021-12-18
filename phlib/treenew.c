@@ -6387,6 +6387,46 @@ VOID PhTnpGetHeaderTooltipText(
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, TNP_TOOLTIPS_DEFAULT_MAXIMUM_WIDTH);
 }
 
+BOOLEAN PhTnpGetColumnHeaderText(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ PWSTR TextCache,
+    _In_ ULONG TextCacheSize,
+    _Out_ PPH_STRINGREF Text
+    )
+{
+    PH_TREENEW_GET_HEADER_TEXT getHeaderText;
+
+    //if (Id < Column->TextCacheSize && Column->TextCache[Id].Buffer)
+    //{
+    //    *Text = Column->TextCache[Id];
+    //    return TRUE;
+    //}
+
+    PhInitializeEmptyStringRef(&getHeaderText.Text);
+    getHeaderText.Column = Column;
+    getHeaderText.TextCache = TextCache;
+    getHeaderText.TextCacheSize = TextCacheSize;
+
+    if (Context->Callback(
+        Context->Handle,
+        TreeNewGetHeaderText,
+        &getHeaderText,
+        NULL,
+        Context->CallbackContext
+        ) && getHeaderText.Text.Buffer)
+    {
+        *Text = getHeaderText.Text;
+
+        //if ((getHeaderText.Flags & TN_CACHE) && Id < Column->TextCacheSize)
+        //    Column->TextCache[Id] = getHeaderText.Text;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -6669,6 +6709,8 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             RECT bufferRect;
             HBITMAP bufferBitmap;
             HBITMAP oldBufferBitmap;
+            PH_STRINGREF headerString;
+            WCHAR headerText[0x50];
 
             // TODO: This drawing code works most of the time but has some issues when dragging columns,
             // we should probably switch to a custom header control that draws both lines. (dmex)
@@ -6809,7 +6851,6 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
                 if (column->Text)
                 {
-                    PPH_STRING headerString = NULL;
                     PWSTR textBuffer;
                     UINT textLength;
                     RECT textRect;
@@ -6848,28 +6889,26 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     }
                     SelectFont(bufferDc, oldFont);
 
-                    if (context->Callback(
-                        context->Handle,
-                        TreeNewGetHeaderText,
+                    if (PhTnpGetColumnHeaderText(
+                        context,
                         column,
-                        &headerString,
-                        context->CallbackContext
-                        ) && headerString)
+                        headerText,
+                        sizeof(headerText),
+                        &headerString
+                        ))
                     {
                         SetTextColor(bufferDc, context->ThemeSupport ? RGB(0xff, 0xff, 0xff) : RGB(0, 0, 0));
 
                         oldFont = SelectFont(bufferDc, context->HeaderBoldFontHandle);
                         DrawText(
                             bufferDc,
-                            headerString->Buffer,
-                            (UINT)headerString->Length / sizeof(WCHAR),
+                            headerString.Buffer,
+                            (UINT)headerString.Length / sizeof(WCHAR),
                             &textRect,
                             DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS | DT_TOP | DT_RIGHT
                             );
                         SelectFont(bufferDc, oldFont);
                     }
-
-                    PhClearReference(&headerString);
                 }
             }
 
