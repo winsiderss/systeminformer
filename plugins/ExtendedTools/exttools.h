@@ -257,6 +257,7 @@ typedef struct _ET_PROCESS_BLOCK
 {
     LIST_ENTRY ListEntry;
     PPH_PROCESS_ITEM ProcessItem;
+    PPH_PROCESS_NODE ProcessNode;
 
     BOOLEAN HaveFirstSample;
 
