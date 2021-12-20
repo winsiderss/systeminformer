@@ -308,16 +308,34 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                 {
                     PhInitializeStringBuilder(&sb, 50);
                     if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict ");
-                    PhAppendStringBuilder2(&sb, L"CF Guard");
+
+                    if (data->EnableXfg)
+                        PhAppendStringBuilder2(&sb, L"XF Guard");
+                    else
+                        PhAppendStringBuilder2(&sb, L"CF Guard");
+
                     *ShortDescription = PhFinalStringBuilderString(&sb);
                 }
 
                 if (LongDescription)
                 {
                     PhInitializeStringBuilder(&sb, 100);
-                    PhAppendStringBuilder2(&sb, L"Control Flow Guard (CFG) is enabled for the process.\r\n");
-                    if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict CFG : only CFG modules can be loaded.\r\n");
-                    if (data->EnableExportSuppression) PhAppendStringBuilder2(&sb, L"Dll Exports can be marked as CFG invalid targets.\r\n");
+
+                    if (data->EnableXfg)
+                    {
+                        PhAppendStringBuilder2(&sb, L"Extended Control Flow Guard (XFG) is enabled for the process.\r\n");
+
+                        if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict XFG : only XFG modules can be loaded.\r\n");
+                        if (data->EnableExportSuppression) PhAppendStringBuilder2(&sb, L"Dll Exports can be marked as XFG invalid targets.\r\n");
+                    }
+                    else
+                    {
+                        PhAppendStringBuilder2(&sb, L"Control Flow Guard (CFG) is enabled for the process.\r\n");
+
+                        if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict CFG : only CFG modules can be loaded.\r\n");
+                        if (data->EnableExportSuppression) PhAppendStringBuilder2(&sb, L"Dll Exports can be marked as CFG invalid targets.\r\n");
+                    }
+
                     *LongDescription = PhFinalStringBuilderString(&sb);
                 }
 
