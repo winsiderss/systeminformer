@@ -1051,7 +1051,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_COHERENCY:
                 {
-                    if (!PhEnableProcessQueryStage2)
+                    if (!PhEnableImageCoherencySupport)
                         break;
 
                     if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
