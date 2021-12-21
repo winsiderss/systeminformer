@@ -703,11 +703,11 @@ NTSTATUS PhGetServiceDllParameter(
     }
 
     if (
-        (WindowsVersion == WINDOWS_8 || WindowsVersion == WINDOWS_8_1) &&
+        WindowsVersion >= WINDOWS_8 &&
         (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_NOT_FOUND)
         )
     {
-        // Windows 8 places the ServiceDll for some services in the root key. (dmex)
+        // Windows 8 and above places the ServiceDll for some services in the root key. (dmex, OrbbQ3)
         keyName = PhConcatStringRef2(
             &servicesKeyName,
             ServiceName
