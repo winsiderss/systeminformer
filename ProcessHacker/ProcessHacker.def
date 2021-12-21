@@ -304,7 +304,7 @@ EXPORTS
     PhGetTokenPrimaryGroup
     PhGetTokenPrivileges
     PhGetTokenUser
-    PhImpersonateClientOfNamedPipe
+    PhImpersonateToken
     PhListenNamedPipe
     PhOpenKey
     PhLoadAppKey
@@ -318,6 +318,7 @@ EXPORTS
     PhQueryValueKey
     PhQueryTokenVariableSize
     PhResolveDevicePrefix
+    PhRevertImpersonationToken
     PhSetFileAllocationSize
     PhSetFilePosition
     PhSetFileSize
@@ -758,6 +759,7 @@ EXPORTS
     PhDeleteCacheFile
 
 ; appresolver
+    PhGetProcessPackageFullName
     PhAppResolverGetAppIdForWindow
 
 ; http
