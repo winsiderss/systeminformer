@@ -170,7 +170,8 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsSubsystemProcess : 1;
             ULONG IsControlFlowGuardEnabled : 1;
             ULONG IsCetEnabled : 1;
-            ULONG Spare : 13;
+            ULONG IsXfgEnabled : 1;
+            ULONG Spare : 12;
         };
     };
 
@@ -209,6 +210,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINT64_DELTA IoOtherCountDelta;
     PH_UINT32_DELTA ContextSwitchesDelta;
     PH_UINT32_DELTA PageFaultsDelta;
+    PH_UINT32_DELTA HardFaultsDelta;
     PH_UINT64_DELTA CycleTimeDelta; // since WIN7
 
     VM_COUNTERS_EX VmCounters;
@@ -241,7 +243,7 @@ typedef struct _PH_PROCESS_ITEM
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
 
-    WORD Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
+    USHORT Architecture; /*!< Process Machine Architecture (IMAGE_FILE_MACHINE_...) */
 
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 // end_phapppub
@@ -333,7 +335,12 @@ VERIFY_RESULT PhVerifyFileCached(
     _In_ PPH_STRING FileName,
     _In_opt_ PPH_STRING PackageFullName,
     _Out_opt_ PPH_STRING *SignerName,
+    _In_ BOOLEAN NativeFileName,
     _In_ BOOLEAN CachedOnly
+    );
+
+VOID PhFlushVerifyCache(
+    VOID
     );
 
 // begin_phapppub

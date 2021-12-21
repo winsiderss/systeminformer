@@ -215,6 +215,21 @@ BOOLEAN PhCmForwardMessage(
             plugin = column->Plugin;
         }
         break;
+    case TreeNewGetHeaderText:
+        {
+            PPH_TREENEW_GET_HEADER_TEXT getHeaderText = Parameter1;
+            PPH_TREENEW_COLUMN tlColumn = getHeaderText->Column;
+            PPH_CM_COLUMN column;
+
+            if (tlColumn->Id < Manager->MinId)
+                return FALSE;
+
+            column = tlColumn->Context;
+            pluginMessage.SubId = column->SubId;
+            pluginMessage.Context = column->Context;
+            plugin = column->Plugin;
+        }
+        break;
     default:
         {
             // Some plugins want to be notified about all messages.

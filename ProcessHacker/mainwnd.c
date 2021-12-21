@@ -409,11 +409,13 @@ VOID PhMwpInitializeControls(
     ULONG thinRows;
     ULONG treelistBorder;
     ULONG treelistCustomColors;
+    ULONG treelistCustomHeaderDraw;
     PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
 
     thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
     treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhEnableThemeSupport) ? WS_BORDER : 0;
     treelistCustomColors = PhGetIntegerSetting(L"TreeListCustomColorsEnable") ? TN_STYLE_CUSTOM_COLORS : 0;
+    treelistCustomHeaderDraw = PhGetIntegerSetting(L"TreeListEnableHeaderTotals") ? TN_STYLE_CUSTOM_HEADERDRAW : 0;
 
     if (treelistCustomColors)
     {
@@ -439,7 +441,7 @@ VOID PhMwpInitializeControls(
     PhMwpProcessTreeNewHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder | treelistCustomColors,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw,
         0,
         0,
         3,
@@ -523,16 +525,11 @@ NTSTATUS PhMwpLoadStage1Worker(
 
     PhNfLoadStage2();
 
-    if (WindowsVersion < WINDOWS_10)
-    {
-        // Make sure we get closed late in the shutdown process.
-        SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-    }
-    else
-    {
-        // Same values as taskmgr.exe on Win10 (dmex)
-        SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
-    }
+    // Make sure we get closed late in the shutdown process.
+    SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
+    // Note: Windows excludes Task Manager from the shutdown dialog but doesn't exclude other applications.
+    // If we use the same values as TM then we're always visible and users have assumed we're delaying shutdown. (dmex)
+    //SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
 
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
@@ -2009,9 +2006,7 @@ VOID PhMwpLoadSettings(
     )
 {
     ULONG opacity;
-    PPH_STRING customFont;
 
-    customFont = PhaGetStringSetting(L"Font");
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
@@ -2036,10 +2031,9 @@ VOID PhMwpLoadSettings(
     if (opacity != 0)
         PhSetWindowOpacity(WindowHandle, opacity);
 
-    PhNfLoadStage1();
+    PhMwpInvokeUpdateWindowFont(NULL);
 
-    if (customFont->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
-        ProcessHacker_UpdateFont();
+    PhNfLoadStage1();
 
     PhMwpNotifyAllPages(MainTabPageLoadSettings, NULL, NULL);
 }
@@ -3570,10 +3564,11 @@ VOID PhMwpInvokeShowMemoryResultsDialog(
 }
 
 VOID PhMwpInvokeUpdateWindowFont(
-    _In_ PVOID Parameter
+    _In_opt_ PVOID Parameter
     )
 {
     HFONT oldFont = PhTreeWindowFont;
+    HFONT newFont;
     PPH_STRING fontHexString;
     LOGFONT font;
 
@@ -3584,17 +3579,22 @@ VOID PhMwpInvokeUpdateWindowFont(
         PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
         )
     {
-        HFONT newFont;
-
-        if (newFont = CreateFontIndirect(&font))
-        {      
-            PhTreeWindowFont = newFont;
-            PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);           
-        }
+        if (!(newFont = CreateFontIndirect(&font)))
+            return;
+    }
+    else
+    {
+        if (!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &font, 0))
+            return;
+        if (!(newFont = CreateFontIndirect(&font)))
+            return;
     }
 
+    PhTreeWindowFont = newFont;
+
     SetWindowFont(TabControlHandle, PhTreeWindowFont, TRUE);
-    SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+    PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
+    SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0); // notify plugins of font change. (dmex)
 
     if (oldFont) DeleteFont(oldFont);
 }
@@ -3783,7 +3783,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT:
         {
-            return (PVOID)GetWindowFont(PhMwpProcessTreeNewHandle);
+            return PhTreeWindowFont; // (PVOID)GetWindowFont(PhMwpProcessTreeNewHandle);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:

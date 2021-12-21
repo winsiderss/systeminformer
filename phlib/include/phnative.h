@@ -741,6 +741,14 @@ PhGetProcessIdsUsingFile(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileUsn(
+    _In_ HANDLE FileHandle,
+    _Out_ PLONGLONG Usn
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetTransactionManagerBasicInformation(
     _In_ HANDLE TransactionManagerHandle,
     _Out_ PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation

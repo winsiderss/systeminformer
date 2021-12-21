@@ -25,6 +25,7 @@
 #include <hndlinfo.h>
 
 PPH_PLUGIN PluginInstance = NULL;
+BOOLEAN NetAdapterEnableNdis = FALSE;
 
 PPH_OBJECT_TYPE NetAdapterEntryType = NULL;
 PPH_LIST NetworkAdaptersList = NULL;
@@ -44,12 +45,22 @@ PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
+
+VOID NTAPI LoadSettings(
+    VOID
+    )
+{
+    NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
+}
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    LoadSettings();
+
     DiskDrivesInitialize();
     NetAdaptersInitialize();
     RaplDeviceInitialize();
@@ -186,6 +197,14 @@ VOID NTAPI SystemInformationInitializingCallback(
     }
 
     PhReleaseQueuedLockShared(&RaplDevicesListLock);
+}
+
+VOID NTAPI SettingsUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    LoadSettings();
 }
 
 PPH_STRING TrimString(
@@ -549,6 +568,13 @@ LOGICAL DllMain(
                 SystemInformationInitializingCallback,
                 NULL,
                 &SystemInformationInitializingCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSettingsUpdated),
+                SettingsUpdatedCallback,
+                NULL,
+                &SettingsUpdatedCallbackRegistration
                 );
 
             PhAddSettings(settings, RTL_NUMBER_OF(settings));

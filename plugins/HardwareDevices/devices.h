@@ -53,6 +53,7 @@
 #define UPDATE_MSG (WM_APP + 2)
 
 extern PPH_PLUGIN PluginInstance;
+extern BOOLEAN NetAdapterEnableNdis;
 
 extern PPH_OBJECT_TYPE NetAdapterEntryType;
 extern PPH_LIST NetworkAdaptersList;

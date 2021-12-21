@@ -32,7 +32,7 @@ typedef struct _ET_GPU_CONTEXT
     PET_PROCESS_BLOCK Block;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     BOOLEAN Enabled;
-    PH_LAYOUT_MANAGER LayoutManager;
+    //PH_LAYOUT_MANAGER LayoutManager;
 
     HWND GpuGroupBox;
     HWND MemGroupBox;
@@ -171,12 +171,7 @@ VOID GpuPropLayoutGraphs(
     ULONG graphWidth;
     ULONG graphHeight;
 
-    PhLayoutManagerLayout(&Context->LayoutManager);
-
-    Context->GpuGraphState.Valid = FALSE;
-    Context->MemoryGraphState.Valid = FALSE;
-    Context->MemorySharedGraphState.Valid = FALSE;
-
+    //PhLayoutManagerLayout(&Context->LayoutManager);
     GetClientRect(Context->WindowHandle, &clientRect);
 
     // Limit the rectangle bottom to the top of the panel.
@@ -360,7 +355,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             context->CommittedGroupBox = GetDlgItem(hwndDlg, IDC_GROUPCOMMIT);
             propPageContext->Context = context;
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            //PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
             PhInitializeGraphState(&context->GpuGraphState);
             PhInitializeGraphState(&context->MemoryGraphState);
@@ -382,7 +377,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhDeleteLayoutManager(&context->LayoutManager);
+            //PhDeleteLayoutManager(&context->LayoutManager);
 
             PhDeleteGraphState(&context->GpuGraphState);
             PhDeleteGraphState(&context->MemoryGraphState);
@@ -544,7 +539,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     else if (header->hwndFrom == context->SharedGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0);
                         PhGraphStateGetDrawInfo(&context->MemorySharedGraphState, getDrawInfo, context->Block->MemorySharedHistory.Count);
 
                         if (!context->MemorySharedGraphState.Valid)

@@ -248,30 +248,35 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
                 return TRUE;
         }
         break;
-    //case WM_CTLCOLORBTN: // TODO: theme subclass sysinfo window.
-    //case WM_CTLCOLORDLG:
-    //case WM_CTLCOLORSTATIC:
-    //    {
-    //        if (!PhEnableThemeSupport)
-    //            break;
-    //
-    //        SetBkMode((HDC)wParam, TRANSPARENT);
-    //
-    //        switch (PhCsGraphColorMode)
-    //        {
-    //        case 0: // New colors
-    //            SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
-    //            SetDCBrushColor((HDC)wParam, RGB(0xef, 0xef, 0xef)); // GetSysColor(COLOR_WINDOW)
-    //            break;
-    //        case 1: // Old colors
-    //            SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
-    //            SetDCBrushColor((HDC)wParam, RGB(30, 30, 30));
-    //            break;
-    //        }
-    //
-    //        return (INT_PTR)GetStockBrush(DC_BRUSH);
-    //    }
-    //    break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {    
+            SetBkMode((HDC)wParam, TRANSPARENT);
+
+            if (PhEnableThemeSupport)
+            {
+                switch (PhCsGraphColorMode)
+                {
+                case 0: // New colors
+                    SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor((HDC)wParam, RGB(0xef, 0xef, 0xef)); // GetSysColor(COLOR_WINDOW)
+                    break;
+                case 1: // Old colors
+                    SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                    SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor); // RGB(30, 30, 30));
+                    break;
+                }
+            }
+            else
+            {
+                SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+            }
+
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
+        }
+        break;
     }
 
     if (uMsg >= SI_MSG_SYSINFO_FIRST && uMsg <= SI_MSG_SYSINFO_LAST)
@@ -291,35 +296,35 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
 {
     switch (uMsg)
     {
-    //case WM_CTLCOLORBTN: // TODO: theme subclass sysinfo window.
-    //case WM_CTLCOLORDLG:
-    //case WM_CTLCOLORSTATIC:
-    //    {
-    //        SetBkMode((HDC)wParam, TRANSPARENT);
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
 
-    //        if (PhEnableThemeSupport)
-    //        {
-    //            switch (PhCsGraphColorMode)
-    //            {
-    //            case 0: // New colors
-    //                SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
-    //                SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
-    //                break;
-    //            case 1: // Old colors
-    //                SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
-    //                SetDCBrushColor((HDC)wParam, RGB(30, 30, 30));
-    //                break;
-    //            }
-    //        }
-    //        else
-    //        {
-    //            SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
-    //            SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
-    //        }
+            if (PhEnableThemeSupport)
+            {
+                switch (PhCsGraphColorMode)
+                {
+                case 0: // New colors
+                    SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
+                    break;
+                case 1: // Old colors
+                    SetTextColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                    SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor);
+                    break;
+                }
+            }
+            else
+            {
+                SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
+                SetDCBrushColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+            }
 
-    //        return (INT_PTR)GetStockBrush(DC_BRUSH);
-    //    }
-    //    break;
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
+        }
+        break;
     }
 
     return FALSE;
@@ -353,19 +358,6 @@ VOID PhSipOnInitDialog(
         );
 
     PhSipUpdateThemeData();
-
-    if (SectionList) // TODO: Remove (dmex)
-    {
-        ULONG i;
-
-        for (i = 0; i < SectionList->Count; i++)
-        {
-            section = SectionList->Items[i];
-            PhSipDestroySection(section);
-        }
-
-        PhDereferenceObject(SectionList);
-    }
 
     SectionList = PhCreateList(8);
     PhSipInitializeParameters();
@@ -465,7 +457,8 @@ VOID PhSipOnInitDialog(
 
     PhRegisterWindowCallback(PhSipWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
-    PhInitializeWindowTheme(PhSipWindow, PhEnableThemeSupport);
+    //PhInitializeWindowTheme(PhSipWindow, PhEnableThemeSupport);
+    PhInitializeThemeWindowFrame(PhSipWindow);
 
     PhSipOnSize();
     PhSipOnUserMessage(SI_MSG_SYSINFO_UPDATE, 0, 0);
@@ -1076,10 +1069,10 @@ VOID PhSipInitializeParameters(
 
     hdc = GetDC(PhSipWindow);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, PhGlobalDpi, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, PhGlobalDpi, 72);
     CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
 
     PhSipUpdateColorParameters();
@@ -1302,8 +1295,8 @@ VOID PhSipDrawRestoreSummaryPanel(
             FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             break;
         case 1: // Old colors
-            SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
-            SetDCBrushColor(bufferDc, RGB(43, 43, 43));
+            SetTextColor(bufferDc, PhThemeWindowTextColor);
+            SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);// RGB(43, 43, 43));
             FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
             break;
         }
@@ -1388,7 +1381,7 @@ VOID PhSipDrawSeparator(
             {
                 //FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DFACE));
                 //bufferRect.left += 1;
-                //F/illRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DSHADOW));
+                //FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_3DSHADOW));
                 //bufferRect.left -= 1;
             }
             break;
@@ -1445,21 +1438,18 @@ VOID PhSipDrawPanel(
             switch (PhCsGraphColorMode)
             {
             case 0: // New colors
-                SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
                 SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
                 FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
-                SetTextColor(hdc, RGB(0xff, 0xff, 0xff));
-                SetDCBrushColor(hdc, RGB(43, 43, 43));
+                SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
                 FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
                 break;
             }
         }
         else
         {
-            SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
-            SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+            SetDCBrushColor(hdc, RGB(255, 255, 255));
             FillRect(hdc, Rect, GetStockBrush(DC_BRUSH));
         }
 
@@ -1582,23 +1572,21 @@ VOID PhSipDefaultDrawPanel(
     {
         if (CurrentView == SysInfoSectionView)
         {
-            HBRUSH brush;
-
-            brush = NULL;
+            //HBRUSH brush = NULL;
 
             if (Section->GraphHot || Section->PanelHot || Section->HasFocus)
             {
-                brush = GetSysColorBrush(COLOR_WINDOW); // TODO: Use a different color
+                //brush = GetSysColorBrush(COLOR_WINDOW); // TODO: Use a different color
             }
             else if (Section == CurrentSection)
             {
-                brush = GetSysColorBrush(COLOR_WINDOW);
+                //brush = GetSysColorBrush(COLOR_WINDOW);
             }
 
-            if (brush)
-            {
-                //FillRect(hdc, &DrawPanel->Rect, brush);
-            }
+            //if (brush)
+            //{
+            //    FillRect(hdc, &DrawPanel->Rect, brush);
+            //}
         }
     }
 
@@ -1624,7 +1612,7 @@ VOID PhSipDefaultDrawPanel(
     }
     else
     {
-        SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
+        //SetTextColor(hdc, RGB(0x00, 0x00, 0x00));
 
         if (CurrentView == SysInfoSummaryView)
         {
@@ -2009,7 +1997,10 @@ VOID PhSipCreateSectionDialog(
                 createDialog.Parameter
                 );
 
-            PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
+            if (PhEnableThemeSupport)
+            {
+                PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
+            }
         }
     }
 }

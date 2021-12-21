@@ -253,7 +253,7 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 
     PhLoadModuleSymbolProvider(
         context->SymbolProvider,
-        Module->FileNameWin32->Buffer,
+        Module->FileName,
         (ULONG64)Module->BaseAddress,
         Module->Size
         );
@@ -278,7 +278,7 @@ static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     {
         PhLoadModuleSymbolProvider(
             context->SymbolProvider,
-            Module->FileNameWin32->Buffer,
+            Module->FileName,
             (ULONG64)Module->BaseAddress,
             Module->Size
             );
@@ -303,8 +303,7 @@ VOID PhLoadSymbolsThreadProvider(
 
     if (ThreadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
     {
-        if (ThreadProvider->SymbolProvider->IsRealHandle ||
-            ThreadProvider->ProcessId == SYSTEM_PROCESS_ID)
+        if (ThreadProvider->SymbolProvider->IsRealHandle || ThreadProvider->ProcessId == SYSTEM_PROCESS_ID)
         {
             loadContext.ProcessId = ThreadProvider->ProcessId;
             PhEnumGenericModules(
@@ -315,7 +314,7 @@ VOID PhLoadSymbolsThreadProvider(
                 &loadContext
                 );
         }
-        else
+
         {
             // We can't enumerate the process modules. Load symbols for ntdll.dll and kernel32.dll.
             loadContext.ProcessId = NtCurrentProcessId();
@@ -353,19 +352,16 @@ VOID PhLoadSymbolsThreadProvider(
             if (kernelModules->NumberOfModules > 0)
             {
                 PPH_STRING fileName;
-                PPH_STRING newFileName;
 
                 fileName = PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName);
-                newFileName = PhGetFileName(fileName);
-                PhDereferenceObject(fileName);
 
                 PhLoadModuleSymbolProvider(
                     ThreadProvider->SymbolProvider,
-                    newFileName->Buffer,
+                    fileName,
                     (ULONG64)kernelModules->Modules[0].ImageBase,
                     kernelModules->Modules[0].ImageSize
                     );
-                PhDereferenceObject(newFileName);
+                PhDereferenceObject(fileName);
             }
 
             PhFree(kernelModules);

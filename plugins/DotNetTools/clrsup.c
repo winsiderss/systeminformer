@@ -22,10 +22,11 @@
  */
 
 #include "dn.h"
-#include <json.h>
+#include <appresolver.h>
 #include <mapimg.h>
 #include <symprv.h>
 #include <verify.h>
+#include <json.h>
 #include "clrsup.h"
 #include "corsym.h"
 
@@ -1344,7 +1345,43 @@ TryAppLocal:
             signerName && PhEqualString2(signerName, L"Microsoft Corporation", TRUE)
             )
         {
+            HANDLE processHandle;
+            HANDLE tokenHandle = NULL;
+            BOOLEAN appContainerRevertToken = FALSE;
+
+            // Note: We have to impersonate when loading mscordaccore.dll from UWP store packages (fixes PowerShell Core). (dmex)
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                ProcessId
+                )))
+            {
+                PPH_STRING packageName = PhGetProcessPackageFullName(processHandle);
+
+                if (!PhIsNullOrEmptyString(packageName))
+                {
+                    if (NT_SUCCESS(PhOpenProcessToken(
+                        processHandle,
+                        TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
+                        &tokenHandle
+                        )))
+                    {
+                        appContainerRevertToken = NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), tokenHandle));
+                    }
+                }
+
+                PhClearReference(&packageName);
+                NtClose(processHandle);
+            }
+
             mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
+
+            if (tokenHandle)
+            {
+                if (appContainerRevertToken)
+                    PhRevertImpersonationToken(NtCurrentThread());
+                NtClose(tokenHandle);
+            }
         }
 
         PhClearReference(&signerName);

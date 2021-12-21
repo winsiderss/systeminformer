@@ -124,6 +124,8 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
+
+    USHORT Architecture;
 } PH_PROCESS_QUERY_S2_DATA, *PPH_PROCESS_QUERY_S2_DATA;
 
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
@@ -904,7 +906,7 @@ VOID PhpProcessQueryStage1(
         status = STATUS_NOT_FOUND;
 
         //
-        // First try to use the new API if it makes sense to.
+        // First try to use the new API if it makes sense to. (jxy-s)
         //
         if (WindowsVersion >= WINDOWS_11 && processItem->QueryHandle)
         {
@@ -922,27 +924,12 @@ VOID PhpProcessQueryStage1(
         }
 
         //
-        // Check if we succeeded above.
+        // Check if we succeeded above. (jxy-s)
         //
         if (!NT_SUCCESS(status))
         {
-            //
-            // For backward compatibility we'll read the Machine from the file.
-            // If we fail to access the file we could go read from the remote
-            // process memory, but for now we only read from the file.
-            //
-            if (processItem->FileName && !processItem->IsSubsystemProcess)
-            {
-                PH_MAPPED_IMAGE mappedImage;
-                status = PhLoadMappedImageEx(processItem->FileName,
-                                             NULL,
-                                             &mappedImage);
-                if (NT_SUCCESS(status))
-                {
-                    Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
-                    PhUnloadMappedImage(&mappedImage);
-                }
-            }
+            // Set the special value for a delayed stage2 query. (dmex)
+            Data->Architecture = USHRT_MAX;
         }
     }
 
@@ -962,14 +949,15 @@ VOID PhpProcessQueryStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
-    if (PhEnableProcessQueryStage2 && processItem->FileNameWin32 && !processItem->IsSubsystemProcess)
+    if (PhEnableProcessQueryStage2 && processItem->FileName && !processItem->IsSubsystemProcess)
     {
         NTSTATUS status;
 
         Data->VerifyResult = PhVerifyFileCached(
-            processItem->FileNameWin32,
+            processItem->FileName,
             processItem->PackageFullName,
             &Data->VerifySignerName,
+            TRUE,
             FALSE
             );
 
@@ -992,6 +980,24 @@ VOID PhpProcessQueryStage2(
             Data->ImportFunctions = ULONG_MAX;
         }
 
+        if (processItem->Architecture == USHRT_MAX)
+        {
+            PH_MAPPED_IMAGE mappedImage;
+
+            // For backward compatibility we'll read the Machine from the file.
+            // If we fail to access the file we could go read from the remote
+            // process memory, but for now we only read from the file. (jxy-s)
+
+            if (NT_SUCCESS(PhLoadMappedImageEx(processItem->FileName, NULL, &mappedImage)))
+            {
+                Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
+                PhUnloadMappedImage(&mappedImage);
+            }
+        }
+    }
+
+    if (PhEnableImageCoherencySupport && processItem->FileName && !processItem->IsSubsystemProcess)
+    {
         if (PhCsImageCoherencyScanLevel == 0)
         {
             //
@@ -1008,22 +1014,16 @@ VOID PhpProcessQueryStage2(
 
             switch (PhCsImageCoherencyScanLevel)
             {
-                case 1:
-                {
-                    type = PhImageCoherencyQuick;
-                    break;
-                }
-                case 2:
-                {
-                    type = PhImageCoherencyNormal;
-                    break;
-                }
-                case 3:
-                default:
-                {
-                    type = PhImageCoherencyFull;
-                    break;
-                }
+            case 1:
+                type = PhImageCoherencyQuick;
+                break;
+            case 2:
+                type = PhImageCoherencyNormal;
+                break;
+            case 3:
+            default:
+                type = PhImageCoherencyFull;
+                break;
             }
 
             Data->ImageCoherencyStatus = PhGetProcessImageCoherency(
@@ -1130,7 +1130,7 @@ VOID PhpFillProcessItemStage1(
     processItem->IsBeingDebugged = Data->IsBeingDebugged;
     processItem->IsImmersive = Data->IsImmersive;
     processItem->IsProtectedHandle = Data->IsFilteredHandle;
-    processItem->Architecture = (WORD)Data->Architecture;
+    processItem->Architecture = (USHORT)Data->Architecture;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 
@@ -1163,6 +1163,12 @@ VOID PhpFillProcessItemStage2(
     if (processItem->IsSubsystemProcess)
     {
         memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
+    }
+
+    // Note: We query the architecture in stage1 so don't overwrite the previous data. (dmex)
+    if (processItem->Architecture == USHRT_MAX)
+    {
+        processItem->Architecture = Data->Architecture;
     }
 }
 
@@ -1381,6 +1387,16 @@ VOID PhpFillProcessItem(
         if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(ProcessItem->QueryHandle, &cfguardEnabled)))
         {
             ProcessItem->IsControlFlowGuardEnabled = cfguardEnabled;
+        }
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            BOOLEAN xfguardEnabled;
+
+            if (NT_SUCCESS(PhGetProcessIsXFGuardEnabled(ProcessItem->QueryHandle, &xfguardEnabled)))
+            {
+                ProcessItem->IsXfgEnabled = xfguardEnabled;
+            }
         }
     }
 
@@ -1910,6 +1926,8 @@ VOID PhProcessProviderUpdate(
         PhImageListFlushCache();
 
         PhFlushImageVersionInfoCache();
+
+        //PhFlushVerifyCache();
     }
 
     if (!PhProcessStatisticsInitialized)
@@ -2189,6 +2207,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
+            PhUpdateDelta(&processItem->HardFaultsDelta, process->HardFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
             PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
@@ -2254,6 +2273,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
+            PhUpdateDelta(&processItem->HardFaultsDelta, process->HardFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
             PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 

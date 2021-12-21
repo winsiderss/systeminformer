@@ -28,6 +28,7 @@
 #define IDC_UTILIZATION                 132
 #define IDC_SPEED                       133
 #define IDD_SYSINFO_GPUDETAILS          141
+#define IDD_PROCFRAMES                  142
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_WORKERTHREADSTART           1005
@@ -55,12 +56,16 @@
 #define IDC_ENABLESYSINFOGRAPHS         1050
 #define IDC_GROUPGPU                    1051
 #define IDC_ENABLEFWMONITOR             1051
+#define IDC_ENABLEFPSMONITOR            1051
 #define IDC_GROUPMEM                    1052
 #define IDC_GROUPSHARED                 1053
 #define IDC_GROUPCOMMIT                 1054
 #define IDC_ZDEDICATEDCURRENT_V         1055
+#define IDC_GROUPFPSFRAMERENDER         1055
 #define IDC_ZDEDICATEDLIMIT_V           1056
+#define IDC_GROUPFPSFRAMEDISPLAY        1056
 #define IDC_ZSHAREDCURRENT_V            1057
+#define IDC_GROUPFPSDISPLAYLATENCY      1057
 #define IDC_ZSHAREDLIMIT_V              1058
 #define IDC_TITLE                       1073
 #define IDC_GRAPH_LAYOUT                1074
@@ -81,6 +86,10 @@
 #define IDC_POWER_USAGE_L               1094
 #define IDC_TEMPERATURE_L               1095
 #define IDC_FAN_RPM_L                   1096
+#define IDC_GROUPFPS                    1098
+#define IDC_GROUPFPSLATENCY             1099
+#define IDC_GROUPFPSPRESENT             1100
+#define IDC_GROUPFPSPRESENTINTERVAL     1101
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007
@@ -91,9 +100,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        145
+#define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1098
+#define _APS_NEXT_CONTROL_VALUE         1102
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

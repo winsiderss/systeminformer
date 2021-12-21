@@ -62,6 +62,12 @@ INT_PTR CALLBACK RaplDevicePanelDialogProc(
             context->RaplDeviceTotalUsageLabel = GetDlgItem(hwndDlg, IDC_TOTALPOWER_L);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -426,14 +432,16 @@ VOID RaplDeviceNotifyProcessorGraph(
                 if (Context->ProcessorGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     FLOAT value;
+                    PH_FORMAT format[3];
 
                     value = PhGetItemCircularBuffer_FLOAT(&Context->DeviceEntry->PackageBuffer, getTooltipText->Index);
 
-                    PhMoveReference(&Context->ProcessorGraphState.TooltipText, PhFormatString(
-                        L"%.2f W\n%s",
-                        value,
-                        ((PPH_STRING)PH_AUTO(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                        ));
+                    // %.2f W\n%s
+                    PhInitFormatF(&format[0], value, 2);
+                    PhInitFormatS(&format[1], L" W\n");
+                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                    
+                    PhMoveReference(&Context->ProcessorGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 }
 
                 getTooltipText->Text = PhGetStringRef(Context->ProcessorGraphState.TooltipText);
@@ -764,6 +772,12 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

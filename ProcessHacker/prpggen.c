@@ -675,19 +675,41 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     {
                     case IDC_COMPANYNAME_LINK:
                         {
-                            if (processItem->FileNameWin32)
+                            if (processItem->FileName)
                             {
-                                PH_VERIFY_FILE_INFO info;
+                                NTSTATUS status;
+                                HANDLE fileHandle;
 
-                                memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
-                                info.FileName = processItem->FileNameWin32->Buffer;
-                                info.Flags = PH_VERIFY_VIEW_PROPERTIES;
-                                info.hWnd = hwndDlg;
-                                PhVerifyFileWithAdditionalCatalog(
-                                    &info,
-                                    processItem->PackageFullName,
-                                    NULL
+                                status = PhCreateFile(
+                                    &fileHandle,
+                                    processItem->FileName,
+                                    FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                                    FILE_ATTRIBUTE_NORMAL,
+                                    FILE_SHARE_READ | FILE_SHARE_DELETE,
+                                    FILE_OPEN,
+                                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                                     );
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    PH_VERIFY_FILE_INFO info;
+
+                                    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+                                    info.FileHandle = fileHandle;
+                                    info.Flags = PH_VERIFY_VIEW_PROPERTIES;
+                                    info.hWnd = hwndDlg;
+                                    PhVerifyFileWithAdditionalCatalog(
+                                        &info,
+                                        processItem->PackageFullName,
+                                        NULL
+                                        );
+
+                                    NtClose(fileHandle);
+                                }
+                                else
+                                {
+                                    PhShowStatus(hwndDlg, L"Unable to perform the operation.", status, 0);
+                                }
                             }
                         }
                         break;

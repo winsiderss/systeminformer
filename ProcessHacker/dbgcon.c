@@ -149,7 +149,7 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
 
     if (!PhLoadModuleSymbolProvider(
         (PPH_SYMBOL_PROVIDER)Context,
-        Module->FileNameWin32->Buffer,
+        Module->FileName,
         (ULONG64)Module->BaseAddress,
         Module->Size
         ))

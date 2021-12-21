@@ -570,6 +570,7 @@ VOID PhpServiceQueryStage2(
             serviceItem->FileName,
             NULL,
             &Data->VerifySignerName,
+            FALSE,
             FALSE
             );
     }

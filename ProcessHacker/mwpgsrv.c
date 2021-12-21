@@ -622,11 +622,11 @@ VOID PhMwpOnServiceModified(
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
                 {
-                    PhShowIconNotification(L"Service modified", formatBuffer);
+                    PhShowIconNotification(L"Service Modified", formatBuffer);
                 }
                 else
                 {
-                    PhShowIconNotification(L"Service modified",
+                    PhShowIconNotification(L"Service Modified",
                         PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
                 }
             }

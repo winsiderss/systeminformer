@@ -1652,15 +1652,15 @@ static BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     )
 {
     return
-        (*(PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *)Entry1)->WindowHandle ==
-        (*(PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *)Entry2)->WindowHandle;
+        ((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry1)->WindowHandle ==
+        ((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry2)->WindowHandle;
 }
 
 static ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashIntPtr((ULONG_PTR)(*(PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *)Entry)->WindowHandle);
+    return PhHashIntPtr((ULONG_PTR)((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry)->WindowHandle);
 }
 
 VOID PhRegisterWindowCallback(
@@ -1669,11 +1669,10 @@ VOID PhRegisterWindowCallback(
     _In_opt_ PVOID Context
     )
 {
-    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION entry;
+    PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION entry;
 
-    entry = PhAllocate(sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION));
-    entry->WindowHandle = WindowHandle;
-    entry->Type = Type;
+    entry.WindowHandle = WindowHandle;
+    entry.Type = Type;
 
     switch (Type) // HACK
     {
@@ -1693,27 +1692,14 @@ VOID PhUnregisterWindowCallback(
     )
 {
     PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION lookupEntry;
-    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION lookupEntryPtr = &lookupEntry;
-    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *entryPtr;
     PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION entry;
 
     lookupEntry.WindowHandle = WindowHandle;
 
     PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
-
-    entryPtr = (PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION*)PhFindEntryHashtable(
-        WindowCallbackHashTable,
-        &lookupEntryPtr
-        );
-
-    assert(entryPtr);
-
-    if (entryPtr && PhRemoveEntryHashtable(WindowCallbackHashTable, entryPtr))
-    {
-        entry = *entryPtr;
-        PhFree(entry);
-    }
-
+    entry = PhFindEntryHashtable(WindowCallbackHashTable, &lookupEntry);
+    assert(entry);
+    PhRemoveEntryHashtable(WindowCallbackHashTable, entry);
     PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
 }
 
@@ -1721,16 +1707,16 @@ VOID PhWindowNotifyTopMostEvent(
     _In_ BOOLEAN TopMost
     )
 {
-    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION *entry;
+    PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION entry;
     ULONG i = 0;
 
     PhAcquireQueuedLockExclusive(&WindowCallbackListLock);
 
-    while (PhEnumHashtable(WindowCallbackHashTable, (PVOID*)&entry, &i))
+    while (PhEnumHashtable(WindowCallbackHashTable, &entry, &i))
     {
-        if ((*entry)->Type & PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST)
+        if (entry->Type & PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST)
         {
-            PhSetWindowAlwaysOnTop((*entry)->WindowHandle, TopMost);
+            PhSetWindowAlwaysOnTop(entry->WindowHandle, TopMost);
         }
     }
 

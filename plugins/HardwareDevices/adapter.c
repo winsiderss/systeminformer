@@ -70,7 +70,7 @@ VOID NetAdaptersUpdate(
         if (!entry)
             continue;
 
-        if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+        if (NetAdapterEnableNdis)
         {
             if (NT_SUCCESS(PhCreateFile(
                 &deviceHandle,
@@ -226,7 +226,7 @@ VOID NetAdapterUpdateDeviceInfo(
         }
         else
         {
-            if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+            if (NetAdapterEnableNdis)
             {
                 if (NT_SUCCESS(PhCreateFile(
                     &deviceHandle,

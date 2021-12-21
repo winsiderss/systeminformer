@@ -670,17 +670,46 @@ LRESULT CALLBACK MainWndSubclassProc(
                     // handle keybind Ctrl + K
                     if (SearchboxHandle && ToolStatusConfig.SearchBoxEnabled)
                     {
-                        if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+                        // Check if the searchbox is already focused.
+                        if (GetFocus() == SearchboxHandle)
                         {
-                            if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                                RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), 22);
+                            HWND tnHandle;
 
-                            if (!IsWindowVisible(SearchboxHandle))
-                                ShowWindow(SearchboxHandle, SW_SHOW);
+                            // Return focus to the treelist.
+                            if (tnHandle = GetCurrentTreeNewHandle())
+                            {
+                                ULONG tnCount = TreeNew_GetFlatNodeCount(tnHandle);
+
+                                for (ULONG i = 0; i < tnCount; i++)
+                                {
+                                    PPH_TREENEW_NODE node = TreeNew_GetFlatNode(tnHandle, i);
+
+                                    // Select the first visible node.
+                                    if (node->Visible)
+                                    {
+                                        SetFocus(tnHandle);
+                                        TreeNew_SetFocusNode(tnHandle, node);
+                                        TreeNew_SetMarkNode(tnHandle, node);
+                                        TreeNew_SelectRange(tnHandle, i, i);
+                                        break;
+                                    }
+                                }
+                            }
                         }
+                        else
+                        {
+                            if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
+                            {
+                                if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
+                                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), 22);
 
-                        SetFocus(SearchboxHandle);
-                        Edit_SetSel(SearchboxHandle, 0, -1);
+                                if (!IsWindowVisible(SearchboxHandle))
+                                    ShowWindow(SearchboxHandle, SW_SHOW);
+                            }
+
+                            SetFocus(SearchboxHandle);
+                            Edit_SetSel(SearchboxHandle, 0, -1);
+                        }
                     }   
                 }
                 goto DefaultWndProc;

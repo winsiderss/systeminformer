@@ -449,7 +449,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 bufferDc = CreateCompatibleDC(hdc);
                 bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
                 oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-    
+
                 if (GetFocus() == hWnd)
                 {
                     FrameRect(bufferDc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
@@ -772,7 +772,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
                     if (textStart == 0)
                     {
-                        SetWindowText(hWnd, L"");
+                        //CallWindowProc(oldWndProc, hWnd, WM_SETTEXT, 0, (LPARAM)L"");
+                        PhSetWindowText(hWnd, L"");
                         PhFree(textBuffer);
                         return 1;
                     }
@@ -1019,7 +1020,6 @@ HBITMAP PhLoadPngImageFromFile(
     BITMAPINFO bitmapInfo = { 0 };
     HBITMAP bitmapHandle = NULL;
     PVOID bitmapBuffer = NULL;
-    IWICStream* wicStream = NULL;
     IWICBitmapSource* wicBitmapSource = NULL;
     IWICBitmapDecoder* wicDecoder = NULL;
     IWICBitmapFrameDecode* wicFrame = NULL;
@@ -1028,22 +1028,10 @@ HBITMAP PhLoadPngImageFromFile(
     WICPixelFormatGUID pixelFormat;
     WICRect rect = { 0, 0, Width, Height };
 
-    // Create the ImagingFactory
     if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicFactory)))
         goto CleanupExit;
 
-    // Create the Stream
-    if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
-        goto CleanupExit;
-
-    // Initialize the Stream from Memory
-    if (FAILED(IWICStream_InitializeFromFilename(wicStream, FileName, GENERIC_READ)))
-        goto CleanupExit;
-
-    if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
-        goto CleanupExit;
-
-    if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
+    if (FAILED(IWICImagingFactory_CreateDecoderFromFilename(wicFactory, FileName, NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wicDecoder)))
         goto CleanupExit;
 
     // Get the Frame count
@@ -1129,9 +1117,6 @@ CleanupExit:
 
     if (wicBitmapSource)
         IWICBitmapSource_Release(wicBitmapSource);
-
-    if (wicStream)
-        IWICStream_Release(wicStream);
 
     if (wicDecoder)
         IWICBitmapDecoder_Release(wicDecoder);
