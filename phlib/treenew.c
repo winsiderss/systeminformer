@@ -1158,7 +1158,7 @@ VOID PhTnpOnXxxButtonXxx(
 
     clickMessage = -1;
 
-    if (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN)
+    if (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN || Message == WM_MBUTTONDOWN)
     {
         if (Context->MouseDownLast != 0 && Context->MouseDownLast != Message)
         {
@@ -1167,23 +1167,27 @@ VOID PhTnpOnXxxButtonXxx(
 
             if (Context->MouseDownLast == WM_LBUTTONDOWN)
                 clickMessage = TreeNewLeftClick;
-            else
+            else if (Context->MouseDownLast == WM_RBUTTONDOWN)
                 clickMessage = TreeNewRightClick;
+            else
+                clickMessage = TreeNewMiddleClick;
         }
 
         Context->MouseDownLast = Message;
         Context->MouseDownLocation.x = CursorX;
         Context->MouseDownLocation.y = CursorY;
     }
-    else if (Message == WM_LBUTTONUP || Message == WM_RBUTTONUP)
+    else if (Message == WM_LBUTTONUP || Message == WM_RBUTTONUP || Message == WM_MBUTTONUP)
     {
         if (Context->MouseDownLast != 0 &&
             Context->MouseDownLocation.x == CursorX && Context->MouseDownLocation.y == CursorY)
         {
             if (Context->MouseDownLast == WM_LBUTTONDOWN)
                 clickMessage = TreeNewLeftClick;
-            else
+            else if (Context->MouseDownLast == WM_RBUTTONDOWN)
                 clickMessage = TreeNewRightClick;
+            else
+                clickMessage = TreeNewMiddleClick;
         }
 
         Context->MouseDownLast = 0;
