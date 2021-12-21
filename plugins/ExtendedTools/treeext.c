@@ -508,16 +508,43 @@ VOID EtProcessTreeNewMessage(
         if (ProcessesUpdatedCount != 3)
             return;
 
-        if (!(
-            message->SubId == ETPRTNC_DISKTOTALBYTES ||
-            message->SubId == ETPRTNC_DISKTOTALRATE ||
-            message->SubId == ETPRTNC_NETWORKTOTALBYTES ||
-            message->SubId == ETPRTNC_NETWORKTOTALRATE ||
-            message->SubId == ETPRTNC_GPU ||
-            message->SubId == ETPRTNC_GPUDEDICATEDBYTES ||
-            message->SubId == ETPRTNC_GPUSHAREDBYTES
-            ))
+        switch (message->SubId)
         {
+        case ETPRTNC_DISKREADS:
+        case ETPRTNC_DISKWRITES:
+        case ETPRTNC_DISKREADBYTES:
+        case ETPRTNC_DISKWRITEBYTES:
+        case ETPRTNC_DISKTOTALBYTES:
+        case ETPRTNC_DISKREADSDELTA:
+        case ETPRTNC_DISKWRITESDELTA:
+        case ETPRTNC_DISKREADBYTESDELTA:
+        case ETPRTNC_DISKWRITEBYTESDELTA:
+        case ETPRTNC_DISKTOTALBYTESDELTA:
+        case ETPRTNC_NETWORKRECEIVES:
+        case ETPRTNC_NETWORKSENDS:
+        case ETPRTNC_NETWORKRECEIVEBYTES:
+        case ETPRTNC_NETWORKSENDBYTES:
+        case ETPRTNC_NETWORKTOTALBYTES:
+        case ETPRTNC_NETWORKRECEIVESDELTA:
+        case ETPRTNC_NETWORKSENDSDELTA:
+        case ETPRTNC_NETWORKRECEIVEBYTESDELTA:
+        case ETPRTNC_NETWORKSENDBYTESDELTA:
+        case ETPRTNC_NETWORKTOTALBYTESDELTA:
+        case ETPRTNC_HARDFAULTS:
+        case ETPRTNC_HARDFAULTSDELTA:
+        case ETPRTNC_PEAKTHREADS:
+        case ETPRTNC_GPU:
+        case ETPRTNC_GPUDEDICATEDBYTES:
+        case ETPRTNC_GPUSHAREDBYTES:
+        case ETPRTNC_DISKREADRATE:
+        case ETPRTNC_DISKWRITERATE:
+        case ETPRTNC_DISKTOTALRATE:
+        case ETPRTNC_NETWORKRECEIVERATE:
+        case ETPRTNC_NETWORKSENDRATE:
+        case ETPRTNC_NETWORKTOTALRATE:
+        case ETPRTNC_FPS:
+            break;
+        default:
             return;
         }
 
@@ -538,17 +565,74 @@ VOID EtProcessTreeNewMessage(
 
             switch (message->SubId)
             {
+            case ETPRTNC_DISKREADS:
+                number += block->DiskReadCount;
+                break;
+            case ETPRTNC_DISKWRITES:
+                number += block->DiskWriteCount;
+                break;
+            case ETPRTNC_DISKREADBYTES:
+                number += block->DiskReadRaw;
+                break;
+            case ETPRTNC_DISKWRITEBYTES:
+                number += block->DiskWriteRaw;
+                break;
             case ETPRTNC_DISKTOTALBYTES:
                 number += block->DiskReadRaw + block->DiskWriteRaw;
                 break;
-            case ETPRTNC_DISKTOTALRATE:
+            case ETPRTNC_DISKREADSDELTA:
+                number += block->DiskReadDelta.Delta;
+                break;
+            case ETPRTNC_DISKWRITESDELTA:
+                number += block->DiskWriteDelta.Delta;
+                break;
+            case ETPRTNC_DISKREADBYTESDELTA:
+                number += block->DiskReadRawDelta.Delta;
+                break;
+            case ETPRTNC_DISKWRITEBYTESDELTA:
+                number += block->DiskWriteRawDelta.Delta;
+                break;
+            case ETPRTNC_DISKTOTALBYTESDELTA:
                 number += block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKRECEIVES:
+                number += block->NetworkReceiveCount;
+                break;
+            case ETPRTNC_NETWORKSENDS:
+                number += block->NetworkSendCount;
+                break;
+            case ETPRTNC_NETWORKRECEIVEBYTES:
+                number += block->NetworkReceiveRaw;
+                break;
+            case ETPRTNC_NETWORKSENDBYTES:
+                number += block->NetworkSendRaw;
                 break;
             case ETPRTNC_NETWORKTOTALBYTES:
                 number += block->NetworkReceiveRaw + block->NetworkSendRaw;
                 break;
-            case ETPRTNC_NETWORKTOTALRATE:
+            case ETPRTNC_NETWORKRECEIVESDELTA:
+                number += block->NetworkReceiveDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKSENDSDELTA:
+                number += block->NetworkSendDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKRECEIVEBYTESDELTA:
+                number += block->NetworkReceiveRawDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKSENDBYTESDELTA:
+                number += block->NetworkSendRawDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKTOTALBYTESDELTA:
                 number += block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
+                break;
+            case ETPRTNC_HARDFAULTS:
+                number += block->HardFaultsDelta.Value;
+                break;
+            case ETPRTNC_HARDFAULTSDELTA:
+                number += block->HardFaultsDelta.Delta;
+                break;
+            case ETPRTNC_PEAKTHREADS:
+                number += block->ProcessItem->PeakNumberOfThreads;
                 break;
             case ETPRTNC_GPU:
                 decimal += block->GpuNodeUtilization;
@@ -559,6 +643,27 @@ VOID EtProcessTreeNewMessage(
             case ETPRTNC_GPUSHAREDBYTES:
                 number += block->GpuSharedUsage;
                 break;
+            case ETPRTNC_DISKREADRATE:
+                number += block->DiskReadRawDelta.Delta;
+                break;
+            case ETPRTNC_DISKWRITERATE:
+                number += block->DiskWriteRawDelta.Delta;
+                break;
+            case ETPRTNC_DISKTOTALRATE:
+                number += block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKRECEIVERATE:
+                number += block->NetworkReceiveRawDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKSENDRATE:
+                number += block->NetworkSendRawDelta.Delta;
+                break;
+            case ETPRTNC_NETWORKTOTALRATE:
+                number += block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
+                break;
+            case ETPRTNC_FPS:
+                decimal += block->FramesPerSecond;
+                break;
             }
 
             listEntry = listEntry->Flink;
@@ -566,8 +671,44 @@ VOID EtProcessTreeNewMessage(
 
         switch (message->SubId)
         {
+        case ETPRTNC_DISKREADS:
+        case ETPRTNC_DISKREADSDELTA:
+        case ETPRTNC_DISKWRITES:
+        case ETPRTNC_DISKWRITESDELTA:
+        case ETPRTNC_HARDFAULTS:
+        case ETPRTNC_HARDFAULTSDELTA:
+        case ETPRTNC_NETWORKRECEIVES:
+        case ETPRTNC_NETWORKRECEIVESDELTA:
+        case ETPRTNC_NETWORKSENDS:
+        case ETPRTNC_NETWORKSENDSDELTA:
+        case ETPRTNC_PEAKTHREADS:
+            {
+                PH_FORMAT format[1];
+
+                if (number == 0)
+                    break;
+
+                PhInitFormatI64U(&format[0], number);
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                {
+                    getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                    getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
+            }
+            break;
+        case ETPRTNC_DISKREADBYTES:
+        case ETPRTNC_DISKWRITEBYTES:
         case ETPRTNC_DISKTOTALBYTES:
+        case ETPRTNC_DISKREADBYTESDELTA:
+        case ETPRTNC_DISKWRITEBYTESDELTA:
+        case ETPRTNC_DISKTOTALBYTESDELTA:
+        case ETPRTNC_NETWORKRECEIVEBYTES:
+        case ETPRTNC_NETWORKSENDBYTES:
         case ETPRTNC_NETWORKTOTALBYTES:
+        case ETPRTNC_NETWORKRECEIVEBYTESDELTA:
+        case ETPRTNC_NETWORKSENDBYTESDELTA:
+        case ETPRTNC_NETWORKTOTALBYTESDELTA:
         case ETPRTNC_GPUDEDICATEDBYTES:
         case ETPRTNC_GPUSHAREDBYTES:
             {
@@ -585,7 +726,11 @@ VOID EtProcessTreeNewMessage(
                 }
             }
             break;
+        case ETPRTNC_DISKREADRATE:
+        case ETPRTNC_DISKWRITERATE:
         case ETPRTNC_DISKTOTALRATE:
+        case ETPRTNC_NETWORKRECEIVERATE:
+        case ETPRTNC_NETWORKSENDRATE:
         case ETPRTNC_NETWORKTOTALRATE:
             {
                 PH_FORMAT format[2];
@@ -618,6 +763,22 @@ VOID EtProcessTreeNewMessage(
                 decimal *= 100;
                 PhInitFormatF(&format[0], decimal, 2);
                 PhInitFormatC(&format[1], L'%');
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                {
+                    getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                    getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
+            }
+            break;
+        case ETPRTNC_FPS:
+            {
+                PH_FORMAT format[1];
+
+                if (decimal == 0.0)
+                    break;
+
+                PhInitFormatF(&format[0], decimal, 2);
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
                 {
