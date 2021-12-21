@@ -163,7 +163,7 @@ VOID EtFormatRate(
 
     number = ValuePerPeriod;
     number *= 1000;
-    number /= PhGetIntegerSetting(L"UpdateInterval");
+    number /= EtUpdateInterval;
 
     if (number != 0)
     {
@@ -190,7 +190,7 @@ VOID EtFormatNetworkRate(
 
     number = ValuePerPeriod;
     number *= 1000;
-    number /= PhGetIntegerSetting(L"UpdateInterval");
+    number /= EtUpdateInterval;
 
     if (number != 0)
     {

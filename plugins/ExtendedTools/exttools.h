@@ -21,6 +21,8 @@ extern LIST_ENTRY EtNetworkBlockListHead;
 extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
 extern ULONG ProcessesUpdatedCount;
+extern ULONG EtUpdateInterval;
+extern BOOLEAN EtPropagateCpuUsage;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")

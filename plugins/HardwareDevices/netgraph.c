@@ -78,7 +78,7 @@ VOID NetAdapterUpdatePanel(
     PH_FORMAT format[2];
     WCHAR formatBuffer[256];
 
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+    if (NetAdapterEnableNdis)
     {
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
