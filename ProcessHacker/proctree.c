@@ -4020,6 +4020,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_IOREADBYTES:
             case PHPRTLC_IOWRITEBYTES:
             case PHPRTLC_IOOTHERBYTES:
+            case PHPRTLC_PAGEDPOOL:
+            case PHPRTLC_PEAKPAGEDPOOL:
+            case PHPRTLC_NONPAGEDPOOL:
+            case PHPRTLC_PEAKNONPAGEDPOOL:
+            case PHPRTLC_MINIMUMWORKINGSET:
+            case PHPRTLC_MAXIMUMWORKINGSET:
                 {
                     PH_FORMAT format[1];
 
