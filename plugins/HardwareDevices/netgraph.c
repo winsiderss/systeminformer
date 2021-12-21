@@ -78,7 +78,7 @@ VOID NetAdapterUpdatePanel(
     PH_FORMAT format[2];
     WCHAR formatBuffer[256];
 
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+    if (NetAdapterEnableNdis)
     {
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
@@ -257,6 +257,12 @@ INT_PTR CALLBACK NetAdapterPanelDialogProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -471,6 +477,12 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

@@ -1284,27 +1284,21 @@ VOID NTAPI MenuHookCallback(
         break;
     case PHAPP_ID_PROCESS_AFFINITY:
         {
-            NTSTATUS status;
             BOOLEAN changed = FALSE;
-            ULONG_PTR affinityMask;
+            //ULONG_PTR affinityMask;
             ULONG_PTR newAffinityMask;
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
             if (!processItem)
                 break;
 
-            // Query the current process affinity.
-            if (!NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
-            {
-                // TODO: Fix issue saving affinity for system processes.
-                break;
-            }
+            PhReferenceObject(processItem);
 
             // Don't show the default Process Hacker affinity dialog.
             menuHookInfo->Handled = TRUE;
 
             // Show the affinity dialog (with our values).
-            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, affinityMask, &newAffinityMask))
+            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, processItem, &newAffinityMask))
             {
                 PDB_OBJECT object;
 
@@ -1326,23 +1320,9 @@ VOID NTAPI MenuHookCallback(
                 {
                     SaveDb();
                 }
-
-                // Update the process affinity in Windows (if the system values are different).
-                if (affinityMask != newAffinityMask)
-                {
-                    HANDLE processHandle;
-
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        PROCESS_SET_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        PhSetProcessAffinityMask(processHandle, newAffinityMask);
-                        NtClose(processHandle);
-                    }
-                }
             }
+
+            PhDereferenceObject(processItem);
         }
         break;
     case PHAPP_ID_PAGEPRIORITY_VERYLOW:
@@ -1935,21 +1915,12 @@ VOID ProcessesUpdatedCallback(
         {
             if (processItem->PriorityClass != object->PriorityClass)
             {
-                HANDLE processHandle;
                 PROCESS_PRIORITY_CLASS priorityClass;
 
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_SET_INFORMATION,
-                    processItem->ProcessId
-                    )))
-                {
-                    priorityClass.Foreground = FALSE;
-                    priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
+                priorityClass.Foreground = FALSE;
+                priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
 
-                    PhSetProcessPriority(processHandle, priorityClass);
-                    NtClose(processHandle);
-                }
+                PhSetProcessItemPriority(processItem, priorityClass);
             }
         }
 
@@ -1963,17 +1934,7 @@ VOID ProcessesUpdatedCallback(
 
                 if (ioPriority != ULONG_MAX && ioPriority != object->IoPriorityPlusOne - 1)
                 {
-                    HANDLE processHandle;
-
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        PROCESS_SET_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        PhSetProcessIoPriority(processHandle, object->IoPriorityPlusOne - 1);
-                        NtClose(processHandle);
-                    }
+                    PhSetProcessItemIoPriority(processItem, object->IoPriorityPlusOne - 1);
                 }
             }
         }
@@ -1983,21 +1944,12 @@ VOID ProcessesUpdatedCallback(
             if (object->AffinityMask != 0)
             {
                 ULONG_PTR affinityMask;
-                HANDLE processHandle;
 
                 if (NT_SUCCESS(GetProcessAffinity(processItem->ProcessId, &affinityMask)))
                 {
                     if (affinityMask != object->AffinityMask)
                     {
-                        if (NT_SUCCESS(PhOpenProcess(
-                            &processHandle,
-                            PROCESS_SET_INFORMATION,
-                            processItem->ProcessId
-                            )))
-                        {
-                            PhSetProcessAffinityMask(processHandle, object->AffinityMask);
-                            NtClose(processHandle);
-                        }
+                        PhSetProcessItemAffinityMask(processItem, object->AffinityMask);
                     }
                 }
             }
@@ -2013,17 +1965,7 @@ VOID ProcessesUpdatedCallback(
 
                 if (pagePriority != ULONG_MAX && pagePriority != object->PagePriorityPlusOne - 1)
                 {
-                    HANDLE processHandle;
-
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        PROCESS_SET_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        PhSetProcessPagePriority(processHandle, object->PagePriorityPlusOne - 1);
-                        NtClose(processHandle);
-                    }
+                    PhSetProcessItemPagePriority(processItem, object->PagePriorityPlusOne - 1);
                 }
             }
         }
@@ -2454,6 +2396,12 @@ INT_PTR CALLBACK OptionsDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

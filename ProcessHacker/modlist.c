@@ -32,9 +32,6 @@
 #include <modprv.h>
 #include <phsettings.h>
 
-// remove once IMAGE_GUARD_XFG_ENABLED is defined (TheEragon)
-#include <mapimg.h>
-
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1054,7 +1051,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_COHERENCY:
                 {
-                    if (!PhEnableProcessQueryStage2)
+                    if (!PhEnableImageCoherencySupport)
                         break;
 
                     if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
@@ -1130,7 +1127,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             {
                 getNodeColor->BackColor = PhCsColorUnknown;
             }
-            else if (PhEnableProcessQueryStage2 && context->HighlightLowImageCoherency && PhShouldShowModuleCoherency(moduleItem, TRUE))
+            else if (PhEnableImageCoherencySupport && context->HighlightLowImageCoherency && PhShouldShowModuleCoherency(moduleItem, TRUE))
                 getNodeColor->BackColor = PhCsColorLowImageCoherency;
             else if (context->HighlightDotNetModules && (moduleItem->Flags & LDRP_COR_IMAGE))
                 getNodeColor->BackColor = PhCsColorDotNet;

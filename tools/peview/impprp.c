@@ -226,23 +226,29 @@ PPH_STRING PvpQueryModuleOrdinalName(
                             {
                                 PPH_STRING exportSymbol = NULL;
                                 PPH_STRING exportSymbolName = NULL;
+                                PPH_STRING exportFileName;
 
-                                if (PhLoadModuleSymbolProvider(
-                                    PvSymbolProvider,
-                                    FileName->Buffer,
-                                    (ULONG64)mappedImage.ViewBase,
-                                    (ULONG)mappedImage.Size
-                                    ))
+                                if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), (PVOID)mappedImage.ViewBase, &exportFileName)))
                                 {
-                                    // Try find the export name using symbols.
-                                    exportSymbol = PhGetSymbolFromAddress(
+                                    if (PhLoadModuleSymbolProvider(
                                         PvSymbolProvider,
-                                        (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
-                                        NULL,
-                                        NULL,
-                                        &exportSymbolName,
-                                        NULL
-                                        );
+                                        exportFileName,
+                                        (ULONG64)mappedImage.ViewBase,
+                                        (ULONG)mappedImage.Size
+                                        ))
+                                    {
+                                        // Try find the export name using symbols.
+                                        exportSymbol = PhGetSymbolFromAddress(
+                                            PvSymbolProvider,
+                                            (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
+                                            NULL,
+                                            NULL,
+                                            &exportSymbolName,
+                                            NULL
+                                            );
+                                    }
+
+                                    PhDereferenceObject(exportFileName);
                                 }
 
                                 if (exportSymbolName)

@@ -261,7 +261,7 @@ BOOLEAN PhpModulesTreeFilterCallback(
         return FALSE;
 
     if (
-        PhEnableProcessQueryStage2 &&
+        PhEnableImageCoherencySupport &&
         Context->ListContext.HideLowImageCoherency &&
         PhShouldShowModuleCoherency(moduleItem, TRUE)
         )

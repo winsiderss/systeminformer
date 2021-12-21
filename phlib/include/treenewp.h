@@ -165,6 +165,22 @@ typedef struct _PH_TREENEW_CONTEXT
     WNDPROC HeaderWindowProc;
     WNDPROC FixedHeaderWindowProc;
     HIMAGELIST ImageListHandle;
+
+    union
+    {
+        ULONG HeaderFlags;
+        struct
+        {
+            ULONG HeaderCustomDraw : 1;
+            ULONG HeaderMouseActive : 1;
+            ULONG HeaderDragging : 1;
+            ULONG HeaderUnused : 13;
+
+            ULONG HeaderHotColumn : 16; // HACK (dmex)
+        };
+    };
+    HTHEME HeaderThemeHandle;
+    HFONT HeaderBoldFontHandle;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(

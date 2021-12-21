@@ -304,7 +304,7 @@ EXPORTS
     PhGetTokenPrimaryGroup
     PhGetTokenPrivileges
     PhGetTokenUser
-    PhImpersonateClientOfNamedPipe
+    PhImpersonateToken
     PhListenNamedPipe
     PhOpenKey
     PhLoadAppKey
@@ -318,6 +318,7 @@ EXPORTS
     PhQueryValueKey
     PhQueryTokenVariableSize
     PhResolveDevicePrefix
+    PhRevertImpersonationToken
     PhSetFileAllocationSize
     PhSetFilePosition
     PhSetFileSize
@@ -398,7 +399,6 @@ EXPORTS
     PhGetWin32Message
     PhInitializeHash
     PhInitializeImageVersionInfo
-    PhIsExecutablePacked
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
     PhLoadLibrary
@@ -583,6 +583,7 @@ EXPORTS
     PhImageListDrawEx
     PhThemeWindowDrawRebar
     PhThemeWindowDrawToolbar
+    PhWindowThemeControlColor
 
 ; hndlinfo
     PhEnumObjectTypes
@@ -758,6 +759,7 @@ EXPORTS
     PhDeleteCacheFile
 
 ; appresolver
+    PhGetProcessPackageFullName
     PhAppResolverGetAppIdForWindow
 
 ; http

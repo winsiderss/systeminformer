@@ -375,6 +375,12 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -406,6 +412,12 @@ INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -877,7 +889,6 @@ NTSTATUS PhSipLoadMmAddresses(
     PRTL_PROCESS_MODULES kernelModules;
     PPH_SYMBOL_PROVIDER symbolProvider;
     PPH_STRING kernelFileName;
-    PPH_STRING newFileName;
     PH_SYMBOL_INFORMATION symbolInfo;
 
     if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
@@ -888,11 +899,10 @@ NTSTATUS PhSipLoadMmAddresses(
             PhLoadSymbolProviderOptions(symbolProvider);
 
             kernelFileName = PH_AUTO(PhConvertMultiByteToUtf16(kernelModules->Modules[0].FullPathName));
-            newFileName = PH_AUTO(PhGetFileName(kernelFileName));
 
             PhLoadModuleSymbolProvider(
                 symbolProvider,
-                newFileName->Buffer,
+                kernelFileName,
                 (ULONG64)kernelModules->Modules[0].ImageBase,
                 kernelModules->Modules[0].ImageSize
                 );

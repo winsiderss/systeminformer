@@ -335,7 +335,7 @@ typedef NTSTATUS (NTAPI *PENTER_STATE_HANDLER)(
     _In_opt_ PENTER_STATE_SYSTEM_HANDLER SystemHandler,
     _In_ PVOID SystemContext,
     _In_ LONG NumberProcessors,
-    _In_ volatile PLONG Number
+    _In_ LONG volatile *Number
     );
 
 typedef struct _POWER_STATE_HANDLER

@@ -49,17 +49,30 @@ PH_CALLBACK_REGISTRATION TrayIconsInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessStatsEventCallbackRegistration;
+PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
+ULONG EtUpdateInterval = 0;
+BOOLEAN EtPropagateCpuUsage = FALSE;
+
+VOID NTAPI EtLoadSettings(
+    VOID
+    )
+{
+    EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
+    EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
+}
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    EtLoadSettings();
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
+    EtFramesMonitorInitialization();
 }
 
 VOID NTAPI UnloadCallback(
@@ -69,6 +82,7 @@ VOID NTAPI UnloadCallback(
 {
     EtSaveSettingsDiskTreeList();
     EtEtwStatisticsUninitialization();
+    EtFramesMonitorUninitialization();
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -186,6 +200,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     if (Parameter)
     {
         EtProcessGpuPropertiesInitializing(Parameter);
+        EtProcessFramesPropertiesInitializing(Parameter);
         EtProcessEtwPropertiesInitializing(Parameter);
     }
 }
@@ -395,7 +410,11 @@ VOID NTAPI ProcessItemsUpdatedCallback(
 
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-        PhUpdateDelta(&block->HardFaultsDelta, block->ProcessItem->HardFaultCount);
+        // Update the frame stats for the process (dmex)
+        if (EtFramesEnabled)
+        {
+            EtProcessFramesUpdateProcessBlock(block);
+        }
 
         // Invalidate all text.
 
@@ -703,6 +722,14 @@ VOID NTAPI ProcessStatsEventCallback(
     }
 }
 
+VOID NTAPI SettingsUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    EtLoadSettings();
+}
+
 PET_PROCESS_BLOCK EtGetProcessBlock(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
@@ -743,6 +770,17 @@ VOID EtInitializeProcessBlock(
     //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
     //Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
 
+    if (EtFramesEnabled)
+    {
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesPerSecondHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesLatencyHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesDisplayLatencyHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsBetweenPresentsHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsInPresentApiHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilRenderCompleteHistory, sampleCount);
+        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilDisplayedHistory, sampleCount);
+    }
+
     InsertTailList(&EtProcessBlockListHead, &Block->ListEntry);
 }
 
@@ -759,6 +797,17 @@ VOID EtDeleteProcessBlock(
     PhDeleteCircularBuffer_ULONG(&Block->MemorySharedHistory);
     PhDeleteCircularBuffer_ULONG(&Block->MemoryHistory);
     PhDeleteCircularBuffer_FLOAT(&Block->GpuHistory);
+
+    if (EtFramesEnabled)
+    {
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesPerSecondHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesLatencyHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesDisplayLatencyHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsBetweenPresentsHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsInPresentApiHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsUntilRenderCompleteHistory);
+        PhDeleteCircularBuffer_FLOAT(&Block->FramesMsUntilDisplayedHistory);
+    }
 
     RemoveEntryList(&Block->ListEntry);
 }
@@ -799,6 +848,36 @@ VOID NTAPI ProcessItemDeleteCallback(
     EtDeleteProcessBlock(Extension);
 }
 
+VOID NTAPI ProcessNodeCreateCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_PROCESS_NODE processNode = Object;
+    PET_PROCESS_BLOCK block;
+
+    if (block = EtGetProcessBlock(processNode->ProcessItem))
+    {
+        block->ProcessNode = processNode;
+    }
+}
+
+VOID NTAPI ProcessNodeDeleteCallback(
+    _In_ PVOID Object,
+    _In_ PH_EM_OBJECT_TYPE ObjectType,
+    _In_ PVOID Extension
+    )
+{
+    PPH_PROCESS_NODE processNode = Object;
+    PET_PROCESS_BLOCK block;
+
+    if (block = EtGetProcessBlock(processNode->ProcessItem))
+    {
+        block->ProcessNode = NULL;
+    }
+}
+
 VOID NTAPI NetworkItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
@@ -836,6 +915,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_DISKEXT, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
                 { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
                 { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" },
@@ -999,12 +1079,26 @@ LOGICAL DllMain(
                 &ProcessStatsEventCallbackRegistration
                 );
 
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSettingsUpdated),
+                SettingsUpdatedCallback,
+                NULL,
+                &SettingsUpdatedCallbackRegistration
+                );
+
             PhPluginSetObjectExtension(
                 PluginInstance,
                 EmProcessItemType,
                 sizeof(ET_PROCESS_BLOCK),
                 ProcessItemCreateCallback,
                 ProcessItemDeleteCallback
+                );
+            PhPluginSetObjectExtension(
+                PluginInstance,
+                EmProcessNodeType,
+                0,
+                ProcessNodeCreateCallback,
+                ProcessNodeDeleteCallback
                 );
             PhPluginSetObjectExtension(
                 PluginInstance,

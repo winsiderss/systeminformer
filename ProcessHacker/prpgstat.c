@@ -59,6 +59,8 @@ typedef enum _PH_PROCESS_STATISTICS_INDEX
     PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE,
     PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS,
     PH_PROCESS_STATISTICS_INDEX_PAGEFAULTSDELTA,
+    PH_PROCESS_STATISTICS_INDEX_HARDFAULTS,
+    PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA,
     PH_PROCESS_STATISTICS_INDEX_WORKINGSET,
     PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET,
     PH_PROCESS_STATISTICS_INDEX_PRIVATEWS,
@@ -134,6 +136,8 @@ VOID PhpUpdateStatisticsAddListViewGroups(
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE, L"Peak virtual size", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKVIRTUALSIZE);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS, L"Page faults", (PVOID)PH_PROCESS_STATISTICS_INDEX_PAGEFAULTS);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PAGEFAULTSDELTA, L"Page faults delta", (PVOID)PH_PROCESS_STATISTICS_INDEX_PAGEFAULTSDELTA);
+    PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_HARDFAULTS, L"Hard faults", (PVOID)PH_PROCESS_STATISTICS_INDEX_HARDFAULTS);
+    PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA, L"Hard faults delta", (PVOID)PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_WORKINGSET, L"Working set", (PVOID)PH_PROCESS_STATISTICS_INDEX_WORKINGSET);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET, L"Peak working set", (PVOID)PH_PROCESS_STATISTICS_INDEX_PEAKWORKINGSET);
     PhAddListViewGroupItem(Context->ListViewHandle, PH_PROCESS_STATISTICS_CATEGORY_MEMORY, PH_PROCESS_STATISTICS_INDEX_PRIVATEWS, L"Private WS", (PVOID)PH_PROCESS_STATISTICS_INDEX_PRIVATEWS);
@@ -648,6 +652,24 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                                     PPH_STRING value;
 
                                     value = PhFormatUInt64(statisticsContext->ProcessItem->PageFaultsDelta.Delta, TRUE);
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
+                                    PhDereferenceObject(value);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTS:
+                                {
+                                    PPH_STRING value;
+
+                                    value = PhFormatUInt64(statisticsContext->ProcessItem->HardFaultCount, TRUE);
+                                    wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
+                                    PhDereferenceObject(value);
+                                }
+                                break;
+                            case PH_PROCESS_STATISTICS_INDEX_HARDFAULTSDELTA:
+                                {
+                                    PPH_STRING value;
+                             
+                                    value = PhFormatUInt64(statisticsContext->ProcessItem->HardFaultsDelta.Delta, TRUE);
                                     wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, value->Buffer, _TRUNCATE);
                                     PhDereferenceObject(value);
                                 }
