@@ -354,11 +354,11 @@ VOID EtProcessTreeNewMessage(
                 }
                 break;
             case ETPRTNC_HARDFAULTS:
-                EtFormatInt64(block->HardFaultsDelta.Value, block, message);
+                EtFormatInt64(processNode->ProcessItem->HardFaultsDelta.Value, block, message);
                 break;
             case ETPRTNC_HARDFAULTSDELTA:
-                if (block->HardFaultsDelta.Delta != 0)
-                    EtFormatInt64(block->HardFaultsDelta.Delta, block, message);
+                if (processNode->ProcessItem->HardFaultsDelta.Delta != 0)
+                    EtFormatInt64(processNode->ProcessItem->HardFaultsDelta.Delta, block, message);
                 break;
             case ETPRTNC_PEAKTHREADS:
                 EtFormatInt64(block->ProcessItem->PeakNumberOfThreads, block, message);
@@ -626,10 +626,10 @@ VOID EtProcessTreeNewMessage(
                 number += block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
                 break;
             case ETPRTNC_HARDFAULTS:
-                number += block->HardFaultsDelta.Value;
+                number += block->ProcessItem->HardFaultsDelta.Value;
                 break;
             case ETPRTNC_HARDFAULTSDELTA:
-                number += block->HardFaultsDelta.Delta;
+                number += block->ProcessItem->HardFaultsDelta.Delta;
                 break;
             case ETPRTNC_PEAKTHREADS:
                 number += block->ProcessItem->PeakNumberOfThreads;
@@ -873,10 +873,10 @@ LONG EtpProcessTreeNewSortFunction(
         result = uint64cmp(block1->NetworkReceiveRawDelta.Delta + block1->NetworkSendRawDelta.Delta, block2->NetworkReceiveRawDelta.Delta + block2->NetworkSendRawDelta.Delta);
         break;
     case ETPRTNC_HARDFAULTS:
-        result = uintcmp(block1->HardFaultsDelta.Value, block2->HardFaultsDelta.Value);
+        result = uintcmp(block1->ProcessItem->HardFaultsDelta.Value, block2->ProcessItem->HardFaultsDelta.Value);
         break;
     case ETPRTNC_HARDFAULTSDELTA:
-        result = uintcmp(block1->HardFaultsDelta.Delta, block2->HardFaultsDelta.Delta);
+        result = uintcmp(block1->ProcessItem->HardFaultsDelta.Delta, block2->ProcessItem->HardFaultsDelta.Delta);
         break;
     case ETPRTNC_PEAKTHREADS:
         result = uintcmp(block1->ProcessItem->PeakNumberOfThreads, block2->ProcessItem->PeakNumberOfThreads);

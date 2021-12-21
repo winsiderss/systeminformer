@@ -210,6 +210,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINT64_DELTA IoOtherCountDelta;
     PH_UINT32_DELTA ContextSwitchesDelta;
     PH_UINT32_DELTA PageFaultsDelta;
+    PH_UINT32_DELTA HardFaultsDelta;
     PH_UINT64_DELTA CycleTimeDelta; // since WIN7
 
     VM_COUNTERS_EX VmCounters;

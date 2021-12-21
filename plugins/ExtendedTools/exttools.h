@@ -311,8 +311,6 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 GpuCommitUsage;
     ULONG64 GpuContextSwitches;
 
-    PH_UINT32_DELTA HardFaultsDelta;
-
     FLOAT FramesPerSecond;
     FLOAT FramesLatency;
     FLOAT FramesMsBetweenPresents;

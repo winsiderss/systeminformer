@@ -2202,6 +2202,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
+            PhUpdateDelta(&processItem->HardFaultsDelta, process->HardFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
             PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
@@ -2267,6 +2268,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
+            PhUpdateDelta(&processItem->HardFaultsDelta, process->HardFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
             PhUpdateDelta(&processItem->PrivateBytesDelta, process->PagefileUsage);
 
