@@ -63,6 +63,8 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackTrayIconsInitializing,
     GeneralCallbackWindowNotifyEvent,
     GeneralCallbackProcessStatsNotifyEvent,
+    GeneralCallbackSettingsUpdated,
+
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
 

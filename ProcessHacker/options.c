@@ -1342,6 +1342,8 @@ static VOID PhpOptionsNotifyChangeCallback(
 
     //PhReInitializeWindowTheme(PhMainWndHandle);
 
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), NULL);
+
     if (RestartRequired)
     {
         if (PhShowMessage2(
