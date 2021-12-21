@@ -436,7 +436,7 @@ PPH_STRING PhGetProcessTooltipText(
                 );
         }
 
-        if (PhEnableProcessQueryStage2 && PhpShouldShowImageCoherency(Process, TRUE))
+        if (PhEnableImageCoherencySupport && PhpShouldShowImageCoherency(Process, TRUE))
         {
             PhAppendFormatStringBuilder(
                 &notes,
