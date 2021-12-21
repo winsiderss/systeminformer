@@ -4068,6 +4068,30 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
         }
         return FALSE;
+
+    case TreeNewMiddleClick:
+        // selecting subtree works only in NoSortOrder
+        if (ProcessTreeListSortOrder != NoSortOrder)
+            break;
+
+        PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+        if (!mouseEvent)
+            break;
+
+        node = (PPH_PROCESS_NODE)mouseEvent->Node;
+
+        // init last index to self, this way we select only the process if there are no children
+        ULONG lastChildIndex = mouseEvent->Node->Index;
+        if (node->Children->Count)
+        {
+            // get index of last child
+            PPH_PROCESS_NODE lastChild = (PPH_PROCESS_NODE)node->Children->Items[node->Children->Count - 1];
+            lastChildIndex = lastChild->Node.Index;
+        }
+
+        TreeNew_ToggleRange(ProcessTreeListHandle, mouseEvent->Node->Index, lastChildIndex);
+
+        return TRUE;
     }
 
     return FALSE;
