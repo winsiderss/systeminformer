@@ -398,8 +398,6 @@ VOID NTAPI ProcessItemsUpdatedCallback(
 
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-        PhUpdateDelta(&block->HardFaultsDelta, block->ProcessItem->HardFaultCount);
-
         // Update the frame stats for the process (dmex)
         if (EtFramesEnabled)
         {
