@@ -227,7 +227,7 @@ static VOID PhpAggregateFieldIfNeeded(
     _Inout_ PVOID AggregatedValue
     )
 {
-    if (!PhGetIntegerSetting(L"PropagateCpuUsage") || ProcessNode->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
+    if (!EtPropagateCpuUsage || ProcessNode->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
     {
         PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
     }
@@ -478,7 +478,7 @@ VOID EtProcessTreeNewMessage(
         processNode = message->Parameter1;
         block = EtGetProcessBlock(processNode->ProcessItem);
 
-        if (PhGetIntegerSetting(L"PropagateCpuUsage"))
+        if (EtPropagateCpuUsage)
         {
             block->TextCacheValid[ETPRTNC_DISKTOTALBYTES] = FALSE;
             block->TextCacheValid[ETPRTNC_NETWORKTOTALBYTES] = FALSE;
@@ -561,6 +561,11 @@ VOID EtProcessTreeNewMessage(
                     listEntry = listEntry->Flink;
                     continue; // Skip filtered nodes.
                 }
+            }
+            else
+            {
+                listEntry = listEntry->Flink;
+                continue; // Skip filtered nodes.
             }
 
             switch (message->SubId)
@@ -738,7 +743,7 @@ VOID EtProcessTreeNewMessage(
 
                 value = number;
                 value *= 1000;
-                value /= PhGetIntegerSetting(L"UpdateInterval");
+                value /= EtUpdateInterval;
 
                 if (value == 0)
                     break;

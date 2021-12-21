@@ -49,15 +49,27 @@ PH_CALLBACK_REGISTRATION TrayIconsInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessStatsEventCallbackRegistration;
+PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
+ULONG EtUpdateInterval = 0;
+BOOLEAN EtPropagateCpuUsage = FALSE;
+
+VOID NTAPI EtLoadSettings(
+    VOID
+    )
+{
+    EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
+    EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
+}
 
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    EtLoadSettings();
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
     EtFramesMonitorInitialization();
@@ -710,6 +722,14 @@ VOID NTAPI ProcessStatsEventCallback(
     }
 }
 
+VOID NTAPI SettingsUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    EtLoadSettings();
+}
+
 PET_PROCESS_BLOCK EtGetProcessBlock(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
@@ -1057,6 +1077,13 @@ LOGICAL DllMain(
                 ProcessStatsEventCallback,
                 NULL,
                 &ProcessStatsEventCallbackRegistration
+                );
+
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSettingsUpdated),
+                SettingsUpdatedCallback,
+                NULL,
+                &SettingsUpdatedCallbackRegistration
                 );
 
             PhPluginSetObjectExtension(

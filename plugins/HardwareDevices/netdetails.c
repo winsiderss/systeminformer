@@ -351,7 +351,7 @@ VOID NetAdapterUpdateDetails(
     NDIS_MEDIA_CONNECT_STATE mediaState = MediaConnectStateUnknown;
     HANDLE deviceHandle = NULL;
 
-    if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS))
+    if (NetAdapterEnableNdis)
     {
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
