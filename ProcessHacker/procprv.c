@@ -1383,6 +1383,16 @@ VOID PhpFillProcessItem(
         {
             ProcessItem->IsControlFlowGuardEnabled = cfguardEnabled;
         }
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            BOOLEAN xfguardEnabled;
+
+            if (NT_SUCCESS(PhGetProcessIsXFGuardEnabled(ProcessItem->QueryHandle, &xfguardEnabled)))
+            {
+                ProcessItem->IsXfgEnabled = xfguardEnabled;
+            }
+        }
     }
 
     // CET

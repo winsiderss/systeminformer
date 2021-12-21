@@ -32,9 +32,6 @@
 #include <modprv.h>
 #include <phsettings.h>
 
-// remove once IMAGE_GUARD_XFG_ENABLED is defined (TheEragon)
-#include <mapimg.h>
-
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
