@@ -484,3 +484,99 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
     return FALSE;
 }
+
+// Note: Workaround for UserNotes plugin dialog overrides (dmex)
+NTSTATUS PhSetProcessItemAffinityMask(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG_PTR AffinityMask
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetProcessAffinityMask(processHandle, AffinityMask);
+        NtClose(processHandle);
+    }
+
+    return status;
+}
+
+// Note: Workaround for UserNotes plugin dialog overrides (dmex)
+NTSTATUS PhSetProcessItemPagePriority(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG PagePriority
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetProcessPagePriority(processHandle, PagePriority);
+        NtClose(processHandle);
+    }
+
+    return status;
+}
+
+// Note: Workaround for UserNotes plugin dialog overrides (dmex)
+NTSTATUS PhSetProcessItemIoPriority(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ IO_PRIORITY_HINT IoPriority
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetProcessIoPriority(processHandle, IoPriority);
+        NtClose(processHandle);
+    }
+
+    return status;
+}
+
+// Note: Workaround for UserNotes plugin dialog overrides (dmex)
+NTSTATUS PhSetProcessItemPriority(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        ProcessItem->ProcessId
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetProcessPriority(processHandle, PriorityClass);
+        NtClose(processHandle);
+    }
+
+    return status;
+}

@@ -1915,21 +1915,12 @@ VOID ProcessesUpdatedCallback(
         {
             if (processItem->PriorityClass != object->PriorityClass)
             {
-                HANDLE processHandle;
                 PROCESS_PRIORITY_CLASS priorityClass;
 
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_SET_INFORMATION,
-                    processItem->ProcessId
-                    )))
-                {
-                    priorityClass.Foreground = FALSE;
-                    priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
+                priorityClass.Foreground = FALSE;
+                priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
 
-                    PhSetProcessPriority(processHandle, priorityClass);
-                    NtClose(processHandle);
-                }
+                PhSetProcessItemPriority(processItem, priorityClass);
             }
         }
 
@@ -1943,17 +1934,7 @@ VOID ProcessesUpdatedCallback(
 
                 if (ioPriority != ULONG_MAX && ioPriority != object->IoPriorityPlusOne - 1)
                 {
-                    HANDLE processHandle;
-
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        PROCESS_SET_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        PhSetProcessIoPriority(processHandle, object->IoPriorityPlusOne - 1);
-                        NtClose(processHandle);
-                    }
+                    PhSetProcessItemIoPriority(processItem, object->IoPriorityPlusOne - 1);
                 }
             }
         }
@@ -1963,21 +1944,12 @@ VOID ProcessesUpdatedCallback(
             if (object->AffinityMask != 0)
             {
                 ULONG_PTR affinityMask;
-                HANDLE processHandle;
 
                 if (NT_SUCCESS(GetProcessAffinity(processItem->ProcessId, &affinityMask)))
                 {
                     if (affinityMask != object->AffinityMask)
                     {
-                        if (NT_SUCCESS(PhOpenProcess(
-                            &processHandle,
-                            PROCESS_SET_INFORMATION,
-                            processItem->ProcessId
-                            )))
-                        {
-                            PhSetProcessAffinityMask(processHandle, object->AffinityMask);
-                            NtClose(processHandle);
-                        }
+                        PhSetProcessItemAffinityMask(processItem, object->AffinityMask);
                     }
                 }
             }
@@ -1993,17 +1965,7 @@ VOID ProcessesUpdatedCallback(
 
                 if (pagePriority != ULONG_MAX && pagePriority != object->PagePriorityPlusOne - 1)
                 {
-                    HANDLE processHandle;
-
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        PROCESS_SET_INFORMATION,
-                        processItem->ProcessId
-                        )))
-                    {
-                        PhSetProcessPagePriority(processHandle, object->PagePriorityPlusOne - 1);
-                        NtClose(processHandle);
-                    }
+                    PhSetProcessItemPagePriority(processItem, object->PagePriorityPlusOne - 1);
                 }
             }
         }

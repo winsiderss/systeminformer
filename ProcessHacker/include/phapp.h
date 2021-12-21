@@ -303,6 +303,38 @@ PhShowProcessAffinityDialog2(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PULONG_PTR NewAffinityMask
     );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetProcessItemAffinityMask(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG_PTR AffinityMask
+    );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetProcessItemPagePriority(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG PagePriority
+    );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetProcessItemIoPriority(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ IO_PRIORITY_HINT IoPriority
+    );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetProcessItemPriority(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    );
 // end_phapppub
 
 PHAPPAPI
