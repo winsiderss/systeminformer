@@ -217,6 +217,7 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewKeyDown, // PPH_TREENEW_KEY_EVENT Parameter1
     TreeNewLeftClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
     TreeNewRightClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
+    TreeNewMiddleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
     TreeNewLeftDoubleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
     TreeNewRightDoubleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
     TreeNewContextMenu, // PPH_TREENEW_CONTEXT_MENU Parameter1
