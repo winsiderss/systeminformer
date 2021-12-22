@@ -3,6 +3,7 @@
  *   choice dialog
  *
  * Copyright (C) 2010-2013 wj32
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,7 +25,7 @@
 #include <settings.h>
 #include <phsettings.h>
 
-typedef struct _CHOICE_DIALOG_CONTEXT
+typedef struct _PH_CHOICE_DIALOG_CONTEXT
 {
     PWSTR Title;
     PWSTR Message;
@@ -37,7 +38,7 @@ typedef struct _CHOICE_DIALOG_CONTEXT
     PWSTR SavedChoicesSettingName;
 
     HWND ComboBoxHandle;
-} CHOICE_DIALOG_CONTEXT, *PCHOICE_DIALOG_CONTEXT;
+} PH_CHOICE_DIALOG_CONTEXT, *PPH_CHOICE_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpChoiceDlgProc(
     _In_ HWND hwndDlg,
@@ -65,8 +66,9 @@ BOOLEAN PhaChoiceDialog(
     _In_opt_ PWSTR SavedChoicesSettingName
     )
 {
-    CHOICE_DIALOG_CONTEXT context;
+    PH_CHOICE_DIALOG_CONTEXT context;
 
+    memset(&context, 0, sizeof(PH_CHOICE_DIALOG_CONTEXT));
     context.Title = Title;
     context.Message = Message;
     context.Choices = Choices;
@@ -97,7 +99,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PCHOICE_DIALOG_CONTEXT context = (PCHOICE_DIALOG_CONTEXT)lParam;
+            PPH_CHOICE_DIALOG_CONTEXT context = (PPH_CHOICE_DIALOG_CONTEXT)lParam;
             ULONG type;
             SIZE_T i;
             HWND comboBoxHandle;
@@ -279,7 +281,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 break;
             case IDOK:
                 {
-                    PCHOICE_DIALOG_CONTEXT context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+                    PPH_CHOICE_DIALOG_CONTEXT context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING selectedChoice;
 
                     if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)
@@ -354,6 +356,12 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

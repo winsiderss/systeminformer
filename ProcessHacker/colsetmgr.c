@@ -2,7 +2,7 @@
  * Process Hacker -
  *   tree new column set manager
  *
- * Copyright (C) 2017 dmex
+ * Copyright (C) 2017-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -251,7 +251,7 @@ VOID PhSaveSettingsColumnSet(
 
 // Column Set Editor Dialog
 
-typedef struct _COLUMNSET_DIALOG_CONTEXT
+typedef struct _PH_COLUMNSET_DIALOG_CONTEXT
 {
     HWND DialogHandle;
     HWND ListViewHandle;
@@ -262,7 +262,7 @@ typedef struct _COLUMNSET_DIALOG_CONTEXT
     PPH_STRING SettingName;
     PPH_LIST ColumnSetList;
     BOOLEAN LabelEditActive;
-} COLUMNSET_DIALOG_CONTEXT, *PCOLUMNSET_DIALOG_CONTEXT;
+} PH_COLUMNSET_DIALOG_CONTEXT, *PPH_COLUMNSET_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
     _In_ HWND hwndDlg,
@@ -366,11 +366,11 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PCOLUMNSET_DIALOG_CONTEXT context;
+    PPH_COLUMNSET_DIALOG_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocateZero(sizeof(COLUMNSET_DIALOG_CONTEXT));
+        context = PhAllocateZero(sizeof(PH_COLUMNSET_DIALOG_CONTEXT));
         context->SettingName = PhCreateString((PWSTR)lParam);
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
@@ -642,6 +642,12 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

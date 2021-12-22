@@ -26,12 +26,12 @@
 #include <procprv.h>
 #include <phsettings.h>
 
-typedef struct _GDI_HANDLES_CONTEXT
+typedef struct _PH_GDI_HANDLES_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PPH_LIST List;
     PH_LAYOUT_MANAGER LayoutManager;
-} GDI_HANDLES_CONTEXT, *PGDI_HANDLES_CONTEXT;
+} PH_GDI_HANDLES_CONTEXT, *PPH_GDI_HANDLES_CONTEXT;
 
 typedef struct _PH_GDI_HANDLE_ITEM
 {
@@ -54,10 +54,10 @@ VOID PhShowGdiHandlesDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PGDI_HANDLES_CONTEXT context;
+    PPH_GDI_HANDLES_CONTEXT context;
     HWND windowHandle;
 
-    context = PhAllocateZero(sizeof(GDI_HANDLES_CONTEXT));
+    context = PhAllocateZero(sizeof(PH_GDI_HANDLES_CONTEXT));
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->List = PhCreateList(20);
 
@@ -217,7 +217,7 @@ PPH_STRING PhpGetGdiHandleInformation(
 
 VOID PhpRefreshGdiHandles(
     _In_ HWND hwndDlg,
-    _In_ PGDI_HANDLES_CONTEXT Context
+    _In_ PPH_GDI_HANDLES_CONTEXT Context
     )
 {
     HWND lvHandle;
@@ -331,11 +331,11 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PGDI_HANDLES_CONTEXT context = NULL;
+    PPH_GDI_HANDLES_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PGDI_HANDLES_CONTEXT)lParam;
+        context = (PPH_GDI_HANDLES_CONTEXT)lParam;
 
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
@@ -446,6 +446,12 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
             PhHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
