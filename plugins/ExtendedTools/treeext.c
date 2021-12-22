@@ -693,7 +693,7 @@ VOID EtProcessTreeNewMessage(
                 if (number == 0)
                     break;
 
-                PhInitFormatI64U(&format[0], number);
+                PhInitFormatI64UGroupDigits(&format[0], number);
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
                 {
