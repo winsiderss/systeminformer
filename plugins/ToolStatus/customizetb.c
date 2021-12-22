@@ -544,6 +544,9 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             ToolbarLoadSettings();
             CustomizeFreeToolbarItems(context);
 
+            if (context->BrushNormal)
+                DeleteBrush(context->BrushNormal);
+
             if (context->BrushHot)
                 DeleteBrush(context->BrushHot);
 
