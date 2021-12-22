@@ -585,7 +585,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             PH_FORMAT format[2];
 
                             PhInitFormatF(&format[0], context->Block->FramesLatency, 2);
-                            PhInitFormatS(&format[1], L" ms/frame");
+                            PhInitFormatS(&format[1], L" ms");
 
                             PhMoveReference(&context->FramesLatencyGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
 
@@ -915,7 +915,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                                 value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesLatencyHistory, getTooltipText->Index);
 
                                 PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms/frame\n");
+                                PhInitFormatS(&format[1], L" ms\n");
                                 PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
                                 PhMoveReference(&context->FramesLatencyGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));

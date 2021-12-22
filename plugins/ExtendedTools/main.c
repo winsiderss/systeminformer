@@ -70,6 +70,7 @@ VOID NTAPI LoadCallback(
     )
 {
     EtLoadSettings();
+
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
     EtFramesMonitorInitialization();
