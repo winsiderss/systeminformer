@@ -6913,6 +6913,65 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                             );
                         SelectFont(bufferDc, oldFont);
                     }
+
+                    if (headerItem.fmt & HDF_SORTDOWN)
+                    {
+                        if (context->HeaderThemeHandle)
+                        {
+                            SIZE sortArrowSize;
+
+                            if (GetThemePartSize(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDDOWN,
+                                NULL,
+                                TS_TRUE,
+                                &sortArrowSize
+                                ) == S_OK)
+                            {
+                                headerRect.bottom = sortArrowSize.cy;
+                            }
+
+                            DrawThemeBackground(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDDOWN,
+                                &headerRect,
+                                NULL
+                                );
+                        }
+                    }
+                    else if (headerItem.fmt & HDF_SORTUP)
+                    {
+                        if (context->HeaderThemeHandle)
+                        {
+                            SIZE sortArrowSize;
+
+                            if (GetThemePartSize(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDUP,
+                                NULL,
+                                TS_TRUE,
+                                &sortArrowSize
+                                ) == S_OK)
+                            {
+                                headerRect.bottom = sortArrowSize.cy;
+                            }
+
+                            DrawThemeBackground(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDUP,
+                                &headerRect,
+                                NULL
+                                );
+                        }
+                    }
                 }
             }
 
