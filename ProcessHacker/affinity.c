@@ -32,7 +32,7 @@
 #include <procprv.h>
 #include <thrdprv.h>
 
-typedef struct _AFFINITY_DIALOG_CONTEXT
+typedef struct _PH_AFFINITY_DIALOG_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PPH_THREAD_ITEM ThreadItem;
@@ -42,7 +42,7 @@ typedef struct _AFFINITY_DIALOG_CONTEXT
     PPH_THREAD_ITEM* Threads;
     ULONG NumberOfThreads;
     PHANDLE ThreadHandles;
-} AFFINITY_DIALOG_CONTEXT, *PAFFINITY_DIALOG_CONTEXT;
+} PH_AFFINITY_DIALOG_CONTEXT, *PPH_AFFINITY_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessAffinityDlgProc(
     _In_ HWND hwndDlg,
@@ -57,11 +57,11 @@ VOID PhShowProcessAffinityDialog(
     _In_opt_ PPH_THREAD_ITEM ThreadItem
     )
 {
-    AFFINITY_DIALOG_CONTEXT context;
+    PH_AFFINITY_DIALOG_CONTEXT context;
 
     assert(!!ProcessItem != !!ThreadItem); // make sure we have one and not the other (wj32)
 
-    memset(&context, 0, sizeof(AFFINITY_DIALOG_CONTEXT));
+    memset(&context, 0, sizeof(PH_AFFINITY_DIALOG_CONTEXT));
     context.ProcessItem = ProcessItem;
     context.ThreadItem = ThreadItem;
 
@@ -81,9 +81,9 @@ BOOLEAN PhShowProcessAffinityDialog2(
     _Out_ PULONG_PTR NewAffinityMask
     )
 {
-    AFFINITY_DIALOG_CONTEXT context;
+    PH_AFFINITY_DIALOG_CONTEXT context;
 
-    memset(&context, 0, sizeof(AFFINITY_DIALOG_CONTEXT));
+    memset(&context, 0, sizeof(PH_AFFINITY_DIALOG_CONTEXT));
     context.ProcessItem = ProcessItem;
     context.ThreadItem = NULL;
 
@@ -111,9 +111,9 @@ VOID PhShowThreadAffinityDialog(
     _In_ ULONG NumberOfThreads
     )
 {
-    AFFINITY_DIALOG_CONTEXT context;
+    PH_AFFINITY_DIALOG_CONTEXT context;
 
-    memset(&context, 0, sizeof(AFFINITY_DIALOG_CONTEXT));
+    memset(&context, 0, sizeof(PH_AFFINITY_DIALOG_CONTEXT));
     context.Threads = Threads;
     context.NumberOfThreads = NumberOfThreads;
     context.ThreadHandles = PhAllocateZero(NumberOfThreads * sizeof(HANDLE));
@@ -157,7 +157,7 @@ static BOOLEAN PhpShowThreadErrorAffinity(
 }
 
 BOOLEAN PhpCheckThreadsHaveSameAffinity(
-    _In_ PAFFINITY_DIALOG_CONTEXT Context
+    _In_ PPH_AFFINITY_DIALOG_CONTEXT Context
     )
 {
     BOOLEAN result = TRUE;
@@ -197,11 +197,11 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PAFFINITY_DIALOG_CONTEXT context = NULL;
+    PPH_AFFINITY_DIALOG_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PAFFINITY_DIALOG_CONTEXT)lParam;
+        context = (PPH_AFFINITY_DIALOG_CONTEXT)lParam;
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -480,6 +480,12 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

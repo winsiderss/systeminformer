@@ -3,7 +3,7 @@
  *   ETW process properties page
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2021 dmex
  *
  * This file is part of Process Hacker.
  *

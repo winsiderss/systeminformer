@@ -3,6 +3,7 @@
  *   information dialog
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,14 +24,13 @@
 #include <phapp.h>
 #include <phsettings.h>
 
-typedef struct _INFORMATION_CONTEXT
+typedef struct _PH_INFORMATION_CONTEXT
 {
     PWSTR String;
     ULONG Flags;
     PH_LAYOUT_MANAGER LayoutManager;
-} INFORMATION_CONTEXT, *PINFORMATION_CONTEXT;
-
-static RECT MinimumSize = { -1, -1, -1, -1 };
+    RECT MinimumSize;
+} PH_INFORMATION_CONTEXT, *PPH_INFORMATION_CONTEXT;
 
 static INT_PTR CALLBACK PhpInformationDlgProc(
     _In_ HWND hwndDlg,
@@ -39,11 +39,11 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PINFORMATION_CONTEXT context;
+    PPH_INFORMATION_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PINFORMATION_CONTEXT)lParam;
+        context = (PPH_INFORMATION_CONTEXT)lParam;
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -68,7 +68,9 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (MinimumSize.left == -1)
+            context->MinimumSize = (RECT){ -1, -1, -1, -1 };
+
+            if (context->MinimumSize.left == -1)
             {
                 RECT rect;
 
@@ -77,8 +79,8 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                 rect.right = 200;
                 rect.bottom = 140;
                 MapDialogRect(hwndDlg, &rect);
-                MinimumSize = rect;
-                MinimumSize.left = 0;
+                context->MinimumSize = rect;
+                context->MinimumSize.left = 0;
             }
 
             PhSetDialogItemText(hwndDlg, IDC_TEXT, context->String);
@@ -186,9 +188,15 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
+            PhResizingMinimumSize((PRECT)lParam, wParam, context->MinimumSize.right, context->MinimumSize.bottom);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -200,8 +208,9 @@ VOID PhShowInformationDialog(
     _Reserved_ ULONG Flags
     )
 {
-    INFORMATION_CONTEXT context;
+    PH_INFORMATION_CONTEXT context;
 
+    memset(&context, 0, sizeof(PH_INFORMATION_CONTEXT));
     context.String = String;
     context.Flags = Flags;
 

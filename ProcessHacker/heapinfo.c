@@ -30,7 +30,7 @@
 #include <procprv.h>
 #include <settings.h>
 
-typedef struct _PROCESS_HEAPS_CONTEXT
+typedef struct _PH_PROCESS_HEAPS_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
@@ -49,7 +49,7 @@ typedef struct _PROCESS_HEAPS_CONTEXT
     PVOID ProcessHeap;
     PVOID DebugBuffer;
     PH_LAYOUT_MANAGER LayoutManager;
-} PROCESS_HEAPS_CONTEXT, *PPROCESS_HEAPS_CONTEXT;
+} PH_PROCESS_HEAPS_CONTEXT, *PPH_PROCESS_HEAPS_CONTEXT;
 
 typedef struct _HEAP_COUNTERS
 {
@@ -161,9 +161,9 @@ VOID PhShowProcessHeapsDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PPROCESS_HEAPS_CONTEXT context;
+    PPH_PROCESS_HEAPS_CONTEXT context;
 
-    context = PhAllocateZero(sizeof(PROCESS_HEAPS_CONTEXT));
+    context = PhAllocateZero(sizeof(PH_PROCESS_HEAPS_CONTEXT));
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->IsWow64 = !!ProcessItem->IsWow64;
 
@@ -182,7 +182,7 @@ static INT NTAPI PhpHeapAddressCompareFunction(
     _In_ PVOID Context
     )
 {
-    PPROCESS_HEAPS_CONTEXT context = Context;
+    PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
     if (context->IsWow64)
     {
@@ -206,7 +206,7 @@ static INT NTAPI PhpHeapUsedCompareFunction(
     _In_ PVOID Context
     )
 {
-    PPROCESS_HEAPS_CONTEXT context = Context;
+    PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
     if (context->IsWow64)
     {
@@ -230,7 +230,7 @@ static INT NTAPI PhpHeapCommittedCompareFunction(
     _In_ PVOID Context
     )
 {
-    PPROCESS_HEAPS_CONTEXT context = Context;
+    PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
     if (context->IsWow64)
     {
@@ -254,7 +254,7 @@ static INT NTAPI PhpHeapEntriesCompareFunction(
     _In_ PVOID Context
     )
 {
-    PPROCESS_HEAPS_CONTEXT context = Context;
+    PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
     if (context->IsWow64)
     {
@@ -279,7 +279,7 @@ static HFONT NTAPI PhpHeapFontFunction(
     )
 {
     PVOID heapBaseAddress = Param;
-    PPROCESS_HEAPS_CONTEXT context = Context;
+    PPH_PROCESS_HEAPS_CONTEXT context = Context;
 
     if (context->IsWow64)
     {
@@ -401,7 +401,7 @@ PWSTR PhGetProcessHeapClassText(
 }
 
 VOID PhpEnumerateProcessHeaps(
-    _In_ PPROCESS_HEAPS_CONTEXT Context
+    _In_ PPH_PROCESS_HEAPS_CONTEXT Context
     )
 {
     NTSTATUS status;
@@ -554,7 +554,7 @@ CleanupExit:
 }
 
 VOID PhpSetProcessHeapsWindowText(
-    _In_ PPROCESS_HEAPS_CONTEXT Context
+    _In_ PPH_PROCESS_HEAPS_CONTEXT Context
     )
 {
     PH_FORMAT format[5];
@@ -585,11 +585,11 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
     _In_ LPARAM lParam
     )
 {
-     PPROCESS_HEAPS_CONTEXT context = NULL;
+     PPH_PROCESS_HEAPS_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PPROCESS_HEAPS_CONTEXT)lParam;
+        context = (PPH_PROCESS_HEAPS_CONTEXT)lParam;
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -816,6 +816,12 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);

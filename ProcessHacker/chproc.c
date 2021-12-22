@@ -3,6 +3,7 @@
  *   choose process dialog
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2016-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,7 +25,7 @@
 #include <procprv.h>
 #include <lsasup.h>
 
-typedef struct _CHOOSE_PROCESS_DIALOG_CONTEXT
+typedef struct _PH_CHOOSE_PROCESS_DIALOG_CONTEXT
 {
     PWSTR Message;
     HANDLE ProcessId;
@@ -33,7 +34,7 @@ typedef struct _CHOOSE_PROCESS_DIALOG_CONTEXT
     RECT MinimumSize;
     HIMAGELIST ImageList;
     HWND ListViewHandle;
-} CHOOSE_PROCESS_DIALOG_CONTEXT, *PCHOOSE_PROCESS_DIALOG_CONTEXT;
+} PH_CHOOSE_PROCESS_DIALOG_CONTEXT, *PPH_CHOOSE_PROCESS_DIALOG_CONTEXT;
 
 INT_PTR CALLBACK PhpChooseProcessDlgProc(
     _In_ HWND hwndDlg,
@@ -49,9 +50,9 @@ BOOLEAN PhShowChooseProcessDialog(
     _Out_ PHANDLE ProcessId
     )
 {
-    CHOOSE_PROCESS_DIALOG_CONTEXT context;
+    PH_CHOOSE_PROCESS_DIALOG_CONTEXT context;
 
-    memset(&context, 0, sizeof(CHOOSE_PROCESS_DIALOG_CONTEXT));
+    memset(&context, 0, sizeof(PH_CHOOSE_PROCESS_DIALOG_CONTEXT));
     context.Message = Message;
     context.ProcessId = NULL;
 
@@ -75,7 +76,7 @@ BOOLEAN PhShowChooseProcessDialog(
 
 static VOID PhpRefreshProcessList(
     _In_ HWND hwndDlg,
-    _In_ PCHOOSE_PROCESS_DIALOG_CONTEXT Context
+    _In_ PPH_CHOOSE_PROCESS_DIALOG_CONTEXT Context
     )
 {
     NTSTATUS status;
@@ -188,11 +189,11 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
     _In_ LPARAM lParam
     )
 {
-    PCHOOSE_PROCESS_DIALOG_CONTEXT context = NULL;
+    PPH_CHOOSE_PROCESS_DIALOG_CONTEXT context = NULL;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PCHOOSE_PROCESS_DIALOG_CONTEXT)lParam;
+        context = (PPH_CHOOSE_PROCESS_DIALOG_CONTEXT)lParam;
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -253,7 +254,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhImageListDestroy(context->ImageList);
+            //PhImageListDestroy(context->ImageList);
             PhDeleteLayoutManager(&context->LayoutManager);
         }
         break;
@@ -312,6 +313,12 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, context->MinimumSize.right, context->MinimumSize.bottom);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
