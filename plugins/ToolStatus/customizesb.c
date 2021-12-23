@@ -300,6 +300,21 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->FontHandle = PhDuplicateFont(GetWindowFont(StatusBarHandle));
 
+            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            {
+                context->BrushNormal = CreateSolidBrush(RGB(43, 43, 43));
+                context->BrushHot = CreateSolidBrush(RGB(128, 128, 128));
+                context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
+                context->TextColor = RGB(0xff, 0xff, 0xff);
+            }
+            else
+            {
+                context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
+                context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
+                context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
+                context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
+            }
+
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
 
@@ -316,10 +331,17 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             CustomizeFreeStatusBarItems(context);
 
+            if (context->BrushNormal)
+                DeleteBrush(context->BrushNormal);
+
+            if (context->BrushHot)
+                DeleteBrush(context->BrushHot);
+
+            if (context->BrushPushed)
+                DeleteBrush(context->BrushPushed);
+
             if (context->FontHandle)
-            {
                 DeleteFont(context->FontHandle);
-            }
         }
         break;
     case WM_NCDESTROY:
@@ -569,18 +591,15 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 SelectFont(bufferDc, context->FontHandle);
                 SetBkMode(bufferDc, TRANSPARENT);    
 
-                if (isSelected)
-                {
-                    FillRect(bufferDc, &bufferRect, GetSysColorBrush(isFocused ? COLOR_HIGHLIGHT : COLOR_WINDOW));
-                    SetTextColor(bufferDc, GetSysColor(isFocused ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
-                    //FrameRect(bufferDc, &bufferRect, isFocused ? GetStockBrush(BLACK_BRUSH) : GetSysColorBrush(COLOR_HIGHLIGHT));
-                }
+                if (isSelected || isFocused)
+                    FillRect(bufferDc, &bufferRect, context->BrushHot);
                 else
-                {
-                    FillRect(bufferDc, &bufferRect, GetSysColorBrush(isFocused ? COLOR_HIGHLIGHT : COLOR_WINDOW));
-                    SetTextColor(bufferDc, GetSysColor(isFocused ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
-                    //FrameRect(bufferDc, &bufferRect, isFocused ? GetStockBrush(BLACK_BRUSH) : GetSysColorBrush(COLOR_HIGHLIGHTTEXT));
-                }
+                    FillRect(bufferDc, &bufferRect, context->BrushNormal);
+
+                if (!button->IsVirtual)
+                    SetTextColor(bufferDc, context->TextColor);
+                else
+                    SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
 
                 if (!button->IsVirtual)
                 {           
