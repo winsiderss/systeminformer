@@ -404,7 +404,9 @@ VOID PhpEnumerateProcessHeaps(
     _In_ PPH_PROCESS_HEAPS_CONTEXT Context
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE processHandle = NULL;
+    HANDLE powerRequestHandle = NULL;
     BOOLEAN sizesInBytes;
 
     sizesInBytes = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_SIZESINBYTES)) == BST_CHECKED;
@@ -416,6 +418,30 @@ VOID PhpEnumerateProcessHeaps(
     {
         PhFree(Context->DebugBuffer);
         Context->DebugBuffer = NULL;
+    }
+
+    if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+    {
+        // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_ALL_ACCESS,
+            Context->ProcessItem->ProcessId
+            );
+    }
+    else if (WindowsVersion >= WINDOWS_10)
+    {
+        // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION,
+            Context->ProcessItem->ProcessId
+            );
+    }
+
+    if (processHandle)
+    {
+        PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
     }
 
 #ifdef _WIN64
@@ -549,6 +575,8 @@ VOID PhpEnumerateProcessHeaps(
 #endif
 
 CleanupExit:
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
     ExtendedListView_SortItems(Context->ListViewHandle);
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
