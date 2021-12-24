@@ -10264,28 +10264,45 @@ NTSTATUS PhQueryProcessHeapInformation(
     PRTL_DEBUG_INFORMATION debugBuffer;
     PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo;
 
-    if (!(debugBuffer = RtlCreateQueryDebugBuffer(0, FALSE)))
-        return STATUS_UNSUCCESSFUL;
+    for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
+    {
+        if (!(debugBuffer = RtlCreateQueryDebugBuffer(i, FALSE)))
+            return STATUS_UNSUCCESSFUL;
 
-    status = RtlQueryProcessDebugInformation(
-        ProcessId,
-        RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES_EX,
-        debugBuffer
-        );
+        status = RtlQueryProcessDebugInformation(
+            ProcessId,
+            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES,
+            debugBuffer
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            RtlDestroyQueryDebugBuffer(debugBuffer);
+            debugBuffer = NULL;
+        }
+
+        if (NT_SUCCESS(status) || status != STATUS_NO_MEMORY)
+            break;
+
+        if (2 * i <= i)
+        {
+            status = STATUS_UNSUCCESSFUL;
+            break;
+        }
+    }
 
     if (!NT_SUCCESS(status))
-    {
-        RtlDestroyQueryDebugBuffer(debugBuffer);
         return status;
-    }
 
     if (!debugBuffer->Heaps)
     {
-        // The RtlQueryProcessDebugInformation function has two bugs when querying the ProcessId
-        // for a frozen (suspended) immersive process. (dmex)
+        // The RtlQueryProcessDebugInformation function has two bugs on some versions
+        // when querying the ProcessId for a frozen (suspended) immersive process. (dmex)
         //
         // 1) It'll deadlock the current thread for 30 seconds.
-        // 2) It'll return STATUS_SUCCESS but with a NULL buffer.
+        // 2) It'll return STATUS_SUCCESS but with a NULL Heaps buffer.
+        //
+        // A workaround was implemented using PhCreateExecutionRequiredRequest() (dmex)
 
         RtlDestroyQueryDebugBuffer(debugBuffer);
         return STATUS_UNSUCCESSFUL;
