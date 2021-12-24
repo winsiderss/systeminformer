@@ -158,9 +158,9 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
 
     // Co-Authored-By: NAME <EMAIL>
 
-    if ((authoredByNameIndex = PhFindStringInString(CommitMessage, 0, L"Co-Authored-By:")) == -1)
+    if ((authoredByNameIndex = PhFindStringInString(CommitMessage, 0, L"Co-Authored-By:")) == SIZE_MAX)
         return FALSE;
-    if ((authoredByNameLength = PhFindStringInString(CommitMessage, authoredByNameIndex, L" <")) == -1)
+    if ((authoredByNameLength = PhFindStringInString(CommitMessage, authoredByNameIndex, L" <")) == SIZE_MAX)
         return FALSE;
     if ((authoredByNameLength = authoredByNameLength - authoredByNameIndex) == 0)
         return FALSE;
@@ -168,7 +168,7 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
     authoredByName = PhSubstring(
         CommitMessage,
         authoredByNameIndex + wcslen(L"Co-Authored-By:"),
-        (ULONG)authoredByNameLength - wcslen(L"Co-Authored-By:")
+        authoredByNameLength - wcslen(L"Co-Authored-By:")
         );
 
     if (CommitCoAuthorName)
@@ -300,7 +300,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
                     PhMoveReference(&entry->CommitAuthorString, authorNameString);
                 }
 
-                if ((commitMessageAuthorIndex = PhFindStringInString(entry->CommitMessageString, 0, L"Co-Authored-By:")) != -1)
+                if ((commitMessageAuthorIndex = PhFindStringInString(entry->CommitMessageString, 0, L"Co-Authored-By:")) != SIZE_MAX)
                 {
                     PhMoveReference(
                         &entry->CommitMessageString,
