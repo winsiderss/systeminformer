@@ -824,6 +824,17 @@ static VOID PhpAggregateFieldIfNeeded(
     }
 }
 
+static VOID PhpAggregateFieldTotal(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PHP_AGGREGATE_TYPE Type,
+    _In_ PHP_AGGREGATE_LOCATION Location,
+    _In_ SIZE_T FieldOffset,
+    _Inout_ PVOID AggregatedValue
+    )
+{
+    PhpAccumulateField(AggregatedValue, PhpFieldForAggregate(ProcessNode, Location, FieldOffset), Type);
+}
+
 static VOID PhpUpdateProcessNodeWsCounters(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
@@ -3808,33 +3819,33 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         if (node->ProcessId == SYSTEM_IDLE_PROCESS_ID)
                             continue;
 
-                        PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &decimal);
+                        PhpAggregateFieldTotal(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &decimal);
                     }
                     break;
                 case PHPRTLC_IOTOTALRATE:
                     {
                         if (node->ProcessItem->IoReadDelta.Delta != node->ProcessItem->IoReadDelta.Value) // delta is wrong on first run of process provider
                         {
-                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number);
-                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number);
-                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number);
+                            PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number);
+                            PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number);
+                            PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number);
                         }
                     }
                     break;
                 case PHPRTLC_PRIVATEBYTES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PagefileUsage), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PagefileUsage), &number);
                     break;
                 case PHPRTLC_PEAKPRIVATEBYTES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PeakPagefileUsage), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PeakPagefileUsage), &number);
                     break;
                 case PHPRTLC_WORKINGSET:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.WorkingSetSize), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.WorkingSetSize), &number);
                     break;
                 case PHPRTLC_PEAKWORKINGSET:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PeakWorkingSetSize), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PeakWorkingSetSize), &number);
                     break;
                 case PHPRTLC_PRIVATEWS:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &number);
                     break;
                 //case PHPRTLC_SHAREDWS:
                 //    node->WsCounters.NumberOfSharedPages
@@ -3843,32 +3854,32 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 //    node->WsCounters.NumberOfShareablePages
                 //    break;
                 case PHPRTLC_VIRTUALSIZE:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.VirtualSize), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.VirtualSize), &number);
                     break;
                 case PHPRTLC_PEAKVIRTUALSIZE:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PeakVirtualSize), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PeakVirtualSize), &number);
                     break;
                 case PHPRTLC_PAGEFAULTS:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PageFaultCount), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.PageFaultCount), &number);
                     break;
                 case PHPRTLC_THREADS:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfThreads), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfThreads), &number);
                     break;
                 case PHPRTLC_HANDLES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfHandles), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfHandles), &number);
                     break;
                 case PHPRTLC_GDIHANDLES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &number);
                     break;
                 case PHPRTLC_USERHANDLES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &number);
                     break;
                 case PHPRTLC_IORORATE:
                     {
                         if (node->ProcessItem->IoReadDelta.Delta != node->ProcessItem->IoReadDelta.Value)
                         {
-                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number);
-                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number);
+                            PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Delta), &number);
+                            PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Delta), &number);
                         }
                     }
                     break;
@@ -3876,76 +3887,76 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         if (node->ProcessItem->IoReadDelta.Delta != node->ProcessItem->IoReadDelta.Value)
                         {
-                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number);
+                            PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Delta), &number);
                         }
                     }
                     break;
                 case PHPRTLC_CYCLES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Value), &number);
                     break;
                 case PHPRTLC_CYCLESDELTA:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Delta), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Delta), &number);
                     break;
                 case PHPRTLC_CONTEXTSWITCHES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Value), &number);
                     break;
                 case PHPRTLC_CONTEXTSWITCHESDELTA:
                     {
                         if ((LONG)node->ProcessItem->ContextSwitchesDelta.Delta >= 0) // the delta may be negative if a thread exits - just don't show anything
                         {
-                            PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Delta), &number);
+                            PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Delta), &number);
                         }
                     }
                     break;
                 case PHPRTLC_IOREADS:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number);
                     break;
                 case PHPRTLC_IOWRITES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number);
                     break;
                 case PHPRTLC_IOOTHER:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number);
                     break;
                 case PHPRTLC_IOREADBYTES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadDelta.Value), &number);
                     break;
                 case PHPRTLC_IOWRITEBYTES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteDelta.Value), &number);
                     break;
                 case PHPRTLC_IOOTHERBYTES:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherDelta.Value), &number);
                     break;
                 case PHPRTLC_IOREADSDELTA:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &number);
                     break;
                 case PHPRTLC_IOWRITESDELTA:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Delta), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Delta), &number);
                     break;
                 case PHPRTLC_IOOTHERDELTA:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Delta), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Delta), &number);
                     break;
                 case PHPRTLC_PAGEDPOOL:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPagedPoolUsage), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPagedPoolUsage), &number);
                     break;
                 case PHPRTLC_PEAKPAGEDPOOL:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPeakPagedPoolUsage), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPeakPagedPoolUsage), &number);
                     break;
                 case PHPRTLC_NONPAGEDPOOL:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaNonPagedPoolUsage), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaNonPagedPoolUsage), &number);
                     break;
                 case PHPRTLC_PEAKNONPAGEDPOOL:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPeakNonPagedPoolUsage), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPeakNonPagedPoolUsage), &number);
                     break;
                 case PHPRTLC_MINIMUMWORKINGSET:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number);
                     break;
                 case PHPRTLC_MAXIMUMWORKINGSET:
-                    PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number);
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number);
                     break;
                 //case PHPRTLC_PRIVATEBYTESDELTA:
                 //    {
                 //        LONG_PTR delta = 0;
-                //        PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &delta);
+                //        PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &delta);
                 //        if (delta != 0)
                 //        {
                 //            PH_FORMAT format[2];
