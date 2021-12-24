@@ -48,6 +48,10 @@ VOID EtFramesMonitorUninitialization(
     VOID
     );
 
+VOID EtFramesMonitorStart(
+    VOID
+    );
+
 PET_FPS_COUNTER EtLookupProcessGpuFrameEntry(
     _In_ HANDLE ProcessId
     );

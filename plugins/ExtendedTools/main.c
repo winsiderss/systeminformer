@@ -179,6 +179,8 @@ VOID NTAPI MainWindowShowingCallback(
     EtInitializeDiskTab();
     EtInitializeFirewallTab();
     EtRegisterToolbarGraphs();
+
+    EtFramesMonitorStart();
 }
 
 VOID NTAPI ProcessesUpdatedCallback(

@@ -61,17 +61,15 @@ VOID EtFramesMonitorInitialization(
 {
     EtFramesEnabled = !!PhGetIntegerSetting(const_cast<PWSTR>(SETTING_NAME_ENABLE_FPS_MONITOR));
 
-    if (EtFramesEnabled)
-    {
-        EtFramesHashTable = PhCreateHashtable(
-            sizeof(ET_FPS_COUNTER),
-            EtFramesEqualFunction,
-            EtFramesHashFunction,
-            10
-            );
+    if (!EtFramesEnabled)
+        return;
 
-        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), EtStartFpsTraceSession, NULL);
-    }
+    EtFramesHashTable = PhCreateHashtable(
+        sizeof(ET_FPS_COUNTER),
+        EtFramesEqualFunction,
+        EtFramesHashFunction,
+        10
+        );
 }
 
 VOID EtFramesMonitorUninitialization(
@@ -79,6 +77,16 @@ VOID EtFramesMonitorUninitialization(
     )
 {
     StopFpsTraceSession();
+}
+
+VOID EtFramesMonitorStart(
+    VOID
+    )
+{
+    if (EtFramesEnabled)
+    {
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), EtStartFpsTraceSession, NULL);
+    }
 }
 
 PET_FPS_COUNTER EtLookupProcessGpuFrameEntry(
