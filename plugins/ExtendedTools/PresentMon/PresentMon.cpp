@@ -403,7 +403,7 @@ NTSTATUS PresentMonOutputThread(
             break;
 
         // Sleep to reduce overhead.
-        PhDelayExecution(500);
+        PhDelayExecution(1000);
     }
 
     // Close all handles
@@ -470,7 +470,7 @@ static NTSTATUS PresentMonTraceThread(
         }
 
         if (!QuitOutputThread)
-            PhDelayExecution(250);
+            PhDelayExecution(1000);
     }
 
     return STATUS_SUCCESS;
