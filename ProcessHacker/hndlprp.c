@@ -91,6 +91,7 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
 typedef struct _HANDLE_PROPERTIES_CONTEXT
 {
     HWND ListViewHandle;
+    HWND ParentWindow;
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -1224,6 +1225,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     case WM_INITDIALOG:
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ParentWindow = GetParent(hwndDlg);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -1235,9 +1237,9 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 
             // HACK
             if (PhGetIntegerPairSetting(L"HandlePropertiesWindowPosition").X != 0)
-                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, GetParent(hwndDlg));
+                PhLoadWindowPlacementFromSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow);
             else
-                PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg))); // HACK
+                PhCenterWindow(context->ParentWindow, GetParent(context->ParentWindow)); // HACK
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
@@ -1245,19 +1247,19 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             PhpUpdateHandleGeneralListViewGroups(context);
             PhpUpdateHandleGeneral(context);
 
-            PhRegisterWindowCallback(GetParent(hwndDlg), PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+            PhRegisterWindowCallback(context->ParentWindow, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             if (PhEnableThemeSupport) // TODO: Required for compat (dmex)
-                PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);
+                PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
         }
         break;
     case WM_DESTROY:
         {
-            PhUnregisterWindowCallback(GetParent(hwndDlg));
+            PhUnregisterWindowCallback(context->ParentWindow);
 
-            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, GetParent(hwndDlg)); // HACK
+            PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
