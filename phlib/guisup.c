@@ -29,6 +29,7 @@
 #include <fastlock.h>
 #include <guisupp.h>
 
+#include <math.h>
 #include <commoncontrols.h>
 #include <shellapi.h>
 #include <uxtheme.h>
@@ -2478,7 +2479,17 @@ VOID PhCustomDrawTreeTimeLine(
         createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
     }
 
+    // Note: Time is 8 bytes, Float is 4 bytes. Use DOUBLE type at some stage. (dmex)
     percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+
+    if (!(Flags & PH_DRAW_TIMELINE_OVERFLOW))
+    {
+        // Prevent overflow from changing the system time to an earlier date. (dmex)
+        if (fabsf(percent) > 100.f)
+            percent = 100.f;
+        if (fabsf(percent) < 0.0005f)
+            percent = 0.f;
+    }
 
     if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
         FillRect(Hdc, &rect, PhMenuBackgroundBrush);
@@ -2511,9 +2522,15 @@ VOID PhCustomDrawTreeTimeLine(
         previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
     }
 
-    // Prevent overflow from changing the system time to an earlier date. (dmex)
-    if (percent > 100.f) percent = 100.f;
-    // TODO: This still loses a small fraction of precision compared to PE here causing a 1px difference. (dmex)
+    if (Flags & PH_DRAW_TIMELINE_OVERFLOW)
+    {
+        // Prevent overflow from changing the system time to an earlier date. (dmex)
+        if (fabsf(percent) > 100.f)
+            percent = 100.f;
+        if (fabsf(percent) < 0.0005f)
+            percent = 0.f;
+    }
+
     //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
     //rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
     rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));
