@@ -10316,13 +10316,34 @@ NTSTATUS PhQueryProcessHeapInformation(
     {
         PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
         HANDLE processHandle;
+        SIZE_T allocated = 0;
+        SIZE_T committed = 0;
+
+        // go through all heap entries and compute amount of allocated and committed bytes
+        for (ULONG e = 0; e < heapInfo->NumberOfEntries; e++)
+        {
+            PRTL_HEAP_ENTRY entry = &heapInfo->Entries[e];
+
+            if (entry->Flags & RTL_HEAP_BUSY)
+                allocated += entry->Size;
+            if (entry->Flags & RTL_HEAP_SEGMENT)
+                committed += entry->u.s2.CommittedSize;
+        }
+
+        // sometimes computed number if commited bytes is few pages smaller than the one reported by API, lets use the higher value
+        if (committed < heapInfo->BytesCommitted)
+            committed = heapInfo->BytesCommitted;
+
+        // make sure number of allocated bytes is not higher than number of committed bytes (as that would make no sense)
+        if (allocated > committed)
+            allocated = committed;
 
         heapDebugInfo->Heaps[i].Flags = heapInfo->Flags;
         heapDebugInfo->Heaps[i].Signature = ULONG_MAX;
         heapDebugInfo->Heaps[i].NumberOfEntries = heapInfo->NumberOfEntries;
         heapDebugInfo->Heaps[i].BaseAddress = heapInfo->BaseAddress;
-        heapDebugInfo->Heaps[i].BytesAllocated = heapInfo->BytesAllocated;
-        heapDebugInfo->Heaps[i].BytesCommitted = heapInfo->BytesCommitted;
+        heapDebugInfo->Heaps[i].BytesAllocated = allocated;
+        heapDebugInfo->Heaps[i].BytesCommitted = committed;
 
         if (NT_SUCCESS(PhOpenProcess(
             &processHandle,
