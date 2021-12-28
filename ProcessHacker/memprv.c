@@ -239,6 +239,65 @@ PPH_MEMORY_ITEM PhpSetMemoryRegionType(
     return memoryItem;
 }
 
+void PhpUpdateHeapRegions(
+    _In_ PPH_MEMORY_ITEM_LIST List,
+    _In_ HANDLE ProcessHandle
+    )
+{
+    PRTL_DEBUG_INFORMATION debugBuffer;
+    HANDLE powerRequestHandle = NULL;
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        // The RtlQueryProcessDebugInformation can cause deadlock when querying frozen (suspended) immersive process.
+        // A workaround was implemented using PhCreateExecutionRequiredRequest().
+        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+    }
+
+    if (debugBuffer = RtlCreateQueryDebugBuffer(0x10000, FALSE))
+    {
+        if (NT_SUCCESS(RtlQueryProcessDebugInformation(List->ProcessId, RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES_EX, debugBuffer)))
+        {
+            if (debugBuffer->Heaps)
+            {
+                for (ULONG i = 0; i < debugBuffer->Heaps->NumberOfHeaps; i++)
+                {
+                    PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
+                    PPH_MEMORY_ITEM heapMemoryItem;
+
+                    if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo->BaseAddress, TRUE, HeapRegion))
+                    {
+                        heapMemoryItem->u.Heap.Index = i;
+
+                        for (ULONG j = 0; j < heapInfo->NumberOfEntries; j++)
+                        {
+                            PRTL_HEAP_ENTRY heapEntry = &heapInfo->Entries[j];
+
+                            if (heapEntry->Flags & RTL_HEAP_SEGMENT)
+                            {
+                                PVOID blockAddress = heapEntry->u.s2.FirstBlock;
+
+                                PPH_MEMORY_ITEM memoryItem = PhLookupMemoryItemList(List, blockAddress);
+
+                                if (memoryItem && memoryItem->BaseAddress == blockAddress && memoryItem->RegionType == UnknownRegion)
+                                {
+                                    memoryItem->RegionType = HeapSegmentRegion;
+                                    memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+    }
+
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+}
+
 NTSTATUS PhpUpdateMemoryRegionTypes(
     _In_ PPH_MEMORY_ITEM_LIST List,
     _In_ HANDLE ProcessHandle
@@ -311,6 +370,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG *processHeaps32;
         ULONG apiSetMap32;
 #endif
+
+        PhpUpdateHeapRegions(List, ProcessHandle);
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
         {
