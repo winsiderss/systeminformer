@@ -244,58 +244,79 @@ void PhpUpdateHeapRegions(
     _In_ HANDLE ProcessHandle
     )
 {
-    PRTL_DEBUG_INFORMATION debugBuffer;
+    PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     HANDLE powerRequestHandle = NULL;
 
     if (WindowsVersion >= WINDOWS_8)
     {
-        // The RtlQueryProcessDebugInformation can cause deadlock when querying frozen (suspended) immersive process.
-        // A workaround was implemented using PhCreateExecutionRequiredRequest().
+        // RtlQueryProcessDebugInformation can cause deadlock on some older versions when querying frozen (suspended) immersive process. (ge0rdi)
+        // A workaround was implemented using PhCreateExecutionRequiredRequest(). (ge0rdi)
         PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
     }
 
-    if (debugBuffer = RtlCreateQueryDebugBuffer(0x10000, FALSE))
+    for (ULONG i = 0x10000; ; i *= 2) // based on PhQueryProcessHeapInformation (ge0rdi)
     {
-        if (NT_SUCCESS(RtlQueryProcessDebugInformation(List->ProcessId, RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES_EX, debugBuffer)))
+        if (!(debugBuffer = RtlCreateQueryDebugBuffer(i, FALSE)))
+            break;
+
+        NTSTATUS status = RtlQueryProcessDebugInformation(
+            List->ProcessId,
+            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES_EX,
+            debugBuffer
+        );
+
+        if (!NT_SUCCESS(status))
         {
-            if (debugBuffer->Heaps)
+            RtlDestroyQueryDebugBuffer(debugBuffer);
+            debugBuffer = NULL;
+        }
+
+        if (NT_SUCCESS(status) || status != STATUS_NO_MEMORY)
+            break;
+
+        if (2 * i <= i)
+            break;
+    }
+
+    if (powerRequestHandle)
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+
+    if (!debugBuffer)
+        return;
+
+    if (debugBuffer->Heaps)
+    {
+        for (ULONG i = 0; i < debugBuffer->Heaps->NumberOfHeaps; i++)
+        {
+            PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
+            PPH_MEMORY_ITEM heapMemoryItem;
+
+            if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo->BaseAddress, TRUE, HeapRegion))
             {
-                for (ULONG i = 0; i < debugBuffer->Heaps->NumberOfHeaps; i++)
+                heapMemoryItem->u.Heap.Index = i;
+
+                for (ULONG j = 0; j < heapInfo->NumberOfEntries; j++)
                 {
-                    PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
-                    PPH_MEMORY_ITEM heapMemoryItem;
+                    PRTL_HEAP_ENTRY heapEntry = &heapInfo->Entries[j];
 
-                    if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo->BaseAddress, TRUE, HeapRegion))
+                    if (heapEntry->Flags & RTL_HEAP_SEGMENT)
                     {
-                        heapMemoryItem->u.Heap.Index = i;
+                        PVOID blockAddress = heapEntry->u.s2.FirstBlock;
 
-                        for (ULONG j = 0; j < heapInfo->NumberOfEntries; j++)
+                        PPH_MEMORY_ITEM memoryItem = PhLookupMemoryItemList(List, blockAddress);
+
+                        if (memoryItem && memoryItem->BaseAddress == blockAddress && memoryItem->RegionType == UnknownRegion)
                         {
-                            PRTL_HEAP_ENTRY heapEntry = &heapInfo->Entries[j];
-
-                            if (heapEntry->Flags & RTL_HEAP_SEGMENT)
-                            {
-                                PVOID blockAddress = heapEntry->u.s2.FirstBlock;
-
-                                PPH_MEMORY_ITEM memoryItem = PhLookupMemoryItemList(List, blockAddress);
-
-                                if (memoryItem && memoryItem->BaseAddress == blockAddress && memoryItem->RegionType == UnknownRegion)
-                                {
-                                    memoryItem->RegionType = HeapSegmentRegion;
-                                    memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
-                                }
-                            }
+                            memoryItem->RegionType = HeapSegmentRegion;
+                            memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
                         }
                     }
                 }
             }
         }
-
-        RtlDestroyQueryDebugBuffer(debugBuffer);
     }
 
-    if (powerRequestHandle)
-        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    RtlDestroyQueryDebugBuffer(debugBuffer);
 }
 
 NTSTATUS PhpUpdateMemoryRegionTypes(
