@@ -4087,10 +4087,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         return FALSE;
 
     case TreeNewMiddleClick:
-        // selecting subtree works only in NoSortOrder (TheEragon)
-        if (ProcessTreeListSortOrder != NoSortOrder)
-            break;
-
         PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
         if (!mouseEvent)
             break;
@@ -4098,18 +4094,45 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
         if (GetKeyState(VK_CONTROL) >= 0)
             PhDeselectAllProcessNodes();
 
-        node = (PPH_PROCESS_NODE)mouseEvent->Node;
-
-        // init last index to self, this way we select only the process if there are no children (TheEragon)
-        ULONG lastChildIndex = mouseEvent->Node->Index;
-        if (node->Children->Count)
+        if (ProcessTreeListSortOrder == NoSortOrder)
         {
-            // get index of last child
-            PPH_PROCESS_NODE lastChild = (PPH_PROCESS_NODE)node->Children->Items[node->Children->Count - 1];
-            lastChildIndex = lastChild->Node.Index;
-        }
+            // in NoSortOrder we select subtree (TheEragon)
+            node = (PPH_PROCESS_NODE)mouseEvent->Node;
 
-        TreeNew_SelectRange(ProcessTreeListHandle, mouseEvent->Node->Index, lastChildIndex);
+            // init last index to self, this way we select only the process if there are no children (TheEragon)
+            ULONG lastChildIndex = mouseEvent->Node->Index;
+            if (node->Children->Count)
+            {
+                // get index of last child
+                PPH_PROCESS_NODE lastChild = (PPH_PROCESS_NODE)node->Children->Items[node->Children->Count - 1];
+                lastChildIndex = lastChild->Node.Index;
+            }
+
+            TreeNew_SelectRange(ProcessTreeListHandle, mouseEvent->Node->Index, lastChildIndex);
+        }
+        else
+        {
+            // in sorted order we select all processes with same name (TheEragon)
+            node = (PPH_PROCESS_NODE)mouseEvent->Node;
+
+            ULONG first = -1;
+            ULONG last = 0;
+            for (ULONG i = 0; i < ProcessNodeList->Count; i++)
+            {
+                PPH_PROCESS_NODE item = ProcessNodeList->Items[i];
+
+                if (PhCompareString(node->ProcessItem->ProcessName, item->ProcessItem->ProcessName, TRUE) == 0)
+                {
+                    if (first > item->Node.Index)
+                        first = item->Node.Index;
+
+                    if (last < item->Node.Index)
+                        last = item->Node.Index;
+                }
+            }
+
+            TreeNew_SelectRange(ProcessTreeListHandle, first, last);
+        }
 
         return TRUE;
     }
