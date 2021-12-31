@@ -299,7 +299,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-                    drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+                    drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
                     PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
 
                     for (i = 0; i < EtGpuTotalNodeCount; i++)
@@ -315,10 +315,36 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                             if (!GraphState[i].Valid)
                             {
                                 PhCopyCircularBuffer_FLOAT(&EtGpuNodesHistory[i], GraphState[i].Data1, drawInfo->LineDataCount);
+
+                                if (EtEnableScaleGraph)
+                                {
+                                    FLOAT max = 0;
+
+                                    for (ULONG ii = 0; ii < drawInfo->LineDataCount; ii++)
+                                    {
+                                        FLOAT data = GraphState[i].Data1[ii]; // HACK
+
+                                        if (max < data)
+                                            max = data;
+                                    }
+
+                                    if (max != 0)
+                                    {
+                                        PhDivideSinglesBySingle(
+                                            GraphState[i].Data1,
+                                            max,
+                                            drawInfo->LineDataCount
+                                            );
+                                    }
+
+                                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                                    drawInfo->LabelYFunctionParameter = max;
+                                }
+
                                 GraphState[i].Valid = TRUE;
                             }
                             
-                            if (PhGetIntegerSetting(L"GraphShowText"))
+                            if (EtGraphShowText)
                             {
                                 HDC hdc;
                                 FLOAT gpu;
@@ -335,7 +361,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                     PH_FORMAT format[4];
 
                                     // %.2f%% (%s)
-                                    PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                    PhInitFormatF(&format[0], gpu * 100, 2);
                                     PhInitFormatS(&format[1], L"% (");
                                     PhInitFormatSR(&format[2], engineName->sr);
                                     PhInitFormatC(&format[3], L')');
@@ -347,7 +373,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                     PH_FORMAT format[4];
 
                                     // %.2f%% (Node %lu)
-                                    PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                    PhInitFormatF(&format[0], gpu * 100, 2);
                                     PhInitFormatS(&format[1], L"% (Node ");
                                     PhInitFormatU(&format[2], i);
                                     PhInitFormatC(&format[3], L')');
@@ -424,7 +450,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         PH_FORMAT format[9];
 
                                         // %.2f%%\nNode %lu (%s) on %s\n%s
-                                        PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                        PhInitFormatF(&format[0], gpu * 100, 2);
                                         PhInitFormatS(&format[1], L"%\nNode ");
                                         PhInitFormatU(&format[2], i);
                                         PhInitFormatS(&format[3], L" (");
@@ -441,7 +467,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         PH_FORMAT format[7];
 
                                         // %.2f%%\nNode %lu on %s\n%s
-                                        PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                                        PhInitFormatF(&format[0], gpu * 100, 2);
                                         PhInitFormatS(&format[1], L"%\nNode ");
                                         PhInitFormatU(&format[2], i);
                                         PhInitFormatS(&format[3], L" on ");

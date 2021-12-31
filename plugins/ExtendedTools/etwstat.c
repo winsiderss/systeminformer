@@ -271,7 +271,9 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             PET_PROCESS_BLOCK block;
             PSYSTEM_PROCESS_INFORMATION processInfo;
             PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
+            ULONG64 diskReads = 0;
             ULONG64 diskReadRaw = 0;
+            ULONG64 diskWrites = 0;
             ULONG64 diskWriteRaw = 0;
             ULONG64 networkSendRaw = 0;
             ULONG64 networkReceiveRaw = 0;
@@ -284,15 +286,21 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                 {
                     if (processExtension = PH_PROCESS_EXTENSION(processInfo))
                     {
+                        diskReads = processExtension->DiskCounters.ReadOperationCount;
                         diskReadRaw = processExtension->DiskCounters.BytesRead;
+                        diskWrites = processExtension->DiskCounters.WriteOperationCount;
                         diskWriteRaw = processExtension->DiskCounters.BytesWritten;
                         networkReceiveRaw = processExtension->EnergyValues.NetworkTxRxBytes;
                     }
                 }
             }
 
+            if (block->DiskReadCount < diskReads)
+                block->DiskReadCount = diskReads;
             if (block->DiskReadRaw < diskReadRaw)
                 block->DiskReadRaw = diskReadRaw;
+            if (block->DiskWriteCount < diskWrites)
+                block->DiskWriteCount = diskWrites;
             if (block->DiskWriteRaw < diskWriteRaw)
                 block->DiskWriteRaw = diskWriteRaw;
             if (block->NetworkSendRaw < networkSendRaw)
@@ -300,14 +308,18 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             if (block->NetworkReceiveRaw < networkReceiveRaw)
                 block->NetworkReceiveRaw = networkReceiveRaw;
 
+            PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
             PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
+            PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteCount);
             PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
             PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
             PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
 
             if (!block->HaveFirstSample)
             {
+                block->DiskReadDelta.Delta = 0;
                 block->DiskReadRawDelta.Delta = 0;
+                block->DiskWriteDelta.Delta = 0;
                 block->DiskWriteRawDelta.Delta = 0;
                 block->NetworkSendRawDelta.Delta = 0;
                 block->NetworkReceiveRawDelta.Delta = 0;

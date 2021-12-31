@@ -50,7 +50,7 @@ BOOLEAN EtpGpuListSectionCallback(
 
             // GPU    %.2f%%
             PhInitFormatS(&format[0], L"GPU    ");
-            PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
+            PhInitFormatF(&format[1], EtGpuNodeUsage * 100, 2);
             PhInitFormatC(&format[2], L'%');
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
@@ -116,7 +116,7 @@ BOOLEAN EtpGpuListSectionCallback(
             gpuUsage = *(PFLOAT)getUsageText->SortData->UserData;
 
             // %.2f%%
-            PhInitFormatF(&format[0], (DOUBLE)gpuUsage * 100, 2);
+            PhInitFormatF(&format[0], gpuUsage * 100, 2);
             PhInitFormatC(&format[1], L'%');
 
             PhMoveReference(&getUsageText->Line1, PhFormat(format, RTL_NUMBER_OF(format), 0));

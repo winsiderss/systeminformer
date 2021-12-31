@@ -147,7 +147,9 @@ VOID EtwDiskNetworkLayoutGraphs(
     PhLayoutManagerLayout(&Context->LayoutManager);
 
     Context->DiskGraphState.Valid = FALSE;
+    Context->DiskGraphState.TooltipIndex = ULONG_MAX;
     Context->NetworkGraphState.Valid = FALSE;
+    Context->NetworkGraphState.TooltipIndex = ULONG_MAX;
 
     GetClientRect(Context->WindowHandle, &clientRect);
 
@@ -330,7 +332,19 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                context->Enabled = TRUE;
+                {
+                    context->Enabled = TRUE;
+
+                    context->DiskGraphState.Valid = FALSE;
+                    context->DiskGraphState.TooltipIndex = ULONG_MAX;
+                    context->NetworkGraphState.Valid = FALSE;
+                    context->NetworkGraphState.TooltipIndex = ULONG_MAX;
+
+                    if (context->DiskGraphHandle)
+                        Graph_Draw(context->DiskGraphHandle);
+                    if (context->NetworkGraphHandle)
+                        Graph_Draw(context->NetworkGraphHandle);
+                }
                 break;
             case PSN_KILLACTIVE:
                 context->Enabled = FALSE;
@@ -388,7 +402,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             context->DiskGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[4];
@@ -464,7 +478,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             context->NetworkGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[4];
@@ -570,7 +584,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
         break;
     case ET_WM_UPDATE:
         {
-            if (context->Enabled)
+            if (!(processItem->State & PH_PROCESS_ITEM_REMOVED) && context->Enabled)
             {
                 EtwDiskNetworkUpdateGraphs(context);
                 EtwDiskNetworkUpdatePanel(context);

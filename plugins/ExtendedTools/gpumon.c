@@ -769,6 +769,10 @@ BOOLEAN EtpInitializeD3DStatistics(
         //
         EtGpuTemperatureLimit /= deviceAdapterList->Count;
         EtGpuFanRpmLimit /= deviceAdapterList->Count;
+
+        // Set limit at 100C (dmex)
+        if (EtGpuTemperatureLimit == 0)
+            EtGpuTemperatureLimit = 100;
     }
 
     PhDereferenceObject(deviceAdapterList);
@@ -1010,13 +1014,12 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         FLOAT gpuTotal;
         ULONG64 sharedTotal;
         ULONG64 dedicatedTotal;
-        //ULONG64 commitTotal;
 
+        EtGpuHashTableAcquireLockShared();
         gpuTotal = EtLookupTotalGpuUtilization();
         sharedTotal = EtLookupTotalGpuShared();
-        dedicatedTotal = EtLookupTotalAdapterGpuDedicated();
-        //dedicatedTotal = EtLookupTotalProcessGpuDedicated();
-        //commitTotal = EtLookupTotalGpuCommit();
+        dedicatedTotal = EtLookupTotalGpuDedicated();
+        EtGpuHashTableReleaseLockShared();
 
         if (gpuTotal > 1)
             gpuTotal = 1;
@@ -1140,12 +1143,41 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
+        if (block->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
+        {
+            listEntry = listEntry->Flink;
+            continue;
+        }
+
         if (EtD3DEnabled)
         {
-            block->GpuNodeUtilization = EtLookupProcessGpuUtilization(block->ProcessItem->ProcessId);
-            block->GpuDedicatedUsage = EtLookupProcessGpuDedicated(block->ProcessItem->ProcessId);
-            block->GpuSharedUsage = EtLookupProcessGpuSharedUsage(block->ProcessItem->ProcessId);
-            block->GpuCommitUsage = EtLookupProcessGpuCommitUsage(block->ProcessItem->ProcessId);
+            ULONG64 sharedUsage;
+            ULONG64 dedicatedUsage;
+            ULONG64 commitUsage;
+
+            EtGpuHashTableAcquireLockShared();
+            block->GpuNodeUtilization = EtLookupProcessGpuUtilization(
+                block->ProcessItem->ProcessId
+                );
+
+            if (EtLookupProcessGpuMemoryCounters(
+                block->ProcessItem->ProcessId,
+                &sharedUsage,
+                &dedicatedUsage,
+                &commitUsage
+                ))
+            {
+                block->GpuSharedUsage = sharedUsage;
+                block->GpuDedicatedUsage = dedicatedUsage;
+                block->GpuCommitUsage = commitUsage;
+            }
+            else
+            {
+                block->GpuSharedUsage = 0;
+                block->GpuDedicatedUsage = 0;
+                block->GpuCommitUsage = 0;
+            }
+            EtGpuHashTableReleaseLockShared();
 
             if (runCount != 0)
             {
@@ -1223,6 +1255,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
         if (EtD3DEnabled)
         {
+            EtGpuHashTableAcquireLockShared();
+
             for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 FLOAT usage;
@@ -1234,6 +1268,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
                 PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], usage);
             }
+
+            EtGpuHashTableReleaseLockShared();
         }
         else
         {
