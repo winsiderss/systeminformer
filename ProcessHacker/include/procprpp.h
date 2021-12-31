@@ -194,6 +194,7 @@ typedef struct _PH_THREADS_CONTEXT
     HWND WindowHandle;
 // end_phapppub
     HWND TreeNewHandle;
+    HWND StatusHandle;
     HWND SearchboxHandle;
     PPH_STRING SearchboxText;
     PPH_TN_FILTER_ENTRY FilterEntry;
@@ -207,6 +208,8 @@ typedef struct _PH_THREADS_CONTEXT
         } PublicUse;
     };
     PH_PROVIDER_EVENT_QUEUE EventQueue;
+
+    PH_CALLBACK_REGISTRATION SymbolProviderEventRegistration;
 // begin_phapppub
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
 // end_phapppub
