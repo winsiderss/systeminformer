@@ -137,7 +137,23 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                performanceContext->Enabled = TRUE;
+                {
+                    performanceContext->Enabled = TRUE;
+
+                    performanceContext->CpuGraphState.Valid = FALSE;
+                    performanceContext->CpuGraphState.TooltipIndex = ULONG_MAX;
+                    performanceContext->PrivateGraphState.Valid = FALSE;
+                    performanceContext->PrivateGraphState.TooltipIndex = ULONG_MAX;
+                    performanceContext->IoGraphState.Valid = FALSE;
+                    performanceContext->IoGraphState.TooltipIndex = ULONG_MAX;
+
+                    if (performanceContext->CpuGraphHandle)
+                        Graph_Draw(performanceContext->CpuGraphHandle);
+                    if (performanceContext->PrivateGraphHandle)
+                        Graph_Draw(performanceContext->PrivateGraphHandle);
+                    if (performanceContext->IoGraphHandle)
+                        Graph_Draw(performanceContext->IoGraphHandle);
+                }
                 break;
             case PSN_KILLACTIVE:
                 performanceContext->Enabled = FALSE;
@@ -202,14 +218,17 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         if (PhCsGraphShowText)
                         {
                             HDC hdc;
-                            PH_FORMAT format[2];
+                            PH_FORMAT format[6];
 
-                            // %.2f%%
+                            // %.2f%% (K: %.2f%%, U: %.2f%%)
                             PhInitFormatF(&format[0], ((DOUBLE)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100, 2);
-                            PhInitFormatC(&format[1], L'%');
+                            PhInitFormatS(&format[1], L"% (K: ");
+                            PhInitFormatF(&format[2], (DOUBLE)processItem->CpuKernelUsage * 100, 2);
+                            PhInitFormatS(&format[3], L"%, U: ");
+                            PhInitFormatF(&format[4], (DOUBLE)processItem->CpuUserUsage * 100, 2);
+                            PhInitFormatS(&format[5], L"%)");
 
-                            PhMoveReference(&performanceContext->CpuGraphState.Text,
-                                PhFormat(format, RTL_NUMBER_OF(format), 16));
+                            PhMoveReference(&performanceContext->CpuGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 16));
 
                             hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
                             PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.Text->sr,
