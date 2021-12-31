@@ -65,7 +65,6 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
 
-    HANDLE UpdateTimerHandle;
     HANDLE SearchThreadHandle;
 
     BOOLEAN SearchStop;
@@ -725,9 +724,15 @@ VOID PhpFindObjectAddResultEntries(
 {
     ULONG i;
 
-    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
-
     PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
+
+    if (Context->SearchResults->Count == 0 || Context->SearchResultsAddIndex == Context->SearchResults->Count)
+    {
+        PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
+        return;
+    }
+
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
 
     for (i = Context->SearchResultsAddIndex; i < Context->SearchResults->Count; i++)
     {
@@ -763,12 +768,12 @@ VOID PhpFindObjectAddResultEntries(
         }
     }
 
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
+
     Context->SearchResultsAddIndex = i;
 
     PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
-
-    TreeNew_NodesStructured(Context->TreeNewHandle);
-    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
 VOID PhpFindObjectClearResultEntries(
@@ -783,23 +788,6 @@ VOID PhpFindObjectClearResultEntries(
         PhFree(Context->SearchResults->Items[i]);
 
     PhClearList(Context->SearchResults);
-}
-
-VOID CALLBACK PhpFindObjectTreeUpdateCallback(
-    _In_ PPH_HANDLE_SEARCH_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->SearchThreadHandle)
-    {
-        RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
-        return;
-    }
-
-    // Update the search results.
-    PhpFindObjectAddResultEntries(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 static BOOLEAN MatchSearchString(
@@ -1235,15 +1223,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
             context->SearchResults = PhCreateList(128);
             context->SearchResultsAddIndex = 0;
 
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PhpFindObjectTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
+            SetTimer(hwndDlg, 1, 1000, NULL);
 
             Edit_SetSel(context->SearchWindowHandle, 0, -1);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_REGEX), PhGetIntegerSetting(L"FindObjRegex") ? BST_CHECKED : BST_UNCHECKED);
@@ -1255,11 +1235,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
         {
             context->SearchStop = TRUE;
 
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
+            KillTimer(hwndDlg, 1);
 
             if (context->SearchThreadHandle)
             {
@@ -1692,6 +1668,15 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
     case WM_SIZING:
         {
             PhResizingMinimumSize((PRECT)lParam, wParam, context->MinimumSize.right, context->MinimumSize.bottom);
+        }
+        break;
+    case WM_TIMER:
+        {
+            if (!context->SearchThreadHandle)
+                break;
+
+            // Update the search results.
+            PhpFindObjectAddResultEntries(context);
         }
         break;
     case WM_PH_SEARCH_FINISHED:
