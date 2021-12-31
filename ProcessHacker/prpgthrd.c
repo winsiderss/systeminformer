@@ -29,6 +29,7 @@
 #include <emenu.h>
 #include <secedit.h>
 #include <settings.h>
+#include <symprv.h>
 
 #include <actions.h>
 #include <extmgri.h>
@@ -105,13 +106,13 @@ static VOID NTAPI ThreadsLoadingStateChangedHandler(
     if (!threadsContext)
         return;
 
-    PostMessage(
-        threadsContext->ListContext.TreeNewHandle,
-        TNM_SETCURSOR,
-        0,
-        // Parameter contains TRUE if loading symbols
-        (LPARAM)(Parameter ? LoadCursor(NULL, IDC_APPSTARTING) : NULL)
-        );
+    //PostMessage(
+    //    threadsContext->ListContext.TreeNewHandle,
+    //    TNM_SETCURSOR,
+    //    0,
+    //    // Parameter contains TRUE if loading symbols
+    //    (LPARAM)(Parameter ? LoadCursor(NULL, IDC_APPSTARTING) : NULL)
+    //    );
 }
 
 VOID PhpInitializeThreadMenu(
@@ -791,6 +792,38 @@ VOID PhpProcessThreadsSave(
     PhFreeFileDialog(fileDialog);
 }
 
+VOID PhpSymbolProviderEventCallbackThreadStatus(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_SYMBOL_EVENT_DATA event = Parameter;
+    PPH_THREADS_CONTEXT context = Context;
+    PPH_STRING statusMessage = NULL;
+
+    if (!event) return;
+    if (!context) return;
+
+    switch (event->EventType)
+    {
+    case PH_SYMBOL_EVENT_TYPE_LOAD_START:
+        statusMessage = PhReferenceObject(event->EventMessage);
+        break;
+    case PH_SYMBOL_EVENT_TYPE_LOAD_END:
+        statusMessage = PhReferenceEmptyString();
+        break;
+    case PH_SYMBOL_EVENT_TYPE_PROGRESS:
+        statusMessage = PhReferenceObject(event->EventMessage);
+        break;
+    }
+
+    if (statusMessage)
+    {
+        PhSetWindowText(context->StatusHandle, PhGetStringOrEmpty(statusMessage));
+        PhDereferenceObject(statusMessage);
+    }
+}
+
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -822,6 +855,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             threadsContext->WindowHandle = hwndDlg;
             threadsContext->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             threadsContext->SearchboxHandle = GetDlgItem(hwndDlg, IDC_SEARCH);
+            threadsContext->StatusHandle = GetDlgItem(hwndDlg, IDC_STATE);
 
             // The thread provider has a special registration mechanism.
             threadsContext->Provider = PhCreateThreadProvider(
@@ -923,11 +957,29 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhThreadProviderInitialUpdate(threadsContext->Provider);
             PhRegisterThreadProvider(threadsContext->Provider, &threadsContext->ProviderRegistration);
 
+            if (threadsContext->Provider->SymbolProvider)
+            {
+                PhRegisterCallback(
+                    &PhSymbolEventCallback,
+                    PhpSymbolProviderEventCallbackThreadStatus,
+                    threadsContext,
+                    &threadsContext->SymbolProviderEventRegistration
+                    );
+            }
+
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            if (threadsContext->Provider->SymbolProvider)
+            {
+                PhUnregisterCallback(
+                    &PhSymbolEventCallback,
+                    &threadsContext->SymbolProviderEventRegistration
+                    );
+            }
+
             PhRemoveTreeNewFilter(&threadsContext->ListContext.TreeFilterSupport, threadsContext->FilterEntry);
             if (threadsContext->SearchboxText) PhDereferenceObject(threadsContext->SearchboxText);
 
@@ -979,6 +1031,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             if (dialogItem = PhBeginPropPageLayout(hwndDlg, propPageContext))
             {
+                PhAddPropPageLayoutItem(hwndDlg, threadsContext->StatusHandle, dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
                 PhAddPropPageLayoutItem(hwndDlg, threadsContext->SearchboxHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, threadsContext->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
