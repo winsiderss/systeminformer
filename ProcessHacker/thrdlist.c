@@ -106,7 +106,8 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_NAME, FALSE, L"Name", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTED, FALSE, L"Created", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STARTMODULE, FALSE, L"Start module", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTEXTSWITCHES, FALSE, L"Context switches", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTEXTSWITCHES, FALSE, L"Context switches", 100, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CONTEXTSWITCHESDELTA, FALSE, L"Context switches delta", 100, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PRIORITY, FALSE, L"Priority", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_BASEPRIORITY, FALSE, L"Base priority", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PAGEPRIORITY, FALSE, L"Page priority", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -118,7 +119,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IDEALPROCESSOR, FALSE, L"Ideal processor", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIDHEX, FALSE, L"TID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
+    PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TOKEN_STATE, FALSE, L"Impersonation", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PENDINGIRP, FALSE, L"Pending IRP", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSYSTEMCALL, FALSE, L"Last system call", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -378,7 +379,7 @@ VOID PhUpdateThreadNode(
 
     ThreadNode->ValidMask = 0;
     PhInvalidateTreeNewNode(&ThreadNode->Node, TN_CACHE_COLOR);
-    TreeNew_NodesStructured(Context->TreeNewHandle);
+    TreeNew_InvalidateNode(Context->TreeNewHandle, &ThreadNode->Node);
 }
 
 VOID PhTickThreadNodes(
@@ -512,6 +513,12 @@ BEGIN_SORT_FUNCTION(ContextSwitches)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ContextSwitchesDelta)
+{
+    sortResult = uint64cmp(threadItem1->ContextSwitchesDelta.Delta, threadItem2->ContextSwitchesDelta.Delta);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(Priority)
 {
     sortResult = intcmp(threadItem1->Priority, threadItem2->Priority);
@@ -614,15 +621,16 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CpuCore)
 {
-    sortResult = singlecmp(threadItem1->CpuUsage, threadItem2->CpuUsage); // TODO * core
+    DOUBLE cpuUsage1;
+    DOUBLE cpuUsage2;
 
-    if (sortResult == 0)
-    {
-        if (context->UseCycleTime)
-            sortResult = uint64cmp(threadItem1->CyclesDelta.Delta, threadItem2->CyclesDelta.Delta);
-        else
-            sortResult = uintcmp(threadItem1->ContextSwitchesDelta.Delta, threadItem2->ContextSwitchesDelta.Delta);
-    }
+    cpuUsage1 = threadItem1->CpuUsage * 100;
+    cpuUsage1 *= (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+
+    cpuUsage2 = threadItem2->CpuUsage * 100;
+    cpuUsage2 *= (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+
+    sortResult = doublecmp(cpuUsage1, cpuUsage2);
 }
 END_SORT_FUNCTION
 
@@ -695,6 +703,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(Created),
                     SORT_FUNCTION(StartModule),
                     SORT_FUNCTION(ContextSwitches),
+                    SORT_FUNCTION(ContextSwitchesDelta), // delta
                     SORT_FUNCTION(Priority),
                     SORT_FUNCTION(BasePriority),
                     SORT_FUNCTION(PagePriority),
@@ -889,6 +898,20 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     }
                 }
                 break;
+            case PH_THREAD_TREELIST_COLUMN_CONTEXTSWITCHESDELTA:
+                {
+                    if ((LONG)threadItem->ContextSwitchesDelta.Delta >= 0) // the delta may be negative if a thread exits - just don't show anything
+                    {
+                        ULONG value = threadItem->ContextSwitchesDelta.Delta;
+
+                        if (value != 0)
+                        {
+                            PhMoveReference(&node->ContextSwitchesDeltaText, PhFormatUInt64(value, TRUE));
+                            getCellText->Text = node->ContextSwitchesDeltaText->sr;
+                        }
+                    }
+                }
+                break;
             case PH_THREAD_TREELIST_COLUMN_PRIORITY:
                 {
                     SIZE_T returnLength;
@@ -1075,7 +1098,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     FLOAT cpuUsage;
 
                     cpuUsage = threadItem->CpuUsage * 100;
-                    cpuUsage = cpuUsage * (ULONG)PhSystemBasicInformation.NumberOfProcessors; // * 2; // linux style (dmex)
+                    cpuUsage *= (ULONG)PhSystemBasicInformation.NumberOfProcessors; // linux style (dmex)
 
                     if (cpuUsage >= 0.01)
                     {
