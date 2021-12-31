@@ -524,7 +524,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesPerSecondGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -579,7 +579,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesLatencyGraphState.Valid = TRUE;
                         }
                         
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -634,7 +634,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->PresentIntervalGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -689,7 +689,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->PresentDurationGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -744,7 +744,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesRenderTimeGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -799,7 +799,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesDisplayTimeGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -854,7 +854,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesDisplayLatencyGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];

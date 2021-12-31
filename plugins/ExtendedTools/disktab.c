@@ -596,7 +596,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     number = diskItem->ReadAverage;
                     number *= 1000;
-                    number /= PhGetIntegerSetting(L"UpdateInterval");
+                    number /= EtUpdateInterval;
 
                     if (number != 0)
                     {
@@ -620,7 +620,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     number = diskItem->WriteAverage;
                     number *= 1000;
-                    number /= PhGetIntegerSetting(L"UpdateInterval");
+                    number /= EtUpdateInterval;
 
                     if (number != 0)
                     {
@@ -644,7 +644,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     number = diskItem->ReadAverage + diskItem->WriteAverage;
                     number *= 1000;
-                    number /= PhGetIntegerSetting(L"UpdateInterval");
+                    number /= EtUpdateInterval;
 
                     if (number != 0)
                     {
