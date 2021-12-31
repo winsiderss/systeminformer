@@ -238,12 +238,14 @@ VOID PhpRefreshEnvironmentList(
             flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
 #endif
 
-        if (NT_SUCCESS(PhGetProcessEnvironment(
+        status = PhGetProcessEnvironment(
             processHandle,
             flags,
             &environment,
             &environmentLength
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
             enumerationKey = 0;
 
@@ -258,6 +260,11 @@ VOID PhpRefreshEnvironmentList(
             }
 
             PhFreePage(environment);
+        }
+        else
+        {
+            PhpSetEnvironmentListStatusMessage(Context, status);
+            TreeNew_NodesStructured(Context->TreeNewHandle);
         }
 
         NtClose(processHandle);
@@ -539,6 +546,12 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, context->MinimumSize.right, context->MinimumSize.bottom);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

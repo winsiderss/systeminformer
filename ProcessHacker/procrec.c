@@ -3,7 +3,7 @@
  *   process record properties
  *
  * Copyright (C) 2010 wj32
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2020-2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -46,6 +46,7 @@ VOID PhShowProcessRecordDialog(
 {
     PROCESS_RECORD_CONTEXT context;
 
+    memset(&context, 0, sizeof(PROCESS_RECORD_CONTEXT));
     context.Record = Record;
 
     DialogBoxParam(
@@ -267,6 +268,12 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
