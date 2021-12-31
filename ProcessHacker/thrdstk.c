@@ -83,9 +83,14 @@ typedef struct _PH_THREAD_STACK_CONTEXT
     PPH_STRING StatusContent;
     PH_QUEUED_LOCK StatusLock;
 
+    BOOLEAN SymbolProgressMarquee;
+    BOOLEAN SymbolProgressReset;
+    ULONG SymbolProgress;
+
     PH_LAYOUT_MANAGER LayoutManager;
 
     HWND WindowHandle;
+    HWND ParentHandle;
     HWND TreeNewHandle;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
@@ -623,6 +628,8 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                     &lineInfo
                     ))
                 {
+                    PhMoveReference(&fileName, PhGetFileName(fileName));
+
                     PhAppendFormatStringBuilder(
                         &stringBuilder,
                         L"File: %s: line %lu\n",
@@ -889,6 +896,7 @@ VOID PhShowThreadStackDialog(
     context->NewList = PhCreateList(10);
     PhInitializeQueuedLock(&context->StatusLock);
 
+    context->ParentHandle = ParentWindowHandle;
     context->ThreadHandle = threadHandle;
     context->ProcessId = ProcessId;
     context->ThreadId = ThreadId;
@@ -1183,9 +1191,9 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                         menu,
                         GET_WM_COMMAND_HWND(wParam, lParam),
                         PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
                         rect.left,
-                        rect.bottom
+                        rect.top
                         );
 
                     if (selectedItem && selectedItem->Id)
@@ -1556,77 +1564,35 @@ VOID PhpSymbolProviderEventCallbackHandler(
     PPH_SYMBOL_EVENT_DATA event = Parameter;
     PPH_THREAD_STACK_CONTEXT context = Context;
     PPH_STRING statusMessage = NULL;
+    ULONG statusProgress = 0;
 
-    if (!event)
-        return;
+    if (!event) return;
+    if (!context) return;
 
-    switch (event->ActionCode)
+    switch (event->EventType)
     {
-    case CBA_DEFERRED_SYMBOL_LOAD_START:
-    case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
-    case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
-    case CBA_SYMBOLS_UNLOADED:
+    case PH_SYMBOL_EVENT_TYPE_LOAD_START:
+        statusMessage = PhReferenceObject(event->EventMessage);
+        break;
+    case PH_SYMBOL_EVENT_TYPE_LOAD_END:
+        statusMessage = PhReferenceEmptyString();
+        break;
+    case PH_SYMBOL_EVENT_TYPE_PROGRESS:
         {
-            PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)event->EventData;
-            PPH_STRING fileName = NULL;
+            ULONG64 progress = event->EventProgress;
 
-            if (callbackData->FileName[0] != UNICODE_NULL)
-            {
-                fileName = PhCreateString(callbackData->FileName);
-                PhMoveReference(&fileName, PhGetBaseName(fileName));
-            }
-
-            switch (event->ActionCode)
-            {
-            case CBA_DEFERRED_SYMBOL_LOAD_START:
-                statusMessage = PhFormatString(L"Loading symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
-                break;
-            case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
-                statusMessage = PhFormatString(L"Loaded symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
-                break;
-            case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
-                statusMessage = PhFormatString(L"Failed to load symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
-                break;
-            case CBA_SYMBOLS_UNLOADED:
-                statusMessage = PhFormatString(L"Unloading symbols from %s...", PhGetStringOrDefault(fileName, L"image"));
-                break;
-            }
-
-            PhClearReference(&fileName);
-        }
-        break;
-    case CBA_READ_MEMORY:
-        {
-            //PIMAGEHLP_CBA_READ_MEMORY callbackEvent = (PIMAGEHLP_CBA_READ_MEMORY)event->EventData;
-            //statusMessage = PhFormatString(L"Reading %lu bytes of memory from %I64u...", callbackEvent->bytes, callbackEvent->addr);
-        }
-        break;
-    case CBA_EVENT:
-        {
-            //PIMAGEHLP_CBA_EVENTW callbackEvent = (PIMAGEHLP_CBA_EVENTW)event->EventData;
-            //statusMessage = PhFormatString(L"%s", callbackEvent->desc);
-        }
-        break;
-    case CBA_DEBUG_INFO:
-        {
-            //statusMessage = PhFormatString(L"%s", event->EventData);
-        }
-        break;
-    case CBA_ENGINE_PRESENT:
-    case CBA_DEFERRED_SYMBOL_LOAD_PARTIAL:
-    case CBA_DEFERRED_SYMBOL_LOAD_CANCEL:
-    default:
-        {
-            //statusMessage = PhFormatString(L"Unknown: %lu", event->ActionCode);
+            statusMessage = PhReferenceObject(event->EventMessage);
+            //context->SymbolProgress =
+            statusProgress = (ULONG)progress;
         }
         break;
     }
 
-    if (context && statusMessage)
+    if (statusMessage)
     {
-        //dprintf("%S\r\n", statusMessage->Buffer);
         PhAcquireQueuedLockExclusive(&context->StatusLock);
         PhMoveReference(&context->StatusContent, statusMessage);
+        context->SymbolProgress = statusProgress;
         PhReleaseQueuedLockExclusive(&context->StatusLock);
     }
 }
@@ -1659,6 +1625,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
 
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            context->SymbolProgressMarquee = TRUE;
 
             context->ThreadStackStatusDefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
             PhSetWindowContext(hwndDlg, 0xF, context);
@@ -1689,33 +1656,71 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
         {
             PPH_STRING message;
             PPH_STRING content;
+            ULONG progress = 0;
 
             PhAcquireQueuedLockExclusive(&context->StatusLock);
 
             message = context->StatusMessage;
             content = context->StatusContent;
+            progress = context->SymbolProgress;
 
             if (message) PhReferenceObject(message);
             if (content) PhReferenceObject(content);
 
             PhReleaseQueuedLockExclusive(&context->StatusLock);
 
-            SendMessage(
-                context->TaskDialogHandle,
-                TDM_SET_ELEMENT_TEXT,
-                TDE_MAIN_INSTRUCTION,
-                (LPARAM)PhGetStringOrDefault(message, L" ")
-                );
+            if (message)
+            {
+                SendMessage(
+                    context->TaskDialogHandle,
+                    TDM_SET_ELEMENT_TEXT,
+                    TDE_MAIN_INSTRUCTION,
+                    (LPARAM)PhGetString(message)
+                    );
 
-            SendMessage(
-                context->TaskDialogHandle,
-                TDM_SET_ELEMENT_TEXT,
-                TDE_CONTENT,
-                (LPARAM)PhGetStringOrDefault(content, L" ")
-                );
+                PhDereferenceObject(message);
+            }
 
-            if (message) PhDereferenceObject(message);
-            if (content) PhDereferenceObject(content);
+            if (content)
+            {
+                SendMessage(
+                    context->TaskDialogHandle,
+                    TDM_SET_ELEMENT_TEXT,
+                    TDE_CONTENT,
+                    (LPARAM)PhGetString(content)
+                    );
+
+                PhDereferenceObject(content);
+            }
+
+            if (context->SymbolProgressReset)
+            {
+                SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+                SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+                context->SymbolProgressMarquee = TRUE;
+                context->SymbolProgressReset = FALSE;
+            }
+
+            if (progress)
+            {
+                if (context->SymbolProgressMarquee)
+                {
+                    SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+                    SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, FALSE, 0);
+                    context->SymbolProgressMarquee = FALSE;
+                }
+
+                SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_POS, (WPARAM)progress, 0);
+            }
+            else
+            {
+                if (!context->SymbolProgressMarquee)
+                {
+                    SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+                    SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+                    context->SymbolProgressMarquee = TRUE;
+                }
+            }
         }
         break;
     }
@@ -1730,6 +1735,19 @@ BOOLEAN PhpShowThreadStackWindow(
     TASKDIALOGCONFIG config;
     INT result;
 
+    {
+        PPH_STRING windowText;
+        HWND control;
+
+        if (control = GetDlgItem(Context->ParentHandle, IDC_STATE))
+        {
+            if (windowText = PhGetWindowText(control))
+            {
+                PhMoveReference(&Context->StatusContent, windowText);
+            }
+        }
+    }
+
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags =
@@ -1742,7 +1760,7 @@ BOOLEAN PhpShowThreadStackWindow(
     config.hwndParent = Context->WindowHandle;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Processing stack frames...";
-    config.pszContent = L" ";
+    config.pszContent = PhGetStringOrDefault(Context->StatusContent, L"Loading symbols for image...");
     config.cxWidth = 200;
 
     return SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result != IDCANCEL;
@@ -1784,6 +1802,9 @@ static NTSTATUS PhpRefreshThreadStack(
             stackNode->SymbolString = item->Symbol;
             stackNode->FileNameString = item->FileName;
             stackNode->LineTextString = item->LineText;
+
+            if (stackNode->FileNameString)
+                stackNode->FileNameString = PhGetFileName(stackNode->FileNameString);
 
             if (item->StackFrame.StackAddress)
                 PhPrintPointer(stackNode->StackAddressString, item->StackFrame.StackAddress);
