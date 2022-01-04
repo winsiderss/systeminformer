@@ -1979,7 +1979,27 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateBytesDelta)
 {
-    sortResult = intptrcmp(processItem1->PrivateBytesDelta.Delta, processItem2->PrivateBytesDelta.Delta);
+    LONG_PTR value1 = processItem1->PrivateBytesDelta.Delta;
+    LONG_PTR value2 = processItem2->PrivateBytesDelta.Delta;
+
+    // Ignore zero when sorting (dmex)
+    if (value1 != 0 && value2 != 0)
+    {
+        if (value1 > value2)
+            return -1;
+        else if (value1 < value2)
+            return 1;
+
+        return 0;
+    }
+    else if (value1 == 0)
+    {
+        return value2 == 0 ? 0 : (ProcessTreeListSortOrder == AscendingSortOrder ? -1 : 1);
+    }
+    else
+    {
+        return (ProcessTreeListSortOrder == AscendingSortOrder ? 1 : -1);
+    }
 }
 END_SORT_FUNCTION
 
@@ -3793,7 +3813,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PEAKNONPAGEDPOOL:
             case PHPRTLC_MINIMUMWORKINGSET:
             case PHPRTLC_MAXIMUMWORKINGSET:
-            //case PHPRTLC_PRIVATEBYTESDELTA:
+            case PHPRTLC_PRIVATEBYTESDELTA:
+            case PHPRTLC_CPUCORECYCLES:
                 break;
             default:
                 return FALSE;
@@ -3953,30 +3974,17 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 case PHPRTLC_MAXIMUMWORKINGSET:
                     PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number);
                     break;
-                //case PHPRTLC_PRIVATEBYTESDELTA:
-                //    {
-                //        LONG_PTR delta = 0;
-                //        PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &delta);
-                //        if (delta != 0)
-                //        {
-                //            PH_FORMAT format[2];
-                //            if (delta > 0)
-                //            {
-                //                PhInitFormatC(&format[0], L'+');
-                //            }
-                //            else
-                //            {
-                //                PhInitFormatC(&format[0], L'-');
-                //                delta = -delta;
-                //            }
-                //            format[1].Type = SizeFormatType | FormatUseRadix;
-                //            format[1].Radix = (UCHAR)PhMaxSizeUnit;
-                //            format[1].u.Size = delta;
-                //            PhMoveReference(&node->PrivateBytesDeltaText, PhFormat(format, 2, 0));
-                //            getCellText->Text = node->PrivateBytesDeltaText->sr;
-                //        }
-                //    }
-                //    break;
+                case PHPRTLC_PRIVATEBYTESDELTA:
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &number);
+                    break;
+                case PHPRTLC_CPUCORECYCLES:
+                    {
+                        if (node->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+                            continue;
+
+                        PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &decimal);
+                    }
+                    break;
                 }
             }
 
@@ -4082,68 +4090,118 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                 }
                 return TRUE;
+            case PHPRTLC_PRIVATEBYTESDELTA:
+                {
+                    if ((LONG_PTR)number != 0)
+                    {
+                        PH_FORMAT format[2];
+
+                        if ((LONG_PTR)number > 0)
+                        {
+                            PhInitFormatC(&format[0], L'+');
+                        }
+                        else
+                        {
+                            PhInitFormatC(&format[0], L'-');
+                            (LONG_PTR)number = -(LONG_PTR)number;
+                        }
+
+                        format[1].Type = SizeFormatType | FormatUseRadix;
+                        format[1].Radix = (UCHAR)PhMaxSizeUnit;
+                        format[1].u.Size = (LONG_PTR)number;
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                        {
+                            getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                            getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                }
+                return TRUE;
+            case PHPRTLC_CPUCORECYCLES:
+                {
+                    PH_FORMAT format[2];
+
+                    if (decimal == 0.0)
+                        break;
+
+                    decimal *= 100;
+                    decimal *= (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+
+                    PhInitFormatF(&format[0], decimal, 2);
+                    PhInitFormatC(&format[1], L'%');
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                    {
+                        getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                        getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
+                }
+                return TRUE;
             }
         }
         return FALSE;
-
     case TreeNewMiddleClick:
-        PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
-        if (!mouseEvent)
-            break;
-
-        if (GetKeyState(VK_CONTROL) >= 0)
-            PhDeselectAllProcessNodes();
-
-        if (ProcessTreeListSortOrder == NoSortOrder)
         {
-            // in NoSortOrder we select subtree (TheEragon)
-            node = (PPH_PROCESS_NODE)mouseEvent->Node;
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
 
-            // init last index to self, this way we select only the process if there are no children (TheEragon)
-            ULONG lastChildIndex = mouseEvent->Node->Index;
-            if (node->Children->Count)
+            if (!mouseEvent)
+                break;
+
+            if (GetKeyState(VK_CONTROL) >= 0)
+                PhDeselectAllProcessNodes();
+
+            if (ProcessTreeListSortOrder == NoSortOrder)
             {
-                // get index of last child
-                PPH_PROCESS_NODE lastChild = (PPH_PROCESS_NODE)node->Children->Items[node->Children->Count - 1];
-                lastChildIndex = lastChild->Node.Index;
-            }
+                // in NoSortOrder we select subtree (TheEragon)
+                node = (PPH_PROCESS_NODE)mouseEvent->Node;
 
-            TreeNew_SelectRange(ProcessTreeListHandle, mouseEvent->Node->Index, lastChildIndex);
-        }
-        else
-        {
-            // in sorted order we select all processes with same name (TheEragon)
-            node = (PPH_PROCESS_NODE)mouseEvent->Node;
-
-            ULONG first = -1;
-            ULONG last = 0;
-            for (ULONG i = 0; i < ProcessNodeList->Count; i++)
-            {
-                PPH_PROCESS_NODE item = ProcessNodeList->Items[i];
-
-                if (PhCompareString(node->ProcessItem->ProcessName, item->ProcessItem->ProcessName, TRUE) == 0)
+                // init last index to self, this way we select only the process if there are no children (TheEragon)
+                ULONG lastChildIndex = mouseEvent->Node->Index;
+                if (node->Children->Count)
                 {
-                    if (first > item->Node.Index)
-                        first = item->Node.Index;
-
-                    if (last < item->Node.Index)
-                        last = item->Node.Index;
+                    // get index of last child
+                    PPH_PROCESS_NODE lastChild = (PPH_PROCESS_NODE)node->Children->Items[node->Children->Count - 1];
+                    lastChildIndex = lastChild->Node.Index;
                 }
-                else if (first != -1)
+
+                TreeNew_SelectRange(ProcessTreeListHandle, mouseEvent->Node->Index, lastChildIndex);
+            }
+            else
+            {
+                ULONG first = ULONG_MAX;
+                ULONG last = 0;
+
+                // in sorted order we select all processes with same name (TheEragon)
+                node = (PPH_PROCESS_NODE)mouseEvent->Node;
+
+                for (ULONG i = 0; i < ProcessNodeList->Count; i++)
                 {
-                    // select found range and reset indexes (TheEragon)
+                    PPH_PROCESS_NODE item = ProcessNodeList->Items[i];
+
+                    if (PhEqualString(node->ProcessItem->ProcessName, item->ProcessItem->ProcessName, TRUE))
+                    {
+                        if (first > item->Node.Index)
+                            first = item->Node.Index;
+
+                        if (last < item->Node.Index)
+                            last = item->Node.Index;
+                    }
+                    else if (first != ULONG_MAX)
+                    {
+                        // select found range and reset indexes (TheEragon)
+                        TreeNew_SelectRange(ProcessTreeListHandle, first, last);
+
+                        first = ULONG_MAX;
+                        last = 0;
+                    }
+                }
+
+                // select last found range, if any (TheEragon)
+                if (first != ULONG_MAX)
                     TreeNew_SelectRange(ProcessTreeListHandle, first, last);
-
-                    first = -1;
-                    last = 0;
-                }
             }
-
-            // select last found range, if any (TheEragon)
-            if (first != -1)
-                TreeNew_SelectRange(ProcessTreeListHandle, first, last);
         }
-
         return TRUE;
     }
 
