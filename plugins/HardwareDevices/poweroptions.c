@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -481,7 +481,7 @@ VOID FindRaplDevices(
             NtClose(deviceHandle);
         }
 
-        if (!deviceEntry->DeviceSupported)
+        if (deviceEntry->DevicePresent && !deviceEntry->DeviceSupported)
         {
             // TODO: Remove this once we know our channel names are correct. (dmex)
             PhMoveReference(&deviceEntry->DeviceName, PhConcatStringRefZ(&deviceEntry->DeviceName->sr, L" [UNKNOWN DEVICE - PLEASE REPORT ON GITHUB]"));
