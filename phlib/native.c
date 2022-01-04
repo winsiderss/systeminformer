@@ -3,7 +3,7 @@
  *   native wrapper and support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -10263,6 +10263,7 @@ NTSTATUS PhQueryProcessHeapInformation(
     NTSTATUS status;
     PRTL_DEBUG_INFORMATION debugBuffer;
     PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo;
+    ULONG heapEntrySize;
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
     {
@@ -10308,13 +10309,14 @@ NTSTATUS PhQueryProcessHeapInformation(
         return STATUS_UNSUCCESSFUL;
     }
 
+    heapEntrySize = WindowsVersion > WINDOWS_11 ? sizeof(RTL_HEAP_INFORMATION) : RTL_SIZEOF_THROUGH_FIELD(RTL_HEAP_INFORMATION, Entries);
     heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + debugBuffer->Heaps->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
     heapDebugInfo->NumberOfHeaps = debugBuffer->Heaps->NumberOfHeaps;
     heapDebugInfo->DefaultHeap = debugBuffer->ProcessHeap;
 
     for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
     {
-        PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
+        PRTL_HEAP_INFORMATION heapInfo = PTR_ADD_OFFSET(debugBuffer->Heaps->Heaps, heapEntrySize * i);
         HANDLE processHandle;
         SIZE_T allocated = 0;
         SIZE_T committed = 0;
