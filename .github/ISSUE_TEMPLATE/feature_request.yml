@@ -1,6 +1,6 @@
-name: "Feature Request/Idea"
-title: "[New Feature]: "
-description: Suggest features, modifications, ideas and suggestions
+name: "Feature request"
+title: "[New feature]: "
+description: Suggest features, modifications or ideas
 labels: ["enhancement"]
 body:
   - type: textarea
