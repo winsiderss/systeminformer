@@ -3,7 +3,7 @@
  *   memory provider
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,7 +23,6 @@
 
 #include <phapp.h>
 #include <memprv.h>
-
 #include <heapstruct.h>
 
 #define MAX_HEAPS 1000
@@ -239,31 +238,32 @@ PPH_MEMORY_ITEM PhpSetMemoryRegionType(
     return memoryItem;
 }
 
-void PhpUpdateHeapRegions(
-    _In_ PPH_MEMORY_ITEM_LIST List,
-    _In_ HANDLE ProcessHandle
+VOID PhpUpdateHeapRegions(
+    _In_ HANDLE ProcessHandle,
+    _In_ PPH_MEMORY_ITEM_LIST List
     )
 {
+    NTSTATUS status;
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     HANDLE powerRequestHandle = NULL;
+    ULONG heapEntrySize;
 
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        // RtlQueryProcessDebugInformation can cause deadlock on some older versions when querying frozen (suspended) immersive process. (ge0rdi)
-        // A workaround was implemented using PhCreateExecutionRequiredRequest(). (ge0rdi)
+    if (WindowsVersion >= WINDOWS_10)
         PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
-    }
 
     for (ULONG i = 0x10000; ; i *= 2) // based on PhQueryProcessHeapInformation (ge0rdi)
     {
         if (!(debugBuffer = RtlCreateQueryDebugBuffer(i, FALSE)))
+        {
+            status = STATUS_UNSUCCESSFUL;
             break;
+        }
 
-        NTSTATUS status = RtlQueryProcessDebugInformation(
+        status = RtlQueryProcessDebugInformation(
             List->ProcessId,
-            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES_EX,
+            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_SEGMENTS,
             debugBuffer
-        );
+            );
 
         if (!NT_SUCCESS(status))
         {
@@ -281,35 +281,40 @@ void PhpUpdateHeapRegions(
     if (powerRequestHandle)
         PhDestroyExecutionRequiredRequest(powerRequestHandle);
 
-    if (!debugBuffer)
+    if (!NT_SUCCESS(status))
         return;
 
-    if (debugBuffer->Heaps)
+    if (!debugBuffer->Heaps)
     {
-        for (ULONG i = 0; i < debugBuffer->Heaps->NumberOfHeaps; i++)
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return;
+    }
+
+    heapEntrySize = WindowsVersion > WINDOWS_11 ? sizeof(RTL_HEAP_INFORMATION) : RTL_SIZEOF_THROUGH_FIELD(RTL_HEAP_INFORMATION, Entries);
+
+    for (ULONG i = 0; i < debugBuffer->Heaps->NumberOfHeaps; i++)
+    {
+        PRTL_HEAP_INFORMATION heapInfo = PTR_ADD_OFFSET(debugBuffer->Heaps->Heaps, heapEntrySize * i);
+        PPH_MEMORY_ITEM heapMemoryItem;
+
+        if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo->BaseAddress, TRUE, HeapRegion))
         {
-            PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
-            PPH_MEMORY_ITEM heapMemoryItem;
+            heapMemoryItem->u.Heap.Index = i;
 
-            if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo->BaseAddress, TRUE, HeapRegion))
+            for (ULONG j = 0; j < heapInfo->NumberOfEntries; j++)
             {
-                heapMemoryItem->u.Heap.Index = i;
+                PRTL_HEAP_ENTRY heapEntry = &heapInfo->Entries[j];
 
-                for (ULONG j = 0; j < heapInfo->NumberOfEntries; j++)
+                if (heapEntry->Flags & RTL_HEAP_SEGMENT)
                 {
-                    PRTL_HEAP_ENTRY heapEntry = &heapInfo->Entries[j];
+                    PVOID blockAddress = heapEntry->u.s2.FirstBlock;
 
-                    if (heapEntry->Flags & RTL_HEAP_SEGMENT)
+                    PPH_MEMORY_ITEM memoryItem = PhLookupMemoryItemList(List, blockAddress);
+
+                    if (memoryItem && memoryItem->BaseAddress == blockAddress && memoryItem->RegionType == UnknownRegion)
                     {
-                        PVOID blockAddress = heapEntry->u.s2.FirstBlock;
-
-                        PPH_MEMORY_ITEM memoryItem = PhLookupMemoryItemList(List, blockAddress);
-
-                        if (memoryItem && memoryItem->BaseAddress == blockAddress && memoryItem->RegionType == UnknownRegion)
-                        {
-                            memoryItem->RegionType = HeapSegmentRegion;
-                            memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
-                        }
+                        memoryItem->RegionType = HeapSegmentRegion;
+                        memoryItem->u.HeapSegment.HeapItem = heapMemoryItem;
                     }
                 }
             }
@@ -392,7 +397,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG apiSetMap32;
 #endif
 
-        PhpUpdateHeapRegions(List, ProcessHandle);
+        PhpUpdateHeapRegions(ProcessHandle, List);
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
         {
