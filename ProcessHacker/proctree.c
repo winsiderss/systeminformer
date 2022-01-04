@@ -4129,9 +4129,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (last < item->Node.Index)
                         last = item->Node.Index;
                 }
+                else if (first != -1)
+                {
+                    // select found range and reset indexes (TheEragon)
+                    TreeNew_SelectRange(ProcessTreeListHandle, first, last);
+
+                    first = -1;
+                    last = 0;
+                }
             }
 
-            TreeNew_SelectRange(ProcessTreeListHandle, first, last);
+            // select last found range, if any (TheEragon)
+            if (first != -1)
+                TreeNew_SelectRange(ProcessTreeListHandle, first, last);
         }
 
         return TRUE;
