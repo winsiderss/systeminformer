@@ -1,6 +1,5 @@
 name: 'Bug report'
 description: Report bugs or other issues
-title: "[Bug]: "
 labels: ["bug,needs investigation"]
 body:
   - type: textarea
