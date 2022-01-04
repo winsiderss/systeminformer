@@ -10312,9 +10312,11 @@ NTSTATUS PhQueryProcessHeapInformation(
     heapDebugInfo->NumberOfHeaps = debugBuffer->Heaps->NumberOfHeaps;
     heapDebugInfo->DefaultHeap = debugBuffer->ProcessHeap;
 
+    PRTL_HEAP_INFORMATION heapInfo = debugBuffer->Heaps->Heaps;
+    const SIZE_T heapInfoSize = (PhOsVersion.dwBuildNumber >= 22523) ? sizeof(RTL_HEAP_INFORMATION_EX) : sizeof(RTL_HEAP_INFORMATION);
+
     for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
     {
-        PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
         HANDLE processHandle;
         SIZE_T allocated = 0;
         SIZE_T committed = 0;
@@ -10371,6 +10373,8 @@ NTSTATUS PhQueryProcessHeapInformation(
 
             NtClose(processHandle);
         }
+
+        heapInfo = PTR_ADD_OFFSET(heapInfo, heapInfoSize);
     }
 
     if (HeapInformation)

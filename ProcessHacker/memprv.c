@@ -286,9 +286,11 @@ void PhpUpdateHeapRegions(
 
     if (debugBuffer->Heaps)
     {
+        PRTL_HEAP_INFORMATION heapInfo = debugBuffer->Heaps->Heaps;
+        const SIZE_T heapInfoSize = (PhOsVersion.dwBuildNumber >= 22523) ? sizeof(RTL_HEAP_INFORMATION_EX) : sizeof(RTL_HEAP_INFORMATION);
+
         for (ULONG i = 0; i < debugBuffer->Heaps->NumberOfHeaps; i++)
         {
-            PRTL_HEAP_INFORMATION heapInfo = &debugBuffer->Heaps->Heaps[i];
             PPH_MEMORY_ITEM heapMemoryItem;
 
             if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo->BaseAddress, TRUE, HeapRegion))
@@ -313,6 +315,8 @@ void PhpUpdateHeapRegions(
                     }
                 }
             }
+
+            heapInfo = PTR_ADD_OFFSET(heapInfo, heapInfoSize);
         }
     }
 
