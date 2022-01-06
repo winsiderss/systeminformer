@@ -83,6 +83,22 @@ BOOLEAN PhSipIoSectionCallback(
             }
         }
         break;
+    case SysInfoViewChanging:
+        {
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
+
+            if (view == SysInfoSummaryView || section != Section)
+                return TRUE;
+
+            if (IoGraphHandle)
+            {
+                IoGraphState.Valid = FALSE;
+                IoGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(IoGraphHandle);
+            }
+        }
+        return TRUE;
     case SysInfoCreateDialog:
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
@@ -279,6 +295,9 @@ INT_PTR CALLBACK PhSipIoDialogProc(
         break;
     case WM_SIZE:
         {
+            IoGraphState.Valid = FALSE;
+            IoGraphState.TooltipIndex = ULONG_MAX;
+
             PhLayoutManagerLayout(&IoLayoutManager);
         }
         break;

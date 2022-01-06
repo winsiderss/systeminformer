@@ -98,6 +98,37 @@ BOOLEAN PhSipCpuSectionCallback(
             }
         }
         return TRUE;
+    case SysInfoViewChanging:
+        {
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
+
+            if (view == SysInfoSummaryView || section != Section)
+                return TRUE;
+            
+            if (OneGraphPerCpu)
+            {
+                for (ULONG i = 0; i < NumberOfProcessors; i++)
+                {
+                    if (CpusGraphHandle[i])
+                    {
+                        CpusGraphState[i].Valid = FALSE;
+                        CpusGraphState[i].TooltipIndex = ULONG_MAX;
+                        Graph_Draw(CpusGraphHandle[i]);
+                    }
+                }
+            }
+            else
+            {
+                if (CpuGraphHandle)
+                {
+                    CpuGraphState.Valid = FALSE;
+                    CpuGraphState.TooltipIndex = ULONG_MAX;
+                    Graph_Draw(CpuGraphHandle);
+                }
+            }
+        }
+        return TRUE;
     case SysInfoCreateDialog:
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
@@ -385,6 +416,20 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
         break;
     case WM_SIZE:
         {
+            if (OneGraphPerCpu)
+            {
+                for (ULONG i = 0; i < NumberOfProcessors; i++)
+                {
+                    CpusGraphState[i].Valid = FALSE;
+                    CpusGraphState[i].TooltipIndex = ULONG_MAX;
+                }
+            }
+            else
+            {
+                CpuGraphState.Valid = FALSE;
+                CpuGraphState.TooltipIndex = ULONG_MAX;
+            }
+
             PhLayoutManagerLayout(&CpuLayoutManager);
             PhSipLayoutCpuGraphs();
         }
