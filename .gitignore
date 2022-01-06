@@ -20,6 +20,7 @@
 *.pgc
 *.pgd
 *.pvk
+*.res
 *.rsp
 *.sbr
 *.tlb
