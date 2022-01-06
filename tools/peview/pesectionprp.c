@@ -302,7 +302,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         WCHAR value[PH_INT64_STR_LEN_1];
 
         sectionNode = PhAllocateZero(sizeof(PV_SECTION_NODE));
-        sectionNode->UniqueId = i + 1;
+        sectionNode->UniqueId = UInt32Add32To64(i, 1);
         sectionNode->UniqueIdString = PhFormatUInt64(sectionNode->UniqueId, FALSE);
         sectionNode->SectionHeader = &PvMappedImage.Sections[i];
 
