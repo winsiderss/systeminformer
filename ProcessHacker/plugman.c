@@ -3,7 +3,7 @@
  *   plugins
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1024,6 +1024,12 @@ INT_PTR CALLBACK PhpPluginPropertiesDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
