@@ -3,7 +3,7 @@
  *   GPU nodes window
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2018-2021 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -222,6 +222,12 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             ULONG cellWidth;
             ULONG x;
             ULONG i;
+
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+            {
+                GraphState[i].Valid = FALSE;
+                GraphState[i].TooltipIndex = ULONG_MAX;
+            }
 
             PhLayoutManagerLayout(&LayoutManager);
 
@@ -492,8 +498,15 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             }
         }
         break;
-    case ET_WM_SHOWDIALOG:    
+    case ET_WM_SHOWDIALOG:
         {
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+            {
+                GraphState[i].Valid = FALSE;
+                GraphState[i].TooltipIndex = ULONG_MAX;
+                Graph_Draw(GraphHandle[i]);
+            }
+
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
             else
