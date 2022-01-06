@@ -296,6 +296,19 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
 {
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+            if (WindowsVersion >= WINDOWS_8)
+            {
+                // TODO: The container background is drawn before child controls
+                // causing slight flickering when switching between sysinfo panels.
+                // We need to somehow exclude the container background drawing,
+                // setting the container window as composited works well but has
+                // slower drawing and should be considered a temporary workaround. (dmex)
+                PhSetWindowExStyle(hwndDlg, WS_EX_COMPOSITED, WS_EX_COMPOSITED);
+            }
+        }
+        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
