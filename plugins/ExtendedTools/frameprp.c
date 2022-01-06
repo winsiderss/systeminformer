@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   Frames properties page
  *
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -220,6 +220,21 @@ VOID FramesPropLayoutGraphs(
     LONG between = PH_SCALE_DPI(3);
     ULONG graphWidth;
     ULONG graphHeight;
+
+    Context->FramesPerSecondGraphState.Valid = FALSE;
+    Context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesLatencyGraphState.Valid = FALSE;
+    Context->FramesLatencyGraphState.TooltipIndex = ULONG_MAX;
+    Context->PresentIntervalGraphState.Valid = FALSE;
+    Context->PresentIntervalGraphState.TooltipIndex = ULONG_MAX;
+    Context->PresentDurationGraphState.Valid = FALSE;
+    Context->PresentDurationGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesRenderTimeGraphState.Valid = FALSE;
+    Context->FramesRenderTimeGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesDisplayTimeGraphState.Valid = FALSE;
+    Context->FramesDisplayTimeGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesDisplayLatencyGraphState.Valid = FALSE;
+    Context->FramesDisplayLatencyGraphState.TooltipIndex = ULONG_MAX;
 
     GetClientRect(Context->WindowHandle, &clientRect);
     graphWidth = clientRect.right - margin.left - margin.right;
@@ -444,6 +459,8 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
+
             PhDeleteGraphState(&context->FramesPerSecondGraphState);
             PhDeleteGraphState(&context->FramesLatencyGraphState);
             PhDeleteGraphState(&context->PresentIntervalGraphState);
@@ -467,7 +484,6 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
             if (context->FramesDisplayLatencyGraphHandle)
                 DestroyWindow(context->FramesDisplayLatencyGraphHandle);
 
-            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
             PhFree(context);
         }
         break;
@@ -484,7 +500,58 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                context->Enabled = TRUE;
+                {
+                    context->Enabled = TRUE;
+
+                    if (context->FramesPerSecondGraphHandle)
+                    {
+                        context->FramesPerSecondGraphState.Valid = FALSE;
+                        context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesPerSecondGraphHandle);
+                    }
+
+                    if (context->FramesLatencyGraphHandle)
+                    {
+                        context->FramesLatencyGraphState.Valid = FALSE;
+                        context->FramesLatencyGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesLatencyGraphHandle);
+                    }
+
+                    if (context->PresentIntervalGraphHandle)
+                    {
+                        context->PresentIntervalGraphState.Valid = FALSE;
+                        context->PresentIntervalGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->PresentIntervalGraphHandle);
+                    }
+
+                    if (context->PresentDurationGraphHandle)
+                    {
+                        context->PresentDurationGraphState.Valid = FALSE;
+                        context->PresentDurationGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->PresentDurationGraphHandle);
+                    }
+
+                    if (context->FramesRenderTimeGraphHandle)
+                    {
+                        context->FramesRenderTimeGraphState.Valid = FALSE;
+                        context->FramesRenderTimeGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesRenderTimeGraphHandle);
+                    }
+
+                    if (context->FramesDisplayTimeGraphHandle)
+                    {
+                        context->FramesDisplayTimeGraphState.Valid = FALSE;
+                        context->FramesDisplayTimeGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesDisplayTimeGraphHandle);
+                    }
+
+                    if (context->FramesDisplayLatencyGraphHandle)
+                    {
+                        context->FramesDisplayLatencyGraphState.Valid = FALSE;
+                        context->FramesDisplayLatencyGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesDisplayLatencyGraphHandle);
+                    }
+                }
                 break;
             case PSN_KILLACTIVE:
                 context->Enabled = FALSE;
@@ -1021,7 +1088,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
         break;
     case ET_WM_UPDATE:
         {
-            if (context->Enabled)
+            if (!(processItem->State & PH_PROCESS_ITEM_REMOVED) && context->Enabled)
             {
                 FramesPropUpdateGraphs(context);
                 //FramesPropUpdatePanel(context);
