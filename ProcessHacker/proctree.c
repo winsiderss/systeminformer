@@ -3,7 +3,7 @@
  *   process tree list
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2016-2021 dmex
+ * Copyright (C) 2016-2022 dmex
  * Copyright (C) 2021 jxy-s
  *
  * This file is part of Process Hacker.
@@ -913,10 +913,13 @@ static VOID PhpUpdateProcessNodeWindow(
 
         if (ProcessNode->ProcessItem->QueryHandle && !ProcessNode->ProcessItem->IsSubsystemProcess)
         {
-            ProcessNode->WindowHandle = PhGetProcessMainWindow(
-                ProcessNode->ProcessId,
-                ProcessNode->ProcessItem->QueryHandle
-                );
+            if (!ProcessNode->WindowHandle)
+            {
+                ProcessNode->WindowHandle = PhGetProcessMainWindow(
+                    ProcessNode->ProcessId,
+                    ProcessNode->ProcessItem->QueryHandle
+                    );
+            }
 
             if (ProcessNode->WindowHandle)
             {
