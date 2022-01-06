@@ -856,11 +856,6 @@ VOID EtpUpdateProcessSegmentInformation(
                     dedicatedUsage += bytesCommitted;
             }
         }
-    }
-
-    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
-    {
-        gpuAdapter = EtpGpuAdapterList->Items[i];
 
         memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
         queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS;
