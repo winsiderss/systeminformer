@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2021 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -364,12 +364,25 @@ VOID FindNetworkAdapters(
 
                 if (description = PhCreateString(i->Description))
                 {
+                    PPH_STRING deviceGuid = PhConvertMultiByteToUtf16(i->AdapterName);
+                    PPH_STRING deviceName;
+
+                    if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(deviceGuid))
+                    {
+                        PhMoveReference(&description, PhFormatString(
+                            L"%s [Alias: %s]",
+                            PhGetString(description),
+                            PhGetString(deviceName)
+                            ));
+                        PhDereferenceObject(deviceName);
+                    }
+
                     AddNetworkAdapterToListView(
                         Context,
                         TRUE,
                         i->IfIndex,
                         i->Luid,
-                        PhConvertMultiByteToUtf16(i->AdapterName),
+                        deviceGuid,
                         description
                         );
 
@@ -462,7 +475,7 @@ VOID FindNetworkAdapters(
                         adapterEntry->DeviceName = adapterName;
 
                     if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
-                        adapterEntry->DeviceName = NetworkAdapterQueryNameFromGuid(adapterEntry->DeviceGuid);
+                        adapterEntry->DeviceName = NetworkAdapterQueryNameFromInterfaceGuid(adapterEntry->DeviceGuid);
 
                     adapterEntry->DevicePresent = TRUE;
 
@@ -471,6 +484,22 @@ VOID FindNetworkAdapters(
 
                 if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
                     adapterEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
+
+                if (!PhIsNullOrEmptyString(adapterEntry->DeviceName))
+                {
+                    PPH_STRING deviceName;
+
+                    if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(adapterEntry->DeviceGuid))
+                    {
+                        PhMoveReference(&adapterEntry->DeviceName, PhFormatString(
+                            L"%s [Alias: %s]",
+                            PhGetString(adapterEntry->DeviceName),
+                            PhGetString(deviceName)
+                            ));
+
+                        PhDereferenceObject(deviceName);
+                    }
+                }
 
                 PhAddItemList(deviceList, adapterEntry);
 
@@ -800,6 +829,9 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             FindNetworkAdapters(context);
+
+            if (ListView_GetItemCount(context->ListViewHandle) == 0)
+                PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
 
             context->OptionsChanged = FALSE;
         }
