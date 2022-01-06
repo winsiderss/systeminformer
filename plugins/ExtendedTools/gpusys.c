@@ -3,7 +3,7 @@
  *   GPU system information section
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2015-2021 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -239,9 +239,13 @@ VOID EtpInitializeGpuDialog(
     PhInitializeGraphState(&GpuGraphState);
     PhInitializeGraphState(&DedicatedGraphState);
     PhInitializeGraphState(&SharedGraphState);
-    PhInitializeGraphState(&PowerUsageGraphState);
-    PhInitializeGraphState(&TemperatureGraphState);
-    PhInitializeGraphState(&FanRpmGraphState);
+
+    if (EtGpuSupported)
+    {
+        PhInitializeGraphState(&PowerUsageGraphState);
+        PhInitializeGraphState(&TemperatureGraphState);
+        PhInitializeGraphState(&FanRpmGraphState);
+    }
 }
 
 VOID EtpUninitializeGpuDialog(
@@ -251,9 +255,13 @@ VOID EtpUninitializeGpuDialog(
     PhDeleteGraphState(&GpuGraphState);
     PhDeleteGraphState(&DedicatedGraphState);
     PhDeleteGraphState(&SharedGraphState);
-    PhDeleteGraphState(&PowerUsageGraphState);
-    PhDeleteGraphState(&TemperatureGraphState);
-    PhDeleteGraphState(&FanRpmGraphState);
+
+    if (EtGpuSupported)
+    {
+        PhDeleteGraphState(&PowerUsageGraphState);
+        PhDeleteGraphState(&TemperatureGraphState);
+        PhDeleteGraphState(&FanRpmGraphState);
+    }
 }
 
 VOID EtpTickGpuDialog(
@@ -299,6 +307,13 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             EtpCreateGpuGraphs();
             EtpUpdateGpuGraphs();
             EtpUpdateGpuPanel();
+
+            if (!EtGpuSupported)
+            {
+                ShowWindow(GetDlgItem(hwndDlg, IDC_POWER_USAGE_L), SW_HIDE);
+                ShowWindow(GetDlgItem(hwndDlg, IDC_TEMPERATURE_L), SW_HIDE);
+                ShowWindow(GetDlgItem(hwndDlg, IDC_FAN_RPM_L), SW_HIDE);
+            }
         }
         break;
     case WM_DESTROY:
@@ -443,50 +458,53 @@ VOID EtpCreateGpuGraphs(
         );
     Graph_SetTooltip(SharedGraphHandle, TRUE);
 
-    PowerUsageGraphHandle = CreateWindow(
-        PH_GRAPH_CLASSNAME,
-        NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
-        0,
-        0,
-        3,
-        3,
-        GpuDialog,
-        NULL,
-        NULL,
-        NULL
-        );
-    Graph_SetTooltip(PowerUsageGraphHandle, TRUE);
+    if (EtGpuSupported)
+    {
+        PowerUsageGraphHandle = CreateWindow(
+            PH_GRAPH_CLASSNAME,
+            NULL,
+            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            0,
+            0,
+            3,
+            3,
+            GpuDialog,
+            NULL,
+            NULL,
+            NULL
+            );
+        Graph_SetTooltip(PowerUsageGraphHandle, TRUE);
 
-    TemperatureGraphHandle = CreateWindow(
-        PH_GRAPH_CLASSNAME,
-        NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
-        0,
-        0,
-        3,
-        3,
-        GpuDialog,
-        NULL,
-        NULL,
-        NULL
-        );
-    Graph_SetTooltip(TemperatureGraphHandle, TRUE);
+        TemperatureGraphHandle = CreateWindow(
+            PH_GRAPH_CLASSNAME,
+            NULL,
+            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            0,
+            0,
+            3,
+            3,
+            GpuDialog,
+            NULL,
+            NULL,
+            NULL
+            );
+        Graph_SetTooltip(TemperatureGraphHandle, TRUE);
 
-    FanRpmGraphHandle = CreateWindow(
-        PH_GRAPH_CLASSNAME,
-        NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
-        0,
-        0,
-        3,
-        3,
-        GpuDialog,
-        NULL,
-        NULL,
-        NULL
-        );
-    Graph_SetTooltip(FanRpmGraphHandle, TRUE);
+        FanRpmGraphHandle = CreateWindow(
+            PH_GRAPH_CLASSNAME,
+            NULL,
+            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            0,
+            0,
+            3,
+            3,
+            GpuDialog,
+            NULL,
+            NULL,
+            NULL
+            );
+        Graph_SetTooltip(FanRpmGraphHandle, TRUE);
+    }
 }
 
 VOID EtpLayoutGpuGraphs(
@@ -503,7 +521,11 @@ VOID EtpLayoutGpuGraphs(
     GetClientRect(GpuDialog, &clientRect);
     GetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
     graphWidth = clientRect.right - GpuGraphMargin.left - GpuGraphMargin.right;
-    graphHeight = (clientRect.bottom - GpuGraphMargin.top - GpuGraphMargin.bottom - labelRect.bottom * 6 - ET_GPU_PADDING * 8) / 6;
+
+    if (EtGpuSupported)
+        graphHeight = (clientRect.bottom - GpuGraphMargin.top - GpuGraphMargin.bottom - labelRect.bottom * 6 - ET_GPU_PADDING * 8) / 6;
+    else
+        graphHeight = (clientRect.bottom - GpuGraphMargin.top - GpuGraphMargin.bottom - labelRect.bottom * 3 - ET_GPU_PADDING * 5) / 3;
 
     deferHandle = BeginDeferWindowPos(12);
     y = GpuGraphMargin.top;
@@ -580,76 +602,79 @@ VOID EtpLayoutGpuGraphs(
         );
     y += graphHeight + ET_GPU_PADDING;
 
-    deferHandle = DeferWindowPos(
-        deferHandle,
-        GetDlgItem(GpuDialog, IDC_POWER_USAGE_L),
-        NULL,
-        GpuGraphMargin.left,
-        y,
-        0,
-        0,
-        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
-        );
-    y += labelRect.bottom + ET_GPU_PADDING;
+    if (EtGpuSupported)
+    {
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            GetDlgItem(GpuDialog, IDC_POWER_USAGE_L),
+            NULL,
+            GpuGraphMargin.left,
+            y,
+            0,
+            0,
+            SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+            );
+        y += labelRect.bottom + ET_GPU_PADDING;
 
-    deferHandle = DeferWindowPos(
-        deferHandle,
-        PowerUsageGraphHandle,
-        NULL,
-        GpuGraphMargin.left,
-        y,
-        graphWidth,
-        graphHeight,
-        SWP_NOACTIVATE | SWP_NOZORDER
-        );
-    y += graphHeight + ET_GPU_PADDING;
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            PowerUsageGraphHandle,
+            NULL,
+            GpuGraphMargin.left,
+            y,
+            graphWidth,
+            graphHeight,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+        y += graphHeight + ET_GPU_PADDING;
 
-    deferHandle = DeferWindowPos(
-        deferHandle,
-        GetDlgItem(GpuDialog, IDC_TEMPERATURE_L),
-        NULL,
-        GpuGraphMargin.left,
-        y,
-        0,
-        0,
-        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
-        );
-    y += labelRect.bottom + ET_GPU_PADDING;
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            GetDlgItem(GpuDialog, IDC_TEMPERATURE_L),
+            NULL,
+            GpuGraphMargin.left,
+            y,
+            0,
+            0,
+            SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+            );
+        y += labelRect.bottom + ET_GPU_PADDING;
 
-    deferHandle = DeferWindowPos(
-        deferHandle,
-        TemperatureGraphHandle,
-        NULL,
-        GpuGraphMargin.left,
-        y,
-        graphWidth,
-        graphHeight,
-        SWP_NOACTIVATE | SWP_NOZORDER
-        );
-    y += graphHeight + ET_GPU_PADDING;
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            TemperatureGraphHandle,
+            NULL,
+            GpuGraphMargin.left,
+            y,
+            graphWidth,
+            graphHeight,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+        y += graphHeight + ET_GPU_PADDING;
 
-    deferHandle = DeferWindowPos(
-        deferHandle,
-        GetDlgItem(GpuDialog, IDC_FAN_RPM_L),
-        NULL,
-        GpuGraphMargin.left,
-        y,
-        0,
-        0,
-        SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
-        );
-    y += labelRect.bottom + ET_GPU_PADDING;
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            GetDlgItem(GpuDialog, IDC_FAN_RPM_L),
+            NULL,
+            GpuGraphMargin.left,
+            y,
+            0,
+            0,
+            SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
+            );
+        y += labelRect.bottom + ET_GPU_PADDING;
 
-    deferHandle = DeferWindowPos(
-        deferHandle,
-        FanRpmGraphHandle,
-        NULL,
-        GpuGraphMargin.left,
-        y,
-        graphWidth,
-        clientRect.bottom - GpuGraphMargin.bottom - y,
-        SWP_NOACTIVATE | SWP_NOZORDER
-        );
+        deferHandle = DeferWindowPos(
+            deferHandle,
+            FanRpmGraphHandle,
+            NULL,
+            GpuGraphMargin.left,
+            y,
+            graphWidth,
+            clientRect.bottom - GpuGraphMargin.bottom - y,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
+    }
 
     EndDeferWindowPos(deferHandle);
 }
@@ -783,7 +808,7 @@ VOID EtpNotifyDedicatedGraph(
 
                 if (EtGpuDedicatedLimit != 0 && !EtEnableScaleGraph)
                 {
-                    max = (FLOAT)EtGpuDedicatedLimit / PAGE_SIZE;
+                    max = (FLOAT)EtGpuDedicatedLimit;
                 }
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
@@ -864,7 +889,7 @@ VOID EtpNotifySharedGraph(
 
                 if (EtGpuSharedLimit != 0 && !EtEnableScaleGraph)
                 {
-                    max = (FLOAT)EtGpuSharedLimit / PAGE_SIZE;
+                    max = (FLOAT)EtGpuSharedLimit;
                 }
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
@@ -1152,26 +1177,29 @@ VOID EtpUpdateGpuGraphs(
     Graph_UpdateTooltip(SharedGraphHandle);
     InvalidateRect(SharedGraphHandle, NULL, FALSE);
 
-    PowerUsageGraphState.Valid = FALSE;
-    PowerUsageGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(PowerUsageGraphHandle, 1);
-    Graph_Draw(PowerUsageGraphHandle);
-    Graph_UpdateTooltip(PowerUsageGraphHandle);
-    InvalidateRect(PowerUsageGraphHandle, NULL, FALSE);
+    if (EtGpuSupported)
+    {
+        PowerUsageGraphState.Valid = FALSE;
+        PowerUsageGraphState.TooltipIndex = ULONG_MAX;
+        Graph_MoveGrid(PowerUsageGraphHandle, 1);
+        Graph_Draw(PowerUsageGraphHandle);
+        Graph_UpdateTooltip(PowerUsageGraphHandle);
+        InvalidateRect(PowerUsageGraphHandle, NULL, FALSE);
 
-    TemperatureGraphState.Valid = FALSE;
-    TemperatureGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(TemperatureGraphHandle, 1);
-    Graph_Draw(TemperatureGraphHandle);
-    Graph_UpdateTooltip(TemperatureGraphHandle);
-    InvalidateRect(TemperatureGraphHandle, NULL, FALSE);
+        TemperatureGraphState.Valid = FALSE;
+        TemperatureGraphState.TooltipIndex = ULONG_MAX;
+        Graph_MoveGrid(TemperatureGraphHandle, 1);
+        Graph_Draw(TemperatureGraphHandle);
+        Graph_UpdateTooltip(TemperatureGraphHandle);
+        InvalidateRect(TemperatureGraphHandle, NULL, FALSE);
 
-    FanRpmGraphState.Valid = FALSE;
-    FanRpmGraphState.TooltipIndex = ULONG_MAX;
-    Graph_MoveGrid(FanRpmGraphHandle, 1);
-    Graph_Draw(FanRpmGraphHandle);
-    Graph_UpdateTooltip(FanRpmGraphHandle);
-    InvalidateRect(FanRpmGraphHandle, NULL, FALSE);
+        FanRpmGraphState.Valid = FALSE;
+        FanRpmGraphState.TooltipIndex = ULONG_MAX;
+        Graph_MoveGrid(FanRpmGraphHandle, 1);
+        Graph_Draw(FanRpmGraphHandle);
+        Graph_UpdateTooltip(FanRpmGraphHandle);
+        InvalidateRect(FanRpmGraphHandle, NULL, FALSE);
+    }
 }
 
 VOID EtpUpdateGpuPanel(

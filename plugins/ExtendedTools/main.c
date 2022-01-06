@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2018-2021 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -420,7 +420,10 @@ VOID NTAPI ProcessItemsUpdatedCallback(
         // Update the frame stats for the process (dmex)
         if (EtFramesEnabled)
         {
-            EtProcessFramesUpdateProcessBlock(block);
+            if (!(block->ProcessItem->State & PH_PROCESS_ITEM_REMOVED))
+            {
+                EtProcessFramesUpdateProcessBlock(block);
+            }
         }
 
         // Invalidate all text.
@@ -972,8 +975,6 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
-                { StringSettingType, SETTING_NAME_GPU_NODE_BITMAP, L"01000000" },
-                { IntegerSettingType, SETTING_NAME_GPU_LAST_NODE_COUNT, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|350,270" },
                 { StringSettingType, SETTING_NAME_UNLOADED_COLUMNS, L"" },

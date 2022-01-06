@@ -1,3 +1,26 @@
+/*
+ * Process Hacker Extended Tools -
+ *   main header
+ *
+ * Copyright (C) 2010-2015 wj32
+ * Copyright (C) 2018-2022 dmex
+ *
+ * This file is part of Process Hacker.
+ *
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef EXTTOOLS_H
 #define EXTTOOLS_H
 
@@ -8,8 +31,6 @@
 #include <math.h>
 
 #include "resource.h"
-
-#include <d3d11.h>
 
 #include "framemon.h"
 
@@ -35,8 +56,6 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_ENABLE_GPU_MONITOR (PLUGIN_NAME L".EnableGpuMonitor")
 #define SETTING_NAME_ENABLE_FPS_MONITOR (PLUGIN_NAME L".EnableFpsMonitor")
 #define SETTING_NAME_ENABLE_SYSINFO_GRAPHS (PLUGIN_NAME L".EnableSysInfoGraphs")
-#define SETTING_NAME_GPU_NODE_BITMAP (PLUGIN_NAME L".GpuNodeBitmap")
-#define SETTING_NAME_GPU_LAST_NODE_COUNT (PLUGIN_NAME L".GpuLastNodeCount")
 #define SETTING_NAME_UNLOADED_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
 #define SETTING_NAME_UNLOADED_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
 #define SETTING_NAME_UNLOADED_COLUMNS (PLUGIN_NAME L".UnloadedListColumns")
@@ -316,7 +335,6 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
     ULONG64 GpuCommitUsage;
-    ULONG64 GpuContextSwitches;
 
     FLOAT FramesPerSecond;
     FLOAT FramesLatency;
@@ -519,6 +537,7 @@ VOID EtSaveSettingsDiskTreeList(
 // gpumon
 
 extern BOOLEAN EtGpuEnabled;
+extern BOOLEAN EtGpuSupported;
 extern BOOLEAN EtD3DEnabled;
 EXTERN_C BOOLEAN EtFramesEnabled;
 extern PPH_LIST EtpGpuAdapterList;
@@ -738,8 +757,13 @@ VOID EtShowWsWatchDialog(
 
 // counters
 
-VOID EtGpuHashTableAcquireLockShared(VOID);
-VOID EtGpuHashTableReleaseLockShared(VOID);
+VOID EtPerfCounterInitialization(
+    VOID
+    );
+
+NTSTATUS EtUpdatePerfCounterData(
+    VOID
+    );
 
 FLOAT EtLookupProcessGpuUtilization(
     _In_ HANDLE ProcessId
@@ -766,10 +790,6 @@ ULONG64 EtLookupTotalGpuDedicated(
     );
 
 ULONG64 EtLookupTotalGpuShared(
-    VOID
-    );
-
-ULONG64 EtLookupTotalGpuCommit(
     VOID
     );
 

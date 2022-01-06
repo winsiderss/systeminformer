@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   Frame monitoring
  *
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -24,8 +24,8 @@
 #include "framemon.h"
 
 BOOLEAN EtFramesEnabled = FALSE;
-PPH_HASHTABLE EtFramesHashTable = NULL;
-PH_QUEUED_LOCK EtFramesHashTableLock = PH_QUEUED_LOCK_INIT;
+static PPH_HASHTABLE EtFramesHashTable = NULL;
+static PH_QUEUED_LOCK EtFramesHashTableLock = PH_QUEUED_LOCK_INIT;
 
 static BOOLEAN NTAPI EtFramesEqualFunction(
     _In_ PVOID Entry1,
