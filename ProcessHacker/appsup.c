@@ -3,7 +3,7 @@
  *   application support functions
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -544,7 +544,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // If the DLL name isn't an absolute path, assume it's in system32.
             // TODO: Use a proper search function.
 
-            if (RtlDetermineDosPathNameType_U(dllName->Buffer) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(dllName->Buffer) == RtlPathTypeRelative)
             {
                 dllName = PhaConcatStrings(
                     3,
@@ -821,7 +821,7 @@ VOID PhShellExecuteUserString(
     // Expand environment strings. (dmex) 
     PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
 
-    // Make sure the user executable string is absolute. We can't use RtlDetermineDosPathNameType_U
+    // Make sure the user executable string is absolute. We can't use PhDetermineDosPathNameType
     // here because the string may be a URL. (dmex)
     if (PhFindCharInString(executeString, 0, L':') == SIZE_MAX)
     {
@@ -835,7 +835,7 @@ VOID PhShellExecuteUserString(
             PPH_STRING fileArgs = PhCreateString(stringArgList[1]);
 
             // Make sure the string is absolute and escape the filename.
-            if (RtlDetermineDosPathNameType_U(fileName->Buffer) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(fileName->Buffer) == RtlPathTypeRelative)
                 PhMoveReference(&fileName, PhConcatStrings(4, L"\"", applicationDirectory->Buffer, fileName->Buffer, L"\""));
             else
                 PhMoveReference(&fileName, PhConcatStrings(3, L"\"", fileName->Buffer, L"\""));
@@ -852,7 +852,7 @@ VOID PhShellExecuteUserString(
         }
         else
         {
-            if (RtlDetermineDosPathNameType_U(executeString->Buffer) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(executeString->Buffer) == RtlPathTypeRelative)
                 PhMoveReference(&executeString, PhConcatStrings(4, L"\"", applicationDirectory->Buffer, executeString->Buffer, L"\""));
             else
                 PhMoveReference(&executeString, PhConcatStrings(3, L"\"", executeString->Buffer, L"\""));
