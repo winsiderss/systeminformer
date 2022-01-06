@@ -90,6 +90,29 @@ BOOLEAN PhSipMemorySectionCallback(
             }
         }
         return TRUE;
+    case SysInfoViewChanging:
+        {
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
+
+            if (view == SysInfoSummaryView || section != Section)
+                return TRUE;
+
+            if (CommitGraphHandle)
+            {
+                CommitGraphState.Valid = FALSE;
+                CommitGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(CommitGraphHandle);
+            }
+
+            if (PhysicalGraphHandle)
+            {
+                PhysicalGraphState.Valid = FALSE;
+                PhysicalGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(PhysicalGraphHandle);
+            }
+        }
+        return TRUE;
     case SysInfoCreateDialog:
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
@@ -357,6 +380,11 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
         break;
     case WM_SIZE:
         {
+            CommitGraphState.Valid = FALSE;
+            CommitGraphState.TooltipIndex = ULONG_MAX;
+            PhysicalGraphState.Valid = FALSE;
+            PhysicalGraphState.TooltipIndex = ULONG_MAX;
+
             PhLayoutManagerLayout(&MemoryLayoutManager);
             PhSipLayoutMemoryGraphs();
         }
