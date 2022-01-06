@@ -816,6 +816,8 @@ VOID EtpUpdateProcessSegmentInformation(
     _In_ PET_PROCESS_BLOCK Block
     )
 {
+    ULONG i;
+    ULONG j;
     PETP_GPU_ADAPTER gpuAdapter;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 dedicatedUsage;
@@ -829,11 +831,11 @@ VOID EtpUpdateProcessSegmentInformation(
     sharedUsage = 0;
     commitUsage = 0;
 
-    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+    for (i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        for (ULONG j = 0; j < gpuAdapter->SegmentCount; j++)
+        for (j = 0; j < gpuAdapter->SegmentCount; j++)
         {
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
             queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT;
@@ -877,6 +879,8 @@ VOID EtpUpdateSystemSegmentInformation(
     VOID
     )
 {
+    ULONG i;
+    ULONG j;
     PETP_GPU_ADAPTER gpuAdapter;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 dedicatedUsage;
@@ -885,11 +889,11 @@ VOID EtpUpdateSystemSegmentInformation(
     dedicatedUsage = 0;
     sharedUsage = 0;
 
-    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+    for (i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        for (ULONG j = 0; j < gpuAdapter->SegmentCount; j++)
+        for (j = 0; j < gpuAdapter->SegmentCount; j++)
         {
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
             queryStatistics.Type = D3DKMT_QUERYSTATISTICS_SEGMENT;
@@ -928,6 +932,8 @@ VOID EtpUpdateProcessNodeInformation(
     _In_ PET_PROCESS_BLOCK Block
     )
 {
+    ULONG i;
+    ULONG j;
     PETP_GPU_ADAPTER gpuAdapter;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     ULONG64 totalRunningTime;
@@ -937,11 +943,11 @@ VOID EtpUpdateProcessNodeInformation(
 
     totalRunningTime = 0;
 
-    for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+    for (i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
-        for (ULONG j = 0; j < gpuAdapter->NodeCount; j++)
+        for (j = 0; j < gpuAdapter->NodeCount; j++)
         {
             memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
             queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_NODE;
