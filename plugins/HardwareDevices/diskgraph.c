@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -27,7 +27,7 @@ VOID DiskDriveUpdateGraphs(
     )
 {
     Context->GraphState.Valid = FALSE;
-    Context->GraphState.TooltipIndex = -1;
+    Context->GraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->GraphHandle, 1);
     Graph_Draw(Context->GraphHandle);
     Graph_UpdateTooltip(Context->GraphHandle);
@@ -298,7 +298,12 @@ INT_PTR CALLBACK DiskDriveDialogProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
+        {
+            context->GraphState.Valid = FALSE;
+            context->GraphState.TooltipIndex = ULONG_MAX;
+
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
         break;
     case WM_NOTIFY:
         {
@@ -444,6 +449,22 @@ BOOLEAN DiskDriveSectionCallback(
             if (context->WindowHandle)
             {
                 DiskDriveTickDialog(context);
+            }
+        }
+        return TRUE;
+    case SysInfoViewChanging:
+        {
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
+
+            if (view == SysInfoSummaryView || section != Section)
+                return TRUE;
+
+            if (context->GraphHandle)
+            {
+                context->GraphState.Valid = FALSE;
+                context->GraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->GraphHandle);
             }
         }
         return TRUE;

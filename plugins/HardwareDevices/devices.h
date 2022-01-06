@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -319,8 +319,12 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     _Out_opt_ PUINT MinorVersion
     );
 
-PPH_STRING NetworkAdapterQueryNameFromGuid(
+PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
     _In_ PPH_STRING InterfaceGuid
+    );
+
+PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
+    _In_ PPH_STRING DeviceGuid
     );
 
 PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(

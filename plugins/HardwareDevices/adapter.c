@@ -3,7 +3,7 @@
  *   Hardware Devices Plugin
  *
  * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2021 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -268,7 +268,7 @@ VOID NetAdapterUpdateDeviceInfo(
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromGuid(AdapterEntry->AdapterId.InterfaceGuid);
+                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(AdapterEntry->AdapterId.InterfaceGuid);
             }
 
             if (!DeviceHandle && deviceHandle)
@@ -282,7 +282,7 @@ VOID NetAdapterUpdateDeviceInfo(
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromGuid(AdapterEntry->AdapterId.InterfaceGuid);
+                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(AdapterEntry->AdapterId.InterfaceGuid);
             }
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))

@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -21,7 +21,6 @@
  */
 
 #include "devices.h"
-#include <cguid.h>
 #include <objbase.h>
 
 BOOLEAN NetworkAdapterQuerySupported(
@@ -29,7 +28,6 @@ BOOLEAN NetworkAdapterQuerySupported(
     )
 {
     NTSTATUS status;
-    NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     BOOLEAN ndisQuerySupported = FALSE;
     BOOLEAN adapterNameSupported = FALSE;
@@ -39,8 +37,6 @@ BOOLEAN NetworkAdapterQuerySupported(
     PNDIS_OID objectIdBuffer;
     ULONG objectIdBufferLength;
     ULONG attempts = 0;
-
-    opcode = OID_GEN_SUPPORTED_LIST;
 
     objectIdBufferLength = 2048 * sizeof(NDIS_OID);
     objectIdBuffer = PhAllocateZero(objectIdBufferLength);
@@ -52,7 +48,7 @@ BOOLEAN NetworkAdapterQuerySupported(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_SUPPORTED_LIST },
         sizeof(NDIS_OID),
         objectIdBuffer,
         objectIdBufferLength
@@ -71,7 +67,7 @@ BOOLEAN NetworkAdapterQuerySupported(
             NULL,
             &isb,
             IOCTL_NDIS_QUERY_GLOBAL_STATS,
-            &opcode,
+            &(NDIS_OID) { OID_GEN_SUPPORTED_LIST },
             sizeof(NDIS_OID),
             objectIdBuffer,
             objectIdBufferLength
@@ -126,11 +122,8 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     _Out_opt_ PUINT MinorVersion
     )
 {
-    NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     ULONG versionResult = 0;
-
-    opcode = OID_GEN_DRIVER_VERSION; // OID_GEN_VENDOR_DRIVER_VERSION
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
@@ -139,7 +132,7 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_DRIVER_VERSION }, // OID_GEN_VENDOR_DRIVER_VERSION
         sizeof(NDIS_OID),
         &versionResult,
         sizeof(versionResult)
@@ -161,7 +154,7 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     return FALSE;
 }
 
-PPH_STRING NetworkAdapterQueryNameFromGuid(
+PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
     _In_ PPH_STRING InterfaceGuid
     )
 {
@@ -173,13 +166,16 @@ PPH_STRING NetworkAdapterQueryNameFromGuid(
         _In_ BOOL Cache,
         _In_ BOOL Refresh
         ) = NULL;
-    GUID interfaceGuid = GUID_NULL;
+    GUID interfaceGuid = { 0 };
 
     if (!NhGetInterfaceDescriptionFromGuid_I)
     {
         PVOID iphlpHandle;
 
-        if (iphlpHandle = PhLoadLibrary(L"iphlpapi.dll"))
+        if (!(iphlpHandle = PhGetDllHandle(L"iphlpapi.dll")))
+            iphlpHandle = PhLoadLibrary(L"iphlpapi.dll");
+
+        if (iphlpHandle)
         {
             NhGetInterfaceDescriptionFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceDescriptionFromGuid", 0);
         }
@@ -202,6 +198,56 @@ PPH_STRING NetworkAdapterQueryNameFromGuid(
             )))
         {
             return PhCreateString(adapterDescription);
+        }
+    }
+
+    return NULL;
+}
+
+PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
+    _In_ PPH_STRING DeviceGuid
+    )
+{
+    // Query adapter description using undocumented function. (dmex)
+    static ULONG (WINAPI* NhGetInterfaceNameFromDeviceGuid_I)(
+        _In_ PGUID DeviceGuid,
+        _Out_writes_(InterfaceDescriptionLength) PWSTR InterfaceDescription,
+        _Inout_ PSIZE_T InterfaceDescriptionLength,
+        _In_ BOOL Cache,
+        _In_ BOOL Refresh
+        ) = NULL;
+    GUID interfaceGuid = { 0 };
+
+    if (!NhGetInterfaceNameFromDeviceGuid_I)
+    {
+        PVOID iphlpHandle;
+
+        if (!(iphlpHandle = PhGetDllHandle(L"iphlpapi.dll")))
+            iphlpHandle = PhLoadLibrary(L"iphlpapi.dll");
+
+        if (iphlpHandle)
+        {
+            NhGetInterfaceNameFromDeviceGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceNameFromDeviceGuid", 0);
+        }
+    }
+
+    if (!NhGetInterfaceNameFromDeviceGuid_I)
+        return NULL;
+
+    if (NT_SUCCESS(PhStringToGuid(&DeviceGuid->sr, &interfaceGuid)))
+    {
+        WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
+        SIZE_T adapterAliasLength = sizeof(adapterAlias);
+
+        if (SUCCEEDED(NhGetInterfaceNameFromDeviceGuid_I(
+            &interfaceGuid,
+            adapterAlias,
+            &adapterAliasLength,
+            FALSE,
+            TRUE
+        )))
+        {
+            return PhCreateString(adapterAlias);
         }
     }
 
@@ -255,13 +301,16 @@ PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
        _In_ BOOL Cache,
        _In_ BOOL Refresh
        ) = NULL;
-   GUID interfaceGuid = GUID_NULL;
+   GUID interfaceGuid = { 0 };
 
     if (!NhGetInterfaceNameFromGuid_I)
     {
         PVOID iphlpHandle;
 
-        if (iphlpHandle = PhLoadLibrary(L"iphlpapi.dll"))
+        if (!(iphlpHandle = PhGetDllHandle(L"iphlpapi.dll")))
+            iphlpHandle = PhLoadLibrary(L"iphlpapi.dll");
+
+        if (iphlpHandle)
         {
             NhGetInterfaceNameFromGuid_I = PhGetProcedureAddress(iphlpHandle, "NhGetInterfaceNameFromGuid", 0);
         }
@@ -294,11 +343,8 @@ PPH_STRING NetworkAdapterQueryName(
     _In_ HANDLE DeviceHandle
     )
 {
-    NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     WCHAR adapterName[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
-
-    opcode = OID_GEN_FRIENDLY_NAME;
 
     if (NT_SUCCESS(NtDeviceIoControlFile(
         DeviceHandle,
@@ -307,7 +353,7 @@ PPH_STRING NetworkAdapterQueryName(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_FRIENDLY_NAME },
         sizeof(NDIS_OID),
         adapterName,
         sizeof(adapterName)
@@ -325,11 +371,8 @@ NTSTATUS NetworkAdapterQueryStatistics(
     )
 {
     NTSTATUS status;
-    NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     NDIS_STATISTICS_INFO result;
-
-    opcode = OID_GEN_STATISTICS;
 
     memset(&result, 0, sizeof(NDIS_STATISTICS_INFO));
     result.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
@@ -343,7 +386,7 @@ NTSTATUS NetworkAdapterQueryStatistics(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_STATISTICS },
         sizeof(NDIS_OID),
         &result,
         sizeof(result)
@@ -361,11 +404,8 @@ NTSTATUS NetworkAdapterQueryLinkState(
     )
 {
     NTSTATUS status;
-    NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     NDIS_LINK_STATE result;
-
-    opcode = OID_GEN_LINK_STATE; // OID_GEN_MEDIA_CONNECT_STATUS;
 
     memset(&result, 0, sizeof(NDIS_LINK_STATE));
     result.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
@@ -379,7 +419,7 @@ NTSTATUS NetworkAdapterQueryLinkState(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_LINK_STATE }, // OID_GEN_MEDIA_CONNECT_STATUS;
         sizeof(NDIS_OID),
         &result,
         sizeof(result)
@@ -397,12 +437,10 @@ BOOLEAN NetworkAdapterQueryMediaType(
     _Out_ PNDIS_PHYSICAL_MEDIUM Medium
     )
 {
-    NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     NDIS_MEDIUM adapterType;
     NDIS_PHYSICAL_MEDIUM adapterMediaType;
 
-    opcode = OID_GEN_PHYSICAL_MEDIUM_EX;
     adapterMediaType = NdisPhysicalMediumUnspecified;
     memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
@@ -413,7 +451,7 @@ BOOLEAN NetworkAdapterQueryMediaType(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_PHYSICAL_MEDIUM_EX },
         sizeof(NDIS_OID),
         &adapterMediaType,
         sizeof(adapterMediaType)
@@ -423,7 +461,6 @@ BOOLEAN NetworkAdapterQueryMediaType(
         return TRUE;
     }
 
-    opcode = OID_GEN_PHYSICAL_MEDIUM;
     adapterMediaType = NdisPhysicalMediumUnspecified;
     memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
@@ -434,7 +471,7 @@ BOOLEAN NetworkAdapterQueryMediaType(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_PHYSICAL_MEDIUM },
         sizeof(NDIS_OID),
         &adapterMediaType,
         sizeof(adapterMediaType)
@@ -444,7 +481,6 @@ BOOLEAN NetworkAdapterQueryMediaType(
         return TRUE;
     }
 
-    opcode = OID_GEN_MEDIA_SUPPORTED; // OID_GEN_MEDIA_IN_USE
     adapterType = NdisMediumMax;
     memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
@@ -455,7 +491,7 @@ BOOLEAN NetworkAdapterQueryMediaType(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_MEDIA_SUPPORTED }, // OID_GEN_MEDIA_IN_USE
         sizeof(NDIS_OID),
         &adapterType,
         sizeof(adapterType)
@@ -492,11 +528,8 @@ NTSTATUS NetworkAdapterQueryLinkSpeed(
     )
 {
     NTSTATUS status;
-    NDIS_OID opcode;
     IO_STATUS_BLOCK isb;
     NDIS_LINK_SPEED result;
-
-    opcode = OID_GEN_LINK_SPEED;
 
     memset(&result, 0, sizeof(NDIS_LINK_SPEED));
 
@@ -507,7 +540,7 @@ NTSTATUS NetworkAdapterQueryLinkSpeed(
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &opcode,
+        &(NDIS_OID) { OID_GEN_LINK_SPEED },
         sizeof(NDIS_OID),
         &result,
         sizeof(result)

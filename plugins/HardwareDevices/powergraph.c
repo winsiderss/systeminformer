@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -247,6 +247,15 @@ VOID RaplDeviceLayoutGraphs(
     ULONG graphHeight;
     HDWP deferHandle;
     ULONG y;
+
+    Context->ProcessorGraphState.Valid = FALSE;
+    Context->ProcessorGraphState.TooltipIndex = ULONG_MAX;
+    Context->CoreGraphState.Valid = FALSE;
+    Context->CoreGraphState.TooltipIndex = ULONG_MAX;
+    Context->DimmGraphState.Valid = FALSE;
+    Context->DimmGraphState.TooltipIndex = ULONG_MAX;
+    Context->TotalGraphState.Valid = FALSE;
+    Context->TotalGraphState.TooltipIndex = ULONG_MAX;
 
     GetClientRect(Context->WindowHandle, &clientRect);
     GetClientRect(GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L), &labelRect);
@@ -818,6 +827,43 @@ BOOLEAN RaplDeviceSectionCallback(
             if (context->WindowHandle)
             {
                 RaplDeviceTickDialog(context);
+            }
+        }
+        return TRUE;
+    case SysInfoViewChanging:
+        {
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
+
+            if (view == SysInfoSummaryView || section != Section)
+                return TRUE;
+
+            if (context->ProcessorGraphHandle)
+            {
+                context->ProcessorGraphState.Valid = FALSE;
+                context->ProcessorGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->ProcessorGraphHandle);
+            }
+
+            if (context->CoreGraphHandle)
+            {
+                context->CoreGraphState.Valid = FALSE;
+                context->CoreGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->CoreGraphHandle);
+            }
+
+            if (context->DimmGraphHandle)
+            {
+                context->DimmGraphState.Valid = FALSE;
+                context->DimmGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->DimmGraphHandle);
+            }
+
+            if (context->TotalGraphHandle)
+            {
+                context->TotalGraphState.Valid = FALSE;
+                context->TotalGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->TotalGraphHandle);
             }
         }
         return TRUE;

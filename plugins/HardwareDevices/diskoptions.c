@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Hardware Devices Plugin
  *
- * Copyright (C) 2015-2021 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -709,6 +709,9 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             FindDiskDrives(context);
+
+            if (ListView_GetItemCount(context->ListViewHandle) == 0)
+                PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
 
             context->OptionsChanged = FALSE;
         }

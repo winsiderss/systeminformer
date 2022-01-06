@@ -744,6 +744,9 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
 
             FindRaplDevices(context);
 
+            if (ListView_GetItemCount(context->ListViewHandle) == 0)
+                PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+
             context->OptionsChanged = FALSE;
         }
         break;
