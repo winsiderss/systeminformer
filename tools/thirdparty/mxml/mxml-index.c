@@ -3,7 +3,7 @@
  *
  * https://www.msweet.org/mxml
  *
- * Copyright © 2003-2019 by Michael R Sweet.
+ * Copyright © 2003-2021 by Michael R Sweet.
  *
  * Licensed under Apache License v2.0.  See the file "LICENSE" for more
  * information.
@@ -46,12 +46,8 @@ mxmlIndexDelete(mxml_index_t *ind)	/* I - Index to delete */
   * Free memory...
   */
 
-  if (ind->attr)
-    free(ind->attr);
-
-  if (ind->alloc_nodes)
-    free(ind->nodes);
-
+  free(ind->attr);
+  free(ind->nodes);
   free(ind);
 }
 
@@ -105,10 +101,10 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
         last;			/* Last entity in search */
 
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
   printf("mxmlIndexFind(ind=%p, element=\"%s\", value=\"%s\")\n",
          ind, element ? element : "(null)", value ? value : "(null)");
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
  /*
   * Range check input...
@@ -116,11 +112,11 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
   if (!ind || (!ind->attr && value))
   {
-#ifdef MXML_DEBUG
+#ifdef DEBUG
     puts("    returning NULL...");
     if (ind)
       printf("    ind->attr=\"%s\"\n", ind->attr ? ind->attr : "(null)");
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
     return (NULL);
   }
@@ -139,10 +135,10 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
   if (!ind->num_nodes)
   {
-#ifdef MXML_DEBUG
+#ifdef DEBUG
     puts("    returning NULL...");
     puts("    no nodes!");
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
     return (NULL);
   }
@@ -160,17 +156,17 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
     first = 0;
     last  = ind->num_nodes - 1;
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
     printf("    find first time, num_nodes=%d...\n", ind->num_nodes);
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
     while ((last - first) > 1)
     {
       current = (first + last) / 2;
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
       printf("    first=%d, last=%d, current=%d\n", first, last, current);
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
       if ((diff = index_find(ind, element, value, ind->nodes[current])) == 0)
       {
@@ -178,17 +174,17 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
         * Found a match, move back to find the first...
     */
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
         puts("    match!");
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
         while (current > 0 &&
            !index_find(ind, element, value, ind->nodes[current - 1]))
       current --;
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
         printf("    returning first match=%d\n", current);
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
        /*
         * Return the first match and save the index to the next...
@@ -203,9 +199,9 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
       else
     first = current;
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
       printf("    diff=%d\n", diff);
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
     }
 
    /*
@@ -219,9 +215,9 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
     * Found exactly one (or possibly two) match...
     */
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
     printf("    returning only match %d...\n", current);
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
     ind->cur_node = current + 1;
 
@@ -234,9 +230,9 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
     ind->cur_node = ind->num_nodes;
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
     puts("    returning NULL...");
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
     return (NULL);
   }
@@ -247,9 +243,9 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
     * Return the next matching node...
     */
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
     printf("    returning next match %d...\n", ind->cur_node);
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
     return (ind->nodes[ind->cur_node ++]);
   }
@@ -260,9 +256,9 @@ mxmlIndexFind(mxml_index_t *ind,	/* I - Index to search */
 
   ind->cur_node = ind->num_nodes;
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
   puts("    returning NULL...");
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
   return (NULL);
 }
@@ -316,10 +312,10 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   * Range check input...
   */
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
   printf("mxmlIndexNew(node=%p, element=\"%s\", attr=\"%s\")\n",
          node, element ? element : "(null)", attr ? attr : "(null)");
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
   if (!node)
     return (NULL);
@@ -330,12 +326,19 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
 
   if ((ind = calloc(1, sizeof(mxml_index_t))) == NULL)
   {
-    mxml_error("Unable to allocate %d bytes for index - %s", (int)sizeof(mxml_index_t), strerror(errno));
+    mxml_error("Unable to allocate memory for index.");
     return (NULL);
   }
 
   if (attr)
-    ind->attr = strdup(attr);
+  {
+    if ((ind->attr = strdup(attr)) == NULL)
+    {
+      mxml_error("Unable to allocate memory for index attribute.");
+      free(ind);
+      return (NULL);
+    }
+  }
 
   if (!element && !attr)
     current = node;
@@ -357,8 +360,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
         * Unable to allocate memory for the index, so abort...
     */
 
-        mxml_error("Unable to allocate %d bytes for index: %s", (int)((ind->alloc_nodes + 64) * sizeof(mxml_node_t *)), strerror(errno));
-
+        mxml_error("Unable to allocate memory for index nodes.");
         mxmlIndexDelete(ind);
     return (NULL);
       }
@@ -376,7 +378,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   * Sort nodes based upon the search criteria...
   */
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
   {
     int i;				/* Looping var */
 
@@ -405,12 +407,12 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
 
     putchar('\n');
   }
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
   if (ind->num_nodes > 1)
     index_sort(ind, 0, ind->num_nodes - 1);
 
-#ifdef MXML_DEBUG
+#ifdef DEBUG
   {
     int i;				/* Looping var */
 
@@ -439,7 +441,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
 
     putchar('\n');
   }
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
  /*
   * Return the new index...
@@ -460,9 +462,9 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
 mxml_node_t *				/* O - First node or @code NULL@ if there is none */
 mxmlIndexReset(mxml_index_t *ind)	/* I - Index to reset */
 {
-#ifdef MXML_DEBUG
+#ifdef DEBUG
   printf("mxmlIndexReset(ind=%p)\n", ind);
-#endif /* MXML_DEBUG */
+#endif /* DEBUG */
 
  /*
   * Range check input...

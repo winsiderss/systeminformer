@@ -3,7 +3,7 @@
  *
  * https://www.msweet.org/mxml
  *
- * Copyright © 2003-2019 by Michael R Sweet.
+ * Copyright © 2003-2021 by Michael R Sweet.
  *
  * Licensed under Apache License v2.0.  See the file "LICENSE" for more
  * information.
@@ -54,7 +54,7 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
   if (!parent || !node)
     return;
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
   fprintf(stderr, "    BEFORE: node->parent=%p\n", node->parent);
   if (parent)
   {
@@ -63,7 +63,7 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
     fprintf(stderr, "    BEFORE: parent->prev=%p\n", parent->prev);
     fprintf(stderr, "    BEFORE: parent->next=%p\n", parent->next);
   }
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
  /*
   * Remove the node from any existing parent...
@@ -150,7 +150,7 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
         break;
   }
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
   fprintf(stderr, "    AFTER: node->parent=%p\n", node->parent);
   if (parent)
   {
@@ -159,7 +159,7 @@ mxmlAdd(mxml_node_t *parent,		/* I - Parent node */
     fprintf(stderr, "    AFTER: parent->prev=%p\n", parent->prev);
     fprintf(stderr, "    AFTER: parent->next=%p\n", parent->next);
   }
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 }
 
 
@@ -650,7 +650,7 @@ mxmlRemove(mxml_node_t *node)		/* I - Node to remove */
   * Remove from parent...
   */
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
   fprintf(stderr, "    BEFORE: node->parent=%p\n", node->parent);
   if (node->parent)
   {
@@ -661,7 +661,7 @@ mxmlRemove(mxml_node_t *node)		/* I - Node to remove */
   fprintf(stderr, "    BEFORE: node->last_child=%p\n", node->last_child);
   fprintf(stderr, "    BEFORE: node->prev=%p\n", node->prev);
   fprintf(stderr, "    BEFORE: node->next=%p\n", node->next);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
   if (node->prev)
     node->prev->next = node->next;
@@ -677,7 +677,7 @@ mxmlRemove(mxml_node_t *node)		/* I - Node to remove */
   node->prev   = NULL;
   node->next   = NULL;
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
   fprintf(stderr, "    AFTER: node->parent=%p\n", node->parent);
   if (node->parent)
   {
@@ -688,7 +688,7 @@ mxmlRemove(mxml_node_t *node)		/* I - Node to remove */
   fprintf(stderr, "    AFTER: node->last_child=%p\n", node->last_child);
   fprintf(stderr, "    AFTER: node->prev=%p\n", node->prev);
   fprintf(stderr, "    AFTER: node->next=%p\n", node->next);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 }
 
 
@@ -772,17 +772,14 @@ mxml_free(mxml_node_t *node)		/* I - Node */
   switch (node->type)
   {
     case MXML_ELEMENT :
-        if (node->value.element.name)
-      free(node->value.element.name);
+    free(node->value.element.name);
 
     if (node->value.element.num_attrs)
     {
       for (i = 0; i < node->value.element.num_attrs; i ++)
       {
-        if (node->value.element.attrs[i].name)
-          free(node->value.element.attrs[i].name);
-        if (node->value.element.attrs[i].value)
-          free(node->value.element.attrs[i].value);
+        free(node->value.element.attrs[i].name);
+        free(node->value.element.attrs[i].value);
       }
 
           free(node->value.element.attrs);
@@ -792,15 +789,13 @@ mxml_free(mxml_node_t *node)		/* I - Node */
        /* Nothing to do */
         break;
     case MXML_OPAQUE :
-        if (node->value.opaque)
-      free(node->value.opaque);
+    free(node->value.opaque);
         break;
     case MXML_REAL :
        /* Nothing to do */
         break;
     case MXML_TEXT :
-        if (node->value.text.string)
-      free(node->value.text.string);
+    free(node->value.text.string);
         break;
     case MXML_CUSTOM :
         if (node->value.custom.data &&
@@ -840,16 +835,16 @@ mxml_new(mxml_node_t *parent,		/* I - Parent node */
 
   if ((node = calloc(1, sizeof(mxml_node_t))) == NULL)
   {
-#if DEBUG > 1
+#if MXML_DEBUG > 1
     fputs("    returning NULL\n", stderr);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
     return (NULL);
   }
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
   fprintf(stderr, "    returning %p\n", node);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
  /*
   * Set the node type...

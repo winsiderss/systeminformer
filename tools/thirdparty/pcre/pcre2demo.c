@@ -198,8 +198,8 @@ if (rc < 0)
   return 1;
   }
 
-/* Match succeded. Get a pointer to the output vector, where string offsets are
-stored. */
+/* Match succeeded. Get a pointer to the output vector, where string offsets
+are stored. */
 
 ovector = pcre2_get_ovector_pointer(match_data);
 printf("Match succeeded at offset %d\n", (int)ovector[0]);
@@ -217,9 +217,12 @@ pcre2_match_data_create_from_pattern() above. */
 if (rc == 0)
   printf("ovector was not big enough for all the captured substrings\n");
 
-/* We must guard against patterns such as /(?=.\K)/ that use \K in an assertion
-to set the start of a match later than its end. In this demonstration program,
-we just detect this case and give up. */
+/* Since release 10.38 PCRE2 has locked out the use of \K in lookaround
+assertions. However, there is an option to re-enable the old behaviour. If that
+is set, it is possible to run patterns such as /(?=.\K)/ that use \K in an
+assertion to set the start of a match later than its end. In this demonstration
+program, we show how to detect this case, but it shouldn't arise because the
+option is never set. */
 
 if (ovector[0] > ovector[1])
   {
@@ -436,7 +439,7 @@ for (;;)
     return 1;
     }
 
-  /* Match succeded */
+  /* Match succeeded */
 
   printf("\nMatch succeeded again at offset %d\n", (int)ovector[0]);
 
