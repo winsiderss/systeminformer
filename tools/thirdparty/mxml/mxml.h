@@ -3,7 +3,7 @@
  *
  * https://www.msweet.org/mxml
  *
- * Copyright © 2003-2019 by Michael R Sweet.
+ * Copyright © 2003-2021 by Michael R Sweet.
  *
  * Licensed under Apache License v2.0.  See the file "LICENSE" for more
  * information.
@@ -34,7 +34,7 @@
  */
 
 #  define MXML_MAJOR_VERSION	3	/* Major version number */
-#  define MXML_MINOR_VERSION	1	/* Minor version number */
+#  define MXML_MINOR_VERSION	2	/* Minor version number */
 
 #  define MXML_TAB		8	/* Tabs every N columns */
 

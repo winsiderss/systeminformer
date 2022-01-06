@@ -11,7 +11,7 @@ hacked-up (non-) design had also run out of steam.
 
                        Written by Philip Hazel
      Original code Copyright (c) 1997-2012 University of Cambridge
-    Rewritten code Copyright (c) 2016-2020 University of Cambridge
+    Rewritten code Copyright (c) 2016-2021 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -169,19 +169,21 @@ commented out the original, but kept it around just in case. */
 /* void vms_setsymbol( char *, char *, int ); Original code from [1]. */
 #endif
 
-/* VC and older compilers don't support %td or %zu, and even some that claim to
-be C99 don't support it (hence DISABLE_PERCENT_ZT). There are some non-C99
-environments where %lu gives a warning with 32-bit pointers. As there doesn't
-seem to be an easy way round this, just live with it (the cases are rare). */
+/* old VC and older compilers don't support %td or %zu, and even some that
+claim to be C99 don't support it (hence DISABLE_PERCENT_ZT). */
 
-#if defined(_MSC_VER) || !defined(__STDC_VERSION__) || __STDC_VERSION__ < 199901L || defined(DISABLE_PERCENT_ZT)
-#define PTR_FORM "lu"
+#if defined(DISABLE_PERCENT_ZT) || (defined(_MSC_VER) && (_MSC_VER < 1800)) || \
+  (!defined(_MSC_VER) && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L)))
+#ifdef _WIN64
+#define PTR_FORM "lld"
+#define SIZ_FORM "llu"
+#else
+#define PTR_FORM "ld"
 #define SIZ_FORM "lu"
-#define SIZ_CAST (unsigned long int)
+#endif
 #else
 #define PTR_FORM "td"
 #define SIZ_FORM "zu"
-#define SIZ_CAST
 #endif
 
 /* ------------------End of system-specific definitions -------------------- */
@@ -622,6 +624,7 @@ static modstruct modlist[] = {
   { "allaftertext",                MOD_PNDP, MOD_CTL, CTL_ALLAFTERTEXT,           PO(control) },
   { "allcaptures",                 MOD_PND,  MOD_CTL, CTL_ALLCAPTURES,            PO(control) },
   { "allow_empty_class",           MOD_PAT,  MOD_OPT, PCRE2_ALLOW_EMPTY_CLASS,    PO(options) },
+  { "allow_lookaround_bsk",        MOD_CTC,  MOD_OPT, PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK, CO(extra_options) },
   { "allow_surrogate_escapes",     MOD_CTC,  MOD_OPT, PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES, CO(extra_options) },
   { "allusedtext",                 MOD_PNDP, MOD_CTL, CTL_ALLUSEDTEXT,            PO(control) },
   { "allvector",                   MOD_PND,  MOD_CTL, CTL2_ALLVECTOR,             PO(control2) },
@@ -2745,11 +2748,11 @@ if (show_memory)
   {
   if (block == NULL)
     {
-    fprintf(outfile, "** malloc() failed for %" SIZ_FORM "\n", SIZ_CAST size);
+    fprintf(outfile, "** malloc() failed for %" SIZ_FORM "\n", size);
     }
   else
     {
-    fprintf(outfile, "malloc  %5" SIZ_FORM, SIZ_CAST size);
+    fprintf(outfile, "malloc  %5" SIZ_FORM, size);
 #ifdef DEBUG_SHOW_MALLOC_ADDRESSES
     fprintf(outfile, " %p", block);   /* Not portable */
 #endif
@@ -2779,7 +2782,7 @@ if (show_memory)
     {
     if (block == malloclist[i])
       {
-      fprintf(outfile, "    %5" SIZ_FORM, SIZ_CAST malloclistlength[i]);
+      fprintf(outfile, "    %5" SIZ_FORM, malloclistlength[i]);
       malloclistptr--;
       for (j = i; j < malloclistptr; j++)
         {
@@ -3159,7 +3162,7 @@ if (pbuffer16_size < 2*len + 2)
   if (pbuffer16 == NULL)
     {
     fprintf(stderr, "pcre2test: malloc(%" SIZ_FORM ") failed for pbuffer16\n",
-      SIZ_CAST pbuffer16_size);
+      pbuffer16_size);
     exit(1);
     }
   }
@@ -3246,7 +3249,7 @@ if (pbuffer32_size < 4*len + 4)
   if (pbuffer32 == NULL)
     {
     fprintf(stderr, "pcre2test: malloc(%" SIZ_FORM ") failed for pbuffer32\n",
-      SIZ_CAST pbuffer32_size);
+      pbuffer32_size);
     exit(1);
     }
   }
@@ -5031,7 +5034,7 @@ switch(cmd)
   if (serial == NULL)
     {
     fprintf(outfile, "** Failed to get memory (size %" SIZ_FORM ") for #load\n",
-      SIZ_CAST serial_size);
+      serial_size);
     fclose(f);
     return PR_ABEND;
     }
@@ -5135,6 +5138,14 @@ uint32_t use_forbid_utf = forbid_utf;
 PCRE2_SIZE patlen;
 PCRE2_SIZE valgrind_access_length;
 PCRE2_SIZE erroroffset;
+
+/* The perltest.sh script supports only / as a delimiter. */
+
+if (restrict_for_perl_test && delimiter != '/')
+  {
+  fprintf(outfile, "** The only allowed delimiter after #perltest is '/'\n");
+  return PR_ABEND;
+  }
 
 /* Initialize the context and pattern/data controls for this test from the
 defaults. */
@@ -5698,7 +5709,7 @@ if (pat_patctl.convert_type != CONVERT_UNSET)
   if (rc != 0)
     {
     fprintf(outfile, "** Pattern conversion error at offset %" SIZ_FORM ": ",
-      SIZ_CAST converted_length);
+      converted_length);
     convert_return = print_error_message(rc, "", "\n")? PR_SKIP:PR_ABEND;
     }
 
@@ -6099,13 +6110,13 @@ BOOL utf = (FLD(compiled_code, overall_options) & PCRE2_UTF) != 0;
 
 fprintf(outfile, "%2d(%d) Old %" SIZ_FORM " %" SIZ_FORM " \"",
   scb->subscount, scb->oveccount,
-  SIZ_CAST scb->ovector[0], SIZ_CAST scb->ovector[1]);
+  scb->ovector[0], scb->ovector[1]);
 
 PCHARSV(scb->input, scb->ovector[0], scb->ovector[1] - scb->ovector[0],
   utf, outfile);
 
 fprintf(outfile, "\" New %" SIZ_FORM " %" SIZ_FORM " \"",
-  SIZ_CAST scb->output_offsets[0], SIZ_CAST scb->output_offsets[1]);
+  scb->output_offsets[0], scb->output_offsets[1]);
 
 PCHARSV(scb->output, scb->output_offsets[0],
   scb->output_offsets[1] - scb->output_offsets[0], utf, outfile);
@@ -6192,7 +6203,7 @@ if (cb->callout_string != NULL)
   {
   uint32_t delimiter = CODE_UNIT(cb->callout_string, -1);
   fprintf(outfile, "Callout (%" SIZ_FORM "): %c",
-    SIZ_CAST cb->callout_string_offset, delimiter);
+    cb->callout_string_offset, delimiter);
   PCHARSV(cb->callout_string, 0,
     cb->callout_string_length, utf, outfile);
   for (i = 0; callout_start_delims[i] != 0; i++)
@@ -6392,11 +6403,11 @@ for (i = 0; i < MAXCPYGET && dat_datctl.copy_numbers[i] >= 0; i++)
     else if (length2 != length)
       {
       fprintf(outfile, "Mismatched substring lengths: %"
-        SIZ_FORM " %" SIZ_FORM "\n", SIZ_CAST length, SIZ_CAST length2);
+        SIZ_FORM " %" SIZ_FORM "\n", length, length2);
       }
     fprintf(outfile, "%2dC ", n);
     PCHARSV(copybuffer, 0, length, utf, outfile);
-    fprintf(outfile, " (%" SIZ_FORM ")\n", SIZ_CAST length);
+    fprintf(outfile, " (%" SIZ_FORM ")\n", length);
     }
   }
 
@@ -6447,11 +6458,11 @@ for (;;)
     else if (length2 != length)
       {
       fprintf(outfile, "Mismatched substring lengths: %"
-        SIZ_FORM " %" SIZ_FORM "\n", SIZ_CAST length, SIZ_CAST length2);
+        SIZ_FORM " %" SIZ_FORM "\n", length, length2);
       }
     fprintf(outfile, "  C ");
     PCHARSV(copybuffer, 0, length, utf, outfile);
-    fprintf(outfile, " (%" SIZ_FORM ") %s", SIZ_CAST length, nptr);
+    fprintf(outfile, " (%" SIZ_FORM ") %s", length, nptr);
     if (groupnumber >= 0) fprintf(outfile, " (group %d)\n", groupnumber);
       else fprintf(outfile, " (non-unique)\n");
     }
@@ -6476,7 +6487,7 @@ for (i = 0; i < MAXCPYGET && dat_datctl.get_numbers[i] >= 0; i++)
     {
     fprintf(outfile, "%2dG ", n);
     PCHARSV(gotbuffer, 0, length, utf, outfile);
-    fprintf(outfile, " (%" SIZ_FORM ")\n", SIZ_CAST length);
+    fprintf(outfile, " (%" SIZ_FORM ")\n", length);
     PCRE2_SUBSTRING_FREE(gotbuffer);
     }
   }
@@ -6520,7 +6531,7 @@ for (;;)
     {
     fprintf(outfile, "  G ");
     PCHARSV(gotbuffer, 0, length, utf, outfile);
-    fprintf(outfile, " (%" SIZ_FORM ") %s", SIZ_CAST length, nptr);
+    fprintf(outfile, " (%" SIZ_FORM ") %s", length, nptr);
     if (groupnumber >= 0) fprintf(outfile, " (group %d)\n", groupnumber);
       else fprintf(outfile, " (non-unique)\n");
     PCRE2_SUBSTRING_FREE(gotbuffer);
@@ -7356,7 +7367,7 @@ if (dat_datctl.replacement[0] != 0)
     if (n > nsize)
       {
       fprintf(outfile, "Replacement buffer setting (%" SIZ_FORM ") is too "
-        "large (max %" SIZ_FORM ")\n", SIZ_CAST n, SIZ_CAST nsize);
+        "large (max %" SIZ_FORM ")\n", n, nsize);
       return PR_OK;
       }
     nsize = n;
@@ -7988,7 +7999,7 @@ for (gmatched = 0;; gmatched++)
         {
         PCRE2_SIZE startchar;
         PCRE2_GET_STARTCHAR(startchar, match_data);
-        fprintf(outfile, " at offset %" SIZ_FORM, SIZ_CAST startchar);
+        fprintf(outfile, " at offset %" SIZ_FORM, startchar);
         }
       fprintf(outfile, "\n");
       break;
@@ -8844,7 +8855,7 @@ least 128 code units, because it is used for retrieving error messages. */
     if (pbuffer16 == NULL)
       {
       fprintf(stderr, "pcre2test: malloc(%" SIZ_FORM ") failed for pbuffer16\n",
-        SIZ_CAST pbuffer16_size);
+        pbuffer16_size);
       yield = 1;
       goto EXIT;
       }
@@ -8859,7 +8870,7 @@ least 128 code units, because it is used for retrieving error messages. */
     if (pbuffer32 == NULL)
       {
       fprintf(stderr, "pcre2test: malloc(%" SIZ_FORM ") failed for pbuffer32\n",
-        SIZ_CAST pbuffer32_size);
+        pbuffer32_size);
       yield = 1;
       goto EXIT;
       }

@@ -3,7 +3,7 @@
  *
  * https://www.msweet.org/mxml
  *
- * Copyright © 2003-2020 by Michael R Sweet.
+ * Copyright © 2003-2021 by Michael R Sweet.
  *
  * Licensed under Apache License v2.0.  See the file "LICENSE" for more
  * information.
@@ -187,13 +187,12 @@ mxmlLoadString(mxml_node_t    *top,	/* I - Top node */
  *
  * This function returns a pointer to a string containing the textual
  * representation of the XML node tree.  The string should be freed
- * using the free() function when you are done with it.  @code NULL@ is returned
- * if the node would produce an empty string or if the string cannot be
- * allocated.
+ * using `free()` when you are done with it.  `NULL` is returned if the node
+ * would produce an empty string or if the string cannot be allocated.
  *
  * The callback argument specifies a function that returns a whitespace
- * string or NULL before and after each element.  If @code MXML_NO_CALLBACK@
- * is specified, whitespace will only be added before @code MXML_TEXT@ nodes
+ * string or `NULL` before and after each element.  If `MXML_NO_CALLBACK`
+ * is specified, whitespace will only be added before `MXML_TEXT` nodes
  * with leading whitespace and before attribute names inside opening
  * element tags.
  */
@@ -376,7 +375,10 @@ mxmlSaveString(mxml_node_t    *node,	/* I - Node to write */
   */
 
   if (ptr[0] >= ptr[1])
-    buffer[bufsize - 1] = '\0';
+  {
+    if (bufsize > 0)
+      buffer[bufsize - 1] = '\0';
+  }
   else
     ptr[0][0] = '\0';
 
@@ -588,9 +590,7 @@ mxml_add_char(int  ch,			/* I  - Character to add */
 
     if ((newbuffer = realloc(*buffer, *bufsize)) == NULL)
     {
-      free(*buffer);
-
-      mxml_error("Unable to expand string buffer to %d bytes!", *bufsize);
+      mxml_error("Unable to expand string buffer to %d bytes.", *bufsize);
 
       return (-1);
     }
@@ -682,7 +682,7 @@ mxml_fd_getc(void *p,			/* I  - File descriptor buffer */
 
       if (mxml_bad_char(ch))
       {
-        mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+        mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                    ch);
         return (EOF);
       }
@@ -746,7 +746,7 @@ mxml_fd_getc(void *p,			/* I  - File descriptor buffer */
 
       if (ch < 0x80)
       {
-        mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+        mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
         return (EOF);
       }
     }
@@ -780,7 +780,7 @@ mxml_fd_getc(void *p,			/* I  - File descriptor buffer */
 
       if (ch < 0x800)
       {
-        mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+        mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
         return (EOF);
       }
 
@@ -832,7 +832,7 @@ mxml_fd_getc(void *p,			/* I  - File descriptor buffer */
 
       if (ch < 0x10000)
       {
-        mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+        mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
         return (EOF);
       }
     }
@@ -855,7 +855,7 @@ mxml_fd_getc(void *p,			/* I  - File descriptor buffer */
 
     if (mxml_bad_char(ch))
     {
-      mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+      mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                  ch);
       return (EOF);
     }
@@ -903,7 +903,7 @@ mxml_fd_getc(void *p,			/* I  - File descriptor buffer */
 
         if (mxml_bad_char(ch))
     {
-      mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+      mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                  ch);
       return (EOF);
     }
@@ -1059,7 +1059,7 @@ mxml_file_getc(void *p,			/* I  - Pointer to file */
     {
       if (mxml_bad_char(ch))
       {
-        mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+        mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                    ch);
         return (EOF);
       }
@@ -1111,7 +1111,7 @@ mxml_file_getc(void *p,			/* I  - Pointer to file */
 
       if (ch < 0x80)
       {
-        mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+        mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
         return (EOF);
       }
     }
@@ -1133,7 +1133,7 @@ mxml_file_getc(void *p,			/* I  - Pointer to file */
 
       if (ch < 0x800)
       {
-        mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+        mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
         return (EOF);
       }
 
@@ -1167,7 +1167,7 @@ mxml_file_getc(void *p,			/* I  - Pointer to file */
 
       if (ch < 0x10000)
       {
-        mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+        mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
         return (EOF);
       }
     }
@@ -1184,7 +1184,7 @@ mxml_file_getc(void *p,			/* I  - Pointer to file */
 
     if (mxml_bad_char(ch))
     {
-      mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+      mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                  ch);
       return (EOF);
     }
@@ -1213,7 +1213,7 @@ mxml_file_getc(void *p,			/* I  - Pointer to file */
 
         if (mxml_bad_char(ch))
     {
-      mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+      mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                  ch);
       return (EOF);
     }
@@ -1331,9 +1331,9 @@ mxml_load_data(
     mxml_sax_cb_t   sax_cb,		/* I - SAX callback or MXML_NO_CALLBACK */
     void            *sax_data)		/* I - SAX user data */
 {
-  mxml_node_t	*node,			/* Current node */
-        *first,			/* First node added */
-        *parent;		/* Current parent node */
+  mxml_node_t	*node = NULL,		/* Current node */
+        *first = NULL,		/* First node added */
+        *parent = NULL;		/* Current parent node */
   int		line = 1,		/* Current line number */
         ch,			/* Character from file */
         whitespace;		/* Non-zero if whitespace seen */
@@ -1361,7 +1361,7 @@ mxml_load_data(
 
   if ((buffer = malloc(64)) == NULL)
   {
-    mxml_error("Unable to allocate string buffer!");
+    mxml_error("Unable to allocate string buffer.");
     return (NULL);
   }
 
@@ -1524,7 +1524,7 @@ mxml_load_data(
       break;
     else if (ch == '<')
     {
-      mxml_error("Bare < in element!");
+      mxml_error("Bare < in element.");
       goto error;
     }
     else if (ch == '&')
@@ -1898,8 +1898,13 @@ mxml_load_data(
         {
           (*sax_cb)(node, MXML_SAX_ELEMENT_CLOSE, sax_data);
 
-          if (!mxmlRelease(node) && first == node)
-        first = NULL;
+          if (!mxmlRelease(node))
+          {
+            if (first == node)
+          first = NULL;
+
+        node = NULL;
+      }
         }
 
        /*
@@ -1946,6 +1951,7 @@ mxml_load_data(
       {
         mxml_error("Expected > but got '%c' instead for element <%s/> on line %d.", ch, buffer, line);
             mxmlDelete(node);
+            node = NULL;
             goto error;
       }
 
@@ -1978,8 +1984,13 @@ mxml_load_data(
         {
           (*sax_cb)(node, MXML_SAX_ELEMENT_CLOSE, sax_data);
 
-          if (!mxmlRelease(node) && first == node)
-            first = NULL;
+          if (!mxmlRelease(node))
+          {
+            if (first == node)
+          first = NULL;
+
+        node = NULL;
+      }
         }
       }
 
@@ -2082,7 +2093,7 @@ mxml_parse_element(
 
   if ((name = malloc(64)) == NULL)
   {
-    mxml_error("Unable to allocate memory for name!");
+    mxml_error("Unable to allocate memory for name.");
     return (EOF);
   }
 
@@ -2091,7 +2102,7 @@ mxml_parse_element(
   if ((value = malloc(64)) == NULL)
   {
     free(name);
-    mxml_error("Unable to allocate memory for value!");
+    mxml_error("Unable to allocate memory for value.");
     return (EOF);
   }
 
@@ -2401,7 +2412,7 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
 
         if (mxml_bad_char(ch))
         {
-          mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+          mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                  ch);
           return (EOF);
         }
@@ -2451,7 +2462,7 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
 
         if (ch < 0x80)
         {
-          mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+          mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
           return (EOF);
         }
 
@@ -2477,7 +2488,7 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
 
         if (ch < 0x800)
         {
-          mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+          mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
           return (EOF);
         }
 
@@ -2512,7 +2523,7 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
 
         if (ch < 0x10000)
         {
-          mxml_error("Invalid UTF-8 sequence for character 0x%04x!", ch);
+          mxml_error("Invalid UTF-8 sequence for character 0x%04x.", ch);
           return (EOF);
         }
 
@@ -2535,7 +2546,7 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
 
           if (mxml_bad_char(ch))
       {
-        mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+        mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                    ch);
         return (EOF);
       }
@@ -2583,7 +2594,7 @@ mxml_string_getc(void *p,		/* I  - Pointer to file */
 
           if (mxml_bad_char(ch))
       {
-        mxml_error("Bad control character 0x%02x not allowed by XML standard!",
+        mxml_error("Bad control character 0x%02x not allowed by XML standard.",
                    ch);
         return (EOF);
       }
