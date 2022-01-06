@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2011-2021 dmex
+ * Copyright (C) 2011-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -45,6 +45,9 @@ ULONG ProcessesUpdatedCount = 0;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
 BOOLEAN EnableThemeSupport = FALSE;
+BOOLEAN IsWindowSizeMove = FALSE;
+BOOLEAN IsWindowMinimized = FALSE;
+BOOLEAN IsWindowMaximized = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
@@ -509,6 +512,29 @@ VOID NTAPI LayoutPaddingCallback(
 
         //InvalidateRect(StatusBarHandle, NULL, TRUE);
     }
+}
+
+BOOLEAN CheckRebarLastRedrawMessage(
+    VOID
+    )
+{
+    static LARGE_INTEGER lastUpdateTimeTicks = { 0 };
+    LARGE_INTEGER currentUpdateTimeTicks;
+    LARGE_INTEGER currentUpdateTimeFrequency;
+
+    PhQueryPerformanceCounter(&currentUpdateTimeTicks, &currentUpdateTimeFrequency);
+
+    if (lastUpdateTimeTicks.QuadPart == 0)
+        lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
+
+    if (((currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks.QuadPart) / currentUpdateTimeFrequency.QuadPart) > 1)
+    {
+        lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
+        return TRUE;
+    }
+
+    lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
+    return FALSE;
 }
 
 BOOLEAN NTAPI MessageLoopFilter(
@@ -1258,36 +1284,104 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SHOWWINDOW:
         {
-            UpdateGraphs = (BOOLEAN)wParam;
+            UpdateGraphs = !!(BOOL)wParam;
+        }
+        break;
+    case WM_ENTERSIZEMOVE:
+        {
+            IsWindowSizeMove = TRUE;
+        }
+        break;
+    case WM_EXITSIZEMOVE:
+        {
+            IsWindowSizeMove = FALSE;
+        }
+        break;
+    case WM_WINDOWPOSCHANGED:
+        {
+            if (IsWindowSizeMove)
+                break;
+
+            // Note: The toolbar graphs sometimes stop updating after restoring
+            // the window because WindowsNT doesn't always send a SC_RESTORE message...
+            // The below code is an attempt at working around this issue. (dmex)
+
+            BOOLEAN minimized = !!IsMinimized(hWnd);
+            BOOLEAN maximized = !!IsMaximized(hWnd);
+
+            if (IsWindowMinimized != minimized)
+            {
+                IsWindowMinimized = minimized;
+                // Make sure graph drawing is enabled when not minimized. (dmex)
+                UpdateGraphs = !minimized;
+
+                if (UpdateGraphs && RebarHandle)// && CheckRebarLastRedrawMessage())
+                {
+                    // See notes in SC_RESTORE (dmex)
+                    ToolbarUpdateGraphVisualStates();
+                    SetWindowPos(RebarHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
+                }
+            }
+
+            if (IsWindowMaximized != maximized)
+            {
+                IsWindowMaximized = minimized;
+
+                if (UpdateGraphs && RebarHandle)// && CheckRebarLastRedrawMessage())
+                {
+                    // See notes in SC_RESTORE (dmex)
+                    ToolbarUpdateGraphVisualStates();
+                    SetWindowPos(RebarHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
+                }
+            }
         }
         break;
     case WM_SYSCOMMAND:
         {
-            if ((wParam & 0xFFF0) == SC_KEYMENU && lParam == 0)
-            {
-                if (!ToolStatusConfig.AutoHideMenu)
-                    break;
+            UINT command = (wParam & 0xFFF0);
 
-                if (GetMenu(hWnd))
-                {
-                    SetMenu(hWnd, NULL);
-                }
-                else
-                {
-                    SetMenu(hWnd, MainMenu);
-                    DrawMenuBar(hWnd);
-                }
-            }
-            else if ((wParam & 0xFFF0) == SC_MINIMIZE)
+            switch (command)
             {
-                UpdateGraphs = FALSE;
-            }
-            else if ((wParam & 0xFFF0) == SC_RESTORE)
-            {
-                UpdateGraphs = TRUE;
+            case SC_KEYMENU:
+                {
+                    if (lParam != 0)
+                        break;
 
-                // TODO: The graphs don't redraw when updating is disabled (e.g. F6) and you maximize then restore the main window.
-                RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+                    if (!ToolStatusConfig.AutoHideMenu)
+                        break;
+
+                    if (GetMenu(hWnd))
+                    {
+                        SetMenu(hWnd, NULL);
+                    }
+                    else
+                    {
+                        SetMenu(hWnd, MainMenu);
+                        DrawMenuBar(hWnd);
+                    }
+                }
+                break;
+            case SC_MINIMIZE:
+                {
+                    UpdateGraphs = FALSE;
+                }
+                break;
+            case SC_RESTORE:
+                {
+                    UpdateGraphs = TRUE;
+
+                    //if (RebarHandle && CheckRebarLastRedrawMessage())
+                    //{
+                    //    ToolbarUpdateGraphVisualStates();
+                    //
+                    //    // NOTE: Maximizing and restoring the window when updating is paused will cause the graphs to leave
+                    //    // artiacts on the window because the rebar control doesn't redraw... so we'll force the rebar to redraw.
+                    //    // TODO: Figure out the exact SetWindowPos flags required. (dmex)
+                    //    SetWindowPos(RebarHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
+                    //    //RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+                    //}
+                }
+                break;
             }
         }
         break;

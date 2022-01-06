@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   Toolbar Graph Bands
  *
- * Copyright (C) 2015-2020 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -22,8 +22,8 @@
 
 #include "toolstatus.h"
 
-PPH_LIST PhpToolbarGraphList = NULL;
-PPH_HASHTABLE PhpToolbarGraphHashtable = NULL;
+static PPH_LIST PhpToolbarGraphList = NULL;
+static PPH_HASHTABLE PhpToolbarGraphHashtable = NULL;
 
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback);
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback);
@@ -273,9 +273,6 @@ VOID ToolbarUpdateGraphs(
     VOID
     )
 {
-    if (!ToolStatusConfig.ToolBarEnabled)
-        return;
-
     for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
@@ -292,6 +289,29 @@ VOID ToolbarUpdateGraphs(
         Graph_Draw(graph->GraphHandle);
         Graph_UpdateTooltip(graph->GraphHandle);
         InvalidateRect(graph->GraphHandle, NULL, FALSE);
+    }
+}
+
+VOID ToolbarUpdateGraphVisualStates(
+    VOID
+    )
+{
+    if (!ToolStatusConfig.ToolBarEnabled)
+        return;
+
+    for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
+    {
+        PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
+
+        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+            continue;
+
+        if (!graph->GraphHandle)
+            continue;
+
+        graph->GraphState.Valid = FALSE;
+        graph->GraphState.TooltipIndex = ULONG_MAX;
+        Graph_Draw(graph->GraphHandle);
     }
 }
 

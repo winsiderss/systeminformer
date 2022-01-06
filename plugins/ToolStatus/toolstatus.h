@@ -303,6 +303,10 @@ VOID ToolbarUpdateGraphs(
     VOID
     );
 
+VOID ToolbarUpdateGraphVisualStates(
+    VOID
+    );
+
 BOOLEAN ToolbarUpdateGraphsInfo(
     _In_ HWND WindowHandle,
     _In_ LPNMHDR Header
