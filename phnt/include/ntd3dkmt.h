@@ -1290,10 +1290,16 @@ typedef struct _D3DKMT_QUERYSTATSTICS_TERMINATIONS
 
 typedef struct _D3DKMT_QUERYSTATISTICS_ADAPTER_INFORMATION_FLAGS
 {
-    ULONGLONG NumberOfMemoryGroups : 2;
-    ULONGLONG SupportsDemotion : 1;
-    ULONGLONG Reserved : 61;
-    ULONGLONG Value;
+    union
+    {
+        struct
+        {
+            ULONGLONG NumberOfMemoryGroups : 2;
+            ULONGLONG SupportsDemotion : 1;
+            ULONGLONG Reserved : 61;
+        };
+        ULONGLONG Value;
+    };
 } D3DKMT_QUERYSTATISTICS_ADAPTER_INFORMATION_FLAGS;
 
 typedef struct _D3DKMT_QUERYSTATISTICS_ADAPTER_INFORMATION
