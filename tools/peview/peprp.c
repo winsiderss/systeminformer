@@ -1121,21 +1121,70 @@ VOID PvpSetPeImageEntropy(
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntropyImageThreadStart, WindowHandle);
 }
 
-VOID PvpSetPeImageEntryPoint(
-    _In_ HWND ListViewHandle
+static NTSTATUS PvpEntryPointImageThreadStart(
+    _In_ PVOID Parameter
     )
 {
     ULONG addressOfEntryPoint;
     PPH_STRING string;
+    PPH_STRING symbol;
+    PPH_STRING symbolName = NULL;
+    PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
 
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         addressOfEntryPoint = PvMappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
     else
         addressOfEntryPoint = PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
 
-    string = PhFormatString(L"0x%I32x", addressOfEntryPoint);
-    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
-    PhDereferenceObject(string);
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        symbol = PhGetSymbolFromAddress(
+            PvSymbolProvider,
+            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, addressOfEntryPoint),
+            &symbolResolveLevel,
+            NULL,
+            &symbolName,
+            NULL
+            );
+    }
+    else
+    {
+        symbol = PhGetSymbolFromAddress(
+            PvSymbolProvider,
+            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, addressOfEntryPoint),
+            &symbolResolveLevel,
+            NULL,
+            &symbolName,
+            NULL
+            );
+    }
+
+    if (symbolName && symbolResolveLevel == PhsrlFunction || symbolResolveLevel == PhsrlModule || symbolResolveLevel == PhsrlAddress)
+    {
+        string = PhFormatString(L"0x%I32x (%s)", addressOfEntryPoint, PhGetStringOrEmpty(symbolName));
+        PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
+        PhDereferenceObject(string);
+    }
+    else
+    {
+        string = PhFormatString(L"0x%I32x", addressOfEntryPoint);
+        PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
+        PhDereferenceObject(string);
+    }
+
+    if (symbolName)
+        PhDereferenceObject(symbolName);
+    PhDereferenceObject(symbol);
+    return STATUS_SUCCESS;
+}
+
+VOID PvpSetPeImageEntryPoint(
+    _In_ HWND ListViewHandle
+    )
+{
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, L"Resolving...");
+
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntryPointImageThreadStart, ListViewHandle);
 }
 
 VOID PvpSetPeImageCheckSum(
