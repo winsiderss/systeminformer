@@ -1248,23 +1248,22 @@ NTSTATUS PeDumpFileSymbols(
                 &size
                 );
 
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(NULL, L"Unable to load the file.", status, 0);
+                return status;
+            }
+
             if (PvpLoadDbgHelp(&PvSymbolProvider))
             {
-                PPH_STRING fileName;
-
-                if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), viewBase, &fileName)))
+                if (PhLoadFileNameSymbolProvider(
+                    PvSymbolProvider,
+                    PvFileName,
+                    (ULONG64)viewBase,
+                    (ULONG)size
+                    ))
                 {
-                    if (PhLoadModuleSymbolProvider(
-                        PvSymbolProvider,
-                        fileName,
-                        (ULONG64)viewBase,
-                        (ULONG)size
-                        ))
-                    {
-                        baseOfDll = (ULONG64)viewBase;
-                    }
-
-                    PhDereferenceObject(fileName);
+                    baseOfDll = (ULONG64)viewBase;
                 }
             }
 

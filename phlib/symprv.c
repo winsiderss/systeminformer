@@ -1034,6 +1034,70 @@ BOOLEAN PhLoadModuleSymbolProvider(
         return FALSE;
 }
 
+BOOLEAN PhLoadFileNameSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG64 BaseAddress,
+    _In_ ULONG Size
+    )
+{
+    ULONG64 baseAddress;
+    PPH_SYMBOL_MODULE symbolModule = NULL;
+    PPH_AVL_LINKS existingLinks;
+    PH_SYMBOL_MODULE lookupSymbolModule;
+
+    PhpRegisterSymbolProvider(SymbolProvider);
+
+    if (!SymLoadModuleExW_I)
+        return FALSE;
+
+    PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+    lookupSymbolModule.BaseAddress = BaseAddress;
+    existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
+    PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+
+    if (existingLinks)
+        return TRUE;
+
+    PH_LOCK_SYMBOLS();
+
+    baseAddress = SymLoadModuleExW_I(
+        SymbolProvider->ProcessHandle,
+        NULL,
+        FileName->Buffer,
+        NULL,
+        BaseAddress,
+        Size,
+        NULL,
+        0
+        );
+
+    PH_UNLOCK_SYMBOLS();
+
+    PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+    lookupSymbolModule.BaseAddress = BaseAddress;
+    existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
+
+    if (!existingLinks)
+    {
+        symbolModule = PhAllocate(sizeof(PH_SYMBOL_MODULE));
+        symbolModule->BaseAddress = BaseAddress;
+        symbolModule->Size = Size;
+        PhSetReference(&symbolModule->FileName, FileName);
+
+        existingLinks = PhAddElementAvlTree(&SymbolProvider->ModulesSet, &symbolModule->Links);
+        assert(!existingLinks);
+        InsertTailList(&SymbolProvider->ModulesListHead, &symbolModule->ListEntry);
+    }
+
+    PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+
+    if (baseAddress)
+        return TRUE;
+    else
+        return FALSE;
+}
+
 typedef struct _PHP_LOAD_PROCESS_SYMBOLS_CONTEXT
 {
     HANDLE LoadingSymbolsForProcessId;
