@@ -131,6 +131,16 @@ PhLoadModuleSymbolProvider(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoadFileNameSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG64 BaseAddress,
+    _In_ ULONG Size
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhLoadModulesForProcessSymbolProvider(
