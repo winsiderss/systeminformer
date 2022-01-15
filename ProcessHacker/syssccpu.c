@@ -1123,13 +1123,15 @@ VOID PhSipUpdateCpuPanel(
         performanceCounterTicks.QuadPart = 0;
 
     PhInitFormatI64UGroupDigits(&format[0], performanceCounterTicks.QuadPart);
+    PhInitFormatS(&format[1], L" | ");
+    PhInitFormatI64UGroupDigits(&format[2], PhTotalCpuQueueLength);
 
-    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+    if (PhFormatToBuffer(format, 3, formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(CpuPanelLatencyLabel, formatBuffer);
     else
         PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(performanceCounterTicks.QuadPart, TRUE)->Buffer);
 #else
-    PhSetWindowText(CpuPanelLatencyLabel, L"N/A");
+    PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(PhTotalCpuQueueLength, TRUE)->Buffer);
 #endif
 }
 
