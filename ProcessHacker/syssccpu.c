@@ -3,7 +3,7 @@
  *   System Information CPU section
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -829,7 +829,7 @@ VOID PhSipNotifyCpuGraph(
                     {
                         FLOAT cpuKernel;
                         FLOAT cpuUser;
-                        PH_FORMAT format[9];
+                        PH_FORMAT format[15];
 
                         cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], getTooltipText->Index);
                         cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[Index], getTooltipText->Index);
@@ -842,8 +842,14 @@ VOID PhSipNotifyCpuGraph(
                         PhInitFormatF(&format[4], (DOUBLE)cpuUser * 100, 2);
                         PhInitFormatS(&format[5], L"%)");
                         PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhSipGetMaxCpuString(getTooltipText->Index))->sr);
-                        PhInitFormatC(&format[7], L'\n');
-                        PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                        PhInitFormatS(&format[7], L"\nCPU ");
+                        PhInitFormatU(&format[8], Index);
+                        PhInitFormatS(&format[9], L", Core ");
+                        PhInitFormatU(&format[10], PhSipGetProcessorRelationshipIndex(RelationProcessorCore, Index));
+                        PhInitFormatS(&format[11], L", Socket ");
+                        PhInitFormatU(&format[12], PhSipGetProcessorRelationshipIndex(RelationProcessorPackage, Index));
+                        PhInitFormatS(&format[13], L"\n");
+                        PhInitFormatSR(&format[14], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
                         PhMoveReference(&CpusGraphState[Index].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 160));
                     }
@@ -1532,4 +1538,41 @@ NTSTATUS PhSipQueryProcessorLogicalInformationEx(
         PhFree(buffer);
 
     return status;
+}
+
+ULONG PhSipGetProcessorRelationshipIndex(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
+    _In_ ULONG Index
+    )
+{
+    ULONG index;
+    ULONG bufferLength;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInfo;
+
+    if (!NT_SUCCESS(PhSipQueryProcessorLogicalInformationEx(RelationshipType, &buffer, &bufferLength)))
+        return ULONG_MAX;
+
+    index = 0;
+
+    for (
+        logicalInfo = buffer;
+        (ULONG_PTR)logicalInfo < (ULONG_PTR)PTR_ADD_OFFSET(buffer, bufferLength);
+        logicalInfo = PTR_ADD_OFFSET(logicalInfo, logicalInfo->Size)
+        )
+    {
+        PROCESSOR_RELATIONSHIP processor = logicalInfo->Processor;
+        //BOOLEAN hyperThreaded = processor.Flags & LTP_PC_SMT;
+
+        if (processor.GroupMask[0].Mask & ((KAFFINITY)1 << Index))
+        {
+            PhFree(buffer);
+            return index;
+        }
+
+        index++;
+    }
+
+    PhFree(buffer);
+    return ULONG_MAX;
 }

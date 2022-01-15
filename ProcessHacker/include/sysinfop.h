@@ -98,6 +98,11 @@ VOID PhSipOnUserMessage(
     _In_ ULONG_PTR LParam
     );
 
+ULONG PhSipGetProcessorRelationshipIndex(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
+    _In_ ULONG Index
+    );
+
 // Framework
 
 VOID PhSipRegisterDialog(
