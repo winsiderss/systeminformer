@@ -374,5 +374,4 @@ VOID PhUpdateCachedSettings(
 
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
-    PhEnableImageCoherencySupport = !!PhGetIntegerSetting(L"EnableImageCoherencySupport");
 }

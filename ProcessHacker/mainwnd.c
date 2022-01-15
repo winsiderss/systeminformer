@@ -2018,9 +2018,10 @@ VOID PhMwpLoadSettings(
     PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableTooltipSupport = !!PhGetIntegerSetting(L"EnableTooltipSupport");
+    PhEnableImageCoherencySupport = !!PhGetIntegerSetting(L"EnableImageCoherencySupport");
     PhEnableLinuxSubsystemSupport = !!PhGetIntegerSetting(L"EnableLinuxSubsystemSupport");
     PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
-    
+
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
     {
         AlwaysOnTop = TRUE;
