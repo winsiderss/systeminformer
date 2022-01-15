@@ -1495,12 +1495,26 @@ NTSTATUS PhSipQueryProcessorLogicalInformationEx(
     _Out_ PULONG BufferLength
     )
 {
+    static ULONG initialBufferSize[2] = { 0x200, 0x80 };
     NTSTATUS status;
+    ULONG classIndex;
     PVOID buffer;
     ULONG bufferSize;
     ULONG attempts;
 
-    bufferSize = 0x100;
+    switch (RelationshipType)
+    {
+    case RelationProcessorCore:
+        classIndex = 0;
+        break;
+    case RelationProcessorPackage:
+        classIndex = 1;
+        break;
+    default:
+        return STATUS_INVALID_INFO_CLASS;
+    }
+
+    bufferSize = initialBufferSize[classIndex];
     buffer = PhAllocate(bufferSize);
 
     status = NtQuerySystemInformationEx(
@@ -1529,13 +1543,15 @@ NTSTATUS PhSipQueryProcessorLogicalInformationEx(
         attempts++;
     }
 
-    if (NT_SUCCESS(status))
+    if (!NT_SUCCESS(status))
     {
-        *Buffer = buffer;
-        *BufferLength = bufferSize;
-    }
-    else
         PhFree(buffer);
+        return status;
+    }
+
+    if (bufferSize <= 0x100000) initialBufferSize[classIndex] = bufferSize;
+    *Buffer = buffer;
+    *BufferLength = bufferSize;
 
     return status;
 }
