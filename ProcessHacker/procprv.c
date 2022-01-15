@@ -181,6 +181,7 @@ SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
 ULONG PhTotalProcesses = 0;
 ULONG PhTotalThreads = 0;
 ULONG PhTotalHandles = 0;
+ULONG PhTotalCpuQueueLength = 0;
 
 PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation = NULL;
 PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation = NULL;
@@ -1843,17 +1844,20 @@ VOID PhpGetProcessThreadInformation(
     _In_ PSYSTEM_PROCESS_INFORMATION Process,
     _Out_opt_ PBOOLEAN IsSuspended,
     _Out_opt_ PBOOLEAN IsPartiallySuspended,
-    _Out_opt_ PULONG ContextSwitches
+    _Out_opt_ PULONG ContextSwitches,
+    _Out_opt_ PULONG ReadyThreads
     )
 {
     ULONG i;
     BOOLEAN isSuspended;
     BOOLEAN isPartiallySuspended;
     ULONG contextSwitches;
+    ULONG threadQueueCount;
 
     isSuspended = PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId);
     isPartiallySuspended = FALSE;
     contextSwitches = 0;
+    threadQueueCount = 0;
 
     for (i = 0; i < Process->NumberOfThreads; i++)
     {
@@ -1865,6 +1869,11 @@ VOID PhpGetProcessThreadInformation(
         else
         {
             isPartiallySuspended = TRUE;
+        }
+
+        if (Process->Threads[i].ThreadState == Ready)
+        {
+            threadQueueCount++;
         }
 
         contextSwitches += Process->Threads[i].ContextSwitches;
@@ -1883,6 +1892,8 @@ VOID PhpGetProcessThreadInformation(
         *IsPartiallySuspended = isPartiallySuspended;
     if (ContextSwitches)
         *ContextSwitches = contextSwitches;
+    if (ReadyThreads)
+        *ReadyThreads = threadQueueCount;
 }
 
 VOID PhProcessProviderUpdate(
@@ -1953,6 +1964,7 @@ VOID PhProcessProviderUpdate(
     PhTotalProcesses = 0;
     PhTotalThreads = 0;
     PhTotalHandles = 0;
+    PhTotalCpuQueueLength = 0;
 
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
         return;
@@ -2177,6 +2189,7 @@ VOID PhProcessProviderUpdate(
             BOOLEAN isSuspended;
             BOOLEAN isPartiallySuspended;
             ULONG contextSwitches;
+            ULONG readyThreads;
 
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
@@ -2188,8 +2201,9 @@ VOID PhProcessProviderUpdate(
             PhpAddProcessRecord(processRecord);
             processItem->Record = processRecord;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
+            PhTotalCpuQueueLength += readyThreads;
 
             // Initialize the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
@@ -2249,13 +2263,15 @@ VOID PhProcessProviderUpdate(
             BOOLEAN isSuspended;
             BOOLEAN isPartiallySuspended;
             ULONG contextSwitches;
+            ULONG readyThreads;
             FLOAT newCpuUsage;
             FLOAT kernelCpuUsage;
             FLOAT userCpuUsage;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
             PhpFillProcessItemExtension(processItem, process);
+            PhTotalCpuQueueLength += readyThreads;
 
             // Update the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);

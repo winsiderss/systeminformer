@@ -19,6 +19,7 @@ extern SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
 extern ULONG PhTotalProcesses;
 extern ULONG PhTotalThreads;
 extern ULONG PhTotalHandles;
+extern ULONG PhTotalCpuQueueLength;
 
 extern ULONG64 PhCpuTotalCycleDelta;
 extern PLARGE_INTEGER PhCpuIdleCycleTime; // cycle time for Idle
