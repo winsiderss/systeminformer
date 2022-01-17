@@ -412,6 +412,10 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                     ADD_VALUE(L"XFG dispatch-function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardXFGDispatchFunctionPointer)->Buffer); \
                     ADD_VALUE(L"XFG table dispatch-function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardXFGTableDispatchFunctionPointer)->Buffer); \
                 } \
+                if (RTL_CONTAINS_FIELD((Config), (Config)->Size, CastGuardOsDeterminedFailureMode)) \
+                { \
+                    ADD_VALUE(L"Cast guard failure mode", PhaFormatString(L"0x%Ix", (Config)->CastGuardOsDeterminedFailureMode)->Buffer); \
+                } \
             }
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
