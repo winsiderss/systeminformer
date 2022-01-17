@@ -3,7 +3,7 @@
  *   plugin support
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -61,6 +61,20 @@ VOID PhpExecuteCallbackForAllPlugins(
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static ULONG NextPluginId = IDPLUGINS + 1;
+static PH_STRINGREF PhpDefaultPluginName[] =
+{
+    PH_STRINGREF_INIT(L"DotNetTools.dll"),
+    PH_STRINGREF_INIT(L"ExtendedNotifications.dll"),
+    PH_STRINGREF_INIT(L"ExtendedServices.dll"),
+    PH_STRINGREF_INIT(L"ExtendedTools.dll"),
+    PH_STRINGREF_INIT(L"HardwareDevices.dll"),
+    PH_STRINGREF_INIT(L"NetworkTools.dll"),
+    PH_STRINGREF_INIT(L"OnlineChecks.dll"),
+    PH_STRINGREF_INIT(L"ToolStatus.dll"),
+    PH_STRINGREF_INIT(L"Updater.dll"),
+    PH_STRINGREF_INIT(L"UserNotes.dll"),
+    PH_STRINGREF_INIT(L"WindowExplorer.dll"),
+};
 
 INT NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
@@ -322,6 +336,12 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     if (!PhEndsWithStringRef(&baseName, &PhpPluginExtension, FALSE))
         return TRUE;
 
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
+    {
+        if (PhEqualStringRef(&baseName, &PhpDefaultPluginName[i], TRUE))
+            return TRUE;
+    }
+
     if (!(directoryName = PhpGetPluginDirectoryPath()))
         return TRUE;
 
@@ -439,7 +459,8 @@ VOID PhLoadPlugins(
     VOID
     )
 {
-    ULONG i;
+    NTSTATUS status;
+    PPH_STRING fileName;
     PPH_STRING pluginsDirectory;
     PPH_LIST pluginLoadErrors;
 
@@ -448,58 +469,34 @@ VOID PhLoadPlugins(
 
     pluginLoadErrors = PhCreateList(1);
 
-    if (PhGetIntegerSetting(L"EnableSafeDefaultPlugins"))
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
     {
-        static PH_STRINGREF PhpDefaultPluginName[] =
+        if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]))
         {
-            PH_STRINGREF_INIT(L"DotNetTools.dll"),
-            PH_STRINGREF_INIT(L"ExtendedNotifications.dll"),
-            PH_STRINGREF_INIT(L"ExtendedServices.dll"),
-            PH_STRINGREF_INIT(L"ExtendedTools.dll"),
-            PH_STRINGREF_INIT(L"HardwareDevices.dll"),
-            PH_STRINGREF_INIT(L"NetworkTools.dll"),
-            PH_STRINGREF_INIT(L"OnlineChecks.dll"),
-            PH_STRINGREF_INIT(L"ToolStatus.dll"),
-            PH_STRINGREF_INIT(L"Updater.dll"),
-            PH_STRINGREF_INIT(L"UserNotes.dll"),
-            PH_STRINGREF_INIT(L"WindowExplorer.dll"),
-        };
-        PPH_STRING fileName;
-        NTSTATUS status;
+            status = PhLoadPlugin(fileName);
 
-        for (i = 0; i < RTL_NUMBER_OF(PhpDefaultPluginName); i++)
-        {
-            if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]))
+            if (!NT_SUCCESS(status))
             {
-                status = PhLoadPlugin(fileName);
+                PPHP_PLUGIN_LOAD_ERROR loadError;
+                PPH_STRING errorMessage;
 
-                if (!NT_SUCCESS(status))
+                loadError = PhAllocateZero(sizeof(PHP_PLUGIN_LOAD_ERROR));
+                PhSetReference(&loadError->FileName, fileName);
+
+                if (errorMessage = PhGetNtMessage(status))
                 {
-                    PPHP_PLUGIN_LOAD_ERROR loadError;
-                    PPH_STRING errorMessage;
-
-                    loadError = PhAllocateZero(sizeof(PHP_PLUGIN_LOAD_ERROR));
-                    PhSetReference(&loadError->FileName, fileName);
-
-                    if (errorMessage = PhGetNtMessage(status))
-                    {
-                        PhSetReference(&loadError->ErrorMessage, errorMessage);
-                        PhDereferenceObject(errorMessage);
-                    }
-
-                    PhAddItemList(pluginLoadErrors, loadError);
+                    PhSetReference(&loadError->ErrorMessage, errorMessage);
+                    PhDereferenceObject(errorMessage);
                 }
 
-                PhDereferenceObject(fileName);
+                PhAddItemList(pluginLoadErrors, loadError);
             }
-        }
 
-        if (pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
-        {
-            PhpShowPluginErrorMessage(pluginLoadErrors);
+            PhDereferenceObject(fileName);
         }
     }
-    else
+
+    if (!PhGetIntegerSetting(L"EnableSafeDefaultPlugins"))
     {
         HANDLE pluginsDirectoryHandle;
 
@@ -539,13 +536,13 @@ VOID PhLoadPlugins(
 
             NtClose(pluginsDirectoryHandle);
         }
+    }
 
-        // Handle load errors.
-        // In certain startup modes we want to ignore all plugin load errors.
-        if (PhGetIntegerSetting(L"ShowPluginLoadErrors") && pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
-        {
-            PhpShowPluginErrorMessage(pluginLoadErrors);
-        }
+    // Handle load errors.
+    // In certain startup modes we want to ignore all plugin load errors.
+    if (PhGetIntegerSetting(L"ShowPluginLoadErrors") && pluginLoadErrors->Count != 0 && !PhStartupParameters.PhSvc)
+    {
+        PhpShowPluginErrorMessage(pluginLoadErrors);
     }
 
     // When we loaded settings before, we didn't know about plugin settings, so they
@@ -557,7 +554,7 @@ VOID PhLoadPlugins(
 
     PhpExecuteCallbackForAllPlugins(PluginCallbackLoad, TRUE);
 
-    for (i = 0; i < pluginLoadErrors->Count; i++)
+    for (ULONG i = 0; i < pluginLoadErrors->Count; i++)
     {
         PPHP_PLUGIN_LOAD_ERROR loadError;
 
@@ -594,23 +591,6 @@ NTSTATUS PhLoadPlugin(
     _In_ PPH_STRING FileName
     )
 {
-    //NTSTATUS status;
-    //PPH_STRING fileName;
-    //
-    //status = PhGetFullPathEx(
-    //    FileName->Buffer,
-    //    NULL,
-    //    &fileName
-    //    );
-    //
-    //if (NT_SUCCESS(status))
-    //{
-    //    status = PhLoadPluginImage(fileName, NULL);
-    //
-    //    PhDereferenceObject(fileName);
-    //}
-    //
-    //return status;
     return PhLoadPluginImage(FileName, NULL);
 }
 
