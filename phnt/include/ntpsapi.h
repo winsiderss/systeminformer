@@ -1315,13 +1315,6 @@ NtSetInformationProcess(
     _In_ ULONG ProcessInformationLength
     );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtQueryPortInformationProcess(
-    VOID
-    );
-
 #endif
 
 #define STATECHANGE_SET_ATTRIBUTES 0x0001
