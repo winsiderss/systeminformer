@@ -2229,7 +2229,7 @@ BOOLEAN PhGetSymbolProviderDiaSession(
     _Out_ PVOID* DiaSession
     )
 {
-    BOOL result;
+    BOOLEAN result;
     PVOID session; // IDiaSession COM interface
 
     PhpRegisterSymbolProvider(SymbolProvider);
