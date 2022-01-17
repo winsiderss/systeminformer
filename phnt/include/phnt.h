@@ -114,7 +114,6 @@ extern "C" {
 #include <nttp.h>
 #include <ntxcapi.h>
 
-#include <ntd3dkmt.h>
 #include <ntwow64.h>
 
 #include <ntlsa.h>
