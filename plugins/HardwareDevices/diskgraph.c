@@ -85,6 +85,20 @@ VOID DiskDriveUpdatePanel(
         PhSetWindowText(Context->DiskDrivePanelBytesLabel, formatBuffer);
     else
         PhSetWindowText(Context->DiskDrivePanelBytesLabel, PhaFormatString(L"%s/s", PhaFormatSize(Context->DiskEntry->BytesReadDelta.Delta + Context->DiskEntry->BytesWrittenDelta.Delta, ULONG_MAX)->Buffer)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], Context->DiskEntry->QueueDepth);
+
+    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH), formatBuffer);
+    else
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH), PhaFormatString(L"%lu", Context->DiskEntry->QueueDepth)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], Context->DiskEntry->SplitCount);
+
+    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_SPLITCOUNT), formatBuffer);
+    else
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_SPLITCOUNT), PhaFormatString(L"%lu", Context->DiskEntry->SplitCount)->Buffer);
 }
 
 VOID DiskDriveUpdateTitle(
