@@ -464,7 +464,8 @@ BOOLEAN PhTnpOnCreate(
         Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
     }
 
-    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW)
+    // TODO: HeaderCustomDraw doens't support classic theme on Windows 7 (dmex)
+    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW && WindowsVersion > WINDOWS_7)
         Context->HeaderCustomDraw = TRUE;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
@@ -5450,7 +5451,9 @@ VOID PhTnpPaint(
         //    InvalidateRect(Context->FixedHeaderHandle, NULL, FALSE);
         //}
 
-        // TODO: This invalidates the whole header even when nothing changes. 
+        // TODO:
+        // 1) PhTickProcessNodes excludes the header when invalidating the treelist.
+        // 2) This invalidates the whole header even when nothing changes.
         // We can add a callback similar to TreeNewGetHeaderText that returns TRUE
         // for headers that have custom text and need invalidating? (dmex)
 
