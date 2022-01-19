@@ -30,6 +30,10 @@
 #include <settings.h>
 #include <math.h>
 
+#include <dxmini.h>
+#include <d3dkmddi.h>
+#include <d3dkmthk.h>
+
 #include "resource.h"
 
 #include "framemon.h"
@@ -76,6 +80,10 @@ extern BOOLEAN EtPropagateCpuUsage;
 // Window messages
 #define ET_WM_SHOWDIALOG (WM_APP + 1)
 #define ET_WM_UPDATE (WM_APP + 2)
+
+VOID EtLoadSettings(
+    VOID
+    );
 
 // phsvc extensions
 
@@ -536,6 +544,8 @@ VOID EtSaveSettingsDiskTreeList(
 
 // gpumon
 
+typedef D3DKMT_HANDLE* PD3DKMT_HANDLE;
+
 extern BOOLEAN EtGpuEnabled;
 extern BOOLEAN EtGpuSupported;
 extern BOOLEAN EtD3DEnabled;
@@ -580,6 +590,12 @@ NTSTATUS EtQueryAdapterInformation(
     _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
     _Out_writes_bytes_opt_(InformationLength) PVOID Information,
     _In_ UINT32 InformationLength
+    );
+
+_Success_(return)
+BOOLEAN EtOpenAdapterFromDeviceName(
+    _Out_ PD3DKMT_HANDLE AdapterHandle,
+    _In_ PWSTR DeviceName
     );
 
 BOOLEAN EtCloseAdapterHandle(

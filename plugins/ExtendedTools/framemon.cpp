@@ -76,7 +76,10 @@ VOID EtFramesMonitorUninitialization(
     VOID
     )
 {
-    StopFpsTraceSession();
+    if (EtFramesEnabled)
+    {
+        StopFpsTraceSession();
+    }
 }
 
 VOID EtFramesMonitorStart(

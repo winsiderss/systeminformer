@@ -538,7 +538,7 @@ PPH_STRING EtFwGetDnsReverseNameFromAddress(
             {
                 PH_FORMAT format[4];
                 SIZE_T returnLength;
-                WCHAR reverseNameBuffer[PH_INT32_STR_LEN_1];
+                WCHAR reverseNameBuffer[IP6_REVERSE_DOMAIN_STRING_LENGTH];
 
                 PhInitFormatX(&format[0], Address->In6Addr.s6_addr[i] & 0xF);
                 PhInitFormatC(&format[1], L'.');

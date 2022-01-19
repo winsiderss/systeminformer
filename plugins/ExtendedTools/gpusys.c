@@ -86,6 +86,60 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             }
         }
         return TRUE;
+    case SysInfoViewChanging:
+        {
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
+
+            if (view == SysInfoSummaryView || section != Section)
+                return TRUE;
+
+            if (GpuGraphHandle)
+            {
+                GpuGraphState.Valid = FALSE;
+                GpuGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(GpuGraphHandle);
+            }
+
+            if (DedicatedGraphHandle)
+            {
+                DedicatedGraphState.Valid = FALSE;
+                DedicatedGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(DedicatedGraphHandle);
+            }
+
+            if (SharedGraphHandle)
+            {
+                SharedGraphState.Valid = FALSE;
+                SharedGraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(SharedGraphHandle);
+            }
+
+            if (EtGpuSupported)
+            {
+                if (PowerUsageGraphHandle)
+                {
+                    PowerUsageGraphState.Valid = FALSE;
+                    PowerUsageGraphState.TooltipIndex = ULONG_MAX;
+                    Graph_Draw(PowerUsageGraphHandle);
+                }
+
+                if (TemperatureGraphHandle)
+                {
+                    TemperatureGraphState.Valid = FALSE;
+                    TemperatureGraphState.TooltipIndex = ULONG_MAX;
+                    Graph_Draw(TemperatureGraphHandle);
+                }
+
+                if (FanRpmGraphHandle)
+                {
+                    FanRpmGraphState.Valid = FALSE;
+                    FanRpmGraphState.TooltipIndex = ULONG_MAX;
+                    Graph_Draw(FanRpmGraphHandle);
+                }
+            }
+        }
+        return TRUE;
     case SysInfoCreateDialog:
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
@@ -517,6 +571,23 @@ VOID EtpLayoutGpuGraphs(
     ULONG graphHeight;
     HDWP deferHandle;
     ULONG y;
+
+    GpuGraphState.Valid = FALSE;
+    GpuGraphState.TooltipIndex = ULONG_MAX;
+    DedicatedGraphState.Valid = FALSE;
+    DedicatedGraphState.TooltipIndex = ULONG_MAX;
+    SharedGraphState.Valid = FALSE;
+    SharedGraphState.TooltipIndex = ULONG_MAX;
+
+    if (EtGpuSupported)
+    {
+        PowerUsageGraphState.Valid = FALSE;
+        PowerUsageGraphState.TooltipIndex = ULONG_MAX;
+        TemperatureGraphState.Valid = FALSE;
+        TemperatureGraphState.TooltipIndex = ULONG_MAX;
+        FanRpmGraphState.Valid = FALSE;
+        FanRpmGraphState.TooltipIndex = ULONG_MAX;
+    }
 
     GetClientRect(GpuDialog, &clientRect);
     GetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
