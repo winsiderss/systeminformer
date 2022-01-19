@@ -1709,7 +1709,7 @@ VOID CALLBACK EtFwEventCallback(
                 // to the same filename as the process. (dmex)
                 PhSwapReference(&entry.ProcessFileName, entry.ProcessItem->FileName);
                 PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
-                PhMoveReference(&entry.ProcessBaseString, PhGetBaseName(entry.ProcessFileName));
+                PhMoveReference(&entry.ProcessBaseString, entry.ProcessItem->ProcessName);
             }
         }
     }
