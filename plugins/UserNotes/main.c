@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2016-2021 dmex
+ * Copyright (C) 2016-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -36,6 +36,7 @@ static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginMenuHookCallbackRegistration;
+static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TreeNewMessageCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
@@ -393,10 +394,54 @@ VOID NTAPI ShowOptionsCallback(
         );
 }
 
+VOID NTAPI MainMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_EMENU_ITEM onlineMenuItem;
+
+    if (!menuInfo)
+        return;
+
+    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
+        return;
+
+    onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&User Notes", NULL);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PRIORITY_SAVE_IFEO, L"Configure priority for executable file...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_IO_PRIORITY_SAVE_IFEO, L"Configure IO priority for executable file...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PAGE_PRIORITY_SAVE_IFEO, L"Configure page priority for executable file...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, ULONG_MAX);
+}
+
+PPH_STRING ShowFileDialog(
+    _In_ HWND ParentHandle
+    )
+{
+    static PH_FILETYPE_FILTER filters[] =
+    {
+        { L"All files (*.*)", L"*.*" }
+    };
+    PPH_STRING fileName = NULL;
+    PVOID fileDialog;
+
+    fileDialog = PhCreateOpenFileDialog();
+    PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
+
+    if (PhShowFileDialog(ParentHandle, fileDialog))
+    {
+        fileName = PhGetFileDialogFileName(fileDialog);
+    }
+
+    PhFreeFileDialog(fileDialog);
+    return fileName;
+}
+
 typedef struct _USERNOTES_TASK_IFEO_CONTEXT
 {
     HWND WindowHandle;
-    PPH_PROCESS_ITEM ProcessItem;
+    PPH_STRING FileName;
     PPH_STRING StatusMessage;
     ULONG RadioButton;
     USERNOTES_COMMAND_ID MenuCommand;
@@ -430,7 +475,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                 if (context->RadioButton == ULONG_MAX)
                     return S_FALSE;
 
-                if (context->MenuCommand == PROCESS_PRIORITY_SAVE_IFEO)
+                if (context->MenuCommand == PROCESS_PRIORITY_SAVE_IFEO || context->MenuCommand == FILE_PRIORITY_SAVE_IFEO)
                 {
                     NTSTATUS status;
                     ULONG newPriorityClass;
@@ -440,7 +485,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                     if (newPriorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
                     {
                         status = CreateIfeoObject(
-                            &context->ProcessItem->ProcessName->sr,
+                            &context->FileName->sr,
                             newPriorityClass,
                             ULONG_MAX,
                             ULONG_MAX
@@ -473,7 +518,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                         return S_FALSE;
                     }
                 }
-                else if (context->MenuCommand == PROCESS_IO_PRIORITY_SAVE_IFEO)
+                else if (context->MenuCommand == PROCESS_IO_PRIORITY_SAVE_IFEO || context->MenuCommand == FILE_IO_PRIORITY_SAVE_IFEO)
                 {
                     NTSTATUS status;
                     ULONG newIoPriorityClass;
@@ -483,7 +528,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                     if (newIoPriorityClass != ULONG_MAX)
                     {
                         status = CreateIfeoObject(
-                            &context->ProcessItem->ProcessName->sr,
+                            &context->FileName->sr,
                             ULONG_MAX,
                             newIoPriorityClass,
                             ULONG_MAX
@@ -516,7 +561,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                         return S_FALSE;
                     }
                 }
-                else if (context->MenuCommand == PROCESS_PAGE_PRIORITY_SAVE_IFEO)
+                else if (context->MenuCommand == PROCESS_PAGE_PRIORITY_SAVE_IFEO || context->MenuCommand == FILE_PAGE_PRIORITY_SAVE_IFEO)
                 {
                     NTSTATUS status;
                     ULONG newPagePriority;
@@ -526,7 +571,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                     if (newPagePriority != ULONG_MAX)
                     {
                         status = CreateIfeoObject(
-                            &context->ProcessItem->ProcessName->sr,
+                            &context->FileName->sr,
                             ULONG_MAX,
                             ULONG_MAX,
                             newPagePriority
@@ -574,7 +619,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 
 VOID ShowProcessPriorityDialog(
     _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_STRING FileName
     )
 {
     static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
@@ -598,13 +643,13 @@ VOID ShowProcessPriorityDialog(
     context = PhAllocateZero(sizeof(USERNOTES_TASK_IFEO_CONTEXT));
     context->RadioButton = ULONG_MAX;
     context->MenuCommand = MenuItem->Id;
-    context->ProcessItem = ProcessItem;
+    context->FileName = FileName;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
-    config.pszWindowTitle = PhGetString(ProcessItem->ProcessName);
+    config.pszWindowTitle = PhGetString(FileName);
     config.pszMainInstruction = L"Select the default process priority.";
     config.pszContent = L"The process priority will be applied by Windows even when Process Hacker isn't currently running. "
     L"Note: Realtime priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
@@ -618,7 +663,7 @@ VOID ShowProcessPriorityDialog(
     config.pfCallback = TaskDialogBootstrapCallback;
     config.cxWidth = 200;
 
-    if (FindIfeoObject(&ProcessItem->ProcessName->sr, &priorityClass, NULL, NULL))
+    if (FindIfeoObject(&FileName->sr, &priorityClass, NULL, NULL))
     {
         switch (priorityClass)
         {
@@ -659,7 +704,7 @@ VOID ShowProcessPriorityDialog(
 
 VOID ShowProcessIoPriorityDialog(
     _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_STRING FileName
     )
 {
     static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
@@ -681,13 +726,13 @@ VOID ShowProcessIoPriorityDialog(
     context = PhAllocateZero(sizeof(USERNOTES_TASK_IFEO_CONTEXT));
     context->RadioButton = ULONG_MAX;
     context->MenuCommand = MenuItem->Id;
-    context->ProcessItem = ProcessItem;
+    context->FileName = FileName;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
-    config.pszWindowTitle = PhGetString(ProcessItem->ProcessName);
+    config.pszWindowTitle = PhGetString(FileName);
     config.pszMainInstruction = L"Select the default process IO priority.";
     config.pszContent = L"The IO priority will be applied by Windows even when Process Hacker isn't currently running. "
     L"Note: High IO priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
@@ -701,7 +746,7 @@ VOID ShowProcessIoPriorityDialog(
     config.pfCallback = TaskDialogBootstrapCallback;
     config.cxWidth = 200;
 
-    if (FindIfeoObject(&ProcessItem->ProcessName->sr, NULL, &ioPriorityClass, NULL))
+    if (FindIfeoObject(&FileName->sr, NULL, &ioPriorityClass, NULL))
     {
         switch (ioPriorityClass)
         {
@@ -736,7 +781,7 @@ VOID ShowProcessIoPriorityDialog(
 
 VOID ShowProcessPagePriorityDialog(
     _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_STRING FileName
     )
 {
     static TASKDIALOG_BUTTON TaskDialogRadioButtonArray[] =
@@ -759,13 +804,13 @@ VOID ShowProcessPagePriorityDialog(
     context = PhAllocateZero(sizeof(USERNOTES_TASK_IFEO_CONTEXT));
     context->RadioButton = ULONG_MAX;
     context->MenuCommand = MenuItem->Id;
-    context->ProcessItem = ProcessItem;
+    context->FileName = FileName;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
-    config.pszWindowTitle = PhGetString(ProcessItem->ProcessName);
+    config.pszWindowTitle = PhGetString(FileName);
     config.pszMainInstruction = L"Select the default process page priority.";
     config.pszContent = L"The page priority will be applied by Windows even when Process Hacker isn't currently running.";
     config.nDefaultButton = IDCANCEL;
@@ -778,7 +823,7 @@ VOID ShowProcessPagePriorityDialog(
     config.pfCallback = TaskDialogBootstrapCallback;
     config.cxWidth = 200;
 
-    if (FindIfeoObject(&ProcessItem->ProcessName->sr, NULL, NULL, &pagePriorityClass))
+    if (FindIfeoObject(&FileName->sr, NULL, NULL, &pagePriorityClass))
     {
         switch (pagePriorityClass)
         {
@@ -820,10 +865,128 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-    PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+    PPH_PROCESS_ITEM processItem;
     PDB_OBJECT object;
 
-    if (!(menuItem && processItem))
+    if (!menuItem)
+        return;
+
+    switch (menuItem->Id)
+    {
+    case FILE_PRIORITY_SAVE_IFEO:
+        {
+            NTSTATUS status;
+            PPH_STRING fileName;
+            ULONG priorityClass;
+
+            if (fileName = ShowFileDialog(menuItem->OwnerWindow))
+            {
+                PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+                if (FindIfeoObject(&fileName->sr, &priorityClass, NULL, NULL))
+                {
+                    status = DeleteIfeoObject(
+                        &fileName->sr,
+                        priorityClass,
+                        ULONG_MAX,
+                        ULONG_MAX
+                        );
+
+                    if (NT_SUCCESS(status))
+                    {
+                        PhShowInformation(menuItem->OwnerWindow, L"Sucessfully deleted the IFEO key.", status, 0);
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
+                    }
+                }
+                else
+                {
+                    ShowProcessPriorityDialog(menuItem, fileName);
+                }
+
+                PhDereferenceObject(fileName);
+            }
+        }
+        return;
+    case FILE_IO_PRIORITY_SAVE_IFEO:
+        {
+            NTSTATUS status;
+            PPH_STRING fileName;
+            ULONG ioPriorityClass;
+
+            if (fileName = ShowFileDialog(menuItem->OwnerWindow))
+            {
+                PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+                if (FindIfeoObject(&fileName->sr, NULL, &ioPriorityClass, NULL))
+                {
+                    status = DeleteIfeoObject(
+                        &fileName->sr,
+                        ULONG_MAX,
+                        ioPriorityClass,
+                        ULONG_MAX
+                        );
+
+                    if (NT_SUCCESS(status))
+                    {
+                        PhShowInformation(menuItem->OwnerWindow, L"Sucessfully deleted the IFEO key.", status, 0);
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
+                    }
+                }
+                else
+                {
+                    ShowProcessIoPriorityDialog(menuItem, fileName);
+                }
+
+                PhDereferenceObject(fileName);
+            }
+        }
+        return;
+    case FILE_PAGE_PRIORITY_SAVE_IFEO:
+        {
+            NTSTATUS status;
+            PPH_STRING fileName;
+            ULONG pagePriorityClass;
+
+            if (fileName = ShowFileDialog(menuItem->OwnerWindow))
+            {
+                PhMoveReference(&fileName, PhGetBaseName(fileName));
+
+                if (FindIfeoObject(&fileName->sr, NULL, NULL, &pagePriorityClass))
+                {
+                    status = DeleteIfeoObject(
+                        &fileName->sr,
+                        ULONG_MAX,
+                        ULONG_MAX,
+                        pagePriorityClass
+                        );
+
+                    if (NT_SUCCESS(status))
+                    {
+                        PhShowInformation(menuItem->OwnerWindow, L"Sucessfully deleted the IFEO key.", status, 0);
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
+                    }
+                }
+                else
+                {
+                    ShowProcessPagePriorityDialog(menuItem, fileName);
+                }
+
+                PhDereferenceObject(fileName);
+            }
+        }
+        return;
+    }
+
+    if (!(processItem = PhGetSelectedProcessItem()))
         return;
 
     PhReferenceObject(processItem);
@@ -874,11 +1037,10 @@ VOID NTAPI MenuItemCallback(
     case PROCESS_PRIORITY_SAVE_IFEO:
         {
             ULONG priorityClass;
+            NTSTATUS status;
 
             if (FindIfeoObject(&processItem->ProcessName->sr, &priorityClass, NULL, NULL))
             {
-                NTSTATUS status;
-
                 status = DeleteIfeoObject(
                     &processItem->ProcessName->sr,
                     priorityClass,
@@ -893,7 +1055,7 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                ShowProcessPriorityDialog(menuItem, processItem);
+                ShowProcessPriorityDialog(menuItem, processItem->ProcessName);
                 //status = CreateIfeoObject(&processItem->ProcessName->sr, processItem->PriorityClass, ULONG_MAX, ULONG_MAX);
             }
         }
@@ -973,7 +1135,7 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                ShowProcessIoPriorityDialog(menuItem, processItem);
+                ShowProcessIoPriorityDialog(menuItem, processItem->ProcessName);
                 //IO_PRIORITY_HINT ioPriorityClass;
                 //
                 //if ((ioPriorityClass = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
@@ -1180,7 +1342,7 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                ShowProcessPagePriorityDialog(menuItem, processItem);
+                ShowProcessPagePriorityDialog(menuItem, processItem->ProcessName);
                 //if ((pagePriorityClass = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
                 //{
                 //    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ULONG_MAX, pagePriorityClass);
@@ -2149,6 +2311,12 @@ LOGICAL DllMain(
             UnloadCallback,
             NULL,
             &PluginUnloadCallbackRegistration
+            );
+        PhRegisterCallback(
+            PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
+            MainMenuInitializingCallback,
+            NULL,
+            &MainMenuInitializingCallbackRegistration
             );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
