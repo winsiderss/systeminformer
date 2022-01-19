@@ -3,7 +3,7 @@
  *   PE viewer
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -77,7 +77,6 @@ typedef struct _PVP_PE_GENERAL_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
     ULONG ListViewRowCache[PVP_IMAGE_GENERAL_INDEX_MAXIMUM];
@@ -1993,6 +1992,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HIMAGELIST listViewImageList;
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -2006,8 +2007,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PvPeAddImagePropertiesGroups(context);
             PhLoadListViewGroupStatesFromSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
 
-            if (context->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -2033,12 +2034,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PhSaveListViewGroupStatesToSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             //PhSaveListViewColumnsToSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
-
-            if (context->ListViewImageList)
-                PhImageListDestroy(context->ListViewImageList);
-
             PhDeleteLayoutManager(&context->LayoutManager);
-
             PhFree(context);
         }
         break;

@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2020-2021 dmex
+ * Copyright (C) 2020-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -35,7 +35,6 @@ typedef struct _PVP_PE_OPTIONS_CONTEXT
     HWND WindowHandle;
     HWND ListViewHandle;
     HWND ComboHandle;
-    HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
 } PVP_PE_OPTIONS_CONTEXT, *PPVP_PE_OPTIONS_CONTEXT;
 
@@ -236,13 +235,14 @@ INT_PTR CALLBACK PvOptionsWndProc(
     {
     case WM_INITDIALOG:
         {
+            HIMAGELIST listViewImageList;
             HICON smallIcon;
             HICON largeIcon;
 
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ComboHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
-            context->ListViewImageList = PhImageListCreate(1, PV_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
+            listViewImageList = PhImageListCreate(1, PV_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -260,7 +260,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
-            ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
@@ -278,8 +278,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
         break;
     case WM_DESTROY:
         {
-            if (context->ListViewImageList)
-                PhImageListDestroy(context->ListViewImageList);
+            NOTHING;
         }
         break;
     case WM_COMMAND:
@@ -368,6 +367,17 @@ INT_PTR CALLBACK PvOptionsWndProc(
                 }
                 break;
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2020-2021 dmex
+ * Copyright (C) 2020-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -26,7 +26,6 @@ typedef struct _PVP_PE_PRODUCTION_ID_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
 } PVP_PE_PRODUCTION_ID_CONTEXT, *PPVP_PE_PRODUCTION_ID_CONTEXT;
@@ -429,6 +428,8 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HIMAGELIST listViewImageList;
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -450,8 +451,8 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH2), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (context->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
 
             PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle);
 
@@ -461,11 +462,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(L"ImageProdIdListViewColumns", context->ListViewHandle);
-
-            if (context->ListViewImageList)
-                PhImageListDestroy(context->ListViewImageList);
             PhDeleteLayoutManager(&context->LayoutManager);
-
             PhFree(context);
         }
         break;
@@ -493,6 +490,17 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
     case WM_CONTEXTMENU:
         {
             PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

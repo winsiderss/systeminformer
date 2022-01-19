@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -139,7 +139,7 @@ VOID PvExlfProperties(
 
         // Imports
         newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PELOADCONFIG),
+            MAKEINTRESOURCE(IDD_ELFIMPORTS),
             PvpExlfImportsDlgProc,
             NULL
             );
@@ -147,7 +147,7 @@ VOID PvExlfProperties(
 
         // Exports
         newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PELOADCONFIG),
+            MAKEINTRESOURCE(IDD_ELFEXPORTS),
             PvpExlfExportsDlgProc,
             NULL
             );

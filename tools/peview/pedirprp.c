@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2019-2021 dmex
+ * Copyright (C) 2019-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -80,7 +80,6 @@ typedef struct _PV_DIRECTORY_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
-    HANDLE UpdateTimerHandle;
 
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
@@ -171,19 +170,6 @@ VOID PvAddPendingDirectoryNodes(
     if (needsFullUpdate)
         TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-}
-
-VOID CALLBACK PvDirectoryTreeUpdateCallback(
-    _In_ PPV_DIRECTORY_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->UpdateTimerHandle)
-        return;
-
-    PvAddPendingDirectoryNodes(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 VOID PvpPeEnumerateImageDataDirectory(
@@ -449,27 +435,11 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
 
             PhCreateThread2(PvpPeDirectoryEnumerateThread, context);
 
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PvDirectoryTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
-
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PhSaveSettingsDirectoryList(context);
             PvDeleteDirectoryTree(context);
         }
@@ -531,12 +501,6 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PvAddPendingDirectoryNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyDirectoriesText, 0);
@@ -588,6 +552,17 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
 
                 PhDestroyEMenu(menu);
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }
