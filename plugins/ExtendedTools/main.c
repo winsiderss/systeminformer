@@ -58,16 +58,6 @@ BOOLEAN EtGraphShowText = FALSE;
 BOOLEAN EtEnableScaleGraph = FALSE;
 BOOLEAN EtPropagateCpuUsage = FALSE;
 
-VOID NTAPI EtLoadSettings(
-    VOID
-    )
-{
-    EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
-    EtGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
-    EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableScaleCpuGraph");
-    EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
-}
-
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -780,6 +770,16 @@ VOID NTAPI ProcessStatsEventCallback(
     }
 }
 
+VOID EtLoadSettings(
+    VOID
+    )
+{
+    EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
+    EtGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
+    EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableScaleCpuGraph");
+    EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
+}
+
 VOID NTAPI SettingsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -973,7 +973,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_DISKEXT, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_SYSINFO_GRAPHS, L"1" },
                 { IntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_UNLOADED_WINDOW_SIZE, L"@96|350,270" },

@@ -66,7 +66,7 @@ VOID EtpGpuDetailsAddListViewItemGroups(
 }
 
 VOID EtpQueryAdapterDeviceProperties(
-    _In_ PWSTR DeviceName,
+    _In_ PCWSTR DeviceName,
     _In_ HWND ListViewHandle)
 {
     PPH_STRING driverDate;
@@ -362,7 +362,7 @@ VOID EtpGpuDetailsEnumAdapters(
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
         memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
-        openAdapterFromDeviceName.DeviceName = PhGetString(gpuAdapter->DeviceInterface);
+        openAdapterFromDeviceName.pDeviceName = PhGetString(gpuAdapter->DeviceInterface);
 
         if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
             continue;
@@ -371,22 +371,22 @@ VOID EtpGpuDetailsEnumAdapters(
         {
             if (PhAddListViewGroup(ListViewHandle, i, PhGetString(gpuAdapter->Description)) == MAXINT)
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+                EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
                 continue;
             }
 
             EtpGpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.DeviceName, ListViewHandle);
+        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.pDeviceName, ListViewHandle);
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDriverModel(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDriverModel(openAdapterFromDeviceName.hAdapter, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.hAdapter, ListViewHandle);
         //EtQueryAdapterFeatureLevel(openAdapterFromDeviceName.AdapterLuid);
-        EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.hAdapter, ListViewHandle);
 
-        EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+        EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
     }
 }
 

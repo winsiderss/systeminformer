@@ -34,7 +34,7 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
 
 _Success_(return)
 BOOLEAN EtQueryDeviceProperties(
-    _In_ PWSTR DeviceInterface,
+    _In_ PCWSTR DeviceInterface,
     _Out_opt_ PPH_STRING *Description,
     _Out_opt_ PPH_STRING *DriverDate,
     _Out_opt_ PPH_STRING *DriverVersion,
@@ -46,5 +46,24 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
+
+typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
+{
+    ULONG CommitLimit;
+    ULONG BytesCommitted;
+    ULONG BytesResident;
+    D3DKMT_QUERYSTATISTICS_MEMORY Memory;
+    ULONG Aperture; // boolean
+    ULONGLONG TotalBytesEvictedByPriority[D3DKMT_MaxAllocationPriorityClass];
+    ULONG64 SystemMemoryEndAddress;
+    struct
+    {
+        ULONG64 PreservedDuringStandby : 1;
+        ULONG64 PreservedDuringHibernate : 1;
+        ULONG64 PartiallyPreservedDuringHibernate : 1;
+        ULONG64 Reserved : 61;
+    } PowerFlags;
+    ULONG64 Reserved[7];
+} D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1, *PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1;
 
 #endif
