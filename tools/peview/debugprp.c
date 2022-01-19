@@ -2,7 +2,7 @@
  * Process Hacker -
  *   PE viewer
  *
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -26,7 +26,6 @@ typedef struct _PVP_PE_DEBUG_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
 } PVP_PE_DEBUG_CONTEXT, *PPVP_PE_DEBUG_CONTEXT;
@@ -115,6 +114,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
         {
             PH_MAPPED_IMAGE_DEBUG debug;
             PH_IMAGE_DEBUG_ENTRY entry;
+            HIMAGELIST listViewImageList;
             ULONG count = 0;
             ULONG i;
             INT lvItemIndex;
@@ -137,8 +137,8 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (context->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
 
             if (NT_SUCCESS(PhGetMappedImageDebug(&PvMappedImage, &debug)))
             {
@@ -200,12 +200,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(L"ImageDebugListViewColumns", context->ListViewHandle);
-
-            if (context->ListViewImageList)
-                PhImageListDestroy(context->ListViewImageList);
-
             PhDeleteLayoutManager(&context->LayoutManager);
-
             PhFree(context);
         }
         break;
@@ -233,6 +228,17 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
     case WM_CONTEXTMENU:
         {
             PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

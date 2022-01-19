@@ -42,6 +42,8 @@
 #define IDD_CHOOSECOLUMNS               166
 #define IDD_PEHEADERS                   167
 #define IDD_PECLRIMPORTS                168
+#define IDD_ELFIMPORTS                  169
+#define IDD_ELFEXPORTS                  170
 #define IDD_CONTAINER                   205
 #define IDC_TARGETMACHINE               1003
 #define IDC_LIST                        1008
@@ -90,7 +92,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
+#define _APS_NEXT_RESOURCE_VALUE        165
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1036
 #define _APS_NEXT_SYMED_VALUE           115
