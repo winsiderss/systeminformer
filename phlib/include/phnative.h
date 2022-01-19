@@ -1793,6 +1793,7 @@ typedef struct _PH_PROCESS_DEBUG_HEAP_ENTRY
 {
     ULONG Flags;
     ULONG Signature;
+    UCHAR HeapFrontEndType;
     ULONG NumberOfEntries;
     PVOID BaseAddress;
     SIZE_T BytesAllocated;
@@ -1803,6 +1804,7 @@ typedef struct _PH_PROCESS_DEBUG_HEAP_ENTRY32
 {
     ULONG Flags;
     ULONG Signature;
+    UCHAR HeapFrontEndType;
     ULONG NumberOfEntries;
     ULONG BaseAddress;
     ULONG BytesAllocated;

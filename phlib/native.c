@@ -10237,6 +10237,7 @@ NTSTATUS PhGetProcessHeapSignature(
 
     if (WindowsVersion >= WINDOWS_7)
     {
+        // dt _HEAP SegmentSignature
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x8 : 0x10),
@@ -10250,6 +10251,57 @@ NTSTATUS PhGetProcessHeapSignature(
     {
         if (HeapSignature)
             *HeapSignature = heapSignature;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessHeapFrontEndType(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID HeapAddress,
+    _In_ ULONG IsWow64,
+    _Out_ UCHAR *HeapFrontEndType
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    UCHAR heapFrontEndType = UCHAR_MAX;
+
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        // dt _HEAP FrontEndHeapType
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0ea : 0x1a2),
+            &heapFrontEndType,
+            sizeof(UCHAR),
+            NULL
+            );
+    }
+    else if (WindowsVersion >= WINDOWS_8_1)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0d6 : 0x17a),
+            &heapFrontEndType,
+            sizeof(UCHAR),
+            NULL
+            );
+    }
+    else if (WindowsVersion >= WINDOWS_7)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(HeapAddress, IsWow64 ? 0x0da : 0x182),
+            &heapFrontEndType,
+            sizeof(UCHAR),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (HeapFrontEndType)
+            *HeapFrontEndType = heapFrontEndType;
     }
 
     return status;
@@ -10342,6 +10394,7 @@ NTSTATUS PhQueryProcessHeapInformation(
 
         heapDebugInfo->Heaps[i].Flags = heapInfo->Flags;
         heapDebugInfo->Heaps[i].Signature = ULONG_MAX;
+        heapDebugInfo->Heaps[i].HeapFrontEndType = UCHAR_MAX;
         heapDebugInfo->Heaps[i].NumberOfEntries = heapInfo->NumberOfEntries;
         heapDebugInfo->Heaps[i].BaseAddress = heapInfo->BaseAddress;
         heapDebugInfo->Heaps[i].BytesAllocated = allocated;
@@ -10354,6 +10407,7 @@ NTSTATUS PhQueryProcessHeapInformation(
             )))
         {
             ULONG signature = ULONG_MAX;
+            UCHAR frontEndType = UCHAR_MAX;
 #ifndef _WIN64
             BOOLEAN isWow64 = TRUE;
 #else
@@ -10371,6 +10425,16 @@ NTSTATUS PhQueryProcessHeapInformation(
                 heapDebugInfo->Heaps[i].Signature = signature;
             }
 
+            if (NT_SUCCESS(PhGetProcessHeapFrontEndType(
+                processHandle,
+                heapInfo->BaseAddress,
+                isWow64,
+                &frontEndType
+                )))
+            {
+                heapDebugInfo->Heaps[i].HeapFrontEndType = frontEndType;
+            }
+            
             NtClose(processHandle);
         }
     }
