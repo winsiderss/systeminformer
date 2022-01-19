@@ -1915,6 +1915,12 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     return TRUE;
 }
 
+#ifndef MAKEFOURCC
+#define MAKEFOURCC(ch0, ch1, ch2, ch3) \
+ ((ULONG)(BYTE)(ch0) | ((ULONG)(BYTE)(ch1) << 8) | \
+ ((ULONG)(BYTE)(ch2) << 16) | ((ULONG)(BYTE)(ch3) << 24 ))
+#endif
+
 // https://docs.microsoft.com/en-us/windows/win32/menurc/newheader
 // One or more RESDIR structures immediately follow the NEWHEADER structure.
 typedef struct _NEWHEADER
@@ -1968,7 +1974,7 @@ HICON PhCreateIconFromResourceDirectory(
         )
     {
         // CreateIconFromResourceEx seems to know what formats are supported so these
-        // size/format checks are probably redundant and not required?
+        // size/format checks are probably redundant and not required? (dmex)
         return NULL;
     }
 
