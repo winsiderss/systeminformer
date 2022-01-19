@@ -682,7 +682,7 @@ VOID LoadRaplDeviceImages(
 
     if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL))
     {
-        Context->ImageList = PhImageListCreate(
+        HIMAGELIST imageList = PhImageListCreate(
             24, // GetSystemMetrics(SM_CXSMICON)
             24, // GetSystemMetrics(SM_CYSMICON)
             ILC_MASK | ILC_COLOR32,
@@ -690,10 +690,10 @@ VOID LoadRaplDeviceImages(
             1
             );
 
-        PhImageListAddIcon(Context->ImageList, smallIcon);
+        PhImageListAddIcon(imageList, smallIcon);
         DestroyIcon(smallIcon);
 
-        ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
+        ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
     }
 
     PhDereferenceObject(deviceIconPath);
@@ -758,7 +758,6 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
                 RaplDevicesSaveList();
 
             FreeListViewRaplDeviceEntries(context);
-            if (context->ImageList) PhImageListDestroy(context->ImageList);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
@@ -824,6 +823,10 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
                     {
                         ShowDeviceMenu(hwndDlg, deviceInstance);
                         PhDereferenceObject(deviceInstance);
+
+                        FreeListViewRaplDeviceEntries(context);
+                        ListView_DeleteAllItems(context->ListViewHandle);
+                        FindRaplDevices(context);
                     }
                 }
             }

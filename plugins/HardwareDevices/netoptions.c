@@ -763,7 +763,7 @@ VOID LoadNetworkAdapterImages(
             {
                 if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL))
                 {
-                    Context->ImageList = PhImageListCreate(
+                    HIMAGELIST imageList = PhImageListCreate(
                         24, // GetSystemMetrics(SM_CXSMICON)
                         24, // GetSystemMetrics(SM_CYSMICON)
                         ILC_MASK | ILC_COLOR32,
@@ -771,8 +771,8 @@ VOID LoadNetworkAdapterImages(
                         1
                         );
 
-                    PhImageListAddIcon(Context->ImageList, smallIcon);                 
-                    ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
+                    PhImageListAddIcon(imageList, smallIcon);
+                    ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
                     DestroyIcon(smallIcon);
                 }
 
@@ -844,7 +844,6 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 NetAdaptersSaveList();
 
             FreeListViewAdapterEntries(context);
-            if (context->ImageList) PhImageListDestroy(context->ImageList);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
@@ -876,7 +875,6 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
                     FreeListViewAdapterEntries(context);
                     ListView_DeleteAllItems(context->ListViewHandle);
-
                     FindNetworkAdapters(context);
 
                     ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
@@ -938,6 +936,10 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                     {
                         ShowDeviceMenu(hwndDlg, deviceInstance);
                         PhDereferenceObject(deviceInstance);
+
+                        FreeListViewAdapterEntries(context);
+                        ListView_DeleteAllItems(context->ListViewHandle);
+                        FindNetworkAdapters(context);
                     }
                 }
             }
