@@ -389,6 +389,17 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             L"Port Context",
             NULL
             );
+
+        if (WindowsVersion >= WINDOWS_10_19H2)
+        {
+            Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MUTANTOWNER] = PhAddListViewGroupItem(
+                Context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_ALPC,
+                PH_HANDLE_GENERAL_INDEX_MUTANTOWNER,
+                L"Owner",
+                NULL
+                );
+        }
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE))
     {
@@ -697,6 +708,30 @@ VOID PhpUpdateHandleGeneral(
 
                 PhPrintPointer(string, basicInfo.PortContext);
                 PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_PORTCONTEXT], 1, string);
+            }
+
+            if (WindowsVersion >= WINDOWS_10_19H2)
+            {
+                ALPC_SERVER_SESSION_INFORMATION serverInfo;
+
+                if (NT_SUCCESS(NtAlpcQueryInformation(
+                    alpcPortHandle,
+                    AlpcServerSessionInformation,
+                    &serverInfo,
+                    sizeof(ALPC_SERVER_SESSION_INFORMATION),
+                    NULL
+                    )))
+                {
+                    CLIENT_ID clientId;
+                    PPH_STRING name;
+
+                    clientId.UniqueProcess = UlongToHandle(serverInfo.ProcessId);
+                    clientId.UniqueThread = 0;
+
+                    name = PhStdGetClientIdName(&clientId);
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MUTANTOWNER], 1, name->Buffer);
+                    PhDereferenceObject(name);
+                }
             }
 
             NtClose(alpcPortHandle);
