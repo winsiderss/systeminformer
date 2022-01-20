@@ -2377,7 +2377,8 @@ BOOLEAN PhImageListDrawIcon(
     _In_ HDC Hdc,
     _In_ INT x,
     _In_ INT y,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ BOOLEAN Disabled
     )
 {
     return PhImageListDrawEx(
@@ -2390,7 +2391,8 @@ BOOLEAN PhImageListDrawIcon(
         0,
         CLR_DEFAULT,
         CLR_DEFAULT,
-        Style
+        Style,
+        Disabled ? ILS_SATURATE : ILS_NORMAL
         );
 }
 
@@ -2404,7 +2406,8 @@ BOOLEAN PhImageListDrawEx(
     _In_ INT dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ DWORD State
     )
 {
     IMAGELISTDRAWPARAMS imagelistDraw;
@@ -2421,6 +2424,7 @@ BOOLEAN PhImageListDrawEx(
     imagelistDraw.rgbBk = BackColor;
     imagelistDraw.rgbFg = ForeColor;
     imagelistDraw.fStyle = Style;
+    imagelistDraw.fState = State;
 
     return SUCCEEDED(IImageList2_Draw((IImageList2*)ImageListHandle, &imagelistDraw));
 }

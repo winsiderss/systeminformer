@@ -3341,7 +3341,8 @@ VOID PhDrawProcessIcon(
                 hdc,
                 rect.left,
                 rect.top,
-                ILD_NORMAL | ILD_TRANSPARENT
+                ILD_NORMAL | ILD_TRANSPARENT,
+                FALSE
                 );
         }
     }
@@ -3355,7 +3356,8 @@ VOID PhDrawProcessIcon(
                 hdc,
                 rect.left,
                 rect.top,
-                ILD_NORMAL | ILD_TRANSPARENT
+                ILD_NORMAL | ILD_TRANSPARENT,
+                FALSE
                 );
         }
     }
