@@ -562,6 +562,12 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->VirtualSizeText);
     PhClearReference(&ProcessNode->PeakVirtualSizeText);
     PhClearReference(&ProcessNode->PageFaultsText);
+    PhClearReference(&ProcessNode->SessionIdText);
+    PhClearReference(&ProcessNode->BasePriorityText);
+    PhClearReference(&ProcessNode->ThreadsText);
+    PhClearReference(&ProcessNode->HandlesText);
+    PhClearReference(&ProcessNode->GdiHandlesText);
+    PhClearReference(&ProcessNode->UserHandlesText);
     PhClearReference(&ProcessNode->IoRoRateText);
     PhClearReference(&ProcessNode->IoWRateText);
     PhClearReference(&ProcessNode->StartTimeText);
@@ -587,8 +593,12 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->FileModifiedTimeText);
     PhClearReference(&ProcessNode->FileSizeText);
     PhClearReference(&ProcessNode->SubprocessCountText);
+    PhClearReference(&ProcessNode->JobObjectIdText);
     PhClearReference(&ProcessNode->ProtectionText);
     PhClearReference(&ProcessNode->DesktopInfoText);
+    PhClearReference(&ProcessNode->PidHexText);
+    PhClearReference(&ProcessNode->CpuCoreUsageText);
+    PhClearReference(&ProcessNode->ImageCoherencyText);
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
     PhClearReference(&ProcessNode->CodePageText);
 
@@ -2517,27 +2527,36 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_SESSIONID:
-                PhInitializeStringRefLongHint(&getCellText->Text, processItem->SessionIdString);
+                {
+                    PhMoveReference(&node->SessionIdText, PhFormatUInt64(processItem->SessionId, TRUE));
+                    getCellText->Text = node->SessionIdText->sr;
+                }
                 break;
             case PHPRTLC_PRIORITYCLASS:
                 PhInitializeStringRefLongHint(&getCellText->Text, PhGetProcessPriorityClassString(processItem->PriorityClass));
                 break;
             case PHPRTLC_BASEPRIORITY:
-                PhPrintInt32(node->BasePriorityText, processItem->BasePriority);
-                PhInitializeStringRefLongHint(&getCellText->Text, node->BasePriorityText);
+                {
+                    PhMoveReference(&node->BasePriorityText, PhFormatUInt64(processItem->BasePriority, TRUE));
+                    getCellText->Text = node->BasePriorityText->sr;
+                }
                 break;
             case PHPRTLC_THREADS:
                 {
                     ULONG value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfThreads), &value);
-                    PhpFormatInt32GroupDigits(value, node->ThreadsText, sizeof(node->ThreadsText), &getCellText->Text);
+                    //PhpFormatInt32GroupDigits(value, node->ThreadsText, sizeof(node->ThreadsText), &getCellText->Text);
+                    PhMoveReference(&node->ThreadsText, PhFormatUInt64(value, TRUE));
+                    getCellText->Text = node->ThreadsText->sr;
                 }
                 break;
             case PHPRTLC_HANDLES:
                 {
                     ULONG value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, NumberOfHandles), &value);
-                    PhpFormatInt32GroupDigits(value, node->HandlesText, sizeof(node->HandlesText), &getCellText->Text);
+                    //PhpFormatInt32GroupDigits(value, node->HandlesText, sizeof(node->HandlesText), &getCellText->Text);
+                    PhMoveReference(&node->HandlesText, PhFormatUInt64(value, TRUE));
+                    getCellText->Text = node->HandlesText->sr;
                 }
                 break;
             case PHPRTLC_GDIHANDLES:
@@ -2546,7 +2565,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     ULONG value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, GdiHandles), &value);
-                    PhpFormatInt32GroupDigits(value, node->GdiHandlesText, sizeof(node->GdiHandlesText), &getCellText->Text);
+                    //PhpFormatInt32GroupDigits(value, node->GdiHandlesText, sizeof(node->GdiHandlesText), &getCellText->Text);
+                    PhMoveReference(&node->GdiHandlesText, PhFormatUInt64(value, TRUE));
+                    getCellText->Text = node->GdiHandlesText->sr;
                 }
                 break;
             case PHPRTLC_USERHANDLES:
@@ -2555,7 +2576,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                     ULONG value = 0;
                     PhpAggregateFieldIfNeeded(node, AggregateTypeInt32, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, UserHandles), &value);
-                    PhpFormatInt32GroupDigits(value, node->UserHandlesText, sizeof(node->UserHandlesText), &getCellText->Text);
+                    //PhpFormatInt32GroupDigits(value, node->UserHandlesText, sizeof(node->UserHandlesText), &getCellText->Text);
+                    PhMoveReference(&node->UserHandlesText, PhFormatUInt64(value, TRUE));
+                    getCellText->Text = node->UserHandlesText->sr;
                 }
                 break;
             case PHPRTLC_IORORATE:
@@ -3149,8 +3172,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (processItem->JobObjectId != 0)
                     {
-                        PhPrintInt32(node->JobObjectIdText, processItem->JobObjectId);
-                        PhInitializeStringRefLongHint(&getCellText->Text, node->JobObjectIdText);
+                        PhMoveReference(&node->JobObjectIdText, PhFormatUInt64(processItem->JobObjectId, TRUE));
+                        getCellText->Text = node->JobObjectIdText->sr;
                     }
                 }
                 break;
@@ -3182,15 +3205,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
                     {
                         PH_FORMAT format;
-                        SIZE_T returnLength;
 
                         PhInitFormatIX(&format, HandleToUlong(processItem->ProcessId));
 
-                        if (PhFormatToBuffer(&format, 1, node->PidHexText, sizeof(node->PidHexText), &returnLength))
-                        {
-                            getCellText->Text.Buffer = node->PidHexText;
-                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                        }
+                        PhMoveReference(&node->PidHexText, PhFormat(&format, 1, 0));
+                        getCellText->Text = node->PidHexText->sr;
                     }
                 }
                 break;
@@ -3206,29 +3225,21 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (cpuUsage >= 0.01)
                     {
                         PH_FORMAT format;
-                        SIZE_T returnLength;
 
                         PhInitFormatF(&format, cpuUsage, 2);
 
-                        if (PhFormatToBuffer(&format, 1, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
-                        {
-                            getCellText->Text.Buffer = node->CpuCoreUsageText;
-                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL); // minus null terminator
-                        }
+                        PhMoveReference(&node->CpuCoreUsageText, PhFormat(&format, 1, 0));
+                        getCellText->Text = node->CpuCoreUsageText->sr;
                     }
                     else if (cpuUsage != 0 && PhCsShowCpuBelow001)
                     {
                         PH_FORMAT format[2];
-                        SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
                         PhInitFormatF(&format[1], 0.01, 2);
 
-                        if (PhFormatToBuffer(format, 2, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
-                        {
-                            getCellText->Text.Buffer = node->CpuCoreUsageText;
-                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                        }
+                        PhMoveReference(&node->CpuCoreUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        getCellText->Text = node->CpuCoreUsageText->sr;
                     }
                 }
                 break;
@@ -3239,7 +3250,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_IMAGE_COHERENCY:
                 {
                     PH_FORMAT format[2];
-                    SIZE_T returnLength;
 
                     if (!PhEnableImageCoherencySupport)
                         break;
@@ -3272,13 +3282,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhInitFormatF(&format[0], (DOUBLE)(processItem->ImageCoherency * 100.f), 2);
                     PhInitFormatS(&format[1], L"%");
 
-                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->ImageCoherencyText, sizeof(node->ImageCoherencyText), &returnLength))
-                    {
-                        getCellText->Text.Buffer = node->ImageCoherencyText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
-                    break;
+                    PhMoveReference(&node->ImageCoherencyText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    getCellText->Text = node->ImageCoherencyText->sr;
                 }
+                break;
             case PHPRTLC_ERRORMODE:
                 {
                     PhpUpdateProcessNodeErrorMode(node);
