@@ -3,7 +3,7 @@
  *   process heaps dialog
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2020 dmex
+ * Copyright (C) 2020-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -503,10 +503,36 @@ VOID PhpEnumerateProcessHeaps(
                 switch (entry->Signature)
                 {
                 case RTL_HEAP_SIGNATURE:
-                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap");
+                    {
+                        switch (entry->HeapFrontEndType)
+                        {
+                        case 1:
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap (Lookaside)");
+                            break;
+                        case 2:
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap (LFH)");
+                            break;
+                        default:
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap");
+                            break;
+                        }
+                    }
                     break;
                 case RTL_HEAP_SEGMENT_SIGNATURE:
-                    PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap");
+                    {
+                        switch (entry->HeapFrontEndType)
+                        {
+                        case 1:
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap (Lookaside)");
+                            break;
+                        case 2:
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap (LFH)");
+                            break;
+                        default:
+                            PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap");
+                            break;
+                        }
+                    }
                     break;
                 }
             }
@@ -562,10 +588,36 @@ VOID PhpEnumerateProcessHeaps(
             switch (entry->Signature)
             {
             case RTL_HEAP_SIGNATURE:
-                PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap");
+                {
+                    switch (entry->HeapFrontEndType)
+                    {
+                    case 1:
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap (Lookaside)");
+                        break;
+                    case 2:
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap (LFH)");
+                        break;
+                    default:
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"NT Heap");
+                        break;
+                    }
+                }
                 break;
             case RTL_HEAP_SEGMENT_SIGNATURE:
-                PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap");
+                {
+                    switch (entry->HeapFrontEndType)
+                    {
+                    case 1:
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap (Lookaside)");
+                        break;
+                    case 2:
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap (LFH)");
+                        break;
+                    default:
+                        PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 7, L"Segment Heap");
+                        break;
+                    }
+                }
                 break;
             }
         }
