@@ -1233,7 +1233,8 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 hdc,
                 rect.left,
                 rect.top + ((rect.bottom - rect.top) - 16) / 2,
-                ILD_NORMAL | ILD_TRANSPARENT
+                ILD_NORMAL | ILD_TRANSPARENT,
+                FALSE
                 );
 
             // Padding
