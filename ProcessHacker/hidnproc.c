@@ -614,8 +614,8 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
         PhGetProcessSessionId(processHandle, &processItem->SessionId);
 
-        PhPrintUInt32(processItem->ParentProcessIdString, HandleToUlong(processItem->ParentProcessId));
-        PhPrintUInt32(processItem->SessionIdString, processItem->SessionId);
+        //PhPrintUInt32(processItem->ParentProcessIdString, HandleToUlong(processItem->ParentProcessId));
+        //PhPrintUInt32(processItem->SessionIdString, processItem->SessionId);
 
         if (NT_SUCCESS(PhGetProcessTimes(processHandle, &times)))
         {
