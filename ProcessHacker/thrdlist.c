@@ -3,7 +3,7 @@
  *   thread list
  *
  * Copyright (C) 2011-2012 wj32
- * Copyright (C) 2018-2021 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -602,7 +602,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IdealProcessor)
 {
-    sortResult = PhCompareStringZ(node1->IdealProcessorText, node2->IdealProcessorText, TRUE);
+    sortResult = uint64cmp(node1->IdealProcessorMask, node2->IdealProcessorMask);
+    //sortResult = PhCompareStringZ(node1->IdealProcessorText, node2->IdealProcessorText, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -1049,6 +1050,8 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     {
                         if (NT_SUCCESS(PhGetThreadIdealProcessor(threadItem->ThreadHandle, &idealProcessorNumber)))
                         {
+                            node->IdealProcessorMask = MAKELONG(idealProcessorNumber.Group, idealProcessorNumber.Number);
+
                             PhInitFormatU(&format[0], idealProcessorNumber.Group);
                             PhInitFormatC(&format[1], L':');
                             PhInitFormatU(&format[2], idealProcessorNumber.Number);
