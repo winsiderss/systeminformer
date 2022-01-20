@@ -78,6 +78,7 @@ typedef struct _PH_THREAD_NODE
     HANDLE ThreadReadVmHandle;
     BOOLEAN ThreadContextHandleValid;
     BOOLEAN ThreadReadVmHandleValid;
+    LONG IdealProcessorMask;
 
     ULONG PagePriority;
     IO_PRIORITY_HINT IoPriority;
