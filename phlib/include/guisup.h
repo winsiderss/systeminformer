@@ -1061,7 +1061,8 @@ PhImageListDrawIcon(
     _In_ HDC Hdc,
     _In_ INT x,
     _In_ INT y,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ BOOLEAN Disabled
     );
 
 PHLIBAPI
@@ -1077,7 +1078,8 @@ PhImageListDrawEx(
     _In_ INT dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ DWORD State
     );
 
 #define PH_DRAW_TIMELINE_OVERFLOW 0x1
