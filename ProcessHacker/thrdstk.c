@@ -3,7 +3,7 @@
  *   thread stack viewer
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1575,15 +1575,12 @@ VOID PhpSymbolProviderEventCallbackHandler(
         statusMessage = PhReferenceObject(event->EventMessage);
         break;
     case PH_SYMBOL_EVENT_TYPE_LOAD_END:
-        statusMessage = PhReferenceEmptyString();
+        statusMessage = PhCreateString(L"Loading symbols from image...");
         break;
     case PH_SYMBOL_EVENT_TYPE_PROGRESS:
         {
-            ULONG64 progress = event->EventProgress;
-
             statusMessage = PhReferenceObject(event->EventMessage);
-            //context->SymbolProgress =
-            statusProgress = (ULONG)progress;
+            statusProgress = (ULONG)event->EventProgress;
         }
         break;
     }
@@ -1613,13 +1610,6 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
         {
             context->TaskDialogHandle = hwndDlg;
 
-            PhRegisterCallback(
-                &PhSymbolEventCallback,
-                PhpSymbolProviderEventCallbackHandler,
-                context,
-                &context->SymbolProviderEventRegistration
-                );
-
             PhSetApplicationWindowIcon(hwndDlg);
             SendMessage(hwndDlg, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (LPARAM)PhGetApplicationIcon(FALSE));
 
@@ -1630,6 +1620,13 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
             context->ThreadStackStatusDefaultWindowProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
             PhSetWindowContext(hwndDlg, 0xF, context);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpThreadStackTaskDialogSubclassProc);
+
+            PhRegisterCallback(
+                &PhSymbolEventCallback,
+                PhpSymbolProviderEventCallbackHandler,
+                context,
+                &context->SymbolProviderEventRegistration
+                );
 
             PhReferenceObject(context);
             PhCreateThread2(PhpRefreshThreadStackThreadStart, context);
@@ -1669,29 +1666,11 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
 
             PhReleaseQueuedLockExclusive(&context->StatusLock);
 
-            if (message)
-            {
-                SendMessage(
-                    context->TaskDialogHandle,
-                    TDM_SET_ELEMENT_TEXT,
-                    TDE_MAIN_INSTRUCTION,
-                    (LPARAM)PhGetString(message)
-                    );
+            SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhGetStringOrDefault(message, L" "));
+            SendMessage(context->TaskDialogHandle, TDM_SET_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)PhGetStringOrDefault(content, L" "));
 
-                PhDereferenceObject(message);
-            }
-
-            if (content)
-            {
-                SendMessage(
-                    context->TaskDialogHandle,
-                    TDM_SET_ELEMENT_TEXT,
-                    TDE_CONTENT,
-                    (LPARAM)PhGetString(content)
-                    );
-
-                PhDereferenceObject(content);
-            }
+            if (message) PhDereferenceObject(message);
+            if (content) PhDereferenceObject(content);
 
             if (context->SymbolProgressReset)
             {
