@@ -3,7 +3,7 @@
  *   search filter callbacks
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2011-2021 dmex
+ * Copyright (C) 2011-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -164,17 +164,17 @@ BOOLEAN ProcessTreeFilterCallback(
         }
     }
 
-    if (processNode->ProcessItem->ParentProcessIdString[0])
-    {
-        if (WordMatchStringZ(processNode->ProcessItem->ParentProcessIdString))
-            return TRUE;
-    }
+    //if (processNode->ProcessItem->ParentProcessIdString[0])
+    //{
+    //    if (WordMatchStringZ(processNode->ProcessItem->ParentProcessIdString))
+    //        return TRUE;
+    //}
 
-    if (processNode->ProcessItem->SessionIdString[0])
-    {
-        if (WordMatchStringZ(processNode->ProcessItem->SessionIdString))
-            return TRUE;
-    }
+    //if (processNode->ProcessItem->SessionIdString[0])
+    //{
+    //    if (WordMatchStringZ(processNode->ProcessItem->SessionIdString))
+    //        return TRUE;
+    //}
 
     if (!PhIsNullOrEmptyString(processNode->ProcessItem->PackageFullName))
     {
