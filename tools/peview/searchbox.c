@@ -495,7 +495,8 @@ VOID PhpSearchDrawButton(
             Hdc,
             ButtonRect.left + 1, // offset
             ButtonRect.top,
-            ILD_TRANSPARENT
+            ILD_TRANSPARENT,
+            FALSE
             );
     }
     else
@@ -506,7 +507,8 @@ VOID PhpSearchDrawButton(
             Hdc,
             ButtonRect.left + 2, // offset
             ButtonRect.top + 1, // offset
-            ILD_TRANSPARENT
+            ILD_TRANSPARENT,
+            FALSE
             );
     }
 }

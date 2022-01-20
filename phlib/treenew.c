@@ -5704,7 +5704,8 @@ VOID PhTnpDrawCell(
                 SmallIconHeight,
                 CLR_DEFAULT,
                 CLR_NONE,
-                ILD_NORMAL | ILD_TRANSPARENT
+                ILD_NORMAL | ILD_TRANSPARENT,
+                ILS_NORMAL
                 );
 
             textRect.left += SmallIconWidth + TNP_ICON_RIGHT_PADDING;

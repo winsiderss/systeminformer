@@ -1752,6 +1752,12 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 DrawInfo->nmcd.dwItemSpec,
                 0
                 ) == 0;
+            BOOLEAN isEnabled = SendMessage(
+                DrawInfo->nmcd.hdr.hwndFrom,
+                TB_ISBUTTONENABLED,
+                DrawInfo->nmcd.dwItemSpec,
+                0
+                ) != 0;
 
             if (SendMessage(
                 DrawInfo->nmcd.hdr.hwndFrom,
@@ -1878,7 +1884,8 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                         DrawInfo->nmcd.hdc,
                         x,
                         y,
-                        ILD_NORMAL
+                        ILD_NORMAL,
+                        !isEnabled
                         );
                 }
             }

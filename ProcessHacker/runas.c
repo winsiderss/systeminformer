@@ -2892,7 +2892,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                                         customDraw->hdc,
                                         customDraw->rc.left,
                                         customDraw->rc.top + 1, // offset
-                                        ILD_TRANSPARENT
+                                        ILD_TRANSPARENT,
+                                        FALSE
                                         );
 
                                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_SKIPDEFAULT);
