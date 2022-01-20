@@ -185,8 +185,8 @@ typedef struct _PH_PROCESS_ITEM
     PH_QUEUED_LOCK ServiceListLock;
 
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
-    WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
-    WCHAR SessionIdString[PH_INT32_STR_LEN_1];
+    //WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
+    //WCHAR SessionIdString[PH_INT32_STR_LEN_1];
 
     // Dynamic
 
