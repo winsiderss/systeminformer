@@ -1280,10 +1280,8 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MITIGATION, L"Enable mitigation policy", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"Enable plugins", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"Enable undecorated symbols", NULL);
-    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"Enable column header totals", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"Enable column header totals (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"Enable cycle-based CPU usage", NULL);
-    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"Enable fixed graph scaling", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"Enable fixed graph scaling (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MINIINFO_WINDOW, L"Enable tray information window", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"Remember last selected window", NULL);
