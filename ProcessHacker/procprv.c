@@ -3,7 +3,7 @@
  *   process provider
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2019 dmex
+ * Copyright (C) 2017-2022 dmex
  * Copyright (C) 2020-2021 jxy-s
  *
  * This file is part of Process Hacker.
@@ -1206,8 +1206,8 @@ VOID PhpFillProcessItem(
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
         PhPrintUInt32(ProcessItem->ProcessIdString, HandleToUlong(ProcessItem->ProcessId));
-        PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
-        PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
+        //PhPrintUInt32(ProcessItem->ParentProcessIdString, HandleToUlong(ProcessItem->ParentProcessId));
+        //PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
     }
 
     // Open a handle to the process for later usage.
