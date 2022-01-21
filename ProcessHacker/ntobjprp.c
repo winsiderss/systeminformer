@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 
 typedef struct _COMMON_PAGE_CONTEXT
 {
@@ -205,6 +206,7 @@ INT_PTR CALLBACK PhpEventPageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshEventPageInfo(hwndDlg, pageContext);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_COMMAND:
@@ -391,6 +393,7 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshSemaphorePageInfo(hwndDlg, pageContext);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_COMMAND:
@@ -501,6 +504,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
     case WM_INITDIALOG:
         {
             PhpRefreshTimerPageInfo(hwndDlg, pageContext);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_COMMAND:

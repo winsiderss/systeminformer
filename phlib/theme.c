@@ -141,6 +141,13 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
     _In_ LPARAM lParam
     );
 
+LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 // Win10-RS5 (uxtheme.dll ordinal 132)
 BOOL (WINAPI *ShouldAppsUseDarkMode_I)(
     VOID
@@ -692,6 +699,16 @@ VOID PhInitializeWindowThemeComboboxControl(
     InvalidateRect(ComboBoxControl, NULL, FALSE);
 }
 
+VOID PhInitializeWindowThemeACLUI(
+    _In_ HWND ACLUIControl
+)
+{
+    PhSetWindowContext(ACLUIControl, LONG_MAX, (PVOID)GetWindowLongPtr(ACLUIControl, GWLP_WNDPROC));
+    SetWindowLongPtr(ACLUIControl, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowACLUISubclassProc);
+
+    InvalidateRect(ACLUIControl, NULL, FALSE);
+}
+
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -939,6 +956,23 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhInitializeWindowThemeComboboxControl(WindowHandle);
         }
+    }
+    else if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            switch (PhpThemeColorMode)
+            {
+            case 0: // New colors
+                PhSetControlTheme(WindowHandle, L"explorer");
+                break;
+            case 1: // Old colors
+                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+                break;
+            }
+        }
+
+        PhInitializeWindowThemeACLUI(WindowHandle);
     }
 
     return TRUE;
@@ -3392,6 +3426,45 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
             }
         }
         return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+}
+
+LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX)))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            RECT rc;
+            GetClientRect(WindowHandle, &rc);
+            FillRect((HDC)wParam, &rc, PhMenuBackgroundBrush);
+            return 1;
+        }
+    case WM_CTLCOLORSTATIC:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, PhThemeWindowTextColor);
+            SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor);
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
+        }
     }
 
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
