@@ -616,7 +616,8 @@ VOID DrawCountryIcon(
         hdc,
         rect.left, 
         rect.top + ((rect.bottom - rect.top) - 11) / 2, 
-        ILD_NORMAL
+        ILD_NORMAL,
+        FALSE
         );
 }
 
