@@ -874,6 +874,12 @@ VOID PhShowTokenProperties(
     _In_opt_ PWSTR Title
     );
 
+INT CALLBACK PhpTokenSheetProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
+    );
+
 HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_ HANDLE ProcessId,
