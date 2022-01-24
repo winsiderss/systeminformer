@@ -224,17 +224,37 @@ VOID PhShowTokenProperties(
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
+        PSH_PROPTITLE |
+        PSH_USECALLBACK;
     propSheetHeader.hInstance = PhInstanceHandle;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = Title ? Title : L"Token";
     propSheetHeader.nPages = 1;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
+    propSheetHeader.pfnCallback = PhpTokenSheetProc;
 
     pages[0] = PhCreateTokenPage(OpenObject, ProcessId, Context, NULL);
 
     PhModalPropertySheet(&propSheetHeader);
+}
+
+INT CALLBACK PhpTokenSheetProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ LPARAM lParam
+)
+{
+    switch (uMsg)
+    {
+    case PSCB_INITIALIZED:
+        {
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+        }
+        break;
+    }
+
+    return 0;
 }
 
 HPROPSHEETPAGE PhCreateTokenPage(
