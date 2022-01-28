@@ -99,6 +99,7 @@
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;iphlpapi.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AssemblyDebug>false</AssemblyDebug>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
