@@ -249,7 +249,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"SEH Handler");
                 PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Section");
-                PhLoadListViewColumnsFromSetting(L"ImageExceptions32ListViewColumns", context->ListViewHandle);
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsIa32ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_AMD64)
             {
@@ -259,7 +259,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
                 PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Section");
-                PhLoadListViewColumnsFromSetting(L"ImageExceptions64ListViewColumns", context->ListViewHandle);
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsAmd64ListViewColumns", context->ListViewHandle);
 
                 ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PvpPeExceptionSizeCompareFunctionAmd64);
             }
@@ -288,10 +288,11 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
             if (imageMachine == IMAGE_FILE_MACHINE_I386)
             {
                 PhSaveListViewColumnsToSetting(L"ImageExceptions32ListViewColumns", context->ListViewHandle);
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsIa32ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_AMD64)
             {
-                PhSaveListViewColumnsToSetting(L"ImageExceptions64ListViewColumns", context->ListViewHandle);
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsAmd64ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
             {
