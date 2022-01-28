@@ -287,7 +287,6 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
 
             if (imageMachine == IMAGE_FILE_MACHINE_I386)
             {
-                PhSaveListViewColumnsToSetting(L"ImageExceptions32ListViewColumns", context->ListViewHandle);
                 PhSaveListViewColumnsToSetting(L"ImageExceptionsIa32ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_AMD64)
