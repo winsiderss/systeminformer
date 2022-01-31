@@ -1963,14 +1963,14 @@ NTSTATUS PhWalkThreadStack(
         stackFrame.StackFrameSize = sizeof(STACKFRAME_EX);
 
         // Program counter, Stack pointer, Frame pointer
-#ifdef _ARM64_
+#if defined(_ARM64_)
         stackFrame.AddrPC.Mode = AddrModeFlat;
         stackFrame.AddrPC.Offset = context.Pc;
         stackFrame.AddrStack.Mode = AddrModeFlat;
         stackFrame.AddrStack.Offset = context.Sp;
         stackFrame.AddrFrame.Mode = AddrModeFlat;
         stackFrame.AddrFrame.Offset = context.Fp;
-#else
+#elif defined(_AMD64_)
         stackFrame.AddrPC.Mode = AddrModeFlat;
         stackFrame.AddrPC.Offset = context.Rip;
         stackFrame.AddrStack.Mode = AddrModeFlat;

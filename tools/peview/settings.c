@@ -61,8 +61,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageResourcesTreeListColumns", L"");
     PhpAddStringSetting(L"ImageResourcesTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
-    PhpAddStringSetting(L"ImageExceptions32ListViewColumns", L"");
-    PhpAddStringSetting(L"ImageExceptions64ListViewColumns", L"");
+    PhpAddStringSetting(L"ImageExceptionsIa32ListViewColumns", L"");
+    PhpAddStringSetting(L"ImageExceptionsAmd64ListViewColumns", L"");
     PhpAddStringSetting(L"ImageHeadersListViewColumns", L"");
     PhpAddStringSetting(L"ImageHeadersListViewGroupStates", L"");
     PhpAddStringSetting(L"ImageLayoutTreeColumns", L"");
