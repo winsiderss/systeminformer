@@ -115,7 +115,7 @@ VOID PvEnumerateExceptionEntries(
     {
         for (ULONG i = 0; i < exceptions.NumberOfEntries; i++)
         {
-            PIMAGE_RUNTIME_FUNCTION_ENTRY entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY));
+            PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64));
             INT lvItemIndex;
             PPH_STRING symbol;
             PPH_STRING symbolName = NULL;
@@ -175,19 +175,23 @@ VOID PvEnumerateExceptionEntries(
             }
         }
     }
+    else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+    {
+        /* Todo */
+    }
 
     //ExtendedListView_SortItems(ListViewHandle);
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-INT NTAPI PvpPeExceptionSizeCompareFunction(
+INT NTAPI PvpPeExceptionSizeCompareFunctionAmd64(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_ PVOID Context
     )
 {
-    PIMAGE_RUNTIME_FUNCTION_ENTRY entry1 = Item1;
-    PIMAGE_RUNTIME_FUNCTION_ENTRY entry2 = Item2;
+    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry1 = Item1;
+    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry2 = Item2;
 
     return uintptrcmp((ULONG_PTR)entry1->EndAddress - entry1->BeginAddress, (ULONG_PTR)entry2->EndAddress - entry2->BeginAddress);
 }
@@ -245,7 +249,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"SEH Handler");
                 PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Section");
-                PhLoadListViewColumnsFromSetting(L"ImageExceptions32ListViewColumns", context->ListViewHandle);
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsIa32ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_AMD64)
             {
@@ -255,9 +259,13 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
                 PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Section");
-                PhLoadListViewColumnsFromSetting(L"ImageExceptions64ListViewColumns", context->ListViewHandle);
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsAmd64ListViewColumns", context->ListViewHandle);
 
-                ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PvpPeExceptionSizeCompareFunction);
+                ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PvpPeExceptionSizeCompareFunctionAmd64);
+            }
+            else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+            {
+                /* Todo */
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -279,11 +287,15 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
 
             if (imageMachine == IMAGE_FILE_MACHINE_I386)
             {
-                PhSaveListViewColumnsToSetting(L"ImageExceptions32ListViewColumns", context->ListViewHandle);
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsIa32ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_AMD64)
             {
-                PhSaveListViewColumnsToSetting(L"ImageExceptions64ListViewColumns", context->ListViewHandle);
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsAmd64ListViewColumns", context->ListViewHandle);
+            }
+            else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+            {
+                /* Todo */
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);
