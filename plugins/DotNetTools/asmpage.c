@@ -3,7 +3,7 @@
  *   .NET Assemblies property page
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016-2021 dmex
+ * Copyright (C) 2016-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -983,8 +983,8 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
@@ -1137,6 +1137,7 @@ static ULONG StartDotNetTrace(
     properties->Wnode.ClientContext = 2; // System time clock resolution
     properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     properties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_USE_PAGED_MEMORY;
+    properties->EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
     properties->LogFileNameOffset = 0;
     properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 

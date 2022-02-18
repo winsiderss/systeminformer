@@ -3,7 +3,7 @@
  *   ETW monitoring
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2019-2021 dmex
+ * Copyright (C) 2019-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -144,7 +144,7 @@ VOID EtStartEtwSession(
     EtpTraceProperties->BufferSize = 64;
     EtpTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
     EtpTraceProperties->FlushTimer = 1;
-    EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_DISK_FILE_IO | EVENT_TRACE_FLAG_NETWORK_TCPIP;
+    EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_DISK_FILE_IO | EVENT_TRACE_FLAG_NETWORK_TCPIP | EVENT_TRACE_FLAG_NO_SYSCONFIG;
     EtpTraceProperties->LogFileNameOffset = 0;
     EtpTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
@@ -499,6 +499,7 @@ ULONG EtStartEtwRundown(
     EtpRundownTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
     EtpRundownTraceProperties->BufferSize = 1024; // 1MB session buffer (dmex)
     EtpRundownTraceProperties->FlushTimer = 1;
+    EtpRundownTraceProperties->EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
     EtpRundownTraceProperties->LogFileNameOffset = 0;
     EtpRundownTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
