@@ -473,16 +473,24 @@ HBRUSH PhWindowThemeControlColor(
     {
     case CTLCOLOR_EDIT:
         {
-            switch (PhpThemeColorMode)
+            if (PhpThemeEnable)
             {
-            case 0: // New colors
-                SetTextColor(Hdc, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor(Hdc, PhThemeWindowTextColor);
-                break;
-            case 1: // Old colors
-                SetTextColor(Hdc, PhThemeWindowTextColor);
-                SetDCBrushColor(Hdc, RGB(60, 60, 60));
-                break;
+                switch (PhpThemeColorMode)
+                {
+                case 0: // New colors
+                    SetTextColor(Hdc, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor(Hdc, PhThemeWindowTextColor);
+                    break;
+                case 1: // Old colors
+                    SetTextColor(Hdc, PhThemeWindowTextColor);
+                    SetDCBrushColor(Hdc, RGB(60, 60, 60));
+                    break;
+                }
+            }
+            else
+            {
+                SetTextColor(Hdc, GetSysColor(COLOR_WINDOWTEXT));
+                SetDCBrushColor(Hdc, GetSysColor(COLOR_WINDOW));
             }
 
             return GetStockBrush(DC_BRUSH);
@@ -490,7 +498,15 @@ HBRUSH PhWindowThemeControlColor(
         break;
     case CTLCOLOR_SCROLLBAR:
         {
-            SetDCBrushColor(Hdc, RGB(23, 23, 23));
+            if (PhpThemeEnable)
+            {
+                SetDCBrushColor(Hdc, RGB(23, 23, 23));
+            }
+            else
+            {
+                SetDCBrushColor(Hdc, GetSysColor(COLOR_SCROLLBAR));
+            }
+
             return GetStockBrush(DC_BRUSH);
         }
         break;
@@ -516,8 +532,8 @@ HBRUSH PhWindowThemeControlColor(
             }
             else
             {
-                SetTextColor(Hdc, RGB(0x00, 0x00, 0x00));
-                SetDCBrushColor(Hdc, RGB(0xff, 0xff, 0xff));
+                SetTextColor(Hdc, GetSysColor(COLOR_WINDOWTEXT));
+                SetDCBrushColor(Hdc, GetSysColor(COLOR_WINDOW));
             }
 
             return GetStockBrush(DC_BRUSH);
@@ -845,7 +861,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         case 0: // New colors
             break;
         case 1: // Old colors
-            TreeView_SetBkColor(WindowHandle, RGB(30, 30, 30));
+            TreeView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor);// RGB(30, 30, 30));
             //TreeView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
             TreeView_SetTextColor(WindowHandle, PhThemeWindowTextColor);
             break;
@@ -1329,19 +1345,18 @@ BOOLEAN PhThemeWindowDrawItem(
                 SelectFont(DrawInfo->hDC, oldFont);
             }
 
-            //if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
-            //{
-            //    static HTHEME MenuThemeHandle = NULL;
-            //
-            //    if (!MenuThemeHandle)
-            //    {
-            //        MenuThemeHandle = OpenThemeData(NULL, L"Menu");
-            //    }
-            //
-            //    rect.left = rect.right - 25;
-            //
-            //    DrawThemeBackground(MenuThemeHandle, DrawInfo->hDC, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL, &rect, NULL);
-            //}
+            if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
+            {
+                static HTHEME menuThemeHandle = NULL;
+            
+                if (!menuThemeHandle)
+                {
+                    menuThemeHandle = OpenThemeData(NULL, L"Menu");
+                }
+            
+                rect.left = rect.right - 25;
+                DrawThemeBackground(menuThemeHandle, DrawInfo->hDC, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL, &rect, NULL);
+            }
 
             ExcludeClipRect(DrawInfo->hDC, rect.left, rect.top, rect.right, rect.bottom);
 

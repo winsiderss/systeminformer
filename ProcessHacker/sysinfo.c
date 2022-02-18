@@ -270,8 +270,8 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             }
             else
             {
-                SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                SetTextColor((HDC)wParam, GetSysColor(COLOR_WINDOWTEXT));
+                SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
             }
 
             return (INT_PTR)GetStockBrush(DC_BRUSH);
@@ -331,8 +331,8 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
             }
             else
             {
-                SetTextColor((HDC)wParam, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor((HDC)wParam, RGB(0xff, 0xff, 0xff));
+                SetTextColor((HDC)wParam, GetSysColor(COLOR_WINDOWTEXT));
+                SetDCBrushColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
             }
 
             return (INT_PTR)GetStockBrush(DC_BRUSH);
@@ -1316,9 +1316,8 @@ VOID PhSipDrawRestoreSummaryPanel(
     }
     else
     {
-        SetTextColor(bufferDc, RGB(0x00, 0x00, 0x00));
-        SetDCBrushColor(bufferDc, RGB(0xff, 0xff, 0xff));
-        FillRect(bufferDc, &bufferRect, GetStockBrush(DC_BRUSH));
+        SetTextColor(bufferDc, GetSysColor(COLOR_WINDOWTEXT));
+        FillRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_WINDOW));
     }
 
     if (RestoreSummaryControlHot || RestoreSummaryControlHasFocus)
