@@ -461,6 +461,7 @@ VOID PhLoadPlugins(
 {
     NTSTATUS status;
     PPH_STRING fileName;
+    PPH_STRING baseName;
     PPH_STRING pluginsDirectory;
     PPH_LIST pluginLoadErrors;
 
@@ -473,6 +474,14 @@ VOID PhLoadPlugins(
     {
         if (fileName = PhConcatStringRef2(&pluginsDirectory->sr, &PhpDefaultPluginName[i]))
         {
+            baseName = PhGetBaseName(fileName);
+
+            if (PhIsPluginDisabled(&baseName->sr))
+            {
+                PhDereferenceObject(baseName);
+                continue;
+            }
+
             status = PhLoadPlugin(fileName);
 
             if (!NT_SUCCESS(status))
@@ -492,6 +501,7 @@ VOID PhLoadPlugins(
                 PhAddItemList(pluginLoadErrors, loadError);
             }
 
+            PhDereferenceObject(baseName);
             PhDereferenceObject(fileName);
         }
     }
