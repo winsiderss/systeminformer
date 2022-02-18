@@ -3,7 +3,7 @@
  *   working set watch
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2018-2021 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -85,14 +85,14 @@ VOID EtShowWsWatchDialog(
 }
 
 VOID EtpReferenceWsWatchContext(
-    _Inout_ PWS_WATCH_CONTEXT Context
+    _In_ PWS_WATCH_CONTEXT Context
     )
 {
     _InterlockedIncrement(&Context->RefCount);
 }
 
 VOID EtpDereferenceWsWatchContext(
-    _Inout_ PWS_WATCH_CONTEXT Context
+    _In_ PWS_WATCH_CONTEXT Context
     )
 {
     if (_InterlockedDecrement(&Context->RefCount) == 0)
@@ -179,7 +179,7 @@ static VOID EtpQueueSymbolLookup(
 {
     PSYMBOL_LOOKUP_RESULT result;
 
-    result = PhAllocate(sizeof(SYMBOL_LOOKUP_RESULT));
+    result = PhAllocateZero(sizeof(SYMBOL_LOOKUP_RESULT));
     result->Context = Context;
     result->Address = Address;
     EtpReferenceWsWatchContext(Context);
@@ -256,6 +256,9 @@ static VOID EtpProcessSymbolLookupResults(
             0,
             PhGetString(result->Symbol)
             );
+
+        if (result->FileName)
+            PhMoveReference(&result->FileName, PhGetFileName(result->FileName));
 
         PhSetListViewSubItem(
             Context->ListViewHandle,
@@ -509,7 +512,6 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
             PhInitializeQueuedLock(&context->ResultListLock);
             context->SymbolProvider = PhCreateSymbolProvider(context->ProcessId);
-            PhLoadSymbolProviderOptions(context->SymbolProvider);
 
             if (!context->SymbolProvider)
             {
@@ -517,6 +519,8 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             }
+
+            PhLoadSymbolProviderOptions(context->SymbolProvider);
 
             // Load symbols for both process and kernel modules.
             context->LoadingSymbolsForProcessId = context->ProcessId;
