@@ -273,6 +273,7 @@ BOOLEAN StartFpsTraceSession(
     sessionProps.Wnode.BufferSize = (ULONG)sizeof(TraceProperties);
     sessionProps.Wnode.ClientContext = 1;
     sessionProps.LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
+    sessionProps.EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
     sessionProps.LogFileNameOffset = 0;
     sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);  // Location of session name; will be written by StartTrace()
 
