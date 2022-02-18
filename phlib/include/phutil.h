@@ -1338,15 +1338,16 @@ PhGetDllFileName(
 PHLIBAPI
 PVOID
 NTAPI
-PhGetLoaderEntryDllBase(
-    _In_ PWSTR DllName
+PhGetLoaderEntryStringRefDllBase(
+    _In_opt_ PPH_STRINGREF FullDllName,
+    _In_opt_ PPH_STRINGREF BaseDllName
     );
 
 PHLIBAPI
 PVOID
 NTAPI
-PhGetLoaderEntryFullDllBase(
-    _In_ PWSTR FullDllName
+PhGetLoaderEntryDllBase(
+    _In_ PWSTR DllName
     );
 
 PHLIBAPI
