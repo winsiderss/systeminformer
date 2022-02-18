@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Process properties: NTVDM page
  *
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -77,7 +77,7 @@ PVOID PhpGetVdmDbgDllBase(
         {
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\vdmdbg.dll"))
             {
-                if (!(imageBaseAddress = PhGetLoaderEntryFullDllBase(PhGetString(systemFileName))))
+                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
                     imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
 
                 PhDereferenceObject(systemFileName);
