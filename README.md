@@ -1,7 +1,7 @@
 [![Build status](https://img.shields.io/appveyor/ci/processhacker/processhacker.svg?style=for-the-badge)](https://ci.appveyor.com/project/processhacker/processhacker)
 [![Build contributors](https://img.shields.io/github/contributors/processhacker/processhacker.svg?style=for-the-badge&color=blue)](https://github.com/processhacker/processhacker/graphs/contributors)
 [![Licence](https://img.shields.io/badge/license-GPLv3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0.en.html)
-[![Github stats](https://img.shields.io/github/downloads/processhacker/processhacker/total.svg?style=for-the-badge&color=red)](https://somsubhra.com/github-release-stats/?username=processhacker&repository=processhacker)
+[![Github stats](https://img.shields.io/github/downloads/processhacker/processhacker/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=processhacker&repository=processhacker)
 [![SourceForge stats](https://img.shields.io/sourceforge/dt/processhacker.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/processhacker/files/stats/timeline?dates=2008-10-01%20to%202020-09-01&period=monthly)
 
 <img align="left" src="https://raw.githubusercontent.com/processhacker/processhacker/master/ProcessHacker/resources/ProcessHacker.png" width="128" height="128"> 
