@@ -44,7 +44,7 @@ struct SwapChainData
 struct ProcessInfo
 {
     std::unordered_map<uint64_t, SwapChainData> mSwapChain;
-    HANDLE ProcessHandle;
+    PPH_PROCESS_ITEM ProcessItem;
 };
 
 // ConsumerThread.cpp:

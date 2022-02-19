@@ -296,6 +296,17 @@ BOOLEAN StartFpsTraceSession(
             L"PhPresentTraceSession",
             &sessionProps
             );
+
+        if (status == ERROR_SUCCESS)
+        {
+            status = EnableProviders(mSessionHandle, sessionProps.Wnode.Guid);
+
+            if (status != ERROR_SUCCESS)
+            {
+                TraceSession_Stop();
+                return FALSE;
+            }
+        }
     }
 
     if (status != ERROR_SUCCESS)
@@ -317,14 +328,6 @@ BOOLEAN StartFpsTraceSession(
             TraceSession_Stop();
             return FALSE;
         }
-    }
-
-    status = EnableProviders(mSessionHandle, sessionProps.Wnode.Guid);
-
-    if (status != ERROR_SUCCESS)
-    {
-        TraceSession_Stop();
-        return FALSE;
     }
 
     StartConsumerThread(mTraceHandle);
