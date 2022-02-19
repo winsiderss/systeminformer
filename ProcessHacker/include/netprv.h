@@ -42,7 +42,9 @@ typedef struct _PH_NETWORK_ITEM
         {
             ULONG UnknownProcess : 1;
             ULONG SubsystemProcess : 1;
-            ULONG Spare : 30;
+            ULONG Spare : 28;
+            ULONG LocalHostnameResolved : 1;
+            ULONG RemoteHostnameResolved : 1;
         };
     };
 

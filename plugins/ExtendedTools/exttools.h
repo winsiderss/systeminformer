@@ -886,7 +886,9 @@ typedef struct _FW_EVENT_ITEM
         struct
         {
             BOOLEAN Loopback : 1;
-            BOOLEAN Spare : 7;
+            BOOLEAN Spare : 5;
+            BOOLEAN LocalHostnameResolved : 1;
+            BOOLEAN RemoteHostnameResolved : 1;
         };
     };
 

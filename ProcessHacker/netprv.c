@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2010 wj32
  * Copyright (C) 2010 evilpie
- * Copyright (C) 2016-2021 dmex
+ * Copyright (C) 2016-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -467,7 +467,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     case PH_IPV4_NETWORK_TYPE:
         {
             if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
-                return PhReferenceEmptyString();
+                return NULL;
 
             if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
                 IN4_IS_ADDR_BROADCAST(&Address->InAddr) ||
@@ -483,7 +483,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     case PH_IPV6_NETWORK_TYPE:
         {
             if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
-                return PhReferenceEmptyString();
+                return NULL;
 
             if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
                 IN6_IS_ADDR_MULTICAST(&Address->In6Addr) ||
@@ -497,7 +497,7 @@ PPH_STRING PhGetHostNameFromAddressEx(
     }
 
     if (!(dnsReverseNameString = PhpGetDnsReverseNameFromAddress(Address)))
-        return PhReferenceEmptyString();
+        return NULL;
 
     if (PhEnableNetworkResolveDoHSupport && !dnsLocalQuery)
     {
@@ -532,9 +532,6 @@ PPH_STRING PhGetHostNameFromAddressEx(
     }
 
     PhDereferenceObject(dnsReverseNameString);
-
-    if (!dnsHostNameString)
-        dnsHostNameString = PhReferenceEmptyString();
 
     return dnsHostNameString;
 }
@@ -600,10 +597,10 @@ VOID PhpQueueNetworkItemQuery(
 
     if (!PhEnableNetworkProviderResolve)
     {
-        if (Remote) // HACK: NULL used for status (dmex)
-            NetworkItem->RemoteHostString = PhReferenceEmptyString();
+        if (Remote)
+            NetworkItem->RemoteHostnameResolved = TRUE;
         else
-            NetworkItem->LocalHostString = PhReferenceEmptyString();
+            NetworkItem->LocalHostnameResolved = TRUE;
         return;
     }
 
@@ -664,9 +661,15 @@ VOID PhFlushNetworkQueryData(
         entry = entry->Next;
 
         if (data->Remote)
+        {
             PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
+            data->NetworkItem->RemoteHostnameResolved = TRUE;
+        }
         else
+        {
             PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
+            data->NetworkItem->LocalHostnameResolved = TRUE;
+        }
 
         data->NetworkItem->JustResolved = TRUE;
 
@@ -822,6 +825,7 @@ VOID PhNetworkProviderUpdate(
                 {
                     PhReferenceObject(cacheItem->HostString);
                     networkItem->LocalHostString = cacheItem->HostString;
+                    networkItem->LocalHostnameResolved = TRUE;
                 }
                 else
                 {
@@ -830,7 +834,7 @@ VOID PhNetworkProviderUpdate(
             }
 
             // Remote
-            //if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
+            if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
             {
                 PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
                 cacheItem = PhpLookupResolveCacheItem(&networkItem->RemoteEndpoint.Address);
@@ -840,11 +844,16 @@ VOID PhNetworkProviderUpdate(
                 {
                     PhReferenceObject(cacheItem->HostString);
                     networkItem->RemoteHostString = cacheItem->HostString;
+                    networkItem->RemoteHostnameResolved = TRUE;
                 }
                 else
                 {
                     PhpQueueNetworkItemQuery(networkItem, TRUE);
                 }
+            }
+            else
+            {
+                networkItem->RemoteHostnameResolved = TRUE;
             }
 
             // Get process information.

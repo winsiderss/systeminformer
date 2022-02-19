@@ -860,7 +860,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     {
                         // Exclude empty hostnames from drawing (dmex)
                         if (!PhIsNullOrEmptyString(node->RemoteHostnameString))
-                            getCellText->Text = node->RemoteHostnameString->sr;
+                            getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
                         else
                             PhInitializeEmptyStringRef(&getCellText->Text);
                     }
