@@ -629,7 +629,22 @@ NTSTATUS EtpRundownEtwMonitorThreadStart(
         // into EtpEtwEventCallback and enable after the first IO_READ/IO_WRITE event. (dmex)
         if (!EtpRundownEnabled && EtpRundownSessionHandle != INVALID_PROCESSTRACE_HANDLE)
         {
-            EnableTraceEx(&KernelRundownGuid_I, NULL, EtpRundownSessionHandle, 1, 0, 0x10, 0, 0, NULL);
+            ENABLE_TRACE_PARAMETERS enableParameters;
+
+            memset(&enableParameters, 0, sizeof(ENABLE_TRACE_PARAMETERS));
+            enableParameters.Version = ENABLE_TRACE_PARAMETERS_VERSION_2;
+
+            EnableTraceEx2(
+                EtpRundownSessionHandle,
+                &KernelRundownGuid_I,
+                EVENT_CONTROL_CODE_ENABLE_PROVIDER,
+                TRACE_LEVEL_NONE,
+                0x10,
+                0,
+                0,
+                &enableParameters
+                );
+
             EtpRundownEnabled = TRUE;
         }
 
