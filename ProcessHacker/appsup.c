@@ -163,7 +163,7 @@ NTSTATUS PhGetProcessSwitchContext(
         {
             if (!NT_SUCCESS(status = NtReadVirtualMemory(
                 ProcessHandle,
-                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pUnused)),
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pContextData)),
                 &data,
                 sizeof(PVOID),
                 NULL
