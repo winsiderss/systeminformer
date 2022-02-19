@@ -228,6 +228,12 @@ typedef enum _PROCESSINFOCLASS
     ProcessCreateStateChange, // since WIN11
     ProcessApplyStateChange,
     ProcessEnableOptionalXStateFeatures,
+    ProcessAltPrefetchParam, // since 11H1
+    ProcessAssignCpuPartitions,
+    ProcessPriorityClassEx,
+    ProcessMembershipInformation,
+    ProcessEffectiveIoPriority,
+    ProcessEffectivePagePriority,
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -288,6 +294,9 @@ typedef enum _THREADINFOCLASS
     ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
     ThreadCreateStateChange, // since WIN11
     ThreadApplyStateChange,
+    ThreadStrongerBadHandleChecks, // since 11H1
+    ThreadEffectiveIoPriority,
+    ThreadEffectivePagePriority,
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -1210,7 +1219,7 @@ NtCreateProcessEx(
     _In_opt_ HANDLE SectionHandle,
     _In_opt_ HANDLE DebugPort,
     _In_opt_ HANDLE ExceptionPort,
-    _In_ ULONG JobMemberLevel
+    _Reserved_ ULONG Reserved // JobMemberLevel
     );
 
 NTSYSCALLAPI
@@ -1642,6 +1651,9 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeDesktopAppPolicy, // in ULONG
     PsAttributeChpe, // since REDSTONE3
     PsAttributeMitigationAuditOptions, // since 21H1
+    PsAttributeMachineType, // since WIN11
+    PsAttributeComponentFilter,
+    PsAttributeEnableOptionalXStateFeatures,
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
 
@@ -1808,7 +1820,8 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_CET_USER_SHADOW_STACKS,
     PS_MITIGATION_OPTION_USER_CET_SET_CONTEXT_IP_VALIDATION, // since 21H1
     PS_MITIGATION_OPTION_BLOCK_NON_CET_BINARIES,
-    PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY
+    PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY,
+    PS_MITIGATION_OPTION_REDIRECTION_TRUST, // since 11H1
 } PS_MITIGATION_OPTION;
 
 // windows-internals-book:"Chapter 5"
@@ -2019,7 +2032,9 @@ NtCreateThreadEx(
 #define JobObjectSiloSystemRoot 45
 #define JobObjectEnergyTrackingState 46 // JOBOBJECT_ENERGY_TRACKING_STATE
 #define JobObjectThreadImpersonationInformation 47
-#define MaxJobObjectInfoClass 48
+#define JobObjectIoPriorityLimit 48
+#define JobObjectPagePriorityLimit 49
+#define MaxJobObjectInfoClass 50
 
 // private
 typedef struct _JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
