@@ -41,6 +41,14 @@ PhCreateJsonParser(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhCreateJsonParserEx(
+    _In_ PVOID JsonString,
+    _In_ BOOLEAN Unicode
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhFreeJsonObject(
