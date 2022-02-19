@@ -116,7 +116,7 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenChildProcessFlags, // q; s: ULONG
     TokenIsLessPrivilegedAppContainer, // q: ULONG
     TokenIsSandboxed, // q: ULONG
-    TokenOriginatingProcessTrustLevel, // q: TOKEN_PROCESS_TRUST_LEVEL
+    TokenIsAppSilo, // TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
 #endif
