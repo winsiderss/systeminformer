@@ -6686,6 +6686,47 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
     return STATUS_SUCCESS;
 }
 
+static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
+    _In_ PVOID BaseAddress,
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
+    _In_ PULONG ExportNameTable,
+    _In_ PSTR ExportName
+    )
+{
+    LONG low;
+    LONG high;
+    LONG i;
+
+    if (ExportDirectory->NumberOfNames == 0)
+        return ULONG_MAX;
+
+    low = 0;
+    high = ExportDirectory->NumberOfNames - 1;
+
+    do
+    {
+        PSTR name;
+        INT comparison;
+
+        i = (low + high) / 2;
+        name = PTR_ADD_OFFSET(BaseAddress, ExportNameTable[i]);
+
+        if (!name)
+            return ULONG_MAX;
+
+        comparison = strcmp(ExportName, name);
+
+        if (comparison == 0)
+            return i;
+        else if (comparison < 0)
+            high = i - 1;
+        else
+            low = i + 1;
+    } while (low <= high);
+
+    return ULONG_MAX;
+}
+
 PVOID PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
@@ -6712,13 +6753,29 @@ PVOID PhGetLoaderEntryImageExportFunction(
     }
     else if (ExportName)
     {
-        for (ULONG i = 0; i < ExportDirectory->NumberOfNames; i++)
+        ULONG exportIndex;
+
+        exportIndex = PhpLookupLoaderEntryImageExportFunctionIndex(
+            BaseAddress,
+            ExportDirectory,
+            exportNameTable,
+            ExportName
+            );
+
+        if (exportIndex == ULONG_MAX)
         {
-            if (PhEqualBytesZ(ExportName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[i]), FALSE))
+            for (exportIndex = 0; exportIndex < ExportDirectory->NumberOfNames; exportIndex++)
             {
-                exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[i]]);
-                break;
+                if (PhEqualBytesZ(ExportName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[exportIndex]), FALSE))
+                {
+                    exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
+                    break;
+                }
             }
+        }
+        else
+        {
+            exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
         }
     }
 
@@ -7409,9 +7466,9 @@ NTSTATUS PhLoaderEntryLoadDll(
     PVOID imageBaseAddress;
     SIZE_T imageBaseOffset;
 
-    status = PhCreateFile(
+    status = PhCreateFileWin32(
         &fileHandle,
-        FileName,
+        FileName->Buffer,
         FILE_READ_DATA | FILE_EXECUTE | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -7458,7 +7515,7 @@ NTSTATUS PhLoaderEntryLoadDll(
         0,
         NULL,
         &imageBaseOffset,
-        ViewUnmap,
+        ViewShare,
         0,
         PAGE_EXECUTE
         );
@@ -7586,13 +7643,8 @@ NTSTATUS PhLoadPluginImage(
         &imageBaseAddress
         );
 
-    //NTSTATUS status;
-    //PVOID imageBaseAddress;
-    //PIMAGE_NT_HEADERS imageNtHeaders;
-    //PLDR_INIT_ROUTINE imageEntryRoutine;
-
     //status = PhLoaderEntryLoadDll(
-    //    FileName->Buffer,
+    //    FileName,
     //    &imageBaseAddress
     //    );
 
@@ -8032,7 +8084,7 @@ ULONGLONG PhReadTimeStampCounter(
 #elif _M_ARM
     return __rdpmccntr64();
 #elif _M_ARM64
-    // The Windows SDK uses PMCCNTR on ARM64 instead of CNTVCT? (dmex)
+    // The ReadTimeStampCounter() macro uses PMCCNTR on ARM64 instead of CNTVCT? (dmex)
     return _ReadStatusReg(ARM64_CNTVCT);
 #endif
 }
@@ -8111,8 +8163,8 @@ PPH_STRING PhApiSetResolveToHost(
     if (apisetMap->Version != 6)
         return NULL;
 
-	for (ULONG i = 0; i < apisetMap->Count; i++)
-	{
+    for (ULONG i = 0; i < apisetMap->Count; i++)
+    {
         PAPI_SET_VALUE_ENTRY apisetMapValue = PTR_ADD_OFFSET(apisetMap, apisetMapEntry->ValueOffset);
         PH_STRINGREF nameStringRef;
 
@@ -8138,7 +8190,7 @@ PPH_STRING PhApiSetResolveToHost(
         }
 
         apisetMapEntry++;
-	}
+    }
 
-	return NULL;
+    return NULL;
 }
