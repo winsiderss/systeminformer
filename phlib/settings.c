@@ -3,7 +3,7 @@
  *   settings
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -47,10 +47,6 @@ BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
     _In_ PVOID Entry
-    );
-
-ULONG PhpGetCurrentScale(
-    VOID
     );
 
 VOID PhpFreeSettingValue(
@@ -106,23 +102,7 @@ static ULONG PhpGetCurrentScale(
     VOID
     )
 {
-    static PH_INITONCE initOnce;
-    static ULONG dpi = 96;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        HDC hdc;
-
-        if (hdc = GetDC(NULL))
-        {
-            dpi = GetDeviceCaps(hdc, LOGPIXELSY);
-            ReleaseDC(NULL, hdc);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return dpi;
+    return PhGlobalDpi;
 }
 
 PPH_STRING PhSettingToString(
@@ -352,7 +332,7 @@ _May_raise_ ULONG PhGetIntegerSetting(
     PH_STRINGREF name;
     ULONG value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -383,7 +363,7 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairSetting(
     PH_STRINGREF name;
     PH_INTEGER_PAIR value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -415,7 +395,7 @@ _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairSetting(
     PH_STRINGREF name;
     PH_SCALABLE_INTEGER_PAIR value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -460,7 +440,7 @@ _May_raise_ PPH_STRING PhGetStringSetting(
     PH_STRINGREF name;
     PPH_STRING value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -518,7 +498,7 @@ _May_raise_ VOID PhSetIntegerSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -543,7 +523,7 @@ _May_raise_ VOID PhSetIntegerPairSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -568,7 +548,7 @@ _May_raise_ VOID PhSetScalableIntegerPairSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -606,7 +586,7 @@ _May_raise_ VOID PhSetStringSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -632,7 +612,7 @@ _May_raise_ VOID PhSetStringSetting2(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
