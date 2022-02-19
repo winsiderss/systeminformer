@@ -367,6 +367,55 @@ SetValuesEnd:
     return status;
 }
 
+BOOLEAN KphParametersExists(
+    _In_opt_ PWSTR ServiceName
+    )
+{
+    NTSTATUS status;
+    HANDLE parametersKeyHandle = NULL;
+    PH_STRINGREF parametersKeyNameSr;
+    PH_FORMAT format[3];
+    SIZE_T returnLength;
+    WCHAR parametersKeyName[MAX_PATH];
+
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+    PhInitFormatS(&format[1], ServiceName ? ServiceName : KPH_DEVICE_SHORT_NAME);
+    PhInitFormatS(&format[2], L"\\Parameters");
+
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        parametersKeyName,
+        sizeof(parametersKeyName),
+        &returnLength
+        ))
+    {
+        return FALSE;
+    }
+
+    parametersKeyNameSr.Buffer = parametersKeyName;
+    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+    status = PhOpenKey(
+        &parametersKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &parametersKeyNameSr,
+        0
+        );
+
+    if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
+    {
+        if (parametersKeyHandle)
+            NtClose(parametersKeyHandle);
+        return TRUE;
+    }
+
+    if (parametersKeyHandle)
+        NtClose(parametersKeyHandle);
+    return FALSE;
+}
+
 NTSTATUS KphResetParameters(
     _In_opt_ PWSTR ServiceName
     )
