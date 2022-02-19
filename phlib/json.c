@@ -51,6 +51,72 @@ PVOID PhCreateJsonParser(
     return json_tokener_parse(JsonString);
 }
 
+PVOID PhCreateJsonParserEx(
+    _In_ PVOID JsonString,
+    _In_ BOOLEAN Unicode
+    )
+{
+    json_tokener* tokenerObject;
+    json_object_ptr jsonObject;
+
+    if (Unicode)
+    {
+        PPH_STRING jsonStringUtf16 = JsonString;
+        PPH_BYTES jsonStringUtf8;
+
+        if (jsonStringUtf16->Length / sizeof(WCHAR) >= INT32_MAX)
+            return NULL;
+        if (!(tokenerObject = json_tokener_new()))
+            return NULL;
+
+        json_tokener_set_flags(
+            tokenerObject,
+            JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8
+            );
+
+        jsonStringUtf8 = PhConvertUtf16ToUtf8Ex(
+            jsonStringUtf16->Buffer,
+            jsonStringUtf16->Length
+            );
+        jsonObject = json_tokener_parse_ex(
+            tokenerObject,
+            jsonStringUtf8->Buffer,
+            (INT)jsonStringUtf8->Length
+            );
+        PhDereferenceObject(jsonStringUtf8);
+    }
+    else
+    {
+        PPH_BYTES jsonStringUtf8 = JsonString;
+
+        if (jsonStringUtf8->Length >= INT32_MAX)
+            return NULL;
+        if (!(tokenerObject = json_tokener_new()))
+            return NULL;
+
+        json_tokener_set_flags(
+            tokenerObject,
+            JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8
+            );
+
+        jsonObject = json_tokener_parse_ex(
+            tokenerObject,
+            jsonStringUtf8->Buffer,
+            (INT)jsonStringUtf8->Length
+            );
+    }
+
+    if (json_tokener_get_error(tokenerObject) != json_tokener_success)
+    {
+        json_tokener_free(tokenerObject);
+        return NULL;
+    }
+
+    json_tokener_free(tokenerObject);
+
+    return jsonObject;
+}
+
 VOID PhFreeJsonObject(
     _In_ PVOID Object
     )
