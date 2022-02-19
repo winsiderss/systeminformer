@@ -10321,14 +10321,14 @@ NTSTATUS PhQueryProcessHeapInformation(
 
     status = PhOpenProcess(
         &processHandle,
-        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_SET_LIMITED_INFORMATION,
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE,
         ProcessId
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    // NOTE: RtlQueryProcessDebugInformation injects a thread into the process and causing deadlocks and other issues in rare cases.
+    // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
     // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
 
     memset(&reflectionInfo, 0, sizeof(RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION));
