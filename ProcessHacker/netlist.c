@@ -3,7 +3,7 @@
  *   network list
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -561,14 +561,10 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
             case PHNETLC_LOCALHOSTNAME:
                 {
-                    if (networkItem->LocalHostString)
-                    {
+                    if (networkItem->LocalHostnameResolved)
                         getCellText->Text = PhGetStringRef(networkItem->LocalHostString);
-                    }
                     else
-                    {
                         PhInitializeStringRef(&getCellText->Text, L"Resolving....");
-                    }
                 }
                 break;
             case PHNETLC_LOCALPORT:
@@ -579,14 +575,10 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 break;
             case PHNETLC_REMOTEHOSTNAME:
                 {
-                    if (networkItem->RemoteHostString)
-                    {
+                    if (networkItem->RemoteHostnameResolved)
                         getCellText->Text = PhGetStringRef(networkItem->RemoteHostString);
-                    }
                     else
-                    {
                         PhInitializeStringRef(&getCellText->Text, L"Resolving....");
-                    }
                 }
                 break;
             case PHNETLC_REMOTEPORT:
