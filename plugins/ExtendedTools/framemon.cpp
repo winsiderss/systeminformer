@@ -59,6 +59,12 @@ VOID EtFramesMonitorInitialization(
     VOID
     )
 {
+    if (PhWindowsVersion < WINDOWS_8)
+    {
+        // TODO: PresentMon supports Windows 7 but doesn't generate events. Disable support until resolved. (dmex)
+        return;
+    }
+
     EtFramesEnabled = !!PhGetIntegerSetting(const_cast<PWSTR>(SETTING_NAME_ENABLE_FPS_MONITOR));
 
     if (!EtFramesEnabled)
