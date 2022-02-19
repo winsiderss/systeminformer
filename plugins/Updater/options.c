@@ -219,7 +219,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
         goto CleanupExit;
 
-    if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
+    if (!(jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE)))
         goto CleanupExit;
 
     if (PhGetJsonObjectType(jsonRootObject) != PH_JSON_OBJECT_TYPE_ARRAY)

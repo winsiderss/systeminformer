@@ -449,7 +449,7 @@ VOID PhInitializeEtwTraceGuidCache(
 
     PhInitializeArray(EtwTraceGuidArrayList, sizeof(PH_ETW_TRACEGUID_ENTRY), 2000);
 
-    if (!(jsonObject = PhCreateJsonParser(capabilityListString->Buffer)))
+    if (!(jsonObject = PhCreateJsonParserEx(capabilityListString, FALSE)))
         return;
 
     if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))
