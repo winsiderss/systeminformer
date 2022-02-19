@@ -712,7 +712,7 @@ NTAPI
 NtCreateTimer2(
     _Out_ PHANDLE TimerHandle,
     _In_opt_ PVOID Reserved1,
-    _In_opt_ PVOID Reserved2,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG Attributes,
     _In_ ACCESS_MASK DesiredAccess
     );
@@ -1491,6 +1491,11 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSupportedProcessorArchitectures2,// q: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx  // 230
     SystemSingleProcessorRelationshipInformation,
     SystemXfgCheckFailureInformation,
+    SystemIommuStateInformation, // since 11H1
+    SystemHypervisorMinrootInformation,
+    SystemHypervisorBootPagesInformation,
+    SystemPointerAuthInformation,
+    SystemSecureKernelDebuggerInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
