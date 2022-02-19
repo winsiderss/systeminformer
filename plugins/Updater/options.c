@@ -505,6 +505,8 @@ INT_PTR CALLBACK TextDlgProc(
 
             //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
             PhCreateThread2(PhpUpdaterQueryCommitHistoryThread, hwndDlg);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
