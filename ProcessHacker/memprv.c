@@ -239,17 +239,48 @@ PPH_MEMORY_ITEM PhpSetMemoryRegionType(
 }
 
 VOID PhpUpdateHeapRegions(
-    _In_ HANDLE ProcessHandle,
     _In_ PPH_MEMORY_ITEM_LIST List
     )
 {
     NTSTATUS status;
+    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo;
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     HANDLE powerRequestHandle = NULL;
     ULONG heapEntrySize;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_SET_LIMITED_INFORMATION,
+        List->ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return;
 
     if (WindowsVersion >= WINDOWS_10)
-        PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+        PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
+
+    // NOTE: RtlQueryProcessDebugInformation injects a thread into the process and causing deadlocks and other issues in rare cases.
+    // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
+
+    memset(&reflectionInfo, 0, sizeof(RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION));
+    status = RtlCreateProcessReflection(
+        processHandle,
+        0,
+        NULL,
+        NULL,
+        NULL,
+        &reflectionInfo
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        if (powerRequestHandle)
+            PhDestroyExecutionRequiredRequest(powerRequestHandle);
+        NtClose(processHandle);
+        return;
+    }
 
     for (ULONG i = 0x10000; ; i *= 2) // based on PhQueryProcessHeapInformation (ge0rdi)
     {
@@ -260,7 +291,7 @@ VOID PhpUpdateHeapRegions(
         }
 
         status = RtlQueryProcessDebugInformation(
-            List->ProcessId,
+            reflectionInfo.ReflectionClientId.UniqueProcess,
             RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_SEGMENTS,
             debugBuffer
             );
@@ -277,6 +308,11 @@ VOID PhpUpdateHeapRegions(
         if (2 * i <= i)
             break;
     }
+
+    PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
+    NtClose(reflectionInfo.ReflectionProcessHandle);
+    NtClose(reflectionInfo.ReflectionThreadHandle);
+    NtClose(processHandle);
 
     if (powerRequestHandle)
         PhDestroyExecutionRequiredRequest(powerRequestHandle);
@@ -397,7 +433,7 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG apiSetMap32;
 #endif
 
-        PhpUpdateHeapRegions(ProcessHandle, List);
+        PhpUpdateHeapRegions(List);
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
         {

@@ -10313,9 +10313,39 @@ NTSTATUS PhQueryProcessHeapInformation(
     )
 {
     NTSTATUS status;
+    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo;
     PRTL_DEBUG_INFORMATION debugBuffer;
     PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo;
     ULONG heapEntrySize;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION | PROCESS_SET_LIMITED_INFORMATION,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // NOTE: RtlQueryProcessDebugInformation injects a thread into the process and causing deadlocks and other issues in rare cases.
+    // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
+
+    memset(&reflectionInfo, 0, sizeof(RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION));
+    status = RtlCreateProcessReflection(
+        processHandle,
+        0,
+        NULL,
+        NULL,
+        NULL,
+        &reflectionInfo
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(processHandle);
+        return status;
+    }
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
     {
@@ -10323,7 +10353,7 @@ NTSTATUS PhQueryProcessHeapInformation(
             return STATUS_UNSUCCESSFUL;
 
         status = RtlQueryProcessDebugInformation(
-            ProcessId,
+            reflectionInfo.ReflectionClientId.UniqueProcess,
             RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES,
             debugBuffer
             );
@@ -10343,6 +10373,11 @@ NTSTATUS PhQueryProcessHeapInformation(
             break;
         }
     }
+
+    PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
+    NtClose(reflectionInfo.ReflectionProcessHandle);
+    NtClose(reflectionInfo.ReflectionThreadHandle);
+    NtClose(processHandle);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -10369,7 +10404,6 @@ NTSTATUS PhQueryProcessHeapInformation(
     for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
     {
         PRTL_HEAP_INFORMATION heapInfo = PTR_ADD_OFFSET(debugBuffer->Heaps->Heaps, heapEntrySize * i);
-        HANDLE processHandle;
         SIZE_T allocated = 0;
         SIZE_T committed = 0;
 
