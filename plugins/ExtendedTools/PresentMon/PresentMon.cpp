@@ -20,12 +20,10 @@ static ProcessInfo* GetProcessInfo(
 
     if (newProcess)
     {
-        HANDLE processHandle;
-
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, SYNCHRONIZE, UlongToHandle(ProcessId))))
-        {
-            processInfo->ProcessHandle = processHandle;
-        }
+        PhMoveReference(
+            reinterpret_cast<PVOID*>(&processInfo->ProcessItem),
+            PhReferenceProcessItem(UlongToHandle(ProcessId))
+            );
     }
 
     return processInfo;
@@ -44,21 +42,16 @@ static void CheckForTerminatedRealtimeProcesses(
         ULONG processId = pair.first;
         ProcessInfo* processInfo = &pair.second;
 
-        if (processInfo->ProcessHandle)
+        if (
+            processInfo->ProcessItem &&
+            processInfo->ProcessItem->State & PH_PROCESS_ITEM_REMOVED
+            )
         {
-            LARGE_INTEGER timeout = { 0 };
             LARGE_INTEGER performanceCounter;
+            PhQueryPerformanceCounter(&performanceCounter, NULL);
+            terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
 
-            // Waiting with zero timeout checks for termination
-            if (NtWaitForSingleObject(processInfo->ProcessHandle, FALSE, &timeout) == STATUS_WAIT_0)
-            {
-                // Process has terminated.
-                NtClose(processInfo->ProcessHandle);
-                processInfo->ProcessHandle = NULL;
-
-                PhQueryPerformanceCounter(&performanceCounter, NULL);
-                terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
-            }
+            PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
         }
     }
 }
@@ -409,13 +402,12 @@ NTSTATUS PresentMonOutputThread(
     // Close all handles
     for (auto& pair : ProcessesHashTable)
     {
-        auto processInfo = &pair.second;
-
-        if (processInfo->ProcessHandle)
-        {
-            NtClose(processInfo->ProcessHandle);
-            processInfo->ProcessHandle = NULL;
-        }
+       auto processInfo = &pair.second;
+    
+       if (processInfo->ProcessItem)
+       {
+           PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
+       }
     }
 
     ProcessesHashTable.clear();
