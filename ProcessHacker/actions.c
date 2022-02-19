@@ -340,28 +340,37 @@ BOOLEAN PhpStartPhSvcProcess(
         break;
     case Wow64PhSvcMode:
         {
-            static PWSTR relativeFileNames[] =
+            static PH_STRINGREF relativeFileNames[] =
             {
-                L"\\x86\\ProcessHacker.exe",
-                L"\\..\\x86\\ProcessHacker.exe",
+                PH_STRINGREF_INIT(L"\\x86\\"),
+                PH_STRINGREF_INIT(L"\\..\\x86\\"),
 #ifdef DEBUG
-                L"\\..\\Debug32\\ProcessHacker.exe",
+                PH_STRINGREF_INIT(L"\\..\\Debug32\\"),
+                PH_STRINGREF_INIT(L"\\..\\Release32\\")
 #endif
-                L"\\..\\Release32\\ProcessHacker.exe"
             };
 
             ULONG i;
             PPH_STRING applicationDirectory;
+            PPH_STRING applicationFileName;
 
             if (!(applicationDirectory = PhGetApplicationDirectory()))
                 return FALSE;
+            if (!(applicationFileName = PhGetApplicationFileName()))
+                return FALSE;
+
+            PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
 
             for (i = 0; i < RTL_NUMBER_OF(relativeFileNames); i++)
             {
                 PPH_STRING fileName;
                 PPH_STRING fileFullPath;
 
-                fileName = PhConcatStringRefZ(&applicationDirectory->sr, relativeFileNames[i]);
+                fileName = PhConcatStringRef3(
+                    &applicationDirectory->sr,
+                    &relativeFileNames[i],
+                    &applicationFileName->sr
+                    );
 
                 if (fileFullPath = PhGetFullPath(fileName->Buffer, NULL))
                     PhMoveReference(&fileName, fileFullPath);
@@ -380,6 +389,7 @@ BOOLEAN PhpStartPhSvcProcess(
                         ))
                     {
                         PhDereferenceObject(fileName);
+                        PhDereferenceObject(applicationFileName);
                         PhDereferenceObject(applicationDirectory);
                         return TRUE;
                     }
@@ -388,6 +398,7 @@ BOOLEAN PhpStartPhSvcProcess(
                 PhDereferenceObject(fileName);
             }
 
+            PhDereferenceObject(applicationFileName);
             PhDereferenceObject(applicationDirectory);
         }
         break;
