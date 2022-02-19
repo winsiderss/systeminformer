@@ -2284,7 +2284,7 @@ PPH_STRING PhGetSymbolFromInlineContext(
     _Out_opt_ PPH_STRING *FileName,
     _Out_opt_ PPH_STRING *SymbolName,
     _Out_opt_ PULONG64 Displacement,
-    _Out_opt_ PULONG64 ModuleBaseAddress
+    _Out_opt_ PULONG64 BaseAddress
     )
 {
     PSYMBOL_INFOW symbolInfo;
@@ -2303,7 +2303,7 @@ PPH_STRING PhGetSymbolFromInlineContext(
         if (FileName) *FileName = NULL;
         if (SymbolName) *SymbolName = NULL;
         if (Displacement) *Displacement = 0;
-        if (ModuleBaseAddress) *ModuleBaseAddress = 0;
+        if (BaseAddress) *BaseAddress = 0;
 
         return NULL;
     }
@@ -2438,8 +2438,8 @@ CleanupExit:
         PhSetReference(SymbolName, symbolName);
     if (Displacement)
         *Displacement = displacement;
-    if (ModuleBaseAddress)
-        *ModuleBaseAddress = symbolInfo->ModBase ? symbolInfo->ModBase : modBase;
+    if (BaseAddress)
+        *BaseAddress = symbolInfo->ModBase ? symbolInfo->ModBase : modBase;
 
     PhClearReference(&modFileName);
     PhClearReference(&modBaseName);
@@ -2453,7 +2453,7 @@ _Success_(return)
 BOOLEAN PhGetLineFromInlineContext(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ ULONG64 ModuleBaseAddress,
+    _In_opt_ ULONG64 BaseAddress,
     _Out_ PPH_STRING *FileName,
     _Out_opt_ PULONG Displacement,
     _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information
@@ -2477,7 +2477,7 @@ BOOLEAN PhGetLineFromInlineContext(
         SymbolProvider->ProcessHandle,
         (ULONG64)StackFrame->PcAddress,
         StackFrame->InlineFrameContext,
-        ModuleBaseAddress,
+        BaseAddress,
         &displacement,
         &line
         );
