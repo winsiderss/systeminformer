@@ -2857,7 +2857,7 @@ NTSTATUS
 NTAPI
 RtlCreateProcessReflection(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG Flags,
+    _In_ ULONG Flags, // RTL_CLONE_PROCESS_FLAGS
     _In_opt_ PVOID StartRoutine,
     _In_opt_ PVOID StartContext,
     _In_opt_ HANDLE EventHandle,
