@@ -3,7 +3,7 @@
  *   Process properties: Environment page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2018-2021 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -45,14 +45,6 @@ typedef enum _ENVIRONMENT_TREE_MENU_ITEM
     ENVIRONMENT_TREE_MENU_ITEM_NEW_ENVIRONMENT_VARIABLE,
     ENVIRONMENT_TREE_MENU_ITEM_MAXIMUM
 } ENVIRONMENT_TREE_MENU_ITEM;
-
-typedef enum _ENVIRONMENT_TREE_COLUMN_MENU_ITEM
-{
-    ENVIRONMENT_TREE_COLUMN_MENU_ITEM_EDIT = 1,
-    ENVIRONMENT_TREE_COLUMN_MENU_ITEM_DELETE,
-    ENVIRONMENT_TREE_COLUMN_MENU_ITEM_COPY,
-    ENVIRONMENT_TREE_COLUMN_MENU_ITEM_MAXIMUM
-} ENVIRONMENT_TREE_COLUMN_MENU_ITEM;
 
 typedef enum _ENVIRONMENT_TREE_COLUMN_ITEM_NAME
 {
@@ -113,6 +105,22 @@ VOID PhpClearEnvironmentTree(
 PPHP_PROCESS_ENVIRONMENT_TREENODE PhpGetSelectedEnvironmentNode(
     _In_ PPH_ENVIRONMENT_CONTEXT Context
     );
+
+_Success_(return)
+BOOLEAN PhpGetSelectedEnvironmentNodes(
+    _In_ PPH_ENVIRONMENT_CONTEXT Context,
+    _Out_ PPHP_PROCESS_ENVIRONMENT_TREENODE * *Nodes,
+    _Out_ PULONG NumberOfNodes
+    );
+
+BOOLEAN PhpHasSelectedEnvironmentGroupNode(
+    _In_ PPHP_PROCESS_ENVIRONMENT_TREENODE* Nodes,
+    _In_ ULONG NumberOfNodes
+    );
+
+#define ID_ENV_EDIT 50001
+#define ID_ENV_DELETE 50002
+#define ID_ENV_COPY 50003
 
 typedef struct _EDIT_ENV_DIALOG_CONTEXT
 {
@@ -362,6 +370,119 @@ VOID PhpRefreshEnvironmentList(
     }
 }
 
+NTSTATUS PhpEditDlgSetEnvironment(
+    _Inout_ PEDIT_ENV_DIALOG_CONTEXT Context,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_STRING Name,
+    _In_ PPH_STRING Value
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE processHandle = NULL;
+    LARGE_INTEGER timeout;
+
+    // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+    if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_ALL_ACCESS,
+            ProcessItem->ProcessId
+            );
+    }
+
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+            PROCESS_VM_READ | PROCESS_VM_WRITE,
+            ProcessItem->ProcessId
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
+
+        // Delete the old environment variable if necessary.
+        if (!PhEqualStringZ(Context->Name, L"", FALSE) &&
+            !PhEqualString2(Name, Context->Name, FALSE))
+        {
+            PH_STRINGREF nameSr;
+
+            PhInitializeStringRefLongHint(&nameSr, Context->Name);
+            PhSetEnvironmentVariableRemote(
+                processHandle,
+                &nameSr,
+                NULL,
+                &timeout
+                );
+        }
+
+        status = PhSetEnvironmentVariableRemote(
+            processHandle,
+            &Name->sr,
+            &Value->sr,
+            &timeout
+            );
+
+        NtClose(processHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhpEditDeleteEnvironment(
+    _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ PPH_STRING Name
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE processHandle = NULL;
+    LARGE_INTEGER timeout;
+
+    // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
+    if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_ALL_ACCESS,
+            ProcessItem->ProcessId
+            );
+    }
+
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
+            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+            PROCESS_VM_READ | PROCESS_VM_WRITE,
+            ProcessItem->ProcessId
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
+        status = PhSetEnvironmentVariableRemote(
+            processHandle,
+            &Name->sr,
+            NULL,
+            &timeout
+            );
+
+        NtClose(processHandle);
+    }
+
+    return status;
+}
+
 INT_PTR CALLBACK PhpEditEnvDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -432,10 +553,8 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             case IDOK:
                 {
                     NTSTATUS status = STATUS_UNSUCCESSFUL;
-                    HANDLE processHandle = NULL;
                     PPH_STRING name;
                     PPH_STRING value;
-                    LARGE_INTEGER timeout;
 
                     if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
                         hwndDlg,
@@ -456,56 +575,12 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                         if (!PhEqualString2(name, context->Name, FALSE) ||
                             !context->Value || !PhEqualString2(value, context->Value, FALSE))
                         {
-                            // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
-                            if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
-                            {
-                                status = PhOpenProcess(
-                                    &processHandle,
-                                    PROCESS_ALL_ACCESS,
-                                    context->ProcessItem->ProcessId
-                                    );
-                            }
-
-                            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
-                            if (!NT_SUCCESS(status))
-                            {
-                                status = PhOpenProcess(
-                                    &processHandle,
-                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
-                                    PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-                                    PROCESS_VM_READ | PROCESS_VM_WRITE,
-                                    context->ProcessItem->ProcessId
-                                    );
-                            }
-
-                            if (NT_SUCCESS(status))
-                            {
-                                timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
-
-                                // Delete the old environment variable if necessary.
-                                if (!PhEqualStringZ(context->Name, L"", FALSE) &&
-                                    !PhEqualString2(name, context->Name, FALSE))
-                                {
-                                    PH_STRINGREF nameSr;
-
-                                    PhInitializeStringRefLongHint(&nameSr, context->Name);
-                                    PhSetEnvironmentVariableRemote(
-                                        processHandle,
-                                        &nameSr,
-                                        NULL,
-                                        &timeout
-                                        );
-                                }
-
-                                status = PhSetEnvironmentVariableRemote(
-                                    processHandle,
-                                    &name->sr,
-                                    &value->sr,
-                                    &timeout
-                                    );
-
-                                NtClose(processHandle);
-                            }
+                            status = PhpEditDlgSetEnvironment(
+                                context,
+                                context->ProcessItem,
+                                name,
+                                value
+                                );
 
                             if (!NT_SUCCESS(status))
                             {
@@ -592,23 +667,26 @@ VOID PhpShowEnvironmentNodeContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
     )
 {
-    PPHP_PROCESS_ENVIRONMENT_TREENODE node;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE* nodes;
+    ULONG numberOfNodes;
     PPH_EMENU menu;
     PPH_EMENU_ITEM selectedItem;
 
-    if (!(node = PhpGetSelectedEnvironmentNode(Context)))
+    if (!PhpGetSelectedEnvironmentNodes(Context, &nodes, &numberOfNodes))
         return;
-
-    if (node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+    if (numberOfNodes == 0)
         return;
 
     menu = PhCreateEMenu();
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ENVIRONMENT_TREE_COLUMN_MENU_ITEM_EDIT, L"Edit", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ENVIRONMENT_TREE_COLUMN_MENU_ITEM_DELETE, L"Delete", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ENVIRONMENT_TREE_COLUMN_MENU_ITEM_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
-    PhInsertCopyCellEMenuItem(menu, 3, Context->TreeNewHandle, ContextMenuEvent->Column);
+    if (!PhpHasSelectedEnvironmentGroupNode(nodes, numberOfNodes))
+    {
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ENV_EDIT, L"Edit", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ENV_DELETE, L"Delete", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    }
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ENV_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+    PhInsertCopyCellEMenuItem(menu, ID_ENV_COPY, Context->TreeNewHandle, ContextMenuEvent->Column);
 
     selectedItem = PhShowEMenu(
         menu,
@@ -619,108 +697,11 @@ VOID PhpShowEnvironmentNodeContextMenu(
         ContextMenuEvent->Location.y
         );
 
-    if (selectedItem && selectedItem->Id != -1)
+    if (selectedItem && selectedItem->Id != ULONG_MAX)
     {
         if (!PhHandleCopyCellEMenuItem(selectedItem))
         {
-            switch (selectedItem->Id)
-            {
-            case ENVIRONMENT_TREE_COLUMN_MENU_ITEM_EDIT:
-                {
-                    //PPH_ENVIRONMENT_ITEM item = PhItemArray(&Context->Items, node->Id);
-                    BOOLEAN refresh;
-
-                    if (PhpShowEditEnvDialog(
-                        Context->WindowHandle,
-                        Context->ProcessItem,
-                        node->NameText->Buffer,
-                        node->ValueText->Buffer,
-                        &refresh
-                        ) == IDOK && refresh)
-                    {
-                        PhpRefreshEnvironmentList(Context, Context->ProcessItem);
-                    }
-                }
-                break;
-            case ENVIRONMENT_TREE_COLUMN_MENU_ITEM_DELETE:
-                {
-                    //PPH_ENVIRONMENT_ITEM item = PhItemArray(&Context->Items, node->Id);
-                    NTSTATUS status = STATUS_UNSUCCESSFUL;
-                    HANDLE processHandle = NULL;
-
-                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
-                        Context->WindowHandle,
-                        L"delete",
-                        L"the selected environment variable",
-                        L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
-                        FALSE
-                        ))
-                    {
-                        break;
-                    }
-
-                    // Windows 8 requires ALL_ACCESS for PLM execution requests. (dmex)
-                    if (WindowsVersion >= WINDOWS_8 && WindowsVersion <= WINDOWS_8_1)
-                    {
-                        status = PhOpenProcess(
-                            &processHandle,
-                            PROCESS_ALL_ACCESS,
-                            Context->ProcessItem->ProcessId
-                            );
-                    }
-
-                    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
-                    if (!NT_SUCCESS(status))
-                    {
-                        status = PhOpenProcess(
-                            &processHandle,
-                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
-                            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-                            PROCESS_VM_READ | PROCESS_VM_WRITE,
-                            Context->ProcessItem->ProcessId
-                            );
-                    }
-
-                    if (NT_SUCCESS(status))
-                    {
-                        LARGE_INTEGER timeout;
-
-                        timeout.QuadPart = -(LONGLONG)UInt32x32To64(10, PH_TIMEOUT_SEC);
-                        status = PhSetEnvironmentVariableRemote(
-                            processHandle, 
-                            &node->NameText->sr,
-                            NULL, 
-                            &timeout
-                            );
-                        NtClose(processHandle);
-
-                        PhpRefreshEnvironmentList(Context, Context->ProcessItem);
-
-                        if (status == STATUS_TIMEOUT)
-                        {
-                            PhShowStatus(Context->WindowHandle, L"Unable to delete the environment variable.", 0, WAIT_TIMEOUT);
-                        }
-                        else if (!NT_SUCCESS(status))
-                        {
-                            PhShowStatus(Context->WindowHandle, L"Unable to delete the environment variable.", status, 0);
-                        }
-                    }
-                    else
-                    {
-                        PhShowStatus(Context->WindowHandle, L"Unable to open the process.", status, 0);
-                    }
-                }
-                break;
-            case ENVIRONMENT_TREE_COLUMN_MENU_ITEM_COPY:
-                {
-                    PPH_STRING text;
-
-                    text = PhGetTreeNewText(Context->TreeNewHandle, 0);
-                    PhSetClipboardString(Context->TreeNewHandle, &text->sr);
-                    PhDereferenceObject(text);
-                }
-                break;
-            }
+            SendMessage(Context->WindowHandle, WM_COMMAND, selectedItem->Id, 0);
         }
     }
 
@@ -743,7 +724,7 @@ static BOOLEAN PhpWordMatchEnvironmentStringRef(
 
         if (part.Length)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
@@ -941,7 +922,7 @@ VOID PhpRemoveEnvironmentNode(
     // Remove from hashtable/list and cleanup.
     PhRemoveEntryHashtable(Context->NodeHashtable, &Node);
 
-    if ((index = PhFindItemList(Context->NodeList, Node)) != -1)
+    if ((index = PhFindItemList(Context->NodeList, Node)) != ULONG_MAX)
     {
         PhRemoveItemList(Context->NodeList, index);
     }
@@ -1180,6 +1161,32 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             PhpShowEnvironmentNodeContextMenu(context, contextMenuEvent);
         }
         return TRUE;
+    case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(context->WindowHandle, WM_COMMAND, ID_ENV_COPY, 0);
+                break;
+            case 'A':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    TreeNew_SelectRange(context->TreeNewHandle, 0, -1);
+                break;
+            case VK_DELETE:
+                SendMessage(context->WindowHandle, WM_COMMAND, ID_ENV_DELETE, 0);
+                break;
+            case VK_RETURN:
+                SendMessage(context->WindowHandle, WM_COMMAND, ID_ENV_EDIT, 0);
+                break;
+            }
+        }
+        return TRUE;
     case TreeNewHeaderRightClick:
         {
             PH_TN_COLUMN_MENU_DATA data;
@@ -1187,8 +1194,8 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(
                 data.Menu, 
@@ -1208,6 +1215,17 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             SendMessage(context->WindowHandle, WM_COMMAND, WM_PH_SET_LIST_VIEW_SETTINGS, 0); // HACK
         }
         return TRUE;
+    case TreeNewGetDialogCode:
+        {
+            PULONG code = Parameter2;
+
+            if (PtrToUlong(Parameter1) == VK_RETURN)
+            {
+                *code = DLGC_WANTMESSAGE;
+                return TRUE;
+            }
+        }
+        return FALSE;
     }
 
     return FALSE;
@@ -1277,6 +1295,20 @@ BOOLEAN PhpGetSelectedEnvironmentNodes(
     }
 
     PhDereferenceObject(list);
+    return FALSE;
+}
+
+BOOLEAN PhpHasSelectedEnvironmentGroupNode(
+    _In_ PPHP_PROCESS_ENVIRONMENT_TREENODE* Nodes,
+    _In_ ULONG NumberOfNodes
+    )
+{
+    for (ULONG i = 0; i < NumberOfNodes; i++)
+    {
+        if (Nodes[i]->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+            return TRUE;
+    }
+
     return FALSE;
 }
 
@@ -1577,6 +1609,72 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     {
                         PhpRefreshEnvironmentList(context, context->ProcessItem);
                     }
+                }
+                break;
+            case ID_ENV_EDIT:
+                {
+                    PPHP_PROCESS_ENVIRONMENT_TREENODE item = PhpGetSelectedEnvironmentNode(context);
+                    BOOLEAN refresh;
+
+                    if (!item || item->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+                        break;
+
+                    if (PhpShowEditEnvDialog(
+                        context->WindowHandle,
+                        context->ProcessItem,
+                        item->NameText->Buffer,
+                        item->ValueText->Buffer,
+                        &refresh
+                        ) == IDOK && refresh)
+                    {
+                        PhpRefreshEnvironmentList(context, context->ProcessItem);
+                    }
+                }
+                break;
+            case ID_ENV_DELETE:
+                {
+                    PPHP_PROCESS_ENVIRONMENT_TREENODE item = PhpGetSelectedEnvironmentNode(context);
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+
+                    if (!item || item->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+                        break;
+
+                    if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                        context->WindowHandle,
+                        L"delete",
+                        L"the selected environment variable",
+                        L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
+                        FALSE
+                        ))
+                    {
+                        break;
+                    }
+
+                    status = PhpEditDeleteEnvironment(
+                        context,
+                        context->ProcessItem,
+                        item->NameText
+                        );
+
+                    PhpRefreshEnvironmentList(context, context->ProcessItem);
+
+                    if (status == STATUS_TIMEOUT)
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", 0, WAIT_TIMEOUT);
+                    }
+                    else if (!NT_SUCCESS(status))
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to delete the environment variable.", status, 0);
+                    }
+                }
+                break;
+            case ID_ENV_COPY:
+                {
+                    PPH_STRING text;
+
+                    text = PhGetTreeNewText(context->TreeNewHandle, 0);
+                    PhSetClipboardString(context->TreeNewHandle, &text->sr);
+                    PhDereferenceObject(text);
                 }
                 break;
             }
