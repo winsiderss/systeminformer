@@ -409,7 +409,7 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    if (!(jsonObject = PhCreateJsonParser(jsonString->Buffer)))
+    if (!(jsonObject = PhCreateJsonParserEx(jsonString, FALSE)))
         goto CleanupExit;
 
     Context->Version = PhGetJsonValueAsString(jsonObject, "version");
@@ -1077,12 +1077,8 @@ VOID ShowStartupUpdateDialog(
     if (jsonString && jsonString->Length)
     {
         PVOID jsonObject;
-        PPH_BYTES jsonStringUtf8;
 
-        jsonStringUtf8 = PhConvertUtf16ToUtf8Ex(jsonString->Buffer, jsonString->Length);
-        jsonObject = PhCreateJsonParser(jsonStringUtf8->Buffer);
-
-        if (jsonObject)
+        if (jsonObject = PhCreateJsonParserEx(jsonString, TRUE))
         {
             context->Version = PhGetJsonValueAsString(jsonObject, "version");
             context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
@@ -1099,8 +1095,6 @@ VOID ShowStartupUpdateDialog(
 #endif
             PhFreeJsonObject(jsonObject);
         }
-
-        PhDereferenceObject(jsonStringUtf8);
     }
 
     if (PhIsNullOrEmptyString(context->Version) &&
