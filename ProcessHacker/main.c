@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1200,7 +1200,24 @@ VOID PhInitializeKph(
         {
             if (latestBuildNumber != PhOsVersion.dwBuildNumber)
             {
-                if (NT_SUCCESS(KphResetParameters(PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME))))
+                if (KphParametersExists(PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME)))
+                {
+                    if (PhShowMessage(
+                        NULL,
+                        MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
+                        L"Process Hacker needs to reset the driver configuration\r\n\r\n%s",
+                        L"Do you want to continue?"
+                        ) != IDYES)
+                    {
+                        return;
+                    }
+
+                    if (NT_SUCCESS(KphResetParameters(PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME))))
+                    {
+                        PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
+                    }
+                }
+                else
                 {
                     PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
                 }
