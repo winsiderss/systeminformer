@@ -261,6 +261,8 @@ VOID PresentMonUpdateProcessStats(
         auto const& present0 = *chain.mPresentHistory[(chain.mNextPresentIndex - chain.mPresentHistoryCount) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
         auto const& presentN = *chain.mPresentHistory[(chain.mNextPresentIndex - 1) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
         auto const& lastPresented = *chain.mPresentHistory[(chain.mNextPresentIndex - 2) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
+        USHORT runtime = static_cast<USHORT>(presentN.Runtime);
+        USHORT presentMode = static_cast<USHORT>(presentN.PresentMode);
         DOUBLE cpuAvg;
         DOUBLE dspAvg = 0.0;
         DOUBLE latAvg = 0.0;
@@ -352,7 +354,9 @@ VOID PresentMonUpdateProcessStats(
             msBetweenPresents,
             msInPresentApi,
             msUntilRenderComplete,
-            msUntilDisplayed
+            msUntilDisplayed,
+            runtime,
+            presentMode
             );
     }
 }

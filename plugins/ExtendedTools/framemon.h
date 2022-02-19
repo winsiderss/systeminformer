@@ -37,7 +37,9 @@ typedef struct _ET_FPS_COUNTER
     DOUBLE MsUntilRenderComplete;
     DOUBLE MsUntilDisplayed;
     DOUBLE DisplayLatency;
-    //DOUBLE DisplayFramesPerSecond;
+    //DOUBLE DisplayFramesPerSecond;   
+    USHORT Runtime;
+    USHORT PresentMode;
 } ET_FPS_COUNTER, *PET_FPS_COUNTER;
 
 VOID EtFramesMonitorInitialization(
@@ -65,7 +67,9 @@ VOID EtAddGpuFrameToHashTable(
     _In_ DOUBLE MsBetweenPresents,
     _In_ DOUBLE MsInPresentApi,
     _In_ DOUBLE MsUntilRenderComplete,
-    _In_ DOUBLE MsUntilDisplayed
+    _In_ DOUBLE MsUntilDisplayed,
+    _In_ USHORT Runtime,
+    _In_ USHORT PresentMode
     );
 
 VOID EtLockGpuFrameHashTable(
@@ -82,6 +86,14 @@ VOID EtClearGpuFrameHashTable(
 
 VOID EtProcessFramesUpdateProcessBlock(
     _In_ struct _ET_PROCESS_BLOCK* ProcessBlock
+    );
+
+PCWSTR EtPresentModeToString(
+    _In_ USHORT PresentMode
+    );
+
+PCWSTR EtRuntimeToString(
+    _In_ USHORT Runtime
     );
 
 // PresentMon.hpp
