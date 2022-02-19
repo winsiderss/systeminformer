@@ -93,6 +93,7 @@ PDB_OBJECT FindDbObjectForProcess(
     }
 
     if (
+        ProcessItem->ProcessName &&
         (object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) &&
         MatchDbObjectIntent(object, Intent)
         )
@@ -363,8 +364,8 @@ VOID NTAPI LoadCallback(
         SetDbPath(path);
     }
 
+    InitializeDb();
     LoadDb();
-    LoadCustomColors();
 }
 
 VOID NTAPI UnloadCallback(
@@ -1151,7 +1152,12 @@ VOID NTAPI MenuItemCallback(
 
             if (!highlightPresent)
             {
-                CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
+                CHOOSECOLOR chooseColor;
+
+                LoadCustomColors();
+
+                memset(&chooseColor, 0, sizeof(CHOOSECOLOR));
+                chooseColor.lStructSize = sizeof(CHOOSECOLOR);
                 chooseColor.hwndOwner = menuItem->OwnerWindow;
                 chooseColor.lpCustColors = ProcessCustomColors;
                 chooseColor.lpfnHook = ColorDlgHookProc;
@@ -2296,9 +2302,6 @@ LOGICAL DllMain(
         info->DisplayName = L"User Notes";
         info->Author = L"dmex, wj32";
         info->Description = L"Allows the user to add comments for processes and services, save process priority and affinity, highlight individual processes and show processes collapsed by default.";
-        info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1120";
-
-        InitializeDb();
 
         PhRegisterCallback(
             PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
