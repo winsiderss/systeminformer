@@ -99,6 +99,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryBasicInformationCapped, // 10
     MemoryPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
     MemoryBadInformation, // since WIN11
+    MemoryBadInformationAllProcesses, // since 11H1
     MaxMemoryInfoClass
 } MEMORY_INFORMATION_CLASS;
 #else
@@ -115,6 +116,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MemoryBasicInformationCapped 0xA
 #define MemoryPhysicalContiguityInformation 0xB
 #define MemoryBadInformation 0xC
+#define MemoryBadInformationAllProcesses 0xD
 #endif
 
 typedef struct _MEMORY_WORKING_SET_BLOCK
@@ -515,8 +517,8 @@ typedef enum _SECTION_INHERIT
 } SECTION_INHERIT;
 #endif
 
-#define MEM_EXECUTE_OPTION_DISABLE 0x1
-#define MEM_EXECUTE_OPTION_ENABLE 0x2
+#define MEM_EXECUTE_OPTION_ENABLE 0x1
+#define MEM_EXECUTE_OPTION_DISABLE 0x2
 #define MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION 0x4
 #define MEM_EXECUTE_OPTION_PERMANENT 0x8
 #define MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE 0x10
@@ -626,7 +628,7 @@ NtFlushVirtualMemory(
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
     VmPrefetchInformation, // ULONG
-    VmPagePriorityInformation,
+    VmPagePriorityInformation, // OFFER_PRIORITY
     VmCfgCallTargetInformation, // CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
     VmPageDirtyStateInformation, // REDSTONE3
     VmImageHotPatchInformation, // 19H1
