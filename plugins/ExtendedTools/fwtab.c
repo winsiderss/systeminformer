@@ -2,7 +2,7 @@
  * Process Hacker Extended Tools -
  *   Firewall monitoring
  *
- * Copyright (C) 2015-2021 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -45,10 +45,6 @@ ULONG EtFwStatus = ERROR_SUCCESS;
 ULONG EtFwIconWidth = 16;
 PPH_STRING EtFwStatusText = NULL;
 PPH_LIST FwNodeList = NULL;
-
-HWND NTAPI EtpToolStatusGetTreeNewHandle(
-    VOID
-    );
 
 BOOLEAN FwTabPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -286,11 +282,11 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
 
-    LoadSettingsFwTreeList(TreeNewHandle);
-
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
     TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
     TreeNew_SetTriState(FwTreeNewHandle, TRUE);
+
+    LoadSettingsFwTreeList(TreeNewHandle);
 
     PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
 
@@ -798,9 +794,13 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_LOCALHOSTNAME:
                 {
-                    if (node->LocalHostnameString)
+                    if (node->LocalHostnameResolved)
                     {
-                        getCellText->Text = PhGetStringRef(node->LocalHostnameString);
+                        // Exclude empty hostnames from drawing (dmex)
+                        if (!PhIsNullOrEmptyString(node->LocalHostnameString))
+                            getCellText->Text = node->LocalHostnameString->sr;
+                        else
+                            PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                     else
                     {
@@ -856,9 +856,13 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_REMOTEHOSTNAME:
                 {
-                    if (node->RemoteHostnameString)
+                    if (node->RemoteHostnameResolved)
                     {
-                        getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
+                        // Exclude empty hostnames from drawing (dmex)
+                        if (!PhIsNullOrEmptyString(node->RemoteHostnameString))
+                            getCellText->Text = node->RemoteHostnameString->sr;
+                        else
+                            PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                     else
                     {
