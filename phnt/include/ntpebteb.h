@@ -203,7 +203,14 @@ typedef struct _PEB
 
     PVOID WerRegistrationData;
     PVOID WerShipAssertPtr;
-    PVOID pUnused; // pContextData
+
+    union
+    {
+        PVOID pContextData; // WIN7
+        PVOID pUnused; // WIN10
+        PVOID EcCodeBitMap; // WIN11
+    };
+
     PVOID pImageHeaderHash;
     union
     {
@@ -430,7 +437,7 @@ typedef struct _TEB
             USHORT LoadOwner : 1;
             USHORT LoaderWorker : 1;
             USHORT SkipLoaderInit : 1;
-            USHORT SpareSameTebBits : 1;
+            USHORT SkipFileAPIBrokering : 1;
         };
     };
 
