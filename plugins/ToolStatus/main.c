@@ -1315,7 +1315,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 // Make sure graph drawing is enabled when not minimized. (dmex)
                 UpdateGraphs = !minimized;
 
-                if (UpdateGraphs && RebarHandle)// && CheckRebarLastRedrawMessage())
+                if (UpdateGraphs && RebarHandle && ToolbarGraphsEnabled())// && CheckRebarLastRedrawMessage())
                 {
                     // See notes in SC_RESTORE (dmex)
                     ToolbarUpdateGraphVisualStates();
@@ -1327,7 +1327,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             {
                 IsWindowMaximized = minimized;
 
-                if (UpdateGraphs && RebarHandle)// && CheckRebarLastRedrawMessage())
+                if (UpdateGraphs && RebarHandle && ToolbarGraphsEnabled())// && CheckRebarLastRedrawMessage())
                 {
                     // See notes in SC_RESTORE (dmex)
                     ToolbarUpdateGraphVisualStates();
