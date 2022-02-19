@@ -139,7 +139,9 @@ VOID EtAddGpuFrameToHashTable(
     _In_ DOUBLE MsBetweenPresents,
     _In_ DOUBLE MsInPresentApi,
     _In_ DOUBLE MsUntilRenderComplete,
-    _In_ DOUBLE MsUntilDisplayed
+    _In_ DOUBLE MsUntilDisplayed,
+    _In_ USHORT Runtime,
+    _In_ USHORT PresentMode
     )
 {
     ET_FPS_COUNTER lookupEntry;
@@ -166,6 +168,10 @@ VOID EtAddGpuFrameToHashTable(
             entry->DisplayLatency = DisplayLatency;
         //if (entry->DisplayFramesPerSecond < DisplayFramesPerSecond)
         //    entry->DisplayFramesPerSecond = DisplayFramesPerSecond;
+        if (entry->Runtime != Runtime)
+            entry->Runtime = Runtime;
+        if (entry->PresentMode != PresentMode)
+            entry->PresentMode = PresentMode;
     }
     else
     {
@@ -178,6 +184,8 @@ VOID EtAddGpuFrameToHashTable(
         lookupEntry.MsUntilDisplayed = MsUntilDisplayed;
         lookupEntry.DisplayLatency = DisplayLatency;
         //lookupEntry.DisplayFramesPerSecond = DisplayFramesPerSecond;
+        lookupEntry.Runtime = Runtime;
+        lookupEntry.PresentMode = PresentMode;
 
         PhAddEntryHashtable(EtFramesHashTable, &lookupEntry);
     }
@@ -229,6 +237,8 @@ VOID EtProcessFramesUpdateProcessBlock(
         ProcessBlock->FramesMsUntilDisplayed = (FLOAT)entry->MsUntilDisplayed;
         ProcessBlock->FramesDisplayLatency = (FLOAT)entry->DisplayLatency;
         //ProcessBlock->FramesDisplayFramesPerSecond = (FLOAT)entry->DisplayFramesPerSecond;
+        ProcessBlock->FramesRuntime = entry->Runtime;
+        ProcessBlock->FramesPresentMode = entry->PresentMode;
 
         PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesPerSecondHistory, ProcessBlock->FramesPerSecond);
         PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesLatencyHistory, ProcessBlock->FramesLatency);
@@ -249,6 +259,8 @@ VOID EtProcessFramesUpdateProcessBlock(
         ProcessBlock->FramesMsUntilDisplayed = 0;
         ProcessBlock->FramesDisplayLatency = 0;
         //ProcessBlock->FramesDisplayFramesPerSecond = 0;
+        ProcessBlock->FramesRuntime = 0;
+        ProcessBlock->FramesPresentMode = 0;
 
         PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesPerSecondHistory, 0);
         PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesLatencyHistory, 0);
@@ -259,4 +271,46 @@ VOID EtProcessFramesUpdateProcessBlock(
         PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesDisplayLatencyHistory, 0);
         //PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesDisplayFramesPerSecondHistory, 0);
     }
+}
+
+PCWSTR EtPresentModeToString(
+    _In_ USHORT PresentMode
+    )
+{
+    switch (PresentMode)
+    {
+    case 1:
+        return L"Hardware: Legacy Flip";
+    case 2:
+        return L"Hardware: Legacy Copy to front buffer";
+    case 3:
+        return L"Hardware: Independent Flip";
+    case 4:
+        return L"Composed: Flip";
+    case 5:
+        return L"Composed: Copy with GPU GDI";
+    case 6:
+        return L"Composed: Copy with CPU GDI";
+    case 7:
+        return L"Composed: Composition Atlas";
+    case 8:
+        return L"Hardware Composed: Independent Flip";
+    }
+
+    return L"Other";
+}
+
+PCWSTR EtRuntimeToString(
+    _In_ USHORT Runtime
+    )
+{
+    switch (Runtime)
+    {
+    case 0:
+        return L"DXGI";
+    case 1:
+        return L"D3D9";
+    }
+
+    return L"Other";
 }

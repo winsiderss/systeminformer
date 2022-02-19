@@ -383,6 +383,29 @@ VOID FramesPropUpdateGraphs(
     InvalidateRect(Context->FramesDisplayLatencyGraphHandle, NULL, FALSE);
 }
 
+VOID FramesPropUpdatePanel(
+    _In_ PET_FRAMES_CONTEXT Context
+    )
+{
+    PCWSTR runtime;
+    PCWSTR presentMode;
+    PPH_STRING string;
+    PH_FORMAT format[5];
+
+    runtime = EtRuntimeToString(Context->Block->FramesRuntime);
+    presentMode = EtPresentModeToString(Context->Block->FramesPresentMode);
+
+    PhInitFormatS(&format[0], L"FPS: ");
+    PhInitFormatS(&format[1], (PWSTR)presentMode);
+    PhInitFormatS(&format[2], L" (");
+    PhInitFormatS(&format[3], (PWSTR)runtime);
+    PhInitFormatC(&format[4], L')');
+
+    string = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    PhSetWindowText(Context->FramesPerSecondGroupBox, PhGetString(string));
+    PhDereferenceObject(string);
+}
+
 VOID NTAPI FramesProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1091,7 +1114,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
             if (!(processItem->State & PH_PROCESS_ITEM_REMOVED) && context->Enabled)
             {
                 FramesPropUpdateGraphs(context);
-                //FramesPropUpdatePanel(context);
+                FramesPropUpdatePanel(context);
             }
         }
         break;

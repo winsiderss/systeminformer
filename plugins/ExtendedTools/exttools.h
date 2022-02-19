@@ -362,6 +362,8 @@ typedef struct _ET_PROCESS_BLOCK
     FLOAT FramesMsUntilRenderComplete;
     FLOAT FramesMsUntilDisplayed;
     FLOAT FramesDisplayLatency;
+    USHORT FramesRuntime;
+    USHORT FramesPresentMode;
     PH_CIRCULAR_BUFFER_FLOAT FramesPerSecondHistory;
     PH_CIRCULAR_BUFFER_FLOAT FramesLatencyHistory;
     PH_CIRCULAR_BUFFER_FLOAT FramesMsBetweenPresentsHistory;
