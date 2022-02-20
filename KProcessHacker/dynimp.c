@@ -37,11 +37,8 @@ VOID KphDynamicImport(
 {
     PAGED_CODE();
 
-    KphDynPsGetProcessProtection = (PPS_GET_PROCESS_PROTECTION)(
-                       KphGetSystemRoutineAddress(L"PsGetProcessProtection"));
-
-    KphDynRtlImageNtHeaderEx = (PRTL_IMAGE_NT_HEADER_EX)(
-                           KphGetSystemRoutineAddress(L"RtlImageNtHeaderEx"));
+    KphDynPsGetProcessProtection = (PPS_GET_PROCESS_PROTECTION)KphGetSystemRoutineAddress(L"PsGetProcessProtection");
+    KphDynRtlImageNtHeaderEx = (PRTL_IMAGE_NT_HEADER_EX)KphGetSystemRoutineAddress(L"RtlImageNtHeaderEx");
 }
 
 /**

@@ -113,16 +113,10 @@ NTSTATUS KphHashFile(
 
     if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(&hashAlgHandle, KPH_HASH_ALGORITHM, NULL, 0)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = BCryptGetProperty(hashAlgHandle, BCRYPT_OBJECT_LENGTH,
-        (PUCHAR)&hashObjectSize, sizeof(ULONG), &querySize, 0)))
-    {
+    if (!NT_SUCCESS(status = BCryptGetProperty(hashAlgHandle, BCRYPT_OBJECT_LENGTH, (PUCHAR)&hashObjectSize, sizeof(ULONG), &querySize, 0)))
         goto CleanupExit;
-    }
-    if (!NT_SUCCESS(status = BCryptGetProperty(hashAlgHandle, BCRYPT_HASH_LENGTH, (PUCHAR)&hashSize,
-        sizeof(ULONG), &querySize, 0)))
-    {
+    if (!NT_SUCCESS(status = BCryptGetProperty(hashAlgHandle, BCRYPT_HASH_LENGTH, (PUCHAR)&hashSize, sizeof(ULONG), &querySize, 0)))
         goto CleanupExit;
-    }
 
     if (!(hashObject = ExAllocatePoolZero(PagedPool, hashObjectSize, 'vhpK')))
     {
@@ -136,25 +130,37 @@ NTSTATUS KphHashFile(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = BCryptCreateHash(hashAlgHandle, &hashHandle, hashObject, hashObjectSize,
-        NULL, 0, 0)))
-    {
+    if (!NT_SUCCESS(status = BCryptCreateHash(hashAlgHandle, &hashHandle, hashObject, hashObjectSize, NULL, 0, 0)))
         goto CleanupExit;
-    }
 
     // Open the file and compute the hash.
 
     InitializeObjectAttributes(&objectAttributes, FileName, OBJ_KERNEL_HANDLE, NULL, NULL);
 
-    if (!NT_SUCCESS(status = ZwCreateFile(&fileHandle, FILE_GENERIC_READ, &objectAttributes,
-        &iosb, NULL, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0)))
+    if (!NT_SUCCESS(status = ZwCreateFile(
+        &fileHandle,
+        FILE_GENERIC_READ,
+        &objectAttributes,
+        &iosb,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
+        )))
     {
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = ZwQueryInformationFile(fileHandle, &iosb, &standardInfo,
-        sizeof(FILE_STANDARD_INFORMATION), FileStandardInformation)))
+    if (!NT_SUCCESS(status = ZwQueryInformationFile(
+        fileHandle,
+        &iosb,
+        &standardInfo,
+        sizeof(FILE_STANDARD_INFORMATION),
+        FileStandardInformation
+        )))
     {
         goto CleanupExit;
     }
@@ -181,14 +187,25 @@ NTSTATUS KphHashFile(
     while (remainingBytes != 0)
     {
         bytesToRead = FILE_BUFFER_SIZE;
+
         if (bytesToRead > remainingBytes)
             bytesToRead = remainingBytes;
 
-        if (!NT_SUCCESS(status = ZwReadFile(fileHandle, NULL, NULL, NULL, &iosb, buffer, bytesToRead,
-            NULL, NULL)))
+        if (!NT_SUCCESS(status = ZwReadFile(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &iosb,
+            buffer,
+            bytesToRead,
+            NULL,
+            NULL
+            )))
         {
             goto CleanupExit;
         }
+
         if ((ULONG)iosb.Information != bytesToRead)
         {
             status = STATUS_INTERNAL_ERROR;
@@ -247,11 +264,8 @@ NTSTATUS KphVerifyFile(
 
     if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(&signAlgHandle, KPH_SIGN_ALGORITHM, NULL, 0)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = BCryptImportKeyPair(signAlgHandle, NULL, KPH_BLOB_PUBLIC, &keyHandle,
-        KphpTrustedPublicKey, sizeof(KphpTrustedPublicKey), 0)))
-    {
+    if (!NT_SUCCESS(status = BCryptImportKeyPair(signAlgHandle, NULL, KPH_BLOB_PUBLIC, &keyHandle, KphpTrustedPublicKey, sizeof(KphpTrustedPublicKey), 0)))
         goto CleanupExit;
-    }
 
     // Hash the file.
 
@@ -260,11 +274,8 @@ NTSTATUS KphVerifyFile(
 
     // Verify the hash.
 
-    if (!NT_SUCCESS(status = BCryptVerifySignature(keyHandle, NULL, hash, hashSize, Signature,
-        SignatureSize, 0)))
-    {
+    if (!NT_SUCCESS(status = BCryptVerifySignature(keyHandle, NULL, hash, hashSize, Signature, SignatureSize, 0)))
         goto CleanupExit;
-    }
 
 CleanupExit:
     if (hash)
@@ -332,7 +343,7 @@ NTSTATUS KpiVerifyProcessSections(
             else
             {
                 status = STATUS_ACCESS_DENIED;
-                goto Exit;
+                goto CleanupExit;
             }
         }
     }
@@ -340,30 +351,32 @@ NTSTATUS KpiVerifyProcessSections(
     if (!textSection)
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
     //
     // Account for any 0 fill by taking the min.
     //
-    inspectBytes = min(textSection->Misc.VirtualSize,
-                         textSection->SizeOfRawData);
+    inspectBytes = min(textSection->Misc.VirtualSize, textSection->SizeOfRawData);
+
     if (inspectBytes == 0)
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
     inprocBytes = PTR_ADD_OFFSET(BaseAddress, textSection->VirtualAddress);
-    status = ZwQueryVirtualMemory(ZwCurrentProcess(),
-                                  inprocBytes,
-                                  MemoryBasicInformation,
-                                  &memoryBasicInfo,
-                                  sizeof(memoryBasicInfo),
-                                  NULL);
-    if (!NT_SUCCESS(status))
+
+    if (!NT_SUCCESS(status = ZwQueryVirtualMemory(
+        ZwCurrentProcess(),
+        inprocBytes,
+        MemoryBasicInformation,
+        &memoryBasicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
     {
-        goto Exit;
+        goto CleanupExit;
     }
 
     //
@@ -377,48 +390,50 @@ NTSTATUS KpiVerifyProcessSections(
 
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
-    bytes = ExAllocatePoolWithTag(PagedPool, FILE_BUFFER_SIZE, 'pvpK');
-    if (!bytes)
+    if (!(bytes = ExAllocatePoolZero(PagedPool, FILE_BUFFER_SIZE, 'pvpK')))
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
+        goto CleanupExit;
     }
 
     remainingBytes = inspectBytes;
     offset.QuadPart = textSection->PointerToRawData;
-    while (remainingBytes > 0)
+
+    while (remainingBytes != 0)
     {
         bytesToRead = FILE_BUFFER_SIZE;
-        if (remainingBytes < bytesToRead)
-        {
+
+        if (bytesToRead > remainingBytes)
             bytesToRead = remainingBytes;
+
+        if (!NT_SUCCESS(status = ZwReadFile(
+            FileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &iosb,
+            bytes,
+            bytesToRead,
+            &offset,
+            NULL
+            )))
+        {
+            goto CleanupExit;
         }
 
-        status = ZwReadFile(FileHandle,
-                            NULL,
-                            NULL,
-                            NULL,
-                            &iosb,
-                            bytes,
-                            bytesToRead,
-                            &offset,
-                            NULL);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
         if (iosb.Information != bytesToRead)
         {
             status = STATUS_ACCESS_DENIED;
-            goto Exit;
+            goto CleanupExit;
         }
 
         __try
         {
             ProbeForRead(inprocBytes, bytesToRead, 1);
+
             for (ULONG i = 0; i < bytesToRead; i++)
             {
                 if (inprocBytes[i] == bytes[i])
@@ -430,7 +445,7 @@ NTSTATUS KpiVerifyProcessSections(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             status = STATUS_ACCESS_DENIED;
-            goto Exit;
+            goto CleanupExit;
         }
 
         remainingBytes -= bytesToRead;
@@ -444,19 +459,16 @@ NTSTATUS KpiVerifyProcessSections(
     if ((matchingBytes <= inspectBytes) &&
         ((inspectBytes - matchingBytes) <= (inspectBytes / PROC_VERIFY_COHERENCY_VALUE)))
     {
+        TrustedExtents->BaseAddress = PTR_ADD_OFFSET(BaseAddress, textSection->VirtualAddress);
+        TrustedExtents->EndAddress = PTR_ADD_OFFSET(TrustedExtents->BaseAddress, inspectBytes);
         status = STATUS_SUCCESS;
-        TrustedExtents->BaseAddress = PTR_ADD_OFFSET(BaseAddress,
-                                                     textSection->VirtualAddress);
-        TrustedExtents->EndAddress = PTR_ADD_OFFSET(TrustedExtents->BaseAddress,
-                                                    inspectBytes);
     }
     else
     {
         status = STATUS_ACCESS_DENIED;
     }
 
-Exit:
-
+CleanupExit:
     if (bytes)
     {
         ExFreePoolWithTag(bytes, 'pvpK');
@@ -504,51 +516,54 @@ NTSTATUS KpiVerifyProcess(
     TrustedExtents->BaseAddress = NULL;
     TrustedExtents->EndAddress = NULL;
 
-    baseAddress = PsGetProcessSectionBaseAddress(PsGetCurrentProcess());
-    if (!baseAddress)
+    if (!(baseAddress = PsGetProcessSectionBaseAddress(PsGetCurrentProcess())))
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
-    status = ZwQueryVirtualMemory(ZwCurrentProcess(),
-                                  baseAddress,
-                                  MemoryRegionInformation,
-                                  &memoryRegionInfo,
-                                  sizeof(memoryRegionInfo),
-                                  NULL);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = ZwQueryVirtualMemory(
+        ZwCurrentProcess(),
+        baseAddress,
+        MemoryRegionInformation,
+        &memoryRegionInfo,
+        sizeof(MEMORY_REGION_INFORMATION),
+        NULL
+        )))
     {
-        goto Exit;
+        goto CleanupExit;
     }
 
     __try
     {
-        status = KphImageNtHeader(baseAddress,
-                                  memoryRegionInfo.RegionSize,
-                                  (PIMAGE_NT_HEADERS*)&inprocHeaders);
+        status = KphImageNtHeader(
+            baseAddress,
+            memoryRegionInfo.RegionSize,
+            (PIMAGE_NT_HEADERS*)&inprocHeaders
+            );
+
         if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-        ProbeForRead(inprocHeaders, sizeof(processHeaders), 1);
-        memcpy(&processHeaders, inprocHeaders, sizeof(processHeaders));
+            goto CleanupExit;
+
+        ProbeForRead(inprocHeaders, sizeof(IMAGE_NT_HEADERS), 1);
+        memcpy(&processHeaders, inprocHeaders, sizeof(IMAGE_NT_HEADERS));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
-    status = ZwQueryVirtualMemory(ZwCurrentProcess(),
-                                  inprocHeaders,
-                                  MemoryBasicInformation,
-                                  &memoryBasicInfo,
-                                  sizeof(memoryBasicInfo),
-                                  NULL);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = ZwQueryVirtualMemory(
+        ZwCurrentProcess(),
+        inprocHeaders,
+        MemoryBasicInformation,
+        &memoryBasicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
     {
-        goto Exit;
+        goto CleanupExit;
     }
 
     if ((memoryBasicInfo.AllocationProtect != PAGE_EXECUTE_WRITECOPY) ||
@@ -557,69 +572,75 @@ NTSTATUS KpiVerifyProcess(
         (memoryBasicInfo.State != MEM_COMMIT))
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
-    InitializeObjectAttributes(&objectAttributes,
-                               ProcessFileName,
-                               OBJ_KERNEL_HANDLE,
-                               NULL,
-                               NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        ProcessFileName,
+        OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL
+        );
 
-    status = ZwCreateFile(&fileHandle,
-                          FILE_GENERIC_READ,
-                          &objectAttributes,
-                          &iosb,
-                          NULL,
-                          FILE_ATTRIBUTE_NORMAL,
-                          FILE_SHARE_READ,
-                          FILE_OPEN,
-                          FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                          NULL,
-                          0);
+    status = ZwCreateFile(
+        &fileHandle,
+        FILE_GENERIC_READ,
+        &objectAttributes,
+        &iosb,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
+        );
+
     if (!NT_SUCCESS(status))
-    {
-        fileHandle = NULL;
-        goto Exit;
-    }
+        goto CleanupExit;
 
-    status = ZwReadFile(fileHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &iosb,
-                        &fileDosHeader,
-                        sizeof(fileDosHeader),
-                        NULL,
-                        NULL);
+    status = ZwReadFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &iosb,
+        &fileDosHeader,
+        sizeof(IMAGE_DOS_HEADER),
+        NULL,
+        NULL
+        );
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
-    if (iosb.Information < sizeof(fileDosHeader))
+        goto CleanupExit;
+
+    if (iosb.Information < sizeof(IMAGE_DOS_HEADER))
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
     offset.QuadPart = fileDosHeader.e_lfanew;
-    status = ZwReadFile(fileHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &iosb,
-                        &fileHeaders,
-                        sizeof(fileHeaders),
-                        &offset,
-                        NULL);
+    status = ZwReadFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &iosb,
+        &fileHeaders,
+        sizeof(fileHeaders),
+        &offset,
+        NULL
+        );
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
+
     if (iosb.Information < sizeof(fileHeaders))
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
     //
@@ -642,51 +663,56 @@ NTSTATUS KpiVerifyProcess(
         (fileHeaders.OptionalHeader.LoaderFlags != processHeaders.OptionalHeader.LoaderFlags))
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
     sizeOfSectionHeaders = sizeof(IMAGE_SECTION_HEADER) * fileHeaders.FileHeader.NumberOfSections;
     if (sizeOfSectionHeaders == 0)
     {
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
-    sectionHeaders = ExAllocatePoolWithTag(PagedPool,
-                                           sizeOfSectionHeaders,
-                                           'pvpK');
-    if (!sectionHeaders)
+
+    if (!(sectionHeaders = ExAllocatePoolZero(PagedPool, sizeOfSectionHeaders, 'pvpK')))
     {
-        goto Exit;
+        status = STATUS_ACCESS_DENIED;
+        goto CleanupExit;
     }
 
     offset.QuadPart = fileDosHeader.e_lfanew;
     offset.QuadPart += FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader);
     offset.QuadPart += fileHeaders.FileHeader.SizeOfOptionalHeader;
-    status = ZwReadFile(fileHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &iosb,
-                        sectionHeaders,
-                        sizeOfSectionHeaders,
-                        &offset,
-                        NULL);
+
+    status = ZwReadFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &iosb,
+        sectionHeaders,
+        sizeOfSectionHeaders,
+        &offset,
+        NULL
+        );
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
+
     if (iosb.Information != sizeOfSectionHeaders)
     {
-        goto Exit;
+        status = STATUS_ACCESS_DENIED;
+        goto CleanupExit;
     }
 
-    status = KpiVerifyProcessSections(baseAddress,
-                                      fileHandle,
-                                      sectionHeaders,
-                                      fileHeaders.FileHeader.NumberOfSections,
-                                      TrustedExtents);
+    status = KpiVerifyProcessSections(
+        baseAddress,
+        fileHandle,
+        sectionHeaders,
+        fileHeaders.FileHeader.NumberOfSections,
+        TrustedExtents
+        );
 
-Exit:
+CleanupExit:
 
     if (sectionHeaders)
     {
@@ -724,40 +750,42 @@ VOID KphVerifyClient(
         status = STATUS_ACCESS_VIOLATION;
         goto CleanupExit;
     }
+
     if (!NT_SUCCESS(status = SeLocateProcessImageName(PsGetCurrentProcess(), &processFileName)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = ZwQueryVirtualMemory(NtCurrentProcess(), CodeAddress,
-        MemoryBasicInformation, &memoryBasicInfo, sizeof(MEMORY_BASIC_INFORMATION), NULL)))
+
+    if (!NT_SUCCESS(status = ZwQueryVirtualMemory(
+        NtCurrentProcess(),
+        CodeAddress,
+        MemoryBasicInformation,
+        &memoryBasicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
     {
         goto CleanupExit;
     }
+
     if (memoryBasicInfo.Type != MEM_IMAGE || memoryBasicInfo.State != MEM_COMMIT)
     {
         status = STATUS_INVALID_PARAMETER;
         goto CleanupExit;
     }
-    if (!NT_SUCCESS(status = KphGetProcessMappedFileName(NtCurrentProcess(), CodeAddress,
-        &mappedFileName)))
-    {
+
+    if (!NT_SUCCESS(status = KphGetProcessMappedFileName(NtCurrentProcess(), CodeAddress, &mappedFileName)))
         goto CleanupExit;
-    }
+
     if (!RtlEqualUnicodeString(processFileName, mappedFileName, TRUE))
     {
         status = STATUS_INVALID_PARAMETER;
         goto CleanupExit;
     }
 
-    status = KphVerifyFile(processFileName, Signature, SignatureSize);
-    if (!NT_SUCCESS(status))
-    {
+    if (!NT_SUCCESS(status = KphVerifyFile(processFileName, Signature, SignatureSize)))
         goto CleanupExit;
-    }
 
-    status = KpiVerifyProcess(processFileName, &processExtents);
-    if (!NT_SUCCESS(status))
-    {
+    if (!NT_SUCCESS(status = KpiVerifyProcess(processFileName, &processExtents)))
         goto CleanupExit;
-    }
 
     if ((CodeAddress < processExtents.BaseAddress) ||
         (CodeAddress > processExtents.EndAddress))
@@ -813,9 +841,7 @@ NTSTATUS KpiVerifyClient(
     if (SignatureSize > KPH_SIGNATURE_MAX_SIZE)
         return STATUS_INVALID_PARAMETER_3;
 
-    signature = ExAllocatePoolZero(PagedPool, SignatureSize, 'ThpK');
-
-    if (!signature)
+    if (!(signature = ExAllocatePoolZero(PagedPool, SignatureSize, 'ThpK')))
         return STATUS_INSUFFICIENT_RESOURCES;
 
     __try
@@ -892,10 +918,9 @@ NTSTATUS KphRetrieveKeyViaApc(
         return STATUS_ACCESS_DENIED;
     }
 
-    userApcRoutine = Irp->Overlay.AsynchronousParameters.UserApcRoutine;
-
-    if (!userApcRoutine)
+    if (!(userApcRoutine = Irp->Overlay.AsynchronousParameters.UserApcRoutine))
         return STATUS_INVALID_PARAMETER;
+
     if ((ULONG_PTR)userApcRoutine < (ULONG_PTR)Client->VerifiedRangeBase ||
         (ULONG_PTR)userApcRoutine >= (ULONG_PTR)Client->VerifiedRangeBase + Client->VerifiedRangeSize)
     {
@@ -1088,7 +1113,7 @@ NTSTATUS KpiVerifyCallerTrustedExtents(
         // Not enough info to validate.
         //
         status = STATUS_ACCESS_DENIED;
-        goto Exit;
+        goto CleanupExit;
     }
 
     if (Client->VerifiedProcess != PsGetCurrentProcess())
@@ -1097,19 +1122,20 @@ NTSTATUS KpiVerifyCallerTrustedExtents(
         unstackDetach = TRUE;
     }
 
-    status = ZwQueryVirtualMemory(ZwCurrentProcess(),
-                                  Client->VerifiedProcessExtents.BaseAddress,
-                                  MemoryBasicInformation,
-                                  &memoryBasicInfo,
-                                  sizeof(memoryBasicInfo),
-                                  NULL);
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status = ZwQueryVirtualMemory(
+        ZwCurrentProcess(),
+        Client->VerifiedProcessExtents.BaseAddress,
+        MemoryBasicInformation,
+        &memoryBasicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
     {
-        goto Exit;
+        goto CleanupExit;
     }
 
-    trustedRegionSize = (SIZE_T)PTR_SUB_OFFSET(Client->VerifiedProcessExtents.EndAddress,
-                                               Client->VerifiedProcessExtents.BaseAddress);
+    trustedRegionSize = (SIZE_T)PTR_SUB_OFFSET(Client->VerifiedProcessExtents.EndAddress, Client->VerifiedProcessExtents.BaseAddress);
+
     if ((trustedRegionSize > memoryBasicInfo.RegionSize) ||
         (memoryBasicInfo.AllocationProtect != PAGE_EXECUTE_WRITECOPY) ||
         (memoryBasicInfo.Protect != PAGE_EXECUTE_READ) ||
@@ -1122,9 +1148,8 @@ NTSTATUS KpiVerifyCallerTrustedExtents(
         status = STATUS_SUCCESS;
     }
 
-Exit:
-
-    if (unstackDetach != FALSE)
+CleanupExit:
+    if (unstackDetach)
     {
         KeUnstackDetachProcess(&apcState);
     }
@@ -1182,10 +1207,9 @@ NTSTATUS KphVerifyCaller(
     // Check that the trusted extents are still valid.
     //
     status = KpiVerifyCallerTrustedExtents(Client);
+
     if (!NT_SUCCESS(status))
-    {
         return status;
-    }
 
     //
     // Here we will validate the caller by walking the stack.
@@ -1198,11 +1222,11 @@ NTSTATUS KphVerifyCaller(
         &numberOfFrames,
         NULL,
         KernelMode,
-        KPH_STACK_TRACE_CAPTURE_USER_STACK);
+        KPH_STACK_TRACE_CAPTURE_USER_STACK
+        );
+
     if (!NT_SUCCESS(status))
-    {
         return STATUS_ACCESS_DENIED;
-    }
 
     i = 0;
 

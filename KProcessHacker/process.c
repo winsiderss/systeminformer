@@ -135,10 +135,7 @@ NTSTATUS KpiOpenProcess(
     }
 
     if (!NT_SUCCESS(status))
-    {
-        process = NULL;
-        goto Exit;
-    }
+        goto CleanupExit;
 
     requiredKeyLevel = KphKeyLevel1;
 
@@ -146,29 +143,30 @@ NTSTATUS KpiOpenProcess(
     {
         requiredKeyLevel = KphKeyLevel2;
 
-        status = KphDominationCheck(Client,
-                                    PsGetCurrentProcess(),
-                                    process,
-                                    AccessMode);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+        status = KphDominationCheck(
+            Client,
+            PsGetCurrentProcess(),
+            process,
+            AccessMode
+            );
 
-        status = KphVerifyCaller(Client,
-                                 PsGetCurrentThread(),
-                                 AccessMode);
         if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+            goto CleanupExit;
+
+        status = KphVerifyCaller(
+            Client,
+            PsGetCurrentThread(),
+            AccessMode
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
     }
 
     status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
 
     // Always open in KernelMode to skip ordinary access checks.
     status = ObOpenObjectByPointer(
@@ -200,8 +198,7 @@ NTSTATUS KpiOpenProcess(
         }
     }
 
-Exit:
-
+CleanupExit:
     if (process)
     {
         ObDereferenceObject(process);
@@ -266,17 +263,12 @@ NTSTATUS KpiOpenProcessToken(
         );
 
     if (!NT_SUCCESS(status))
-    {
-        process = NULL;
-        goto Exit;
-    }
+        goto CleanupExit;
 
-    primaryToken = PsReferencePrimaryToken(process);
-
-    if (!primaryToken)
+    if (!(primaryToken = PsReferencePrimaryToken(process)))
     {
         status = STATUS_NO_TOKEN;
-        goto Exit;
+        goto CleanupExit;
     }
 
     requiredKeyLevel = KphKeyLevel1;
@@ -285,29 +277,30 @@ NTSTATUS KpiOpenProcessToken(
     {
         requiredKeyLevel = KphKeyLevel2;
 
-        status = KphDominationCheck(Client,
-                                    PsGetCurrentProcess(),
-                                    process,
-                                    AccessMode);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+        status = KphDominationCheck(
+            Client,
+            PsGetCurrentProcess(),
+            process,
+            AccessMode
+            );
 
-        status = KphVerifyCaller(Client,
-                                 PsGetCurrentThread(),
-                                 AccessMode);
         if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+            goto CleanupExit;
+
+        status = KphVerifyCaller(
+            Client,
+            PsGetCurrentThread(),
+            AccessMode
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
     }
 
     status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
 
     status = ObOpenObjectByPointer(
         primaryToken,
@@ -338,8 +331,7 @@ NTSTATUS KpiOpenProcessToken(
         }
     }
 
-Exit:
-
+CleanupExit:
     if (primaryToken)
     {
         PsDereferencePrimaryToken(primaryToken);
@@ -407,17 +399,12 @@ NTSTATUS KpiOpenProcessJob(
         );
 
     if (!NT_SUCCESS(status))
-    {
-        process = NULL;
-        goto Exit;
-    }
+        goto CleanupExit;
 
-    job = PsGetProcessJob(process);
-
-    if (!job)
+    if (!(job = PsGetProcessJob(process)))
     {
         status = STATUS_NOT_FOUND;
-        goto Exit;
+        goto CleanupExit;
     }
 
     requiredKeyLevel = KphKeyLevel1;
@@ -426,29 +413,30 @@ NTSTATUS KpiOpenProcessJob(
     {
         requiredKeyLevel = KphKeyLevel2;
 
-        status = KphDominationCheck(Client,
-                                    PsGetCurrentProcess(),
-                                    process,
-                                    AccessMode);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+        status = KphDominationCheck(
+            Client,
+            PsGetCurrentProcess(),
+            process,
+            AccessMode
+            );
 
-        status = KphVerifyCaller(Client,
-                                 PsGetCurrentThread(),
-                                 AccessMode);
         if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+            goto CleanupExit;
+
+        status = KphVerifyCaller(
+            Client,
+            PsGetCurrentThread(),
+            AccessMode
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
     }
 
     status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
 
     status = ObOpenObjectByPointer(
         job,
@@ -479,8 +467,7 @@ NTSTATUS KpiOpenProcessJob(
         }
     }
 
-Exit:
-
+CleanupExit:
     if (process)
     {
         ObDereferenceObject(process);
@@ -516,10 +503,9 @@ NTSTATUS KpiTerminateProcess(
     process = NULL;
 
     status = KphValidateKey(KphKeyLevel2, Key, Client, AccessMode);
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
@@ -531,26 +517,26 @@ NTSTATUS KpiTerminateProcess(
         );
 
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
 
-    status = KphDominationCheck(Client,
-                                PsGetCurrentProcess(),
-                                process,
-                                AccessMode);
-    if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+    status = KphDominationCheck(
+        Client,
+        PsGetCurrentProcess(),
+        process,
+        AccessMode
+        );
 
-    status = KphVerifyCaller(Client,
-                             PsGetCurrentThread(),
-                             AccessMode);
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
+
+    status = KphVerifyCaller(
+        Client,
+        PsGetCurrentThread(),
+        AccessMode
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     if (process != PsGetCurrentProcess())
     {
@@ -576,8 +562,7 @@ NTSTATUS KpiTerminateProcess(
         status = STATUS_ACCESS_DENIED;
     }
 
-Exit:
-
+CleanupExit:
     if (process)
     {
         ObDereferenceObject(process);
