@@ -113,10 +113,30 @@ NTSTATUS KphHashFile(
 
     if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(&hashAlgHandle, KPH_HASH_ALGORITHM, NULL, 0)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = BCryptGetProperty(hashAlgHandle, BCRYPT_OBJECT_LENGTH, (PUCHAR)&hashObjectSize, sizeof(ULONG), &querySize, 0)))
+
+    if (!NT_SUCCESS(status = BCryptGetProperty(
+        hashAlgHandle,
+        BCRYPT_OBJECT_LENGTH,
+        (PUCHAR)&hashObjectSize,
+        sizeof(ULONG),
+        &querySize,
+        0
+        )))
+    {
         goto CleanupExit;
-    if (!NT_SUCCESS(status = BCryptGetProperty(hashAlgHandle, BCRYPT_HASH_LENGTH, (PUCHAR)&hashSize, sizeof(ULONG), &querySize, 0)))
+    }
+
+    if (!NT_SUCCESS(status = BCryptGetProperty(
+        hashAlgHandle,
+        BCRYPT_HASH_LENGTH,
+        (PUCHAR)&hashSize,
+        sizeof(ULONG),
+        &querySize,
+        0
+        )))
+    {
         goto CleanupExit;
+    }
 
     if (!(hashObject = ExAllocatePoolZero(PagedPool, hashObjectSize, 'vhpK')))
     {
@@ -130,12 +150,28 @@ NTSTATUS KphHashFile(
         goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = BCryptCreateHash(hashAlgHandle, &hashHandle, hashObject, hashObjectSize, NULL, 0, 0)))
+    if (!NT_SUCCESS(status = BCryptCreateHash(
+        hashAlgHandle,
+        &hashHandle,
+        hashObject,
+        hashObjectSize,
+        NULL,
+        0,
+        0
+        )))
+    {
         goto CleanupExit;
+    }
 
     // Open the file and compute the hash.
 
-    InitializeObjectAttributes(&objectAttributes, FileName, OBJ_KERNEL_HANDLE, NULL, NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        FileName,
+        OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL
+        );
 
     if (!NT_SUCCESS(status = ZwCreateFile(
         &fileHandle,
@@ -151,6 +187,7 @@ NTSTATUS KphHashFile(
         0
         )))
     {
+        fileHandle = NULL;
         goto CleanupExit;
     }
 
@@ -264,8 +301,19 @@ NTSTATUS KphVerifyFile(
 
     if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(&signAlgHandle, KPH_SIGN_ALGORITHM, NULL, 0)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = BCryptImportKeyPair(signAlgHandle, NULL, KPH_BLOB_PUBLIC, &keyHandle, KphpTrustedPublicKey, sizeof(KphpTrustedPublicKey), 0)))
+
+    if (!NT_SUCCESS(status = BCryptImportKeyPair(
+        signAlgHandle,
+        NULL,
+        KPH_BLOB_PUBLIC,
+        &keyHandle,
+        KphpTrustedPublicKey,
+        sizeof(KphpTrustedPublicKey),
+        0
+        )))
+    {
         goto CleanupExit;
+    }
 
     // Hash the file.
 
@@ -598,7 +646,10 @@ NTSTATUS KpiVerifyProcess(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        fileHandle = NULL;
         goto CleanupExit;
+    }
 
     status = ZwReadFile(
         fileHandle,
@@ -675,7 +726,7 @@ NTSTATUS KpiVerifyProcess(
 
     if (!(sectionHeaders = ExAllocatePoolZero(PagedPool, sizeOfSectionHeaders, 'pvpK')))
     {
-        status = STATUS_ACCESS_DENIED;
+        status = STATUS_INSUFFICIENT_RESOURCES;
         goto CleanupExit;
     }
 

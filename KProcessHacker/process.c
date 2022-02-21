@@ -135,7 +135,10 @@ NTSTATUS KpiOpenProcess(
     }
 
     if (!NT_SUCCESS(status))
+    {
+        process = NULL;
         goto CleanupExit;
+    }
 
     requiredKeyLevel = KphKeyLevel1;
 
@@ -263,7 +266,10 @@ NTSTATUS KpiOpenProcessToken(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        process = NULL;
         goto CleanupExit;
+    }
 
     if (!(primaryToken = PsReferencePrimaryToken(process)))
     {
@@ -399,7 +405,10 @@ NTSTATUS KpiOpenProcessJob(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        process = NULL;
         goto CleanupExit;
+    }
 
     if (!(job = PsGetProcessJob(process)))
     {
@@ -517,7 +526,10 @@ NTSTATUS KpiTerminateProcess(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        process = NULL;
         goto CleanupExit;
+    }
 
     status = KphDominationCheck(
         Client,

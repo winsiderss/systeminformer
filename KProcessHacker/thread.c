@@ -118,7 +118,10 @@ NTSTATUS KpiOpenThread(
     }
 
     if (!NT_SUCCESS(status))
+    {
+        thread = NULL;
         goto CleanupExit;
+    }
 
     requiredKeyLevel = KphKeyLevel1;
 
@@ -245,7 +248,10 @@ NTSTATUS KpiOpenThreadProcess(
         );
 
     if (!NT_SUCCESS(status))
+    {
+        thread = NULL;
         goto CleanupExit;
+    }
 
     requiredKeyLevel = KphKeyLevel1;
 
