@@ -737,7 +737,53 @@ namespace CustomBuildTool
             if (package == null)
                 return string.Empty;
 
-            return package.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length);
+            // SDK
+            if (package.Id.Length > "Microsoft.VisualStudio.Component.Windows10SDK.".Length)
+            {
+                return package.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length);
+            }
+            else
+            {
+                List<string> versions = new List<string>();
+
+                var found = this.Packages.FindAll(p =>
+                {
+                    return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                        p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
+                });
+
+                // Workaround MSVC bug returning idential version numbers for all packages.
+                foreach (var sdk in found)
+                {
+                    string[] tokens = sdk.Id.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                    foreach (string name in tokens)
+                    {
+                        if (uint.TryParse(name, out uint version))
+                        {
+                            versions.Add(name);
+                            break;
+                        }
+                    }
+                }
+
+                versions.Sort((p1, p2) =>
+                {
+                    if (Version.TryParse(p1, out Version v1) && Version.TryParse(p2, out Version v2))
+                        return v1.CompareTo(v2);
+                    else
+                        return 1;
+                });
+
+                if (versions.Count > 0)
+                {
+                    return versions[^1];
+                }
+                else
+                {
+                    return package.UniqueId;
+                }
+            }
         }
 
         public string GetWindowsSdkFullVersion()
