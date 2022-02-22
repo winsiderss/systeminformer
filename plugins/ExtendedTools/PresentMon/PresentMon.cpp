@@ -165,11 +165,11 @@ static void PruneHistory(
 
 static void ProcessEvents(
     std::vector<std::shared_ptr<PresentEvent>>* presentEvents,
-    std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents,
+    //std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents,
     std::vector<std::pair<ULONG, ULONGLONG>>* terminatedProcesses)
 {
     // Copy any analyzed information from ConsumerThread and early-out if there isn't any.
-    DequeueAnalyzedInfo(presentEvents, lostPresentEvents);
+    DequeueAnalyzedInfo(presentEvents); // lostPresentEvents
 
     if (presentEvents->empty())
     {
@@ -231,7 +231,7 @@ done:
 
     // Clear events processed.
     presentEvents->clear();
-    lostPresentEvents->clear();
+    //lostPresentEvents->clear();
 
     if (terminatedProcessIndex > 0)
     {
@@ -366,7 +366,7 @@ NTSTATUS PresentMonOutputThread(
     )
 {
     std::vector<std::shared_ptr<PresentEvent>> presentEvents;
-    std::vector<std::shared_ptr<PresentEvent>> lostPresentEvents;
+    //std::vector<std::shared_ptr<PresentEvent>> lostPresentEvents;
     std::vector<std::pair<ULONG, ULONGLONG>> terminatedProcesses;
     presentEvents.reserve(4096);
     terminatedProcesses.reserve(16);
@@ -377,7 +377,7 @@ NTSTATUS PresentMonOutputThread(
             break;
 
         // Copy and process all the collected events, and update the various tracking and statistics data structures.
-        ProcessEvents(&presentEvents, &lostPresentEvents, &terminatedProcesses);
+        ProcessEvents(&presentEvents, &terminatedProcesses); // lostPresentEvents
 
         EtLockGpuFrameHashTable();
         EtClearGpuFrameHashTable();

@@ -150,8 +150,8 @@ bool mSeenDxgkPresentInfo = false;
 PH_FAST_LOCK mPresentEventMutex = PH_FAST_LOCK_INIT;
 std::vector<std::shared_ptr<PresentEvent>> mCompletePresentEvents;
 
-PH_FAST_LOCK mLostPresentEventMutex = PH_FAST_LOCK_INIT;
-std::vector<std::shared_ptr<PresentEvent>> mLostPresentEvents;
+//PH_FAST_LOCK mLostPresentEventMutex = PH_FAST_LOCK_INIT;
+//std::vector<std::shared_ptr<PresentEvent>> mLostPresentEvents;
 
 VOID CompletePresent(std::shared_ptr<PresentEvent> p);
 std::shared_ptr<PresentEvent> FindBySubmitSequence(uint32_t submitSequence);
@@ -1614,11 +1614,11 @@ void RemoveLostPresent(std::shared_ptr<PresentEvent> p)
     assert(hasRemovedElement);
 
     // Update the list of lost presents.
-    {
-        PhAcquireFastLockExclusive(&mPresentEventMutex);
-        mLostPresentEvents.push_back(mAllPresents[p->mAllPresentsTrackingIndex]);
-        PhReleaseFastLockExclusive(&mPresentEventMutex);
-    }
+    //{
+    //    PhAcquireFastLockExclusive(&mLostPresentEventMutex);
+    //    mLostPresentEvents.push_back(mAllPresents[p->mAllPresentsTrackingIndex]);
+    //    PhReleaseFastLockExclusive(&mLostPresentEventMutex);
+    //}
 
     mAllPresents[p->mAllPresentsTrackingIndex] = nullptr;
 }
@@ -1850,9 +1850,9 @@ void DequeuePresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresent
     PhReleaseFastLockExclusive(&mPresentEventMutex);
 }
 
-void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents)
-{
-    PhAcquireFastLockExclusive(&mLostPresentEventMutex);
-    outPresentEvents.swap(mLostPresentEvents);
-    PhReleaseFastLockExclusive(&mLostPresentEventMutex);
-}
+//void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents)
+//{
+//    PhAcquireFastLockExclusive(&mLostPresentEventMutex);
+//    outPresentEvents.swap(mLostPresentEvents);
+//    PhReleaseFastLockExclusive(&mLostPresentEventMutex);
+//}
