@@ -348,12 +348,11 @@ VOID StopFpsTraceSession(
 }
 
 VOID DequeueAnalyzedInfo(
-    std::vector<std::shared_ptr<PresentEvent>>* presentEvents,
-    std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents
+    std::vector<std::shared_ptr<PresentEvent>>* presentEvents
     )
 {
     DequeuePresentEvents(*presentEvents);
-    DequeueLostPresentEvents(*lostPresentEvents);
+    //DequeueLostPresentEvents(*lostPresentEvents);
 }
 
 DOUBLE QpcDeltaToSeconds(
