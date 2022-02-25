@@ -1142,7 +1142,10 @@ VOID PhpShowKphError(
         PPH_STRING errorMessage;
         PPH_STRING statusMessage;
 
-        if (errorMessage = PhGetStatusMessage(Status, 0))
+        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
+            errorMessage = PhGetStatusMessage(0, Status);
+
+        if (errorMessage)
         {
             statusMessage = PhConcatStrings(
                 3,
