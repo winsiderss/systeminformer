@@ -120,7 +120,7 @@ NTSTATUS KpiOpenThread(
     if (!NT_SUCCESS(status))
     {
         thread = NULL;
-        goto Exit;
+        goto CleanupExit;
     }
 
     requiredKeyLevel = KphKeyLevel1;
@@ -129,29 +129,30 @@ NTSTATUS KpiOpenThread(
     {
         requiredKeyLevel = KphKeyLevel2;
 
-        status = KphDominationCheck(Client,
-                                    PsGetCurrentProcess(),
-                                    PsGetThreadProcess(thread),
-                                    AccessMode);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+        status = KphDominationCheck(
+            Client,
+            PsGetCurrentProcess(),
+            PsGetThreadProcess(thread),
+            AccessMode
+            );
 
-        status = KphVerifyCaller(Client,
-                                 PsGetCurrentThread(),
-                                 AccessMode);
         if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+            goto CleanupExit;
+
+        status = KphVerifyCaller(
+            Client,
+            PsGetCurrentThread(),
+            AccessMode
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
     }
 
     status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
 
     // Always open in KernelMode to skip access checks.
     status = ObOpenObjectByPointer(
@@ -163,6 +164,7 @@ NTSTATUS KpiOpenThread(
         KernelMode,
         &threadHandle
         );
+
     if (NT_SUCCESS(status))
     {
         if (AccessMode != KernelMode)
@@ -182,8 +184,7 @@ NTSTATUS KpiOpenThread(
         }
     }
 
-Exit:
-
+CleanupExit:
     if (thread)
     {
         ObDereferenceObject(thread);
@@ -249,7 +250,7 @@ NTSTATUS KpiOpenThreadProcess(
     if (!NT_SUCCESS(status))
     {
         thread = NULL;
-        goto Exit;
+        goto CleanupExit;
     }
 
     requiredKeyLevel = KphKeyLevel1;
@@ -258,29 +259,30 @@ NTSTATUS KpiOpenThreadProcess(
     {
         requiredKeyLevel = KphKeyLevel2;
 
-        status = KphDominationCheck(Client,
-                                    PsGetCurrentProcess(),
-                                    PsGetThreadProcess(thread),
-                                    AccessMode);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+        status = KphDominationCheck(
+            Client,
+            PsGetCurrentProcess(),
+            PsGetThreadProcess(thread),
+            AccessMode
+            );
 
-        status = KphVerifyCaller(Client,
-                                 PsGetCurrentThread(),
-                                 AccessMode);
         if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
+            goto CleanupExit;
+
+        status = KphVerifyCaller(
+            Client,
+            PsGetCurrentThread(),
+            AccessMode
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
     }
 
     status = KphValidateKey(requiredKeyLevel, Key, Client, AccessMode);
+
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
 
     status = ObOpenObjectByPointer(
         PsGetThreadProcess(thread),
@@ -311,8 +313,7 @@ NTSTATUS KpiOpenThreadProcess(
         }
     }
 
-Exit:
-
+CleanupExit:
     if (thread)
     {
         ObDereferenceObject(thread);
