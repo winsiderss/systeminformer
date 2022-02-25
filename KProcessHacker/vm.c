@@ -280,8 +280,8 @@ NTSTATUS KphCopyVirtualMemory(
         }
 
         stillToCopy -= blockSize;
-        sourceAddress = (PVOID)((ULONG_PTR)sourceAddress + blockSize);
-        targetAddress = (PVOID)((ULONG_PTR)targetAddress + blockSize);
+        sourceAddress = PTR_ADD_OFFSET(sourceAddress, blockSize);
+        targetAddress = PTR_ADD_OFFSET(targetAddress, blockSize);
     }
 
     if (buffer != stackBuffer)

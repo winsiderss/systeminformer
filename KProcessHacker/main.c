@@ -395,30 +395,33 @@ NTSTATUS KpiPopulateKnownDllExtents(
     mappedBase = NULL;
     mappedSize = 0;
 
-    InitializeObjectAttributes(&objectAttributes,
-                               SectionName,
-                               OBJ_KERNEL_HANDLE,
-                               NULL,
-                               NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        SectionName,
+        OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL
+        );
 
-    status = ZwOpenSection(&sectionHandle,
-                           SECTION_MAP_READ | SECTION_QUERY,
-                           &objectAttributes);
-    if (!NT_SUCCESS(status))
-    {
-        sectionHandle = NULL;
-        goto Exit;
-    }
+    status = ZwOpenSection(
+        &sectionHandle,
+        SECTION_MAP_READ | SECTION_QUERY,
+        &objectAttributes
+        );
 
-    status = ZwQuerySection(sectionHandle,
-                            SectionImageInformation,
-                            &sectionImageInfo,
-                            sizeof(sectionImageInfo),
-                            NULL);
     if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
+        goto CleanupExit;
+
+    status = ZwQuerySection(
+        sectionHandle,
+        SectionImageInformation,
+        &sectionImageInfo,
+        sizeof(sectionImageInfo),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     //
     // 21H2 no longer maps ntdll as an image in System. Querying the transfer
@@ -433,31 +436,34 @@ NTSTATUS KpiPopulateKnownDllExtents(
     // extents out of PH.
     //
 
-    status = ObReferenceObjectByHandle(sectionHandle,
-                                       SECTION_MAP_READ | SECTION_QUERY,
-                                       *MmSectionObjectType,
-                                       KernelMode,
-                                       &sectionObject,
-                                       NULL);
+    status = ObReferenceObjectByHandle(
+        sectionHandle,
+        SECTION_MAP_READ | SECTION_QUERY,
+        *MmSectionObjectType,
+        KernelMode,
+        &sectionObject,
+        NULL
+        );
+
     if (!NT_SUCCESS(status))
     {
         sectionObject = NULL;
-        goto Exit;
+        goto CleanupExit;
     }
 
     status = MmMapViewInSystemSpace(sectionObject, &mappedBase, &mappedSize);
+
     if (!NT_SUCCESS(status))
     {
         mappedBase = NULL;
         mappedSize = 0;
-        goto Exit;
+        goto CleanupExit;
     }
 
     ModuleExtents->BaseAddress = sectionImageInfo.TransferAddress;
-    ModuleExtents->EndAddress = PTR_ADD_OFFSET(ModuleExtents->BaseAddress,
-                                               mappedSize);
+    ModuleExtents->EndAddress = PTR_ADD_OFFSET(ModuleExtents->BaseAddress, mappedSize);
 
-Exit:
+CleanupExit:
 
     if (mappedBase)
     {
