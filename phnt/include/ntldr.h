@@ -102,8 +102,9 @@ typedef enum _LDR_DLL_LOAD_REASON
     LoadReasonDynamicLoad,
     LoadReasonAsImageLoad,
     LoadReasonAsDataLoad,
-    LoadReasonEnclavePrimary, // REDSTONE3
+    LoadReasonEnclavePrimary, // since REDSTONE3
     LoadReasonEnclaveDependency,
+    LoadReasonPatchImage, // since WIN11
     LoadReasonUnknown = -1
 } LDR_DLL_LOAD_REASON, *PLDR_DLL_LOAD_REASON;
 
