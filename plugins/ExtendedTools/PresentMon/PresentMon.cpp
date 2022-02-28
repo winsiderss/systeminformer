@@ -48,7 +48,7 @@ static void CheckForTerminatedRealtimeProcesses(
             )
         {
             LARGE_INTEGER performanceCounter;
-            PhQueryPerformanceCounter(&performanceCounter, NULL);
+            PhQueryPerformanceCounter(&performanceCounter, nullptr);
             terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
 
             PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
@@ -347,14 +347,14 @@ VOID PresentMonUpdateProcessStats(
 
         EtAddGpuFrameToHashTable(
             ProcessId,
-            frameLatency,
-            framesPerSecond,
-            displayLatency,
-            displayFramesPerSecond,
-            msBetweenPresents,
-            msInPresentApi,
-            msUntilRenderComplete,
-            msUntilDisplayed,
+            static_cast<FLOAT>(frameLatency),
+            static_cast<FLOAT>(framesPerSecond),
+            static_cast<FLOAT>(displayLatency),
+            static_cast<FLOAT>(displayFramesPerSecond),
+            static_cast<FLOAT>(msBetweenPresents),
+            static_cast<FLOAT>(msInPresentApi),
+            static_cast<FLOAT>(msUntilRenderComplete),
+            static_cast<FLOAT>(msUntilDisplayed),
             runtime,
             presentMode
             );
@@ -427,7 +427,7 @@ VOID StartOutputThread(
     {
         HANDLE threadHandle;
 
-        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonOutputThread, NULL)))
+        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonOutputThread, nullptr)))
         {
             PhSetThreadName(threadHandle, L"FpsEtwOutputThread");
             NtClose(threadHandle);
@@ -442,7 +442,7 @@ VOID StopOutputThread(
     )
 {
     InterlockedExchange(&QuitOutputThread, 1);
-    //NtWaitForSingleObject(OutputThreadHandle, FALSE, NULL);
+    //NtWaitForSingleObject(OutputThreadHandle, FALSE, nullptr);
 }
 
 static NTSTATUS PresentMonTraceThread(
@@ -454,7 +454,7 @@ static NTSTATUS PresentMonTraceThread(
 
     while (TRUE)
     {
-        while (!QuitOutputThread && (result = ProcessTrace(&traceHandle, 1, NULL, NULL)) == ERROR_SUCCESS)
+        while (!QuitOutputThread && (result = ProcessTrace(&traceHandle, 1, nullptr, nullptr)) == ERROR_SUCCESS)
             NOTHING;
 
         if (QuitOutputThread)
@@ -480,7 +480,7 @@ VOID StartConsumerThread(
     {
         HANDLE threadHandle;
 
-        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, (PVOID)traceHandle)))
+        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, reinterpret_cast<PVOID>(traceHandle))))
         {
             PhSetThreadName(threadHandle, L"FpsEtwConsumerThread");
             NtClose(threadHandle);
@@ -495,5 +495,5 @@ VOID WaitForConsumerThreadToExit(
     )
 {
     InterlockedExchange(&QuitOutputThread, 1);
-    //NtWaitForSingleObject(ConsumerThreadHandle, FALSE, NULL);
+    //NtWaitForSingleObject(ConsumerThreadHandle, FALSE, nullptr);
 }
