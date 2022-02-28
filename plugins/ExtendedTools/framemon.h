@@ -30,14 +30,14 @@ extern "C" {
 typedef struct _ET_FPS_COUNTER
 {
     HANDLE ProcessId;
-    DOUBLE FrameMs;
-    DOUBLE FramesPerSecond;
-    DOUBLE MsBetweenPresents;
-    DOUBLE MsInPresentApi;
-    DOUBLE MsUntilRenderComplete;
-    DOUBLE MsUntilDisplayed;
-    DOUBLE DisplayLatency;
-    //DOUBLE DisplayFramesPerSecond;   
+    FLOAT FrameMs;
+    FLOAT FramesPerSecond;
+    FLOAT MsBetweenPresents;
+    FLOAT MsInPresentApi;
+    FLOAT MsUntilRenderComplete;
+    FLOAT MsUntilDisplayed;
+    FLOAT DisplayLatency;
+    //FLOAT DisplayFramesPerSecond;   
     USHORT Runtime;
     USHORT PresentMode;
 } ET_FPS_COUNTER, *PET_FPS_COUNTER;
@@ -60,14 +60,14 @@ PET_FPS_COUNTER EtLookupProcessGpuFrameEntry(
 
 VOID EtAddGpuFrameToHashTable(
     _In_ ULONG ProcessId,
-    _In_ DOUBLE FrameMs,
-    _In_ DOUBLE FramesPerSecond,
-    _In_ DOUBLE DisplayLatency,
-    _In_ DOUBLE DisplayFramesPerSecond,
-    _In_ DOUBLE MsBetweenPresents,
-    _In_ DOUBLE MsInPresentApi,
-    _In_ DOUBLE MsUntilRenderComplete,
-    _In_ DOUBLE MsUntilDisplayed,
+    _In_ FLOAT FrameMs,
+    _In_ FLOAT FramesPerSecond,
+    _In_ FLOAT DisplayLatency,
+    _In_ FLOAT DisplayFramesPerSecond,
+    _In_ FLOAT MsBetweenPresents,
+    _In_ FLOAT MsInPresentApi,
+    _In_ FLOAT MsUntilRenderComplete,
+    _In_ FLOAT MsUntilDisplayed,
     _In_ USHORT Runtime,
     _In_ USHORT PresentMode
     );
