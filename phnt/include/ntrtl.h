@@ -8474,7 +8474,7 @@ RtlCheckBootStatusIntegrity(
     _In_ HANDLE FileHandle, 
     _Out_ PBOOLEAN Verified
     );
-    
+
 // rev
 NTSYSAPI
 NTSTATUS
