@@ -4995,10 +4995,10 @@ typedef struct _D3DKMT_SHAREOBJECTWITHHOST
 //
 typedef struct _D3DKMT_CREATESYNCFILE
 {
-	D3DKMT_HANDLE           hDevice;                // in:  Device owner of the monitored fence.
-	D3DKMT_HANDLE           hMonitoredFence;        // in:  Monitored fence object
-	D3DKMT_ALIGN64 UINT64   FenceValue;             // in:  Fence value to wait for
-	D3DKMT_ALIGN64 UINT64   hSyncFile;	            // out: File descriptor on Android or a NT handle on Windows (when implemented)
+    D3DKMT_HANDLE           hDevice;                // in:  Device owner of the monitored fence.
+    D3DKMT_HANDLE           hMonitoredFence;        // in:  Monitored fence object
+    D3DKMT_ALIGN64 UINT64   FenceValue;             // in:  Fence value to wait for
+    D3DKMT_ALIGN64 UINT64   hSyncFile;              // out: File descriptor on Android or a NT handle on Windows (when implemented)
 } D3DKMT_CREATESYNCFILE;
 
 typedef struct _D3DKMT_TRIMNOTIFICATION
