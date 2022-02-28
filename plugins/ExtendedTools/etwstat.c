@@ -3,7 +3,7 @@
  *   ETW statistics collection
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2019-2020 dmex
+ * Copyright (C) 2019-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -34,9 +34,16 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Context
     );
 
+VOID EtpUpdateProcessInformation(
+    VOID
+    );
+
 BOOLEAN EtDiskExtEnabled = FALSE;
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
+
+static PVOID EtpProcessInformation = NULL;
+static PH_QUEUED_LOCK EtpProcessInformationLock = PH_QUEUED_LOCK_INIT;
 
 ULONG EtpDiskReadRaw;
 ULONG EtpDiskWriteRaw;
@@ -396,6 +403,8 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
         // Since Windows 8, we no longer get the correct process/thread IDs in the
         // event headers for disk events. We need to update our process information since
         // etwmon uses our EtThreadIdToProcessId function. (wj32)
+        if (PhWindowsVersion >= WINDOWS_8)
+            EtpUpdateProcessInformation();
 
         // ETW is extremely lazy when it comes to flushing buffers, so we must do it manually. (wj32)
         //EtFlushEtwSession();
@@ -548,43 +557,56 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     }
 }
 
+VOID EtpUpdateProcessInformation(
+    VOID
+    )
+{
+    PhAcquireQueuedLockExclusive(&EtpProcessInformationLock);
+
+    if (EtpProcessInformation)
+    {
+        PhFree(EtpProcessInformation);
+        EtpProcessInformation = NULL;
+    }
+
+    PhEnumProcesses(&EtpProcessInformation);
+
+    PhReleaseQueuedLockExclusive(&EtpProcessInformationLock);
+}
+
 HANDLE EtThreadIdToProcessId(
     _In_ HANDLE ThreadId
     )
 {
-    // Note: no lock is needed because we use the list on the same thread (EtpEtwMonitorThreadStart). (dmex)
-    static PVOID processInfo = NULL;
-    static ULONG64 lastTickTotal = 0;
     PSYSTEM_PROCESS_INFORMATION process;
-    ULONG64 tickCount;
+    ULONG i;
+    HANDLE processId;
 
-    tickCount = NtGetTickCount64();
+    PhAcquireQueuedLockShared(&EtpProcessInformationLock);
 
-    if (tickCount - lastTickTotal >= 2 * CLOCKS_PER_SEC)
+    if (!EtpProcessInformation)
     {
-        lastTickTotal = tickCount;
-
-        if (processInfo)
-        {
-            PhFree(processInfo);
-            processInfo = NULL;
-        }
-
-        PhEnumProcesses(&processInfo);
+        PhReleaseQueuedLockShared(&EtpProcessInformationLock);
+        return SYSTEM_PROCESS_ID;
     }
 
-    process = PH_FIRST_PROCESS(processInfo);
+    process = PH_FIRST_PROCESS(EtpProcessInformation);
 
     do
     {
-        for (ULONG i = 0; i < process->NumberOfThreads; i++)
+        for (i = 0; i < process->NumberOfThreads; i++)
         {
             if (process->Threads[i].ClientId.UniqueThread == ThreadId)
             {
-                return process->UniqueProcessId;
+                processId = process->UniqueProcessId;
+                PhReleaseQueuedLockShared(&EtpProcessInformationLock);
+
+                return processId;
             }
         }
     } while (process = PH_NEXT_PROCESS(process));
+
+    PhReleaseQueuedLockShared(&EtpProcessInformationLock);
 
     return SYSTEM_PROCESS_ID;
 }
