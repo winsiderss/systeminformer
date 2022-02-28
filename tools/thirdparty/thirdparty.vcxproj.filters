@@ -752,9 +752,6 @@
     <ClInclude Include="tlsh\win_version.h">
       <Filter>tlsh</Filter>
     </ClInclude>
-    <ClInclude Include="tlsh\WinFunctions.h">
-      <Filter>tlsh</Filter>
-    </ClInclude>
     <ClInclude Include="gzip\crc32.h">
       <Filter>gzip\Headers</Filter>
     </ClInclude>
@@ -820,6 +817,9 @@
     </ClInclude>
     <ClInclude Include="miniz\miniz.h">
       <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\tlsh_win_version.h">
+      <Filter>tlsh</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

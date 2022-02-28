@@ -55,13 +55,11 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define _CRT_SECURE_NO_WARNINGS 1
-
 #include "tlsh.h"
 #include "tlsh_impl.h"
-//#include <stdio.h>
-//#include <errno.h>
-//#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
 /////////////////////////////////////////////////////
 // C++ Implementation
@@ -135,17 +133,23 @@ Tlsh::~Tlsh()
 
 void Tlsh::update(const unsigned char* data, unsigned int len)
 {
-    if ( NULL != impl )
-        impl->update(data, len);
+	//
+	// threaded and private options only available to
+	//	windowsize == 5
+	//	calling final - without calling update first
+	//
+	int tlsh_option	= 0;
+	if (impl != NULL)
+		impl->update(data, len, tlsh_option);
 }
 
-void Tlsh::final(const unsigned char* data, unsigned int len, int fc_cons_option)
+void Tlsh::final(const unsigned char* data, unsigned int len, int tlsh_option)
 {
-    if ( NULL != impl ){
-        if ( NULL != data && len > 0 )
-            impl->update(data, len);
-        impl->final(fc_cons_option);
-    }
+	if (NULL != impl) {
+		if ((data != NULL) && (len > 0))
+			impl->update(data, len, tlsh_option);
+		impl->final(tlsh_option);
+	}
 }
 
 const char* Tlsh::getHash(int showvers) const
@@ -215,6 +219,11 @@ int Tlsh::Checksum(int k)
 int Tlsh::BucketValue(int bucket)
 {
 	return( impl->BucketValue(bucket) );
+}
+
+int Tlsh::HistogramCount(int bucket)
+{
+	return( impl->HistogramCount(bucket) );
 }
 
 int Tlsh::totalDiff(const Tlsh *other, bool len_diff) const

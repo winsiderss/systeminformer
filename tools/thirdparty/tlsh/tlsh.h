@@ -60,12 +60,19 @@
 #ifndef HEADER_TLSH_H
 #define HEADER_TLSH_H
 
-#define WINDOWS
+#define WINDOWS // dmex
+
+// -force option no longer used
+// #define	TLSH_OPTION_FORCE	1
+#define	TLSH_OPTION_CONSERVATIVE	2
+#define	TLSH_OPTION_KEEP_BUCKET		4
+#define	TLSH_OPTION_PRIVATE		8
+#define	TLSH_OPTION_THREADED		16
 
 #if defined WINDOWS || defined MINGW
-#include "win_version.h"
+#include "tlsh_win_version.h"
 #else
-#include "version.h"
+#include "tlsh_version.h"
 #endif
 
 #ifndef NULL
@@ -108,7 +115,9 @@ class TlshImpl;
 #define TLSH_STRING_BUFFER_LEN (TLSH_STRING_LEN_REQ+1)
 
 #ifdef WINDOWS
-#include "WinFunctions.h"
+// 27/Nov/2020
+// #include <WinFunctions.h>
+	#define TLSH_API
 #else 
 	#if defined(__SPARC) || defined(_AS_MK_OS_RH73)
 	   #define TLSH_API
@@ -144,6 +153,7 @@ public:
     int Q2ratio();
     int Checksum(int k);
     int BucketValue(int bucket);
+    int HistogramCount(int bucket);
 
     /* calculate difference */
     /* The len_diff parameter specifies if the file length is to be included in the difference calculation (len_diff=true) or if it */
