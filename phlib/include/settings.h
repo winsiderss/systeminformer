@@ -129,7 +129,7 @@ PhGetExpandStringSetting(
 
     setting = PhGetStringSetting(Name);
 #ifdef __cplusplus
-    PhMoveReference((PVOID*)&setting, PhExpandEnvironmentStrings(&setting->sr));
+    PhMoveReference(reinterpret_cast<PVOID*>(&setting), PhExpandEnvironmentStrings(&setting->sr));
 #else
     PhMoveReference(&setting, PhExpandEnvironmentStrings(&setting->sr));
 #endif
