@@ -1126,7 +1126,7 @@ static NTSTATUS PvpEntryPointImageThreadStart(
 {
     ULONG addressOfEntryPoint;
     PPH_STRING string;
-    PPH_STRING symbol;
+    PPH_STRING symbol = NULL;
     PPH_STRING symbolName = NULL;
     PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
 
@@ -1135,30 +1135,38 @@ static NTSTATUS PvpEntryPointImageThreadStart(
     else
         addressOfEntryPoint = PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
 
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    if (addressOfEntryPoint)
     {
-        symbol = PhGetSymbolFromAddress(
-            PvSymbolProvider,
-            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, addressOfEntryPoint),
-            &symbolResolveLevel,
-            NULL,
-            &symbolName,
-            NULL
-            );
-    }
-    else
-    {
-        symbol = PhGetSymbolFromAddress(
-            PvSymbolProvider,
-            (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, addressOfEntryPoint),
-            &symbolResolveLevel,
-            NULL,
-            &symbolName,
-            NULL
-            );
+        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, addressOfEntryPoint),
+                &symbolResolveLevel,
+                NULL,
+                &symbolName,
+                NULL
+                );
+        }
+        else
+        {
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, addressOfEntryPoint),
+                &symbolResolveLevel,
+                NULL,
+                &symbolName,
+                NULL
+                );
+        }
     }
 
-    if (symbolName && symbolResolveLevel == PhsrlFunction || symbolResolveLevel == PhsrlModule || symbolResolveLevel == PhsrlAddress)
+    if (
+        !PhIsNullOrEmptyString(symbolName) && (
+        symbolResolveLevel == PhsrlFunction ||
+        symbolResolveLevel == PhsrlModule ||
+        symbolResolveLevel == PhsrlAddress
+        ))
     {
         string = PhFormatString(L"0x%I32x (%s)", addressOfEntryPoint, PhGetStringOrEmpty(symbolName));
         PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
@@ -1171,9 +1179,8 @@ static NTSTATUS PvpEntryPointImageThreadStart(
         PhDereferenceObject(string);
     }
 
-    if (symbolName)
-        PhDereferenceObject(symbolName);
-    PhDereferenceObject(symbol);
+    PhClearReference(&symbolName);
+    PhClearReference(&symbol);
     return STATUS_SUCCESS;
 }
 

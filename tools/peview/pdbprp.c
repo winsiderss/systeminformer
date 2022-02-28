@@ -2,7 +2,7 @@
  * PE viewer -
  *   pdb support
  *
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -187,13 +187,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Symbol)
 {
-    sortResult = PhCompareStringWithNull(node1->Name, node2->Name, FALSE);
+    sortResult = PhCompareStringWithNull(node1->Name, node2->Name, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Data)
 {
-    sortResult = PhCompareStringWithNull(node1->Data, node2->Data, FALSE);
+    sortResult = PhCompareStringWithNull(node1->Data, node2->Data, TRUE);
 }
 END_SORT_FUNCTION
 
