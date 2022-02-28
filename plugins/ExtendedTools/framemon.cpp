@@ -24,7 +24,7 @@
 #include "framemon.h"
 
 BOOLEAN EtFramesEnabled = FALSE;
-static PPH_HASHTABLE EtFramesHashTable = NULL;
+static PPH_HASHTABLE EtFramesHashTable = nullptr;
 static PH_QUEUED_LOCK EtFramesHashTableLock = PH_QUEUED_LOCK_INIT;
 
 static BOOLEAN NTAPI EtFramesEqualFunction(
@@ -94,7 +94,7 @@ VOID EtFramesMonitorStart(
 {
     if (EtFramesEnabled)
     {
-        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), EtStartFpsTraceSession, NULL);
+        PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), EtStartFpsTraceSession, nullptr);
     }
 }
 
@@ -132,14 +132,14 @@ VOID EtUnlockGpuFrameHashTable(
 
 VOID EtAddGpuFrameToHashTable(
     _In_ ULONG ProcessId,
-    _In_ DOUBLE FrameMs,
-    _In_ DOUBLE FramesPerSecond,
-    _In_ DOUBLE DisplayLatency,
-    _In_ DOUBLE DisplayFramesPerSecond,
-    _In_ DOUBLE MsBetweenPresents,
-    _In_ DOUBLE MsInPresentApi,
-    _In_ DOUBLE MsUntilRenderComplete,
-    _In_ DOUBLE MsUntilDisplayed,
+    _In_ FLOAT FrameMs,
+    _In_ FLOAT FramesPerSecond,
+    _In_ FLOAT DisplayLatency,
+    _In_ FLOAT DisplayFramesPerSecond,
+    _In_ FLOAT MsBetweenPresents,
+    _In_ FLOAT MsInPresentApi,
+    _In_ FLOAT MsUntilRenderComplete,
+    _In_ FLOAT MsUntilDisplayed,
     _In_ USHORT Runtime,
     _In_ USHORT PresentMode
     )
@@ -229,14 +229,14 @@ VOID EtProcessFramesUpdateProcessBlock(
 
     if (entry = EtLookupProcessGpuFrameEntry(ProcessBlock->ProcessItem->ProcessId))
     {
-        ProcessBlock->FramesPerSecond = (FLOAT)entry->FramesPerSecond;
-        ProcessBlock->FramesLatency = (FLOAT)entry->FrameMs;
-        ProcessBlock->FramesMsBetweenPresents = (FLOAT)entry->MsBetweenPresents;
-        ProcessBlock->FramesMsInPresentApi = (FLOAT)entry->MsInPresentApi;
-        ProcessBlock->FramesMsUntilRenderComplete = (FLOAT)entry->MsUntilRenderComplete;
-        ProcessBlock->FramesMsUntilDisplayed = (FLOAT)entry->MsUntilDisplayed;
-        ProcessBlock->FramesDisplayLatency = (FLOAT)entry->DisplayLatency;
-        //ProcessBlock->FramesDisplayFramesPerSecond = (FLOAT)entry->DisplayFramesPerSecond;
+        ProcessBlock->FramesPerSecond = entry->FramesPerSecond;
+        ProcessBlock->FramesLatency = entry->FrameMs;
+        ProcessBlock->FramesMsBetweenPresents = entry->MsBetweenPresents;
+        ProcessBlock->FramesMsInPresentApi = entry->MsInPresentApi;
+        ProcessBlock->FramesMsUntilRenderComplete = entry->MsUntilRenderComplete;
+        ProcessBlock->FramesMsUntilDisplayed = entry->MsUntilDisplayed;
+        ProcessBlock->FramesDisplayLatency = entry->DisplayLatency;
+        //ProcessBlock->FramesDisplayFramesPerSecond = entry->DisplayFramesPerSecond;
         ProcessBlock->FramesRuntime = entry->Runtime;
         ProcessBlock->FramesPresentMode = entry->PresentMode;
 
