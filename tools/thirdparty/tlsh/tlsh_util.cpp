@@ -59,7 +59,7 @@
  * Util definition and functions
  */
  
-//#include <cmath> 
+#include <cmath> 
 
 // Compile and run gen_arr2.cpp to generate bit_pairs_diff_table
 static unsigned char bit_pairs_diff_table[][256] = {
@@ -4872,7 +4872,7 @@ unsigned int topval[170] = {
 4224281216	
 };
 
-//#include <stdio.h>
+#include <stdio.h>
 
 unsigned char l_capturing(unsigned int len)
 {
