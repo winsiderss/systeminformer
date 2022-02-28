@@ -65,7 +65,17 @@
 #define MEM_LARGE_PAGES 0x20000000
 #define MEM_DOS_LIM 0x40000000
 #define MEM_4MB_PAGES 0x80000000
+#define MEM_64K_PAGES (MEM_LARGE_PAGES | MEM_PHYSICAL)
 
+#define MEM_UNMAP_WITH_TRANSIENT_BOOST 0x00000001
+#define MEM_COALESCE_PLACEHOLDERS 0x00000001
+#define MEM_PRESERVE_PLACEHOLDER 0x00000002
+#define MEM_REPLACE_PLACEHOLDER 0x00004000
+#define MEM_RESERVE_PLACEHOLDER 0x00040000
+
+#define SEC_HUGE_PAGES 0x00020000  
+#define SEC_PARTITION_OWNER_HANDLE 0x00040000 
+#define SEC_64K_PAGES 0x00080000
 #define SEC_BASED 0x00200000
 #define SEC_NO_CHANGE 0x00400000
 #define SEC_FILE 0x00800000
@@ -658,7 +668,7 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WIN8)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -850,6 +860,7 @@ typedef enum _PARTITION_INFORMATION_CLASS
     SystemMemoryPartitionOpenDedicatedMemory, // 10
     SystemMemoryPartitionMemoryChargeAttributes,
     SystemMemoryPartitionClearAttributes,
+    SystemMemoryPartitionSetMemoryThresholds, // since WIN11
     SystemMemoryPartitionMax
 } PARTITION_INFORMATION_CLASS, *PPARTITION_INFORMATION_CLASS;
 #else
@@ -866,7 +877,8 @@ typedef enum _PARTITION_INFORMATION_CLASS
 #define SystemMemoryPartitionOpenDedicatedMemory 0xA
 #define SystemMemoryPartitionMemoryChargeAttributes 0xB
 #define SystemMemoryPartitionClearAttributes 0xC
-#define SystemMemoryPartitionMax 0xD
+#define SystemMemoryPartitionClearAttributes 0xD
+#define SystemMemoryPartitionMax 0xE
 #endif
 
 // private
@@ -888,7 +900,7 @@ typedef struct _MEMORY_PARTITION_CONFIGURATION_INFORMATION
     ULONG_PTR StandbyPageCountByPriority[8]; // since REDSTONE2
     ULONG_PTR RepurposedPagesByPriority[8];
     ULONG_PTR MaximumCommitLimit;
-    ULONG_PTR DonatedPagesToPartitions;
+    ULONG_PTR Reserved; // DonatedPagesToPartitions
     ULONG PartitionId; // since REDSTONE3
 } MEMORY_PARTITION_CONFIGURATION_INFORMATION, *PMEMORY_PARTITION_CONFIGURATION_INFORMATION;
 
