@@ -131,6 +131,8 @@
 #define FILE_CHARACTERISTIC_CSV 0x00010000
 #define FILE_DEVICE_ALLOW_APPCONTAINER_TRAVERSAL 0x00020000
 #define FILE_PORTABLE_DEVICE 0x00040000
+#define FILE_REMOTE_DEVICE_VSMB 0x00080000
+#define FILE_DEVICE_REQUIRE_SECURITY_CHECK 0x00100000
 
 // Named pipe values
 
@@ -258,7 +260,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileIdInformation, // FILE_ID_INFORMATION
     FileIdExtdDirectoryInformation, // FILE_ID_EXTD_DIR_INFORMATION // 60
     FileReplaceCompletionInformation, // FILE_COMPLETION_INFORMATION // since WINBLUE
-    FileHardLinkFullIdInformation, // FILE_LINK_ENTRY_FULL_ID_INFORMATION
+    FileHardLinkFullIdInformation, // FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
     FileIdExtdBothDirectoryInformation, // FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
     FileDispositionInformationEx, // FILE_DISPOSITION_INFO_EX // since REDSTONE
     FileRenameInformationEx, // FILE_RENAME_INFORMATION_EX
@@ -398,22 +400,31 @@ typedef struct _FILE_END_OF_FILE_INFORMATION
     LARGE_INTEGER EndOfFile;
 } FILE_END_OF_FILE_INFORMATION, *PFILE_END_OF_FILE_INFORMATION;
 
+//#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#define FLAGS_END_OF_FILE_INFO_EX_EXTEND_PAGING 0x00000001
+#define FLAGS_END_OF_FILE_INFO_EX_NO_EXTRA_PAGING_EXTEND 0x00000002
+#define FLAGS_END_OF_FILE_INFO_EX_TIME_CONSTRAINED 0x00000004
+#define FLAGS_DELAY_REASONS_LOG_FILE_FULL 0x00000001
+#define FLAGS_DELAY_REASONS_BITMAP_SCANNED 0x00000002
+
+typedef struct _FILE_END_OF_FILE_INFORMATION_EX 
+{
+    LARGE_INTEGER EndOfFile;
+    LARGE_INTEGER PagingFileSizeInMM;
+    LARGE_INTEGER PagingFileMaxSize;
+    ULONG Flags;
+} FILE_END_OF_FILE_INFORMATION_EX, *PFILE_END_OF_FILE_INFORMATION_EX;
+//#endif
+
 typedef struct _FILE_VALID_DATA_LENGTH_INFORMATION
 {
     LARGE_INTEGER ValidDataLength;
 } FILE_VALID_DATA_LENGTH_INFORMATION, *PFILE_VALID_DATA_LENGTH_INFORMATION;
 
-typedef struct _FILE_LINK_INFORMATION
-{
-    BOOLEAN ReplaceIfExists;
-    HANDLE RootDirectory;
-    ULONG FileNameLength;
-    WCHAR FileName[1];
-} FILE_LINK_INFORMATION, *PFILE_LINK_INFORMATION;
-
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
 #define FILE_LINK_REPLACE_IF_EXISTS 0x00000001
 #define FILE_LINK_POSIX_SEMANTICS 0x00000002
+
 #define FILE_LINK_SUPPRESS_STORAGE_RESERVE_INHERITANCE 0x00000008
 #define FILE_LINK_NO_INCREASE_AVAILABLE_SPACE 0x00000010
 #define FILE_LINK_NO_DECREASE_AVAILABLE_SPACE 0x00000020
@@ -426,6 +437,22 @@ typedef struct _FILE_LINK_INFORMATION
 #define FILE_LINK_FORCE_RESIZE_SOURCE_SR 0x00000100
 #define FILE_LINK_FORCE_RESIZE_SR 0x00000180
 #endif
+
+typedef struct _FILE_LINK_INFORMATION
+{
+#if (PHNT_VERSION >= PHNT_REDSTONE5)
+    union
+    {
+        BOOLEAN ReplaceIfExists; // FileLinkInformation
+        ULONG Flags; // FileLinkInformationEx
+    };
+#else
+    BOOLEAN ReplaceIfExists;
+#endif
+    HANDLE RootDirectory;
+    ULONG FileNameLength;
+    WCHAR FileName[1];
+} FILE_LINK_INFORMATION, *PFILE_LINK_INFORMATION;
 
 typedef struct _FILE_LINK_INFORMATION_EX
 {
@@ -648,21 +675,23 @@ typedef struct _FILE_IOSTATUSBLOCK_RANGE_INFORMATION
     ULONG Length;
 } FILE_IOSTATUSBLOCK_RANGE_INFORMATION, *PFILE_IOSTATUSBLOCK_RANGE_INFORMATION;
 
+// Win32 FILE_REMOTE_PROTOCOL_INFO
 typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
 {
-    USHORT StructureVersion; // 1
-    USHORT StructureSize;
+    // Structure Version
+    USHORT StructureVersion;     // 1 for Win7, 2 for Win8 SMB3, 3 for Blue SMB3, 4 for RS5
+    USHORT StructureSize;        // sizeof(FILE_REMOTE_PROTOCOL_INFORMATION)
 
-    ULONG Protocol; // WNNC_NET_*
+    ULONG Protocol;             // Protocol (WNNC_NET_*) defined in winnetwk.h or ntifs.h.
 
+    // Protocol Version & Type
     USHORT ProtocolMajorVersion;
     USHORT ProtocolMinorVersion;
     USHORT ProtocolRevision;
 
     USHORT Reserved;
 
-    // Generic information
-
+    // Protocol-Generic Information
     ULONG Flags;
 
     struct
@@ -670,14 +699,16 @@ typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
         ULONG Reserved[8];
     } GenericReserved;
 
-    // Specific information
+    // Protocol specific information
 
-#if (PHNT_VERSION < PHNT_WIN8)
+#if (_WIN32_WINNT < PHNT_WIN8)
     struct
     {
         ULONG Reserved[16];
     } ProtocolSpecificReserved;
-#else
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN8)
     union
     {
         struct
@@ -689,7 +720,16 @@ typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
             struct
             {
                 ULONG Capabilities;
+#if (PHNT_VERSION >= PHNT_21H1)
+                ULONG ShareFlags;
+#else
                 ULONG CachingFlags;
+#endif
+#if (PHNT_VERSION >= PHNT_REDSTONE5)
+                UCHAR ShareType;
+                UCHAR Reserved0[3];
+                ULONG Reserved1;
+#endif
             } Share;
         } Smb2;
         ULONG Reserved[16];
@@ -745,6 +785,13 @@ typedef struct _FILE_LINK_ENTRY_FULL_ID_INFORMATION
     WCHAR FileName[1];
 } FILE_LINK_ENTRY_FULL_ID_INFORMATION, *PFILE_LINK_ENTRY_FULL_ID_INFORMATION;
 
+typedef struct _FILE_LINKS_FULL_ID_INFORMATION 
+{
+    ULONG BytesNeeded;
+    ULONG EntriesReturned;
+    FILE_LINK_ENTRY_FULL_ID_INFORMATION Entry;
+} FILE_LINKS_FULL_ID_INFORMATION, *PFILE_LINKS_FULL_ID_INFORMATION;
+
 typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -778,7 +825,7 @@ typedef struct _FILE_STAT_INFORMATION
     ULONG FileAttributes;
     ULONG ReparseTag;
     ULONG NumberOfLinks;
-    ULONG EffectiveAccess;
+    ACCESS_MASK EffectiveAccess;
 } FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
 
 // private
@@ -796,6 +843,13 @@ typedef struct _FILE_MEMORY_PARTITION_INFORMATION
     } Flags;
 } FILE_MEMORY_PARTITION_INFORMATION, *PFILE_MEMORY_PARTITION_INFORMATION;
 
+// LxFlags
+#define LX_FILE_METADATA_HAS_UID 0x1
+#define LX_FILE_METADATA_HAS_GID 0x2
+#define LX_FILE_METADATA_HAS_MODE 0x4
+#define LX_FILE_METADATA_HAS_DEVICE_ID 0x8
+#define LX_FILE_CASE_SENSITIVE_DIR 0x10
+
 // private
 typedef struct _FILE_STAT_LX_INFORMATION
 {
@@ -809,7 +863,7 @@ typedef struct _FILE_STAT_LX_INFORMATION
     ULONG FileAttributes;
     ULONG ReparseTag;
     ULONG NumberOfLinks;
-    ULONG EffectiveAccess;
+    ACCESS_MASK EffectiveAccess;
     ULONG LxFlags;
     ULONG LxUid;
     ULONG LxGid;
@@ -817,6 +871,8 @@ typedef struct _FILE_STAT_LX_INFORMATION
     ULONG LxDeviceIdMajor;
     ULONG LxDeviceIdMinor;
 } FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
+
+#define FILE_CS_FLAG_CASE_SENSITIVE_DIR     0x00000001
 
 // private
 typedef struct _FILE_CASE_SENSITIVE_INFORMATION
@@ -835,7 +891,7 @@ typedef enum _FILE_KNOWN_FOLDER_TYPE
     KnownFolderPictures,
     KnownFolderVideos,
     KnownFolderOther,
-    KnownFolderMax
+    KnownFolderMax = 7
 } FILE_KNOWN_FOLDER_TYPE;
 
 // private
@@ -1061,6 +1117,20 @@ typedef struct _FILE_FS_SIZE_INFORMATION
     ULONG SectorsPerAllocationUnit;
     ULONG BytesPerSector;
 } FILE_FS_SIZE_INFORMATION, *PFILE_FS_SIZE_INFORMATION;
+
+// FileSystemControlFlags
+#define FILE_VC_QUOTA_NONE 0x00000000
+#define FILE_VC_QUOTA_TRACK 0x00000001
+#define FILE_VC_QUOTA_ENFORCE 0x00000002
+#define FILE_VC_QUOTA_MASK 0x00000003
+#define FILE_VC_CONTENT_INDEX_DISABLED 0x00000008
+#define FILE_VC_LOG_QUOTA_THRESHOLD 0x00000010
+#define FILE_VC_LOG_QUOTA_LIMIT 0x00000020
+#define FILE_VC_LOG_VOLUME_THRESHOLD 0x00000040
+#define FILE_VC_LOG_VOLUME_LIMIT 0x00000080
+#define FILE_VC_QUOTAS_INCOMPLETE 0x00000100
+#define FILE_VC_QUOTAS_REBUILDING 0x00000200
+#define FILE_VC_VALID_MASK 0x000003ff
 
 // private
 typedef struct _FILE_FS_CONTROL_INFORMATION
@@ -1319,6 +1389,15 @@ NtQueryDirectoryFile(
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE3)
+// QueryFlags values for NtQueryDirectoryFileEx
+#define FILE_QUERY_RESTART_SCAN 0x00000001
+#define FILE_QUERY_RETURN_SINGLE_ENTRY 0x00000002
+#define FILE_QUERY_INDEX_SPECIFIED 0x00000004
+#define FILE_QUERY_RETURN_ON_DISK_ENTRIES_ONLY 0x00000008
+#if (PHNT_VERSION >= PHNT_REDSTONE5)
+#define FILE_QUERY_NO_CURSOR_UPDATE 0x00000010
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1633,6 +1712,14 @@ NtUnloadDriver(
 #define IO_COMPLETION_QUERY_STATE 0x0001
 #endif
 
+#ifndef IO_COMPLETION_MODIFY_STATE
+#define IO_COMPLETION_MODIFY_STATE 0x0002
+#endif
+
+#ifndef IO_COMPLETION_ALL_ACCESS
+#define IO_COMPLETION_ALL_ACCESS (IO_COMPLETION_QUERY_STATE|IO_COMPLETION_MODIFY_STATE|STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE) 
+#endif
+
 typedef enum _IO_COMPLETION_INFORMATION_CLASS
 {
     IoCompletionBasicInformation
@@ -1888,13 +1975,20 @@ typedef enum _BUS_DATA_TYPE
 
 // Reparse structure for FSCTL_SET_REPARSE_POINT, FSCTL_GET_REPARSE_POINT, FSCTL_DELETE_REPARSE_POINT
 
-#define SYMLINK_FLAG_RELATIVE 1
+#define SYMLINK_FLAG_RELATIVE 0x00000001
+
+#if (PHNT_VERSION >= PHNT_REDSTONE4)
+#define SYMLINK_DIRECTORY 0x80000000 // If set then this is a directory symlink
+#define SYMLINK_FILE 0x40000000 // If set then this is a file symlink
+#endif
 
 typedef struct _REPARSE_DATA_BUFFER
 {
     ULONG ReparseTag;
     USHORT ReparseDataLength;
     USHORT Reserved;
+
+    _Field_size_bytes_(ReparseDataLength)
     union
     {
         struct
@@ -1921,6 +2015,8 @@ typedef struct _REPARSE_DATA_BUFFER
     };
 } REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
 
+#define REPARSE_DATA_BUFFER_HEADER_SIZE UFIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
+
 // Named pipe FS control definitions
 
 #define DEVICE_NAMED_PIPE L"\\Device\\NamedPipe\\"
@@ -1946,6 +2042,7 @@ typedef struct _REPARSE_DATA_BUFFER
 #define FSCTL_PIPE_SILO_ARRIVAL             CTL_CODE(FILE_DEVICE_NAMED_PIPE, 18, METHOD_BUFFERED, FILE_WRITE_DATA)
 #define FSCTL_PIPE_CREATE_SYMLINK           CTL_CODE(FILE_DEVICE_NAMED_PIPE, 19, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 #define FSCTL_PIPE_DELETE_SYMLINK           CTL_CODE(FILE_DEVICE_NAMED_PIPE, 20, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
+#define FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2  CTL_CODE(FILE_DEVICE_NAMED_PIPE, 21, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 #define FSCTL_PIPE_INTERNAL_READ            CTL_CODE(FILE_DEVICE_NAMED_PIPE, 2045, METHOD_BUFFERED, FILE_READ_DATA)
 #define FSCTL_PIPE_INTERNAL_WRITE           CTL_CODE(FILE_DEVICE_NAMED_PIPE, 2046, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -2004,6 +2101,18 @@ typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER
     ULONGLONG ClientProcess;
 #endif
 } FILE_PIPE_CLIENT_PROCESS_BUFFER, *PFILE_PIPE_CLIENT_PROCESS_BUFFER;
+
+// Control structure for FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2
+
+typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER_V2 
+{
+     ULONGLONG ClientSession;
+#if !defined(BUILD_WOW6432)
+     PVOID ClientProcess;
+#else
+     ULONGLONG ClientProcess;
+#endif
+} FILE_PIPE_CLIENT_PROCESS_BUFFER_V2, *PFILE_PIPE_CLIENT_PROCESS_BUFFER_V2;
 
 #define FILE_PIPE_COMPUTER_NAME_LENGTH 15
 
