@@ -22,7 +22,7 @@
  */
 
 #include <peview.h>
-#include "metahost.h"
+#include <metahost.h>
 
 typedef struct _PVP_PE_CLR_CONTEXT
 {

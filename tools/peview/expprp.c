@@ -206,8 +206,11 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 }
                 else
                 {
-                    PhPrintPointer(value, exportFunction.Function);
-                    exportNode->AddressString = PhCreateString(value);
+                    if (exportFunction.Function)
+                    {
+                        PhPrintPointer(value, exportFunction.Function);
+                        exportNode->AddressString = PhCreateString(value);
+                    }
                 }
 
                 if (exportEntry.Name)
@@ -257,11 +260,12 @@ NTSTATUS PvpPeExportsEnumerateThread(
                                 );
                         }
 
-                        if (exportSymbolName)
+                        if (!PhIsNullOrEmptyString(exportSymbolName))
                         {
                             exportNode->NameString = PhConcatStringRefZ(&exportSymbolName->sr, L" (unnamed)");
                         }
-    
+
+                        PhClearReference(&exportSymbolName);
                         PhClearReference(&exportSymbol);
                     }
                 }
@@ -746,12 +750,7 @@ BOOLEAN NTAPI PvExportTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->AddressString);
                 break;
             case PV_EXPORT_TREE_COLUMN_ITEM_NAME:
-                {
-                    if (node->NameString)
-                        getCellText->Text = PhGetStringRef(node->NameString);
-                    else
-                        PhInitializeStringRefLongHint(&getCellText->Text, L"(unnamed)");
-                }
+                getCellText->Text = PhGetStringRef(node->NameString);
                 break;
             case PV_EXPORT_TREE_COLUMN_ITEM_ORDINAL:
                 getCellText->Text = PhGetStringRef(node->OrdinalString);

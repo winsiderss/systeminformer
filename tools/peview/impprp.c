@@ -216,22 +216,29 @@ PPH_STRING PvpQueryModuleOrdinalName(
 
                                 if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), (PVOID)mappedImage.ViewBase, &exportFileName)))
                                 {
-                                    if (PhLoadModuleSymbolProvider(
-                                        PvSymbolProvider,
-                                        exportFileName,
-                                        (ULONG64)mappedImage.ViewBase,
-                                        (ULONG)mappedImage.Size
-                                        ))
+                                    PPH_SYMBOL_PROVIDER moduleSymbolProvider = NULL;
+
+                                    if (PvpLoadDbgHelp(&moduleSymbolProvider))
                                     {
-                                        // Try find the export name using symbols.
-                                        exportSymbol = PhGetSymbolFromAddress(
-                                            PvSymbolProvider,
-                                            (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
-                                            NULL,
-                                            NULL,
-                                            &exportSymbolName,
-                                            NULL
-                                            );
+                                        if (PhLoadModuleSymbolProvider(
+                                            moduleSymbolProvider,
+                                            exportFileName,
+                                            (ULONG64)mappedImage.ViewBase,
+                                            (ULONG)mappedImage.Size
+                                            ))
+                                        {
+                                            // Try find the export name using symbols.
+                                            exportSymbol = PhGetSymbolFromAddress(
+                                                moduleSymbolProvider,
+                                                (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
+                                                NULL,
+                                                NULL,
+                                                &exportSymbolName,
+                                                NULL
+                                                );
+                                        }
+
+                                        PhDereferenceObject(moduleSymbolProvider);
                                     }
 
                                     PhDereferenceObject(exportFileName);
@@ -339,8 +346,13 @@ VOID PvpProcessImports(
                         if (exportDllName = PhConvertUtf8ToUtf16(importDll.Name))
                         {
                             PPH_STRING filePath;
+                            PPH_STRING importDllName;
 
-                            // TODO: Implement ApiSet mappings for exportDllName. (dmex)
+                            if (importDllName = PhApiSetResolveToHost(&exportDllName->sr))
+                            {
+                                PhMoveReference(&exportDllName, importDllName);
+                            }
+
                             // TODO: Add DLL directory to PhSearchFilePath for locating non-system images. (dmex)
 
                             if (filePath = PhSearchFilePath(exportDllName->Buffer, L".dll"))

@@ -142,6 +142,21 @@ VOID PvpEnumerateClrImports(
 
             if (importDll->Functions)
             {
+                if (importDll->ImportName)
+                {
+                    PPH_STRING importDllName;
+
+                    if (importDllName = PhApiSetResolveToHost(&importDll->ImportName->sr))
+                    {
+                        PhMoveReference(&importDll->ImportName, PhFormatString(
+                            L"%s (%s)",
+                            PhGetString(importDll->ImportName),
+                            PhGetString(importDllName))
+                            );
+                        PhDereferenceObject(importDllName);
+                    }
+                }
+
                 for (j = 0; j < importDll->Functions->Count; j++)
                 {
                     PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction = importDll->Functions->Items[j];
