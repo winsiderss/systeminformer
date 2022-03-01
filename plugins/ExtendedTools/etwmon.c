@@ -141,7 +141,6 @@ VOID EtStartEtwSession(
     EtpTraceProperties->Wnode.ClientContext = 1;
     EtpTraceProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     EtpTraceProperties->MinimumBuffers = 1;
-    EtpTraceProperties->BufferSize = 64;
     EtpTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
     EtpTraceProperties->FlushTimer = 1;
     EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_DISK_FILE_IO | EVENT_TRACE_FLAG_NETWORK_TCPIP | EVENT_TRACE_FLAG_NO_SYSCONFIG;
@@ -316,8 +315,6 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         case 35: // FileDelete
             fileEvent.Type = EtEtwFileDeleteType;
-            break;
-        default:
             break;
         }
 
@@ -497,7 +494,6 @@ ULONG EtStartEtwRundown(
     EtpRundownTraceProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     EtpRundownTraceProperties->MinimumBuffers = 1;
     EtpRundownTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-    EtpRundownTraceProperties->BufferSize = 1024; // 1MB session buffer (dmex)
     EtpRundownTraceProperties->FlushTimer = 1;
     EtpRundownTraceProperties->EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
     EtpRundownTraceProperties->LogFileNameOffset = 0;
@@ -578,8 +574,6 @@ VOID NTAPI EtpRundownEtwEventCallback(
         {
         case 36: // FileRundown
             fileEvent.Type = EtEtwFileRundownType;
-            break;
-        default:
             break;
         }
 

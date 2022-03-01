@@ -203,12 +203,12 @@ void CALLBACK EventRecordCallback(EVENT_RECORD* pEventRecord)
 
     if (hdr.ProviderId == Microsoft_Windows_DxgKrnl::GUID)
         HandleDXGKEvent(pEventRecord);
+    else if (hdr.ProviderId == Microsoft_Windows_DXGI::GUID)
+        HandleDXGIEvent(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_Win32k::GUID)
         HandleWin32kEvent(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_Dwm_Core::GUID)
         HandleDWMEvent(pEventRecord);
-    else if (hdr.ProviderId == Microsoft_Windows_DXGI::GUID)
-        HandleDXGIEvent(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_D3D9::GUID)
         HandleD3D9Event(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_Dwm_Core::Win7::GUID)
