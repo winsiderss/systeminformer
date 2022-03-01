@@ -282,6 +282,8 @@ typedef struct _PH_HANDLES_CONTEXT
 
     PPH_STRING SearchboxText;
     PPH_TN_FILTER_ENTRY FilterEntry;
+    ULONG64 SearchPointer;
+    BOOLEAN UseSearchPointer;
 // begin_phapppub
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 // end_phapppub
