@@ -621,7 +621,10 @@ INT_PTR CALLBACK TextDlgProc(
                                         if (PhEqualString(commitHash, shortCommitHash, TRUE))
                                         {
                                             newFont = context->ListViewBoldFont;
-                                            customDraw->clrText = RGB(0, 0, 0x0);
+                                            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                                                customDraw->clrText = RGB(125, 125, 125);
+                                            else
+                                                customDraw->clrText = GetSysColor(COLOR_WINDOWTEXT);
                                             SelectFont(customDraw->nmcd.hdc, newFont);
                                         }
 
