@@ -492,9 +492,6 @@ BOOLEAN EtPerfCounterParseGpuAdapterDedicatedPerfCounterInstance(
     PH_STRINGREF remainingPart;
     LONG64 engineLuidLow;
 
-    if (!EtGpuAdapterDedicatedHashTable)
-        return FALSE;
-
     // luid_0x00000000_0x0000C4CF_phys_0
     PhInitializeStringRefLongHint(&remainingPart, InstanceName);
     PhSkipStringRef(&remainingPart, 5 * sizeof(WCHAR));
@@ -521,6 +518,9 @@ PET_GPU_ENGINE_PERFCOUNTER EtPerfCounterAddOrUpdateGpuEngineCounters(
 {
     ET_GPU_ENGINE_PERFCOUNTER lookupEntry;
     PET_GPU_ENGINE_PERFCOUNTER entry;
+
+    if (!EtPerfCounterEngineInstanceHashTable)
+        return NULL;
 
     lookupEntry.InstanceId = CounterInstance.InstanceId;
 
@@ -589,6 +589,9 @@ PET_GPU_PROCESS_PERFCOUNTER EtPerfCounterAddOrUpdateGpuProcessCounters(
     ET_GPU_PROCESS_PERFCOUNTER lookupEntry;
     PET_GPU_PROCESS_PERFCOUNTER entry;
 
+    if (!EtPerfCounterProcessInstanceHashTable)
+        return NULL;
+
     lookupEntry.InstanceId = CounterInstance.InstanceId;
 
     if (entry = PhFindEntryHashtable(EtPerfCounterProcessInstanceHashTable, &lookupEntry))
@@ -632,6 +635,9 @@ PET_GPU_ADAPTER_PERFCOUNTER EtPerfCounterAddOrUpdateGpuAdapterCounters(
 {
     ET_GPU_ADAPTER_PERFCOUNTER lookupEntry;
     PET_GPU_ADAPTER_PERFCOUNTER entry;
+
+    if (!EtPerfCounterAdapterInstanceHashTable)
+        return NULL;
 
     lookupEntry.InstanceId = CounterInstance.InstanceId;
 
@@ -1041,6 +1047,21 @@ BOOLEAN EtPerfCounterGetCounterData(
     ULONG bufferSize;
     PPERF_DATA_HEADER buffer;
 
+    {
+        static ULONG64 lastTickCount = 0;
+        ULONG64 tickCount = NtGetTickCount64();
+
+        if (lastTickCount == 0)
+            lastTickCount = tickCount;
+
+        if (tickCount - lastTickCount >= 600 * 1000)
+        {
+            lastTickCount = tickCount;
+            // Reset initial buffer size.
+            initialBufferSize = 0x4000;
+        }
+    }
+
     bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
 
@@ -1197,18 +1218,11 @@ VOID EtPerfCounterInitialization(
     VOID
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        EtGpuCreatePerfCounterHashTables();
-        EtGpuCreatePerfCounterHashTable();
-        //PhCreateThread2(EtPerfCounterQueryThread, NULL);
-
-        PhEndInitOnce(&initOnce);
-    }
+    EtGpuCreatePerfCounterHashTables();
+    EtGpuCreatePerfCounterHashTable();
 }
 
+_Success_(return)
 BOOLEAN EtPerfCounterOpenHandle(
     _Out_ PHANDLE PerfQueryHandle
     )
