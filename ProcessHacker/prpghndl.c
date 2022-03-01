@@ -3,7 +3,7 @@
  *   Process properties: Handles page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -245,7 +245,7 @@ static BOOLEAN PhpWordMatchHandleStringRef(
 
         if (part.Length)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
@@ -260,7 +260,7 @@ static BOOLEAN PhpWordMatchHandleStringZ(
 {
     PH_STRINGREF text;
 
-    PhInitializeStringRef(&text, Text);
+    PhInitializeStringRefLongHint(&text, Text);
 
     return PhpWordMatchHandleStringRef(SearchText, &text);
 }
@@ -282,13 +282,10 @@ BOOLEAN PhpHandleTreeFilterCallback(
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
         static ULONG eventTraceTypeIndex = ULONG_MAX;
 
-        // HACK: lazy init the etw object type index (dmex)
         if (PhBeginInitOnce(&initOnce))
         {
             static PH_STRINGREF etwTypeName = PH_STRINGREF_INIT(L"EtwRegistration");
-
             eventTraceTypeIndex = PhGetObjectTypeNumber(&etwTypeName);
-
             PhEndInitOnce(&initOnce);
         }
 
@@ -300,6 +297,9 @@ BOOLEAN PhpHandleTreeFilterCallback(
         return TRUE;
 
     // handle properties
+
+    if (handlesContext->UseSearchPointer && handleItem->Handle == (PVOID)handlesContext->SearchPointer)
+        return TRUE;
 
     if (!PhIsNullOrEmptyString(handleItem->TypeName))
     {
@@ -578,6 +578,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     {
                         // Cache the current search text for our callback.
                         PhSwapReference(&handlesContext->SearchboxText, newSearchboxText);
+                        // Try to get a search pointer from the search string.
+                        handlesContext->UseSearchPointer = PhStringToInteger64(&handlesContext->SearchboxText->sr, 0, &handlesContext->SearchPointer);
 
                         if (!PhIsNullOrEmptyString(handlesContext->SearchboxText))
                         {
@@ -843,11 +845,13 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 InvalidateRect(handlesContext->TreeNewHandle, NULL, FALSE);
             }
 
-            // Refresh the visible nodes.
-            PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
-
             if (count != 0)
+            {
+                // Refresh the visible nodes.
+                PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
+
                 TreeNew_SetRedraw(handlesContext->TreeNewHandle, TRUE);
+            }
         }
         break;
     }
