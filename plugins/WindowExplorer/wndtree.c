@@ -3,7 +3,7 @@
  *   window treelist
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -63,7 +63,7 @@ BOOLEAN WordMatchStringRef(
 
         if (part.Length != 0)
         {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
                 return TRUE;
         }
     }
@@ -78,7 +78,7 @@ BOOLEAN WordMatchStringZ(
 {
     PH_STRINGREF text;
 
-    PhInitializeStringRef(&text, Text);
+    PhInitializeStringRefLongHint(&text, Text);
 
     return WordMatchStringRef(Context, &text);
 }
@@ -496,10 +496,10 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
             switch (getCellText->Id)
             {
             case WEWNTLC_CLASS:
-                PhInitializeStringRef(&getCellText->Text, node->WindowClass);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->WindowClass);
                 break;
             case WEWNTLC_HANDLE:
-                PhInitializeStringRef(&getCellText->Text, node->WindowHandleString);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->WindowHandleString);
                 break;
             case WEWNTLC_TEXT:
                 getCellText->Text = PhGetStringRef(node->WindowText);
@@ -587,9 +587,9 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            data.DefaultSortColumn = WEWNTLC_CLASS;
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
