@@ -224,6 +224,64 @@ NTSTATUS PhpBaseThreadStart(
     return status;
 }
 
+// rev from RtlCreateUserThread (dmex)
+NTSTATUS PhCreateUserThread(
+    _Out_opt_ PHANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG CreateFlags,
+    _In_opt_ SIZE_T StackSize,
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[2])] = { 0 };
+    PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
+    CLIENT_ID clientId = { 0 };
+    PTEB teb = NULL;
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    attributeList->TotalLength = sizeof(buffer);
+    attributeList->Attributes[0].Attribute = PS_ATTRIBUTE_CLIENT_ID;
+    attributeList->Attributes[0].Size = sizeof(CLIENT_ID);
+    attributeList->Attributes[0].ValuePtr = &clientId;
+    attributeList->Attributes[0].ReturnLength = NULL;
+    attributeList->Attributes[1].Attribute = PS_ATTRIBUTE_TEB_ADDRESS;
+    attributeList->Attributes[1].Size = sizeof(PTEB);
+    attributeList->Attributes[1].ValuePtr = &teb;
+    attributeList->Attributes[1].ReturnLength = NULL;
+
+    status = NtCreateThreadEx(
+        &threadHandle,
+        THREAD_ALL_ACCESS,
+        &objectAttributes,
+        ProcessHandle,
+        StartAddress,
+        Parameter,
+        CreateFlags,
+        0,
+        StackSize,
+        StackSize,
+        0 // attributeList
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ThreadHandle)
+        {
+            *ThreadHandle = threadHandle;
+        }
+        else if (threadHandle)
+        {
+            NtClose(threadHandle);
+        }
+    }
+
+    return status;
+}
+
 /**
  * Creates a thread.
  *
