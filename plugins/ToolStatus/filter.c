@@ -53,7 +53,7 @@ BOOLEAN WordMatchStringZ(
 {
     PH_STRINGREF text;
 
-    PhInitializeStringRef(&text, Text);
+    PhInitializeStringRefLongHint(&text, Text);
     return WordMatchStringRef(&text);
 }
 
@@ -589,12 +589,22 @@ BOOLEAN NetworkTreeFilterCallback(
             return TRUE;
     }
 
-    if (WordMatchStringZ(PhGetProtocolTypeName(networkNode->NetworkItem->ProtocolType)))
-        return TRUE;
+    {
+        PH_STRINGREF protocolType = PhGetProtocolTypeName(networkNode->NetworkItem->ProtocolType);
 
-    if ((networkNode->NetworkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE) &&
-        WordMatchStringZ(PhGetTcpStateName(networkNode->NetworkItem->State)))
-        return TRUE;
+        if (WordMatchStringRef(&protocolType))
+            return TRUE;
+    }
+
+    {
+        if (networkNode->NetworkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE)
+        {
+            PH_STRINGREF stateName = PhGetTcpStateName(networkNode->NetworkItem->State);
+
+            if (WordMatchStringRef(&stateName))
+                return TRUE;
+        }
+    }
 
     {
         PPH_PROCESS_NODE processNode;
