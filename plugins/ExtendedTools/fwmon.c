@@ -1694,21 +1694,19 @@ VOID CALLBACK EtFwEventCallback(
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_APP_ID_SET)
     {
-        if (FwEvent->header.appId.data && FwEvent->header.appId.size)
+        if (FwEvent->header.appId.data && FwEvent->header.appId.size > sizeof(UNICODE_NULL))
         {
             PPH_STRING fileName;
 
-            fileName = PhCreateStringEx((PWSTR)FwEvent->header.appId.data, (SIZE_T)FwEvent->header.appId.size);
+            fileName = PhCreateStringEx(
+                (PWSTR)FwEvent->header.appId.data,
+                (SIZE_T)FwEvent->header.appId.size - sizeof(UNICODE_NULL)
+                );
+
             entry.ProcessFileName = PhGetFileName(fileName);
-
-            PhDereferenceObject(fileName);
-        }
-
-        if (entry.ProcessFileName)
-        {
             entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
 
-            if (entry.ProcessItem = EtFwFileNameToProcess(entry.ProcessBaseString))
+            if (entry.ProcessItem = EtFwFileNameToProcess(fileName))
             {
                 // We get a lower case filename from the firewall netevent which is inconsistent
                 // with the file_object paths we get elsewhere. Switch the filename here
@@ -1717,6 +1715,8 @@ VOID CALLBACK EtFwEventCallback(
                 PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
                 PhSwapReference(&entry.ProcessBaseString, entry.ProcessItem->ProcessName);
             }
+
+            PhDereferenceObject(fileName);
         }
     }
 

@@ -752,23 +752,23 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     {
                     case PH_IPV4_NETWORK_TYPE:
                         {
-                            ULONG ipv4AddressStringLength = INET_ADDRSTRLEN;
+                            ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
 
                             if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = ipv4AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
                     case PH_IPV6_NETWORK_TYPE:
                         {
-                            ULONG ipv6AddressStringLength = INET6_ADDRSTRLEN;
+                            ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
 
                             if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->LocalEndpoint.Address.Ipv6, node->ScopeId, 0, node->LocalAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = ipv6AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -814,23 +814,23 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     {
                     case PH_IPV4_NETWORK_TYPE:
                         {
-                            ULONG ipv4AddressStringLength = INET_ADDRSTRLEN;
+                            ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
 
                             if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipv4AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
                     case PH_IPV6_NETWORK_TYPE:
                         {
-                            ULONG ipv6AddressStringLength = INET6_ADDRSTRLEN;
+                            ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
 
                             if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->RemoteEndpoint.Address.Ipv6, node->ScopeId, 0, node->RemoteAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipv6AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
