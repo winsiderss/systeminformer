@@ -732,38 +732,20 @@ namespace CustomBuildTool
 
         public string GetWindowsSdkVersion()
         {
-            VisualStudioPackage package = GetLatestSdkPackage();
+            List<string> versions = new List<string>();
+            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin");
 
-            if (package == null)
-                return string.Empty;
-
-            // SDK
-            if (package.Id.Length > "Microsoft.VisualStudio.Component.Windows10SDK.".Length)
+            if (Directory.Exists(kitpath32))
             {
-                return package.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length);
-            }
-            else
-            {
-                List<string> versions = new List<string>();
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
 
-                var found = this.Packages.FindAll(p =>
+                foreach (string path in windowsKitsDirectory)
                 {
-                    return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
-                        p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
-                });
+                    string name = System.IO.Path.GetFileName(path);
 
-                // Workaround MSVC bug returning idential version numbers for all packages.
-                foreach (var sdk in found)
-                {
-                    string[] tokens = sdk.Id.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-                    foreach (string name in tokens)
+                    if (Version.TryParse(name, out var version))
                     {
-                        if (uint.TryParse(name, out uint version))
-                        {
-                            versions.Add(name);
-                            break;
-                        }
+                        versions.Add(name);
                     }
                 }
 
@@ -777,11 +759,64 @@ namespace CustomBuildTool
 
                 if (versions.Count > 0)
                 {
-                    return versions[^1];
+                    string result = versions[^1];
+
+                    if (!string.IsNullOrEmpty(result))
+                    {
+                        return result;
+                    }
+                }
+            }
+
+            {
+                VisualStudioPackage package = GetLatestSdkPackage();
+
+                if (package == null)
+                    return string.Empty;
+
+                // SDK
+                if (package.Id.Length > "Microsoft.VisualStudio.Component.Windows10SDK.".Length)
+                {
+                    return package.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length);
                 }
                 else
                 {
-                    return package.UniqueId;
+                    var found = this.Packages.FindAll(p =>
+                    {
+                        return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                            p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
+                    });
+
+                    foreach (var sdk in found)
+                    {
+                        string[] tokens = sdk.Id.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                        foreach (string name in tokens)
+                        {
+                            if (uint.TryParse(name, out uint version))
+                            {
+                                versions.Add(name);
+                                break;
+                            }
+                        }
+                    }
+
+                    versions.Sort((p1, p2) =>
+                    {
+                        if (Version.TryParse(p1, out Version v1) && Version.TryParse(p2, out Version v2))
+                            return v1.CompareTo(v2);
+                        else
+                            return 1;
+                    });
+
+                    if (versions.Count > 0)
+                    {
+                        return versions[^1];
+                    }
+                    else
+                    {
+                        return package.UniqueId;
+                    }
                 }
             }
         }
