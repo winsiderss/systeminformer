@@ -179,7 +179,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
-    PhpAddStringSetting(L"SearchEngine", L"https://www.duckduckgo.com/?q=\"%s\"");
+    PhpAddStringSetting(L"SearchEngine", L"https://duckduckgo.com/?q=\"%s\"");
     PhpAddStringSetting(L"SegmentHeapListViewColumns", L"");
     PhpAddStringSetting(L"SegmentHeapListViewSort", L"0,1");
     PhpAddIntegerPairSetting(L"SegmentHeapWindowPosition", L"0,0");
