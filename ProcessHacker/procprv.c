@@ -171,6 +171,7 @@ PPH_LIST PhProcessRecordList = NULL;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
+BOOLEAN PhEnableProcessExtension = TRUE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 
@@ -251,6 +252,7 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhProcessRecordList = PhCreateList(40);
 
+    PhEnableProcessExtension = WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64();
     PhProcessImageListInitialization();
 
     RtlInitializeSListHead(&PhProcessQueryDataListHead);
@@ -1180,7 +1182,7 @@ VOID PhpFillProcessItemExtension(
 {
     PSYSTEM_PROCESS_INFORMATION_EXTENSION processExtension;
 
-    if (WindowsVersion < WINDOWS_10_RS3 || PhIsExecutingInWow64())
+    if (!PhEnableProcessExtension)
         return;
     
     processExtension = PH_PROCESS_EXTENSION(Process);
@@ -2018,7 +2020,7 @@ VOID PhProcessProviderUpdate(
         {
             PPH_PROCESS_ITEM processItem;
 
-            if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+            if (PhEnableProcessExtension)
             {
                 if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->ProcessSequenceNumber == PH_PROCESS_EXTENSION(process)->ProcessSequenceNumber)
                     sysTotalCycleTime += process->CycleTime - processItem->CycleTimeDelta.Value; // existing process
@@ -2087,7 +2089,7 @@ VOID PhProcessProviderUpdate(
                         processEntry = (PSYSTEM_PROCESS_INFORMATION)processEntry->UniqueProcessKey;
                 }
 
-                if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+                if (PhEnableProcessExtension)
                 {
                     if (!processEntry || PH_PROCESS_EXTENSION(processEntry)->ProcessSequenceNumber != processItem->ProcessSequenceNumber)
                         processRemoved = TRUE;
@@ -3065,7 +3067,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
 
     parentProcessItem = PhpLookupProcessItem(ProcessItem->ParentProcessId);
 
-    if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+    if (PhEnableProcessExtension)
     {
         // We make sure that the process item we found is actually the parent process - its sequence number
         // must not be higher than the supplied sequence.
@@ -3099,7 +3101,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
 
     processItem = PhpLookupProcessItem(Record->ProcessId);
 
-    if (WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+    if (PhEnableProcessExtension)
     {
         if (processItem && processItem->ProcessSequenceNumber == Record->ProcessSequenceNumber)
             PhReferenceObject(processItem);
