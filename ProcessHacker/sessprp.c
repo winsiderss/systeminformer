@@ -3,7 +3,7 @@
  *   session properties
  *
  * Copyright (C) 2010 wj32
- * Copyright (C) 2018-2019 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -193,6 +193,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
 
         if (clientInfo.ClientAddressFamily == AF_INET6)
         {
+            ULONG addressLength = RTL_NUMBER_OF(addressString);
             struct in6_addr address;
             ULONG i;
             PUSHORT in;
@@ -211,7 +212,7 @@ VOID PhpSessionPropertiesQueryWinStationInfo(
                 out++;
             }
 
-            RtlIpv6AddressToString(&address, addressString);
+            RtlIpv6AddressToStringEx(&address, 0, 0, addressString, &addressLength);
         }
         else
         {
@@ -479,7 +480,6 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
-
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
@@ -490,7 +490,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
                         point.y
-                    );
+                        );
 
                     if (item)
                     {
