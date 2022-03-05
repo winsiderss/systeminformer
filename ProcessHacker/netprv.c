@@ -865,6 +865,7 @@ VOID PhNetworkProviderUpdate(
             // Get host names.
 
             // Local
+            if (!PhIsNullIpAddress(&networkItem->LocalEndpoint.Address))
             {
                 PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
                 cacheItem = PhpLookupResolveCacheItem(&networkItem->LocalEndpoint.Address);
@@ -880,6 +881,10 @@ VOID PhNetworkProviderUpdate(
                 {
                     PhpQueueNetworkItemQuery(networkItem, FALSE);
                 }
+            }
+            else
+            {
+                networkItem->LocalHostnameResolved = TRUE;
             }
 
             // Remote
