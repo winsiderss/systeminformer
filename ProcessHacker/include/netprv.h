@@ -23,6 +23,8 @@ typedef struct _PH_NETWORK_ITEM
 
     ULONG JustResolved;
 
+    ULONG LocalAddressStringLength;
+    ULONG RemoteAddressStringLength;
     WCHAR LocalAddressString[INET6_ADDRSTRLEN];
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];
     WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
@@ -82,14 +84,14 @@ VOID PhNetworkProviderUpdate(
 
 // begin_phapppub
 PHAPPAPI
-PWSTR
+PH_STRINGREF
 NTAPI
 PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     );
 
 PHAPPAPI
-PWSTR
+PH_STRINGREF
 NTAPI
 PhGetTcpStateName(
     _In_ ULONG State
