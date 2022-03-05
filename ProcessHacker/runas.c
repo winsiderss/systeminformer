@@ -3,7 +3,7 @@
  *   run as dialog
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2018 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -2813,6 +2813,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     }
 
                     PhFreeFileDialog(fileDialog);
+                }
+                break;
+            case IDC_TRUSTEDINSTALLER:
+                {
+                    EnableWindow(context->RunAsCheckboxHandle, Button_GetCheck(context->RunAsInstallerCheckboxHandle) == BST_UNCHECKED);
                 }
                 break;
             }
