@@ -440,6 +440,24 @@ PhCreateDialog(
     );
 
 PHLIBAPI
+HWND
+NTAPI
+PhCreateWindow(
+    _In_ ULONG ExStyle,
+    _In_opt_ PCWSTR ClassName,
+    _In_opt_ PCWSTR WindowName,
+    _In_ ULONG Style,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ INT Width,
+    _In_ INT Height,
+    _In_opt_ HWND ParentWindow,
+    _In_opt_ HMENU MenuHandle,
+    _In_opt_ PVOID InstanceHandle,
+    _In_opt_ PVOID Parameter
+    );
+
+PHLIBAPI
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     );

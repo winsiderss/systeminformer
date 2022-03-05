@@ -1023,6 +1023,37 @@ HWND PhCreateDialog(
     return dialogHandle;
 }
 
+HWND PhCreateWindow(
+    _In_ ULONG ExStyle,
+    _In_opt_ PCWSTR ClassName,
+    _In_opt_ PCWSTR WindowName,
+    _In_ ULONG Style,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ INT Width,
+    _In_ INT Height,
+    _In_opt_ HWND ParentWindow,
+    _In_opt_ HMENU MenuHandle,
+    _In_opt_ PVOID InstanceHandle,
+    _In_opt_ PVOID Parameter
+    )
+{
+    return CreateWindowEx(
+        ExStyle,
+        ClassName,
+        WindowName,
+        Style,
+        X,
+        Y,
+        Width,
+        Height,
+        ParentWindow,
+        MenuHandle,
+        InstanceHandle,
+        Parameter
+        );
+}
+
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     )
@@ -2354,6 +2385,19 @@ HICON PhImageListGetIcon(
         );
 
     return iconhandle;
+}
+
+BOOLEAN PhImageListGetIconSize(
+    _In_ HIMAGELIST ImageListHandle,
+    _Out_ PINT cx,
+    _Out_ PINT cy
+    )
+{
+    return SUCCEEDED(IImageList2_GetIconSize(
+        (IImageList2*)ImageListHandle,
+        cx,
+        cy
+        ));
 }
 
 BOOLEAN PhImageListReplace(
