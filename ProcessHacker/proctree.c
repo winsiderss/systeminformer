@@ -557,6 +557,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->PeakPrivateBytesText);
     PhClearReference(&ProcessNode->WorkingSetText);
     PhClearReference(&ProcessNode->PeakWorkingSetText);
+    PhClearReference(&ProcessNode->PrivateWsText);
     PhClearReference(&ProcessNode->SharedWsText);
     PhClearReference(&ProcessNode->ShareableWsText);
     PhClearReference(&ProcessNode->VirtualSizeText);
@@ -2483,17 +2484,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PRIVATEWS:
                 {
                     SIZE_T value = 0;
-                    SIZE_T returnLength;
-                    PH_FORMAT format[1];
-
                     PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, WorkingSetPrivateSize), &value);
-                    PhInitFormatSize(&format[0], value);
-
-                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), node->PrivateWsText, sizeof(node->PrivateWsText), &returnLength))
-                    {
-                        getCellText->Text.Buffer = node->PrivateWsText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
+                    PhMoveReference(&node->PrivateWsText, PhFormatSize(value, ULONG_MAX));
+                    getCellText->Text = node->PrivateWsText->sr;
                 }
                 break;
             case PHPRTLC_SHAREDWS:
