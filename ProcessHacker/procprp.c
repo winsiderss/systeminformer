@@ -3,7 +3,7 @@
  *   Process properties
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2016-2020 dmex
+ * Copyright (C) 2016-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -511,6 +511,10 @@ VOID PhpCreateProcessPropSheetWaitContext(
     if (!processItem->QueryHandle)
         return;
     if (processItem->ProcessId == NtCurrentProcessId())
+        return;
+    // On Windows 8.1 and above, processes without threads are reflected processes 
+    // which will not terminate if we have a handle open. (wj32)
+    if (processItem->NumberOfThreads == 0)
         return;
 
     if (!NT_SUCCESS(PhOpenProcess(
