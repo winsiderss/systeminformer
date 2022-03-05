@@ -557,7 +557,17 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 getCellText->Text = node->ProcessNameText->sr;
                 break;
             case PHNETLC_LOCALADDRESS:
-                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalAddressString);
+                {
+                    if (networkItem->LocalAddressStringLength)
+                    {
+                        getCellText->Text.Buffer = networkItem->LocalAddressString;
+                        getCellText->Text.Length = networkItem->LocalAddressStringLength;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             case PHNETLC_LOCALHOSTNAME:
                 {
@@ -571,7 +581,17 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->LocalPortString);
                 break;
             case PHNETLC_REMOTEADDRESS:
-                PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemoteAddressString);
+                {
+                    if (networkItem->RemoteAddressStringLength)
+                    {
+                        getCellText->Text.Buffer = networkItem->RemoteAddressString;
+                        getCellText->Text.Length = networkItem->RemoteAddressStringLength;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             case PHNETLC_REMOTEHOSTNAME:
                 {
@@ -585,13 +605,29 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, networkItem->RemotePortString);
                 break;
             case PHNETLC_PROTOCOL:
-                PhInitializeStringRefLongHint(&getCellText->Text, PhGetProtocolTypeName(networkItem->ProtocolType));
+                {
+                    PH_STRINGREF protocolType;
+
+                    protocolType = PhGetProtocolTypeName(networkItem->ProtocolType);
+                    getCellText->Text.Buffer = protocolType.Buffer;
+                    getCellText->Text.Length = protocolType.Length;
+                }
                 break;
             case PHNETLC_STATE:
-                if (networkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE)
-                    PhInitializeStringRefLongHint(&getCellText->Text, PhGetTcpStateName(networkItem->State));
-                else
-                    PhInitializeEmptyStringRef(&getCellText->Text);
+                {
+                    if (networkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE)
+                    {
+                        PH_STRINGREF stateName;
+
+                        stateName = PhGetTcpStateName(networkItem->State);
+                        getCellText->Text.Buffer = stateName.Buffer;
+                        getCellText->Text.Length = stateName.Length;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             case PHNETLC_OWNER:
                 getCellText->Text = PhGetStringRef(networkItem->OwnerName);

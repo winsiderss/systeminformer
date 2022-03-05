@@ -61,6 +61,9 @@ typedef struct _PHP_RESOLVE_CACHE_ITEM
     PPH_STRING HostString;
 } PHP_RESOLVE_CACHE_ITEM, *PPHP_RESOLVE_CACHE_ITEM;
 
+#define SREF(String) \
+    (PH_STRINGREF)PH_STRINGREF_INIT((String))
+
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -789,26 +792,72 @@ VOID PhNetworkProviderUpdate(
             // Format various strings.
 
             if (networkItem->LocalEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
-                RtlIpv4AddressToString(&networkItem->LocalEndpoint.Address.InAddr, networkItem->LocalAddressString);
-            else
-                RtlIpv6AddressToString(&networkItem->LocalEndpoint.Address.In6Addr, networkItem->LocalAddressString);
+            {
+                ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
 
-            PhPrintUInt32(networkItem->LocalPortString, networkItem->LocalEndpoint.Port);
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                    &networkItem->LocalEndpoint.Address.InAddr,
+                    0,
+                    networkItem->LocalAddressString,
+                    &localAddressStringLength
+                    )))
+                {
+                    networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
+                }
+            }
+            else
+            {
+                ULONG localAddressStringLength = RTL_NUMBER_OF(networkItem->LocalAddressString);
+
+                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                    &networkItem->LocalEndpoint.Address.In6Addr,
+                    networkItem->LocalScopeId,
+                    0,
+                    networkItem->LocalAddressString,
+                    &localAddressStringLength
+                    )))
+                {
+                    networkItem->LocalAddressStringLength = (localAddressStringLength - 1) * sizeof(WCHAR);
+                }
+            }
 
             if (
                 networkItem->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE &&
                 networkItem->RemoteEndpoint.Address.Ipv4 != 0
                 )
             {
-                RtlIpv4AddressToString(&networkItem->RemoteEndpoint.Address.InAddr, networkItem->RemoteAddressString);
+                ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
+
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                    &networkItem->RemoteEndpoint.Address.InAddr,
+                    0,
+                    networkItem->RemoteAddressString,
+                    &remoteAddressStringLength
+                    )))
+                {
+                    networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+                }
             }
             else if (
                 networkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE &&
                 !PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address)
                 )
             {
-                RtlIpv6AddressToString(&networkItem->RemoteEndpoint.Address.In6Addr, networkItem->RemoteAddressString);
+                ULONG remoteAddressStringLength = RTL_NUMBER_OF(networkItem->RemoteAddressString);
+
+                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                    &networkItem->RemoteEndpoint.Address.In6Addr,
+                    networkItem->RemoteScopeId,
+                    0,
+                    networkItem->RemoteAddressString,
+                    &remoteAddressStringLength
+                    )))
+                {
+                    networkItem->RemoteAddressStringLength = (remoteAddressStringLength - 1) * sizeof(WCHAR);
+                }
             }
+
+            PhPrintUInt32(networkItem->LocalPortString, networkItem->LocalEndpoint.Port);
 
             if (networkItem->RemoteEndpoint.Address.Type != 0 && networkItem->RemoteEndpoint.Port != 0)
                 PhPrintUInt32(networkItem->RemotePortString, networkItem->RemoteEndpoint.Port);
@@ -960,59 +1009,59 @@ VOID PhNetworkProviderUpdate(
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent), NULL);
 }
 
-PWSTR PhGetProtocolTypeName(
+PH_STRINGREF PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     )
 {
     switch (ProtocolType)
     {
     case PH_TCP4_NETWORK_PROTOCOL:
-        return L"TCP";
+        return SREF(L"TCP");
     case PH_TCP6_NETWORK_PROTOCOL:
-        return L"TCP6";
+        return SREF(L"TCP6");
     case PH_UDP4_NETWORK_PROTOCOL:
-        return L"UDP";
+        return SREF(L"UDP");
     case PH_UDP6_NETWORK_PROTOCOL:
-        return L"UDP6";
+        return SREF(L"UDP6");
     default:
-        return L"Unknown";
+        return SREF(L"Unknown");
     }
 }
 
-PWSTR PhGetTcpStateName(
+PH_STRINGREF PhGetTcpStateName(
     _In_ ULONG State
     )
 {
     switch (State)
     {
     case MIB_TCP_STATE_CLOSED:
-        return L"Closed";
+        return SREF(L"Closed");
     case MIB_TCP_STATE_LISTEN:
-        return L"Listen";
+        return SREF(L"Listen");
     case MIB_TCP_STATE_SYN_SENT:
-        return L"SYN sent";
+        return SREF(L"SYN sent");
     case MIB_TCP_STATE_SYN_RCVD:
-        return L"SYN received";
+        return SREF(L"SYN received");
     case MIB_TCP_STATE_ESTAB:
-        return L"Established";
+        return SREF(L"Established");
     case MIB_TCP_STATE_FIN_WAIT1:
-        return L"FIN wait 1";
+        return SREF(L"FIN wait 1");
     case MIB_TCP_STATE_FIN_WAIT2:
-        return L"FIN wait 2";
+        return SREF(L"FIN wait 2");
     case MIB_TCP_STATE_CLOSE_WAIT:
-        return L"Close wait";
+        return SREF(L"Close wait");
     case MIB_TCP_STATE_CLOSING:
-        return L"Closing";
+        return SREF(L"Closing");
     case MIB_TCP_STATE_LAST_ACK:
-        return L"Last ACK";
+        return SREF(L"Last ACK");
     case MIB_TCP_STATE_TIME_WAIT:
-        return L"Time wait";
+        return SREF(L"Time wait");
     case MIB_TCP_STATE_DELETE_TCB:
-        return L"Delete TCB";
+        return SREF(L"Delete TCB");
     case MIB_TCP_STATE_RESERVED: // HACK
-        return L"Bound";
+        return SREF(L"Bound");
     default:
-        return L"Unknown";
+        return SREF(L"Unknown");
     }
 }
 
@@ -1245,6 +1294,9 @@ BOOLEAN PhGetNetworkConnections(
                 udp6Table->table[i].OwningModuleInfo,
                 sizeof(ULONGLONG) * min(PH_NETWORK_OWNER_INFO_SIZE, TCPIP_OWNING_MODULE_SIZE)
                 );
+
+            connections[index].LocalScopeId = udp6Table->table[i].dwLocalScopeId;
+            connections[index].RemoteScopeId = 0;
 
             index++;
         }
