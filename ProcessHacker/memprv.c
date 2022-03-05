@@ -243,11 +243,12 @@ VOID PhpUpdateHeapRegions(
     )
 {
     NTSTATUS status;
-    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo;
+    HANDLE processHandle = NULL;
+    HANDLE clientProcessId = List->ProcessId;
+    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo = { 0 };
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     HANDLE powerRequestHandle = NULL;
     ULONG heapEntrySize;
-    HANDLE processHandle;
 
     status = PhOpenProcess(
         &processHandle,
@@ -255,31 +256,27 @@ VOID PhpUpdateHeapRegions(
         List->ProcessId
         );
 
-    if (!NT_SUCCESS(status))
-        return;
-
-    if (WindowsVersion >= WINDOWS_10)
-        PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
-
-    // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
-    // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
-
-    memset(&reflectionInfo, 0, sizeof(RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION));
-    status = RtlCreateProcessReflection(
-        processHandle,
-        0,
-        NULL,
-        NULL,
-        NULL,
-        &reflectionInfo
-        );
-
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        if (powerRequestHandle)
-            PhDestroyExecutionRequiredRequest(powerRequestHandle);
-        NtClose(processHandle);
-        return;
+        if (WindowsVersion >= WINDOWS_10)
+            PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
+
+        // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
+        // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
+
+        status = RtlCreateProcessReflection(
+            processHandle,
+            0,
+            NULL,
+            NULL,
+            NULL,
+            &reflectionInfo
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            clientProcessId = reflectionInfo.ReflectionClientId.UniqueProcess;
+        }
     }
 
     for (ULONG i = 0x10000; ; i *= 2) // based on PhQueryProcessHeapInformation (ge0rdi)
@@ -291,7 +288,7 @@ VOID PhpUpdateHeapRegions(
         }
 
         status = RtlQueryProcessDebugInformation(
-            reflectionInfo.ReflectionClientId.UniqueProcess,
+            clientProcessId,
             RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_SEGMENTS,
             debugBuffer
             );
@@ -309,10 +306,16 @@ VOID PhpUpdateHeapRegions(
             break;
     }
 
-    PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
-    NtClose(reflectionInfo.ReflectionProcessHandle);
-    NtClose(reflectionInfo.ReflectionThreadHandle);
-    NtClose(processHandle);
+    if (reflectionInfo.ReflectionProcessHandle)
+    {
+        PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
+        NtClose(reflectionInfo.ReflectionProcessHandle);
+    }
+
+    if (reflectionInfo.ReflectionThreadHandle)
+        NtClose(reflectionInfo.ReflectionThreadHandle);
+    if (processHandle)
+        NtClose(processHandle);
 
     if (powerRequestHandle)
         PhDestroyExecutionRequiredRequest(powerRequestHandle);

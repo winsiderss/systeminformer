@@ -10313,11 +10313,12 @@ NTSTATUS PhQueryProcessHeapInformation(
     )
 {
     NTSTATUS status;
-    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo;
-    PRTL_DEBUG_INFORMATION debugBuffer;
-    PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo;
+    HANDLE processHandle = NULL;
+    HANDLE clientProcessId = ProcessId;
+    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo = { 0 };
+    PRTL_DEBUG_INFORMATION debugBuffer = NULL;
+    PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo = NULL;
     ULONG heapEntrySize;
-    HANDLE processHandle;
 
     status = PhOpenProcess(
         &processHandle,
@@ -10325,26 +10326,24 @@ NTSTATUS PhQueryProcessHeapInformation(
         ProcessId
         );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
-    // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
-    // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
-
-    memset(&reflectionInfo, 0, sizeof(RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION));
-    status = RtlCreateProcessReflection(
-        processHandle,
-        0,
-        NULL,
-        NULL,
-        NULL,
-        &reflectionInfo
-        );
-
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        NtClose(processHandle);
-        return status;
+        // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
+        // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
+
+        status = RtlCreateProcessReflection(
+            processHandle,
+            0,
+            NULL,
+            NULL,
+            NULL,
+            &reflectionInfo
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            clientProcessId = reflectionInfo.ReflectionClientId.UniqueProcess;
+        }
     }
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
@@ -10353,7 +10352,7 @@ NTSTATUS PhQueryProcessHeapInformation(
             return STATUS_UNSUCCESSFUL;
 
         status = RtlQueryProcessDebugInformation(
-            reflectionInfo.ReflectionClientId.UniqueProcess,
+            clientProcessId,
             RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES,
             debugBuffer
             );
@@ -10374,10 +10373,16 @@ NTSTATUS PhQueryProcessHeapInformation(
         }
     }
 
-    PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
-    NtClose(reflectionInfo.ReflectionProcessHandle);
-    NtClose(reflectionInfo.ReflectionThreadHandle);
-    NtClose(processHandle);
+    if (reflectionInfo.ReflectionProcessHandle)
+    {
+        PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
+        NtClose(reflectionInfo.ReflectionProcessHandle);
+    }
+
+    if (reflectionInfo.ReflectionThreadHandle)
+        NtClose(reflectionInfo.ReflectionThreadHandle);
+    if (processHandle)
+        NtClose(processHandle);
 
     if (!NT_SUCCESS(status))
         return status;
