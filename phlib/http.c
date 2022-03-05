@@ -2,7 +2,7 @@
  * Process Hacker -
  *   http/http2/dns wrappers
  *
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -698,6 +698,8 @@ NTSTATUS PhHttpSocketDownloadToFile(
         PhDereferenceObject(tempDirectory);
         return status;
     }
+
+    memset(buffer, 0, sizeof(buffer));
 
     while (PhHttpSocketReadData(HttpContext, buffer, PAGE_SIZE, &numberOfBytesRead))
     {
