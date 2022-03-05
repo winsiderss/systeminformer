@@ -3,7 +3,7 @@
  *   Main program
  *
  * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2013-2021 dmex
+ * Copyright (C) 2013-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -95,8 +95,6 @@ VOID NTAPI LoadCallback(
     {
         NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
     }
-
-    LoadGeoLiteDb();
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -574,7 +572,7 @@ FORCEINLINE VOID PhpNetworkItemToRow(
      _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {
-    Row->dwState = NetworkItem->State;
+    Row->State = NetworkItem->State;
     Row->dwLocalAddr = NetworkItem->LocalEndpoint.Address.Ipv4;
     Row->dwLocalPort = _byteswap_ushort((USHORT)NetworkItem->LocalEndpoint.Port);
     Row->dwRemoteAddr = NetworkItem->RemoteEndpoint.Address.Ipv4;
@@ -763,7 +761,7 @@ VOID NTAPI TreeNewMessageCallback(
                 PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
                 PPH_NETWORK_NODE networkNode = (PPH_NETWORK_NODE)getCellText->Node;
                 PNETWORK_EXTENSION extension = PhPluginGetObjectExtension(PluginInstance, networkNode->NetworkItem, EmNetworkItemType);
-                
+
                 UpdateNetworkNode(message->SubId, networkNode, extension);
 
                 switch (message->SubId)
@@ -818,7 +816,7 @@ VOID NTAPI TreeNewMessageCallback(
             rect.left += 5;
 
             // Draw the column data
-            if (GeoDbLoaded && extension->RemoteCountryName)
+            if (extension->RemoteCountryName)
             {
                 if (extension->CountryIconIndex != INT_MAX)
                 {
@@ -834,8 +832,7 @@ VOID NTAPI TreeNewMessageCallback(
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
             }
-
-            if (!GeoDbLoaded)
+            else if (!GeoDbInitialized)
             {
                 DrawText(hdc, L"Geoip database not found.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
@@ -844,21 +841,35 @@ VOID NTAPI TreeNewMessageCallback(
     }
 }
 
+BOOLEAN NetworkToolsGeoIpFlushCache(
+    VOID
+    )
+{
+    static ULONG64 lastTickCount = 0;
+    ULONG64 tickCount = NtGetTickCount64();
+
+    if (lastTickCount == 0)
+        lastTickCount = tickCount;
+
+    if (tickCount - lastTickCount >= 600 * 1000)
+    {
+        lastTickCount = tickCount;
+        NetworkToolsGeoDbFlushCache();
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     static ULONG ProcessesUpdatedCount = 0;
-    static ULONG64 lastTickCount = 0;
     PLIST_ENTRY listEntry;
-    ULONG64 tickCount = NtGetTickCount64();
 
-    if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
-    {
-        NetworkToolsGeoDbFlushCache();
-        lastTickCount = tickCount;
-    }
+    NetworkToolsGeoIpFlushCache();
 
     if (!NetworkExtensionEnabled)
         return;
@@ -1015,7 +1026,6 @@ LOGICAL DllMain(
             info->DisplayName = L"Network Tools";
             info->Author = L"dmex, wj32";
             info->Description = L"Provides ping, traceroute and whois for network connections.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1117";
             info->Interface = &PluginInterface;
 
             PhRegisterCallback(
