@@ -505,7 +505,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             // Padding
             rect.left += 5;
 
-            if (GeoDbLoaded && node->RemoteCountryCode && node->RemoteCountryName)
+            if (node->RemoteCountryCode && node->RemoteCountryName)
             {
                 if (node->CountryIconIndex == INT_MAX)
                     node->CountryIconIndex = LookupCountryIcon(node->RemoteCountryCode);
@@ -524,8 +524,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
             }
-
-            if (!GeoDbLoaded)
+            else if (!GeoDbInitialized)
             {
                 DrawText(hdc, L"Geoip database not found.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }

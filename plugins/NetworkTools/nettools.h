@@ -3,7 +3,7 @@
  *   Main header
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2019 dmex
+ * Copyright (C) 2012-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -53,7 +53,7 @@
 #define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
 
 extern PPH_PLUGIN PluginInstance;
-extern BOOLEAN GeoDbLoaded;
+extern BOOLEAN GeoDbInitialized;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
@@ -265,10 +265,6 @@ typedef enum _NETWORK_COLUMN_ID
 
 PPH_STRING NetToolsGetGeoLiteDbPath(
     _In_ PWSTR SettingName
-    );
-
-VOID LoadGeoLiteDb(
-    VOID
     );
 
 VOID FreeGeoLiteDb(
