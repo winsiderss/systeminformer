@@ -3955,6 +3955,71 @@ BOOLEAN PhUiResumeThreads(
     return success;
 }
 
+BOOLEAN PhUiSetBoostPriorityThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads,
+    _In_ BOOLEAN PriorityBoost
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(status = PhOpenThread(
+            &threadHandle,
+            THREAD_SET_LIMITED_INFORMATION,
+            Threads[i]->ThreadId
+            )))
+        {
+            status = PhSetThreadPriorityBoost(threadHandle, PriorityBoost);
+            NtClose(threadHandle);
+
+            if (!NT_SUCCESS(status))
+            {
+                success = FALSE;
+
+                if (!PhpShowErrorThread(WindowHandle, L"change boost priority of", Threads[i], status, 0))
+                    break;
+            }
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiSetBoostPriorityThread(
+    _In_ HWND hWnd,
+    _In_ PPH_THREAD_ITEM Thread,
+    _In_ BOOLEAN PriorityBoost
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+
+    if (NT_SUCCESS(status = PhOpenThread(
+        &threadHandle,
+        THREAD_SET_LIMITED_INFORMATION,
+        Thread->ThreadId
+        )))
+    {
+        status = PhSetThreadPriorityBoost(threadHandle, PriorityBoost);
+        NtClose(threadHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorThread(hWnd, L"set the boost priority of", Thread, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiSetPriorityThreads(
     _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
