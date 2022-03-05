@@ -203,7 +203,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING PeakPrivateBytesText;
     PPH_STRING WorkingSetText;
     PPH_STRING PeakWorkingSetText;
-    WCHAR PrivateWsText[PH_INT64_STR_LEN_1];
+    PPH_STRING PrivateWsText;
     PPH_STRING SharedWsText;
     PPH_STRING ShareableWsText;
     PPH_STRING VirtualSizeText;
