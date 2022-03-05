@@ -850,51 +850,38 @@ VOID PhpQueryHostnameForEntry(
 }
 
 PPH_PROCESS_ITEM EtFwFileNameToProcess(
-    _In_ PPH_STRING ProcessBaseString
+    _In_ PPH_STRING ProcessFileName
     )
 {
-    static PVOID processInfo = NULL;
-    static ULONG64 lastTickTotal = 0;
-    PSYSTEM_PROCESS_INFORMATION process;
-    ULONG64 tickCount = NtGetTickCount64();
+    PPH_PROCESS_ITEM* processItems;
+    ULONG numberOfProcessItems;
 
-    if (tickCount - lastTickTotal >= 120 * 1000)
+    if (
+        ProcessFileName->Length == 12 &&
+        PhEqualString2(ProcessFileName, L"System", TRUE)
+        )
     {
-        lastTickTotal = tickCount;
+        return PhReferenceProcessItem(SYSTEM_PROCESS_ID);
+    }
 
-        if (processInfo)
+    PhEnumProcessItems(&processItems, &numberOfProcessItems);
+
+    for (ULONG i = 0; i < numberOfProcessItems; i++)
+    {
+        if (
+            processItems[i]->FileName &&
+            PhEqualString(processItems[i]->FileName, ProcessFileName, TRUE)
+            )
         {
-            PhFree(processInfo);
-            processInfo = NULL;
+            PVOID object = PhReferenceObject(processItems[i]);
+            PhDereferenceObjects(processItems, numberOfProcessItems);
+            PhFree(processItems);
+            return object;
         }
-
-        PhEnumProcesses(&processInfo);
     }
 
-    if (!processInfo)
-    {
-        PhEnumProcesses(&processInfo);
-    }
-
-    if (process = PhFindProcessInformationByImageName(processInfo, &ProcessBaseString->sr))
-    {
-        return PhReferenceProcessItem(process->UniqueProcessId);
-    }
-
-    lastTickTotal = tickCount;
-
-    if (processInfo)
-    {
-        PhFree(processInfo);
-        processInfo = NULL;
-    }
-
-    PhEnumProcesses(&processInfo);
-
-    if (process = PhFindProcessInformationByImageName(processInfo, &ProcessBaseString->sr))
-    {
-        return PhReferenceProcessItem(process->UniqueProcessId);
-    }
+    PhDereferenceObjects(processItems, numberOfProcessItems);
+    PhFree(processItems);
 
     return NULL;
 }
