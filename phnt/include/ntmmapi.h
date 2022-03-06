@@ -877,7 +877,7 @@ typedef enum _PARTITION_INFORMATION_CLASS
 #define SystemMemoryPartitionOpenDedicatedMemory 0xA
 #define SystemMemoryPartitionMemoryChargeAttributes 0xB
 #define SystemMemoryPartitionClearAttributes 0xC
-#define SystemMemoryPartitionClearAttributes 0xD
+#define SystemMemoryPartitionSetMemoryThresholds 0xD
 #define SystemMemoryPartitionMax 0xE
 #endif
 
