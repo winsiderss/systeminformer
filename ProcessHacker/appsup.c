@@ -1786,7 +1786,7 @@ BOOLEAN PhInsertCopyCellEMenuItem(
     context->TreeNewHandle = TreeNewHandle;
     context->Id = Column->Id;
 
-    PhInitializeStringRef(&columnText, Column->Text);
+    PhInitializeStringRefLongHint(&columnText, Column->Text);
     escapedText = PhEscapeStringForMenuPrefix(&columnText);
     PhInitFormatS(&format[0], L"Copy \""); // Copy \"%s\"
     PhInitFormatSR(&format[1], escapedText->sr);

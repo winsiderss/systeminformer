@@ -251,6 +251,15 @@ PhSaveJsonObjectToFile(
     _In_ PVOID Object
     );
 
+// XML
+
+PHLIBAPI
+PVOID
+NTAPI
+PhLoadXmlObjectFromString(
+    _In_ PSTR String
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -268,10 +277,6 @@ PhSaveXmlObjectToFile(
     _In_opt_ PVOID XmlSaveCallback
     );
 
-PVOID PhLoadXmlObjectFromString(
-    _In_ PWSTR String
-    );
-
 PHLIBAPI
 VOID
 NTAPI
@@ -280,9 +285,28 @@ PhFreeXmlObject(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhGetXmlObject(
+    _In_ PVOID XmlNodeObject,
+    _In_ PSTR Path
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhFindXmlObject(
+    _In_ PVOID XmlNodeObject,
+    _In_opt_ PVOID XmlTopObject,
+    _In_opt_ PSTR Element,
+    _In_opt_ PSTR Attribute,
+    _In_opt_ PSTR Value
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetOpaqueXmlNodeText(
+PhGetXmlNodeOpaqueText(
     _In_ PVOID XmlNodeObject
     );
 
@@ -356,15 +380,110 @@ PhCreateXmlOpaqueNode(
     _In_ PSTR Value
     );
 
-typedef BOOLEAN (NTAPI* PPH_ENUM_XML_NODE_CALLBACK)(
-    _In_ PVOID XmlNodeObject,
-    _In_opt_ PVOID Context
+typedef PVOID (NTAPI* PH_XML_LOAD_OBJECT_FROM_STRING)(
+    _In_ PSTR String
     );
 
-BOOLEAN PhEnumXmlNode(
+typedef NTSTATUS (NTAPI* PH_XML_LOAD_OBJECT_FROM_FILE)(
+    _In_ PWSTR FileName,
+    _Out_opt_ PVOID* XmlRootNode
+    );
+
+typedef NTSTATUS (NTAPI* PH_XML_SAVE_OBJECT_TO_FILE)(
+    _In_ PWSTR FileName,
+    _In_ PVOID XmlRootObject,
+    _In_opt_ PVOID XmlSaveCallback
+    );
+
+typedef VOID (NTAPI* PH_XML_FREE_OBJECT)(
+    _In_ PVOID XmlRootObject
+    );
+
+typedef PVOID (NTAPI* PH_XML_GET_OBJECT)(
     _In_ PVOID XmlNodeObject,
-    _In_ PPH_ENUM_XML_NODE_CALLBACK Callback,
-    _In_opt_ PVOID Context
+    _In_ PSTR Path
+    );
+
+typedef PVOID (NTAPI* PH_XML_CREATE_NODE)(
+    _In_opt_ PVOID ParentNode,
+    _In_ PSTR Name
+    );
+
+typedef PVOID (NTAPI* PH_XML_CREATE_OPAQUE_NODE)(
+    _In_opt_ PVOID ParentNode,
+    _In_ PSTR Value
+    );
+
+typedef PVOID (NTAPI* PH_XML_FIND_OBJECT)(
+    _In_ PVOID XmlNodeObject,
+    _In_ PVOID XmlTopObject,
+    _In_ PSTR Element,
+    _In_ PSTR Attribute,
+    _In_ PSTR Value
+    );
+
+typedef PVOID (NTAPI* PH_XML_GET_NODE_FIRST_CHILD)(
+    _In_ PVOID XmlNodeObject
+    );
+
+typedef PVOID (NTAPI* PH_XML_GET_NODE_NEXT_CHILD)(
+    _In_ PVOID XmlNodeObject
+    );
+
+typedef PPH_STRING (NTAPI* PH_XML_GET_XML_NODE_OPAQUE_TEXT)(
+    _In_ PVOID XmlNodeObject
+    );
+
+typedef PSTR (NTAPI* PH_XML_GET_XML_NODE_ELEMENT_TEXT)(
+    _In_ PVOID XmlNodeObject
+    );
+
+typedef PPH_STRING (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_TEXT)(
+    _In_ PVOID XmlNodeObject,
+    _In_ PSTR AttributeName
+    );
+
+typedef PSTR (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX)(
+    _In_ PVOID XmlNodeObject,
+    _In_ INT Index,
+    _Out_ PSTR* AttributeName
+    );
+
+typedef VOID (NTAPI* PH_XML_SET_XML_NODE_ATTRIBUTE_TEXT)(
+    _In_ PVOID XmlNodeObject,
+    _In_ PSTR Name,
+    _In_ PSTR Value
+    );
+
+typedef INT (NTAPI* PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT)(
+    _In_ PVOID XmlNodeObject
+    );
+
+typedef struct _PH_XML_INTERFACE
+{
+    ULONG Version;
+    PH_XML_LOAD_OBJECT_FROM_STRING LoadXmlObjectFromString;
+    PH_XML_LOAD_OBJECT_FROM_FILE LoadXmlObjectFromFile;
+    PH_XML_SAVE_OBJECT_TO_FILE SaveXmlObjectToFile;
+    PH_XML_FREE_OBJECT FreeXmlObject;
+    PH_XML_GET_OBJECT GetXmlObject;
+    PH_XML_CREATE_NODE CreateXmlNode;
+    PH_XML_CREATE_OPAQUE_NODE CreateXmlOpaqueNode;
+    PH_XML_FIND_OBJECT FindXmlObject;
+    PH_XML_GET_NODE_FIRST_CHILD GetXmlNodeFirstChild;
+    PH_XML_GET_NODE_NEXT_CHILD GetXmlNodeNextChild;
+    PH_XML_GET_XML_NODE_OPAQUE_TEXT GetXmlNodeOpaqueText;
+    PH_XML_GET_XML_NODE_ELEMENT_TEXT GetXmlNodeElementText;
+    PH_XML_GET_XML_NODE_ATTRIBUTE_TEXT GetXmlNodeAttributeText;
+    PH_XML_GET_XML_NODE_ATTRIBUTE_BY_INDEX GetXmlNodeAttributeByIndex;
+    PH_XML_SET_XML_NODE_ATTRIBUTE_TEXT SetXmlNodeAttributeText;
+    PH_XML_GET_XML_NODE_ATTRIBUTE_COUNT GetXmlNodeAttributeCount;
+} PH_XML_INTERFACE, *PPH_XML_INTERFACE;
+
+#define PH_XML_INTERFACE_VERSION 1
+
+PPH_XML_INTERFACE PhGetXmlInterface(
+    _In_ ULONG Version
     );
 
 #ifdef __cplusplus

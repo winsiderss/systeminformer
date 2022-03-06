@@ -1270,7 +1270,7 @@ BOOLEAN PhThemeWindowDrawItem(
                 PH_STRINGREF firstPart;
                 PH_STRINGREF secondPart;
 
-                PhInitializeStringRef(&part, menuItemInfo->Text);
+                PhInitializeStringRefLongHint(&part, menuItemInfo->Text);
                 PhSplitStringRefAtLastChar(&part, L'\b', &firstPart, &secondPart);
 
                 //SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));

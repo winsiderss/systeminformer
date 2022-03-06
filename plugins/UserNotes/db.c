@@ -238,7 +238,7 @@ NTSTATUS LoadDb(
             }
         }
 
-        comment = PhGetOpaqueXmlNodeText(currentNode);
+        comment = PhGetXmlNodeOpaqueText(currentNode);
 
         if (tag && name)
         {
