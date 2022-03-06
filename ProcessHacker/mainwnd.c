@@ -525,11 +525,17 @@ NTSTATUS PhMwpLoadStage1Worker(
 
     PhNfLoadStage2();
 
-    // Make sure we get closed late in the shutdown process.
-    SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
-    // Note: Windows excludes Task Manager from the shutdown dialog but doesn't exclude other applications.
-    // If we use the same values as TM then we're always visible and users have assumed we're delaying shutdown. (dmex)
-    //SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
+    if (PhGetIntegerSetting(L"EnableLastProcessShutdown"))
+    {
+        // Make sure we get closed late in the shutdown process.
+        // This is needed for the shutdown cancel debugging senario included with Task Manager.
+        // Note: Windows excludes system binaries from the shutdown dialog while not excluding
+        // programs registered for late shutdown, so when services delay shutdown they won't be shown
+        // to the user while we are shown and this has casued some users to blame us instead. (dmex)
+
+        //SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
+        SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
+    }
 
     DelayedLoadCompleted = TRUE;
     //PostMessage((HWND)Parameter, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
