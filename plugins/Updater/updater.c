@@ -2,7 +2,7 @@
  * Process Hacker Plugins -
  *   Update Checker Plugin
  *
- * Copyright (C) 2011-2020 dmex
+ * Copyright (C) 2011-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -293,7 +293,7 @@ ULONG64 ParseVersionString(
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
+    PhInitializeStringRefLongHint(&remaining, PhGetStringOrEmpty(VersionString));
 
     PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &minorPart, &remaining);

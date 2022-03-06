@@ -745,7 +745,7 @@ NTSTATUS PhLoadSettings(
 
         if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
         {
-            PPH_STRING settingValue = PhGetOpaqueXmlNodeText(currentNode);
+            PPH_STRING settingValue = PhGetXmlNodeOpaqueText(currentNode);
 
             PhAcquireQueuedLockExclusive(&PhSettingsLock);
 

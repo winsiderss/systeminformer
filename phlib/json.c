@@ -2,7 +2,7 @@
  * Process Hacker -
  *   json and xml wrapper
  *
- * Copyright (C) 2017-2020 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,11 +23,10 @@
 #include <ph.h>
 #include <phbasesup.h>
 #include <phutil.h>
+#include <json.h>
 
 #include "..\tools\thirdparty\jsonc\json.h"
 #include "..\tools\thirdparty\mxml\mxml.h"
-
-#include <json.h>
 
 static json_object_ptr json_get_object(
     _In_ json_object_ptr rootObj, 
@@ -379,6 +378,29 @@ VOID PhSaveJsonObjectToFile(
 
 // XML support
 
+PVOID PhLoadXmlObjectFromString(
+    _In_ PSTR String
+    )
+{
+    mxml_node_t* currentNode;
+
+    if (currentNode = mxmlLoadString(
+        NULL,
+        String,
+        MXML_OPAQUE_CALLBACK
+        ))
+    {
+        if (mxmlGetType(currentNode) == MXML_ELEMENT)
+        {
+            return currentNode;
+        }
+
+        mxmlDelete(currentNode);
+    }
+
+    return NULL;
+}
+
 NTSTATUS PhLoadXmlObjectFromFile(
     _In_ PWSTR FileName,
     _Out_opt_ PVOID* XmlRootObject
@@ -490,33 +512,29 @@ NTSTATUS PhSaveXmlObjectToFile(
     return status;
 }
 
-PVOID PhLoadXmlObjectFromString(
-    _In_ PWSTR String
+VOID PhFreeXmlObject(
+    _In_ PVOID XmlRootObject
+    )
+{
+    mxmlDelete(XmlRootObject);
+}
+
+PVOID PhGetXmlObject(
+    _In_ PVOID XmlNodeObject,
+    _In_ PSTR Path
     )
 {
     mxml_node_t* currentNode;
-    PPH_BYTES string;
+    mxml_node_t* realNode;
 
-    string = PhConvertUtf16ToUtf8(String);
-
-    currentNode = mxmlLoadString(
-        NULL,
-        string->Buffer,
-        MXML_OPAQUE_CALLBACK
-        );
-
-    if (currentNode)
+    if (currentNode = mxmlFindPath(XmlNodeObject, Path))
     {
-        if (mxmlGetType(currentNode) == MXML_ELEMENT)
-        {
-            PhDereferenceObject(string);
-            return currentNode;
-        }
+        if (realNode = mxmlGetParent(currentNode))
+            return realNode;
 
-        mxmlDelete(currentNode);
+        return currentNode;
     }
 
-    PhDereferenceObject(string);   
     return NULL;
 }
 
@@ -536,11 +554,15 @@ PVOID PhCreateXmlOpaqueNode(
     return mxmlNewOpaque(ParentNode, Value);
 }
 
-VOID PhFreeXmlObject(
-    _In_ PVOID XmlRootObject
+PVOID PhFindXmlObject(
+    _In_ PVOID XmlNodeObject,
+    _In_opt_ PVOID XmlTopObject,
+    _In_opt_ PSTR Element,
+    _In_opt_ PSTR Attribute,
+    _In_opt_ PSTR Value
     )
 {
-    mxmlDelete(XmlRootObject);
+    return mxmlFindElement(XmlNodeObject, XmlTopObject, Element, Attribute, Value, MXML_DESCEND);
 }
 
 PVOID PhGetXmlNodeFirstChild(
@@ -557,7 +579,7 @@ PVOID PhGetXmlNodeNextChild(
     return mxmlGetNextSibling(XmlNodeObject);
 }
 
-PPH_STRING PhGetOpaqueXmlNodeText(
+PPH_STRING PhGetXmlNodeOpaqueText(
     _In_ PVOID XmlNodeObject
     )
 {
@@ -644,4 +666,35 @@ BOOLEAN PhEnumXmlNode(
     }
 
     return TRUE;
+}
+
+PPH_XML_INTERFACE PhGetXmlInterface(
+    _In_ ULONG Version
+    )
+{
+    static PH_XML_INTERFACE PhXmlInterface =
+    {
+        PH_XML_INTERFACE_VERSION,
+        PhLoadXmlObjectFromString,
+        PhLoadXmlObjectFromFile,
+        PhSaveXmlObjectToFile,
+        PhFreeXmlObject,
+        PhGetXmlObject,
+        PhCreateXmlNode,
+        PhCreateXmlOpaqueNode,
+        PhFindXmlObject,
+        PhGetXmlNodeFirstChild,
+        PhGetXmlNodeNextChild,
+        PhGetXmlNodeOpaqueText,
+        PhGetXmlNodeElementText,
+        PhGetXmlNodeAttributeText,
+        PhGetXmlNodeAttributeByIndex,
+        PhSetXmlNodeAttributeText,
+        PhGetXmlNodeAttributeCount
+    };
+
+    if (Version < PH_XML_INTERFACE_VERSION)
+        return NULL;
+
+    return &PhXmlInterface;
 }

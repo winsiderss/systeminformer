@@ -1881,7 +1881,7 @@ BOOLEAN WordMatchStringZ(
 {
     PH_STRINGREF text;
 
-    PhInitializeStringRef(&text, Text);
+    PhInitializeStringRefLongHint(&text, Text);
 
     return WordMatchStringRef(Context, &text);
 }

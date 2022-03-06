@@ -325,14 +325,14 @@ VOID NTAPI EtpEtwEventCallback(
                 FileIo_Name_Wow64 *dataWow64 = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)dataWow64->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, dataWow64->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, dataWow64->FileName);
             }
             else
             {
                 FileIo_Name *data = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)data->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, data->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, data->FileName);
             }
 
             EtDiskProcessFileEvent(&fileEvent);
@@ -584,14 +584,14 @@ VOID NTAPI EtpRundownEtwEventCallback(
                 FileIo_Name_Wow64 *dataWow64 = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)dataWow64->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, dataWow64->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, dataWow64->FileName);
             }
             else
             {
                 FileIo_Name *data = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)data->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, data->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, data->FileName);
             }
 
             EtDiskProcessFileEvent(&fileEvent);

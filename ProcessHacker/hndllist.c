@@ -614,7 +614,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     if (handleItem->FileFlags & PH_HANDLE_FILE_SHARED_DELETE)
                         node->FileShareAccessText[2] = L'D';
 
-                    PhInitializeStringRef(&getCellText->Text, node->FileShareAccessText);
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->FileShareAccessText);
                 }
                 break;
             default:

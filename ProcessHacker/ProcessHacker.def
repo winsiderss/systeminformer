@@ -740,19 +740,23 @@ EXPORTS
     PhGetJsonArrayIndexObject
 
 ; xml
+    PhLoadXmlObjectFromString
     PhLoadXmlObjectFromFile
     PhSaveXmlObjectToFile
     PhFreeXmlObject
-    PhGetOpaqueXmlNodeText
+    PhGetXmlInterface
     PhGetXmlNodeElementText
+    PhGetXmlNodeOpaqueText
     PhGetXmlNodeAttributeText
     PhGetXmlNodeAttributeByIndex
     PhSetXmlNodeAttributeText
     PhGetXmlNodeAttributeCount
     PhGetXmlNodeFirstChild
     PhGetXmlNodeNextChild
+    PhGetXmlObject
     PhCreateXmlNode
     PhCreateXmlOpaqueNode
+    PhFindXmlObject
 
 ; cache
     PhCreateCacheFile
