@@ -2,7 +2,7 @@
  * Process Hacker Network Tools -
  *   Whois dialog
  *
- * Copyright (C) 2013-2021 dmex
+ * Copyright (C) 2013-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -332,7 +332,7 @@ BOOLEAN WhoisConnectServer(
                 sizeof(dnsRecord->Data.A.IpAddress)
                 );
 
-            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
+            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
             {
                 ULONG bestInterfaceIndex;
 
@@ -380,7 +380,7 @@ BOOLEAN WhoisConnectServer(
                 sizeof(dnsRecord->Data.AAAA.Ip6Address.IP6Byte)
                 );
 
-            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
+            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
             {
                 ULONG bestInterfaceIndex;
 

@@ -698,7 +698,7 @@ PWSTR MediumTypeToString(
 //            {
 //                SOCKET socketHandle = INVALID_SOCKET;
 //
-//                if ((socketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) == INVALID_SOCKET)
+//                if ((socketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) == INVALID_SOCKET)
 //                    continue;
 //
 //                IN_ADDR sockAddr;
@@ -758,7 +758,7 @@ PWSTR MediumTypeToString(
 //            {
 //                SOCKET socketHandle = INVALID_SOCKET;
 //
-//                if ((socketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) == INVALID_SOCKET)
+//                if ((socketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) == INVALID_SOCKET)
 //                    continue;
 //
 //                IN6_ADDR sockAddr;
