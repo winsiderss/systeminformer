@@ -11,10 +11,6 @@ extern "C" {
 
 // guisup
 
-typedef BOOL (WINAPI *_IsImmersiveProcess)(
-    _In_ HANDLE ProcessHandle
-    );
-
 #define RFF_NOBROWSE 0x0001
 #define RFF_NODEFAULT 0x0002
 #define RFF_CALCDIRECTORY 0x0004
@@ -46,7 +42,6 @@ typedef HANDLE HTHEME;
 #define DCX_USESTYLE 0x00010000
 #define DCX_NODELETERGN 0x00040000
 
-extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
 
@@ -963,6 +958,13 @@ HANDLE
 NTAPI
 PhGetGlobalTimerQueue(
     VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsImmersiveProcess(
+    _In_ HANDLE ProcessHandle
     );
 
 _Success_(return)
