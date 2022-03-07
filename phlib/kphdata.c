@@ -182,6 +182,10 @@ NTSTATUS KphInitializeDynamicPackage(
             Package->BuildNumber = 19043;
             Package->ResultingNtVersion = PHNT_21H1;
             break;
+        case 19044:
+            Package->BuildNumber = 19044;
+            Package->ResultingNtVersion = PHNT_21H2;
+            break;
         case 22000:
             Package->BuildNumber = 22000;
             Package->ResultingNtVersion = PHNT_WIN11;
@@ -355,6 +359,10 @@ NTSTATUS KphInitializeDynamicPackage(
         case 19043:
             Package->BuildNumber = 19043;
             Package->ResultingNtVersion = PHNT_21H1;
+            break;
+        case 19044:
+            Package->BuildNumber = 19044;
+            Package->ResultingNtVersion = PHNT_21H2;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
