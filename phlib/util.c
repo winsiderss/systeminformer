@@ -6034,9 +6034,9 @@ NTSTATUS PhAccessResource(
     PVOID baseAddress;
 
     if (LDR_IS_DATAFILE(DllBase))
-        baseAddress = (PVOID)((ULONG_PTR)DllBase & ~1);
+        baseAddress = LDR_DATAFILE_TO_MAPPEDVIEW(DllBase);
     else if (LDR_IS_IMAGEMAPPING(DllBase))
-        baseAddress = (PVOID)((ULONG_PTR)DllBase & ~2);
+        baseAddress = LDR_IMAGEMAPPING_TO_MAPPEDVIEW(DllBase);
     else
         baseAddress = DllBase;
 
@@ -6564,6 +6564,33 @@ NTSTATUS PhGetLoaderEntryImageDirectory(
 
     directory = &ImageNtHeader->OptionalHeader.DataDirectory[ImageDirectoryIndex];
 
+    //if (ImageNtHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_I386)
+    //{
+    //    PIMAGE_OPTIONAL_HEADER32 optionalHeader;
+    //
+    //    optionalHeader = &((PIMAGE_NT_HEADERS32)ImageNtHeader)->OptionalHeader;
+    //
+    //    if (ImageDirectoryIndex >= optionalHeader->NumberOfRvaAndSizes)
+    //        return STATUS_INVALID_FILE_FOR_SECTION;
+    //
+    //    directory = &optionalHeader->DataDirectory[ImageDirectoryIndex];
+    //}
+    //else if (ImageNtHeader->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64)
+    //{
+    //    PIMAGE_OPTIONAL_HEADER64 optionalHeader;
+    //
+    //    optionalHeader = &((PIMAGE_NT_HEADERS64)ImageNtHeader)->OptionalHeader;
+    //
+    //    if (ImageDirectoryIndex >= optionalHeader->NumberOfRvaAndSizes)
+    //        return STATUS_INVALID_FILE_FOR_SECTION;
+    //
+    //    directory = &optionalHeader->DataDirectory[ImageDirectoryIndex];
+    //}
+    //else
+    //{
+    //    return STATUS_INVALID_FILE_FOR_SECTION;
+    //}
+
     if (directory->VirtualAddress == 0 || directory->Size == 0)
         return STATUS_INVALID_FILE_FOR_SECTION;
 
@@ -6763,20 +6790,18 @@ PVOID PhGetLoaderEntryImageExportFunction(
             );
 
         if (exportIndex == ULONG_MAX)
-        {
-            for (exportIndex = 0; exportIndex < ExportDirectory->NumberOfNames; exportIndex++)
-            {
-                if (PhEqualBytesZ(ExportName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[exportIndex]), FALSE))
-                {
-                    exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
-                    break;
-                }
-            }
-        }
-        else
-        {
-            exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
-        }
+            return NULL;
+
+        exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
+
+        //for (exportIndex = 0; exportIndex < ExportDirectory->NumberOfNames; exportIndex++)
+        //{
+        //    if (PhEqualBytesZ(ExportName, PTR_ADD_OFFSET(BaseAddress, exportNameTable[exportIndex]), FALSE))
+        //    {
+        //        exportAddress = PTR_ADD_OFFSET(BaseAddress, exportAddressTable[exportOrdinalTable[exportIndex]]);
+        //        break;
+        //    }
+        //}
     }
 
     if (!exportAddress)
@@ -7673,6 +7698,7 @@ NTSTATUS PhLoadPluginImage(
         imageNtHeaders,
         "ProcessHacker.exe"
         );
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
