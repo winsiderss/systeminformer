@@ -3,7 +3,7 @@
  *   object search
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -27,6 +27,7 @@
 #include <emenu.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
+#include <secedit.h>
 #include <workqueue.h>
 
 #include <colmgr.h>
@@ -108,6 +109,7 @@ typedef enum _PH_HANDLE_OBJECT_TREE_COLUMN_ITEM_NAME
     PH_OBJECT_SEARCH_TREE_COLUMN_HANDLE, 
     PH_OBJECT_SEARCH_TREE_COLUMN_OBJECTADDRESS,
     PH_OBJECT_SEARCH_TREE_COLUMN_ORIGINALNAME,
+    PH_OBJECT_SEARCH_TREE_COLUMN_GRANTEDACCESS,
     PH_OBJECT_SEARCH_TREE_COLUMN_MAXIMUM
 } PH_HANDLE_OBJECT_TREE_COLUMN_ITEM_NAME;
 
@@ -123,6 +125,7 @@ typedef struct _PH_HANDLE_OBJECT_TREE_ROOT_NODE
     PPH_STRING TypeNameString;
     PPH_STRING ObjectNameString;
     PPH_STRING BestObjectName;
+    PPH_STRING GrantedAccessSymbolicText;
     WCHAR HandleString[PH_PTR_STR_LEN_1];
     WCHAR ObjectString[PH_PTR_STR_LEN_1];
 
@@ -185,6 +188,12 @@ BEGIN_SORT_FUNCTION(OriginalName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(GrantedAccess)
+{
+    sortResult = PhCompareString(node1->GrantedAccessSymbolicText, node2->GrantedAccessSymbolicText, TRUE);
+}
+END_SORT_FUNCTION
+
 VOID PhpHandleObjectLoadSettingsTreeList(
     _Inout_ PPH_HANDLE_SEARCH_CONTEXT Context
     )
@@ -233,6 +242,7 @@ VOID PhpDestroyHandleObjectNode(
     PhClearReference(&Node->TypeNameString);
     PhClearReference(&Node->ObjectNameString);
     PhClearReference(&Node->BestObjectName);
+    PhClearReference(&Node->GrantedAccessSymbolicText);
 
     PhFree(Node);
 }
@@ -349,7 +359,8 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Handle),
                     SORT_FUNCTION(ObjectAddress),
-                    SORT_FUNCTION(OriginalName)
+                    SORT_FUNCTION(OriginalName),
+                    SORT_FUNCTION(GrantedAccess),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -408,6 +419,9 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
                 break;
             case PH_OBJECT_SEARCH_TREE_COLUMN_ORIGINALNAME:
                 getCellText->Text = PhGetStringRef(node->ObjectNameString);
+                break;
+            case PH_OBJECT_SEARCH_TREE_COLUMN_GRANTEDACCESS:
+                getCellText->Text = PhGetStringRef(node->GrantedAccessSymbolicText);
                 break;
             default:
                 return FALSE;
@@ -582,6 +596,7 @@ VOID PhpInitializeHandleObjectTree(
 
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_OBJECTADDRESS, FALSE, L"Object address", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_OBJECT_SEARCH_TREE_COLUMN_GRANTEDACCESS, FALSE, L"Granted access", 200, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
 
@@ -760,6 +775,30 @@ VOID PhpFindObjectAddResultEntries(
         {
             objectNode->HandleObject = searchResult->Object;
             PhPrintPointer(objectNode->ObjectString, searchResult->Object);
+        }
+
+        if (searchResult->Info.GrantedAccess != 0)
+        {
+            PPH_ACCESS_ENTRY accessEntries;
+            ULONG numberOfAccessEntries;
+
+            if (PhGetAccessEntries(PhGetStringOrEmpty(searchResult->TypeName), &accessEntries, &numberOfAccessEntries))
+            {
+                objectNode->GrantedAccessSymbolicText = PhGetAccessString(searchResult->Info.GrantedAccess, accessEntries, numberOfAccessEntries);
+                PhFree(accessEntries);
+            }
+
+            if (objectNode->GrantedAccessSymbolicText)
+            {
+                WCHAR grantedAccessString[PH_PTR_STR_LEN_1];
+
+                PhPrintPointer(grantedAccessString, UlongToPtr(searchResult->Info.GrantedAccess));
+                PhMoveReference(&objectNode->GrantedAccessSymbolicText, PhFormatString(
+                    L"%s (0x%s)",
+                    PhGetString(objectNode->GrantedAccessSymbolicText),
+                    grantedAccessString
+                    ));
+            }
         }
 
         if (processItem)
