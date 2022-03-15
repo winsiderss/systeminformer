@@ -3,7 +3,7 @@
  *   thread provider
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1057,14 +1057,70 @@ VOID PhpThreadProviderUpdate(
 
             // Update the CPU usage.
             // If the cycle time isn't available, we'll fall back to using the CPU time.
-            if (PhEnableCycleCpuUsage && (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID || threadItem->ThreadHandle))
+            //if (PhEnableCycleCpuUsage && (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID || threadItem->ThreadHandle))
+            //{
+            //    threadItem->CpuUsage = (FLOAT)threadItem->CyclesDelta.Delta / PhCpuTotalCycleDelta;
+            //}
+            //else
+            //{
+            //    threadItem->CpuUsage = (FLOAT)(threadItem->CpuKernelDelta.Delta + threadItem->CpuUserDelta.Delta) /
+            //        (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuIdleDelta.Delta);
+            //}
+
+            // Update the CPU user/kernel usage (based on the same code from procprv.c) (dmex)
             {
-                threadItem->CpuUsage = (FLOAT)threadItem->CyclesDelta.Delta / PhCpuTotalCycleDelta;
-            }
-            else
-            {
-                threadItem->CpuUsage = (FLOAT)(threadItem->CpuKernelDelta.Delta + threadItem->CpuUserDelta.Delta) /
-                    (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuIdleDelta.Delta);
+                FLOAT newCpuUsage;
+                FLOAT kernelCpuUsage;
+                FLOAT userCpuUsage;
+
+                if (PhEnableCycleCpuUsage)
+                {
+                    FLOAT totalDelta;
+
+                    if (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID || threadItem->ThreadHandle)
+                    {
+                        newCpuUsage = (FLOAT)threadItem->CyclesDelta.Delta / PhCpuTotalCycleDelta;
+                    }
+                    else
+                    {
+                        newCpuUsage = (FLOAT)(threadItem->CpuKernelDelta.Delta + threadItem->CpuUserDelta.Delta) /
+                            (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuIdleDelta.Delta);
+                    }
+
+                    totalDelta = (FLOAT)(threadItem->CpuKernelDelta.Delta + threadItem->CpuUserDelta.Delta);
+
+                    if (totalDelta != 0)
+                    {
+                        kernelCpuUsage = newCpuUsage * ((FLOAT)threadItem->CpuKernelDelta.Delta / totalDelta);
+                        userCpuUsage = newCpuUsage * ((FLOAT)threadItem->CpuUserDelta.Delta / totalDelta);
+                    }
+                    else
+                    {
+                        if (threadItem->UserTime.QuadPart != 0)
+                        {
+                            kernelCpuUsage = newCpuUsage / 2;
+                            userCpuUsage = newCpuUsage / 2;
+                        }
+                        else
+                        {
+                            kernelCpuUsage = newCpuUsage;
+                            userCpuUsage = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    ULONG64 sysTotalTime;
+
+                    sysTotalTime = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuIdleDelta.Delta;
+                    kernelCpuUsage = (FLOAT)threadItem->CpuKernelDelta.Delta / sysTotalTime;
+                    userCpuUsage = (FLOAT)threadItem->CpuUserDelta.Delta / sysTotalTime;
+                    newCpuUsage = kernelCpuUsage + userCpuUsage;
+                }
+
+                threadItem->CpuUsage = newCpuUsage;
+                threadItem->CpuKernelUsage = kernelCpuUsage;
+                threadItem->CpuUserUsage = userCpuUsage;
             }
 
             // Update the base priority increment.

@@ -18,6 +18,9 @@ typedef struct _PH_THREAD_ITEM
     PH_UINT64_DELTA CyclesDelta;
 
     FLOAT CpuUsage;
+    FLOAT CpuKernelUsage;
+    FLOAT CpuUserUsage;
+
     LONG Priority;
     LONG BasePriority;
     KTHREAD_STATE State;

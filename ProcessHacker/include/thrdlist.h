@@ -37,6 +37,12 @@ typedef enum _PH_THREAD_TREELIST_COLUMN
     PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE,
     PH_THREAD_TREELIST_COLUMN_TIMELINE,
     PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE,
+    PH_THREAD_TREELIST_COLUMN_FIBER,
+    PH_THREAD_TREELIST_COLUMN_PRIORITYBOOST,
+    PH_THREAD_TREELIST_COLUMN_CPUUSER,
+    PH_THREAD_TREELIST_COLUMN_CPUKERNEL,
+    //PH_THREAD_TREELIST_COLUMN_CPUHISTORY,
+    PH_THREAD_TREELIST_COLUMN_STACKUSAGE,
     PH_THREAD_TREELIST_COLUMN_MAXIMUM
 } PH_THREAD_TREELIST_COLUMN;
 
@@ -87,9 +93,14 @@ typedef struct _PH_THREAD_NODE
     USHORT LastSystemCallNumber;
     ULONG LastStatusCode;
     ULONG ApartmentState;
+    BOOLEAN Fiber;
+    BOOLEAN PriorityBoost;
+    FLOAT StackUsage;
     PH_THREAD_TOKEN_STATE TokenState;
     WCHAR ThreadIdText[PH_INT32_STR_LEN_1];
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
+    WCHAR CpuUserUsageText[PH_INT32_STR_LEN_1];
+    WCHAR CpuKernelUsageText[PH_INT32_STR_LEN_1];
     PPH_STRING CyclesDeltaText; // used for Context Switches Delta as well
     PPH_STRING ContextSwitchesDeltaText;
     PPH_STRING StartAddressText;
@@ -100,6 +111,7 @@ typedef struct _PH_THREAD_NODE
     PPH_STRING LastSystemCallText;
     PPH_STRING LastErrorCodeText;
     PPH_STRING ApartmentStateText;
+    PPH_STRING StackUsageText;
     WCHAR ContextSwitchesText[PH_INT64_STR_LEN_1];
     WCHAR PriorityText[PH_INT32_STR_LEN_1];
     WCHAR BasePriorityText[PH_INT32_STR_LEN_1];
