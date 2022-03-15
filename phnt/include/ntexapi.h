@@ -1295,7 +1295,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessInformation, // q: SYSTEM_PROCESS_INFORMATION
     SystemCallCountInformation, // q: SYSTEM_CALL_COUNT_INFORMATION
     SystemDeviceInformation, // q: SYSTEM_DEVICE_INFORMATION
-    SystemProcessorPerformanceInformation, // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
+    SystemProcessorPerformanceInformation, // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION (EX in: USHORT ProcessorGroup)
     SystemFlagsInformation, // q: SYSTEM_FLAGS_INFORMATION
     SystemCallTimeInformation, // not implemented // SYSTEM_CALL_TIME_INFORMATION // 10
     SystemModuleInformation, // q: RTL_PROCESS_MODULES
