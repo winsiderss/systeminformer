@@ -464,6 +464,21 @@ FORCEINLINE ULONG PhCountBits(
     return count;
 }
 
+FORCEINLINE ULONG PhCountBitsUlongPtr(
+    _In_ ULONG_PTR Value
+    )
+{
+    ULONG count = 0;
+
+    while (Value)
+    {
+        count++;
+        Value &= Value - 1;
+    }
+
+    return count;
+}
+
 FORCEINLINE ULONG64 PhRoundNumber(
     _In_ ULONG64 Value,
     _In_ ULONG64 Granularity
