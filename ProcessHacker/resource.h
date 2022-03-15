@@ -553,6 +553,7 @@
 #define ID_THREAD_PERMISSIONS           40015
 #define ID_THREAD_TOKEN                 40016
 #define ID_ANALYZE_WAIT                 40018
+#define ID_PRIORITY_BOOST               40019
 #define ID_PRIORITY_TIMECRITICAL        40020
 #define ID_PRIORITY_HIGHEST             40021
 #define ID_PRIORITY_ABOVENORMAL         40022
