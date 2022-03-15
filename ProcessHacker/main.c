@@ -1127,7 +1127,6 @@ VOID PhpShowKphError(
     _In_opt_ NTSTATUS Status
     )
 {
-#ifndef DEBUG
     if (Status == STATUS_NO_SUCH_FILE)
     {
         PhShowError2(
@@ -1167,7 +1166,6 @@ VOID PhpShowKphError(
                 );
         }
     }
-#endif
 }
 
 VOID PhInitializeKph(
@@ -1203,7 +1201,7 @@ VOID PhInitializeKph(
         {
             if (latestBuildNumber != PhOsVersion.dwBuildNumber)
             {
-                if (KphParametersExists(PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME)))
+                if (KphParametersExists(PhGetString(kphServiceName)))
                 {
                     if (PhShowMessage(
                         NULL,
@@ -1215,7 +1213,7 @@ VOID PhInitializeKph(
                         return;
                     }
 
-                    if (NT_SUCCESS(KphResetParameters(PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME))))
+                    if (NT_SUCCESS(KphResetParameters(PhGetString(kphServiceName))))
                     {
                         PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
                     }
@@ -1236,7 +1234,7 @@ VOID PhInitializeKph(
         parameters.CreateDynamicConfiguration = TRUE;
 
         if (NT_SUCCESS(status = KphConnect2Ex(
-            PhGetStringOrDefault(kphServiceName, KPH_DEVICE_SHORT_NAME),
+            PhGetString(kphServiceName),
             KPH_DEVICE_SHORT_NAME,
             kphFileName->Buffer,
             &parameters
