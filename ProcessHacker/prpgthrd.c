@@ -3,7 +3,7 @@
  *   Process properties: Threads page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2018-2021 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -195,6 +195,7 @@ VOID PhpInitializeThreadMenu(
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = ULONG_MAX;
         ULONG pagePriority = ULONG_MAX;
+        BOOLEAN threadPriorityBoost = FALSE;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -208,6 +209,7 @@ VOID PhpInitializeThreadMenu(
             PhGetThreadBasePriority(threadHandle, &threadPriority);
             PhGetThreadIoPriority(threadHandle, &ioPriority);
             PhGetThreadPagePriority(threadHandle, &pagePriority);
+            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
 
             if (NT_SUCCESS(NtOpenThreadToken(
                 threadHandle,
@@ -314,6 +316,13 @@ VOID PhpInitializeThreadMenu(
                     PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
                     PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
             }
+        }
+     
+        if (threadPriorityBoost)
+        {
+            PhSetFlagsEMenuItem(Menu, ID_PRIORITY_BOOST,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
     }
 }
@@ -509,6 +518,8 @@ PPH_EMENU PhpCreateThreadMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_TOKEN, L"&Token", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, 0, L"&Priority", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Priority boost", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_TIMECRITICAL, L"Time &critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_HIGHEST, L"&Highest", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, NULL), ULONG_MAX);
@@ -1265,6 +1276,42 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             threadsContext->Provider->SymbolProvider
                             );
                         PhDereferenceObject(threadsContext->Provider->SymbolProvider);
+                    }
+                }
+                break;
+            case ID_PRIORITY_BOOST:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
+
+                    if (threadItem)
+                    {
+                        NTSTATUS status;
+                        HANDLE threadHandle;
+
+                        if (NT_SUCCESS(status = PhOpenThread(
+                            &threadHandle,
+                            THREAD_QUERY_LIMITED_INFORMATION,
+                            threadItem->ThreadId
+                            )))
+                        {
+                            BOOLEAN threadPriorityBoost = FALSE;
+                            ULONG numberOfThreads;
+                            PPH_THREAD_ITEM* threads;
+
+                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+
+                            PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                            PhReferenceObjects(threads, numberOfThreads);
+                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoost);
+                            PhDereferenceObjects(threads, numberOfThreads);
+                            PhFree(threads);
+
+                            NtClose(threadHandle);
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
+                        }
                     }
                 }
                 break;
