@@ -218,7 +218,6 @@ NTSTATUS KpiOpenThreadProcess(
 {
     NTSTATUS status;
     PETHREAD thread;
-    PEPROCESS process;
     KPH_KEY_LEVEL requiredKeyLevel;
     HANDLE processHandle;
 

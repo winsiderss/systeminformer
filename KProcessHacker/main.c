@@ -287,7 +287,6 @@ NTSTATUS KphpReadDriverParameters(
     UNICODE_STRING parametersString;
     UNICODE_STRING parametersKeyName;
     OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING valueName;
 
     PAGED_CODE();
 
@@ -381,7 +380,6 @@ NTSTATUS KpiPopulateKnownDllExtents(
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE sectionHandle;
     SECTION_IMAGE_INFORMATION sectionImageInfo;
-    MEMORY_REGION_INFORMATION memoryRegionInfo;
     PVOID sectionObject;
     PVOID mappedBase;
     SIZE_T mappedSize;
