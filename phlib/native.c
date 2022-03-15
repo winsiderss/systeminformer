@@ -11025,7 +11025,7 @@ NTSTATUS PhFreezeProcess(
 
         PhAddEntryHashtable(PhProcessStateHashtable, &entry);
     }
-    else
+    else if (stateHandle)
     {
         NtClose(stateHandle);
     }
