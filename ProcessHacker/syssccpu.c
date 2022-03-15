@@ -1078,7 +1078,7 @@ VOID PhSipUpdateCpuPanel(
             {
             case RelationProcessorCore:
                 processorCoreCount++;
-                processorLogicalCount += PhCountBits((ULONG)processorInfo->ProcessorMask); // RtlNumberOfSetBitsUlongPtr
+                processorLogicalCount += PhCountBitsUlongPtr(processorInfo->ProcessorMask); // RtlNumberOfSetBitsUlongPtr
                 break;
             case RelationNumaNode:
                 processorNumaCount++;
