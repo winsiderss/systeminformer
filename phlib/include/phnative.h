@@ -1929,6 +1929,35 @@ PhGetThreadApartmentState(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadStackLimits(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG_PTR LowPart,
+    _Out_ PULONG_PTR HighPart
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadStackSize(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG_PTR StackUsage,
+    _Out_ PULONG_PTR StackLimit
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadIsFiber(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN ThreadIsFiber
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhIsFirmwareSupported(
