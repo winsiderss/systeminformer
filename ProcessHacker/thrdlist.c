@@ -118,7 +118,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_USERTIME, FALSE, L"User time", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IDEALPROCESSOR, FALSE, L"Ideal processor", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CRITICAL, FALSE, L"Critical", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
-    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIDHEX, FALSE, L"TID (Hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIDHEX, FALSE, L"TID (hex)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUCORECYCLES, FALSE, L"CPU (relative)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TOKEN_STATE, FALSE, L"Impersonation", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PENDINGIRP, FALSE, L"Pending IRP", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
@@ -126,10 +126,16 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_LASTSTATUSCODE, FALSE, L"Last status code", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_APARTMENTSTATE, FALSE, L"COM apartment", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_FIBER, FALSE, L"Fiber", 50, PH_ALIGN_RIGHT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_PRIORITYBOOST, FALSE, L"Priority boost", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUKERNEL, FALSE, L"CPU (kernel)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    //PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUHISTORY, FALSE, L"CPU history", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STACKUSAGE, FALSE, L"Stack usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
-    //TreeNew_SetSort(TreeNewHandle, PHTHTLC_CYCLESDELTA, DescendingSortOrder);
+    TreeNew_SetSort(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CYCLESDELTA, DescendingSortOrder);
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, PH_THREAD_TREELIST_COLUMN_MAXIMUM, PhpThreadTreeNewPostSortFunction);
 
@@ -665,6 +671,36 @@ BEGIN_SORT_FUNCTION(ApartmentState)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Fiber)
+{
+    sortResult = ucharcmp(node1->Fiber, node2->Fiber);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PriorityBoost)
+{
+    sortResult = ucharcmp(node1->PriorityBoost, node2->PriorityBoost);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CpuUser)
+{
+    sortResult = singlecmp(threadItem1->CpuUserUsage, threadItem2->CpuUserUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CpuKernel)
+{
+    sortResult = singlecmp(threadItem1->CpuKernelUsage, threadItem2->CpuKernelUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StackUsage)
+{
+    sortResult = singlecmp(node1->StackUsage, node2->StackUsage);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -723,6 +759,11 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(LastStatusCode),
                     SORT_FUNCTION(Created), // Timeline
                     SORT_FUNCTION(ApartmentState),
+                    SORT_FUNCTION(Fiber),
+                    SORT_FUNCTION(PriorityBoost),
+                    SORT_FUNCTION(CpuUser),
+                    SORT_FUNCTION(CpuKernel),
+                    SORT_FUNCTION(StackUsage),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1431,6 +1472,216 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     }
 
                     getCellText->Text = PhGetStringRef(node->ApartmentStateText);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_FIBER:
+                {
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+                    BOOLEAN threadIsFiber = FALSE;
+
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
+
+                    if (!node->ThreadReadVmHandleValid)
+                    {
+                        if (!node->ThreadReadVmHandle)
+                        {
+                            if (threadItem->ThreadHandle)
+                            {
+                                HANDLE processHandle;
+
+                                if (NT_SUCCESS(PhOpenThreadProcess(
+                                    threadItem->ThreadHandle,
+                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                                    &processHandle
+                                    )))
+                                {
+                                    node->ThreadReadVmHandle = processHandle;
+                                }
+                            }
+                        }
+
+                        node->ThreadReadVmHandleValid = TRUE;
+                    }
+
+                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
+                    {
+                        status = PhGetThreadIsFiber(
+                            threadItem->ThreadHandle,
+                            node->ThreadReadVmHandle,
+                            &threadIsFiber
+                            );
+                    }
+
+                    node->Fiber = threadIsFiber;
+
+                    if (NT_SUCCESS(status) && threadIsFiber)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_PRIORITYBOOST:
+                {
+                    BOOLEAN priorityBoost = FALSE;
+
+                    if (threadItem->ThreadHandle)
+                    {
+                        PhGetThreadPriorityBoost(threadItem->ThreadHandle, &priorityBoost);
+                    }
+
+                    node->PriorityBoost = priorityBoost;
+
+                    if (priorityBoost)
+                        PhInitializeStringRef(&getCellText->Text, L"Yes");
+                    else
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_CPUUSER:
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = threadItem->CpuUserUsage * 100;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+                        SIZE_T returnLength;
+
+                        PhInitFormatF(&format, cpuUsage, 2);
+
+                        if (PhFormatToBuffer(&format, 1, node->CpuUserUsageText, sizeof(node->CpuUserUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuUserUsageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PH_FORMAT format[2];
+                        SIZE_T returnLength;
+
+                        PhInitFormatS(&format[0], L"< ");
+                        PhInitFormatF(&format[1], 0.01, 2);
+
+                        if (PhFormatToBuffer(format, 2, node->CpuUserUsageText, sizeof(node->CpuUserUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuUserUsageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_CPUKERNEL:
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = threadItem->CpuKernelUsage * 100;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+                        SIZE_T returnLength;
+
+                        PhInitFormatF(&format, cpuUsage, 2);
+
+                        if (PhFormatToBuffer(&format, 1, node->CpuKernelUsageText, sizeof(node->CpuKernelUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuKernelUsageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PH_FORMAT format[2];
+                        SIZE_T returnLength;
+
+                        PhInitFormatS(&format[0], L"< ");
+                        PhInitFormatF(&format[1], 0.01, 2);
+
+                        if (PhFormatToBuffer(format, 2, node->CpuKernelUsageText, sizeof(node->CpuKernelUsageText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CpuKernelUsageText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_STACKUSAGE:
+                {
+                    NTSTATUS status = STATUS_UNSUCCESSFUL;
+                    ULONG_PTR stackUsage = 0;
+                    ULONG_PTR stackLimit = 0;
+
+                    if (context->ProcessId == SYSTEM_IDLE_PROCESS_ID || context->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                        break;
+                    }
+
+                    if (!node->ThreadReadVmHandleValid)
+                    {
+                        if (!node->ThreadReadVmHandle)
+                        {
+                            if (threadItem->ThreadHandle)
+                            {
+                                HANDLE processHandle;
+
+                                if (NT_SUCCESS(PhOpenThreadProcess(
+                                    threadItem->ThreadHandle,
+                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                                    &processHandle
+                                    )))
+                                {
+                                    node->ThreadReadVmHandle = processHandle;
+                                }
+                            }
+                        }
+
+                        node->ThreadReadVmHandleValid = TRUE;
+                    }
+
+                    if (threadItem->ThreadHandle && node->ThreadReadVmHandle)
+                    {
+                        status = PhGetThreadStackSize(
+                            threadItem->ThreadHandle,
+                            node->ThreadReadVmHandle,
+                            &stackUsage,
+                            &stackLimit
+                            );
+                    }
+
+                    if (NT_SUCCESS(status) && stackUsage && stackLimit)
+                    {
+                        FLOAT percent = (FLOAT)stackUsage / stackLimit * 100;
+                        PH_FORMAT format[6];
+
+                        // %s / %s (%.0f%%)
+                        PhInitFormatSize(&format[0], stackUsage);
+                        PhInitFormatS(&format[1], L" | ");
+                        PhInitFormatSize(&format[2], stackLimit);
+                        PhInitFormatS(&format[3], L" (");
+                        PhInitFormatF(&format[4], percent, 1);
+                        PhInitFormatS(&format[5], L"%)");
+
+                        PhMoveReference(&node->StackUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        node->StackUsage = percent;
+                    }
+                    else
+                    {
+                        PhClearReference(&node->StackUsageText);
+                        node->StackUsage = 0;
+                    }
+
+                    getCellText->Text = PhGetStringRef(node->StackUsageText);
                 }
                 break;
             default:
