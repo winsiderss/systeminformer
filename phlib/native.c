@@ -10768,6 +10768,243 @@ NTSTATUS PhGetThreadApartmentState(
     return status;
 }
 
+NTSTATUS PhGetThreadStackLimits(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG_PTR LowPart,
+    _Out_ PULONG_PTR HighPart
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    NT_TIB ntTib;
+    PVOID dallocationStack;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    memset(&ntTib, 0, sizeof(NT_TIB));
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, NtTib)),
+            &ntTib,
+            sizeof(NT_TIB32),
+            NULL
+            );
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, DeallocationStack)),
+            &dallocationStack,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+    else
+#endif
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, NtTib)),
+            &ntTib,
+            sizeof(NT_TIB),
+            NULL
+            );
+
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, DeallocationStack)),
+            &dallocationStack,
+            sizeof(PVOID),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+#ifdef _WIN64
+        if (isWow64)
+        {
+            PNT_TIB32 ntTib32 = (PNT_TIB32)&ntTib;
+            *LowPart = (ULONG_PTR)UlongToPtr(ntTib32->StackLimit);
+            *HighPart = (ULONG_PTR)UlongToPtr(ntTib32->StackBase);
+        }
+        else
+        {
+            *LowPart = (ULONG_PTR)ntTib.StackLimit;
+            *HighPart = (ULONG_PTR)ntTib.StackBase;
+        }
+#else
+        *LowPart = ntTib.StackLimit;
+        *HighPart = ntTib.StackBase;
+#endif
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetThreadStackSize(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG_PTR StackUsage,
+    _Out_ PULONG_PTR StackLimit
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    NT_TIB ntTib;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    memset(&ntTib, 0, sizeof(NT_TIB));
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, NtTib)),
+            &ntTib,
+            sizeof(NT_TIB32),
+            NULL
+            );
+    }
+    else
+#endif
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, NtTib)),
+            &ntTib,
+            sizeof(NT_TIB),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        MEMORY_BASIC_INFORMATION basicInfo;
+        PVOID stackBaseAddress = NULL;
+        PVOID stackLimitAddress = NULL;
+
+#ifdef _WIN64
+        if (isWow64)
+        {
+            PNT_TIB32 ntTib32 = (PNT_TIB32)&ntTib;
+            stackBaseAddress = UlongToPtr(ntTib32->StackBase);
+            stackLimitAddress = UlongToPtr(ntTib32->StackLimit);
+        }
+        else
+        {
+            stackBaseAddress = ntTib.StackBase;
+            stackLimitAddress = ntTib.StackLimit;
+        }
+#else
+        stackBaseAddress = ntTib.StackBase;
+        stackLimitAddress = ntTib.StackLimit;
+#endif
+        memset(&basicInfo, 0, sizeof(MEMORY_BASIC_INFORMATION));
+
+        status = NtQueryVirtualMemory(
+            ProcessHandle,
+            stackLimitAddress,
+            MemoryBasicInformation,
+            &basicInfo,
+            sizeof(MEMORY_BASIC_INFORMATION),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            // TEB->DeallocationStack == basicInfo.AllocationBase
+            *StackUsage = (ULONG_PTR)PTR_SUB_OFFSET(stackBaseAddress, stackLimitAddress);
+            *StackLimit = (ULONG_PTR)PTR_SUB_OFFSET(stackBaseAddress, basicInfo.AllocationBase);
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetThreadIsFiber(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN ThreadIsFiber
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    BOOLEAN openedProcessHandle = FALSE;
+#ifdef _WIN64
+    BOOLEAN isWow64 = FALSE;
+#endif
+    LONG flags = 0;
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    if (!ProcessHandle)
+    {
+        if (!NT_SUCCESS(status = PhOpenThreadProcess(
+            ThreadHandle,
+            PROCESS_VM_READ,
+            &ProcessHandle
+            )))
+            return status;
+
+        openedProcessHandle = TRUE;
+    }
+
+#ifdef _WIN64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, SameTebFlags)),
+            &flags,
+            sizeof(USHORT),
+            NULL
+            );
+    }
+    else
+#endif
+    {
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, SameTebFlags)),
+            &flags,
+            sizeof(USHORT),
+            NULL
+            );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ThreadIsFiber = _bittest(&flags, 2); // HasFiberData offset (dmex)
+    }
+
+    if (openedProcessHandle)
+        NtClose(ProcessHandle);
+
+    return status;
+}
+
 BOOLEAN PhIsFirmwareSupported(
     VOID
     )
