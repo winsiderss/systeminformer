@@ -190,7 +190,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(GrantedAccess)
 {
-    sortResult = PhCompareString(node1->GrantedAccessSymbolicText, node2->GrantedAccessSymbolicText, TRUE);
+    sortResult = PhCompareStringWithNull(node1->GrantedAccessSymbolicText, node2->GrantedAccessSymbolicText, TRUE);
 }
 END_SORT_FUNCTION
 
