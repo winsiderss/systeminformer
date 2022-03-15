@@ -10844,8 +10844,8 @@ NTSTATUS PhGetThreadStackLimits(
             *HighPart = (ULONG_PTR)ntTib.StackBase;
         }
 #else
-        *LowPart = ntTib.StackLimit;
-        *HighPart = ntTib.StackBase;
+        *LowPart = (ULONG_PTR)ntTib.StackLimit;
+        *HighPart = (ULONG_PTR)ntTib.StackBase;
 #endif
     }
 
