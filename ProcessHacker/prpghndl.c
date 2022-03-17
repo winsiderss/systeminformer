@@ -29,6 +29,7 @@
 #include <emenu.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
+#include <settings.h>
 
 #include <actions.h>
 #include <extmgri.h>
@@ -274,6 +275,10 @@ BOOLEAN PhpHandleTreeFilterCallback(
     PPH_HANDLE_NODE handleNode = (PPH_HANDLE_NODE)Node;
     PPH_HANDLE_ITEM handleItem = handleNode->HandleItem;
 
+    if (handlesContext->ListContext.HideProtectedHandles && handleItem->Attributes & OBJ_PROTECT_CLOSE)
+        return FALSE;
+    if (handlesContext->ListContext.HideInheritHandles && handleItem->Attributes & OBJ_INHERIT)
+        return FALSE;
     if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
         return FALSE;
 
@@ -713,21 +718,39 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 {
                     RECT rect;
                     PPH_EMENU menu;
+                    PPH_EMENU_ITEM protectedMenuItem;
+                    PPH_EMENU_ITEM inheritMenuItem;
                     PPH_EMENU_ITEM unnamedMenuItem;
                     PPH_EMENU_ITEM etwMenuItem;
+                    PPH_EMENU_ITEM protectedHighlightMenuItem;
+                    PPH_EMENU_ITEM inheritHighlightMenuItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_OPTIONS), &rect);
 
                     menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, unnamedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES, L"Hide unnamed handles", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, etwMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDEETWHANDLES, L"Hide etw handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, protectedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_PROTECTED_HANDLES, L"Hide protected handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, inheritMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_INHERIT_HANDLES, L"Hide inherit handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, unnamedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_UNNAMED_HANDLES, L"Hide unnamed handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, etwMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_ETW_HANDLES, L"Hide etw handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, protectedHighlightMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_PROTECTED_HANDLES, L"Highlight protected handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, inheritHighlightMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_INHERIT_HANDLES, L"Highlight inherit handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HANDLESTATS, L"Statistics", NULL, NULL), ULONG_MAX);
 
+                    if (handlesContext->ListContext.HideProtectedHandles)
+                        protectedMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (handlesContext->ListContext.HideInheritHandles)
+                        inheritMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (handlesContext->ListContext.HideUnnamedHandles)
                         unnamedMenuItem->Flags |= PH_EMENU_CHECKED;
-
                     if (handlesContext->ListContext.HideEtwHandles)
                         etwMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (PhCsUseColorProtectedHandles)
+                        protectedHighlightMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (PhCsUseColorInheritHandles)
+                        inheritHighlightMenuItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -740,9 +763,30 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                     if (selectedItem && selectedItem->Id)
                     {
-                        PhSetOptionsHandleList(&handlesContext->ListContext, selectedItem->Id);
-                        PhSaveSettingsHandleList(&handlesContext->ListContext);
-                        PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
+                        if (selectedItem->Id == PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_PROTECTED_HANDLES)
+                        {
+                            // HACK (dmex)
+                            PhSetIntegerSetting(L"UseColorProtectedHandles", !PhCsUseColorProtectedHandles);
+                            PhCsUseColorProtectedHandles = !PhCsUseColorProtectedHandles;
+                            TreeNew_NodesStructured(handlesContext->TreeNewHandle);
+                        }
+                        else if (selectedItem->Id == PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_INHERIT_HANDLES)
+                        {
+                            // HACK (dmex)
+                            PhSetIntegerSetting(L"UseColorInheritHandles", !PhCsUseColorInheritHandles);
+                            PhCsUseColorInheritHandles = !PhCsUseColorInheritHandles;
+                            TreeNew_NodesStructured(handlesContext->TreeNewHandle);
+                        }
+                        else if (selectedItem->Id == PH_HANDLE_TREE_MENUITEM_HANDLESTATS)
+                        {
+                            PhShowHandleStatisticsDialog(hwndDlg, handlesContext->Provider->ProcessId);
+                        }
+                        else
+                        {
+                            PhSetOptionsHandleList(&handlesContext->ListContext, selectedItem->Id);
+                            PhSaveSettingsHandleList(&handlesContext->ListContext);
+                            PhApplyTreeNewFilters(&handlesContext->ListContext.TreeFilterSupport);
+                        }
                     }
 
                     PhDestroyEMenu(menu);

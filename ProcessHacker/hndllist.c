@@ -3,7 +3,7 @@
  *   handle list
  *
  * Copyright (C) 2011-2013 wj32
- * Copyright (C) 2017-2018 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -190,10 +190,16 @@ VOID PhSetOptionsHandleList(
 {
     switch (Options)
     {
-    case PH_HANDLE_TREE_MENUITEM_HIDEUNNAMEDHANDLES:
+    case PH_HANDLE_TREE_MENUITEM_HIDE_PROTECTED_HANDLES:
+        Context->HideProtectedHandles = !Context->HideProtectedHandles;
+        break;
+    case PH_HANDLE_TREE_MENUITEM_HIDE_INHERIT_HANDLES:
+        Context->HideInheritHandles = !Context->HideInheritHandles;
+        break;
+    case PH_HANDLE_TREE_MENUITEM_HIDE_UNNAMED_HANDLES:
         Context->HideUnnamedHandles = !Context->HideUnnamedHandles;
         break;
-    case PH_HANDLE_TREE_MENUITEM_HIDEETWHANDLES:
+    case PH_HANDLE_TREE_MENUITEM_HIDE_ETW_HANDLES:
         Context->HideEtwHandles = !Context->HideEtwHandles;
         break;
     }
@@ -642,7 +648,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
             else if (PhCsUseColorInheritHandles && (handleItem->Attributes & OBJ_INHERIT))
                 getNodeColor->BackColor = PhCsColorInheritHandles;
 
-            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }
         return TRUE;
     case TreeNewSortChanged:
