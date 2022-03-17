@@ -3,6 +3,7 @@
  *   handle statistics window
  *
  * Copyright (C) 2010 wj32
+ * Copyright (C) 2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,6 +24,8 @@
 #include <phapp.h>
 #include <hndlinfo.h>
 #include <hndlprv.h>
+#include <settings.h>
+#include <phsettings.h>
 
 typedef struct _HANDLE_STATISTICS_ENTRY
 {
@@ -34,7 +37,8 @@ typedef struct _HANDLE_STATISTICS_CONTEXT
 {
     HANDLE ProcessId;
     HANDLE ProcessHandle;
-
+    HWND ListViewHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
     PSYSTEM_HANDLE_INFORMATION_EX Handles;
     HANDLE_STATISTICS_ENTRY Entries[MAX_OBJECT_TYPE_NUMBER];
 } HANDLE_STATISTICS_CONTEXT, *PHANDLE_STATISTICS_CONTEXT;
@@ -122,22 +126,54 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PHANDLE_STATISTICS_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = (PHANDLE_STATISTICS_CONTEXT)lParam;
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PHANDLE_STATISTICS_CONTEXT context = (PHANDLE_STATISTICS_CONTEXT)lParam;
             HANDLE processId;
             ULONG_PTR i;
-            HWND lvHandle;
+
+            PhSetApplicationWindowIcon(hwndDlg);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             processId = context->ProcessId;
+            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Type");
+            PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Count");
+
+            PhSetExtendedListView(context->ListViewHandle);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, PhpTypeCountCompareFunction);
+            PhLoadListViewColumnsFromSetting(L"HandleStatisticsListViewColumns", context->ListViewHandle);
+            PhLoadListViewSortColumnsFromSetting(L"HandleStatisticsListViewSort", context->ListViewHandle);
+
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+
+            if (PhGetScalableIntegerPairSetting(L"HandleStatisticsWindowSize", TRUE).X)
+                PhLoadWindowPlacementFromSetting(NULL, L"HandleStatisticsWindowSize", hwndDlg);
 
             for (i = 0; i < context->Handles->NumberOfHandles; i++)
             {
                 PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo;
                 PHANDLE_STATISTICS_ENTRY entry;
-                PPH_STRING typeName;
 
                 handleInfo = &context->Handles->Handles[i];
 
@@ -150,31 +186,28 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
 
                 if (!entry->Name)
                 {
-                    typeName = NULL;
-                    PhGetHandleInformation(
-                        context->ProcessHandle,
-                        (HANDLE)handleInfo->HandleValue,
-                        handleInfo->ObjectTypeIndex,
-                        NULL,
-                        &typeName,
-                        NULL,
-                        NULL
-                        );
-                    entry->Name = typeName;
+                    entry->Name = PhGetObjectTypeName(handleInfo->ObjectTypeIndex);
+
+                    if (PhIsNullOrEmptyString(entry->Name))
+                    {
+                        PPH_STRING typeName = NULL;
+
+                        PhGetHandleInformation(
+                            context->ProcessHandle,
+                            (HANDLE)handleInfo->HandleValue,
+                            handleInfo->ObjectTypeIndex,
+                            NULL,
+                            &typeName,
+                            NULL,
+                            NULL
+                            );
+
+                        PhMoveReference(&entry->Name, typeName);
+                    }
                 }
 
                 entry->Count++;
             }
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Type");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Count");
-
-            PhSetExtendedListView(lvHandle);
-            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpTypeCountCompareFunction);
 
             for (i = 0; i < MAX_OBJECT_TYPE_NUMBER; i++)
             {
@@ -196,12 +229,12 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
                 countString = PhFormatUInt64(entry->Count, TRUE);
 
                 lvItemIndex = PhAddListViewItem(
-                    lvHandle,
+                    context->ListViewHandle,
                     MAXINT,
                     entry->Name ? entry->Name->Buffer : unknownType->Buffer,
                     entry
                     );
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, countString->Buffer);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, countString->Buffer);
 
                 PhDereferenceObject(countString);
 
@@ -209,12 +242,18 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
                     PhDereferenceObject(unknownType);
             }
 
-            ExtendedListView_SortItems(lvHandle);
+            ExtendedListView_SortItems(context->ListViewHandle);
         }
         break;
     case WM_DESTROY:
         {
-            // Nothing
+            PhSaveListViewSortColumnsToSetting(L"HandleStatisticsListViewSort", context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(L"HandleStatisticsListViewColumns", context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(NULL, L"HandleStatisticsWindowSize", hwndDlg);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -230,9 +269,20 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
         break;
     case WM_NOTIFY:
         {
-            PhHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+            PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
