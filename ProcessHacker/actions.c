@@ -3,7 +3,7 @@
  *   UI actions
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -3324,6 +3324,71 @@ BOOLEAN PhUiSetPriorityProcesses(
     }
 
     return success;
+}
+
+BOOLEAN PhUiSetBoostPriorityProcesses(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM* Processes,
+    _In_ ULONG NumberOfProcesses,
+    _In_ BOOLEAN PriorityBoost
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfProcesses; i++)
+    {
+        NTSTATUS status;
+        HANDLE processHandle;
+
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_SET_INFORMATION,
+            Processes[i]->ProcessId
+            )))
+        {
+            status = PhSetProcessPriorityBoost(processHandle, PriorityBoost);
+            NtClose(processHandle);
+
+            if (!NT_SUCCESS(status))
+            {
+                success = FALSE;
+
+                if (!PhpShowErrorProcess(WindowHandle, L"change boost priority of", Processes[i], status, 0))
+                    break;
+            }
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiSetBoostPriorityProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ BOOLEAN PriorityBoost
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        Process->ProcessId
+        )))
+    {
+        status = PhSetProcessPriorityBoost(processHandle, PriorityBoost);
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(hWnd, L"set the boost priority of", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 static VOID PhpShowErrorService(

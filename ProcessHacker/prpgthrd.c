@@ -321,8 +321,7 @@ VOID PhpInitializeThreadMenu(
         if (threadPriorityBoost)
         {
             PhSetFlagsEMenuItem(Menu, ID_PRIORITY_BOOST,
-                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
-                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+                PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
 }
@@ -518,7 +517,7 @@ PPH_EMENU PhpCreateThreadMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_TOKEN, L"&Token", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, 0, L"&Priority", NULL, NULL);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Priority boost", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Boost", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_TIMECRITICAL, L"Time &critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_HIGHEST, L"&Highest", NULL, NULL), ULONG_MAX);

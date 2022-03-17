@@ -374,13 +374,15 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ HANDLE ProcessId,
     _In_ BOOLEAN SetPriority,
     _In_ BOOLEAN SetIoPriority,
-    _In_ BOOLEAN SetPagePriority
+    _In_ BOOLEAN SetPagePriority,
+    _In_ BOOLEAN SetPriorityBoost
     )
 {
     HANDLE processHandle;
     PROCESS_PRIORITY_CLASS priorityClass = { 0 };
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
     ULONG pagePriority = ULONG_MAX;
+    BOOLEAN priorityBoost = FALSE;
     ULONG id = 0;
 
     if (NT_SUCCESS(PhOpenProcess(
@@ -414,6 +416,11 @@ VOID PhMwpSetProcessMenuPriorityChecks(
             {
                 pagePriority = ULONG_MAX;
             }
+        }
+
+        if (SetPriorityBoost)
+        {
+            PhGetProcessPriorityBoost(processHandle, &priorityBoost);
         }
 
         NtClose(processHandle);
@@ -508,6 +515,12 @@ VOID PhMwpSetProcessMenuPriorityChecks(
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
+    }
+
+    if (SetPriorityBoost && priorityBoost)
+    {
+        PhSetFlagsEMenuItem(Menu, ID_PRIORITY_BOOST,
+            PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 }
 
@@ -713,7 +726,7 @@ VOID PhMwpInitializeProcessMenu(
     // Priority
     if (NumberOfProcesses == 1)
     {
-        PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE);
+        PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE, TRUE);
     }
 
     item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_WINDOW);
@@ -775,6 +788,8 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Boost", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, NULL), ULONG_MAX);
