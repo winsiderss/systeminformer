@@ -554,6 +554,12 @@ VOID EtProcessTreeNewMessage(
         {
             PET_PROCESS_BLOCK block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
+            if (block->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
+            {
+                listEntry = listEntry->Flink;
+                continue; // Skip terminated.
+            }
+
             if (block->ProcessNode)
             {
                 if (!block->ProcessNode->Node.Visible)

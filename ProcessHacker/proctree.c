@@ -3830,11 +3830,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             {
                 node = ProcessNodeList->Items[i];
 
-                if (!PhTestEvent(&node->ProcessItem->Stage1Event))
-                    continue; // break; only check the first item?
-
                 if (!node->Node.Visible)
-                    continue; // Skip filtered nodes.
+                    continue; // Skip filtered.
+                if (node->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
+                    continue; // Skip terminated.
+                if (!PhTestEvent(&node->ProcessItem->Stage1Event))
+                    continue; // Skip unprocessed.
 
                 switch (column->Id)
                 {
