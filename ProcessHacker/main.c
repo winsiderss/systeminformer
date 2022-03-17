@@ -1768,6 +1768,61 @@ VOID PhpEnablePrivileges(
 // breaking backwards compatibility. (dmex)
 // TODO: Move to a better location. (dmex)
 
+PH_QUEUED_LOCK PhDelayLoadImportLock = PH_QUEUED_LOCK_INIT;
+ULONG PhDelayLoadOldProtection = PAGE_WRITECOPY;
+ULONG PhDelayLoadLockCount = 0;
+
+// based on \MSVC\14.31.31103\include\dloadsup.h (dmex)
+VOID PhDelayLoadImportAcquire(
+    _In_ PVOID ImportDirectorySectionAddress,
+    _In_ SIZE_T ImportDirectorySectionSize
+    )
+{
+    PhAcquireQueuedLockExclusive(&PhDelayLoadImportLock);
+    PhDelayLoadLockCount += 1;
+
+    if (PhDelayLoadLockCount == 1)
+    {
+        NTSTATUS status;
+
+        if (!NT_SUCCESS(status = NtProtectVirtualMemory(
+            NtCurrentProcess(),
+            &ImportDirectorySectionAddress,
+            &ImportDirectorySectionSize,
+            PAGE_READWRITE,
+            &PhDelayLoadOldProtection
+            )))
+        {
+            PhRaiseStatus(status);
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&PhDelayLoadImportLock);
+}
+
+VOID PhDelayLoadImportRelease(
+    _In_ PVOID ImportDirectorySectionAddress,
+    _In_ SIZE_T ImportDirectorySectionSize
+    )
+{
+    PhAcquireQueuedLockExclusive(&PhDelayLoadImportLock);
+    PhDelayLoadLockCount -= 1;
+
+    if (PhDelayLoadLockCount == 0)
+    {
+        ULONG importSectionOldProtection;
+        NtProtectVirtualMemory(
+            NtCurrentProcess(),
+            &ImportDirectorySectionAddress,
+            &ImportDirectorySectionSize,
+            PhDelayLoadOldProtection,
+            &importSectionOldProtection
+            );
+    }
+
+    PhReleaseQueuedLockExclusive(&PhDelayLoadImportLock);
+}
+
 _Success_(return != NULL)
 PVOID WINAPI __delayLoadHelper2(
     _In_ PIMAGE_DELAYLOAD_DESCRIPTOR Entry,
@@ -1785,7 +1840,6 @@ PVOID WINAPI __delayLoadHelper2(
     PIMAGE_NT_HEADERS imageNtHeaders;
     SIZE_T importDirectorySectionSize;
     PVOID importDirectorySectionAddress;
-    ULONG importSectionProtect;
 
     importDllName = PTR_ADD_OFFSET(PhInstanceHandle, Entry->DllNameRVA);
     importHandle = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ModuleHandleRVA);
@@ -1841,29 +1895,9 @@ PVOID WINAPI __delayLoadHelper2(
         return NULL;
     }
 
-    if (!NT_SUCCESS(NtProtectVirtualMemory(
-        NtCurrentProcess(),
-        &importDirectorySectionAddress,
-        &importDirectorySectionSize,
-        PAGE_READWRITE,
-        &importSectionProtect
-        )))
-    {
-        return NULL;
-    }
-
+    PhDelayLoadImportAcquire(importDirectorySectionAddress, importDirectorySectionSize);
     InterlockedExchangePointer(ImportAddress, procedureAddress);
-
-    if (!NT_SUCCESS(NtProtectVirtualMemory(
-        NtCurrentProcess(),
-        &importDirectorySectionAddress,
-        &importDirectorySectionSize,
-        importSectionProtect,
-        &importSectionProtect
-        )))
-    {
-        return NULL;
-    }
+    PhDelayLoadImportRelease(importDirectorySectionAddress, importDirectorySectionSize);
 
     if ((InterlockedExchangePointer(importHandle, moduleHandle) == moduleHandle) && importNeedsFree)
     {
