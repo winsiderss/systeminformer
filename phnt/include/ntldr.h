@@ -221,7 +221,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     ULONG ReferenceCount;
     ULONG DependentLoadFlags;
     UCHAR SigningLevel; // since REDSTONE2
-    ULONG CheckSum; // since 11H1
+    ULONG CheckSum; // since 22H1
     PVOID ActivePatchImageBase;
     LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
