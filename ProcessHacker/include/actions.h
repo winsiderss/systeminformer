@@ -313,6 +313,25 @@ PhUiSetPriorityProcesses(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSetBoostPriorityProcesses(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM* Processes,
+    _In_ ULONG NumberOfProcesses,
+    _In_ BOOLEAN PriorityBoost
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiSetBoostPriorityProcess(
+    _In_ HWND hWnd,
+    _In_ PPH_PROCESS_ITEM Process,
+    _In_ BOOLEAN PriorityBoost
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiStartService(
     _In_ HWND hWnd,
     _In_ PPH_SERVICE_ITEM Service

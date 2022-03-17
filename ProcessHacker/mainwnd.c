@@ -1390,6 +1390,29 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_PRIORITY_BOOST:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                BOOLEAN priorityBoost = FALSE;
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    processItem->ProcessId
+                    )))
+                {
+                    PhGetProcessPriorityBoost(processHandle, &priorityBoost);
+                    NtClose(processHandle);
+                }
+
+                PhUiSetBoostPriorityProcess(PhMainWndHandle, processItem, !priorityBoost);
+            }
+        }
+        break;
     case ID_PRIORITY_REALTIME:
     case ID_PRIORITY_HIGH:
     case ID_PRIORITY_ABOVENORMAL:
@@ -3152,6 +3175,8 @@ VOID PhAddMiniProcessMenuItems(
 
     priorityMenu = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, ProcessId);
 
+    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Boost", NULL, ProcessId), ULONG_MAX);
+    PhInsertEMenuItem(priorityMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, ProcessId), ULONG_MAX);
@@ -3191,7 +3216,7 @@ VOID PhAddMiniProcessMenuItems(
     if (ioPriorityMenu)
         PhInsertEMenuItem(Menu, ioPriorityMenu, ULONG_MAX);
 
-    PhMwpSetProcessMenuPriorityChecks(Menu, ProcessId, TRUE, TRUE, FALSE);
+    PhMwpSetProcessMenuPriorityChecks(Menu, ProcessId, TRUE, TRUE, FALSE, TRUE);
 
     PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_PROCESS_PROPERTIES, L"P&roperties", NULL, ProcessId), ULONG_MAX);
 }
@@ -3232,6 +3257,22 @@ BOOLEAN PhHandleMiniProcessMenuItem(
                     break;
                 }
 
+                PhDereferenceObject(processItem);
+            }
+            else
+            {
+                PhShowError(PhMainWndHandle, L"%s", L"The process does not exist.");
+            }
+        }
+        break;
+    case ID_PRIORITY_BOOST:
+        {
+            HANDLE processId = MenuItem->Context;
+            PPH_PROCESS_ITEM processItem;
+
+            if (processItem = PhReferenceProcessItem(processId))
+            {
+                PhUiSetBoostPriorityProcess(PhMainWndHandle, processItem, !(MenuItem->Flags & PH_EMENU_CHECKED));
                 PhDereferenceObject(processItem);
             }
             else
