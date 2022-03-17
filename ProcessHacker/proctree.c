@@ -234,6 +234,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx2(hwnd, PHPRTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_POWERTHROTTLING, FALSE, L"Power throttling", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_ARCHITECTURE, FALSE, L"Architecture", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_PARENTPID, TRUE, L"Parent PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -602,6 +603,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ImageCoherencyText);
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
     PhClearReference(&ProcessNode->CodePageText);
+    PhClearReference(&ProcessNode->ParentPidText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -3323,6 +3325,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                     break;
                 }
+            case PHPRTLC_PARENTPID:
+                {
+                    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+                    {
+                        PH_FORMAT format;
+
+                        PhInitFormatU(&format, HandleToUlong(processItem->ParentProcessId));
+
+                        PhMoveReference(&node->ParentPidText, PhFormat(&format, 1, 0));
+                        getCellText->Text = node->ParentPidText->sr;
+                    }
+                }
+                break;
             default:
                 return FALSE;
             }
