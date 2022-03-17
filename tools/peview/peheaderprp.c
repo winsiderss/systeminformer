@@ -79,8 +79,7 @@ typedef enum _PVP_IMAGE_HEADER_INDEX
     PVP_IMAGE_HEADER_INDEX_FILE_OPTHDRSIZE,
     PVP_IMAGE_HEADER_INDEX_FILE_CHARACTERISTICS,
     PVP_IMAGE_HEADER_INDEX_OPT_MAGIC,
-    PVP_IMAGE_HEADER_INDEX_OPT_LINKERMAJOR,
-    PVP_IMAGE_HEADER_INDEX_OPT_LINKERMINOR,
+    PVP_IMAGE_HEADER_INDEX_OPT_LINKERVERSION,
     PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFCODE,
     PVP_IMAGE_HEADER_INDEX_OPT_INITSIZE,
     PVP_IMAGE_HEADER_INDEX_OPT_UNINITSIZE,
@@ -90,12 +89,9 @@ typedef enum _PVP_IMAGE_HEADER_INDEX
     PVP_IMAGE_HEADER_INDEX_OPT_IMAGEBASE,
     PVP_IMAGE_HEADER_INDEX_OPT_SECTIONALIGN,
     PVP_IMAGE_HEADER_INDEX_OPT_FILEALIGN,
-    PVP_IMAGE_HEADER_INDEX_OPT_MAJOROSVERSION,
-    PVP_IMAGE_HEADER_INDEX_OPT_MINOROSVERSION,
-    PVP_IMAGE_HEADER_INDEX_OPT_MAJORIMGVERSION,
-    PVP_IMAGE_HEADER_INDEX_OPT_MINORIMGVERSION,
-    PVP_IMAGE_HEADER_INDEX_OPT_MAJORSUBSYSTEM,
-    PVP_IMAGE_HEADER_INDEX_OPT_MINORSUBSYSTEM,
+    PVP_IMAGE_HEADER_INDEX_OPT_OSVERSION,
+    PVP_IMAGE_HEADER_INDEX_OPT_IMGVERSION,
+    PVP_IMAGE_HEADER_INDEX_OPT_SUBSYSTEMVERSION,
     PVP_IMAGE_HEADER_INDEX_OPT_WIN32VERSION,
     PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFIMAGE,
     PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFHEADERS,
@@ -495,11 +491,8 @@ VOID PvSetPeImageOptionalHeaderProperties(
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.Magic));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAGIC, 1, value);
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorLinkerVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_LINKERMAJOR, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorLinkerVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_LINKERMINOR, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorLinkerVersion, imageNtHeader->OptionalHeader.MinorLinkerVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_LINKERVERSION, 1, PhGetString(string));
 
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.SizeOfCode));
         string = PhaFormatString(L"%s (%s)", value, PhaFormatSize(imageNtHeader->OptionalHeader.SizeOfCode, ULONG_MAX)->Buffer);
@@ -531,23 +524,14 @@ VOID PvSetPeImageOptionalHeaderProperties(
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.FileAlignment));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_FILEALIGN, 1, value);
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorOperatingSystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAJOROSVERSION, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorOperatingSystemVersion, imageNtHeader->OptionalHeader.MinorOperatingSystemVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_OSVERSION, 1, PhGetString(string));
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorOperatingSystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MINOROSVERSION, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorImageVersion, imageNtHeader->OptionalHeader.MinorImageVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_IMGVERSION, 1, PhGetString(string));
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorImageVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAJORIMGVERSION, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorImageVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MINORIMGVERSION, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorSubsystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAJORSUBSYSTEM, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorSubsystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MINORSUBSYSTEM, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorSubsystemVersion, imageNtHeader->OptionalHeader.MinorSubsystemVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_SUBSYSTEMVERSION, 1, PhGetString(string));
 
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.Win32VersionValue));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_WIN32VERSION, 1, value);
@@ -598,11 +582,8 @@ VOID PvSetPeImageOptionalHeaderProperties(
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.Magic));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAGIC, 1, value);
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorLinkerVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_LINKERMAJOR, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorLinkerVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_LINKERMINOR, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorLinkerVersion, imageNtHeader->OptionalHeader.MinorLinkerVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_LINKERVERSION, 1, PhGetString(string));
 
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.SizeOfCode));
         string = PhaFormatString(L"%s (%s)", value, PhaFormatSize(imageNtHeader->OptionalHeader.SizeOfCode, ULONG_MAX)->Buffer);
@@ -636,23 +617,14 @@ VOID PvSetPeImageOptionalHeaderProperties(
         string = PhaFormatString(L"%s (%s)", value, PhaFormatSize(imageNtHeader->OptionalHeader.FileAlignment, ULONG_MAX)->Buffer);
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_FILEALIGN, 1, PhGetString(string));
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorOperatingSystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAJOROSVERSION, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorOperatingSystemVersion, imageNtHeader->OptionalHeader.MinorOperatingSystemVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_OSVERSION, 1, PhGetString(string));
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorOperatingSystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MINOROSVERSION, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorImageVersion, imageNtHeader->OptionalHeader.MinorImageVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_IMGVERSION, 1, PhGetString(string));
 
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorImageVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAJORIMGVERSION, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorImageVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MINORIMGVERSION, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MajorSubsystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MAJORSUBSYSTEM, 1, value);
-
-        PhPrintUInt32(value, imageNtHeader->OptionalHeader.MinorSubsystemVersion);
-        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_MINORSUBSYSTEM, 1, value);
+        string = PhaFormatString(L"%lu.%lu", imageNtHeader->OptionalHeader.MajorSubsystemVersion, imageNtHeader->OptionalHeader.MinorSubsystemVersion);
+        PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_SUBSYSTEMVERSION, 1, PhGetString(string));
 
         PhPrintPointer(value, UlongToPtr(imageNtHeader->OptionalHeader.Win32VersionValue));
         PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_OPT_WIN32VERSION, 1, value);
@@ -869,8 +841,7 @@ VOID PvPeUpdateImageHeaderProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_FILEHDR, PVP_IMAGE_HEADER_INDEX_FILE_CHARACTERISTICS, L"Characteristics", NULL);
     // Optional Headers
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_MAGIC, L"Magic", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_LINKERMAJOR, L"MajorLinkerVersion", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_LINKERMINOR, L"MinorLinkerVersion", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_LINKERVERSION, L"LinkerVersion", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFCODE, L"SizeOfCode", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_INITSIZE, L"SizeOfInitializedData", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_UNINITSIZE, L"SizeOfUninitializedData", NULL);
@@ -880,12 +851,9 @@ VOID PvPeUpdateImageHeaderProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_IMAGEBASE, L"ImageBase", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_SECTIONALIGN, L"SectionAlignment", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_FILEALIGN, L"FileAlignment", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_MAJOROSVERSION, L"MajorOperatingSystemVersion", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_MINOROSVERSION, L"MinorOperatingSystemVersion", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_MAJORIMGVERSION, L"MajorImageVersion", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_MINORIMGVERSION, L"MinorImageVersion", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_MAJORSUBSYSTEM, L"MajorSubsystemVersion", NULL);
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_MINORSUBSYSTEM, L"MinorSubsystemVersion", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_OSVERSION, L"OperatingSystemVersion", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_IMGVERSION, L"ImageVersion", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_SUBSYSTEMVERSION, L"SubsystemVersion", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_WIN32VERSION, L"Win32VersionValue", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFIMAGE, L"SizeOfImage", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_HEADER_CATEGORY_OPTHDR, PVP_IMAGE_HEADER_INDEX_OPT_SIZEOFHEADERS, L"SizeOfHeaders", NULL);
