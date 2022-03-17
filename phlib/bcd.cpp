@@ -2,7 +2,7 @@
  * Process Hacker -
  *   Boot Configuration Data (BCD) wrappers
  *
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -198,9 +198,6 @@ NTSTATUS PhBcdEnumerateObjects(
     )
 {
     if (!PhpBcdApiInitialized())
-        return STATUS_UNSUCCESSFUL;
-
-    if (!BcdDllBaseAddress)
         return STATUS_UNSUCCESSFUL;
 
     if (!BcdEnumerateObjects_I)
@@ -620,7 +617,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
 
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        object = (PBCD_OBJECT)PhAllocate(objectSize);
+        object = reinterpret_cast<PBCD_OBJECT>(PhAllocate(objectSize));
         memset(object, 0, objectSize);
 
         status = PhBcdEnumerateObjects(
@@ -661,8 +658,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
         {
             PPH_BCD_OBJECT_LIST entry;
 
-            entry = (PPH_BCD_OBJECT_LIST)PhAllocate(sizeof(PH_BCD_OBJECT_LIST));
-            memset(entry, 0, sizeof(PH_BCD_OBJECT_LIST));
+            entry = reinterpret_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
             memcpy(&entry->ObjectGuid, &object[i].Identifer, sizeof(GUID));
             entry->ObjectName = objectDescription;
 
@@ -684,8 +680,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
             {
                 PPH_BCD_OBJECT_LIST entry;
 
-                entry = (PPH_BCD_OBJECT_LIST)PhAllocate(sizeof(PH_BCD_OBJECT_LIST));
-                memset(entry, 0, sizeof(PH_BCD_OBJECT_LIST));
+                entry = reinterpret_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
                 memcpy(&entry->ObjectGuid, &GUID_WINDOWS_MEMORY_TESTER, sizeof(GUID));
                 entry->ObjectName = objectDescription;
 
@@ -752,7 +747,7 @@ static VOID PhpBcdEnumerateBootMgrList(
         {
             PPH_BCD_OBJECT_LIST entry;
 
-            entry = (PPH_BCD_OBJECT_LIST)PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST));
+            entry = reinterpret_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
             memcpy(&entry->ObjectGuid, &objectElementList->ObjectList[i], sizeof(GUID));
             entry->ObjectName = objectEntryDescription;
 
