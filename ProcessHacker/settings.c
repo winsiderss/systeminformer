@@ -89,6 +89,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HandleTreeListFlags", L"3");
     PhpAddIntegerPairSetting(L"HandlePropertiesWindowPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"HandlePropertiesWindowSize", L"@96|260,260");
+    PhpAddStringSetting(L"HandleStatisticsListViewColumns", L"");
+    PhpAddStringSetting(L"HandleStatisticsListViewSort", L"0,1");
+    PhpAddScalableIntegerPairSetting(L"HandleStatisticsWindowSize", L"@96|0,0");
     PhpAddIntegerSetting(L"HiddenProcessesMenuEnabled", L"0");
     PhpAddStringSetting(L"HiddenProcessesListViewColumns", L"");
     PhpAddIntegerPairSetting(L"HiddenProcessesWindowPosition", L"400,400");
