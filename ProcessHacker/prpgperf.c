@@ -221,11 +221,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PH_FORMAT format[6];
 
                             // %.2f%% (K: %.2f%%, U: %.2f%%)
-                            PhInitFormatF(&format[0], ((DOUBLE)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100, 2);
+                            PhInitFormatF(&format[0], ((DOUBLE)processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[1], L"% (K: ");
-                            PhInitFormatF(&format[2], (DOUBLE)processItem->CpuKernelUsage * 100, 2);
+                            PhInitFormatF(&format[2], (DOUBLE)processItem->CpuKernelUsage * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[3], L"%, U: ");
-                            PhInitFormatF(&format[4], (DOUBLE)processItem->CpuUserUsage * 100, 2);
+                            PhInitFormatF(&format[4], (DOUBLE)processItem->CpuUserUsage * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[5], L"%)");
 
                             PhMoveReference(&performanceContext->CpuGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 16));
@@ -387,11 +387,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             cpuUser = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
                             // %.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s
-                            PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, 2);
+                            PhInitFormatF(&format[0], ((DOUBLE)cpuKernel + cpuUser) * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[1], L"% (K: ");
-                            PhInitFormatF(&format[2], (DOUBLE)cpuKernel * 100, 2);
+                            PhInitFormatF(&format[2], (DOUBLE)cpuKernel * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[3], L"%, U: ");
-                            PhInitFormatF(&format[4], (DOUBLE)cpuUser * 100, 2);
+                            PhInitFormatF(&format[4], (DOUBLE)cpuUser * 100, PhMaxPrecisionUnit);
                             PhInitFormatS(&format[5], L"%)\n");
                             PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(processItem, getTooltipText->Index))->sr);
 
