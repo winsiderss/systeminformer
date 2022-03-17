@@ -228,7 +228,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessCreateStateChange, // since WIN11
     ProcessApplyStateChange,
     ProcessEnableOptionalXStateFeatures,
-    ProcessAltPrefetchParam, // since 11H1
+    ProcessAltPrefetchParam, // since 22H1
     ProcessAssignCpuPartitions,
     ProcessPriorityClassEx,
     ProcessMembershipInformation,
@@ -294,7 +294,7 @@ typedef enum _THREADINFOCLASS
     ThreadWorkloadClass, // THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
     ThreadCreateStateChange, // since WIN11
     ThreadApplyStateChange,
-    ThreadStrongerBadHandleChecks, // since 11H1
+    ThreadStrongerBadHandleChecks, // since 22H1
     ThreadEffectiveIoPriority,
     ThreadEffectivePagePriority,
     MaxThreadInfoClass
@@ -1821,7 +1821,7 @@ typedef enum _PS_MITIGATION_OPTION
     PS_MITIGATION_OPTION_USER_CET_SET_CONTEXT_IP_VALIDATION, // since 21H1
     PS_MITIGATION_OPTION_BLOCK_NON_CET_BINARIES,
     PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY,
-    PS_MITIGATION_OPTION_REDIRECTION_TRUST, // since 11H1
+    PS_MITIGATION_OPTION_REDIRECTION_TRUST, // since 22H1
 } PS_MITIGATION_OPTION;
 
 // windows-internals-book:"Chapter 5"

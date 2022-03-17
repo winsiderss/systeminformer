@@ -1520,7 +1520,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSupportedProcessorArchitectures2, // q: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx  // 230
     SystemSingleProcessorRelationshipInformation,
     SystemXfgCheckFailureInformation,
-    SystemIommuStateInformation, // SYSTEM_IOMMU_STATE_INFORMATION // since 11H1
+    SystemIommuStateInformation, // SYSTEM_IOMMU_STATE_INFORMATION // since 22H1
     SystemHypervisorMinrootInformation, // SYSTEM_HYPERVISOR_MINROOT_INFORMATION
     SystemHypervisorBootPagesInformation, // SYSTEM_HYPERVISOR_BOOT_PAGES_INFORMATION
     SystemPointerAuthInformation, // SYSTEM_POINTER_AUTH_INFORMATION

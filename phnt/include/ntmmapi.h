@@ -109,7 +109,7 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryBasicInformationCapped, // 10
     MemoryPhysicalContiguityInformation, // MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
     MemoryBadInformation, // since WIN11
-    MemoryBadInformationAllProcesses, // since 11H1
+    MemoryBadInformationAllProcesses, // since 22H1
     MaxMemoryInfoClass
 } MEMORY_INFORMATION_CLASS;
 #else
