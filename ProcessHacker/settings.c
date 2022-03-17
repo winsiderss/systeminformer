@@ -3,7 +3,7 @@
  *   program settings cache
  *
  * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  * Copyright (C) 2021 jxy-s
  *
  * This file is part of Process Hacker.
@@ -125,6 +125,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"MainWindowTabRestoreEnabled", L"0");
     PhpAddIntegerSetting(L"MainWindowTabRestoreIndex", L"0");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
+    PhpAddIntegerSetting(L"MaxPrecisionUnit", L"2");
     PhpAddIntegerSetting(L"MemEditBytesPerRow", L"10"); // 16
     PhpAddStringSetting(L"MemEditGotoChoices", L"");
     PhpAddIntegerPairSetting(L"MemEditPosition", L"450,450");

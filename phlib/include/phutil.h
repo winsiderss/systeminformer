@@ -7,6 +7,7 @@ extern "C" {
 
 extern WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
+extern USHORT PhMaxPrecisionUnit;
 
 typedef struct _PH_INTEGER_PAIR
 {

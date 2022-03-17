@@ -1409,6 +1409,7 @@ VOID PhpInitializeSettings(
     // Apply basic global settings.
     PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
+    PhMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {
