@@ -103,8 +103,9 @@
 #define PHPRTLC_TIMELINE 90
 #define PHPRTLC_POWERTHROTTLING 91
 #define PHPRTLC_ARCHITECTURE 92
+#define PHPRTLC_PARENTPID 93
 
-#define PHPRTLC_MAXIMUM 93
+#define PHPRTLC_MAXIMUM 94
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -249,6 +250,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ImageCoherencyStatusText;
     PPH_STRING ErrorModeText;
     PPH_STRING CodePageText;
+    PPH_STRING ParentPidText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
