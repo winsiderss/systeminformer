@@ -248,9 +248,19 @@ ULONG64 PhGetMappedWslImageBaseAddress(
 {
     ULONG64 baseAddress = MAXULONG64;
     PELF64_IMAGE_SEGMENT_HEADER segment;
+    ULONG loadBias = 0;
     USHORT i;
 
     segment = IMAGE_FIRST_ELF64_SEGMENT(MappedWslImage);
+
+    for (i = 0; i < MappedWslImage->Headers64->e_phnum; i++)
+    {
+        if (segment[i].p_type == PT_LOAD)
+        {
+            loadBias = (ULONG)ALIGN_DOWN_BY(segment[i].p_vaddr, PAGE_SIZE);
+            break;
+        }
+    }
 
     for (i = 0; i < MappedWslImage->Headers64->e_phnum; i++)
     {
