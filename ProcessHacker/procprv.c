@@ -1187,6 +1187,8 @@ VOID PhpFillProcessItemExtension(
     
     processExtension = PH_PROCESS_EXTENSION(Process);
 
+    ProcessItem->DiskCounters = processExtension->DiskCounters;
+    ProcessItem->ContextSwitches = processExtension->ContextSwitches;
     ProcessItem->JobObjectId = processExtension->JobObjectId;
     ProcessItem->ProcessSequenceNumber = processExtension->ProcessSequenceNumber;
 }
@@ -1846,20 +1848,20 @@ VOID PhpGetProcessThreadInformation(
     _In_ PSYSTEM_PROCESS_INFORMATION Process,
     _Out_opt_ PBOOLEAN IsSuspended,
     _Out_opt_ PBOOLEAN IsPartiallySuspended,
-    _Out_opt_ PULONG ContextSwitches,
-    _Out_opt_ PULONG ReadyThreads
+    _Out_opt_ PULONG64 ContextSwitches,
+    _Out_opt_ PULONG ProcessorQueueLength
     )
 {
     ULONG i;
     BOOLEAN isSuspended;
     BOOLEAN isPartiallySuspended;
-    ULONG contextSwitches;
-    ULONG threadQueueCount;
+    ULONG64 contextSwitches;
+    ULONG processorQueueLength;
 
     isSuspended = PH_IS_REAL_PROCESS_ID(Process->UniqueProcessId);
     isPartiallySuspended = FALSE;
     contextSwitches = 0;
-    threadQueueCount = 0;
+    processorQueueLength = 0;
 
     for (i = 0; i < Process->NumberOfThreads; i++)
     {
@@ -1875,13 +1877,13 @@ VOID PhpGetProcessThreadInformation(
 
         if (Process->Threads[i].ThreadState == Ready)
         {
-            threadQueueCount++;
+            processorQueueLength++;
         }
 
         contextSwitches += Process->Threads[i].ContextSwitches;
     }
 
-    // HACK: Minimal/Reflected processes don't have threads (TODO: Use PhGetProcessIsSuspended instead).
+    // HACK: Minimal/Reflected processes don't have threads. (dmex)
     if (Process->NumberOfThreads == 0)
     {
         isSuspended = FALSE;
@@ -1894,8 +1896,8 @@ VOID PhpGetProcessThreadInformation(
         *IsPartiallySuspended = isPartiallySuspended;
     if (ContextSwitches)
         *ContextSwitches = contextSwitches;
-    if (ReadyThreads)
-        *ReadyThreads = threadQueueCount;
+    if (ProcessorQueueLength)
+        *ProcessorQueueLength = processorQueueLength;
 }
 
 VOID PhProcessProviderUpdate(
@@ -2190,8 +2192,8 @@ VOID PhProcessProviderUpdate(
             PPH_PROCESS_RECORD processRecord;
             BOOLEAN isSuspended;
             BOOLEAN isPartiallySuspended;
-            ULONG contextSwitches;
-            ULONG readyThreads;
+            ULONG64 contextSwitches;
+            ULONG processorQueueLength;
 
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
@@ -2203,9 +2205,9 @@ VOID PhProcessProviderUpdate(
             PhpAddProcessRecord(processRecord);
             processItem->Record = processRecord;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
-            PhTotalCpuQueueLength += readyThreads;
+            PhTotalCpuQueueLength += processorQueueLength;
 
             // Initialize the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
@@ -2216,7 +2218,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoReadCountDelta, process->ReadOperationCount.QuadPart);
             PhUpdateDelta(&processItem->IoWriteCountDelta, process->WriteOperationCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
-            PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
+            PhUpdateDelta(&processItem->ContextSwitchesDelta, PhEnableProcessExtension ? processItem->ContextSwitches : contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
             PhUpdateDelta(&processItem->HardFaultsDelta, process->HardFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
@@ -2264,7 +2266,7 @@ VOID PhProcessProviderUpdate(
             BOOLEAN modified = FALSE;
             BOOLEAN isSuspended;
             BOOLEAN isPartiallySuspended;
-            ULONG contextSwitches;
+            ULONG64 contextSwitches;
             ULONG readyThreads;
             FLOAT newCpuUsage;
             FLOAT kernelCpuUsage;
@@ -2284,7 +2286,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoReadCountDelta, process->ReadOperationCount.QuadPart);
             PhUpdateDelta(&processItem->IoWriteCountDelta, process->WriteOperationCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
-            PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
+            PhUpdateDelta(&processItem->ContextSwitchesDelta, PhEnableProcessExtension ? processItem->ContextSwitches : contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
             PhUpdateDelta(&processItem->HardFaultsDelta, process->HardFaultCount);
             PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime);
