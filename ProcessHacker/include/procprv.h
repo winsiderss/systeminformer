@@ -241,6 +241,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_KNOWN_PROCESS_TYPE KnownProcessType;
     PS_PROTECTION Protection;
     ULONG JobObjectId;
+    SIZE_T SharedCommitCharge;
 
     PPH_IMAGELIST_ITEM IconEntry;
 

@@ -235,6 +235,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_POWERTHROTTLING, FALSE, L"Power throttling", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_ARCHITECTURE, FALSE, L"Architecture", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PARENTPID, TRUE, L"Parent PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_COMMITSIZE, FALSE, L"Shared commit", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -604,6 +605,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
     PhClearReference(&ProcessNode->CodePageText);
     PhClearReference(&ProcessNode->ParentPidText);
+    PhClearReference(&ProcessNode->SharedCommitText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -2176,6 +2178,18 @@ BEGIN_SORT_FUNCTION(PowerThrottling)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ParentPid)
+{
+    sortResult = intptrcmp((LONG_PTR)processItem1->ParentProcessId, (LONG_PTR)processItem2->ParentProcessId);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(SharedCommit)
+{
+    sortResult = uint64cmp(processItem1->SharedCommitCharge, processItem2->SharedCommitCharge);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2309,6 +2323,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(StartTime), // Timeline
                         SORT_FUNCTION(PowerThrottling),
                         SORT_FUNCTION(Architecture),
+                        SORT_FUNCTION(ParentPid),
+                        SORT_FUNCTION(SharedCommit),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3335,6 +3351,15 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhMoveReference(&node->ParentPidText, PhFormat(&format, 1, 0));
                         getCellText->Text = node->ParentPidText->sr;
+                    }
+                }
+                break;
+            case PHPRTLC_COMMITSIZE:
+                {
+                    if (processItem->SharedCommitCharge != 0)
+                    {
+                        PhMoveReference(&node->SharedCommitText, PhFormatSize(processItem->SharedCommitCharge, ULONG_MAX));
+                        getCellText->Text = node->SharedCommitText->sr;
                     }
                 }
                 break;
