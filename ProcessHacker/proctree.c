@@ -1875,13 +1875,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ContextSwitches)
 {
-    sortResult = uintcmp(processItem1->ContextSwitchesDelta.Value, processItem2->ContextSwitchesDelta.Value);
+    sortResult = uint64cmp(processItem1->ContextSwitchesDelta.Value, processItem2->ContextSwitchesDelta.Value);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ContextSwitchesDelta)
 {
-    sortResult = intcmp((LONG)processItem1->ContextSwitchesDelta.Delta, (LONG)processItem2->ContextSwitchesDelta.Delta);
+    sortResult = int64cmp((LONGLONG)processItem1->ContextSwitchesDelta.Delta, (LONGLONG)processItem2->ContextSwitchesDelta.Delta);
 }
 END_SORT_FUNCTION
 
