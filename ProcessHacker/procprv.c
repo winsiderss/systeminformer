@@ -1190,6 +1190,7 @@ VOID PhpFillProcessItemExtension(
     ProcessItem->DiskCounters = processExtension->DiskCounters;
     ProcessItem->ContextSwitches = processExtension->ContextSwitches;
     ProcessItem->JobObjectId = processExtension->JobObjectId;
+    ProcessItem->SharedCommitCharge = processExtension->SharedCommitCharge;
     ProcessItem->ProcessSequenceNumber = processExtension->ProcessSequenceNumber;
 }
 
