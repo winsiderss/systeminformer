@@ -1620,6 +1620,68 @@ NtWaitForAlertByThreadId(
 #define PS_ATTRIBUTE_INPUT 0x00020000 // input only
 #define PS_ATTRIBUTE_ADDITIVE 0x00040000 // "accumulated" e.g. bitmasks, counters, etc.
 
+// PROC_THREAD_ATTRIBUTE_NUM (Win32 CreateProcess) (dmex)
+#define ProcThreadAttributeParentProcess 0 // in HANDLE
+#define ProcThreadAttributeExtendedFlags 1 // in ULONG (PROC_EXTENDED_FLAG)
+#define ProcThreadAttributeHandleList 2 // in HANDLE[]
+#define ProcThreadAttributeGroupAffinity 3 // in GROUP_AFFINITY // since WIN7
+#define ProcThreadAttributePreferredNode 4 // in USHORT
+#define ProcThreadAttributeIdealProcessor 5// in PROCESSOR_NUMBER
+#define ProcThreadAttributeUmsThread 6 // in UMS_CREATE_THREAD_ATTRIBUTES
+#define ProcThreadAttributeMitigationPolicy 7 // in ULONG[] or ULONG64[]
+#define ProcThreadAttributePackageName 8 // in WCHAR[] // since WIN8
+#define ProcThreadAttributeSecurityCapabilities 9 // in SECURITY_CAPABILITIES
+#define ProcThreadAttributeConsoleReference 10 // BaseGetConsoleReference (kernelbase.dll)
+#define ProcThreadAttributeProtectionLevel 11 // in ULONG
+#define ProcThreadAttributeJobList 13 // in HANDLE[] // since WIN10
+#define ProcThreadAttributeChildProcessPolicy 14 // in ULONG
+#define ProcThreadAttributeAllApplicationPackagesPolicy 15 // in ULONG
+#define ProcThreadAttributeWin32kFilter 16 // in PROC_THREAD_WIN32KFILTER_ATTRIBUTE
+#define ProcThreadAttributeSafeOpenPromptOriginClaim 17 // since RS1
+#define ProcThreadAttributeDesktopAppPolicy 18 // in ULONG // since RS2
+#define ProcThreadAttributeBnoIsolation 19 // in PROC_THREAD_BNOISOLATION_ATTRIBUTE
+#define ProcThreadAttributePseudoConsole 22 // in HANDLE (HPCON) // since RS5
+#define ProcThreadAttributeMitigationAuditPolicy 24 // in ULONG[] or ULONG64[] // since 20H1
+#define ProcThreadAttributeMachineType 25 // in ULONG
+#define ProcThreadAttributeComponentFilter 26 // in ULONG
+#define ProcThreadAttributeEnableOptionalXStateFeatures 27 // in ULONG // since 20H2
+
+#define PROC_EXTENDED_FLAG_LOG_ELEVATION_FAILURE 0x1
+#define PROC_EXTENDED_FLAG_IGNORE_ELEVATION 0x2
+#define PROC_EXTENDED_FLAG_FORCE_JOB_BREAKAWAY 0x4 // (requires SeTcbPrivilege)
+
+#define WIN32KFILTER_FLAG_ENABLE 0x1
+#define WIN32KFILTER_FLAG_AUDIT 0x2
+
+typedef struct _PROC_THREAD_WIN32KFILTER_ATTRIBUTE
+{
+    ULONG Flags;
+    ULONG FilterLevel;
+} PROC_THREAD_WIN32KFILTER_ATTRIBUTE, *PPROC_THREAD_WIN32KFILTER_ATTRIBUTE;
+
+typedef struct _PROC_THREAD_BNOISOLATION_ATTRIBUTE
+{
+    BOOL IsolationEnabled;
+    WCHAR IsolationPrefix[0x88];
+} PROC_THREAD_BNOISOLATION_ATTRIBUTE, *PPROC_THREAD_BNOISOLATION_ATTRIBUTE;
+
+#ifndef PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS
+#define PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS \
+    ProcThreadAttributeValue(ProcThreadAttributeExtendedFlags, FALSE, TRUE, TRUE)
+#endif
+#ifndef PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE
+#define PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE \
+    ProcThreadAttributeValue(ProcThreadAttributeConsoleReference, FALSE, TRUE, FALSE)
+#endif
+#ifndef PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM
+#define PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM \
+    ProcThreadAttributeValue(ProcThreadAttributeSafeOpenPromptOriginClaim, FALSE, TRUE, FALSE)
+#endif
+#ifndef PROC_THREAD_ATTRIBUTE_BNO_ISOLATION
+#define PROC_THREAD_ATTRIBUTE_BNO_ISOLATION \
+    ProcThreadAttributeValue(ProcThreadAttributeBnoIsolation, FALSE, TRUE, FALSE)
+#endif
+
 // private
 typedef enum _PS_ATTRIBUTE_NUM
 {
