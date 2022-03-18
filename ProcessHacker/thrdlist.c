@@ -132,6 +132,7 @@ VOID PhInitializeThreadList(
     PhAddTreeNewColumnEx(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUKERNEL, FALSE, L"CPU (kernel)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     //PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUHISTORY, FALSE, L"CPU history", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STACKUSAGE, FALSE, L"Stack usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_WAITTIME, FALSE, L"Wait time", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -701,6 +702,12 @@ BEGIN_SORT_FUNCTION(StackUsage)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(WaitTime)
+{
+    sortResult = uint64cmp(threadItem1->WaitTime, threadItem2->WaitTime);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -764,6 +771,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(CpuUser),
                     SORT_FUNCTION(CpuKernel),
                     SORT_FUNCTION(StackUsage),
+                    SORT_FUNCTION(WaitTime),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1018,15 +1026,18 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                 break;
             case PH_THREAD_TREELIST_COLUMN_CYCLES:
                 {
-                    SIZE_T returnLength;
-                    PH_FORMAT format[1];
-
-                    PhInitFormatI64UGroupDigits(&format[0], threadItem->CyclesDelta.Value);
-
-                    if (PhFormatToBuffer(format, 1, node->CyclesText, sizeof(node->CyclesText), &returnLength))
+                    if (threadItem->CyclesDelta.Value != 0)
                     {
-                        getCellText->Text.Buffer = node->CyclesText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        SIZE_T returnLength;
+                        PH_FORMAT format[1];
+
+                        PhInitFormatI64UGroupDigits(&format[0], threadItem->CyclesDelta.Value);
+
+                        if (PhFormatToBuffer(format, 1, node->CyclesText, sizeof(node->CyclesText), &returnLength))
+                        {
+                            getCellText->Text.Buffer = node->CyclesText;
+                            getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                        }
                     }
                 }
                 break;
@@ -1682,6 +1693,13 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     }
 
                     getCellText->Text = PhGetStringRef(node->StackUsageText);
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_WAITTIME:
+                {
+                    PhPrintTimeSpan(node->WaitTimeText, threadItem->WaitTime, PH_TIMESPAN_HMSM);
+
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->WaitTimeText);
                 }
                 break;
             default:

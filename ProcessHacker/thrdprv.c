@@ -988,6 +988,7 @@ VOID PhpThreadProviderUpdate(
             threadItem->Priority = thread->Priority;
             threadItem->BasePriority = thread->BasePriority;
             threadItem->State = thread->ThreadState;
+            threadItem->WaitTime = thread->WaitTime;
 
             if (threadItem->WaitReason != thread->WaitReason)
             {

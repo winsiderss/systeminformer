@@ -23,6 +23,7 @@ typedef struct _PH_THREAD_ITEM
 
     LONG Priority;
     LONG BasePriority;
+    ULONG WaitTime;
     KTHREAD_STATE State;
     KWAIT_REASON WaitReason;
     LONG BasePriorityIncrement;
