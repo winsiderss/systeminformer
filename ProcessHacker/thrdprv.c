@@ -638,6 +638,38 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     return symbol;
 }
 
+static NTSTATUS PhpGetThreadHandle(
+    _Out_ PHANDLE ThreadHandle,
+    _In_ PPH_THREAD_PROVIDER ThreadProvider,
+    _In_ PPH_THREAD_ITEM ThreadItem
+    )
+{
+    NTSTATUS status;
+
+    if (ThreadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+    {
+        if (HandleToUlong(ThreadItem->ThreadId) < (ULONG)PhSystemBasicInformation.NumberOfProcessors)
+            return STATUS_INVALID_PARAMETER;
+    }
+
+    status = PhOpenThread(
+        ThreadHandle,
+        THREAD_QUERY_INFORMATION,
+        ThreadItem->ThreadId
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        status = PhOpenThread(
+            ThreadHandle,
+            THREAD_QUERY_LIMITED_INFORMATION,
+            ThreadItem->ThreadId
+            );
+    }
+
+    return status;
+}
+
 static NTSTATUS PhpGetThreadCycleTime(
     _In_ PPH_THREAD_PROVIDER ThreadProvider,
     _In_ PPH_THREAD_ITEM ThreadItem,
@@ -848,34 +880,20 @@ VOID PhpThreadProviderUpdate(
             PVOID startAddress = NULL;
 
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
-
             threadItem->CreateTime = thread->CreateTime;
             threadItem->KernelTime = thread->KernelTime;
             threadItem->UserTime = thread->UserTime;
-
             PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
             threadItem->Priority = thread->Priority;
             threadItem->BasePriority = thread->BasePriority;
             threadItem->State = (KTHREAD_STATE)thread->ThreadState;
             threadItem->WaitReason = thread->WaitReason;
 
-            // Ignore the idle process (dmex)
-            if (threadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
-            {
-                // Try to open a handle to the thread.
-                if (!NT_SUCCESS(PhOpenThread(
-                    &threadItem->ThreadHandle,
-                    THREAD_QUERY_INFORMATION,
-                    threadItem->ThreadId
-                    )))
-                {
-                    PhOpenThread(
-                        &threadItem->ThreadHandle,
-                        THREAD_QUERY_LIMITED_INFORMATION,
-                        threadItem->ThreadId
-                        );
-                }
-            }
+            PhpGetThreadHandle(
+                &threadItem->ThreadHandle,
+                threadProvider,
+                threadItem
+                );
 
             // Get the cycle count.
             {
@@ -967,11 +985,9 @@ VOID PhpThreadProviderUpdate(
 
             threadItem->KernelTime = thread->KernelTime;
             threadItem->UserTime = thread->UserTime;
-
             threadItem->Priority = thread->Priority;
             threadItem->BasePriority = thread->BasePriority;
-
-            threadItem->State = (KTHREAD_STATE)thread->ThreadState;
+            threadItem->State = thread->ThreadState;
 
             if (threadItem->WaitReason != thread->WaitReason)
             {
