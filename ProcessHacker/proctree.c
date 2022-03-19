@@ -3341,6 +3341,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                     break;
                 }
+                break;
             case PHPRTLC_PARENTPID:
                 {
                     if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
