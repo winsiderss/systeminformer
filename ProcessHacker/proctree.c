@@ -235,6 +235,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_POWERTHROTTLING, FALSE, L"Power throttling", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_ARCHITECTURE, FALSE, L"Architecture", 70, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PARENTPID, TRUE, L"Parent PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_PARENTCONSOLEPID, TRUE, L"Parent console PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_COMMITSIZE, FALSE, L"Shared commit", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
@@ -605,6 +606,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
     PhClearReference(&ProcessNode->CodePageText);
     PhClearReference(&ProcessNode->ParentPidText);
+    PhClearReference(&ProcessNode->ParentConsolePidText);
     PhClearReference(&ProcessNode->SharedCommitText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
@@ -2184,6 +2186,12 @@ BEGIN_SORT_FUNCTION(ParentPid)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ParentConsolePid)
+{
+    sortResult = intptrcmp((LONG_PTR)processItem1->ConsoleHostProcessId, (LONG_PTR)processItem2->ConsoleHostProcessId);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(SharedCommit)
 {
     sortResult = uint64cmp(processItem1->SharedCommitCharge, processItem2->SharedCommitCharge);
@@ -2324,6 +2332,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(PowerThrottling),
                         SORT_FUNCTION(Architecture),
                         SORT_FUNCTION(ParentPid),
+                        SORT_FUNCTION(ParentConsolePid),
                         SORT_FUNCTION(SharedCommit),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -3353,6 +3362,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhMoveReference(&node->ParentPidText, PhFormat(&format, 1, 0));
                         getCellText->Text = node->ParentPidText->sr;
                     }
+                }
+                break;
+            case PHPRTLC_PARENTCONSOLEPID:
+                {
+                    PH_FORMAT format;
+
+                    PhInitFormatU(&format, HandleToUlong((HANDLE)((ULONG_PTR)processItem->ConsoleHostProcessId & ~3)));
+
+                    PhMoveReference(&node->ParentConsolePidText, PhFormat(&format, 1, 0));
+                    getCellText->Text = node->ParentConsolePidText->sr;
                 }
                 break;
             case PHPRTLC_COMMITSIZE:

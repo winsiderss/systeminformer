@@ -104,9 +104,10 @@
 #define PHPRTLC_POWERTHROTTLING 91
 #define PHPRTLC_ARCHITECTURE 92
 #define PHPRTLC_PARENTPID 93
-#define PHPRTLC_COMMITSIZE 94
+#define PHPRTLC_PARENTCONSOLEPID 94
+#define PHPRTLC_COMMITSIZE 95
 
-#define PHPRTLC_MAXIMUM 95
+#define PHPRTLC_MAXIMUM 96
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -252,6 +253,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ErrorModeText;
     PPH_STRING CodePageText;
     PPH_STRING ParentPidText;
+    PPH_STRING ParentConsolePidText;
     PPH_STRING SharedCommitText;
 
     // Graph buffers
