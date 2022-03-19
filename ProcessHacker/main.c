@@ -877,6 +877,8 @@ BOOLEAN PhInitializeMitigationPolicy(
 
     if (WindowsVersion < WINDOWS_10_RS3)
         return TRUE;
+    if (!PhpIsExploitProtectionEnabled())
+        return TRUE;
 
     PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
     //if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandline)))
