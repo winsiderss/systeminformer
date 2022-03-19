@@ -587,6 +587,21 @@ NtReadVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtReadVirtualMemoryEx(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead,
+    _In_ ULONG Flags
+    );
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
