@@ -1585,6 +1585,21 @@ NtQueueApcThreadEx(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueueApcThreadEx2(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject
+    _In_ QUEUE_USER_APC_FLAGS ApcFlags,
+    _In_ PPS_APC_ROUTINE ApcRoutine,
+    _In_opt_ PVOID ApcArgument1,
+    _In_opt_ PVOID ApcArgument2,
+    _In_opt_ PVOID ApcArgument3
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_WIN8)
 
 // rev
