@@ -970,7 +970,6 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPUPERFCOUNTERS, L"1" },
-                { IntegerSettingType, SETTING_NAME_ENABLE_DISKEXT, L"0" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"0" },
