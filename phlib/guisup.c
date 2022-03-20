@@ -3,7 +3,7 @@
  *   GUI support functions
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -2060,8 +2060,8 @@ PPH_STRING PhpGetImageMunResourcePath(
     }
 
     // 19H1 and above relocated binary resources into the \SystemResources\ directory.
-    // This is implemented as a hook inside EnumResouceNamesExW:
-    // PrivateExtractIconExW -> EnumResouceNamesExW -> GetMunResourceModuleForEnumIfExist.
+    // This is implemented as a hook inside EnumResourceNamesExW:
+    // PrivateExtractIconExW -> EnumResourceNamesExW -> GetMunResourceModuleForEnumIfExist.
     //
     // GetMunResourceModuleForEnumIfExist trims the path and inserts '\SystemResources\' and '.mun'
     // to locate the binary with the icon resources. For example:

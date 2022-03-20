@@ -56,7 +56,7 @@ FORCEINLINE VOID PhpUnlockHandleTableShared(
     PhReleaseQueuedLockShared(&HandleTable->Locks[Index]);
 }
 
-// Handle values work by specifying indicies into each
+// Handle values work by specifying indices into each
 // level.
 //
 // Bits 0-7: level 0

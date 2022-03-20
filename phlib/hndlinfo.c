@@ -1018,13 +1018,13 @@ NTSTATUS PhpGetBestObjectName(
         {
             if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
             {
-                // The device might be a PDO... Query the PnP manager for the friendy name of the device. (dmex)
+                // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
                 bestObjectName = PhGetPnPDeviceName(ObjectName);
             }
 
             if (!bestObjectName)
             {
-                // The file doesn't have a DOS filename and doesn't have a PnP friendy name.
+                // The file doesn't have a DOS filename and doesn't have a PnP friendly name.
                 PhSetReference(&bestObjectName, ObjectName);
             }
         }

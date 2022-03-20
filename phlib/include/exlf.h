@@ -2,7 +2,7 @@
 #define _PH_EXLF_H
 
 /*
- * This file contains the required types for ELF bianires. 
+ * This file contains the required types for ELF binaries. 
  *
  * References:
  * http://man7.org/linux/man-pages/man5/elf.5.html

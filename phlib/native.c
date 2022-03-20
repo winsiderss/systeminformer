@@ -10778,7 +10778,7 @@ NTSTATUS PhGetThreadStackLimits(
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
     NT_TIB ntTib;
-    PVOID dallocationStack;
+    //PVOID deallocationStack;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
@@ -10801,13 +10801,13 @@ NTSTATUS PhGetThreadStackLimits(
             NULL
             );
 
-        status = NtReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, DeallocationStack)),
-            &dallocationStack,
-            sizeof(ULONG),
-            NULL
-            );
+        //status = NtReadVirtualMemory(
+        //    ProcessHandle,
+        //    PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, DeallocationStack)),
+        //    &deallocationStack,
+        //    sizeof(ULONG),
+        //    NULL
+        //    );
     }
     else
 #endif
@@ -10820,13 +10820,13 @@ NTSTATUS PhGetThreadStackLimits(
             NULL
             );
 
-        status = NtReadVirtualMemory(
-            ProcessHandle,
-            PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, DeallocationStack)),
-            &dallocationStack,
-            sizeof(PVOID),
-            NULL
-            );
+        //status = NtReadVirtualMemory(
+        //    ProcessHandle,
+        //    PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, DeallocationStack)),
+        //    &deallocationStack,
+        //    sizeof(PVOID),
+        //    NULL
+        //    );
     }
 
     if (NT_SUCCESS(status))
@@ -11051,7 +11051,7 @@ NTSTATUS PhCreateExecutionRequiredRequest(
         // inject the debug thread but if the window closes, there's a race here where the debug thread gets frozen because
         // RtlpCreateExecutionRequiredRequest never created the execution request. We can resolve the race condition
         // by removing the above code checking IsFrozen but for now just copy what RtlpCreateExecutionRequiredRequest
-        // does (and copy the race condition) by returning here instead of always creating the exeution request. (dmex)
+        // does (and copy the race condition) by returning here instead of always creating the execution request. (dmex)
         // TODO: We should remove the check for IsFrozen if the race condition becomes an issue at some point in the future.
         *PowerRequestHandle = NULL;
         return STATUS_SUCCESS;

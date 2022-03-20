@@ -2534,7 +2534,7 @@ BOOLEAN PhUiRestartProcess(
         }
 
         // CreateProcess returns access_denied when restarting full-trust immersive/store processes since appcontainer information 
-        // is located in the current user registry hive. This is especially noticable when we're running elevated with a
+        // is located in the current user registry hive. This is especially noticeable when we're running elevated with a
         // different user on the same desktop session via UAC over-the-shoulder elevation and try to restart notepad.exe 
         // so we're required to impersonate the token before restarting full-trust immersive/store processes... sigh. (dmex)
         if (PhIsTokenFullTrustAppPackage(tokenHandle))

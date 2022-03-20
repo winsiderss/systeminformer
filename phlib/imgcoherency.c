@@ -218,13 +218,13 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
         PH_MAPPED_IMAGE_RELOC relocs;
 
         //
-        // Build a hash table for the relocation entires to skip later.
+        // Build a hash table for the relocation entries to skip later.
         // This hash table will map the RVA to the number of bytes to skip.
         //
-        if (NT_SUCCESS(PhGetMappedImageRelocations(&context->MappedImage,
-                                                   &relocs)))
+        if (NT_SUCCESS(PhGetMappedImageRelocations(&context->MappedImage, &relocs)))
         {
             context->MappedImageReloc = PhCreateSimpleHashtable(relocs.NumberOfEntries);
+
             for (ULONG i = 0; i < relocs.NumberOfEntries; i++)
             {
                 PPH_IMAGE_RELOC_ENTRY entry;

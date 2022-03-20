@@ -170,9 +170,6 @@ VOID PhCenterWindow(
     }
 }
 
-// NLS support
-// TODO: Move to seperate file. (dmex)
-
 // rev from GetSystemDefaultLCID
 LCID PhGetSystemDefaultLCID(
     VOID
@@ -2999,7 +2996,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
  * the console of the parent process.
  * \param ParentProcessHandle The process from which the new process will inherit attributes.
  * Specify NULL for the current process.
- * \param ClientId A variable which recieves the identifier of the initial thread.
+ * \param ClientId A variable which receives the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
@@ -3208,7 +3205,7 @@ FORCEINLINE VOID PhpConvertProcessInformation(
  * \param StartupInfo A STARTUPINFO structure containing additional parameters for the process.
  * \param Flags See PhCreateProcess().
  * \param TokenHandle The token of the process. Specify NULL for the token of the parent process.
- * \param ClientId A variable which recieves the identifier of the initial thread.
+ * \param ClientId A variable which receives the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
@@ -3376,7 +3373,7 @@ NTSTATUS PhCreateProcessWin32Ex(
  * the process to be elevated or unelevated depending on the specified options.
  * \li \c PH_CREATE_PROCESS_SET_SESSION_ID \a SessionId is specified in \a Information.
  * \li \c PH_CREATE_PROCESS_WITH_PROFILE Load the user profile, if supported.
- * \param ClientId A variable which recieves the identifier of the initial thread.
+ * \param ClientId A variable which receives the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
  * \param ThreadHandle A variable which receives a handle to the initial thread.
  */
