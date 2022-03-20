@@ -455,6 +455,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalFanImpactStats,
     PowerInternalFanRpmBuckets,
     PowerInternalPowerBootAppDiagInfo,
+    PowerInternalUnregisterShutdownNotification, // since 22H1
+    PowerInternalManageTransitionStateRecord,
     PowerInformationInternalMaximum
 } POWER_INFORMATION_LEVEL_INTERNAL;
 
