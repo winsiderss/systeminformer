@@ -70,7 +70,7 @@
 #define PowerRequestCreate 43 // in: COUNTED_REASON_CONTEXT, out: HANDLE
 #define PowerRequestAction 44 // in: POWER_REQUEST_ACTION
 #define GetPowerRequestList 45 // out: POWER_REQUEST_LIST
-#define ProcessorInformationEx 46 // in: USHORT, out: PROCESSOR_POWER_INFORMATION
+#define ProcessorInformationEx 46 // in: USHORT ProcessorGroup, out: PROCESSOR_POWER_INFORMATION
 #define NotifyUserModeLegacyPowerEvent 47 // (kernel-mode only)
 #define GroupPark 48 // (debug-mode boot only) 
 #define ProcessorIdleDomains 49 // (kernel-mode only)
