@@ -192,7 +192,7 @@ VOID PhpUpdateProcessMitigationPolicies(
                 }
             }
 
-            // HACK: Show System process CET mitigations (dmex)
+            // HACK: Show System process CET mitigation (dmex)
             if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
             {
                 SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;

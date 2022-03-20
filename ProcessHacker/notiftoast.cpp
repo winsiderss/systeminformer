@@ -241,7 +241,7 @@ namespace PH
 
         void SetDismissedToken(const EventRegistrationToken& Token)
         {
-            m_DismisstedToken = Token;
+            m_DismissedToken = Token;
         }
 
         void SetFailedToken(const EventRegistrationToken& Token)
@@ -256,7 +256,7 @@ namespace PH
         PVOID m_Context;
         
         EventRegistrationToken m_ActivatedToken{};
-        EventRegistrationToken m_DismisstedToken{};
+        EventRegistrationToken m_DismissedToken{};
         EventRegistrationToken m_FailedToken{};
 
     };
@@ -498,7 +498,7 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
     // We fire to the callback once anyway, so remove the callback from
     // processing.
     //
-    Sender->remove_Dismissed(m_DismisstedToken);
+    Sender->remove_Dismissed(m_DismissedToken);
     Sender->remove_Activated(m_ActivatedToken);
     Sender->remove_Failed(m_FailedToken);
     return S_OK;
@@ -516,7 +516,7 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
     // We fire to the callback once anyway, so remove the callback from
     // processing.
     //
-    Sender->remove_Dismissed(m_DismisstedToken);
+    Sender->remove_Dismissed(m_DismissedToken);
     Sender->remove_Activated(m_ActivatedToken);
     Sender->remove_Failed(m_FailedToken);
     return S_OK;
@@ -545,7 +545,7 @@ HRESULT STDMETHODCALLTYPE PH::ToastEventHandler::Invoke(
     // We fire to the callback once anyway, so remove the callback from
     // processing.
     //
-    Sender->remove_Dismissed(m_DismisstedToken);
+    Sender->remove_Dismissed(m_DismissedToken);
     Sender->remove_Activated(m_ActivatedToken);
     Sender->remove_Failed(m_FailedToken);
     return S_OK;

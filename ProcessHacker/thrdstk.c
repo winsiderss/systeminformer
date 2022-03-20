@@ -1271,7 +1271,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PPH_STRING fileName = NULL;
     PPH_STRING lineText = NULL;
     PTHREAD_STACK_ITEM item;
-    ULONG64 moduleBaseAddress = 0;
+    ULONG64 baseAddress = 0;
     BOOLEAN enableStackFrameInlineInfo;
     BOOLEAN enableStackFrameLineInfo;
 
@@ -1304,7 +1304,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
             &fileName,
             NULL,
             NULL,
-            &moduleBaseAddress
+            &baseAddress
             );
 
         if (symbol &&
@@ -1338,7 +1338,7 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
             if (PhGetLineFromInlineContext(
                 threadStackContext->SymbolProvider,
                 StackFrame,
-                moduleBaseAddress,
+                baseAddress,
                 &lineFileName,
                 NULL,
                 &lineInfo

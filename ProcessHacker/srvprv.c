@@ -135,7 +135,7 @@ VOID PhpInitializeServiceNonPoll(
     );
 
 VOID PhpWorkaroundWindows10ServiceTypeBug(
-    _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServieEntry
+    _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServiceEntry
     );
 
 PPH_OBJECT_TYPE PhServiceItemType = NULL;
@@ -1462,12 +1462,12 @@ VOID PhpInitializeServiceNonPoll(
 }
 
 VOID PhpWorkaroundWindows10ServiceTypeBug(
-    _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServieEntry
+    _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServiceEntry
     )
 {
     // https://github.com/processhacker2/processhacker/issues/120 (dmex)
-    if (ServieEntry->ServiceStatusProcess.dwServiceType == SERVICE_WIN32)
-        ServieEntry->ServiceStatusProcess.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
-    if (ServieEntry->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))
-        ServieEntry->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
+    if (ServiceEntry->ServiceStatusProcess.dwServiceType == SERVICE_WIN32)
+        ServiceEntry->ServiceStatusProcess.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
+    if (ServiceEntry->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))
+        ServiceEntry->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
 }

@@ -3,7 +3,7 @@
  *   notification icon manager
  *
  * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -23,7 +23,6 @@
 
 #include <phapp.h>
 #include <phsettings.h>
-#include <notifico.h>
 
 #include <shellapi.h>
 #include <malloc.h>
@@ -34,6 +33,7 @@
 #include <settings.h>
 
 #include <mainwndp.h>
+#include <notifico.h>
 #include <notificop.h>
 
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
@@ -258,7 +258,7 @@ VOID PhNfCreateIconThreadDelayed(
                 NtSetEvent(PhpTrayIconEventHandle, NULL);
             }
 
-            // Use a seperate thread so we don't block the main GUI or
+            // Use a separate thread so we don't block the main GUI or
             // the provider threads when explorer is not responding. (dmex)
             PhCreateThreadEx(&PhpTrayIconThreadHandle, PhNfpTrayIconUpdateThread, NULL);
         }
@@ -1087,7 +1087,7 @@ VOID PhNfpProcessesUpdatedHandler(
 {
     static ULONG processesUpdatedCount = 0;
 
-    // Update the tray icons on a seperate thread so we don't block the main GUI or
+    // Update the tray icons on a separate thread so we don't block the main GUI or
     // the provider threads when explorer is not responding.
 
     if (processesUpdatedCount != 3)
