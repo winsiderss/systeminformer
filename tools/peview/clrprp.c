@@ -302,7 +302,7 @@ VOID PvpGetClrStrongNameToken(
 {
     PPH_STRING clrStrongNameString = NULL;
     ICLRMetaHost* clrMetaHost = NULL;
-    ICLRRuntimeInfo* clrRuntimInfo = NULL;
+    ICLRRuntimeInfo* clrRuntimeInfo = NULL;
     ICLRStrongName* clrStrongName = NULL;
     CLRCreateInstanceFnPtr CLRCreateInstance_I = NULL;
     PVOID mscoreeHandle = NULL;
@@ -350,14 +350,14 @@ VOID PvpGetClrStrongNameToken(
         clrMetaHost,
         version,
         &IID_ICLRRuntimeInfo,
-        &clrRuntimInfo
+        &clrRuntimeInfo
         )))
     {
         goto CleanupExit;
     }
 
     if (!SUCCEEDED(ICLRRuntimeInfo_GetInterface(
-        clrRuntimInfo,
+        clrRuntimeInfo,
         &CLSID_CLRStrongName,
         &IID_ICLRStrongName,
         &clrStrongName
@@ -407,8 +407,8 @@ CleanupExit:
         ICLRStrongName_Release(clrStrongName);
     }
 
-    if (clrRuntimInfo)
-        ICLRRuntimeInfo_Release(clrRuntimInfo);
+    if (clrRuntimeInfo)
+        ICLRRuntimeInfo_Release(clrRuntimeInfo);
     if (clrMetaHost)
         ICLRMetaHost_Release(clrMetaHost);
     if (mscoreeHandle)

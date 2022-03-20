@@ -860,7 +860,7 @@ PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
     tableLevel = tableValue & PH_HANDLE_TABLE_LEVEL_MASK;
     tableValue -= tableLevel;
 
-    // No additional checking needed; aleady checked against NextValue.
+    // No additional checking needed; already checked against NextValue.
 
     switch (tableLevel)
     {

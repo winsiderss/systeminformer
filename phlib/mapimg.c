@@ -824,13 +824,13 @@ BOOLEAN PhGetRemoteMappedImageDirectoryEntry(
 _Success_(return)
 BOOLEAN PhGetRemoteMappedImageDebugEntryByType(
     _In_ HANDLE ProcessHandle,
-    _In_ PPH_REMOTE_MAPPED_IMAGE RemotedMappedImage,
+    _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _In_ ULONG Type,
     _Out_opt_ ULONG* DataLength,
     _Out_ PVOID* DataBuffer
     )
 {
-    return PhGetRemoteMappedImageDebugEntryByTypeEx(ProcessHandle, RemotedMappedImage, Type, NtReadVirtualMemory, DataLength, DataBuffer);
+    return PhGetRemoteMappedImageDebugEntryByTypeEx(ProcessHandle, RemoteMappedImage, Type, NtReadVirtualMemory, DataLength, DataBuffer);
 }
 
 _Success_(return)

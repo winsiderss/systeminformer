@@ -119,7 +119,7 @@ VOID PhShowThreadAffinityDialog(
     context.ThreadHandles = PhAllocateZero(NumberOfThreads * sizeof(HANDLE));
 
     // Cache handles to each thread since the ThreadId gets 
-    // reassigned to a different processs after the thread exits. (dmex)
+    // reassigned to a different process after the thread exits. (dmex)
     for (ULONG i = 0; i < NumberOfThreads; i++)
     {
         PhOpenThread(
@@ -297,7 +297,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
                 differentAffinity = !PhpCheckThreadsHaveSameAffinity(context);
 
-                // Use affinity from the first thread when all threads are idential (dmex)
+                // Use affinity from the first thread when all threads are identical (dmex)
                 status = PhGetThreadBasicInformation(
                     context->ThreadHandles[0],
                     &basicInfo

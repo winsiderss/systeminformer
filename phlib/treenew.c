@@ -464,7 +464,7 @@ BOOLEAN PhTnpOnCreate(
         Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
     }
 
-    // TODO: HeaderCustomDraw doens't support classic theme on Windows 7 (dmex)
+    // TODO: HeaderCustomDraw doesn't support classic theme on Windows 7 (dmex)
     if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW && WindowsVersion > WINDOWS_7)
         Context->HeaderCustomDraw = TRUE;
 
@@ -5084,7 +5084,7 @@ VOID PhTnpPaint(
     vScrollPosition = Context->VScrollPosition;
     hScrollPosition = Context->HScrollPosition;
 
-    // Calculate the indicies of the first and last rows that need painting. These indicies are
+    // Calculate the indices of the first and last rows that need painting. These indices are
     // relative to the top of the view area.
 
     firstRowToUpdate = (PaintRect->top - Context->HeaderHeight) / Context->RowHeight;
@@ -5098,7 +5098,7 @@ VOID PhTnpPaint(
     rowRect.right = Context->NormalLeft + Context->TotalViewX - Context->HScrollPosition;
     rowRect.bottom = rowRect.top + Context->RowHeight;
 
-    // Change the indicies to absolute row indicies.
+    // Change the indices to absolute row indices.
 
     firstRowToUpdate += vScrollPosition;
     lastRowToUpdate += vScrollPosition;

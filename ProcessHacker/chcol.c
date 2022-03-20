@@ -422,7 +422,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                     if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
                     {
-                        // Apply visiblity settings and build the order array.
+                        // Apply visibility settings and build the order array.
 
                         TreeNew_SetRedraw(context->ControlHandle, FALSE);
 

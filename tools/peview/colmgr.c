@@ -349,7 +349,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
                         if (!setColumn.Fixed)
                         {
-                            // For compatibility reasons, normal columns have their display indicies stored
+                            // For compatibility reasons, normal columns have their display indices stored
                             // one higher than usual (so they start from 1, not 0). Fix that here.
                             if (hasFixedColumn && (*columnPtr)->DisplayIndex != 0)
                                 (*columnPtr)->DisplayIndex--;

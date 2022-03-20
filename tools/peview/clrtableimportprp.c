@@ -61,7 +61,7 @@ BOOLEAN PvpGetMetaDataInterface(
     {
         CLRCreateInstanceFnPtr CLRCreateInstance_I = NULL;
         ICLRMetaHost* clrMetaHost = NULL;
-        ICLRRuntimeInfo* clrRuntimInfo = NULL;
+        ICLRRuntimeInfo* clrRuntimeInfo = NULL;
 
         if (CLRCreateInstance_I = PhGetDllBaseProcedureAddress(clrCoreBaseAddress, "CLRCreateInstance", 0))
         {
@@ -85,17 +85,17 @@ BOOLEAN PvpGetMetaDataInterface(
                         clrMetaHost,
                         version,
                         &IID_ICLRRuntimeInfo,
-                        &clrRuntimInfo
+                        &clrRuntimeInfo
                         )))
                     {
                         ICLRRuntimeInfo_GetInterface(
-                            clrRuntimInfo,
+                            clrRuntimeInfo,
                             &CLSID_CorMetaDataDispenser,
                             &IID_IMetaDataDispenser,
                             &clrMetadataInterface
                             );
 
-                        ICLRRuntimeInfo_Release(clrRuntimInfo);
+                        ICLRRuntimeInfo_Release(clrRuntimeInfo);
                     }
                 }
 

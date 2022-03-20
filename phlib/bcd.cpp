@@ -672,7 +672,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
         HANDLE objectHandle;
         PPH_STRING objectDescription;
 
-        // Manually add the memory test application since it's a seperate guid. (dmex)
+        // Manually add the memory test application since it's a separate guid. (dmex)
 
         if (NT_SUCCESS(PhBcdOpenObject(StoreHandle, &GUID_WINDOWS_MEMORY_TESTER, &objectHandle)))
         {
