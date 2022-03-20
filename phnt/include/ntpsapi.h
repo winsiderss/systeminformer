@@ -1198,7 +1198,7 @@ NtCreateProcess(
     _In_ BOOLEAN InheritObjectTable,
     _In_opt_ HANDLE SectionHandle,
     _In_opt_ HANDLE DebugPort,
-    _In_opt_ HANDLE ExceptionPort
+    _In_opt_ HANDLE TokenHandle
     );
 
 // begin_rev
@@ -1229,7 +1229,7 @@ NtCreateProcessEx(
     _In_ ULONG Flags, // PROCESS_CREATE_FLAGS_*
     _In_opt_ HANDLE SectionHandle,
     _In_opt_ HANDLE DebugPort,
-    _In_opt_ HANDLE ExceptionPort,
+    _In_opt_ HANDLE TokenHandle,
     _Reserved_ ULONG Reserved // JobMemberLevel
     );
 
