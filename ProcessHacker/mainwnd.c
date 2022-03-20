@@ -528,10 +528,10 @@ NTSTATUS PhMwpLoadStage1Worker(
     if (PhGetIntegerSetting(L"EnableLastProcessShutdown"))
     {
         // Make sure we get closed late in the shutdown process.
-        // This is needed for the shutdown cancel debugging senario included with Task Manager.
+        // This is needed for the shutdown cancel debugging scenario included with Task Manager.
         // Note: Windows excludes system binaries from the shutdown dialog while not excluding
         // programs registered for late shutdown, so when services delay shutdown they won't be shown
-        // to the user while we are shown and this has casued some users to blame us instead. (dmex)
+        // to the user while we are shown and this has caused some users to blame us instead. (dmex)
 
         //SetProcessShutdownParameters(0x100, SHUTDOWN_NORETRY);
         SetProcessShutdownParameters(0x1, SHUTDOWN_NORETRY);
@@ -2415,7 +2415,7 @@ PPH_EMENU PhpCreateUsersMenu(
 {
     if (DelayLoadMenu)
     {
-        // Insert a dummy menu so we're able to recieve menu events and delay load winsta.dll functions. (dmex)
+        // Insert a dummy menu so we're able to receive menu events and delay load winsta.dll functions. (dmex)
         PhInsertEMenuItem(UsersMenu, PhCreateEMenuItem(0, USHRT_MAX, L" ", NULL, NULL), ULONG_MAX);
         return UsersMenu;
     }

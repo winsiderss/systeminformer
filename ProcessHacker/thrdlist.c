@@ -2342,7 +2342,7 @@ PPH_STRING PhGetApartmentStateString(
     if (ApartmentState & OLETLS_FIRSTNTAINIT)
         PhAppendStringBuilder2(&stringBuilder, L"FIRSTNTAINIT, ");
     if (ApartmentState & OLETLS_APTINITIALIZING)
-        PhAppendStringBuilder2(&stringBuilder, L"APTIN Itializing, ");
+        PhAppendStringBuilder2(&stringBuilder, L"APTIN INITIALIZING, ");
     if (ApartmentState & OLETLS_UIMSGSINMODALLOOP)
         PhAppendStringBuilder2(&stringBuilder, L"UIMSGS IN MODAL LOOP, ");
     if (ApartmentState & OLETLS_MARSHALING_ERROR_OBJECT)
@@ -2368,7 +2368,7 @@ PPH_STRING PhGetApartmentStateString(
     if (ApartmentState & OLETLS_BRIDGE_STA)
         PhAppendStringBuilder2(&stringBuilder, L"BRIDGE_STA, ");
     if (ApartmentState & OLETLS_NAINITIALIZING)
-        PhAppendStringBuilder2(&stringBuilder, L"NAINITIALIZING, ");
+        PhAppendStringBuilder2(&stringBuilder, L"NA_INITIALIZING, ");
 
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);

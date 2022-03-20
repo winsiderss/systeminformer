@@ -304,7 +304,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                 }
                                 else
                                 {
-                                    // User cancelled eleavtion.
+                                    // User cancelled elevation.
                                     status = STATUS_SUCCESS;
                                 }
                             }

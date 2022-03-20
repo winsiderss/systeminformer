@@ -3143,7 +3143,8 @@ VOID PhpImageListItemDeleteProcedure(
     )
 {
     PPH_IMAGELIST_ITEM entry = (PPH_IMAGELIST_ITEM)Object;
-    // TODO: doesn't sync with new image index after ImageList_Remove.
+    // TODO: Remove TN_CACHE from TreeNewGetNodeIcon so we're
+    // able to sync the updated image index after ImageList_Remove. (dmex)
     //ULONG LargeIconIndex = entry->LargeIconIndex;
     //ULONG SmallIconIndex = entry->SmallIconIndex;
     //PPH_PROCESS_ITEM* processes;

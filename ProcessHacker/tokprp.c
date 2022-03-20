@@ -3438,7 +3438,7 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
 
     PhDereferenceObject(appContainerSid);
 
-    // Workaround for psuedo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
+    // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
     if (PhIsNullOrEmptyString(appContainerFolderPath))
     {
         PTOKEN_USER tokenUser;
