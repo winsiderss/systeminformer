@@ -836,7 +836,7 @@ WinStationFreeMemory(
 HANDLE
 WINAPI
 WinStationOpenServerW(
-    _In_ PWSTR ServerName
+    _In_opt_ PWSTR ServerName
     );
 
 // rev

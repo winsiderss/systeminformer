@@ -1647,7 +1647,7 @@ SamQueryDisplayInformation(
     _In_ ULONG Index,
     _In_ ULONG EntryCount,
     _In_ ULONG PreferredMaximumLength,
-    _In_ PULONG TotalAvailable,
+    _Out_ PULONG TotalAvailable,
     _Out_ PULONG TotalReturned,
     _Out_ PULONG ReturnedEntryCount,
     _Outptr_ PVOID *SortedBuffer

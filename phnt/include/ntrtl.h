@@ -4627,7 +4627,7 @@ NTSYSAPI
 LOGICAL
 NTAPI
 RtlSetCurrentTransaction(
-    _In_ HANDLE TransactionHandle
+    _In_opt_ HANDLE TransactionHandle
     );
 #endif
 
