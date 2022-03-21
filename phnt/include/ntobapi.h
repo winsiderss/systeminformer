@@ -36,7 +36,9 @@
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SYMBOLIC_LINK_QUERY 0x0001
+#define SYMBOLIC_LINK_SET 0x0002
 #define SYMBOLIC_LINK_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0x1)
+#define SYMBOLIC_LINK_ALL_ACCESS_EX (STANDARD_RIGHTS_REQUIRED | 0xFFFF)
 #endif
 
 #ifndef OBJ_PROTECT_CLOSE
@@ -436,6 +438,7 @@ typedef enum _SYMBOLIC_LINK_INFO_CLASS
     MaxnSymbolicLinkInfoClass
 } SYMBOLIC_LINK_INFO_CLASS;
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -445,6 +448,7 @@ NtSetInformationSymbolicLink(
     _In_reads_bytes_(SymbolicLinkInformationLength) PVOID SymbolicLinkInformation,
     _In_ ULONG SymbolicLinkInformationLength
     );
+#endif
 
 #endif
 
