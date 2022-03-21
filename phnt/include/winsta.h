@@ -630,13 +630,17 @@ typedef enum _SHADOWSTATECLASS
     State_Shadowed // The session is being shadowed by a different session. The current session is referred to as a shadow target.
 } SHADOWSTATECLASS;
 
+#define PROTOCOL_CONSOLE 0
+#define PROTOCOL_OTHERS 1
+#define PROTOCOL_RDP 2
+
 // Retrieves the current shadow state of a session.
 typedef struct _WINSTATIONSHADOW
 {
     SHADOWSTATECLASS ShadowState; // Specifies the current state of shadowing.
     SHADOWCLASS ShadowClass; // Specifies the type of shadowing.
     ULONG SessionId; // Specifies the session ID of the session.
-    ULONG ProtocolType; // Specifies the type of protocol on the session. Can be one of the following values.
+    ULONG ProtocolType; // Specifies the type of protocol on the session. Can be one of PROTOCOL_* values.
 } WINSTATIONSHADOW, *PWINSTATIONSHADOW;
 
 // Retrieves the client product ID and current product ID of the session.
@@ -836,7 +840,7 @@ WinStationFreeMemory(
 HANDLE
 WINAPI
 WinStationOpenServerW(
-    _In_ PWSTR ServerName
+    _In_opt_ PWSTR ServerName
     );
 
 // rev
