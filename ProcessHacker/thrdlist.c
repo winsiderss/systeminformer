@@ -1351,10 +1351,10 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             {
                                 HANDLE processHandle;
 
-                                if (NT_SUCCESS(PhOpenThreadProcess(
-                                    threadItem->ThreadHandle,
+                                if (NT_SUCCESS(PhOpenProcess(
+                                    &processHandle,
                                     PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-                                    &processHandle
+                                    context->ProcessId
                                     )))
                                 {
                                     node->ThreadReadVmHandle = processHandle;
@@ -1438,10 +1438,10 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             {
                                 HANDLE processHandle;
 
-                                if (NT_SUCCESS(PhOpenThreadProcess(
-                                    threadItem->ThreadHandle,
+                                if (NT_SUCCESS(PhOpenProcess(
+                                    &processHandle,
                                     PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-                                    &processHandle
+                                    context->ProcessId
                                     )))
                                 {
                                     node->ThreadReadVmHandle = processHandle;
@@ -1504,10 +1504,10 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             {
                                 HANDLE processHandle;
 
-                                if (NT_SUCCESS(PhOpenThreadProcess(
-                                    threadItem->ThreadHandle,
+                                if (NT_SUCCESS(PhOpenProcess(
+                                    &processHandle,
                                     PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-                                    &processHandle
+                                    context->ProcessId
                                     )))
                                 {
                                     node->ThreadReadVmHandle = processHandle;
@@ -1646,10 +1646,10 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             {
                                 HANDLE processHandle;
 
-                                if (NT_SUCCESS(PhOpenThreadProcess(
-                                    threadItem->ThreadHandle,
+                                if (NT_SUCCESS(PhOpenProcess(
+                                    &processHandle,
                                     PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
-                                    &processHandle
+                                    context->ProcessId
                                     )))
                                 {
                                     node->ThreadReadVmHandle = processHandle;
