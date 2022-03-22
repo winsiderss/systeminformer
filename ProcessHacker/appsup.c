@@ -2460,7 +2460,7 @@ HRESULT PhCreateAdminTask(
     ITaskSettings_put_DisallowStartIfOnBatteries(taskSettings, VARIANT_FALSE);
     ITaskSettings_put_StopIfGoingOnBatteries(taskSettings, VARIANT_FALSE);
     ITaskSettings_put_ExecutionTimeLimit(taskSettings, taskTimeLimitString);
-    //ITaskSettings_put_Priority(taskSettings, 1);
+    ITaskSettings_put_Priority(taskSettings, 1);
 
     if (SUCCEEDED(ITaskSettings_QueryInterface(
         taskSettings,
