@@ -3,7 +3,7 @@
  *   Image Coherency
  *
  * Copyright (C) 2020 jxy-s
- * Copyright (C) 2021 dmex
+ * Copyright (C) 2021-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -118,9 +118,9 @@ ULONG PhpGetSectionScanSize(
 *
 * \return TRUE if the section should be scanned for the given scan type, FALSE otherwise.
 */
-ULONG PhpShouldScanSection(
-    PH_IMAGE_COHERENCY_SCAN_TYPE Type,
-    PIMAGE_SECTION_HEADER SectionHeader
+BOOLEAN PhpShouldScanSection(
+    _In_ PH_IMAGE_COHERENCY_SCAN_TYPE Type,
+    _In_ PIMAGE_SECTION_HEADER SectionHeader
     )
 {
     switch (Type)
@@ -296,7 +296,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
 * for each inspected byte, the callback may return any number of bytes to skip.
 * \param[in] SkipCallbackContext - Optional, callback context passed to the skip callback.
 */
-VOID PhpAnalyzeImageCoherencyInsepct(
+VOID PhpAnalyzeImageCoherencyInspect(
     _In_opt_ PBYTE LeftBuffer,
     _In_ ULONG LeftCount,
     _In_opt_ PBYTE RightBuffer,
@@ -433,7 +433,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
         //
         // Do the inspection, clamp the bytes to the minimum 
         //
-        PhpAnalyzeImageCoherencyInsepct(fileBytes,
+        PhpAnalyzeImageCoherencyInspect(fileBytes,
                                         (ULONG)bytes,
                                         buffer,
                                         (ULONG)bytes,
@@ -457,7 +457,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
 * \param[in] Context - Image coherency context.
 * \param[in] ExpectedByte - Expected byte in the entire range.
 */
-VOID PhpAnalyzeImageCoherencyCommonByRvaExepctBytes(
+VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Rva,
     _In_ ULONG Size,
@@ -500,7 +500,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExepctBytes(
             //
             // Do the inspection 
             //
-            PhpAnalyzeImageCoherencyInsepct(expected,
+            PhpAnalyzeImageCoherencyInspect(expected,
                                             (ULONG)bytesRead,
                                             buffer,
                                             (ULONG)bytesRead,
@@ -569,12 +569,8 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
     _In_ PPH_IMAGE_COHERENCY_CONTEXT Context
     )
 {
-    BOOL inspectedEntry;
-    DWORD addressOfEntry;
+    ULONG addressOfEntry = 0;
     PIMAGE_SECTION_HEADER entrySection;
-
-    inspectedEntry = FALSE;
-    addressOfEntry = 0;
 
     switch (Context->MappedImage.Magic)
     {
@@ -620,8 +616,8 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
             mappedSection = &Context->MappedImage.Sections[i];
             remoteMappedSection = &Context->MappedImage.Sections[i];
 
-            if ((PhpShouldScanSection(Context->Type, mappedSection) != FALSE) ||
-                (PhpShouldScanSection(Context->Type, remoteMappedSection) != FALSE))
+            if (PhpShouldScanSection(Context->Type, mappedSection) ||
+                PhpShouldScanSection(Context->Type, remoteMappedSection))
             {
                 ULONG size;
                 SIZE_T prevTotal;
@@ -683,7 +679,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
                     ((mappedSection->Characteristics & IMAGE_SCN_MEM_EXECUTE) != 0) &&
                     (mappedSection->Misc.VirtualSize > mappedSection->SizeOfRawData))
                 {
-                    PhpAnalyzeImageCoherencyCommonByRvaExepctBytes(
+                    PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
                         ProcessHandle,
                         mappedSection->VirtualAddress + mappedSection->SizeOfRawData,
                         mappedSection->Misc.VirtualSize - mappedSection->SizeOfRawData,
@@ -844,7 +840,7 @@ VOID PhpAnalyzeImageCoherencyCommon(
         if ((i < Context->MappedImage.NumberOfSections) &&
             (i < Context->RemoteMappedImage.NumberOfSections))
         {
-            PhpAnalyzeImageCoherencyInsepct((PBYTE)&Context->MappedImage.Sections[i],
+            PhpAnalyzeImageCoherencyInspect((PBYTE)&Context->MappedImage.Sections[i],
                                             sizeof(IMAGE_SECTION_HEADER),
                                             (PBYTE)&Context->RemoteMappedImage.Sections[i],
                                             sizeof(IMAGE_SECTION_HEADER),
@@ -925,7 +921,7 @@ NTSTATUS PhpAnalyzeImageCoherencyNt32(
     //
     // Inspect the header
     //
-    PhpAnalyzeImageCoherencyInsepct((PBYTE)Context->MappedImage.NtHeaders32,
+    PhpAnalyzeImageCoherencyInspect((PBYTE)Context->MappedImage.NtHeaders32,
                                     UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader),
                                     (PBYTE)Context->RemoteMappedImage.NtHeaders32,
                                     UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader),
@@ -937,7 +933,7 @@ NTSTATUS PhpAnalyzeImageCoherencyNt32(
     //
     // Inspect the optional header
     //
-    PhpAnalyzeImageCoherencyInsepct((PBYTE)fileOptHeader,
+    PhpAnalyzeImageCoherencyInspect((PBYTE)fileOptHeader,
                                     sizeof(IMAGE_OPTIONAL_HEADER32),
                                     (PBYTE)procOptHeader,
                                     sizeof(IMAGE_OPTIONAL_HEADER32),
@@ -1003,7 +999,7 @@ NTSTATUS PhpAnalyzeImageCoherencyNt64(
     //
     // Inspect the header
     //
-    PhpAnalyzeImageCoherencyInsepct((PBYTE)Context->MappedImage.NtHeaders,
+    PhpAnalyzeImageCoherencyInspect((PBYTE)Context->MappedImage.NtHeaders,
                                     UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader),
                                     (PBYTE)Context->RemoteMappedImage.NtHeaders,
                                     UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader),
@@ -1014,7 +1010,7 @@ NTSTATUS PhpAnalyzeImageCoherencyNt64(
     //
     // And the optional header
     //
-    PhpAnalyzeImageCoherencyInsepct((PBYTE)fileOptHeader,
+    PhpAnalyzeImageCoherencyInspect((PBYTE)fileOptHeader,
                                     sizeof(IMAGE_OPTIONAL_HEADER64),
                                     (PBYTE)procOptHeader,
                                     sizeof(IMAGE_OPTIONAL_HEADER64),
