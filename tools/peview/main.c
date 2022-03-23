@@ -25,6 +25,10 @@
 
 PPH_STRING PvFileName = NULL;
 
+BOOLEAN PvInitializeExceptionPolicy(
+    VOID
+    );
+
 BOOLEAN NTAPI PvpCommandLineCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
@@ -51,6 +55,8 @@ INT WINAPI wWinMain(
     PPH_STRING commandLine;
 
     if (!NT_SUCCESS(PhInitializePhLibEx(L"PE Viewer", ULONG_MAX, hInstance, 0, 0)))
+        return 1;
+    if (!PvInitializeExceptionPolicy())
         return 1;
 
     // Create a mutant for the installer.
@@ -280,4 +286,57 @@ INT WINAPI wWinMain(
     PeSaveSettings();
 
     return 0;
+}
+
+#ifndef DEBUG
+ULONG CALLBACK PvUnhandledExceptionCallback(
+    _In_ PEXCEPTION_POINTERS ExceptionInfo
+    )
+{
+    PPH_STRING errorMessage;
+    PPH_STRING message;
+
+    if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
+        errorMessage = PhGetStatusMessage(0, WIN32_FROM_NTSTATUS(ExceptionInfo->ExceptionRecord->ExceptionCode));
+    else
+        errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
+
+    message = PhFormatString(
+        L"0x%08X (%s)",
+        ExceptionInfo->ExceptionRecord->ExceptionCode,
+        PhGetStringOrEmpty(errorMessage)
+        );
+
+    PhShowMessage(
+        NULL,
+        MB_OK | MB_ICONWARNING,
+        L"PE Viewer has crashed :(\r\n\r\n%s",
+        PhGetStringOrEmpty(message)
+        );
+
+    PhExitApplication(ExceptionInfo->ExceptionRecord->ExceptionCode);
+
+    PhDereferenceObject(message);
+    PhDereferenceObject(errorMessage);
+
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
+BOOLEAN PvInitializeExceptionPolicy(
+    VOID
+    )
+{
+#ifndef DEBUG
+    ULONG errorMode;
+    
+    if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
+    {
+        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
+    }
+
+    RtlSetUnhandledExceptionFilter(PvUnhandledExceptionCallback);
+#endif
+    return TRUE;
 }
