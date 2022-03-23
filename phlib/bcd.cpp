@@ -617,7 +617,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
 
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        object = reinterpret_cast<PBCD_OBJECT>(PhAllocate(objectSize));
+        object = static_cast<PBCD_OBJECT>(PhAllocate(objectSize));
         memset(object, 0, objectSize);
 
         status = PhBcdEnumerateObjects(
@@ -658,7 +658,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
         {
             PPH_BCD_OBJECT_LIST entry;
 
-            entry = reinterpret_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
+            entry = static_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
             memcpy(&entry->ObjectGuid, &object[i].Identifer, sizeof(GUID));
             entry->ObjectName = objectDescription;
 
@@ -680,7 +680,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
             {
                 PPH_BCD_OBJECT_LIST entry;
 
-                entry = reinterpret_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
+                entry = static_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
                 memcpy(&entry->ObjectGuid, &GUID_WINDOWS_MEMORY_TESTER, sizeof(GUID));
                 entry->ObjectName = objectDescription;
 
@@ -747,7 +747,7 @@ static VOID PhpBcdEnumerateBootMgrList(
         {
             PPH_BCD_OBJECT_LIST entry;
 
-            entry = reinterpret_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
+            entry = static_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
             memcpy(&entry->ObjectGuid, &objectElementList->ObjectList[i], sizeof(GUID));
             entry->ObjectName = objectEntryDescription;
 

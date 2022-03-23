@@ -147,7 +147,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
     {
         PPV_CLR_IMAGE_IMPORT_DLL importDll;
 
-        importDll = (PPV_CLR_IMAGE_IMPORT_DLL)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL));
+        importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL)));
         importDll->ImportName = PhCreateString(const_cast<wchar_t*>(L"Unknown"));
         importDll->ImportToken = ULONG_MAX;
 
@@ -167,7 +167,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                 {
                     PPV_CLR_IMAGE_IMPORT_DLL importDll;
 
-                    importDll = (PPV_CLR_IMAGE_IMPORT_DLL)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL));
+                    importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL)));
                     importDll->ImportName = PhConvertUtf8ToUtf16(const_cast<char*>(moduleName));
                     importDll->ImportToken = TokenFromRid(i, mdtModuleRef);
 
@@ -208,7 +208,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
             for (ULONG i = 0; i < clrImportsList->Count; i++)
             {
-                PPV_CLR_IMAGE_IMPORT_DLL importDll = (PPV_CLR_IMAGE_IMPORT_DLL)clrImportsList->Items[i];
+                PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[i]);
 
                 if (importDll->ImportToken == moduleTokenValue)
                 {
@@ -221,7 +221,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                     {
                         PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
 
-                        importFunction = (PPV_CLR_IMAGE_IMPORT_FUNCTION)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION));
+                        importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
                         importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
                         importFunction->Flags = importFlagsValue;
                         importFunction->Offset = importOffsetValue;
@@ -236,7 +236,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
             if (!found)
             {
-                PPV_CLR_IMAGE_IMPORT_DLL unknownImportDll = (PPV_CLR_IMAGE_IMPORT_DLL)clrImportsList->Items[0];
+                PPV_CLR_IMAGE_IMPORT_DLL unknownImportDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[0]);
 
                 if (!unknownImportDll->Functions)
                     unknownImportDll->Functions = PhCreateList(1);
@@ -247,7 +247,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                 {
                     PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
 
-                    importFunction = (PPV_CLR_IMAGE_IMPORT_FUNCTION)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION));
+                    importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
                     importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
                     importFunction->Flags = importFlagsValue;
                     importFunction->Offset = importOffsetValue;
