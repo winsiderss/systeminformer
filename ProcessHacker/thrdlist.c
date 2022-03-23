@@ -1353,7 +1353,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                                 if (NT_SUCCESS(PhOpenProcess(
                                     &processHandle,
-                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
                                     context->ProcessId
                                     )))
                                 {
@@ -1440,7 +1440,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                                 if (NT_SUCCESS(PhOpenProcess(
                                     &processHandle,
-                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
                                     context->ProcessId
                                     )))
                                 {
@@ -1506,7 +1506,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                                 if (NT_SUCCESS(PhOpenProcess(
                                     &processHandle,
-                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
                                     context->ProcessId
                                     )))
                                 {
@@ -1648,7 +1648,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
                                 if (NT_SUCCESS(PhOpenProcess(
                                     &processHandle,
-                                    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ,
+                                    PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
                                     context->ProcessId
                                     )))
                                 {
