@@ -10638,10 +10638,10 @@ NTSTATUS PhGetThreadLastStatusValue(
 
     if (!ProcessHandle)
     {
-        if (!NT_SUCCESS(status = PhOpenThreadProcess(
-            ThreadHandle,
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &ProcessHandle,
             PROCESS_VM_READ,
-            &ProcessHandle
+            basicInfo.ClientId.UniqueProcess
             )))
             return status;
 
@@ -10698,10 +10698,10 @@ NTSTATUS PhGetThreadApartmentState(
 
     if (!ProcessHandle)
     {
-        if (!NT_SUCCESS(status = PhOpenThreadProcess(
-            ThreadHandle,
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &ProcessHandle,
             PROCESS_VM_READ,
-            &ProcessHandle
+            basicInfo.ClientId.UniqueProcess
             )))
             return status;
 
@@ -10959,10 +10959,10 @@ NTSTATUS PhGetThreadIsFiber(
 
     if (!ProcessHandle)
     {
-        if (!NT_SUCCESS(status = PhOpenThreadProcess(
-            ThreadHandle,
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &ProcessHandle,
             PROCESS_VM_READ,
-            &ProcessHandle
+            basicInfo.ClientId.UniqueProcess
             )))
             return status;
 
