@@ -449,7 +449,7 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 {
                     ADD_VALUES(IMAGE_LOAD_CONFIG_DIRECTORY64, config64);
                 #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
-                    ADD_VALUES2(IMAGE_LOAD_CONFIG_DIRECTORY32, config32);
+                    ADD_VALUES2(IMAGE_LOAD_CONFIG_DIRECTORY32, config64);
                 #endif
                     PvpAddPeEnclaveConfig(config64, context->ListViewHandle);
                 }
