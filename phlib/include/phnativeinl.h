@@ -650,11 +650,15 @@ PhGetProcessIsXFGuardEnabled(
         &policyInfo,
         sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
         NULL
-    );
+        );
 
     if (NT_SUCCESS(status))
     {
+#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+        *IsXFGuardEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 3);
+#else
         *IsXFGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableXfg;
+#endif
     }
 
     return status;

@@ -25,8 +25,9 @@
 #include <modlist.h>
 
 #include <emenu.h>
-#include <verify.h>
+#include <mapimg.h>
 #include <settings.h>
+#include <verify.h>
 
 #include <extmgri.h>
 #include <modprv.h>

@@ -672,6 +672,20 @@ typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+typedef struct _PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY
+{
+    union {
+        ULONG Flags;
+        struct {
+            ULONG EnforceRedirectionTrust : 1;
+            ULONG AuditRedirectionTrust : 1;
+            ULONG ReservedFlags : 30;
+        };
+    };
+} PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY, * PPROCESS_MITIGATION_REDIRECTION_TRUST_POLICY;
+#endif
+
 // private
 typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
 {
@@ -1597,6 +1611,15 @@ NtQueueApcThreadEx(
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN11)
+
+#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+typedef enum _QUEUE_USER_APC_FLAGS
+{
+    QUEUE_USER_APC_FLAGS_NONE = 0x0,
+    QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC = 0x1,
+} QUEUE_USER_APC_FLAGS;
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1609,6 +1632,7 @@ NtQueueApcThreadEx2(
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
     );
+
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN8)
