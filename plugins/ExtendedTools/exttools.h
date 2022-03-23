@@ -35,6 +35,7 @@
 #include "framemon.h"
 
 // d3dkmddi requires the WDK (dmex)
+#if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
 #ifdef __has_include
 #if __has_include (<dxmini.h>) && \
 __has_include (<d3dkmddi.h>) && \
@@ -42,6 +43,9 @@ __has_include (<d3dkmthk.h>)
 #include <dxmini.h>
 #include <d3dkmddi.h>
 #include <d3dkmthk.h>
+#else
+#include "d3dkmt/d3dkmthk.h"
+#endif
 #else
 #include "d3dkmt/d3dkmthk.h"
 #endif
