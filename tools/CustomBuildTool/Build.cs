@@ -914,7 +914,7 @@ namespace CustomBuildTool
             if (!File.Exists(rcExePath))
             {
                 Program.PrintColorMessage("Unable to find the resource compiler.", ConsoleColor.Red);
-                return false;
+                return true;
             }
 
             commandLine.Append($"/i \"{windowsSdkIncludePath}\\um\" /i \"{windowsSdkIncludePath}\\shared\" /i \"{resIncludePath}\" ");
