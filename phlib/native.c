@@ -10640,7 +10640,7 @@ NTSTATUS PhGetThreadLastStatusValue(
     {
         if (!NT_SUCCESS(status = PhOpenProcess(
             &ProcessHandle,
-            PROCESS_VM_READ,
+            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
             basicInfo.ClientId.UniqueProcess
             )))
             return status;
@@ -10700,7 +10700,7 @@ NTSTATUS PhGetThreadApartmentState(
     {
         if (!NT_SUCCESS(status = PhOpenProcess(
             &ProcessHandle,
-            PROCESS_VM_READ,
+            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
             basicInfo.ClientId.UniqueProcess
             )))
             return status;
@@ -10961,7 +10961,7 @@ NTSTATUS PhGetThreadIsFiber(
     {
         if (!NT_SUCCESS(status = PhOpenProcess(
             &ProcessHandle,
-            PROCESS_VM_READ,
+            PROCESS_VM_READ | (WindowsVersion > WINDOWS_7 ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_QUERY_INFORMATION),
             basicInfo.ClientId.UniqueProcess
             )))
             return status;
