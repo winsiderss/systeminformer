@@ -424,13 +424,11 @@ PPH_STRING PhGetMessage(
         return NULL;
 
     if (messageEntry->Flags & MESSAGE_RESOURCE_UNICODE)
-    {
         return PhCreateStringEx((PWCHAR)messageEntry->Text, messageEntry->Length);
-    }
+    else if (messageEntry->Flags & MESSAGE_RESOURCE_UTF8)
+        return PhConvertUtf8ToUtf16Ex((PCHAR)messageEntry->Text, messageEntry->Length);
     else
-    {
         return PhConvertMultiByteToUtf16Ex((PCHAR)messageEntry->Text, messageEntry->Length);
-    }
 }
 
 /**
