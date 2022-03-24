@@ -644,7 +644,7 @@ VOID PhShowStatus(
     {
         if (Message)
         {
-            PhShowError(hWnd, L"%s.", Message);
+            PhShowError(hWnd, L"%s", Message);
         }
         else
         {
