@@ -600,6 +600,10 @@ PPH_STRING PhGetStatusMessage(
         {
             Win32Result = WIN32_FROM_NTSTATUS(Status);
         }
+        else if (NT_FACILITY(Status) == FACILTIY_MUI_ERROR_CODE)
+        {
+            Win32Result = Status; // needed by PhGetLastWin32ErrorAsNtStatus(CERT_E_REVOKED) (dmex)
+        }
     }
 
     if (!Win32Result)
