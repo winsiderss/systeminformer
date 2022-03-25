@@ -2001,6 +2001,13 @@ PhThawProcess(
     _In_ HANDLE ProcessId
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsKnownDllFileName(
+    _In_ PPH_STRING FileName
+    );
+
 #ifdef __cplusplus
 }
 #endif
