@@ -99,6 +99,7 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
                 return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
             } 
         }
+        break;
     case PH_IPV6_NETWORK_TYPE:
         {
             static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
@@ -149,9 +150,10 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
 
             return PhFinalStringBuilderString(&stringBuilder);
         }
-    default:
-        return NULL;
+        break;
     }
+
+    return NULL;
 }
 
 NTSTATUS TracertHostnameLookupCallback(
@@ -161,8 +163,8 @@ NTSTATUS TracertHostnameLookupCallback(
     PTRACERT_RESOLVE_WORKITEM workitem = Parameter;
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
-    PPH_STRING dnsReverseNameString = NULL;
-    PDNS_RECORD dnsRecordList = NULL;
+    PPH_STRING dnsReverseNameString;
+    PDNS_RECORD dnsRecordList;
 
     if (workitem->Type == PH_IPV4_NETWORK_TYPE)
     {
