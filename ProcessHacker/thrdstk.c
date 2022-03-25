@@ -1285,13 +1285,20 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
 
     PhAcquireQueuedLockExclusive(&threadStackContext->StatusLock);
     {
-        PH_FORMAT format[3];
+        if (threadStackContext->NewList->Count)
+        {
+            PH_FORMAT format[3];
 
-        PhInitFormatS(&format[0], L"Processing stack frame ");
-        PhInitFormatU(&format[1], threadStackContext->NewList->Count);
-        PhInitFormatS(&format[2], L"...");
+            PhInitFormatS(&format[0], L"Processing stack frame ");
+            PhInitFormatU(&format[1], threadStackContext->NewList->Count);
+            PhInitFormatS(&format[2], L"...");
 
-        PhMoveReference(&threadStackContext->StatusMessage, PhFormat(format, RTL_NUMBER_OF(format), 0));
+            PhMoveReference(&threadStackContext->StatusMessage, PhFormat(format, RTL_NUMBER_OF(format), 0));
+        }
+        else
+        {
+            PhMoveReference(&threadStackContext->StatusMessage, PhCreateString(L"Processing stack frames..."));
+        }
     }
     PhReleaseQueuedLockExclusive(&threadStackContext->StatusLock);
 
