@@ -234,7 +234,7 @@ NTSTATUS PhBcdGetElementString(
         return STATUS_UNSUCCESSFUL;
 
     stringLength = 0x80;
-    string = PhCreateStringEx(NULL, stringLength);
+    string = PhCreateStringEx(nullptr, stringLength);
     status = PhBcdGetElementData(
         ObjectHandle,
         ElementType,
@@ -245,7 +245,7 @@ NTSTATUS PhBcdGetElementString(
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
         PhDereferenceObject(string);
-        string = PhCreateStringEx(NULL, stringLength);
+        string = PhCreateStringEx(nullptr, stringLength);
 
         status = PhBcdGetElementData(
             ObjectHandle,
@@ -339,8 +339,8 @@ NTSTATUS PhBcdGetElementData2(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
 
     if (!PhpBcdApiInitialized())
         return STATUS_UNSUCCESSFUL;
@@ -384,8 +384,8 @@ NTSTATUS PhBcdSetElementData2(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
 
     if (!PhpBcdApiInitialized())
         return STATUS_UNSUCCESSFUL;
@@ -427,8 +427,8 @@ NTSTATUS PhBcdSetAdvancedOptionsOneTime(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
 
     status = PhBcdOpenSystemStore(&storeHandle);
 
@@ -466,8 +466,8 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
     BCD_ELEMENT_OBJECT_LIST objectElementList[1];
 
     status = PhBcdOpenSystemStore(&storeHandle);
@@ -557,8 +557,8 @@ NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
     BCD_ELEMENT_OBJECT_LIST objectElementList[1];
 
     status = PhBcdOpenSystemStore(&storeHandle);
@@ -601,7 +601,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
     NTSTATUS status;
     ULONG objectCount = 0;
     ULONG objectSize = 0;
-    PBCD_OBJECT object = NULL;
+    PBCD_OBJECT object = nullptr;
     BCD_OBJECT_DESCRIPTION description;
 
     description.Version = BCD_OBJECT_DESCRIPTION_VERSION;
@@ -702,8 +702,8 @@ static VOID PhpBcdEnumerateBootMgrList(
     )
 {
     NTSTATUS status;
-    HANDLE objectHandle = NULL;
-    BCD_ELEMENT_OBJECT_LIST objectElementList[32] = { 0 }; // dynamic?
+    HANDLE objectHandle = nullptr;
+    BCD_ELEMENT_OBJECT_LIST objectElementList[32] = { }; // dynamic?
     ULONG objectListLength = sizeof(objectElementList);
 
     status = PhBcdOpenObject(
@@ -773,7 +773,7 @@ PPH_LIST PhBcdQueryBootApplicationList(
     status = PhBcdOpenSystemStore(&storeHandle);
 
     if (!NT_SUCCESS(status))
-        return NULL;
+        return nullptr;
 
     objectApplicationList = PhCreateList(5);
 
@@ -817,7 +817,7 @@ PPH_LIST PhBcdQueryFirmwareBootApplicationList(
     status = PhBcdOpenSystemStore(&storeHandle);
 
     if (!NT_SUCCESS(status))
-        return NULL;
+        return nullptr;
 
     objectApplicationList = PhCreateList(5);
 
@@ -845,7 +845,7 @@ VOID PhBcdDestroyBootApplicationList(
 {
     for (ULONG i = 0; i < ObjectApplicationList->Count; i++)
     {
-        PPH_BCD_OBJECT_LIST entry = (PPH_BCD_OBJECT_LIST)ObjectApplicationList->Items[i];
+        PPH_BCD_OBJECT_LIST entry = static_cast<PPH_BCD_OBJECT_LIST>(ObjectApplicationList->Items[i]);
 
         PhDereferenceObject(entry->ObjectName);
         PhFree(entry);

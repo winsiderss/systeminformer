@@ -446,11 +446,11 @@ VOID StopOutputThread(
 }
 
 static NTSTATUS PresentMonTraceThread(
-    _In_ PVOID ThreadParamater
+    _In_ PVOID ThreadParameter
     )
 {
     ULONG result;
-    TRACEHANDLE traceHandle = (TRACEHANDLE)ThreadParamater;
+    TRACEHANDLE traceHandle = reinterpret_cast<TRACEHANDLE>(ThreadParameter);
 
     while (TRUE)
     {
@@ -473,14 +473,14 @@ static NTSTATUS PresentMonTraceThread(
 }
 
 VOID StartConsumerThread(
-    _In_ TRACEHANDLE traceHandle
+    _In_ TRACEHANDLE TraceHandle
     )
 {
     if (!ConsumeThreadCreated)
     {
         HANDLE threadHandle;
 
-        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, reinterpret_cast<PVOID>(traceHandle))))
+        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, reinterpret_cast<PVOID>(TraceHandle))))
         {
             PhSetThreadName(threadHandle, L"FpsEtwConsumerThread");
             NtClose(threadHandle);
