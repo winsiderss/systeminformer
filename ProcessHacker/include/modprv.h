@@ -27,7 +27,9 @@ typedef struct _PH_MODULE_ITEM
         {
             BOOLEAN JustProcessed : 1;
             BOOLEAN IsFirst : 1;
-            BOOLEAN Spare : 6;
+            BOOLEAN ImageNotAtBase : 1;
+            BOOLEAN ImageKnownDll : 1;
+            BOOLEAN Spare : 4;
         };
     };
 

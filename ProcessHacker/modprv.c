@@ -646,6 +646,9 @@ VOID PhModuleProviderUpdate(
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
 
+            if (module->OriginalBaseAddress && module->OriginalBaseAddress != module->BaseAddress)
+                moduleItem->ImageNotAtBase = TRUE;
+
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
 
             PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, moduleItem->FileName, PhEnableVersionShortText);
@@ -705,8 +708,6 @@ VOID PhModuleProviderUpdate(
                 // 1. It (should be) faster than opening the file and mapping it in, and
                 // 2. It contains the correct original image base relocated by ASLR, if present.
 
-                moduleItem->Flags &= ~LDRP_IMAGE_NOT_AT_BASE;
-
                 if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
                 {
                     ULONG_PTR imageBase = 0;
@@ -735,7 +736,7 @@ VOID PhModuleProviderUpdate(
                     }
 
                     if (imageBase != (ULONG_PTR)moduleItem->BaseAddress)
-                        moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                        moduleItem->ImageNotAtBase = TRUE;
 
                     if (entryPoint != 0)
                         moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
