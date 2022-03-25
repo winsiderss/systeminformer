@@ -190,13 +190,6 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
     _In_ HWND WindowHandle
     ) = NULL;
 
-HRESULT (WINAPI* DwmSetWindowAttribute_I)(
-    _In_ HWND WindowHandle,
-    _In_ ULONG AttributeId,
-    _In_reads_bytes_(AttributeLength) PVOID Attribute,
-    _In_ ULONG AttributeLength
-    );
-
 //HRESULT (WINAPI* DwmGetColorizationColor_I)(
 //    _Out_ PULONG Colorization,
 //    _Out_ PBOOL OpaqueBlend
@@ -229,11 +222,6 @@ VOID PhInitializeWindowTheme(
         if (PhBeginInitOnce(&initOnce))
         {
             PVOID module;
-
-            if (module = PhLoadLibrary(L"dwmapi.dll"))
-            {
-                DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(module, "DwmSetWindowAttribute", 0);
-            }
 
             if (WindowsVersion >= WINDOWS_10_19H2)
             {
@@ -414,6 +402,39 @@ VOID PhReInitializeWindowTheme(
     InvalidateRect(WindowHandle, NULL, FALSE);
 }
 
+HRESULT PhSetWindowThemeAttribute(
+    _In_ HWND WindowHandle,
+    _In_ ULONG AttributeId,
+    _In_reads_bytes_(AttributeLength) PVOID Attribute,
+    _In_ ULONG AttributeLength
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* DwmSetWindowAttribute_I)(
+        _In_ HWND WindowHandle,
+        _In_ ULONG AttributeId,
+        _In_reads_bytes_(AttributeLength) PVOID Attribute,
+        _In_ ULONG AttributeLength
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"dwmapi.dll"))
+        {
+            DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(baseAddress, "DwmSetWindowAttribute", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!DwmSetWindowAttribute_I)
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    return DwmSetWindowAttribute_I(WindowHandle, AttributeId, Attribute, AttributeLength);
+}
+
 VOID PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
     )
@@ -425,37 +446,48 @@ VOID PhInitializeThemeWindowFrame(
 #ifndef DWMWA_CAPTION_COLOR
 #define DWMWA_CAPTION_COLOR 35
 #endif
-
-    if (WindowsVersion >= WINDOWS_10_RS5 && DwmSetWindowAttribute_I)
+#ifndef DWMWA_SYSTEMBACKDROP_TYPE
+#define DWMWA_SYSTEMBACKDROP_TYPE 38
+#endif
+    
+    if (WindowsVersion >= WINDOWS_10_RS5)
     {
-        switch (PhpThemeColorMode)
+        if (PhpThemeEnable)
         {
-        case 0: // New colors
+            switch (PhpThemeColorMode)
             {
-                if (FAILED(DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+            case 0: // New colors
                 {
-                    DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
-                }
+                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+                    {
+                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+                    }
 
-                //if (WindowsVersion > WINDOWS_11)
-                //{
-                //    DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
-                //}
-            }
-            break;
-        case 1: // Old colors
-            {
-                if (FAILED(DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
-                {
-                    DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+                    //if (WindowsVersion > WINDOWS_11)
+                    //{
+                    //    PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
+                    //}
                 }
+                break;
+            case 1: // Old colors
+                {
+                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
+                    {
+                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+                    }
 
-                if (WindowsVersion >= WINDOWS_11)
-                {
-                    DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
+                    if (WindowsVersion >= WINDOWS_11)
+                    {
+                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
+                    }
                 }
+                break;
             }
-            break;
+        }
+
+        if (WindowsVersion >= WINDOWS_11_22H1)
+        {
+            PhSetWindowThemeAttribute(WindowHandle, DWMWA_SYSTEMBACKDROP_TYPE, &(ULONG){ 1 }, sizeof(ULONG));
         }
     }
 }
@@ -2485,7 +2517,6 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
             bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
             oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
-
             TabCtrl_AdjustRect(WindowHandle, FALSE, &clientRect); // Make sure we don't paint in the client area.
             ExcludeClipRect(bufferDc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
@@ -2557,7 +2588,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
                     {
                     case 0: // New colors
                         {
-                            if (TabCtrl_GetCurSel(WindowHandle) == i)
+                            if (currentSelection == i)
                             {
                                 SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
                                 SetDCBrushColor(bufferDc, RGB(128, 128, 128));
