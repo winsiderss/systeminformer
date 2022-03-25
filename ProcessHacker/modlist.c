@@ -1134,7 +1134,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (context->HighlightImmersiveModules && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
                 getNodeColor->BackColor = PhCsColorImmersiveProcesses;
-            else if (context->HighlightRelocatedModules && (moduleItem->Flags & LDRP_IMAGE_NOT_AT_BASE))
+            else if (context->HighlightRelocatedModules && (moduleItem->Flags & LDRP_COR_DEFERRED_VALIDATE))
                 getNodeColor->BackColor = PhCsColorRelocatedModules;
             else if (PhEnableProcessQueryStage2 &&
                 context->HighlightSystemModules &&

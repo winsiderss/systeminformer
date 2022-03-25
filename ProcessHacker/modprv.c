@@ -705,7 +705,7 @@ VOID PhModuleProviderUpdate(
                 // 1. It (should be) faster than opening the file and mapping it in, and
                 // 2. It contains the correct original image base relocated by ASLR, if present.
 
-                moduleItem->Flags &= ~LDRP_IMAGE_NOT_AT_BASE;
+                moduleItem->Flags &= ~LDRP_COR_DEFERRED_VALIDATE;
 
                 if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
                 {
@@ -735,7 +735,7 @@ VOID PhModuleProviderUpdate(
                     }
 
                     if (imageBase != (ULONG_PTR)moduleItem->BaseAddress)
-                        moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                        moduleItem->Flags |= LDRP_COR_DEFERRED_VALIDATE;
 
                     if (entryPoint != 0)
                         moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);
