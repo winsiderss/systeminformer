@@ -32,8 +32,8 @@ static BOOLEAN NTAPI EtFramesEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PET_FPS_COUNTER entry1 = (PET_FPS_COUNTER)Entry1;
-    PET_FPS_COUNTER entry2 = (PET_FPS_COUNTER)Entry2;
+    PET_FPS_COUNTER entry1 = static_cast<PET_FPS_COUNTER>(Entry1);
+    PET_FPS_COUNTER entry2 = static_cast<PET_FPS_COUNTER>(Entry2);
 
     return entry1->ProcessId == entry2->ProcessId;
 }
@@ -42,7 +42,7 @@ static ULONG NTAPI EtFramesHashFunction(
     _In_ PVOID Entry
     )
 {
-    PET_FPS_COUNTER entry = (PET_FPS_COUNTER)Entry;
+    PET_FPS_COUNTER entry = static_cast<PET_FPS_COUNTER>(Entry);
 
     return HandleToUlong(entry->ProcessId) / 4;
 }
@@ -108,7 +108,7 @@ PET_FPS_COUNTER EtLookupProcessGpuFrameEntry(
     lookupEntry.ProcessId = ProcessId;
 
     PhAcquireQueuedLockShared(&EtFramesHashTableLock);
-    entry = reinterpret_cast<PET_FPS_COUNTER>(PhFindEntryHashtable(EtFramesHashTable, &lookupEntry));
+    entry = static_cast<PET_FPS_COUNTER>(PhFindEntryHashtable(EtFramesHashTable, &lookupEntry));
     PhReleaseQueuedLockShared(&EtFramesHashTableLock);
 
     return entry;
@@ -148,7 +148,7 @@ VOID EtAddGpuFrameToHashTable(
     PET_FPS_COUNTER entry;
 
     lookupEntry.ProcessId = UlongToHandle(ProcessId);
-    entry = reinterpret_cast<PET_FPS_COUNTER>(PhFindEntryHashtable(EtFramesHashTable, &lookupEntry));
+    entry = static_cast<PET_FPS_COUNTER>(PhFindEntryHashtable(EtFramesHashTable, &lookupEntry));
 
     if (entry)
     {
