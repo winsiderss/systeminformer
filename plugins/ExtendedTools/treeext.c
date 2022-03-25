@@ -3,7 +3,7 @@
  *   process and network tree support
  *
  * Copyright (C) 2011 wj32
- * Copyright (C) 2011-2021 dmex
+ * Copyright (C) 2011-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -1200,16 +1200,16 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
             &restricted
             )))
         {
-            if (allowed.boolVal)
+            if (V_BOOL(&allowed))
             {
-                if (restricted.boolVal)
+                if (V_BOOL(&restricted))
                     result = FirewallAllowedRestricted;
                 else
                     result = FirewallAllowedNotRestricted;
             }
             else
             {
-                if (restricted.boolVal)
+                if (V_BOOL(&restricted))
                     result = FirewallNotAllowedRestricted;
                 else
                     result = FirewallNotAllowedNotRestricted;
