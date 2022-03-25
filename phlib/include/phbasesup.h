@@ -1028,7 +1028,7 @@ FORCEINLINE
 VOID
 PhSkipStringRef(
     _Inout_ PPH_STRINGREF String,
-    _In_ LONG_PTR Length
+    _In_ SIZE_T Length
     )
 {
     String->Buffer = (PWCH)PTR_ADD_OFFSET(String->Buffer, Length);
