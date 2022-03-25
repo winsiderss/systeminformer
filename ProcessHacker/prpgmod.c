@@ -3,7 +3,7 @@
  *   Process properties: Modules page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -278,6 +278,9 @@ BOOLEAN PhpModulesTreeFilterCallback(
     {
         return FALSE;
     }
+
+    if (Context->ListContext.HideImageKnownDll && moduleItem->ImageKnownDll)
+        return FALSE;
 
     if (PhIsNullOrEmptyString(Context->SearchboxText))
         return TRUE;
@@ -879,12 +882,14 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM verifiedItem;
                     PPH_EMENU_ITEM systemItem;
                     PPH_EMENU_ITEM coherencyItem;
-                    PPH_EMENU_ITEM untrustedItem;
-                    PPH_EMENU_ITEM systemHighlightItem;
-                    PPH_EMENU_ITEM coherencyHighlightItem;
+                    PPH_EMENU_ITEM knowndllsItem;
                     PPH_EMENU_ITEM dotnetItem;
                     PPH_EMENU_ITEM immersiveItem;
                     PPH_EMENU_ITEM relocatedItem;
+                    PPH_EMENU_ITEM untrustedItem;
+                    PPH_EMENU_ITEM systemHighlightItem;
+                    PPH_EMENU_ITEM coherencyHighlightItem;
+                    PPH_EMENU_ITEM knowndllsHighlightItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
@@ -896,6 +901,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, verifiedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SIGNED_OPTION, L"Hide verified", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_SYSTEM_OPTION, L"Hide system", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, coherencyItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOWIMAGECOHERENCY_OPTION, L"Hide low image coherency", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, knowndllsItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_IMAGEKNOWNDLL_OPTION, L"Hide knowndlls images", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, dotnetItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_DOTNET_OPTION, L"Highlight .NET modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, immersiveItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_IMMERSIVE_OPTION, L"Highlight immersive modules", NULL, NULL), ULONG_MAX);
@@ -903,6 +909,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, untrustedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_UNSIGNED_OPTION, L"Highlight untrusted modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, systemHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION, L"Highlight system modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, coherencyHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_LOWIMAGECOHERENCY_OPTION, L"Highlight low image coherency", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, knowndllsHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_IMAGEKNOWNDLL, L"Highlight knowndlls images", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module...", NULL, NULL), ULONG_MAX);
                     //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -921,6 +928,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         systemItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HideLowImageCoherency)
                         coherencyItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HideImageKnownDll)
+                        knowndllsItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightDotNetModules)
                         dotnetItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightImmersiveModules)
@@ -933,6 +942,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         systemHighlightItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightLowImageCoherency)
                         coherencyHighlightItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.HighlightImageKnownDll)
+                        knowndllsHighlightItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
