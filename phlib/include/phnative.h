@@ -1322,6 +1322,7 @@ typedef struct _PH_MODULE_INFO
     ULONG Type;
     PVOID BaseAddress;
     PVOID ParentBaseAddress;
+    PVOID OriginalBaseAddress;
     ULONG Size;
     PVOID EntryPoint;
     ULONG Flags;

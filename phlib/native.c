@@ -7212,12 +7212,14 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     if (WindowsVersion >= WINDOWS_8)
     {
         moduleInfo.ParentBaseAddress = Module->ParentDllBase;
+        moduleInfo.OriginalBaseAddress = (PVOID)Module->OriginalBase;
         moduleInfo.LoadReason = (USHORT)Module->LoadReason;
         moduleInfo.LoadTime = Module->LoadTime;
     }
     else
     {
         moduleInfo.ParentBaseAddress = NULL;
+        moduleInfo.OriginalBaseAddress = NULL;
         moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
     }
@@ -7278,6 +7280,7 @@ VOID PhpRtlModulesToGenericModules(
         moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
         moduleInfo.ParentBaseAddress = NULL;
+        moduleInfo.OriginalBaseAddress = NULL;
 
         if (module->OffsetToFileName == 0)
         {
@@ -7349,6 +7352,7 @@ VOID PhpRtlModulesExToGenericModules(
         moduleInfo.LoadReason = USHRT_MAX;
         moduleInfo.LoadTime.QuadPart = 0;
         moduleInfo.ParentBaseAddress = NULL;
+        moduleInfo.OriginalBaseAddress = NULL;
 
         cont = Callback(&moduleInfo, Context);
 
@@ -7389,6 +7393,7 @@ BOOLEAN PhpCallbackMappedFileOrImage(
     moduleInfo.LoadReason = USHRT_MAX;
     moduleInfo.LoadTime.QuadPart = 0;
     moduleInfo.ParentBaseAddress = NULL;
+    moduleInfo.OriginalBaseAddress = NULL;
 
     cont = Callback(&moduleInfo, Context);
 
