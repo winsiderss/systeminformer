@@ -402,6 +402,7 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
                 return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
             }
         }
+        break;
     case PH_IPV6_NETWORK_TYPE:
         {
             static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
@@ -451,9 +452,10 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
 
             return PhFinalStringBuilderString(&stringBuilder);
         }
-    default:
-        return NULL;
+        break;
     }
+
+    return NULL;
 }
 
 PPH_STRING PhGetHostNameFromAddressEx(
