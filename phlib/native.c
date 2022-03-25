@@ -11340,3 +11340,173 @@ NTSTATUS PhThawProcess(
 
     return status;
 }
+
+// KnownDLLs cache support
+
+static PH_INITONCE PhKnownDllsInitOnce = PH_INITONCE_INIT;
+static PPH_HASHTABLE PhKnownDllsHashtable = NULL;
+
+typedef struct _PH_KNOWNDLL_CACHE_ENTRY
+{
+    PPH_STRING FileName;
+} PH_KNOWNDLL_CACHE_ENTRY, *PPH_KNOWNDLL_CACHE_ENTRY;
+
+static BOOLEAN NTAPI PhKnownDllsHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    return PhEqualStringRef(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry1)->FileName->sr, &((PPH_KNOWNDLL_CACHE_ENTRY)Entry2)->FileName->sr, TRUE);
+}
+
+static ULONG NTAPI PhKnownDllsHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    return PhHashStringRefEx(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry)->FileName->sr, TRUE, PH_STRING_HASH_X65599);
+}
+
+static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF TypeName,
+    _In_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE sectionHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectNameUs;
+    PVOID baseAddress = NULL;
+    SIZE_T viewSize = PAGE_SIZE;
+    PPH_STRING fileName;
+
+    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+        return TRUE;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        Context,
+        NULL
+        );
+
+    status = NtOpenSection(
+        &sectionHandle,
+        SECTION_MAP_READ,
+        &objectAttributes
+        );
+
+    if (!NT_SUCCESS(status))
+        return TRUE;
+
+    status = NtMapViewOfSection(
+        sectionHandle,
+        NtCurrentProcess(),
+        &baseAddress,
+        0,
+        0,
+        NULL,
+        &viewSize,
+        ViewUnmap,
+        WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
+        PAGE_READONLY
+        );
+
+    NtClose(sectionHandle);
+
+    if (!NT_SUCCESS(status))
+        return TRUE;
+
+    status = PhGetProcessMappedFileName(
+        NtCurrentProcess(),
+        baseAddress,
+        &fileName
+        );
+
+    NtUnmapViewOfSection(NtCurrentProcess(), baseAddress);
+
+    if (NT_SUCCESS(status))
+    {
+        PH_KNOWNDLL_CACHE_ENTRY entry;
+
+        entry.FileName = fileName;
+
+        PhAddEntryHashtable(PhKnownDllsHashtable, &entry);
+    }
+
+    return TRUE;
+}
+
+VOID PhInitializeKnownDlls(
+    _In_ PCWSTR ObjectName
+    )
+{
+    UNICODE_STRING directoryName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE directoryHandle;
+
+    RtlInitUnicodeString(&directoryName, ObjectName);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &directoryName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    if (NT_SUCCESS(NtOpenDirectoryObject(
+        &directoryHandle,
+        DIRECTORY_QUERY,
+        &objectAttributes
+        )))
+    {
+        PhEnumDirectoryObjects(
+            directoryHandle,
+            PhpKnownDllObjectsCallback,
+            directoryHandle
+            );
+        NtClose(directoryHandle);
+    }
+}
+
+BOOLEAN PhInitializeKnownDllsTable(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhKnownDllsInitOnce))
+    {
+        PhKnownDllsHashtable = PhCreateHashtable(
+            sizeof(PH_KNOWNDLL_CACHE_ENTRY),
+            PhKnownDllsHashtableEqualFunction,
+            PhKnownDllsHashtableHashFunction,
+            100
+            );
+
+        PhInitializeKnownDlls(L"\\KnownDlls");
+        PhInitializeKnownDlls(L"\\KnownDlls32");
+
+        PhEndInitOnce(&PhKnownDllsInitOnce);
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhIsKnownDllFileName(
+    _In_ PPH_STRING FileName
+    )
+{
+    if (PhInitializeKnownDllsTable())
+    {
+        PH_KNOWNDLL_CACHE_ENTRY entry;
+
+        entry.FileName = FileName;
+
+        if (PhFindEntryHashtable(PhKnownDllsHashtable, &entry))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
