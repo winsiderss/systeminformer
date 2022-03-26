@@ -11,8 +11,7 @@ if defined msvc2019 (
 
    msbuild KProcessHacker\KProcessHacker.sln -property:Configuration=Debug -property:Platform=Win32 -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
-)
-else (
+) else (
    call "%ProgramFiles%\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
 )
 
