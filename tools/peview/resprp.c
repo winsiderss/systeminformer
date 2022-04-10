@@ -416,7 +416,7 @@ NTSTATUS PvpPeResourcesEnumerateThread(
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
                     //resourceNode->HashString = PhGetNtMessage(GetExceptionCode());
-                    resourceNode->HashString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                    resourceNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
                 }
             }
 
@@ -438,7 +438,7 @@ NTSTATUS PvpPeResourcesEnumerateThread(
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
                     //resourceNode->EntropyString = PhGetNtMessage(GetExceptionCode());
-                    resourceNode->EntropyString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                    resourceNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
                 }
             }
 

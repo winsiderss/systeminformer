@@ -264,7 +264,7 @@ NTSTATUS PhCreateUserThread(
         0,
         StackSize,
         StackSize,
-        0 // attributeList
+        NULL // attributeList
         );
 
     if (NT_SUCCESS(status))
@@ -320,7 +320,7 @@ HANDLE PhCreateThread(
     // for checking errors. We need to preserve this behavior for compatibility -dmex
     // TODO: Migrate code over to PhCreateThreadEx and remove this function.
     //RtlSetLastWin32ErrorAndNtStatusFromNtStatus(status);
-    SetLastError(RtlNtStatusToDosError(status));
+    SetLastError(PhNtStatusToDosError(status));
 
     if (NT_SUCCESS(status))
     {

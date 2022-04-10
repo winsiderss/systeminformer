@@ -112,7 +112,7 @@ VOID PvEnumerateImagePogoSections(
                 PPH_STRING message;
 
                 //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
             }
@@ -136,7 +136,7 @@ VOID PvEnumerateImagePogoSections(
                 PPH_STRING message;
 
                 //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, PhGetStringOrEmpty(message));
             }
@@ -162,7 +162,7 @@ VOID PvEnumerateImagePogoSections(
                 PPH_STRING message;
 
                 //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 8, PhGetStringOrEmpty(message));
             }
@@ -192,7 +192,7 @@ VOID PvEnumerateImagePogoSections(
                 PPH_STRING message;
 
                 //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 9, PhGetStringOrEmpty(message));
             }
