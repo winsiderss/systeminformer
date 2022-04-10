@@ -210,7 +210,7 @@ PPH_STRING PvpPeResourceDumpFileName(
 {
     static PH_FILETYPE_FILTER filters[] =
     {
-        { L"Resouce data (*.data)", L"*.data" },
+        { L"Resource data (*.data)", L"*.data" },
         { L"All files (*.*)", L"*.*" }
     };
     PPH_STRING fileName = NULL;
