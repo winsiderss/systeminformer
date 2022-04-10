@@ -284,7 +284,7 @@ VOID PvpPeClrEnumSections(
                 PPH_STRING message;
 
                 //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
+                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
 
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PhGetStringOrEmpty(message));
             }

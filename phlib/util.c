@@ -593,7 +593,7 @@ PPH_STRING PhGetStatusMessage(
             Status == STATUS_ACCESS_VIOLATION
             )
         {
-            Win32Result = RtlNtStatusToDosError(Status);
+            Win32Result = RtlNtStatusToDosErrorNoTeb(Status);
         }
         // Process NTSTATUS values with the NT-Win32 facility.
         else if (NT_NTWIN32(Status))
