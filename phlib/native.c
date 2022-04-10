@@ -9463,7 +9463,7 @@ NTSTATUS PhCreateNamedPipe(
 
     status = NtCreateNamedPipeFile(
         &pipeHandle,
-        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE | SYNCHRONIZE,
         &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -9523,7 +9523,7 @@ NTSTATUS PhConnectPipe(
 
     status = NtCreateFile(
         &pipeHandle,
-        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE | SYNCHRONIZE,
         &objectAttributes,
         &isb,
         NULL,
