@@ -405,6 +405,14 @@ NTSTATUS PhpCreateHandleItemFunction(
         NULL
         );
 
+    // HACK: Some security products block NtQueryObject with ObjectTypeInformation and return an invalid type
+    // so we need to lookup the TypeName using the TypeIndex. We should improve PhGetHandleInformationEx for this case
+    // but for now we'll preserve backwards compat by doing the lookup here. (dmex)
+    if (PhIsNullOrEmptyString(handleItem->TypeName))
+    {
+        PhMoveReference(&handleItem->TypeName, PhGetObjectTypeName(handleItem->TypeIndex));
+    }
+
     if (handleItem->TypeName)
     {
         // Add the handle item to the hashtable.
