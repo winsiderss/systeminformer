@@ -24,6 +24,7 @@
 #include "usernotes.h"
 #include <toolstatusintf.h>
 #include <commdlg.h>
+#include <mapimg.h>
 
 VOID SearchChangedHandler(
     _In_opt_ PVOID Parameter,
@@ -417,7 +418,7 @@ VOID NTAPI MainMenuInitializingCallback(
 }
 
 PPH_STRING ShowFileDialog(
-    _In_ HWND ParentHandle
+    _In_ HWND ParentWindowHandle
     )
 {
     static PH_FILETYPE_FILTER filters[] =
@@ -430,12 +431,47 @@ PPH_STRING ShowFileDialog(
     fileDialog = PhCreateOpenFileDialog();
     PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
 
-    if (PhShowFileDialog(ParentHandle, fileDialog))
+    if (PhShowFileDialog(ParentWindowHandle, fileDialog))
     {
         fileName = PhGetFileDialogFileName(fileDialog);
     }
 
     PhFreeFileDialog(fileDialog);
+
+    if (fileName)
+    {
+        NTSTATUS status;
+        PH_MAPPED_IMAGE mappedImage;
+
+        status = PhLoadMappedImage(
+            PhGetString(fileName),
+            NULL,
+            &mappedImage
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                if (!(mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE) || mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_DLL)
+                    status = STATUS_INVALID_IMAGE_NOT_MZ;
+            }
+            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            {
+                if (!(mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE) || mappedImage.NtHeaders32->FileHeader.Characteristics & IMAGE_FILE_DLL)
+                    status = STATUS_INVALID_IMAGE_NOT_MZ;
+            }
+
+            PhUnloadMappedImage(&mappedImage);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhClearReference(&fileName);
+            PhShowStatus(ParentWindowHandle, L"Unable to configure IFEO priority for this image.", status, 0);
+        }
+    }
+
     return fileName;
 }
 
