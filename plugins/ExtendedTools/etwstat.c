@@ -257,11 +257,16 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     PET_PROCESS_BLOCK maxNetworkBlock = NULL;
     PLIST_ENTRY listEntry;
 
+    // Since Windows 8, we no longer get the correct process/thread IDs in the
+    // event headers for disk events. We need to update our process information since
+    // etwmon uses our EtThreadIdToProcessId function. (wj32)
+    if (PhWindowsVersion >= WINDOWS_8)
+        EtpUpdateProcessInformation();
+
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it manually. (wj32)
     //EtFlushEtwSession();
 
     // Update global statistics.
-
     PhUpdateDelta(&EtDiskReadDelta, EtpDiskReadRaw);
     PhUpdateDelta(&EtDiskWriteDelta, EtpDiskWriteRaw);
     PhUpdateDelta(&EtNetworkReceiveDelta, EtpNetworkReceiveRaw);

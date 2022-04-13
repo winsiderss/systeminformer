@@ -2,7 +2,7 @@
  * PE viewer -
  *   pdb support
  *
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -172,32 +172,32 @@ VOID PrintVariant(
     _In_ PPH_STRING_BUILDER StringBuilder,
     _In_ VARIANT var)
 {
-    switch (var.vt)
+    switch (V_VT(&var))
     {
     case VT_UI1:
     case VT_I1:
-        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.bVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", V_UI1(&var));
         break;
     case VT_I2:
     case VT_UI2:
     case VT_BOOL:
-        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.iVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", V_I2(&var));
         break;
     case VT_I4:
     case VT_UI4:
     case VT_INT:
     case VT_UINT:
     case VT_ERROR:
-        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.lVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", V_I4(&var));
         break;
     case VT_R4:
-        PhAppendFormatStringBuilder(StringBuilder, L" %g", var.fltVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" %g", V_R4(&var));
         break;
     case VT_R8:
-        PhAppendFormatStringBuilder(StringBuilder, L" %g", var.dblVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" %g", V_R8(&var));
         break;
     case VT_BSTR:
-        PhAppendFormatStringBuilder(StringBuilder, L" \"%s\"", var.bstrVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" \"%s\"", V_BSTR(&var));
         break;
     default:
         PhAppendStringBuilder2(StringBuilder, L" ??");

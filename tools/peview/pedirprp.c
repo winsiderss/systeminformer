@@ -283,7 +283,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //directoryNode->HashString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->HashString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
 
         __try
@@ -302,7 +302,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //directoryNode->EntropyString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->EntropyString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
 
         __try
@@ -323,7 +323,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //directoryNode->SsdeepString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->SsdeepString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->SsdeepString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
 
         __try
@@ -348,7 +348,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //sectionNode->TlshString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->TlshString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->TlshString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
     }
 

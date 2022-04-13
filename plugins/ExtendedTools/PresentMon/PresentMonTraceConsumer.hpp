@@ -70,7 +70,7 @@ struct PresentEvent
 
     union
     {
-        ULONG Flags;
+        ULONG Flags{};
         struct
         {
             ULONG SupportsTearing : 1;

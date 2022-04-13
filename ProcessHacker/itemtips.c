@@ -3,7 +3,7 @@
  *   item tooltips
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -651,15 +651,14 @@ VOID PhpFillRunningTasks(
                 LONG i;
                 VARIANT index;
 
-                index.vt = VT_INT;
-
                 if (SUCCEEDED(IRunningTaskCollection_get_Count(runningTasks, &count)))
                 {
                     for (i = 1; i <= count; i++) // collections are 1-based
                     {
                         IRunningTask *runningTask;
 
-                        index.lVal = i;
+                        V_VT(&index) = VT_INT;
+                        V_I4(&index) = i;
 
                         if (SUCCEEDED(IRunningTaskCollection_get_Item(runningTasks, index, &runningTask)))
                         {

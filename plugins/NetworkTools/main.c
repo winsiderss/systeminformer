@@ -567,7 +567,7 @@ VOID NTAPI NetworkItemDeleteCallback(
         PhDereferenceObject(extension->LatencyText);
 }
 
-FORCEINLINE VOID PhpNetworkItemToRow(
+VOID PhpNetworkItemToRow(
     _Out_ PMIB_TCPROW Row,
      _In_ PPH_NETWORK_ITEM NetworkItem
     )
@@ -579,7 +579,7 @@ FORCEINLINE VOID PhpNetworkItemToRow(
     Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
 }
 
-FORCEINLINE VOID PhpNetworkItemToRow6(
+VOID PhpNetworkItemToRow6(
     _Out_ PMIB_TCP6ROW Row,
     _In_ PPH_NETWORK_ITEM NetworkItem
     )

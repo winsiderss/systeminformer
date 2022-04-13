@@ -99,6 +99,11 @@ HRESULT PhAppResolverBeginCrashDumpTask(
     _Out_ HANDLE* TaskHandle
     );
 
+HRESULT PhAppResolverBeginCrashDumpTaskByHandle(
+    _In_ HANDLE ProcessHandle,
+    _Out_ HANDLE* TaskHandle
+    );
+
 HRESULT PhAppResolverEndCrashDumpTask(
     _In_ HANDLE TaskHandle
     );

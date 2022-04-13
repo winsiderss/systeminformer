@@ -48,7 +48,7 @@ struct ProcessInfo
 };
 
 // ConsumerThread.cpp:
-VOID StartConsumerThread(_In_ TRACEHANDLE traceHandle);
+VOID StartConsumerThread(_In_ TRACEHANDLE TraceHandle);
 VOID WaitForConsumerThreadToExit(VOID);
 
 // OutputThread.cpp:

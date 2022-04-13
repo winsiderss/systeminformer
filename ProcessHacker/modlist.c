@@ -250,6 +250,12 @@ VOID PhSetOptionsModuleList(
     case PH_MODULE_FLAGS_HIGHLIGHT_LOWIMAGECOHERENCY_OPTION:
         Context->HighlightLowImageCoherency = !Context->HighlightLowImageCoherency;
         break;
+    case PH_MODULE_FLAGS_IMAGEKNOWNDLL_OPTION:
+        Context->HideImageKnownDll = !Context->HideImageKnownDll;
+        break;
+    case PH_MODULE_FLAGS_HIGHLIGHT_IMAGEKNOWNDLL:
+        Context->HighlightImageKnownDll = !Context->HighlightImageKnownDll;
+        break;
     }
 }
 
@@ -1134,8 +1140,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (context->HighlightImmersiveModules && (moduleItem->ImageDllCharacteristics & IMAGE_DLLCHARACTERISTICS_APPCONTAINER))
                 getNodeColor->BackColor = PhCsColorImmersiveProcesses;
-            else if (context->HighlightRelocatedModules && (moduleItem->Flags & LDRP_IMAGE_NOT_AT_BASE))
+            else if (context->HighlightRelocatedModules && moduleItem->ImageNotAtBase)
                 getNodeColor->BackColor = PhCsColorRelocatedModules;
+            else if (context->HighlightImageKnownDll && moduleItem->ImageKnownDll)
+                getNodeColor->BackColor = PhCsColorElevatedProcesses;
             else if (PhEnableProcessQueryStage2 &&
                 context->HighlightSystemModules &&
                 moduleItem->VerifyResult == VrTrusted &&

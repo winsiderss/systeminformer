@@ -246,19 +246,19 @@ BOOLEAN PhHeapInitialization(
     _In_opt_ SIZE_T HeapCommitSize
     )
 {
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        PhHeapHandle = RtlCreateHeap(
-            HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
-            NULL,
-            0,
-            0,
-            NULL,
-            NULL
-            );
-    }
-
-    if (!PhHeapHandle)
+    //if (WindowsVersion >= WINDOWS_8)
+    //{
+    //    PhHeapHandle = RtlCreateHeap(
+    //        HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
+    //        NULL,
+    //        0,
+    //        0,
+    //        NULL,
+    //        NULL
+    //        );
+    //}
+    //
+    //if (!PhHeapHandle)
     {
         PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CLASS_1,
@@ -272,15 +272,14 @@ BOOLEAN PhHeapInitialization(
         if (!PhHeapHandle)
             return FALSE;
 
-        if (WindowsVersion >= WINDOWS_VISTA)
-        {
-            RtlSetHeapInformation(
-                PhHeapHandle,
-                HeapCompatibilityInformation,
-                &(ULONG){ HEAP_COMPATIBILITY_LFH },
-                sizeof(ULONG)
-                );
-        }
+#if (PHNT_VERSION >= PHNT_VISTA)
+        RtlSetHeapInformation(
+            PhHeapHandle,
+            HeapCompatibilityInformation,
+            &(ULONG){ HEAP_COMPATIBILITY_LFH },
+            sizeof(ULONG)
+            );
+#endif
     }
 
     return TRUE;

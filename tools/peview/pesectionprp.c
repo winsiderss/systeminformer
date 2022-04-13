@@ -346,7 +346,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->HashString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->HashString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
 
             __try
@@ -369,7 +369,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->EntropyString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->EntropyString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
 
             __try
@@ -394,7 +394,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->SsdeepString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->SsdeepString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->SsdeepString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
 
             __try
@@ -423,7 +423,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->TlshString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->TlshString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->TlshString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
         }
 
