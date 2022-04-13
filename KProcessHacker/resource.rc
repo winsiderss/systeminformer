@@ -18,10 +18,10 @@
 #define VER_PRERELEASE 0
 
 #define VER_COMPANYNAME_STR "ProcessHacker\0"
-#define VER_FILEDESCRIPTION_STR "KProcessHacker\0"
+#define VER_FILEDESCRIPTION_STR "ProcessHacker\0"
 #define VER_LEGALCOPYRIGHT_STR "Licensed under the GNU GPL, v3.\0"
-#define VER_ORIGINALFILENAME_STR "MSAntiCompetitiveBehaviour.sys\0" // TODO: Microsoft permanently banned the original filename even from testsigning development mode. (dmex)
-#define VER_PRODUCTNAME_STR "KProcessHacker\0"
+#define VER_ORIGINALFILENAME_STR "ProcessHacker.sys\0"
+#define VER_PRODUCTNAME_STR "ProcessHacker\0"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION    	VER_FILEVERSION
