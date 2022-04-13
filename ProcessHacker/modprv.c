@@ -43,6 +43,7 @@ typedef struct _PH_MODULE_QUERY_DATA
     PPH_STRING VerifySignerName;
     ULONG ImageFlags;
     ULONG GuardFlags;
+    BOOLEAN ImageKnownDll;
 
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
@@ -383,7 +384,7 @@ NTSTATUS PhpModuleQueryWorker(
     PPH_MODULE_QUERY_DATA data = (PPH_MODULE_QUERY_DATA)Parameter;
     PH_MAPPED_IMAGE mappedImage = { 0 };
 
-    if (PhEnableProcessQueryStage2) // HACK (dmex)
+    if (PhEnableProcessQueryStage2)
     {
         data->VerifyResult = PhVerifyFileCached(
             data->ModuleItem->FileName,
@@ -395,9 +396,8 @@ NTSTATUS PhpModuleQueryWorker(
     }
 
     {
-        // HACK HACK HACK (dmex)
-        // 3rd party CLR's don't set the LDRP_COR_IMAGE flag so we'll check binaries for a CLR section and set the flag ourselves.
-        // This is needed to detect standard .NET images loaded by .NET core, Mono and other CLR runtimes.
+        // Note: .NET Core and Mono don't set the LDRP_COR_IMAGE flag in the loader required for 
+        // highlighting .NET images so check images for a CLR section and set the flag. (dmex)
         if (NT_SUCCESS(PhLoadMappedImageEx(data->ModuleItem->FileName, NULL, &mappedImage)))
         {
             PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
@@ -463,6 +463,11 @@ NTSTATUS PhpModuleQueryWorker(
                     );
             }
         }
+    }
+
+    if (data->ModuleItem->FileName)
+    {
+        data->ImageKnownDll = PhIsKnownDllFileName(data->ModuleItem->FileName);
     }
 
     RtlInterlockedPushEntrySList(&data->ModuleProvider->QueryListHead, &data->ListEntry);
@@ -608,6 +613,7 @@ VOID PhModuleProviderUpdate(
             data->ModuleItem->GuardFlags = data->GuardFlags;
             data->ModuleItem->ImageCoherencyStatus = data->ImageCoherencyStatus;
             data->ModuleItem->ImageCoherency = data->ImageCoherency;
+            data->ModuleItem->ImageKnownDll = data->ImageKnownDll;
 
             data->ModuleItem->JustProcessed = TRUE;
 
@@ -645,6 +651,9 @@ VOID PhModuleProviderUpdate(
             moduleItem->FileNameWin32 = module->FileNameWin32;
             moduleItem->FileName = module->FileName;
             moduleItem->ParentBaseAddress = module->ParentBaseAddress;
+
+            if (module->OriginalBaseAddress && module->OriginalBaseAddress != module->BaseAddress)
+                moduleItem->ImageNotAtBase = TRUE;
 
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
 
@@ -705,8 +714,6 @@ VOID PhModuleProviderUpdate(
                 // 1. It (should be) faster than opening the file and mapping it in, and
                 // 2. It contains the correct original image base relocated by ASLR, if present.
 
-                moduleItem->Flags &= ~LDRP_IMAGE_NOT_AT_BASE;
-
                 if (NT_SUCCESS(PhLoadRemoteMappedImageEx(moduleProvider->ProcessHandle, moduleItem->BaseAddress, readVirtualMemoryCallback, &remoteMappedImage)))
                 {
                     ULONG_PTR imageBase = 0;
@@ -735,7 +742,7 @@ VOID PhModuleProviderUpdate(
                     }
 
                     if (imageBase != (ULONG_PTR)moduleItem->BaseAddress)
-                        moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                        moduleItem->ImageNotAtBase = TRUE;
 
                     if (entryPoint != 0)
                         moduleItem->EntryPoint = PTR_ADD_OFFSET(moduleItem->BaseAddress, entryPoint);

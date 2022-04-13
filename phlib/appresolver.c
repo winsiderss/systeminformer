@@ -854,19 +854,19 @@ HRESULT PhAppResolverBeginCrashDumpTask(
     )
 {
     HRESULT status;
-    IOSTaskCompletion* taskCompletionManager;
+    IOSTaskCompletion* taskCompletion;
 
     status = PhGetClassObject(
         L"twinapi.appcore.dll",
         &CLSID_OSTaskCompletion_I,
         &IID_IOSTaskCompletion_I,
-        &taskCompletionManager
+        &taskCompletion
         );
 
     if (SUCCEEDED(status))
     {
         status = IOSTaskCompletion_BeginTask(
-            taskCompletionManager,
+            taskCompletion,
             HandleToUlong(ProcessId),
             PT_TC_CRASHDUMP
             );
@@ -874,11 +874,47 @@ HRESULT PhAppResolverBeginCrashDumpTask(
 
     if (SUCCEEDED(status))
     {
-        *TaskHandle = taskCompletionManager;
+        *TaskHandle = taskCompletion;
     }
-    else if (taskCompletionManager)
+    else if (taskCompletion)
     {
-        IOSTaskCompletion_Release(taskCompletionManager);
+        IOSTaskCompletion_Release(taskCompletion);
+    }
+
+    return status;
+}
+
+HRESULT PhAppResolverBeginCrashDumpTaskByHandle(
+    _In_ HANDLE ProcessHandle,
+    _Out_ HANDLE *TaskHandle
+    )
+{
+    HRESULT status;
+    IOSTaskCompletion* taskCompletion;
+
+    status = PhGetClassObject(
+        L"twinapi.appcore.dll",
+        &CLSID_OSTaskCompletion_I,
+        &IID_IOSTaskCompletion_I,
+        &taskCompletion
+        );
+
+    if (SUCCEEDED(status))
+    {
+        status = IOSTaskCompletion_BeginTaskByHandle(
+            taskCompletion,
+            ProcessHandle,
+            PT_TC_CRASHDUMP
+            );
+    }
+
+    if (SUCCEEDED(status))
+    {
+        *TaskHandle = taskCompletion;
+    }
+    else if (taskCompletion)
+    {
+        IOSTaskCompletion_Release(taskCompletion);
     }
 
     return status;

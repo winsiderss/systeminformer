@@ -193,7 +193,7 @@ BOOLEAN WhoisExtractServerUrl(
     whoisServerName = PhSubstring(
         WhoisResponse,
         whoisServerHostnameIndex + wcslen(L"whois:"),
-        (ULONG)whoisServerHostnameLength - wcslen(L"whois:")
+        whoisServerHostnameLength - wcslen(L"whois:")
         );
 
     if (WhoisServerAddress)
@@ -229,7 +229,7 @@ BOOLEAN WhoisExtractReferralServer(
     whoisServerName = PhSubstring(
         WhoisResponse,
         whoisServerHostnameIndex + wcslen(L"ReferralServer:"),
-        (ULONG)whoisServerHostnameLength - wcslen(L"ReferralServer:")
+        whoisServerHostnameLength - wcslen(L"ReferralServer:")
         );
 
     whoisServerHostname = TrimString(whoisServerName);

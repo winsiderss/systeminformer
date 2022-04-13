@@ -275,8 +275,16 @@ VOID NTAPI EtpEtwEventCallback(
 
             if (PhWindowsVersion >= WINDOWS_8)
             {
-                diskEvent.ClientId.UniqueThread = UlongToHandle(data->IssuingThreadId);
-                diskEvent.ClientId.UniqueProcess = EtThreadIdToProcessId(diskEvent.ClientId.UniqueThread);
+                if (data->IssuingThreadId != ULONG_MAX)
+                {
+                    diskEvent.ClientId.UniqueThread = UlongToHandle(data->IssuingThreadId);
+                    diskEvent.ClientId.UniqueProcess = EtThreadIdToProcessId(diskEvent.ClientId.UniqueThread);
+                }
+                else
+                {
+                    diskEvent.ClientId.UniqueThread = 0;
+                    diskEvent.ClientId.UniqueProcess = SYSTEM_PROCESS_ID;
+                }
             }
             else
             {
@@ -284,6 +292,11 @@ VOID NTAPI EtpEtwEventCallback(
                 {
                     diskEvent.ClientId.UniqueProcess = UlongToHandle(EventRecord->EventHeader.ProcessId);
                     diskEvent.ClientId.UniqueThread = UlongToHandle(EventRecord->EventHeader.ThreadId);
+                }
+                else
+                {
+                    diskEvent.ClientId.UniqueThread = 0;
+                    diskEvent.ClientId.UniqueProcess = SYSTEM_PROCESS_ID;
                 }
             }
 

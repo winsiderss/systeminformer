@@ -1322,6 +1322,7 @@ typedef struct _PH_MODULE_INFO
     ULONG Type;
     PVOID BaseAddress;
     PVOID ParentBaseAddress;
+    PVOID OriginalBaseAddress;
     ULONG Size;
     PVOID EntryPoint;
     ULONG Flags;
@@ -1998,6 +1999,13 @@ NTSTATUS
 NTAPI
 PhThawProcess(
     _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsKnownDllFileName(
+    _In_ PPH_STRING FileName
     );
 
 #ifdef __cplusplus

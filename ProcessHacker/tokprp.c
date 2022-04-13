@@ -2915,16 +2915,22 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     _In_ ULONG ValueIndex
     )
 {
-    PH_FORMAT format;
+    PH_FORMAT format[4];
 
     switch (Attribute->ValueType)
     {
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_INT64:
-        PhInitFormatI64D(&format, Attribute->Values.pInt64[ValueIndex]);
-        return PhFormat(&format, 1, 0);
+        PhInitFormatI64D(&format[0], Attribute->Values.pInt64[ValueIndex]);
+        PhInitFormatS(&format[1], L" (0x");
+        PhInitFormatI64X(&format[2], Attribute->Values.pInt64[ValueIndex]);
+        PhInitFormatS(&format[3], L")");
+        return PhFormat(format, 4, 0);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64:
-        PhInitFormatI64U(&format, Attribute->Values.pUint64[ValueIndex]);
-        return PhFormat(&format, 1, 0);
+        PhInitFormatI64U(&format[0], Attribute->Values.pUint64[ValueIndex]);
+        PhInitFormatS(&format[1], L" (0x");
+        PhInitFormatI64X(&format[2], Attribute->Values.pUint64[ValueIndex]);
+        PhInitFormatS(&format[3], L")");
+        return PhFormat(format, 4, 0);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING:
         return PhCreateStringFromUnicodeString(&Attribute->Values.pString[ValueIndex]);
     case TOKEN_SECURITY_ATTRIBUTE_TYPE_FQBN:

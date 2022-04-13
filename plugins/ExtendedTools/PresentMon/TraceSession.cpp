@@ -43,7 +43,7 @@ ULONG EnableFilteredProvider(
     if (memory == nullptr)
         return ERROR_NOT_ENOUGH_MEMORY;
 
-    auto filterEventIds = (EVENT_FILTER_EVENT_ID*)memory;
+    auto filterEventIds = static_cast<EVENT_FILTER_EVENT_ID*>(memory);
     filterEventIds->FilterIn = TRUE;
     filterEventIds->Reserved = 0;
     filterEventIds->Count = 0;
@@ -54,8 +54,8 @@ ULONG EnableFilteredProvider(
     }
 
     EVENT_FILTER_DESCRIPTOR filterDesc = { };
-    filterDesc.Ptr = (ULONGLONG)filterEventIds;
-    filterDesc.Size = (ULONG)memorySize;
+    filterDesc.Ptr = reinterpret_cast<ULONGLONG>(filterEventIds);
+    filterDesc.Size = static_cast<ULONG>(memorySize);
     filterDesc.Type = EVENT_FILTER_TYPE_EVENT_ID;
 
     ENABLE_TRACE_PARAMETERS params = { };
