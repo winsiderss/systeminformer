@@ -237,21 +237,6 @@ NTSTATUS KpiOpenThreadProcess(
         }
     }
 
-    status = ObReferenceObjectByHandle(
-        ThreadHandle,
-        0,
-        *PsThreadType,
-        AccessMode,
-        &thread,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-    {
-        thread = NULL;
-        goto CleanupExit;
-    }
-
     requiredKeyLevel = KphKeyLevel1;
 
     if ((DesiredAccess & KPH_PROCESS_READ_ACCESS) != DesiredAccess)
@@ -283,13 +268,29 @@ NTSTATUS KpiOpenThreadProcess(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    status = ObReferenceObjectByHandle(
+        ThreadHandle,
+        0,
+        *PsThreadType,
+        AccessMode,
+        &thread,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        thread = NULL;
+        goto CleanupExit;
+    }
+    
+    // Note: Windows 7 and Windows 8 require KernelMode (dmex)
     status = ObOpenObjectByPointer(
         PsGetThreadProcess(thread),
         0,
         NULL,
         DesiredAccess,
         *PsProcessType,
-        AccessMode,
+        KernelMode,
         &processHandle
         );
 
