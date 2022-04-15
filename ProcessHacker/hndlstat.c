@@ -25,7 +25,6 @@
 #include <hndlinfo.h>
 #include <hndlprv.h>
 #include <settings.h>
-#include <phsettings.h>
 
 typedef struct _HANDLE_STATISTICS_ENTRY
 {
