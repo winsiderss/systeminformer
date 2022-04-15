@@ -1,6 +1,9 @@
 //#if HAVE_CONFIG_H
 //#include <config.h>
 //#endif
+
+#include <ph.h>
+
 #include "data-pool.h"
 #include "maxminddb-compat-util.h"
 #include "maxminddb.h"
@@ -17,7 +20,6 @@
 #ifndef UNICODE
 #define UNICODE
 #endif
-#include <windows.h>
 #include <ws2ipdef.h>
 #else
 #include <arpa/inet.h>
@@ -233,7 +235,7 @@ static char *bytes_to_hex(uint8_t *bytes, uint32_t size);
         (p) = NULL;                                                            \
     }
 
-int MMDB_open(const wchar_t *const filename, uint32_t flags, MMDB_s *const mmdb) {
+int MMDB_open(wchar_t* filename, uint32_t flags, MMDB_s *const mmdb) {
     int status = MMDB_SUCCESS;
 
     mmdb->file_content = NULL;
@@ -346,61 +348,75 @@ static LPWSTR utf8_to_utf16(const char *utf8_str) {
     return utf16_str;
 }
 
-static int map_file(MMDB_s *const mmdb) {
-    DWORD size;
-    int status = MMDB_SUCCESS;
-    HANDLE mmh = NULL;
-    HANDLE fd = INVALID_HANDLE_VALUE;
-    //LPWSTR utf16_filename = utf8_to_utf16(mmdb->filename);
-    //if (!utf16_filename) {
-    //    status = MMDB_FILE_OPEN_ERROR;
-    //    goto cleanup;
-    //}
-    fd = CreateFileW(mmdb->filename,
-                     GENERIC_READ,
-                     FILE_SHARE_READ,
-                     NULL,
-                     OPEN_EXISTING,
-                     FILE_ATTRIBUTE_NORMAL,
-                     NULL);
-    if (fd == INVALID_HANDLE_VALUE) {
-        status = MMDB_FILE_OPEN_ERROR;
-        goto cleanup;
-    }
-    size = GetFileSize(fd, NULL);
-    if (size == INVALID_FILE_SIZE) {
-        status = MMDB_FILE_OPEN_ERROR;
-        goto cleanup;
-    }
-    mmh = CreateFileMapping(fd, NULL, PAGE_READONLY, 0, size, NULL);
-    /* Microsoft documentation for CreateFileMapping indicates this returns
-        NULL not INVALID_HANDLE_VALUE on error */
-    if (NULL == mmh) {
-        status = MMDB_IO_ERROR;
-        goto cleanup;
-    }
-    uint8_t *file_content =
-        (uint8_t *)MapViewOfFile(mmh, FILE_MAP_READ, 0, 0, 0);
-    if (file_content == NULL) {
-        status = MMDB_IO_ERROR;
-        goto cleanup;
+static int map_file(MMDB_s *const mmdb) // dmex: modified for NTAPI
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    HANDLE sectionHandle;
+    LARGE_INTEGER fileSize;
+    SIZE_T viewSize;
+    PVOID viewBase;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        mmdb->filename,
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return MMDB_FILE_OPEN_ERROR;
+
+    status = PhGetFileSize(fileHandle, &fileSize);
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(fileHandle);
+        return MMDB_FILE_OPEN_ERROR;
     }
 
-    mmdb->file_size = size;
-    mmdb->file_content = file_content;
+    status = NtCreateSection(
+        &sectionHandle,
+        SECTION_QUERY | SECTION_MAP_READ,
+        NULL,
+        &fileSize,
+        PAGE_READONLY,
+        SEC_COMMIT,
+        fileHandle
+        );
 
-cleanup:;
-    int saved_errno = errno;
-    if (INVALID_HANDLE_VALUE != fd) {
-        CloseHandle(fd);
-    }
-    if (NULL != mmh) {
-        CloseHandle(mmh);
-    }
-    errno = saved_errno;
-    //free(utf16_filename);
+    NtClose(fileHandle);
 
-    return status;
+    if (!NT_SUCCESS(status))
+        return MMDB_FILE_OPEN_ERROR;
+
+    viewSize = (SIZE_T)fileSize.QuadPart;
+    viewBase = NULL;
+
+    status = NtMapViewOfSection(
+        sectionHandle,
+        NtCurrentProcess(),
+        &viewBase,
+        0,
+        0,
+        NULL,
+        &viewSize,
+        ViewShare,
+        0,
+        PAGE_READONLY
+        );
+
+    NtClose(sectionHandle);
+
+    if (!NT_SUCCESS(status))
+        return MMDB_FILE_OPEN_ERROR;
+
+    mmdb->file_size = viewSize;
+    mmdb->file_content = viewBase;
+    return MMDB_SUCCESS;
 }
 
 #else // _WIN32
@@ -1795,7 +1811,7 @@ static void free_mmdb_struct(MMDB_s *const mmdb) {
     //}
     if (NULL != mmdb->file_content) {
 #ifdef _WIN32
-        UnmapViewOfFile(mmdb->file_content);
+        NtUnmapViewOfSection(NtCurrentProcess(), (PVOID)mmdb->file_content);
         /* Winsock is only initialized if open was successful so we only have
          * to cleanup then. */
         //WSACleanup();
