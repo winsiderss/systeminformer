@@ -1949,7 +1949,7 @@ BOOLEAN PhMipCpuListSectionCallback(
 
             // CPU    %.2f%%
             PhInitFormatS(&format[0], L"CPU    ");
-            PhInitFormatF(&format[1], ((DOUBLE)PhCpuUserUsage + PhCpuKernelUsage) * 100, 2);
+            PhInitFormatF(&format[1], ((DOUBLE)PhCpuUserUsage + PhCpuKernelUsage) * 100, PhMaxPrecisionUnit);
             PhInitFormatC(&format[2], L'%');
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
@@ -2015,7 +2015,7 @@ BOOLEAN PhMipCpuListSectionCallback(
                 PH_FORMAT format[2];
 
                 // %.2f%%
-                PhInitFormatF(&format[0], cpuUsage, 2);
+                PhInitFormatF(&format[0], cpuUsage, PhMaxPrecisionUnit);
                 PhInitFormatC(&format[1], L'%');
 
                 cpuUsageText = PhFormat(format, RTL_NUMBER_OF(format), 16);

@@ -851,7 +851,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PH_FORMAT format;
                         SIZE_T returnLength;
 
-                        PhInitFormatF(&format, cpuUsage, 2);
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
@@ -865,7 +865,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, 2);
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
@@ -1160,7 +1160,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PH_FORMAT format;
                         SIZE_T returnLength;
 
-                        PhInitFormatF(&format, cpuUsage, 2);
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(&format, 1, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
                         {
@@ -1174,7 +1174,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, 2);
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
                         {
@@ -1567,7 +1567,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PH_FORMAT format;
                         SIZE_T returnLength;
 
-                        PhInitFormatF(&format, cpuUsage, 2);
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(&format, 1, node->CpuUserUsageText, sizeof(node->CpuUserUsageText), &returnLength))
                         {
@@ -1581,7 +1581,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, 2);
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUserUsageText, sizeof(node->CpuUserUsageText), &returnLength))
                         {
@@ -1602,7 +1602,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PH_FORMAT format;
                         SIZE_T returnLength;
 
-                        PhInitFormatF(&format, cpuUsage, 2);
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(&format, 1, node->CpuKernelUsageText, sizeof(node->CpuKernelUsageText), &returnLength))
                         {
@@ -1616,7 +1616,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, 2);
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuKernelUsageText, sizeof(node->CpuKernelUsageText), &returnLength))
                         {
@@ -1680,7 +1680,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         PhInitFormatS(&format[1], L" | ");
                         PhInitFormatSize(&format[2], stackLimit);
                         PhInitFormatS(&format[3], L" (");
-                        PhInitFormatF(&format[4], percent, 1);
+                        PhInitFormatF(&format[4], percent, PhMaxPrecisionUnit);
                         PhInitFormatS(&format[5], L"%)");
 
                         PhMoveReference(&node->StackUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
