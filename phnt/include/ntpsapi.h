@@ -188,8 +188,8 @@ typedef enum _PROCESSINFOCLASS
     ProcessFaultInformation, // PROCESS_FAULT_INFORMATION
     ProcessTelemetryIdInformation, // q: PROCESS_TELEMETRY_ID_INFORMATION
     ProcessCommitReleaseInformation, // PROCESS_COMMIT_RELEASE_INFORMATION
-    ProcessDefaultCpuSetsInformation,
-    ProcessAllowedCpuSetsInformation,
+    ProcessDefaultCpuSetsInformation, // SYSTEM_CPU_SET_INFORMATION[5]
+    ProcessAllowedCpuSetsInformation, // SYSTEM_CPU_SET_INFORMATION[5]
     ProcessSubsystemProcess,
     ProcessJobMemoryInformation, // q: PROCESS_JOB_MEMORY_INFO
     ProcessInPrivate, // s: void // ETW // since THRESHOLD2 // 70
@@ -2339,6 +2339,21 @@ NtAllocateReserveObject(
     _Out_ PHANDLE MemoryReserveHandle,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ MEMORY_RESERVE_TYPE Type
+    );
+#endif
+
+// Process snapshotting
+
+#if (PHNT_VERSION >= PHNT_WINBLUE)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+PssNtCaptureSnapshot(
+    _Out_ PHANDLE SnapshotHandle,
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG CaptureFlags,
+    _In_ ULONG ThreadContextFlags
     );
 #endif
 
