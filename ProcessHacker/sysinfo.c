@@ -1025,7 +1025,7 @@ PPH_STRING PhSiDoubleLabelYFunction(
     {
         PH_FORMAT format[2];
 
-        PhInitFormatF(&format[0], value * 100, 2);
+        PhInitFormatF(&format[0], value * 100, PhMaxPrecisionUnit);
         PhInitFormatC(&format[1], L'%');
 
         return PhFormat(format, RTL_NUMBER_OF(format), 0);

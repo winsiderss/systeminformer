@@ -2432,7 +2432,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PH_FORMAT format;
                         SIZE_T returnLength;
 
-                        PhInitFormatF(&format, cpuUsage, 2);
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
@@ -2446,7 +2446,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, 2);
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
@@ -3276,7 +3276,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     {
                         PH_FORMAT format;
 
-                        PhInitFormatF(&format, cpuUsage, 2);
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
 
                         PhMoveReference(&node->CpuCoreUsageText, PhFormat(&format, 1, 0));
                         getCellText->Text = node->CpuCoreUsageText->sr;
@@ -3286,7 +3286,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PH_FORMAT format[2];
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, 2);
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
 
                         PhMoveReference(&node->CpuCoreUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = node->CpuCoreUsageText->sr;
@@ -3329,7 +3329,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         break;
                     }
 
-                    PhInitFormatF(&format[0], (DOUBLE)(processItem->ImageCoherency * 100.f), 2);
+                    PhInitFormatF(&format[0], (DOUBLE)(processItem->ImageCoherency * 100.f), PhMaxPrecisionUnit);
                     PhInitFormatS(&format[1], L"%");
 
                     PhMoveReference(&node->ImageCoherencyText, PhFormat(format, RTL_NUMBER_OF(format), 0));
@@ -4100,7 +4100,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         break;
 
                     decimal *= 100;
-                    PhInitFormatF(&format[0], decimal, 2);
+                    PhInitFormatF(&format[0], decimal, PhMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');
 
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
@@ -4230,7 +4230,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     decimal *= 100;
                     decimal *= (ULONG)PhSystemBasicInformation.NumberOfProcessors;
 
-                    PhInitFormatF(&format[0], decimal, 2);
+                    PhInitFormatF(&format[0], decimal, PhMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');
 
                     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
