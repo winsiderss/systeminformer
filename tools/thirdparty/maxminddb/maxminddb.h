@@ -191,7 +191,7 @@ typedef struct MMDB_ipv4_start_node_s {
  * library is upgraded */
 typedef struct MMDB_s {
     uint32_t flags;
-    const wchar_t *filename;
+    wchar_t *filename;
     ssize_t file_size;
     const uint8_t *file_content;
     const uint8_t *data_section;
@@ -215,7 +215,7 @@ typedef struct MMDB_search_node_s {
 } MMDB_search_node_s;
 
 extern int
-MMDB_open(const wchar_t *const filename, uint32_t flags, MMDB_s *const mmdb);
+MMDB_open(wchar_t* filename, uint32_t flags, MMDB_s *const mmdb);
 extern MMDB_lookup_result_s MMDB_lookup_string(const MMDB_s *const mmdb,
                                                const char *const ipstr,
                                                int *const gai_error,
