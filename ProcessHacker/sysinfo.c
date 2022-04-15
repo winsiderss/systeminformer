@@ -999,7 +999,7 @@ PPH_STRING PhSiSizeLabelYFunction(
 
         format.Type = SizeFormatType | FormatUsePrecision | FormatUseRadix;
         format.Precision = 0;
-        format.Radix = UCHAR_MAX;
+        format.Radix = (UCHAR)PhMaxSizeUnit;
         format.u.Size = size;
 
         return PhFormat(&format, 1, 0);
