@@ -1262,7 +1262,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ParentWindow = GetParent(hwndDlg);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(context->ParentWindow);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
