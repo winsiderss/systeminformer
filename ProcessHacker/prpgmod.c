@@ -663,7 +663,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 processItem->ProcessId
                 );
             PhRegisterProvider(
-                &PhSecondaryProviderThread,
+                &PhTertiaryProviderThread,
                 PhModuleProviderUpdate,
                 modulesContext->Provider,
                 &modulesContext->ProviderRegistration
