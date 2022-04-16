@@ -677,12 +677,17 @@ PPH_STRING PhGetPnPDeviceName(
             else
                 deviceDesc = PhCreateString2(&displayDesc);
 
+            if (deviceName->Length >= sizeof(UNICODE_NULL) && deviceName->Buffer[deviceName->Length / sizeof(WCHAR)] == UNICODE_NULL)
+                deviceName->Length -= sizeof(UNICODE_NULL); // PhTrimToNullTerminatorString(deviceName);
+            if (deviceDesc->Length >= sizeof(UNICODE_NULL) && deviceDesc->Buffer[deviceDesc->Length / sizeof(WCHAR)] == UNICODE_NULL)
+                deviceDesc->Length -= sizeof(UNICODE_NULL); // PhTrimToNullTerminatorString(deviceDesc);
+
             if (!PhIsNullOrEmptyString(deviceDesc))
             {
                 PH_FORMAT format[4];
 
                 PhInitFormatSR(&format[0], deviceDesc->sr);
-                PhInitFormatS(&format[1], L"(PDO: ");
+                PhInitFormatS(&format[1], L" (PDO: ");
                 PhInitFormatSR(&format[2], ObjectName->sr);
                 PhInitFormatC(&format[3], ')');
 
@@ -693,7 +698,7 @@ PPH_STRING PhGetPnPDeviceName(
                 PH_FORMAT format[4];
 
                 PhInitFormatSR(&format[0], deviceName->sr);
-                PhInitFormatS(&format[1], L"(PDO: ");
+                PhInitFormatS(&format[1], L" (PDO: ");
                 PhInitFormatSR(&format[2], ObjectName->sr);
                 PhInitFormatC(&format[3], ')');
 
