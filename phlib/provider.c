@@ -65,7 +65,6 @@ VOID PhInitializeProviderThread(
 {
     ProviderThread->ThreadHandle = NULL;
     ProviderThread->TimerHandle = NULL;
-    ProviderThread->EventHandle = NULL;
     ProviderThread->Interval = Interval;
     ProviderThread->State = ProviderThreadStopped;
 
@@ -286,10 +285,8 @@ VOID PhStopProviderThread(
     // Free resources.
     NtClose(ProviderThread->ThreadHandle);
     NtClose(ProviderThread->TimerHandle);
-    NtClose(ProviderThread->EventHandle);
     ProviderThread->ThreadHandle = NULL;
     ProviderThread->TimerHandle = NULL;
-    ProviderThread->EventHandle = NULL;
 
     ProviderThread->State = ProviderThreadStopped;
 }
