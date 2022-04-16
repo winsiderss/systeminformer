@@ -57,10 +57,7 @@ PPH_STRING NetToolsGetGeoLiteDbPath(
             PhDereferenceObject(directory);
         }
 
-        if (PhDoesFileExistsWin32(PhGetString(fileName)))
-        {
-            return fileName;
-        }
+        return fileName;
     }
 
     PhClearReference(&fileName);
@@ -73,7 +70,6 @@ BOOLEAN NetToolsGeoLiteInitialized(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOLEAN initialized = FALSE;
 
     if (PhBeginInitOnce(&initOnce))
     {
