@@ -3,7 +3,6 @@
  *   provider system
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2021 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -38,11 +37,6 @@
  * boosting thread run the provider function directly, which would involve unnecessary blocking and
  * synchronization.
  */
-
-// NOTE: The provider originally used alertable waits but this conflicted with the kernel driver
-// which also uses alertable waits for callbacks. The provider was changed to use synchronization
-// events which are less efficient and require more resources. These additions should be reverted
-// back to using alertable waits after the kernel driver has been ported over to the newer framework (dmex)
 
 #include <ph.h>
 #include <provider.h>
@@ -97,7 +91,7 @@ VOID PhDeleteProviderThread(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgProviderListLock);
-    if ((index = PhFindItemList(PhDbgProviderList, ProviderThread)) != ULONG_MAX)
+    if ((index = PhFindItemList(PhDbgProviderList, ProviderThread)) != -1)
         PhRemoveItemList(PhDbgProviderList, index);
     PhReleaseQueuedLockExclusive(&PhDbgProviderListLock);
 #endif
@@ -115,10 +109,6 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     PPH_PROVIDER_FUNCTION providerFunction;
     PVOID object;
     LIST_ENTRY tempListHead;
-    HANDLE objects[2];
-
-    objects[0] = providerThread->TimerHandle;
-    objects[1] = providerThread->EventHandle;
 
     PhInitializeAutoPool(&autoPool);
 
@@ -138,13 +128,13 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         // Main loop.
 
-        // We check the status variable for STATUS_WAIT_1, which means that someone is requesting
-        // that a provider be boosted. Note that if they signal the event while we are not waiting
-        // on the timer, when we do perform the wait it will return immediately with STATUS_WAIT_1.
+        // We check the status variable for STATUS_ALERTED, which means that someone is requesting
+        // that a provider be boosted. Note that if they alert this thread while we are not waiting
+        // on the timer, when we do perform the wait it will return immediately with STATUS_ALERTED.
 
         while (TRUE)
         {
-            if (status == STATUS_WAIT_1)
+            if (status == STATUS_ALERTED)
             {
                 // Check if we have any more providers to boost. Note that this always works because
                 // boosted providers are always in front of normal providers. Therefore we will
@@ -164,7 +154,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             // Add the provider to the temp list.
             InsertTailList(&tempListHead, listEntry);
 
-            if (status != STATUS_WAIT_1)
+            if (status != STATUS_ALERTED)
             {
                 if (!registration->Enabled || registration->Unregistering)
                     continue;
@@ -184,7 +174,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
                 }
             }
 
-            if (status == STATUS_WAIT_1)
+            if (status == STATUS_ALERTED)
             {
                 assert(registration->Boosting);
                 registration->Boosting = FALSE;
@@ -225,13 +215,11 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
 
-        // Perform a wait so we can be woken up by someone telling us to boost providers,
+        // Perform an alertable wait so we can be woken up by someone telling us to boost providers,
         // or to terminate.
-        status = NtWaitForMultipleObjects(
-            RTL_NUMBER_OF(objects),
-            objects,
-            WaitAny,
-            FALSE,
+        status = NtWaitForSingleObject(
+            providerThread->TimerHandle,
+            TRUE,
             NULL
             );
     }
@@ -252,9 +240,6 @@ VOID PhStartProviderThread(
 {
     if (ProviderThread->State != ProviderThreadStopped)
         return;
-
-    // Create the boost event.
-    NtCreateEvent(&ProviderThread->EventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE);
 
     // Create and set the timer.
     NtCreateTimer(&ProviderThread->TimerHandle, TIMER_ALL_ACCESS, NULL, SynchronizationTimer);
@@ -279,7 +264,7 @@ VOID PhStopProviderThread(
 
     // Signal to the thread that we are shutting down, and wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
-    NtSetEvent(ProviderThread->EventHandle, NULL); // wake it up
+    NtAlertThread(ProviderThread->ThreadHandle); // wake it up
     NtWaitForSingleObject(ProviderThread->ThreadHandle, FALSE, NULL);
 
     // Free resources.
@@ -433,7 +418,7 @@ BOOLEAN PhBoostProvider(
     PhReleaseQueuedLockExclusive(&providerThread->Lock);
 
     // Wake up the thread.
-    NtSetEvent(providerThread->EventHandle, NULL);
+    NtAlertThread(providerThread->ThreadHandle);
 
     if (FutureRunId)
         *FutureRunId = futureRunId;
