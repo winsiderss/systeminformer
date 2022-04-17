@@ -317,7 +317,7 @@ typedef struct _PROCESS_BASIC_INFORMATION
 {
     NTSTATUS ExitStatus;
     PPEB PebBaseAddress;
-    ULONG_PTR AffinityMask;
+    KAFFINITY AffinityMask;
     KPRIORITY BasePriority;
     HANDLE UniqueProcessId;
     HANDLE InheritedFromUniqueProcessId;
@@ -1023,7 +1023,7 @@ typedef struct _THREAD_BASIC_INFORMATION
     NTSTATUS ExitStatus;
     PTEB TebBaseAddress;
     CLIENT_ID ClientId;
-    ULONG_PTR AffinityMask;
+    KAFFINITY AffinityMask;
     KPRIORITY Priority;
     LONG BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
