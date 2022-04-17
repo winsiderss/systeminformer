@@ -583,6 +583,22 @@ PhSetProcessQuotaLimits(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessAffinityMask(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKAFFINITY AffinityMask
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        AffinityMask,
+        sizeof(KAFFINITY),
+        NULL
+        );
+}
+
 /**
  * Sets a process' affinity mask.
  *
@@ -602,6 +618,35 @@ PhSetProcessAffinityMask(
         &AffinityMask,
         sizeof(KAFFINITY)
         );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PUSHORT GroupCount,
+    _Out_ PUSHORT GroupArray
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+
+    // rev from GetProcessGroupAffinity (dmex)
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessGroupInformation,
+        GroupArray,
+        sizeof(USHORT) * *GroupCount,
+        &returnLength
+        );
+
+    // (int)(status + 0x80000000) < 0 || status == STATUS_BUFFER_TOO_SMALL
+    if (NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        *GroupCount = (USHORT)returnLength >> 1;
+    }
+
+    return status;
 }
 
 FORCEINLINE
@@ -1268,6 +1313,34 @@ PhGetThreadIsTerminated(
     }
 
     return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadAffinityMask(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PKAFFINITY AffinityMask
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+
+    status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        *AffinityMask = basicInfo.AffinityMask;
+    }
+
+    return status;
+
+    //return NtQueryInformationThread(
+    //    ThreadHandle,
+    //    ThreadAffinityMask,
+    //    &AffinityMask,
+    //    sizeof(KAFFINITY),
+    //    NULL
+    //    );
 }
 
 /**
