@@ -170,7 +170,7 @@ typedef struct _PEB
     ULONG ImageSubsystem;
     ULONG ImageSubsystemMajorVersion;
     ULONG ImageSubsystemMinorVersion;
-    ULONG_PTR ActiveProcessAffinityMask;
+    KAFFINITY ActiveProcessAffinityMask;
     GDI_HANDLE_BUFFER GdiHandleBuffer;
     PVOID PostProcessInitRoutine;
 
