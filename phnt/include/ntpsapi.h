@@ -244,7 +244,7 @@ typedef enum _THREADINFOCLASS
     ThreadBasicInformation, // q: THREAD_BASIC_INFORMATION
     ThreadTimes, // q: KERNEL_USER_TIMES
     ThreadPriority, // s: KPRIORITY (requires SeIncreaseBasePriorityPrivilege)
-    ThreadBasePriority, // s: LONG
+    ThreadBasePriority, // s: KPRIORITY
     ThreadAffinityMask, // s: KAFFINITY
     ThreadImpersonationToken, // s: HANDLE
     ThreadDescriptorTableEntry, // q: DESCRIPTOR_TABLE_ENTRY (or WOW64_DESCRIPTOR_TABLE_ENTRY)
@@ -1025,7 +1025,7 @@ typedef struct _THREAD_BASIC_INFORMATION
     CLIENT_ID ClientId;
     KAFFINITY AffinityMask;
     KPRIORITY Priority;
-    LONG BasePriority;
+    KPRIORITY BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
 // private
