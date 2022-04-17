@@ -302,7 +302,7 @@ NTAPI
 PhShowProcessAffinityDialog2(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _Out_ PULONG_PTR NewAffinityMask
+    _Out_ PKAFFINITY NewAffinityMask
     );
 
 PHAPPAPI
@@ -310,7 +310,7 @@ NTSTATUS
 NTAPI
 PhSetProcessItemAffinityMask(
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_ ULONG_PTR AffinityMask
+    _In_ KAFFINITY AffinityMask
     );
 
 PHAPPAPI

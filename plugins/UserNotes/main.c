@@ -178,12 +178,12 @@ PPH_STRING SaveCustomColors(
 
 NTSTATUS GetProcessAffinity(
     _In_ HANDLE ProcessId,
-    _Out_ ULONG_PTR *Affinity
+    _Out_ PKAFFINITY Affinity
     )
 {
     NTSTATUS status;
     HANDLE processHandle;
-    ULONG_PTR affinityMask = 0;
+    KAFFINITY affinityMask = 0;
     PROCESS_BASIC_INFORMATION basicInfo;
 
     if (NT_SUCCESS(status = PhOpenProcess(
@@ -1260,7 +1260,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status;
-                ULONG_PTR affinityMask;
+                KAFFINITY affinityMask;
 
                 if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
                 {
@@ -1291,7 +1291,7 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status;
-                    ULONG_PTR affinityMask;
+                    KAFFINITY affinityMask;
 
                     if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
                     {
@@ -1489,8 +1489,8 @@ VOID NTAPI MenuHookCallback(
     case PHAPP_ID_PROCESS_AFFINITY:
         {
             BOOLEAN changed = FALSE;
-            //ULONG_PTR affinityMask;
-            ULONG_PTR newAffinityMask;
+            //KAFFINITY affinityMask;
+            KAFFINITY newAffinityMask;
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
             if (!processItem)
@@ -2147,7 +2147,7 @@ VOID ProcessesUpdatedCallback(
         {
             if (object->AffinityMask != 0)
             {
-                ULONG_PTR affinityMask;
+                KAFFINITY affinityMask;
 
                 if (NT_SUCCESS(GetProcessAffinity(processItem->ProcessId, &affinityMask)))
                 {

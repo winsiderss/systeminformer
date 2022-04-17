@@ -284,7 +284,7 @@ NTSTATUS LoadDb(
 
             PhStringToInteger64(&affinityMask->sr, 10, &affinityInteger);
 
-            object->AffinityMask = (ULONG_PTR)affinityInteger;
+            object->AffinityMask = (KAFFINITY)affinityInteger;
         }
 
         if (object && pagePriorityPlusOne)
