@@ -36,7 +36,7 @@ typedef struct _PH_AFFINITY_DIALOG_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PPH_THREAD_ITEM ThreadItem;
-    ULONG_PTR NewAffinityMask;
+    KAFFINITY NewAffinityMask;
 
     // Multiple selected items (dmex)
     PPH_THREAD_ITEM* Threads;
@@ -78,7 +78,7 @@ _Success_(return)
 BOOLEAN PhShowProcessAffinityDialog2(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _Out_ PULONG_PTR NewAffinityMask
+    _Out_ PKAFFINITY NewAffinityMask
     )
 {
     PH_AFFINITY_DIALOG_CONTEXT context;
@@ -162,8 +162,8 @@ BOOLEAN PhpCheckThreadsHaveSameAffinity(
 {
     BOOLEAN result = TRUE;
     THREAD_BASIC_INFORMATION basicInfo;
-    ULONG_PTR lastAffinityMask = 0;
-    ULONG_PTR affinityMask = 0;
+    KAFFINITY lastAffinityMask = 0;
+    KAFFINITY affinityMask = 0;
 
     if (NT_SUCCESS(PhGetThreadBasicInformation(Context->ThreadHandles[0], &basicInfo)))
     {
@@ -218,8 +218,8 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
         {
             NTSTATUS status = STATUS_UNSUCCESSFUL;
             BOOLEAN differentAffinity = FALSE;
-            ULONG_PTR systemAffinityMask = 0;
-            ULONG_PTR affinityMask = 0;
+            KAFFINITY systemAffinityMask = 0;
+            KAFFINITY affinityMask = 0;
             ULONG i;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -397,16 +397,16 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                 {
                     NTSTATUS status = STATUS_UNSUCCESSFUL;
                     ULONG i;
-                    ULONG_PTR affinityMask;
+                    KAFFINITY affinityMask;
 
                     // Work out the affinity mask.
 
                     affinityMask = 0;
 
-                    for (i = 0; i < sizeof(ULONG_PTR) * 8; i++)
+                    for (i = 0; i < sizeof(KAFFINITY) * 8; i++)
                     {
                         if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_CPU0 + i)) == BST_CHECKED)
-                            affinityMask |= (ULONG_PTR)1 << i;
+                            affinityMask |= (KAFFINITY)1 << i;
                     }
 
                     if (context->ProcessItem)
@@ -494,7 +494,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 // Note: Workaround for UserNotes plugin dialog overrides (dmex)
 NTSTATUS PhSetProcessItemAffinityMask(
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_ ULONG_PTR AffinityMask
+    _In_ KAFFINITY AffinityMask
     )
 {
     NTSTATUS status;

@@ -43,7 +43,7 @@ typedef struct _DB_OBJECT
     ULONG IoPriorityPlusOne;
     COLORREF BackColor;
     BOOLEAN Collapse;
-    ULONG_PTR AffinityMask;
+    KAFFINITY AffinityMask;
     ULONG PagePriorityPlusOne;
 } DB_OBJECT, *PDB_OBJECT;
 

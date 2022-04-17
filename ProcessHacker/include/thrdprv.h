@@ -21,12 +21,12 @@ typedef struct _PH_THREAD_ITEM
     FLOAT CpuKernelUsage;
     FLOAT CpuUserUsage;
 
-    LONG Priority;
-    LONG BasePriority;
+    KPRIORITY Priority;
+    KPRIORITY BasePriority;
     ULONG WaitTime;
     KTHREAD_STATE State;
     KWAIT_REASON WaitReason;
-    LONG BasePriorityIncrement;
+    KPRIORITY BasePriorityIncrement;
 
     HANDLE ThreadHandle;
 
@@ -114,7 +114,7 @@ VOID PhDereferenceAllThreadItems(
     );
 
 PPH_STRING PhGetBasePriorityIncrementString(
-    _In_ LONG Increment
+    _In_ KPRIORITY Increment
     );
 
 VOID PhThreadProviderInitialUpdate(

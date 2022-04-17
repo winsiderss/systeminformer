@@ -696,7 +696,7 @@ static NTSTATUS PhpGetThreadCycleTime(
 }
 
 PPH_STRING PhGetBasePriorityIncrementString(
-    _In_ LONG Increment
+    _In_ KPRIORITY Increment
     )
 {
     switch (Increment)
@@ -1142,7 +1142,7 @@ VOID PhpThreadProviderUpdate(
 
             // Update the base priority increment.
             {
-                LONG oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
+                KPRIORITY oldBasePriorityIncrement = threadItem->BasePriorityIncrement;
 
                 if (threadItem->ThreadHandle && NT_SUCCESS(PhGetThreadBasicInformation(
                     threadItem->ThreadHandle,
