@@ -1079,6 +1079,31 @@ PhGetThreadIdealProcessor(
 
 FORCEINLINE
 NTSTATUS
+PhSetThreadIdealProcessor(
+    _In_ HANDLE ThreadHandle,
+    _In_ PPROCESSOR_NUMBER ProcessorNumber,
+    _Out_opt_ PPROCESSOR_NUMBER PreviousIdealProcessor
+    )
+{
+    NTSTATUS status;
+    PROCESSOR_NUMBER processorNumber;
+
+    processorNumber = *ProcessorNumber;
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadIdealProcessorEx,
+        &processorNumber,
+        sizeof(PROCESSOR_NUMBER)
+        );
+
+    if (PreviousIdealProcessor)
+        *PreviousIdealProcessor = processorNumber;
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetThreadSuspendCount(
     _In_ HANDLE ThreadHandle,
     _Out_ PULONG SuspendCount
