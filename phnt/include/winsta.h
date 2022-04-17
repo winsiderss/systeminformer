@@ -752,7 +752,7 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
     UNICODE_STRING ImageName;
-    LONG BasePriority;
+    KPRIORITY BasePriority;
     ULONG UniqueProcessId;
     ULONG InheritedFromUniqueProcessId;
     ULONG HandleCount;
