@@ -1655,7 +1655,7 @@ typedef struct _SYSTEM_THREAD_INFORMATION
     PVOID StartAddress;
     CLIENT_ID ClientId;
     KPRIORITY Priority;
-    LONG BasePriority;
+    KPRIORITY BasePriority;
     ULONG ContextSwitches;
     KTHREAD_STATE ThreadState;
     KWAIT_REASON WaitReason;
