@@ -274,7 +274,7 @@ typedef enum _THREADINFOCLASS
     ThreadGroupInformation, // q: GROUP_AFFINITY // 30
     ThreadUmsInformation, // q: THREAD_UMS_INFORMATION
     ThreadCounterProfiling, // q: BOOLEAN; s: THREAD_PROFILING_INFORMATION?
-    ThreadIdealProcessorEx, // q: PROCESSOR_NUMBER
+    ThreadIdealProcessorEx, // qs: PROCESSOR_NUMBER; s: previous PROCESSOR_NUMBER on return
     ThreadCpuAccountingInformation, // q: BOOLEAN; s: HANDLE (NtOpenSession) // NtCurrentThread // since WIN8
     ThreadSuspendCount, // q: ULONG // since WINBLUE
     ThreadHeterogeneousCpuPolicy, // q: KHETERO_CPU_POLICY // since THRESHOLD
