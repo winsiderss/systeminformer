@@ -151,11 +151,13 @@ INT WINAPI wWinMain(
                 {
                     PhMoveReference(&PvFileName, PhConcatStrings(3, L"\"", PvFileName->Buffer, L"\""));
 
+                    AllowSetForegroundWindow(ASFW_ANY);
+
                     if (PhShellExecuteEx(
                         NULL,
                         PhGetString(applicationFileName),
                         PvFileName->Buffer,
-                        SW_SHOWDEFAULT,
+                        SW_SHOWNORMAL,
                         PH_SHELL_EXECUTE_NOZONECHECKS,
                         0,
                         NULL
