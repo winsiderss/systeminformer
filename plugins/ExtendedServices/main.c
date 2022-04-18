@@ -3,7 +3,7 @@
  *   main program
  *
  * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2015-2021 dmex
+ * Copyright (C) 2015-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -341,6 +341,20 @@ VOID NTAPI ServicePropertiesInitializingCallback(
         propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVTRIGGERS);
         propSheetPage.pszTitle = L"Triggers";
         propSheetPage.pfnDlgProc = EspServiceTriggersDlgProc;
+        propSheetPage.lParam = (LPARAM)serviceItem;
+        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+
+    // PnP
+    if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.dwFlags = PSP_USETITLE;
+        propSheetPage.hInstance = PluginInstance->DllBase;
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVPNP);
+        propSheetPage.pszTitle = L"PnP";
+        propSheetPage.pfnDlgProc = EspPnPServiceDlgProc;
         propSheetPage.lParam = (LPARAM)serviceItem;
         objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
     }
