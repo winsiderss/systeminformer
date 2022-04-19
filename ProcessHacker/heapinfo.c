@@ -407,6 +407,9 @@ VOID PhpEnumerateProcessHeaps(
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE processHandle = NULL;
     HANDLE powerRequestHandle = NULL;
+    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo = { 0 };
+    HANDLE clientProcessId = Context->ProcessItem->ProcessId;
+    HANDLE processReflectionHandle = NULL;
     BOOLEAN sizesInBytes;
 
     sizesInBytes = Button_GetCheck(GetDlgItem(Context->WindowHandle, IDC_SIZESINBYTES)) == BST_CHECKED;
@@ -444,6 +447,35 @@ VOID PhpEnumerateProcessHeaps(
         PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
     }
 
+    if (PhGetIntegerSetting(L"EnableHeapReflection"))
+    {
+        status = PhOpenProcess(
+            &processReflectionHandle,
+            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE,
+            clientProcessId
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
+            // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
+
+            status = RtlCreateProcessReflection(
+                processReflectionHandle,
+                0,
+                NULL,
+                NULL,
+                NULL,
+                &reflectionInfo
+            );
+
+            if (NT_SUCCESS(status))
+            {
+                clientProcessId = reflectionInfo.ReflectionClientId.UniqueProcess;
+            }
+        }
+    }
+
 #ifdef _WIN64
     if (Context->ProcessItem->IsWow64)
     {
@@ -454,7 +486,7 @@ VOID PhpEnumerateProcessHeaps(
             ULONG capturedHeapInfoLength;
 
             status = PhSvcCallQueryProcessHeapInformation(
-                Context->ProcessItem->ProcessId,
+                clientProcessId,
                 &capturedHeapInfoString
                 );
 
@@ -556,7 +588,7 @@ VOID PhpEnumerateProcessHeaps(
         PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo;
 
         status = PhQueryProcessHeapInformation(
-            Context->ProcessItem->ProcessId,
+            clientProcessId,
             &heapDebugInfo
             );
 
@@ -627,6 +659,17 @@ VOID PhpEnumerateProcessHeaps(
 #endif
 
 CleanupExit:
+    if (reflectionInfo.ReflectionProcessHandle)
+    {
+        PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
+        NtClose(reflectionInfo.ReflectionProcessHandle);
+    }
+
+    if (reflectionInfo.ReflectionThreadHandle)
+    NtClose(reflectionInfo.ReflectionThreadHandle);
+    if (processReflectionHandle)
+    NtClose(processReflectionHandle);
+
     if (powerRequestHandle)
         PhDestroyExecutionRequiredRequest(powerRequestHandle);
     ExtendedListView_SortItems(Context->ListViewHandle);
