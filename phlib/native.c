@@ -706,14 +706,26 @@ NTSTATUS PhGetProcessIsBeingDebugged(
     _Out_ PBOOLEAN IsBeingDebugged
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    BOOLEAN isBeingDebugged = FALSE;
+    PVOID debugHandle;
 
-    // NOTE: The ProcessDebugObjectHandle is always valid when the process is being debugged while the ProcessDebugPort 
-    // is only set when the process was created with DEBUG_PROCESS flag by CsrCreateProcess. (dmex)
-    if (KphIsVerified())
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDebugPort,
+        &debugHandle,
+        sizeof(PVOID),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
     {
-        HANDLE debugHandle;
+        *IsBeingDebugged = !!debugHandle;
+        return status;
+    }
 
+    if (KphIsVerified()) // KphIsVerified required for STATUS_ACCESS_DENIED (dmex)
+    {
         status = NtQueryInformationProcess(
             ProcessHandle,
             ProcessDebugObjectHandle,
@@ -726,28 +738,12 @@ NTSTATUS PhGetProcessIsBeingDebugged(
         {
             *IsBeingDebugged = TRUE;
             NtClose(debugHandle);
+            return STATUS_SUCCESS;
         }
         else if (status == STATUS_ACCESS_DENIED)
         {
             *IsBeingDebugged = TRUE;
-            status = STATUS_SUCCESS;
-        }
-    }
-    else
-    {
-        PVOID debugPort;
-
-        status = NtQueryInformationProcess(
-            ProcessHandle,
-            ProcessDebugPort,
-            &debugPort,
-            sizeof(PVOID),
-            NULL
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            *IsBeingDebugged = !!debugPort;
+            return STATUS_SUCCESS;
         }
     }
 
