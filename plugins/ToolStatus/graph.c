@@ -728,15 +728,25 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback)
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
             PPH_PROCESS_RECORD record = NULL;
 
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
             {
-                record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
-            }
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"CPU");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
+                    }
 
-            if (record)
-            {
-                PhShowProcessRecordDialog(PhMainWndHandle, record);
-                PhDereferenceProcessRecord(record);
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
             }
         }
         break;
@@ -808,7 +818,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
         break;
     case GCN_MOUSEEVENT:
         {
-            NOTHING;
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            {
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"Memory");
+                }
+            }
         }
         break;
     }
@@ -879,7 +897,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
         break;
     case GCN_MOUSEEVENT:
         {
-            NOTHING;
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            {
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"Memory");
+                }
+            }
         }
         break;
     }
@@ -968,15 +994,25 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
             PPH_PROCESS_RECORD record = NULL;
 
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
             {
-                record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
-            }
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"I/O");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
+                    }
 
-            if (record)
-            {
-                PhShowProcessRecordDialog(PhMainWndHandle, record);
-                PhDereferenceProcessRecord(record);
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
             }
         }
         break;

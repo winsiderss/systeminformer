@@ -922,19 +922,27 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallba
     case GCN_MOUSEEVENT:
         {
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
-            PPH_PROCESS_RECORD record;
+            PPH_PROCESS_RECORD record = NULL;
 
-            record = NULL;
-
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
             {
-                record = EtpReferenceMaxNodeRecord(mouseEvent->Index);
-            }
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"GPU");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = EtpReferenceMaxNodeRecord(mouseEvent->Index);
+                    }
 
-            if (record)
-            {
-                PhShowProcessRecordDialog(PhMainWndHandle, record);
-                PhDereferenceProcessRecord(record);
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
             }
         }
         break;
@@ -1035,19 +1043,27 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarDiskHistoryGraphMessageCallb
     case GCN_MOUSEEVENT:
         {
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
-            PPH_PROCESS_RECORD record;
+            PPH_PROCESS_RECORD record = NULL;
 
-            record = NULL;
-
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
             {
-                record = EtpReferenceMaxDiskRecord(mouseEvent->Index);
-            }
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"Disk");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = EtpReferenceMaxDiskRecord(mouseEvent->Index);
+                    }
 
-            if (record)
-            {
-                PhShowProcessRecordDialog(PhMainWndHandle, record);
-                PhDereferenceProcessRecord(record);
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
             }
         }
         break;
@@ -1148,19 +1164,27 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNetworkHistoryGraphMessageCa
     case GCN_MOUSEEVENT:
         {
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
-            PPH_PROCESS_RECORD record;
+            PPH_PROCESS_RECORD record = NULL;
 
-            record = NULL;
-
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
             {
-                record = EtpReferenceMaxNetworkRecord(mouseEvent->Index);
-            }
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"Network");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = EtpReferenceMaxNetworkRecord(mouseEvent->Index);
+                    }
 
-            if (record)
-            {
-                PhShowProcessRecordDialog(PhMainWndHandle, record);
-                PhDereferenceProcessRecord(record);
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
             }
         }
         break;

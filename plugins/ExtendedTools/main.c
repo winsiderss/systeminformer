@@ -989,7 +989,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_ENABLE_FAHRENHEIT, L"0" },
                 { StringSettingType, SETTING_NAME_FW_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
-                { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" }
+                { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
+                { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

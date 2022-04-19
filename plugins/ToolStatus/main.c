@@ -1741,6 +1741,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
                 { IntegerSettingType, SETTING_NAME_TASKBARDISPLAYSTYLE, L"0" },
+                { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
