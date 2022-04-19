@@ -8144,6 +8144,177 @@ NTSTATUS PhFreeLibraryAsImageResource(
     return NtUnmapViewOfSection(NtCurrentProcess(), LDR_IMAGEMAPPING_TO_MAPPEDVIEW(BaseAddress));
 }
 
+#if (PHNT_VERSION >= PHNT_REDSTONE5)
+// This function creates a ring buffer by allocating a pagefile-backed section
+// and mapping two views of that section next to each other. This way if the
+// last record in the buffer wraps it can still be accessed in a linear fashion
+// using its base VA. (Win10 RS5 and above only) (dmex)
+// Based on Win32 version: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2#examples
+NTSTATUS PhCreateRingBuffer(
+    _In_ SIZE_T BufferSize,
+    _Out_ PVOID* RingBuffer,
+    _Out_ PVOID* SecondaryView
+    )
+{
+    NTSTATUS status;
+    SIZE_T regionSize;
+    LARGE_INTEGER sectionSize;
+    HANDLE sectionHandle = NULL;
+    PVOID placeholder1 = NULL;
+    PVOID placeholder2 = NULL;
+    PVOID sectionView1 = NULL;
+    PVOID sectionView2 = NULL;
+
+    if ((BufferSize % PhSystemBasicInformation.AllocationGranularity) != 0)
+        return STATUS_UNSUCCESSFUL;
+
+    //
+    // Reserve a placeholder region where the buffer will be mapped.
+    //
+
+    regionSize = 2 * BufferSize;
+    status = NtAllocateVirtualMemoryEx(
+        NtCurrentProcess(),
+        &placeholder1,
+        &regionSize,
+        MEM_RESERVE | MEM_RESERVE_PLACEHOLDER,
+        PAGE_NOACCESS,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    //
+    // Split the placeholder region into two regions of equal size.
+    //
+
+    regionSize = BufferSize;
+    status = NtFreeVirtualMemory(
+        NtCurrentProcess(),
+        &placeholder1,
+        &regionSize,
+        MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    placeholder2 = PTR_ADD_OFFSET(placeholder1, BufferSize);
+
+    //
+    // Create a pagefile-backed section for the buffer.
+    //
+
+    sectionSize.QuadPart = BufferSize;
+    status = NtCreateSectionEx(
+        &sectionHandle,
+        SECTION_ALL_ACCESS,
+        NULL,
+        &sectionSize,
+        PAGE_READWRITE,
+        SEC_COMMIT,
+        NULL,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    //
+    // Map the section into the first placeholder region.
+    //
+
+    regionSize = BufferSize;
+    sectionView1 = placeholder1;
+    status = NtMapViewOfSectionEx(
+        sectionHandle,
+        NtCurrentProcess(),
+        &sectionView1,
+        0,
+        &regionSize,
+        MEM_REPLACE_PLACEHOLDER,
+        PAGE_READWRITE,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    //
+    // Ownership transferred, don't free this now.
+    //
+
+    placeholder1 = NULL;
+
+    //
+    // Map the section into the second placeholder region.
+    //
+
+    regionSize = BufferSize;
+    sectionView2 = placeholder2;
+    status = NtMapViewOfSectionEx(
+        sectionHandle,
+        NtCurrentProcess(),
+        &sectionView2,
+        0,
+        &regionSize,
+        MEM_REPLACE_PLACEHOLDER,
+        PAGE_READWRITE,
+        NULL,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    //
+    // Success, return both mapped views to the caller.
+    //
+
+    *RingBuffer = sectionView1; 
+    *SecondaryView = sectionView2;
+
+#ifdef DEBUG
+    // assert the buffer wraps properly.
+    ((PCHAR)sectionView1)[0] = 'a';
+    assert(((PCHAR)sectionView1)[BufferSize] == 'a');
+#endif
+
+    placeholder2 = NULL;
+    sectionView1 = NULL;
+    sectionView2 = NULL;
+
+CleanupExit:
+    if (sectionHandle)
+    {
+        NtClose(sectionHandle);
+    }
+
+    if (placeholder1)
+    {
+        regionSize = 0;
+        NtFreeVirtualMemory(NtCurrentProcess(), placeholder1, &regionSize, MEM_RELEASE);
+    }
+
+    if (placeholder2)
+    {
+        regionSize = 0;
+        NtFreeVirtualMemory(NtCurrentProcess(), placeholder2, &regionSize, MEM_RELEASE);
+    }
+
+    if (sectionView1)
+        NtUnmapViewOfSection(NtCurrentProcess(), sectionView1);
+    if (sectionView2)
+        NtUnmapViewOfSection(NtCurrentProcess(), sectionView2);
+
+    return status;
+}
+#endif
+
 NTSTATUS PhDelayExecutionEx(
     _In_ BOOLEAN Alertable,
     _In_opt_ PLARGE_INTEGER DelayInterval
