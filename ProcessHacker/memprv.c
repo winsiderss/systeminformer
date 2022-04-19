@@ -435,8 +435,10 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         ULONG *processHeaps32;
         ULONG apiSetMap32;
 #endif
-
-        PhpUpdateHeapRegions(List);
+        if (PhGetIntegerSetting(L"EnableHeapMemoryTagging"))
+        {
+            PhpUpdateHeapRegions(List);
+        }
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
         {
