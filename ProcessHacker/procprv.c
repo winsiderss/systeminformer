@@ -3124,13 +3124,6 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
     return processItem;
 }
 
-PVOID PhGetProcessInformationCache(
-    VOID
-    )
-{
-    return PhProcessInformation;
-}
-
 PPH_HASHTABLE PhImageListCacheHashtable = NULL;
 PH_QUEUED_LOCK PhImageListCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 HIMAGELIST PhProcessLargeImageList = NULL;
