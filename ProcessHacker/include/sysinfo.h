@@ -168,10 +168,13 @@ PhSiDoubleLabelYFunction(
     _In_ FLOAT Value,
     _In_ FLOAT Parameter
     );
-// end_phapppub
 
-VOID PhShowSystemInformationDialog(
+PHAPPAPI
+VOID
+NTAPI
+PhShowSystemInformationDialog(
     _In_opt_ PWSTR SectionName
     );
+// end_phapppub
 
 #endif
