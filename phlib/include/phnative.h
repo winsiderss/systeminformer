@@ -148,30 +148,6 @@ PhSetObjectSecurity(
     );
 
 PHLIBAPI
-PPH_STRING
-NTAPI
-PhGetSecurityDescriptorAsString(
-    _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
-
-PHLIBAPI
-PSECURITY_DESCRIPTOR
-NTAPI
-PhGetSecurityDescriptorFromString(
-    _In_ PWSTR SecurityDescriptorString
-    );
-
-_Success_(return)
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhGetObjectSecurityDescriptorAsString(
-    _In_ HANDLE Handle,
-    _Out_ PPH_STRING* SecurityDescriptorString
-    );
-
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhTerminateProcess(

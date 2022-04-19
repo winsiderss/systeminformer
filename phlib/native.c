@@ -27,8 +27,6 @@
 #include <lsasup.h>
 #include <mapimg.h>
 
-#include <sddl.h>
-
 #define PH_DEVICE_PREFIX_LENGTH 64
 #define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16
 
@@ -433,102 +431,6 @@ NTSTATUS PhSetObjectSecurity(
         SecurityDescriptor
         );
 }
-
-PPH_STRING PhGetSecurityDescriptorAsString(
-    _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    )
-{
-    PPH_STRING securityDescriptorString = NULL;
-    ULONG stringSecurityDescriptorLength = 0;
-    PWSTR stringSecurityDescriptor = NULL;
-
-    if (!ConvertSecurityDescriptorToStringSecurityDescriptorW_Import())
-        return NULL;
-
-    if (ConvertSecurityDescriptorToStringSecurityDescriptorW_Import()(
-        SecurityDescriptor,
-        SDDL_REVISION,
-        SecurityInformation,
-        &stringSecurityDescriptor,
-        &stringSecurityDescriptorLength
-        ))
-    {
-        securityDescriptorString = PhCreateStringEx(
-            stringSecurityDescriptor,
-            stringSecurityDescriptorLength * sizeof(WCHAR)
-            );
-        LocalFree(stringSecurityDescriptor);
-    }
-
-    return securityDescriptorString;
-}
-
-PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
-    _In_ PWSTR SecurityDescriptorString
-    )
-{
-    PVOID securityDescriptor = NULL;
-    ULONG securityDescriptorLength = 0;
-    PSECURITY_DESCRIPTOR securityDescriptorBuffer = NULL;
-
-    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW_Import())
-        return NULL;
-
-    if (ConvertStringSecurityDescriptorToSecurityDescriptorW_Import()(
-        SecurityDescriptorString,
-        SDDL_REVISION,
-        &securityDescriptorBuffer,
-        &securityDescriptorLength
-        ))
-    {
-        //assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
-        securityDescriptor = PhAllocateCopy(
-            securityDescriptorBuffer,
-            securityDescriptorLength
-            );
-        LocalFree(securityDescriptorBuffer);
-    }
-
-    return securityDescriptor;
-}
-
-_Success_(return)
-BOOLEAN PhGetObjectSecurityDescriptorAsString(
-    _In_ HANDLE Handle,
-    _Out_ PPH_STRING* SecurityDescriptorString
-    )
-{
-    PSECURITY_DESCRIPTOR securityDescriptor;
-    PPH_STRING securityDescriptorString;
-
-    if (NT_SUCCESS(PhGetObjectSecurity(
-        Handle,
-        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-        DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
-        ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
-        &securityDescriptor
-        )))
-    {
-        if (securityDescriptorString = PhGetSecurityDescriptorAsString(
-            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-            DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION |
-            ATTRIBUTE_SECURITY_INFORMATION | SCOPE_SECURITY_INFORMATION,
-            securityDescriptor
-            ))
-        {
-            *SecurityDescriptorString = securityDescriptorString;
-
-            PhFree(securityDescriptor);
-            return TRUE;
-        }
-
-        PhFree(securityDescriptor);
-    }
-
-    return FALSE;
-}
-
 
 /**
  * Terminates a process.
