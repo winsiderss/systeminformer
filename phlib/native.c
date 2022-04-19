@@ -5620,7 +5620,8 @@ NTSTATUS PhEnumHandlesEx2(
     ULONG attempts = 0;
 
     bufferSize = 0x8000;
-    buffer = PhAllocateZero(bufferSize);
+    buffer = PhAllocate(bufferSize);
+    buffer->NumberOfHandles = 0;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -5634,7 +5635,8 @@ NTSTATUS PhEnumHandlesEx2(
     {
         PhFree(buffer);
         bufferSize = returnLength;
-        buffer = PhAllocateZero(bufferSize);
+        buffer = PhAllocate(bufferSize);
+        buffer->NumberOfHandles = 0;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
