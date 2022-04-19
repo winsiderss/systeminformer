@@ -46,6 +46,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
+    PhpAddIntegerSetting(L"EnableHeapMemoryTagging", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"0");
     PhpAddIntegerSetting(L"EnableKphWarnings", L"1");
     PhpAddIntegerSetting(L"EnableLastProcessShutdown", L"0");
