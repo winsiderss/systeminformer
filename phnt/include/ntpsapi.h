@@ -143,7 +143,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessPriorityClass, // qs: PROCESS_PRIORITY_CLASS
     ProcessWx86Information, // qs: ULONG (requires SeTcbPrivilege) (VdmAllowed)
     ProcessHandleCount, // q: ULONG, PROCESS_HANDLE_INFORMATION // 20
-    ProcessAffinityMask, // s: KAFFINITY
+    ProcessAffinityMask, // qs: KAFFINITY
     ProcessPriorityBoost, // qs: ULONG
     ProcessDeviceMap, // qs: PROCESS_DEVICEMAP_INFORMATION, PROCESS_DEVICEMAP_INFORMATION_EX
     ProcessSessionInformation, // q: PROCESS_SESSION_INFORMATION
