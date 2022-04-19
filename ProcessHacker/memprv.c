@@ -24,6 +24,7 @@
 #include <phapp.h>
 #include <memprv.h>
 #include <heapstruct.h>
+#include <settings.h>
 
 #define MAX_HEAPS 1000
 #define WS_REQUEST_COUNT (PAGE_SIZE / sizeof(MEMORY_WORKING_SET_EX_INFORMATION))
@@ -261,21 +262,21 @@ VOID PhpUpdateHeapRegions(
         if (WindowsVersion >= WINDOWS_10)
             PhCreateExecutionRequiredRequest(processHandle, &powerRequestHandle);
 
-        // NOTE: RtlQueryProcessDebugInformation injects a thread into the process causing deadlocks and other issues in rare cases.
-        // We mitigate these problems by reflecting the process and querying heap information from the clone. (dmex)
-
-        status = RtlCreateProcessReflection(
-            processHandle,
-            0,
-            NULL,
-            NULL,
-            NULL,
-            &reflectionInfo
-            );
-
-        if (NT_SUCCESS(status))
+        if (PhGetIntegerSetting(L"EnableHeapReflection"))
         {
-            clientProcessId = reflectionInfo.ReflectionClientId.UniqueProcess;
+            status = RtlCreateProcessReflection(
+                processHandle,
+                0,
+                NULL,
+                NULL,
+                NULL,
+                &reflectionInfo
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                clientProcessId = reflectionInfo.ReflectionClientId.UniqueProcess;
+            }
         }
     }
 
