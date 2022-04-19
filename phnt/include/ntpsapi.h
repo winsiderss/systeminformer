@@ -1229,7 +1229,11 @@ NtCreateProcess(
 #define PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY 0x00000400 // NtCreateProcessEx & NtCreateUserProcess, requires SeTcb
 #define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800 // NtCreateProcessEx only
 #define PROCESS_CREATE_FLAGS_RELEASE_SECTION 0x00001000 // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_CLONE_MINIMAL 0x00002000 // NtCreateProcessEx only
+#define PROCESS_CREATE_FLAGS_CLONE_MINIMAL_REDUCED_COMMIT 0x00004000 //
 #define PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS 0x00008000 // NtCreateProcessEx & NtCreateUserProcess, requires SeTcb
+#define PROCESS_CREATE_FLAGS_CREATE_STORE 0x00020000 // NtCreateProcessEx only
+#define PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT 0x00040000 // NtCreateProcessEx & NtCreateUserProcess
 // end_rev
 
 NTSYSCALLAPI
@@ -1751,19 +1755,19 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributePreferredNode, // in PUSHORT
     PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER
     PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
-    PsAttributeMitigationOptions, // in UCHAR
-    PsAttributeProtectionLevel, // in ULONG
-    PsAttributeSecureProcess, // since THRESHOLD
-    PsAttributeJobList,
-    PsAttributeChildProcessPolicy, // since THRESHOLD2
-    PsAttributeAllApplicationPackagesPolicy, // since REDSTONE
-    PsAttributeWin32kFilter,
-    PsAttributeSafeOpenPromptOriginClaim,
-    PsAttributeBnoIsolation, // PS_BNO_ISOLATION_PARAMETERS
-    PsAttributeDesktopAppPolicy, // in ULONG
-    PsAttributeChpe, // since REDSTONE3
-    PsAttributeMitigationAuditOptions, // since 21H1
-    PsAttributeMachineType, // since WIN11
+    PsAttributeMitigationOptions, // in PPS_MITIGATION_OPTIONS_MAP PROCESS_CREATION_MITIGATION_POLICY*
+    PsAttributeProtectionLevel, // in PS_PROTECTION
+    PsAttributeSecureProcess, // in PPS_TRUSTLET_CREATE_ATTRIBUTES, since THRESHOLD
+    PsAttributeJobList, // in PHANDLE
+    PsAttributeChildProcessPolicy, // in ULONG PROCESS_CREATION_CHILD_PROCESS_*, since THRESHOLD2
+    PsAttributeAllApplicationPackagesPolicy, // in ULONG PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*, since REDSTONE
+    PsAttributeWin32kFilter, // in PWIN32K_SYSCALL_FILTER
+    PsAttributeSafeOpenPromptOriginClaim, // in
+    PsAttributeBnoIsolation, // in PPS_BNO_ISOLATION_PARAMETERS
+    PsAttributeDesktopAppPolicy, // in PULONG PROCESS_CREATION_DESKTOP_APP_*
+    PsAttributeChpe, // in BOOLEAN, since REDSTONE3
+    PsAttributeMitigationAuditOptions, // in PPS_MITIGATION_OPTIONS_MAP PROCESS_CREATION_MITIGATION_AUDIT_POLICY*, since 21H1
+    PsAttributeMachineType, // in WORD
     PsAttributeComponentFilter,
     PsAttributeEnableOptionalXStateFeatures,
     PsAttributeMax
@@ -1810,7 +1814,7 @@ typedef enum _PS_ATTRIBUTE_NUM
 #define PS_ATTRIBUTE_UMS_THREAD \
     PsAttributeValue(PsAttributeUmsThread, TRUE, TRUE, FALSE)
 #define PS_ATTRIBUTE_MITIGATION_OPTIONS \
-    PsAttributeValue(PsAttributeMitigationOptions, FALSE, TRUE, TRUE)
+    PsAttributeValue(PsAttributeMitigationOptions, FALSE, TRUE, FALSE)
 #define PS_ATTRIBUTE_PROTECTION_LEVEL \
     PsAttributeValue(PsAttributeProtectionLevel, FALSE, TRUE, TRUE)
 #define PS_ATTRIBUTE_SECURE_PROCESS \
@@ -1829,6 +1833,13 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeValue(PsAttributeBnoIsolation, FALSE, TRUE, FALSE)
 #define PS_ATTRIBUTE_DESKTOP_APP_POLICY \
     PsAttributeValue(PsAttributeDesktopAppPolicy, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_CHPE \
+    PsAttributeValue(PsAttributeChpe, FALSE, TRUE, TRUE)
+#define PS_ATTRIBUTE_MITIGATION_AUDIT_OPTIONS \
+    PsAttributeValue(PsAttributeMitigationAuditOptions, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_MACHINE_TYPE \
+    PsAttributeValue(PsAttributeMachineType, FALSE, TRUE, TRUE)
+
 
 // end_rev
 
@@ -1885,6 +1896,50 @@ typedef struct _PS_STD_HANDLE_INFO
     };
     ULONG StdHandleSubsystemType;
 } PS_STD_HANDLE_INFO, *PPS_STD_HANDLE_INFO;
+
+typedef union _PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS
+{
+    UCHAR Trustlet : 1;
+    UCHAR Ntos : 1;
+    UCHAR WriteHandle : 1;
+    UCHAR ReadHandle : 1;
+    UCHAR Reserved : 4;
+    UCHAR AccessRights;
+} PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS, *PPS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS;
+
+typedef struct _PS_TRUSTLET_ATTRIBUTE_TYPE
+{
+    union
+    {
+        struct
+        {
+            UCHAR Version;
+            UCHAR DataCount;
+            UCHAR SemanticType;
+            PS_TRUSTLET_ATTRIBUTE_ACCESSRIGHTS AccessRights;
+        };
+        ULONG AttributeType;
+    };
+} PS_TRUSTLET_ATTRIBUTE_TYPE, *PPS_TRUSTLET_ATTRIBUTE_TYPE;
+
+typedef struct _PS_TRUSTLET_ATTRIBUTE_HEADER
+{
+    PS_TRUSTLET_ATTRIBUTE_TYPE AttributeType;
+    ULONG InstanceNumber : 8;
+    ULONG Reserved : 24;
+} PS_TRUSTLET_ATTRIBUTE_HEADER, *PPS_TRUSTLET_ATTRIBUTE_HEADER;
+
+typedef struct _PS_TRUSTLET_ATTRIBUTE_DATA
+{
+    PS_TRUSTLET_ATTRIBUTE_HEADER Header;
+    ULONGLONG Data[1];
+} PS_TRUSTLET_ATTRIBUTE_DATA, *PPS_TRUSTLET_ATTRIBUTE_DATA;
+
+typedef struct _PS_TRUSTLET_CREATE_ATTRIBUTES
+{
+    ULONGLONG TrustletIdentity;
+    PS_TRUSTLET_ATTRIBUTE_DATA Attributes[1];
+} PS_TRUSTLET_CREATE_ATTRIBUTES, *PPS_TRUSTLET_CREATE_ATTRIBUTES;
 
 // private
 typedef struct _PS_BNO_ISOLATION_PARAMETERS
