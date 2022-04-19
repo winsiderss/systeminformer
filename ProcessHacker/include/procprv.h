@@ -433,15 +433,6 @@ PhReferenceProcessItemForRecord(
     );
 // end_phapppub
 
-// begin_phapppub
-PHAPPAPI
-PVOID
-NTAPI
-PhGetProcessInformationCache(
-    VOID
-    );
-// end_phapppub
-
 extern PPH_OBJECT_TYPE PhImageListItemType;
 extern HIMAGELIST PhProcessLargeImageList;
 extern HIMAGELIST PhProcessSmallImageList;
