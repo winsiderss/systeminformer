@@ -1196,6 +1196,29 @@ NtWorkerFactoryWorkerReady(
 
 struct _FILE_IO_COMPLETION_INFORMATION;
 
+#if (PHNT_VERSION >= PHNT_WIN8)
+
+typedef struct _WORKER_FACTORY_DEFERRED_WORK
+{
+    struct _PORT_MESSAGE *AlpcSendMessage;
+    PVOID AlpcSendMessagePort;
+    ULONG AlpcSendMessageFlags;
+    ULONG Flags;
+} WORKER_FACTORY_DEFERRED_WORK, *PWORKER_FACTORY_DEFERRED_WORK;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForWorkViaWorkerFactory(
+    _In_ HANDLE WorkerFactoryHandle,
+    _Out_writes_to_(Count, *PacketsReturned) struct _FILE_IO_COMPLETION_INFORMATION *MiniPackets,
+    _In_ ULONG Count,
+    _Out_ PULONG PacketsReturned,
+    _In_ PWORKER_FACTORY_DEFERRED_WORK DeferredWork
+    );
+
+#else
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1203,6 +1226,8 @@ NtWaitForWorkViaWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
     _Out_ struct _FILE_IO_COMPLETION_INFORMATION *MiniPacket
     );
+
+#endif
 
 #endif
 
