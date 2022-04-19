@@ -24,6 +24,7 @@
 #include <ph.h>
 
 #include <commdlg.h>
+#include <processsnapshot.h>
 #include <sddl.h>
 #include <shellapi.h>
 #include <shlobj.h>
@@ -8486,4 +8487,148 @@ PPH_STRING PhApiSetResolveToHost(
     }
 
     return NULL;
+}
+
+NTSTATUS PhCreateProcessClone(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE cloneProcessHandle;
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_PROCESS,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtCreateProcessEx(
+        &cloneProcessHandle,
+        PROCESS_ALL_ACCESS,
+        NULL,
+        processHandle,
+        PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT | PROCESS_CREATE_FLAGS_INHERIT_HANDLES | PROCESS_CREATE_FLAGS_SUSPENDED,
+        NULL,
+        NULL,
+        NULL,
+        0
+        );
+
+    NtClose(processHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *ProcessHandle = cloneProcessHandle;
+    }
+
+    return status;
+}
+
+NTSTATUS PhCreateProcessReflection(
+    _Out_ PHANDLE ProcessHandle,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo = { 0 };
+
+    status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = RtlCreateProcessReflection(
+        processHandle,
+        RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES,
+        NULL,
+        NULL,
+        NULL,
+        &reflectionInfo
+        );
+
+    NtClose(processHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *ProcessHandle = reflectionInfo.ReflectionProcessHandle;
+
+        NtClose(reflectionInfo.ReflectionThreadHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhCreateProcessSnapshot(
+    _Out_ PHANDLE SnapshotHandle,
+    _In_ HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE snapshotHandle;
+
+    if (!PssCaptureSnapshot_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    status = PhOpenProcess(
+        &processHandle,
+        MAXIMUM_ALLOWED,
+        ProcessId
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PssCaptureSnapshot_Import()(
+        processHandle,
+        PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
+        PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
+        PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
+        PSS_CAPTURE_THREADS | PSS_CAPTURE_THREAD_CONTEXT | PSS_CREATE_USE_VM_ALLOCATIONS,
+        CONTEXT_ALL,
+        &snapshotHandle
+        );
+    status = PhDosErrorToNtStatus(status);
+
+    NtClose(processHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *SnapshotHandle = snapshotHandle;
+    }
+
+    return status;
+}
+
+VOID PhFreeProcessSnapshot(
+    _In_ PHANDLE ProcessHandle,
+    _In_ HANDLE SnapshotHandle
+    )
+{
+    PSS_VA_CLONE_INFORMATION processInfo;
+
+    if (PssQuerySnapshot_Import() && PssQuerySnapshot_Import()(
+        SnapshotHandle,
+        PSS_QUERY_VA_CLONE_INFORMATION,
+        &processInfo,
+        sizeof(PSS_VA_CLONE_INFORMATION)
+        ) == ERROR_SUCCESS)
+    {
+        NtClose(processInfo.VaCloneHandle);
+    }
+
+    if (PssFreeSnapshot_Import())
+    {
+        PssFreeSnapshot_Import()(ProcessHandle, SnapshotHandle);
+    }
 }
