@@ -429,7 +429,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID processHeapsPtr;
         PVOID *processHeaps;
         PVOID apiSetMap;
-        ULONG i;
 #ifdef _WIN64
         PVOID peb32;
         ULONG processHeapsPtr32;
@@ -691,8 +690,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
         if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
         {
-            PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
-            PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+            listEntry = &cfgBitmapMemoryItem->ListEntry;
+            memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
 
             while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
             {
@@ -709,8 +708,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         // Note: Wow64 processes on 64bit also have CfgBitmap regions.
         if (isWow64 && cfgBitmapWow64Address && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapWow64Address)))
         {
-            PLIST_ENTRY listEntry = &cfgBitmapMemoryItem->ListEntry;
-            PPH_MEMORY_ITEM memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
+            listEntry = &cfgBitmapMemoryItem->ListEntry;
+            memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
 
             while (memoryItem->AllocationBaseItem == cfgBitmapMemoryItem)
             {
