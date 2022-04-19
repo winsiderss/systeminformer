@@ -10374,6 +10374,7 @@ NTSTATUS PhQueryProcessHeapInformation(
     for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
     {
         PRTL_HEAP_INFORMATION heapInfo = PTR_ADD_OFFSET(debugBuffer->Heaps->Heaps, heapEntrySize * i);
+        HANDLE processHandle;
         SIZE_T allocated = 0;
         SIZE_T committed = 0;
 
