@@ -1373,7 +1373,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemRecommendedSharedDataAlignment, // q: ULONG // KeGetRecommendedSharedDataAlignment
     SystemComPlusPackage, // q; s: ULONG
     SystemNumaAvailableMemory, // q: SYSTEM_NUMA_INFORMATION // 60
-    SystemProcessorPowerInformation, // q: SYSTEM_PROCESSOR_POWER_INFORMATION
+    SystemProcessorPowerInformation, // q: SYSTEM_PROCESSOR_POWER_INFORMATION (EX in: USHORT ProcessorGroup)
     SystemEmulationBasicInformation, // q: SYSTEM_BASIC_INFORMATION
     SystemEmulationProcessorInformation, // q: SYSTEM_PROCESSOR_INFORMATION
     SystemExtendedHandleInformation, // q: SYSTEM_HANDLE_INFORMATION_EX
