@@ -1354,7 +1354,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPrioritySeperation, // s (requires SeTcbPrivilege)
     SystemVerifierAddDriverInformation, // s (requires SeDebugPrivilege) // 40
     SystemVerifierRemoveDriverInformation, // s (requires SeDebugPrivilege)
-    SystemProcessorIdleInformation, // q: SYSTEM_PROCESSOR_IDLE_INFORMATION
+    SystemProcessorIdleInformation, // q: SYSTEM_PROCESSOR_IDLE_INFORMATION (EX in: USHORT ProcessorGroup)
     SystemLegacyDriverInformation, // q: SYSTEM_LEGACY_DRIVER_INFORMATION
     SystemCurrentTimeZoneInformation, // q; s: RTL_TIME_ZONE_INFORMATION
     SystemLookasideInformation, // q: SYSTEM_LOOKASIDE_INFORMATION
