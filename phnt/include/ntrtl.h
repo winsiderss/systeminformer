@@ -7518,7 +7518,7 @@ RtlGetCurrentProcessorNumber(
     VOID
     );
 
-#if (PHNT_VERSION >= PHNT_THRESHOLD)
+#if (PHNT_VERSION >= PHNT_WIN7)
 
 // rev
 NTSYSAPI
