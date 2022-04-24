@@ -3302,7 +3302,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PH_FORMAT format[2];
 
                     if (!PhEnableImageCoherencySupport)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Image coherency support is disabled.");
                         break;
+                    }
 
                     if (processItem->ImageCoherencyStatus == STATUS_PENDING)
                     {
