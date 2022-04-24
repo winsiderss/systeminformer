@@ -1059,7 +1059,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_COHERENCY:
                 {
                     if (!PhEnableImageCoherencySupport)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"Image coherency support is disabled.");
                         break;
+                    }
 
                     if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                         moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
