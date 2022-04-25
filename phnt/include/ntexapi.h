@@ -1433,7 +1433,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVerifierCountersInformation, // q: SYSTEM_VERIFIER_COUNTERS_INFORMATION
     SystemPagedPoolInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypePagedPool)
     SystemSystemPtesInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemPtes) // 120
-    SystemNodeDistanceInformation,
+    SystemNodeDistanceInformation, // q: USHORT[4*NumaNodes] // (EX in: USHORT NodeNumber)
     SystemAcpiAuditInformation, // q: SYSTEM_ACPI_AUDIT_INFORMATION // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
     SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION // since WIN7 SP1
@@ -1472,7 +1472,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemManufacturingInformation, // q: SYSTEM_MANUFACTURING_INFORMATION // since THRESHOLD
     SystemEnergyEstimationConfigInformation, // q: SYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION
     SystemHypervisorDetailInformation, // q: SYSTEM_HYPERVISOR_DETAIL_INFORMATION
-    SystemProcessorCycleStatsInformation, // q: SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION // 160
+    SystemProcessorCycleStatsInformation, // q: SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION (EX in: USHORT ProcessorGroup) // 160
     SystemVmGenerationCountInformation,
     SystemTrustedPlatformModuleInformation, // q: SYSTEM_TPM_INFORMATION
     SystemKernelDebuggerFlags, // SYSTEM_KERNEL_DEBUGGER_FLAGS
@@ -1505,7 +1505,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCodeIntegrityUnlockInformation, // SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION // 190
     SystemIntegrityQuotaInformation,
     SystemFlushInformation, // q: SYSTEM_FLUSH_INFORMATION
-    SystemProcessorIdleMaskInformation, // q: ULONG_PTR // since REDSTONE3
+    SystemProcessorIdleMaskInformation, // q: ULONG_PTR[ActiveGroupCount] // since REDSTONE3
     SystemSecureDumpEncryptionInformation,
     SystemWriteConstraintInformation, // SYSTEM_WRITE_CONSTRAINT_INFORMATION
     SystemKernelVaShadowInformation, // SYSTEM_KERNEL_VA_SHADOW_INFORMATION
@@ -1543,7 +1543,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemDpcWatchdogInformation,
     SystemDpcWatchdogInformation2,
     SystemSupportedProcessorArchitectures2, // q: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx  // 230
-    SystemSingleProcessorRelationshipInformation,
+    SystemSingleProcessorRelationshipInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // (EX in: PROCESSOR_NUMBER Processor)
     SystemXfgCheckFailureInformation,
     SystemIommuStateInformation, // SYSTEM_IOMMU_STATE_INFORMATION // since 22H1
     SystemHypervisorMinrootInformation, // SYSTEM_HYPERVISOR_MINROOT_INFORMATION
@@ -2053,9 +2053,9 @@ typedef struct _EVENT_TRACE_VERSION_INFORMATION
     ULONG EventTraceKernelVersion;
 } EVENT_TRACE_VERSION_INFORMATION, *PEVENT_TRACE_VERSION_INFORMATION;
 
-#define PERF_MASK_INDEX         (0xe0000000)
-#define PERF_MASK_GROUP         (~PERF_MASK_INDEX)
-#define PERF_NUM_MASKS          8
+#define PERF_MASK_INDEX (0xe0000000)
+#define PERF_MASK_GROUP (~PERF_MASK_INDEX)
+#define PERF_NUM_MASKS 8
 
 #define PERF_GET_MASK_INDEX(GM) (((GM) & PERF_MASK_INDEX) >> 29)
 #define PERF_GET_MASK_GROUP(GM) ((GM) & PERF_MASK_GROUP)
@@ -3095,7 +3095,7 @@ typedef struct _SYSTEM_VHD_BOOT_INFORMATION
 {
     BOOLEAN OsDiskIsVhd;
     ULONG OsVhdFilePathOffset;
-    WCHAR OsVhdParentVolume[ANYSIZE_ARRAY];
+    WCHAR OsVhdParentVolume[1];
 } SYSTEM_VHD_BOOT_INFORMATION, *PSYSTEM_VHD_BOOT_INFORMATION;
 
 // private
