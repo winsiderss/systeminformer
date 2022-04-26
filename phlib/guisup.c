@@ -525,7 +525,7 @@ PPH_STRING PhGetListBoxString(
     if (length == LB_ERR)
         return NULL;
     if (length == 0)
-        return PhReferenceEmptyString();
+        return NULL;
 
     string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
