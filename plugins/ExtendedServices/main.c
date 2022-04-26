@@ -592,9 +592,8 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Extended Services";
-            info->Author = L"wj32";
+            info->Author = L"dmex, wj32";
             info->Description = L"Extends service management capabilities.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1113";
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),

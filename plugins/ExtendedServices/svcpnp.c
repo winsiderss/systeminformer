@@ -773,7 +773,8 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"PnP Devices");
             PhSetExtendedListView(context->ListViewHandle);
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
-            ListView_EnableGroupView(context->ListViewHandle, TRUE);
+            if (PhWindowsVersion > WINDOWS_7)
+                ListView_EnableGroupView(context->ListViewHandle, TRUE);
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
@@ -833,7 +834,11 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
 
                         EspFreeListViewDiskDriveEntries(context);
                         ListView_DeleteAllItems(context->ListViewHandle);
-                        EspEnumerateDriverPnpDevices(context);
+
+                        if (!EspEnumerateDriverPnpDevices(context))
+                        {
+                            EspEnumerateDriverPnpDevicesAlt(context);
+                        }
                     }
                 }
                 break;
