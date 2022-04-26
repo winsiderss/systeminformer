@@ -590,6 +590,18 @@ PhGetProcessAffinityMask(
     _Out_ PKAFFINITY AffinityMask
     )
 {
+    //NTSTATUS status;
+    //PROCESS_BASIC_INFORMATION basicInfo;
+    //
+    //status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+    //
+    //if (NT_SUCCESS(status))
+    //{
+    //    *AffinityMask = basicInfo.AffinityMask;
+    //}
+    //
+    //return status;
+
     return NtQueryInformationProcess(
         ProcessHandle,
         ProcessAffinityMask,
@@ -622,7 +634,7 @@ PhSetProcessAffinityMask(
 
 FORCEINLINE
 NTSTATUS
-PhGetProcessGroupAffinity(
+PhGetProcessGroupInformation(
     _In_ HANDLE ProcessHandle,
     _Inout_ PUSHORT GroupCount,
     _Out_ PUSHORT GroupArray
@@ -647,6 +659,37 @@ PhGetProcessGroupAffinity(
     }
 
     return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGROUP_AFFINITY GroupAffinity
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        GroupAffinity,
+        sizeof(GROUP_AFFINITY),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _In_ GROUP_AFFINITY GroupAffinity
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &GroupAffinity,
+        sizeof(GROUP_AFFINITY)
+        );
 }
 
 FORCEINLINE
@@ -2000,6 +2043,40 @@ PhGetSystemShadowStackInformation(
         );
 }
 
+
+FORCEINLINE
+NTSTATUS
+PhGetSystemProcessorPerformanceInformation(
+    _Out_ PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformation(
+        SystemProcessorPerformanceInformation,
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetSystemProcessorPerformanceInformationEx(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformationEx(
+        SystemProcessorPerformanceInformation,
+        &ProcessorGroup,
+        sizeof(USHORT),
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
+
 FORCEINLINE
 NTSTATUS
 PhGetSystemProcessorIdleCycleTime(
@@ -2018,15 +2095,15 @@ PhGetSystemProcessorIdleCycleTime(
 FORCEINLINE
 NTSTATUS
 PhGetSystemProcessorIdleCycleTimeEx(
-    _In_ USHORT Group,
+    _In_ USHORT ProcessorGroup,
     _Out_ PLARGE_INTEGER Buffer,
     _In_ ULONG BufferLength
     )
 {
     return NtQuerySystemInformationEx(
         SystemProcessorIdleCycleTimeInformation,
-        &Group,
-        sizeof(Group),
+        &ProcessorGroup,
+        sizeof(USHORT),
         Buffer,
         BufferLength,
         NULL
@@ -2051,19 +2128,51 @@ PhGetSystemProcessorCycleTime(
 FORCEINLINE
 NTSTATUS
 PhGetSystemProcessorCycleTimeEx(
-    _In_ USHORT Group,
+    _In_ USHORT ProcessorGroup,
     _Out_ PLARGE_INTEGER Buffer,
     _In_ ULONG BufferLength
     )
 {
     return NtQuerySystemInformationEx(
         SystemProcessorCycleTimeInformation,
-        &Group,
-        sizeof(Group),
+        &ProcessorGroup,
+        sizeof(USHORT),
         Buffer,
         BufferLength,
         NULL
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetSystemInterruptInformation(
+    _Out_ PSYSTEM_INTERRUPT_INFORMATION Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformation(
+        SystemInterruptInformation,
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetSystemInterruptInformationEx(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PSYSTEM_INTERRUPT_INFORMATION Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    return NtQuerySystemInformationEx(
+        SystemInterruptInformation,
+        &ProcessorGroup,
+        sizeof(USHORT),
+        Buffer,
+        BufferLength,
+        NULL
+        );
+}
 #endif
