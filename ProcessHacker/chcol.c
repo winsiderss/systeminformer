@@ -3,7 +3,7 @@
  *   column chooser
  *
  * Copyright (C) 2010 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -331,7 +331,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         PPH_TREENEW_COLUMN copy = displayOrderList->Items[i];
 
                         PhAddItemList(context->ActiveListArray, copy->Text);
-                        ListBox_InsertItemData(context->ActiveWindowHandle, i, copy->Text);
+                        ListBox_InsertString(context->ActiveWindowHandle, i, copy->Text);
                     }
                 }
 
@@ -351,6 +351,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             for (ULONG i = 0; i < context->Columns->Count; i++)
                 PhFree(context->Columns->Items[i]);
 
+            if (context->BrushNormal)
+                DeleteBrush(context->BrushNormal);
             if (context->BrushHot)
                 DeleteBrush(context->BrushHot);
             if (context->BrushPushed)
@@ -504,16 +506,18 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 {
                     INT sel;
                     INT count;
-                    PWSTR string;
+                    PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->InactiveWindowHandle);
                     count = ListBox_GetCount(context->InactiveWindowHandle);
 
                     if (sel != LB_ERR)
                     {
-                        if (string = (PWSTR)ListBox_GetItemData(context->InactiveWindowHandle, sel))
+                        string = PhGetListBoxString(context->InactiveWindowHandle, sel);
+
+                        if (!PhIsNullOrEmptyString(string))
                         {
-                            ULONG index = IndexOfStringInList(context->InactiveListArray, string);
+                            ULONG index = IndexOfStringInList(context->InactiveListArray, string->Buffer);
 
                             if (index != ULONG_MAX)
                             {
@@ -523,7 +527,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 PhAddItemList(context->ActiveListArray, item);
 
                                 ListBox_DeleteString(context->InactiveWindowHandle, sel);
-                                ListBox_AddItemData(context->ActiveWindowHandle, item);
+                                ListBox_AddString(context->ActiveWindowHandle, item);
                             }
 
                             count--;
@@ -546,16 +550,18 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 {
                     INT sel;
                     INT count;
-                    PWSTR string;
+                    PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
                     count = ListBox_GetCount(context->ActiveWindowHandle);
 
                     if (sel != LB_ERR)
                     {
-                        if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
+                        string = PhGetListBoxString(context->ActiveWindowHandle, sel);
+
+                        if (!PhIsNullOrEmptyString(string))
                         {
-                            ULONG index = IndexOfStringInList(context->ActiveListArray, string);
+                            ULONG index = IndexOfStringInList(context->ActiveListArray, string->Buffer);
 
                             if (index != ULONG_MAX)
                             {
@@ -588,6 +594,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
                             }
                         }
+
+                        PhClearReference(&string);
                     }
 
                     SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveWindowHandle);
@@ -598,16 +606,18 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 {
                     INT sel;
                     INT count;
-                    PWSTR string;
+                    PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
                     count = ListBox_GetCount(context->ActiveWindowHandle);
 
                     if (sel != LB_ERR)
                     {
-                        if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
+                        string = PhGetListBoxString(context->ActiveWindowHandle, sel);
+
+                        if (!PhIsNullOrEmptyString(string))
                         {
-                            ULONG index = IndexOfStringInList(context->ActiveListArray, string);
+                            ULONG index = IndexOfStringInList(context->ActiveListArray, string->Buffer);
 
                             if (index != ULONG_MAX)
                             {
@@ -617,13 +627,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                                 ListBox_DeleteString(context->ActiveWindowHandle, sel);
                                 sel -= 1;
-                                ListBox_InsertItemData(context->ActiveWindowHandle, sel, item);
+                                ListBox_InsertString(context->ActiveWindowHandle, sel, item);
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
 
                                 EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
                                 EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
                             }
                         }
+
+                        PhClearReference(&string);
                     }
                 }
                 break;
@@ -631,16 +643,18 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 {
                     INT sel;
                     INT count;
-                    PWSTR string;
+                    PPH_STRING string;
 
                     sel = ListBox_GetCurSel(context->ActiveWindowHandle);
                     count = ListBox_GetCount(context->ActiveWindowHandle);
 
                     if (sel != LB_ERR && sel != count - 1)
                     {
-                        if (string = (PWSTR)ListBox_GetItemData(context->ActiveWindowHandle, sel))
+                        string = PhGetListBoxString(context->ActiveWindowHandle, sel);
+
+                        if (!PhIsNullOrEmptyString(string))
                         {
-                            ULONG index = IndexOfStringInList(context->ActiveListArray, string);
+                            ULONG index = IndexOfStringInList(context->ActiveListArray, string->Buffer);
 
                             if (index != ULONG_MAX)
                             {
@@ -650,13 +664,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                                 ListBox_DeleteString(context->ActiveWindowHandle, sel);
                                 sel += 1;
-                                ListBox_InsertItemData(context->ActiveWindowHandle, sel, item);
+                                ListBox_InsertString(context->ActiveWindowHandle, sel, item);
                                 ListBox_SetCurSel(context->ActiveWindowHandle, sel);
 
                                 EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0);
                                 EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1);
                             }
                         }
+
+                        PhClearReference(&string);
                     }
                 }
                 break;
@@ -675,7 +691,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  HDC bufferDc;
                  HBITMAP bufferBitmap;
                  HBITMAP oldBufferBitmap;
-                 PWSTR string;
+                 PPH_STRING string;
                  RECT bufferRect =
                  {
                      0, 0,
@@ -688,8 +704,13 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  if (drawInfo->itemID == LB_ERR)
                      break;
 
-                 if (!(string = (PWSTR)ListBox_GetItemData(drawInfo->hwndItem, drawInfo->itemID)))
+                 string = PhGetListBoxString(drawInfo->hwndItem, drawInfo->itemID);
+
+                 if (PhIsNullOrEmptyString(string))
+                 {
+                     PhClearReference(&string);
                      break;
+                 }
 
                  bufferDc = CreateCompatibleDC(drawInfo->hDC);
                  bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
@@ -714,8 +735,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  bufferRect.left += 5;
                  DrawText(
                      bufferDc,
-                     string,
-                     -1,
+                     string->Buffer,
+                     (UINT)string->Length / sizeof(WCHAR),
                      &bufferRect,
                      DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
                      );
@@ -736,6 +757,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  SelectBitmap(bufferDc, oldBufferBitmap);
                  DeleteBitmap(bufferBitmap);
                  DeleteDC(bufferDc);
+                 PhClearReference(&string);
 
                  return TRUE;
              }
