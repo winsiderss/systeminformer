@@ -531,7 +531,7 @@ FORCEINLINE VOID PhProbeAddress(
 }
 
 FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
-    _Inout_ PLARGE_INTEGER Timeout,
+    _Out_ PLARGE_INTEGER Timeout,
     _In_ ULONG Milliseconds
     )
 {
@@ -544,7 +544,7 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
 }
 
 #define PhTimeoutFromMillisecondsEx(Milliseconds) \
-    &(LARGE_INTEGER) { .QuadPart = -(LONGLONG)UInt32x32To64(((ULONG)Milliseconds), PH_TIMEOUT_MS) }
+    &(LARGE_INTEGER) { .QuadPart = -(LONGLONG)UInt32x32To64(((ULONG)(Milliseconds)), PH_TIMEOUT_MS) }
 
 FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus(
     VOID
