@@ -1599,6 +1599,23 @@ PhApiSetResolveToHost(
     _In_ PPH_STRINGREF ApiSetName
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateProcessSnapshot(
+    _Out_ PHANDLE SnapshotHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeProcessSnapshot(
+    _In_ PHANDLE ProcessHandle,
+    _In_ HANDLE SnapshotHandle
+    );
+
 #ifdef __cplusplus
 }
 #endif

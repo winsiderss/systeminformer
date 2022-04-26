@@ -8570,21 +8570,30 @@ NTSTATUS PhCreateProcessReflection(
 
 NTSTATUS PhCreateProcessSnapshot(
     _Out_ PHANDLE SnapshotHandle,
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessId
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
-    HANDLE snapshotHandle;
+    HANDLE processHandle = NULL;
+    HANDLE snapshotHandle = NULL;
 
     if (!PssCaptureSnapshot_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    status = PhOpenProcess(
-        &processHandle,
-        MAXIMUM_ALLOWED,
-        ProcessId
-        );
+    if (ProcessHandle)
+    {
+        processHandle = ProcessHandle;
+        status = STATUS_SUCCESS;
+    }
+    else
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            MAXIMUM_ALLOWED,
+            ProcessId
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -8600,7 +8609,8 @@ NTSTATUS PhCreateProcessSnapshot(
         );
     status = PhDosErrorToNtStatus(status);
 
-    NtClose(processHandle);
+    if (!ProcessHandle && processHandle)
+        NtClose(processHandle);
 
     if (NT_SUCCESS(status))
     {
@@ -8615,7 +8625,7 @@ VOID PhFreeProcessSnapshot(
     _In_ HANDLE SnapshotHandle
     )
 {
-    PSS_VA_CLONE_INFORMATION processInfo;
+    PSS_VA_CLONE_INFORMATION processInfo = { 0 };
 
     if (PssQuerySnapshot_Import() && PssQuerySnapshot_Import()(
         SnapshotHandle,
@@ -8624,7 +8634,10 @@ VOID PhFreeProcessSnapshot(
         sizeof(PSS_VA_CLONE_INFORMATION)
         ) == ERROR_SUCCESS)
     {
-        NtClose(processInfo.VaCloneHandle);
+        if (processInfo.VaCloneHandle)
+        {
+            NtClose(processInfo.VaCloneHandle);
+        }
     }
 
     if (PssFreeSnapshot_Import())
