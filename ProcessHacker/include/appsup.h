@@ -68,7 +68,7 @@ PHAPPAPI
 PH_KNOWN_PROCESS_TYPE
 NTAPI
 PhGetProcessKnownTypeEx(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ PPH_STRING FileName
     );
 
