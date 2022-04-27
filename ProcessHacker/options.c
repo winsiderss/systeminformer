@@ -1060,17 +1060,14 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     PPH_STRING apppath;
     PPH_STRING keypath;
 
+    path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
+    apppath = PH_AUTO(PhGetApplicationFileName());
+    path = PH_AUTO(PhGetBaseDirectory(path));
+    apppath = PH_AUTO(PhGetBaseName(apppath));
+    keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+
     if (Enabled)
     {
-        path = PhCreateString2(&TaskMgrImageOptionsKeyName);
-        apppath = PhGetApplicationFileName();
-
-        PhMoveReference(&path, PhGetBaseDirectory(path));
-        PhMoveReference(&apppath, PhGetBaseName(apppath));
-        keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
-        PhDereferenceObject(apppath);
-        PhDereferenceObject(path);
-
         status = PhCreateKey(
             &keyHandle,
             KEY_WRITE,
@@ -1099,59 +1096,9 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 
             NtClose(keyHandle);
         }
-
-//#ifdef _WIN64
-//        if (NT_SUCCESS(status))
-//        {
-//            PH_STRINGREF stringBefore;
-//            PH_STRINGREF stringAfter;
-//
-//            if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
-//            {
-//                PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
-//
-//                if (NT_SUCCESS(PhCreateKey(
-//                    &keyHandle,
-//                    KEY_WRITE,
-//                    PH_KEY_LOCAL_MACHINE,
-//                    &keypath->sr,
-//                    OBJ_OPENIF,
-//                    0,
-//                    NULL
-//                    )))
-//                {
-//                    status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-//                    {
-//                        PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
-//                        PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
-//                    }, sizeof(ULONG64));
-//
-//                    NtClose(keyHandle);
-//                }
-//            }
-//        }
-//#endif
-        PhDereferenceObject(keypath);
     }
     else
     {
-        path = PhCreateString2(&TaskMgrImageOptionsKeyName);
-        apppath = PhGetApplicationFileName();
-
-        PhMoveReference(&path, PhGetBaseDirectory(path));
-        PhMoveReference(&apppath, PhGetBaseName(apppath));
-        keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
-        PhDereferenceObject(apppath);
-        PhDereferenceObject(path);
-
         status = PhOpenKey(
             &keyHandle,
             DELETE,
@@ -1162,7 +1109,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 
         if (NT_SUCCESS(status))
         {
-            status = NtDeleteKey(keyHandle);
+            status = PhDeleteValueKey(keyHandle, &valueName);
             NtClose(keyHandle);
         }
 
@@ -1177,7 +1124,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 
             if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
             {
-                PhMoveReference(&keypath, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
+                keypath = PH_AUTO(PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
 
                 status = PhOpenKey(
                     &keyHandle,
@@ -1195,11 +1142,160 @@ NTSTATUS PhpSetExploitProtectionEnabled(
             }
         }
 #endif
-        PhDereferenceObject(keypath);
     }
 
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
         status = STATUS_SUCCESS;
+
+    return status;
+}
+
+NTSTATUS PhpSetSilentProcessNotifyEnabled(
+    _In_ BOOLEAN Enabled)
+{
+    static PH_STRINGREF processExitKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\SilentProcessExit");
+    static PH_STRINGREF valueModeName = PH_STRINGREF_INIT(L"ReportingMode");
+    //static PH_STRINGREF valueSelfName = PH_STRINGREF_INIT(L"IgnoreSelfExits");
+    //static PH_STRINGREF valueMonitorName = PH_STRINGREF_INIT(L"MonitorProcess");
+    static PH_STRINGREF valueGlobalName = PH_STRINGREF_INIT(L"GlobalFlag");
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    HANDLE keyDirectoryHandle = NULL;
+    HANDLE keyFilenameHandle = NULL;
+    PPH_STRING filename;
+    PPH_STRING baseName;
+
+    filename = PH_AUTO(PhGetApplicationFileName());
+    baseName = PH_AUTO(PhGetBaseName(filename));
+
+    if (Enabled)
+    {
+        status = PhCreateKey(
+            &keyDirectoryHandle,
+            KEY_WRITE,
+            PH_KEY_LOCAL_MACHINE,
+            &processExitKeyName,
+            OBJ_OPENIF,
+            0,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhCreateKey(
+            &keyFilenameHandle,
+            KEY_WRITE,
+            keyDirectoryHandle,
+            &baseName->sr,
+            OBJ_OPENIF,
+            0,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhSetValueKey(keyFilenameHandle, &valueModeName, REG_DWORD, &(ULONG){ 4 }, sizeof(ULONG));
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        //status = PhSetValueKey(keyFilenameHandle, &valueSelfName, REG_DWORD, &(ULONG){ 1 }, sizeof(ULONG));
+        //
+        //if (!NT_SUCCESS(status))
+        //    goto CleanupExit;
+        //status = PhSetValueKey(keyFilenameHandle, &valueMonitorName, REG_SZ, filename->Buffer, (ULONG)filename->Length + sizeof(UNICODE_NULL));
+
+        if (NT_SUCCESS(status))
+        {
+            HANDLE keyHandle;
+            PPH_STRING path;
+            PPH_STRING apppath;
+            PPH_STRING keypath;
+
+            path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
+            apppath = PH_AUTO(PhGetApplicationFileName());
+            path = PH_AUTO(PhGetBaseDirectory(path));
+            apppath = PH_AUTO(PhGetBaseName(apppath));
+            keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+
+            status = PhCreateKey(
+                &keyHandle,
+                KEY_WRITE,
+                PH_KEY_LOCAL_MACHINE,
+                &keypath->sr,
+                OBJ_OPENIF,
+                0,
+                NULL
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                ULONG globalFlags = PhQueryRegistryUlong(keyHandle, L"GlobalFlag");
+
+                if (globalFlags == ULONG_MAX) globalFlags = 0;
+                globalFlags = globalFlags | FLG_MONITOR_SILENT_PROCESS_EXIT;
+
+                status = PhSetValueKey(keyHandle, &valueGlobalName, REG_DWORD, &globalFlags, sizeof(ULONG));
+                NtClose(keyHandle);
+            }
+        }
+    }
+    else
+    {
+        if (NT_SUCCESS(PhOpenKey(
+            &keyDirectoryHandle,
+            DELETE,
+            PH_KEY_LOCAL_MACHINE,
+            &processExitKeyName,
+            0
+            )))
+        {
+            if (NT_SUCCESS(PhOpenKey(
+                &keyFilenameHandle,
+                DELETE,
+                keyDirectoryHandle,
+                &baseName->sr,
+                0
+                )))
+            {
+                NtDeleteKey(keyFilenameHandle);
+            }
+        }
+
+        {
+            HANDLE keyHandle;
+            PPH_STRING path;
+            PPH_STRING apppath;
+            PPH_STRING keypath;
+
+            path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
+            apppath = PH_AUTO(PhGetApplicationFileName());
+            path = PH_AUTO(PhGetBaseDirectory(path));
+            apppath = PH_AUTO(PhGetBaseName(apppath));
+            keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+
+            status = PhOpenKey(
+                &keyHandle,
+                KEY_WRITE,
+                PH_KEY_LOCAL_MACHINE,
+                &keypath->sr,
+                0
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhDeleteValueKey(keyHandle, &valueGlobalName);
+                NtClose(keyHandle);
+            }
+        }
+    }
+
+CleanupExit:
+    if (keyDirectoryHandle)
+        NtClose(keyDirectoryHandle);
+    if (keyFilenameHandle)
+        NtClose(keyFilenameHandle);
 
     return status;
 }
@@ -1244,6 +1340,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT,
     PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT,
     PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN,
+    PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE,
     PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH,
     PHP_OPTIONS_INDEX_ENABLE_INSTANT_TOOLTIPS,
@@ -1287,6 +1384,7 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"Remember last selected window", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"Enable theme support (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"Enable start as admin (experimental)", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"Enable silent crash notification (experimental)", NULL);   
     //PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"Enable Windows subsystem for Linux support", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"Resolve network addresses", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"Resolve DNS over HTTPS (DoH)", NULL);
@@ -1314,6 +1412,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
     //SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");
@@ -1418,6 +1517,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
     //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");
@@ -1482,6 +1582,12 @@ UINT_PTR CALLBACK PhpChooseFontDlgHookProc(
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -1717,7 +1823,23 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         {
                                             PhShowInformation2(
                                                 PhOptionsWindowHandle,
-                                                L"Unable to disable mitigation policy.",
+                                                L"Unable to change mitigation policy.",
+                                                L"%s",
+                                                L"You need to disable this option with administrative privileges."
+                                                );
+
+                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                            return TRUE;
+                                        }
+                                    }
+                                    break;
+                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
+                                    {
+                                        if (!PhGetOwnTokenAttributes().Elevated)
+                                        {
+                                            PhShowInformation2(
+                                                PhOptionsWindowHandle,
+                                                L"Unable to change process exit notification.",
                                                 L"%s",
                                                 L"You need to disable this option with administrative privileges."
                                                 );
@@ -1826,13 +1948,38 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                                         status = PhpSetExploitProtectionEnabled(TRUE);
 
-                                        if (!NT_SUCCESS(status))
+                                        if (NT_SUCCESS(status))
                                         {
-                                            PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
+                                            RestartRequired = TRUE;
                                         }
                                         else
                                         {
-                                            RestartRequired = TRUE;
+                                            PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
+                                        }
+                                    }
+                                    break;
+                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
+                                    {
+                                        NTSTATUS status;
+
+                                        if (!PhGetOwnTokenAttributes().Elevated)
+                                        {
+                                            PhShowInformation2(
+                                                PhOptionsWindowHandle,
+                                                L"Unable to change process exit notification.",
+                                                L"%s",
+                                                L"You need to enable this option with administrative privileges."
+                                                );
+
+                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                                            return TRUE;
+                                        }
+
+                                        status = PhpSetSilentProcessNotifyEnabled(TRUE);
+
+                                        if (!NT_SUCCESS(status))
+                                        {
+                                            PhShowStatus(hwndDlg, L"Unable to change process exit notification.", status, 0);
                                         }
                                     }
                                     break;
@@ -1867,6 +2014,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                     break;
                                 case PHP_OPTIONS_INDEX_ENABLE_MITIGATION:
                                     break;
+                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
+                                    break;
                                 }
                             }
                             break;
@@ -1893,13 +2042,25 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                                         status = PhpSetExploitProtectionEnabled(FALSE);
 
-                                        if (!NT_SUCCESS(status))
+                                        if (NT_SUCCESS(status))
                                         {
-                                            PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
+                                            RestartRequired = TRUE;
                                         }
                                         else
                                         {
-                                            RestartRequired = TRUE;
+                                            PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
+                                        }
+                                    }
+                                    break;
+                                case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
+                                    {
+                                        NTSTATUS status;
+
+                                        status = PhpSetSilentProcessNotifyEnabled(FALSE);
+
+                                        if (!NT_SUCCESS(status))
+                                        {
+                                            PhShowStatus(hwndDlg, L"Unable to change process exit notification.", status, 0);
                                         }
                                     }
                                     break;
@@ -2857,6 +3018,8 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
             PhRemoveTreeNewFilter(&context->TreeFilterSupport, context->TreeFilterEntry);
             DeleteOptionsAdvancedTree(context);
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_SIZE:
