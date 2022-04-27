@@ -8621,8 +8621,8 @@ NTSTATUS PhCreateProcessSnapshot(
 }
 
 VOID PhFreeProcessSnapshot(
-    _In_ PHANDLE ProcessHandle,
-    _In_ HANDLE SnapshotHandle
+    _In_ HANDLE SnapshotHandle,
+    _In_ HANDLE ProcessHandle
     )
 {
     PSS_VA_CLONE_INFORMATION processInfo = { 0 };
