@@ -81,7 +81,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     status = NtSystemDebugControl(
         SysDbgGetLiveKernelDump,
         &liveDumpControl,
-        sizeof(SYSDBG_LIVEDUMP_CONTROL),
+        RTL_SIZEOF_THROUGH_FIELD(SYSDBG_LIVEDUMP_CONTROL, AddPagesControl),
         NULL,
         0,
         NULL
