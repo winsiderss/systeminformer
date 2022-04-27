@@ -1612,8 +1612,8 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreeProcessSnapshot(
-    _In_ PHANDLE ProcessHandle,
-    _In_ HANDLE SnapshotHandle
+    _In_ HANDLE SnapshotHandle,
+    _In_ HANDLE ProcessHandle
     );
 
 #ifdef __cplusplus
