@@ -90,7 +90,6 @@ LOGICAL DllMain(
             info->DisplayName = L"Extended Notifications";
             info->Author = L"wj32";
             info->Description = L"Filters notifications.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1112";
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

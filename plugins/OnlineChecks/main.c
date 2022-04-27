@@ -791,7 +791,6 @@ LOGICAL DllMain(
             info->DisplayName = L"Online Checks";
             info->Author = L"dmex, wj32";
             info->Description = L"Allows files to be checked with online services.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1118";
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

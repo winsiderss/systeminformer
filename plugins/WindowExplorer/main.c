@@ -248,8 +248,6 @@ LOGICAL DllMain(
             info->DisplayName = L"Window Explorer";
             info->Author = L"dmex, wj32";
             info->Description = L"View and manipulate windows.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1116";
-            info->HasOptions = FALSE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
