@@ -333,6 +333,20 @@ typedef struct _KSYSTEM_TIME
 
 #include <poppack.h>
 
+// NT macros used to test, set and clear flags
+#ifndef FlagOn
+#define FlagOn(_F, _SF) ((_F) & (_SF))
+#endif
+#ifndef BooleanFlagOn
+#define BooleanFlagOn(F, SF) ((BOOLEAN)(((F) & (SF)) != 0))
+#endif
+#ifndef SetFlag
+#define SetFlag(_F, _SF) ((_F) |= (_SF))
+#endif
+#ifndef ClearFlag
+#define ClearFlag(_F, _SF) ((_F) &= ~(_SF))
+#endif
+
 #endif
 
 #endif
