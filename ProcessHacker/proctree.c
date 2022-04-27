@@ -2583,7 +2583,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_PRIORITYCLASS:
-                PhInitializeStringRefLongHint(&getCellText->Text, PhGetProcessPriorityClassString(processItem->PriorityClass));
+                {
+                    if (processItem->QueryHandle)
+                    {
+                        PhInitializeStringRefLongHint(&getCellText->Text, PhGetProcessPriorityClassString(processItem->PriorityClass));
+                    }
+                }
                 break;
             case PHPRTLC_BASEPRIORITY:
                 {
