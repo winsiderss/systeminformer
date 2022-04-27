@@ -1001,7 +1001,6 @@ LOGICAL DllMain(
             info->DisplayName = L"Extended Tools";
             info->Author = L"dmex, wj32";
             info->Description = L"Extended functionality for Windows 7 and above, including ETW, GPU, Disk and Firewall monitoring tabs.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1114";
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
