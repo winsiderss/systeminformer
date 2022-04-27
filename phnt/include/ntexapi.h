@@ -3006,20 +3006,20 @@ typedef struct _SYSTEM_VA_LIST_INFORMATION
 typedef enum _STORE_INFORMATION_CLASS
 {
     StorePageRequest = 1,
-    StoreStatsRequest = 2, // (requires SeProfileSingleProcessPrivilege) // SmProcessStatsRequest
+    StoreStatsRequest = 2, // q: SM_STATS_REQUEST // SmProcessStatsRequest
     StoreCreateRequest = 3,
     StoreDeleteRequest = 4,
-    StoreListRequest = 5, // SmProcessListRequest
+    StoreListRequest = 5, // q: SM_STORE_LIST_REQUEST / SM_STORE_LIST_REQUEST_EX // SmProcessListRequest
     Available1 = 6,
     StoreEmptyRequest = 7,
-    CacheListRequest = 8, // SmcProcessListRequest
+    CacheListRequest = 8, // q: SMC_CACHE_LIST_REQUEST // SmcProcessListRequest
     CacheCreateRequest = 9,
     CacheDeleteRequest = 10,
     CacheStoreCreateRequest = 11,
     CacheStoreDeleteRequest = 12,
     CacheStatsRequest = 13, // SmcProcessStatsRequest
     Available2 = 14,
-    RegistrationRequest = 15, // SmProcessRegistrationRequest
+    RegistrationRequest = 15, // q: SM_REGISTRATION_REQUEST (requires SeProfileSingleProcessPrivilege) // SmProcessRegistrationRequest
     GlobalCacheStatsRequest = 16,
     StoreResizeRequest = 17,
     CacheStoreResizeRequest = 18,
@@ -3042,6 +3042,178 @@ typedef struct _STORE_INFORMATION
     _Inout_ PVOID Data;
     _Inout_ ULONG Length;
 } STORE_INFORMATION, *PSTORE_INFORMATION;
+
+#define SYSTEM_STORE_STATS_INFORMATION_VERSION 2
+
+typedef enum _ST_STATS_LEVEL
+{
+    StStatsLevelBasic = 0,
+    StStatsLevelIoStats = 1,
+    StStatsLevelRegionSpace = 2, // requires SeProfileSingleProcessPrivilege
+    StStatsLevelSpaceBitmap = 3, // requires SeProfileSingleProcessPrivilege
+    StStatsLevelMax = 4
+} ST_STATS_LEVEL;
+
+typedef struct _SM_STATS_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_STATS_INFORMATION_VERSION
+    ULONG DetailLevel : 8; // ST_STATS_LEVEL
+    ULONG StoreId : 16;
+    ULONG BufferSize;
+    PVOID Buffer; // PST_STATS
+} SM_STATS_REQUEST, *PSM_STATS_REQUEST;
+
+typedef struct _ST_DATA_MGR_STATS
+{
+    ULONG RegionCount;
+    ULONG PagesStored;
+    ULONG UniquePagesStored;
+    ULONG LazyCleanupRegionCount;
+    struct {
+        ULONG RegionsInUse;
+        ULONG SpaceUsed;
+    } Space[8];
+} ST_DATA_MGR_STATS, *PST_DATA_MGR_STATS;
+
+typedef struct _ST_IO_STATS_PERIOD
+{
+    ULONG PageCounts[5];
+} ST_IO_STATS_PERIOD, *PST_IO_STATS_PERIOD;
+
+typedef struct _ST_IO_STATS
+{
+    ULONG PeriodCount;
+    ST_IO_STATS_PERIOD Periods[64];
+} ST_IO_STATS, *PST_IO_STATS;
+
+typedef struct _ST_READ_LATENCY_BUCKET
+{
+    ULONG LatencyUs;
+    ULONG Count;
+} ST_READ_LATENCY_BUCKET, *PST_READ_LATENCY_BUCKET;
+
+typedef struct _ST_READ_LATENCY_STATS
+{
+    ST_READ_LATENCY_BUCKET Buckets[8];
+} ST_READ_LATENCY_STATS, *PST_READ_LATENCY_STATS;
+
+// rev
+typedef struct _ST_STATS_REGION_INFO
+{
+    USHORT SpaceUsed;
+    UCHAR Priority;
+    UCHAR Spare;
+} ST_STATS_REGION_INFO, *PST_STATS_REGION_INFO;
+
+// rev
+typedef struct _ST_STATS_SPACE_BITMAP
+{
+    SIZE_T CompressedBytes;
+    ULONG BytesPerBit;
+    UCHAR StoreBitmap[1];
+} ST_STATS_SPACE_BITMAP, PST_STATS_SPACE_BITMAP;
+
+// rev
+typedef struct _ST_STATS
+{
+    ULONG Version : 8;
+    ULONG Level : 4;
+    ULONG StoreType : 4;
+    ULONG NoDuplication : 1;
+    ULONG NoCompression : 1;
+    ULONG EncryptionStrength : 12;
+    ULONG VirtualRegions : 1;
+    ULONG Spare0 : 1;
+    ULONG Size;
+    USHORT CompressionFormat;
+    USHORT Spare;
+
+    struct
+    {
+        ULONG RegionSize;
+        ULONG RegionCount;
+        ULONG RegionCountMax;
+        ULONG Granularity;
+        ST_DATA_MGR_STATS UserData;
+        ST_DATA_MGR_STATS Metadata;
+    } Basic;
+
+    struct
+    {
+        ST_IO_STATS IoStats;
+        ST_READ_LATENCY_STATS ReadLatencyStats;
+    } Io;
+
+    // ST_STATS_REGION_INFO[RegionCountMax]
+    // ST_STATS_SPACE_BITMAP
+} ST_STATS, *PST_STATS;
+
+#define SYSTEM_STORE_LIST_INFORMATION_VERSION 2
+
+typedef struct _SM_STORE_LIST_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_LIST_INFORMATION_VERSION
+    ULONG StoreCount : 8; // = 0
+    ULONG ExtendedRequest : 1; // SM_STORE_LIST_REQUEST_EX if set
+    ULONG Spare : 15;
+    ULONG StoreId[32];
+} SM_STORE_LIST_REQUEST, *PSM_STORE_LIST_REQUEST;
+
+typedef struct _SM_STORE_LIST_REQUEST_EX
+{
+    SM_STORE_LIST_REQUEST Request;
+    WCHAR NameBuffer[32][64];
+} SM_STORE_LIST_REQUEST_EX, *PSM_STORE_LIST_REQUEST_EX;
+
+#define SYSTEM_CACHE_LIST_INFORMATION_VERSION 2
+
+typedef struct _SMC_CACHE_LIST_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_CACHE_LIST_INFORMATION_VERSION
+    ULONG CacheCount : 8; // = 0
+    ULONG Spare : 16;
+    ULONG CacheId[16];
+} SMC_CACHE_LIST_REQUEST, *PSMC_CACHE_LIST_REQUEST;
+
+#define SYSTEM_CACHE_STATS_INFORMATION_VERSION 3
+
+typedef struct _SMC_CACHE_STATS
+{
+    SIZE_T TotalFileSize;
+    ULONG StoreCount;
+    ULONG RegionCount;
+    ULONG RegionSizeBytes;
+    ULONG FileCount : 6;
+    ULONG PerformsFileIo : 1;
+    ULONG Spare : 25;
+    ULONG StoreIds[16];
+    ULONG PhysicalStoreBitmap;
+    ULONG Priority;
+    WCHAR TemplateFilePath[512];
+} SMC_CACHE_STATS, *PSMC_CACHE_STATS;
+
+typedef struct _SMC_CACHE_STATS_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_CACHE_STATS_INFORMATION_VERSION
+    ULONG NoFilePath : 1;
+    ULONG Spare : 23;
+    ULONG CacheId;
+    SMC_CACHE_STATS CacheStats;
+} SMC_CACHE_STATS_REQUEST, *PSMC_CACHE_STATS_REQUEST;
+
+#define SYSTEM_STORE_REGISTRATION_INFORMATION_VERSION 2
+
+typedef struct _SM_REGISTRATION_INFO
+{
+    void *CachesUpdatedEvent;
+} SM_REGISTRATION_INFO, PSM_REGISTRATION_INFO;
+
+typedef struct _SM_REGISTRATION_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_REGISTRATION_INFORMATION_VERSION
+    ULONG Spare : 24;
+    SM_REGISTRATION_INFO RegInfo;
+} SM_REGISTRATION_REQUEST, *PSM_REGISTRATION_REQUEST;
 
 // rev
 typedef struct _SM_STORE_HIGH_MEM_PRIORITY_REQUEST
@@ -3066,13 +3238,13 @@ typedef struct _SM_SYSTEM_STORE_TRIM_REQUEST
 // rev
 typedef struct _SM_MEM_COMPRESSION_INFO_REQUEST
 {
-    ULONG Version : 8;
+    ULONG Version : 8; // SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION
     ULONG Spare : 24;
     ULONG CompressionPid;
     ULONG WorkingSetSize; // ULONGLONG?
-    ULONGLONG TotalDataCompressed;
-    ULONGLONG TotalCompressedSize;
-    ULONGLONG TotalUniqueDataCompressed;
+    SIZE_T TotalDataCompressed;
+    SIZE_T TotalCompressedSize;
+    SIZE_T TotalUniqueDataCompressed;
 } SM_MEM_COMPRESSION_INFO_REQUEST, *PSM_MEM_COMPRESSION_INFO_REQUEST;
 
 // private
