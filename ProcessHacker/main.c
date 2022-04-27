@@ -70,6 +70,10 @@ VOID PhpEnablePrivileges(
     VOID
     );
 
+VOID PhEnableTerminationPolicy(
+    _In_ BOOLEAN Enabled
+    );
+
 BOOLEAN PhInitializeDirectoryPolicy(
     VOID
     );
@@ -247,6 +251,8 @@ INT WINAPI wWinMain(
         PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
 
+    PhEnableTerminationPolicy(TRUE);
+
     if (!PhMainWndInitialization(CmdShow))
     {
         PhShowError(NULL, L"%s", L"Unable to initialize the main window.");
@@ -256,6 +262,7 @@ INT WINAPI wWinMain(
     PhDrainAutoPool(&BaseAutoPool);
 
     result = PhMainMessageLoop();
+    PhEnableTerminationPolicy(FALSE);
     PhExitApplication(result);
 }
 
@@ -688,6 +695,8 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         PhGetStringOrEmpty(errorMessage)
         );
 
+    PhEnableTerminationPolicy(FALSE);
+
     if (TaskDialogIndirect)
     {
         TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
@@ -1088,6 +1097,26 @@ BOOLEAN PhInitializeComPolicy(
 
     return TRUE;
 #endif
+}
+
+VOID PhEnableTerminationPolicy(
+    _In_ BOOLEAN Enabled
+    )
+{
+    if (PhGetOwnTokenAttributes().Elevated && PhGetIntegerSetting(L"EnableBreakOnTermination"))
+    {
+        NTSTATUS status;
+
+        status = PhSetProcessBreakOnTermination(
+            NtCurrentProcess(),
+            Enabled
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(NULL, L"Unable to configure termination policy.", status, 0);
+        }
+    }
 }
 
 NTSTATUS PhpReadSignature(
