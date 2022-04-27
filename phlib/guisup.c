@@ -1817,6 +1817,37 @@ BOOLEAN PhIsImmersiveProcess(
     return !!IsImmersiveProcess_I(ProcessHandle);
 }
 
+_Success_(return)
+BOOLEAN PhGetProcessDpiAwareness(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ProcessDpiAwareness
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *GetProcessDpiAwarenessInternal_I)(
+        _In_ HANDLE hprocess,
+        _Out_ ULONG *value
+        );
+    ULONG dpiAwareness = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        GetProcessDpiAwarenessInternal_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!GetProcessDpiAwarenessInternal_I)
+        return FALSE;
+
+    if (GetProcessDpiAwarenessInternal_I(ProcessHandle, &dpiAwareness))
+    {
+        *ProcessDpiAwareness = dpiAwareness;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 // rev from ExtractIconExW
 _Success_(return)
 BOOLEAN PhExtractIcon(

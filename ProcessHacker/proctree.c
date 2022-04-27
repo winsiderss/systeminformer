@@ -1240,28 +1240,13 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
     _Inout_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *getProcessDpiAwarenessInternal)(
-        _In_ HANDLE hprocess,
-        _Out_ ULONG *value
-        );
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        getProcessDpiAwarenessInternal = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!getProcessDpiAwarenessInternal)
-        return;
-
     if (!(ProcessNode->ValidMask & PHPN_DPIAWARENESS))
     {
         if (ProcessNode->ProcessItem->QueryHandle)
         {
             ULONG dpiAwareness;
 
-            if (getProcessDpiAwarenessInternal(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
+            if (PhGetProcessDpiAwareness(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
                 ProcessNode->DpiAwareness = dpiAwareness + 1;
         }
 
