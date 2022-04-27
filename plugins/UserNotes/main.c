@@ -177,90 +177,66 @@ PPH_STRING SaveCustomColors(
 }
 
 NTSTATUS GetProcessAffinity(
-    _In_ HANDLE ProcessId,
+    _In_ HANDLE ProcessHandle,
     _Out_ PKAFFINITY Affinity
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
-    KAFFINITY affinityMask = 0;
-    PROCESS_BASIC_INFORMATION basicInfo;
+    GROUP_AFFINITY groupAffinity = { 0 };
 
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        ProcessId
-        )))
-    {
-        if (NT_SUCCESS(status = PhGetProcessBasicInformation(
-            processHandle, 
-            &basicInfo
-            )))
-        {
-            affinityMask = basicInfo.AffinityMask;
-        }
-
-        NtClose(processHandle);
-    }
+    status = PhGetProcessGroupAffinity(
+        ProcessHandle,
+        &groupAffinity
+        );
 
     if (NT_SUCCESS(status))
-        *Affinity = affinityMask;
+    {
+        *Affinity = groupAffinity.Mask;
+    }
 
     return status;
 }
 
-IO_PRIORITY_HINT GetProcessIoPriority(
-    _In_ HANDLE ProcessId
+NTSTATUS GetProcessIoPriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ IO_PRIORITY_HINT* IoPriority
     )
 {
-    HANDLE processHandle;
+    NTSTATUS status;
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
 
-    if (NT_SUCCESS(PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        ProcessId
-        )))
-    {
-        if (!NT_SUCCESS(PhGetProcessIoPriority(
-            processHandle,
-            &ioPriority
-            )))
-        {
-            ioPriority = ULONG_MAX;
-        }
+    status = PhGetProcessIoPriority(
+        ProcessHandle,
+        &ioPriority
+        );
 
-        NtClose(processHandle);
+    if (NT_SUCCESS(status))
+    {
+        *IoPriority = ioPriority;
     }
 
-    return ioPriority;
+    return status;
 }
 
-ULONG GetProcessPagePriority(
-    _In_ HANDLE ProcessId
+NTSTATUS GetProcessPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG PagePriority
     )
 {
-    HANDLE processHandle;
+    NTSTATUS status;
     ULONG pagePriority = ULONG_MAX;
 
-    if (NT_SUCCESS(PhOpenProcess(
-        &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-        ProcessId
-        )))
-    {
-        if (!NT_SUCCESS(PhGetProcessPagePriority(
-            processHandle,
-            &pagePriority
-            )))
-        {
-            pagePriority = ULONG_MAX;
-        }
+    status = PhGetProcessPagePriority(
+        ProcessHandle,
+        &pagePriority
+        );
 
-        NtClose(processHandle);
+    if (NT_SUCCESS(status))
+    {
+        *PagePriority = pagePriority;
     }
 
-    return pagePriority;
+    return status;
 }
 
 ULONG GetPriorityClassFromId(
@@ -1108,13 +1084,22 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
+                NTSTATUS status = STATUS_RETRY;
                 IO_PRIORITY_HINT ioPriority;
 
-                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-
-                if ((ioPriority = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
+                if (processItem->QueryHandle)
                 {
+                    status = GetProcessIoPriority(processItem->QueryHandle, &ioPriority);
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
                     object->IoPriorityPlusOne = ioPriority + 1;
+                }
+                else
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process IO priority.", status, 0);
                 }
             }
 
@@ -1135,13 +1120,22 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
+                    NTSTATUS status = STATUS_RETRY;
                     IO_PRIORITY_HINT ioPriority;
 
-                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-
-                    if ((ioPriority = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
+                    if (processItem->QueryHandle)
                     {
+                        status = GetProcessIoPriority(processItem->QueryHandle, &ioPriority);
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
                         object->IoPriorityPlusOne = ioPriority + 1;
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process IO priority.", status, 0);
                     }
                 }
 
@@ -1175,7 +1169,7 @@ VOID NTAPI MenuItemCallback(
                 ShowProcessIoPriorityDialog(menuItem, processItem->ProcessName);
                 //IO_PRIORITY_HINT ioPriorityClass;
                 //
-                //if ((ioPriorityClass = GetProcessIoPriority(processItem->ProcessId)) != ULONG_MAX)
+                //if ((ioPriorityClass = GetProcessIoPriority(processItem->QueryHandle)) != ULONG_MAX)
                 //{
                 //    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ioPriorityClass, ULONG_MAX);
                 //}
@@ -1259,17 +1253,41 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                NTSTATUS status;
+                NTSTATUS status = STATUS_RETRY;
                 KAFFINITY affinityMask;
 
-                if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+                if (processItem->QueryHandle)
+                {
+                    status = GetProcessAffinity(processItem->QueryHandle, &affinityMask);
+                }
+
+                if (NT_SUCCESS(status))
                 {
                     object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
                     object->AffinityMask = affinityMask;
                 }
                 else
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                    USHORT groupBuffer[20] = { 0 };
+                    USHORT groupCount = RTL_NUMBER_OF(groupBuffer);
+
+                    if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessGroupInformation(
+                        processItem->QueryHandle,
+                        &groupCount,
+                        groupBuffer
+                        )) && groupCount > 1)
+                    {
+                        PhShowInformation2(
+                            menuItem->OwnerWindow,
+                            L"Unable to query the current affinity.",
+                            L"This process has multi-group affinity, %s",
+                            L"you can only change affinity for individual threads."
+                            );
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                    }
                 }
             }
 
@@ -1290,17 +1308,41 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    NTSTATUS status;
+                    NTSTATUS status = STATUS_RETRY;
                     KAFFINITY affinityMask;
 
-                    if (NT_SUCCESS(status = GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+                    if (processItem->QueryHandle)
+                    {
+                        status = GetProcessAffinity(processItem->QueryHandle, &affinityMask);
+                    }
+
+                    if (NT_SUCCESS(status))
                     {
                         object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
                         object->AffinityMask = affinityMask;
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                        USHORT groupBuffer[20] = { 0 };
+                        USHORT groupCount = RTL_NUMBER_OF(groupBuffer);
+
+                        if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessGroupInformation(
+                            processItem->QueryHandle,
+                            &groupCount,
+                            groupBuffer
+                            )) && groupCount > 1)
+                        {
+                            PhShowInformation2(
+                                menuItem->OwnerWindow,
+                                L"Unable to query the current affinity.",
+                                L"This process has multi-group affinity, %s",
+                                L"you can only change affinity for individual threads."
+                                );
+                        }
+                        else
+                        {
+                            PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                        }
                     }
                 }
 
@@ -1320,13 +1362,22 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
+                NTSTATUS status = STATUS_RETRY;
                 ULONG pagePriority;
 
-                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-
-                if ((pagePriority = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
+                if (processItem->QueryHandle)
                 {
+                    status = GetProcessPagePriority(processItem->QueryHandle, &pagePriority);
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
                     object->PagePriorityPlusOne = pagePriority + 1;
+                }
+                else
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process page priority.", status, 0);  
                 }
             }
 
@@ -1347,13 +1398,22 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
+                    NTSTATUS status = STATUS_RETRY;
                     ULONG pagePriority;
 
-                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-
-                    if ((pagePriority = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
+                    if (processItem->QueryHandle)
                     {
+                        status = GetProcessPagePriority(processItem->QueryHandle, &pagePriority);
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
                         object->PagePriorityPlusOne = pagePriority + 1;
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process page priority.", status, 0);
                     }
                 }
 
@@ -1385,7 +1445,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 ShowProcessPagePriorityDialog(menuItem, processItem->ProcessName);
-                //if ((pagePriorityClass = GetProcessPagePriority(processItem->ProcessId)) != ULONG_MAX)
+                //if ((pagePriorityClass = GetProcessPagePriority(processItem->QueryHandle)) != ULONG_MAX)
                 //{
                 //    status = CreateIfeoObject(&processItem->ProcessName->sr, ULONG_MAX, ULONG_MAX, pagePriorityClass);
                 //}
@@ -1489,8 +1549,7 @@ VOID NTAPI MenuHookCallback(
     case PHAPP_ID_PROCESS_AFFINITY:
         {
             BOOLEAN changed = FALSE;
-            //KAFFINITY affinityMask;
-            KAFFINITY newAffinityMask;
+            KAFFINITY affinityMask;
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
             if (!processItem)
@@ -1502,7 +1561,7 @@ VOID NTAPI MenuHookCallback(
             menuHookInfo->Handled = TRUE;
 
             // Show the affinity dialog (with our values).
-            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, processItem, &newAffinityMask))
+            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, processItem, &affinityMask))
             {
                 PDB_OBJECT object;
 
@@ -1511,9 +1570,9 @@ VOID NTAPI MenuHookCallback(
                 if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
                 {
                     // Update the process affinity in our database (if the database values are different).
-                    if (object->AffinityMask != newAffinityMask)
+                    if (object->AffinityMask != affinityMask)
                     {
-                        object->AffinityMask = newAffinityMask;
+                        object->AffinityMask = affinityMask;
                         changed = TRUE;
                     }
                 }
@@ -2134,11 +2193,12 @@ VOID ProcessesUpdatedCallback(
             {
                 IO_PRIORITY_HINT ioPriority;
 
-                ioPriority = GetProcessIoPriority(processItem->ProcessId);
-
-                if (ioPriority != ULONG_MAX && ioPriority != object->IoPriorityPlusOne - 1)
+                if (processItem->QueryHandle && NT_SUCCESS(GetProcessIoPriority(processItem->QueryHandle, &ioPriority)))
                 {
-                    PhSetProcessItemIoPriority(processItem, object->IoPriorityPlusOne - 1);
+                    if (ioPriority != object->IoPriorityPlusOne - 1)
+                    {
+                        PhSetProcessItemIoPriority(processItem, object->IoPriorityPlusOne - 1);
+                    }
                 }
             }
         }
@@ -2149,7 +2209,7 @@ VOID ProcessesUpdatedCallback(
             {
                 KAFFINITY affinityMask;
 
-                if (NT_SUCCESS(GetProcessAffinity(processItem->ProcessId, &affinityMask)))
+                if (processItem->QueryHandle && NT_SUCCESS(GetProcessAffinity(processItem->QueryHandle, &affinityMask)))
                 {
                     if (affinityMask != object->AffinityMask)
                     {
@@ -2165,11 +2225,12 @@ VOID ProcessesUpdatedCallback(
             {
                 ULONG pagePriority;
 
-                pagePriority = GetProcessPagePriority(processItem->ProcessId);
-
-                if (pagePriority != ULONG_MAX && pagePriority != object->PagePriorityPlusOne - 1)
+                if (processItem->QueryHandle && NT_SUCCESS(GetProcessPagePriority(processItem->QueryHandle, &pagePriority)))
                 {
-                    PhSetProcessItemPagePriority(processItem, object->PagePriorityPlusOne - 1);
+                    if (pagePriority != object->PagePriorityPlusOne - 1)
+                    {
+                        PhSetProcessItemPagePriority(processItem, object->PagePriorityPlusOne - 1);
+                    }
                 }
             }
         }
