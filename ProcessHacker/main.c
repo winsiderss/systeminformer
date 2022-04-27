@@ -1112,6 +1112,11 @@ VOID PhEnableTerminationPolicy(
             Enabled
             );
 
+        if (Enabled)
+            SetFlag(NtCurrentPeb()->NtGlobalFlag, FLG_ENABLE_SYSTEM_CRIT_BREAKS);
+        else
+            ClearFlag(NtCurrentPeb()->NtGlobalFlag, FLG_ENABLE_SYSTEM_CRIT_BREAKS);
+
         if (!NT_SUCCESS(status))
         {
             PhShowStatus(NULL, L"Unable to configure termination policy.", status, 0);
