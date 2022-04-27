@@ -4441,7 +4441,8 @@ typedef union _SYSDBG_LIVEDUMP_CONTROL_FLAGS
         ULONG CompressMemoryPagesData : 1;
         ULONG IncludeUserSpaceMemoryPages : 1;
         ULONG AbortIfMemoryPressure : 1; // REDSTONE4
-        ULONG Reserved : 28;
+        ULONG SelectiveDump : 1; // WIN11
+        ULONG Reserved : 27;
     };
     ULONG AsUlong;
 } SYSDBG_LIVEDUMP_CONTROL_FLAGS, *PSYSDBG_LIVEDUMP_CONTROL_FLAGS;
@@ -4452,12 +4453,31 @@ typedef union _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
     struct
     {
         ULONG HypervisorPages : 1;
-        ULONG Reserved : 31;
+        ULONG NonEssentialHypervisorPages : 1; // WIN11
+        ULONG Reserved : 30;
     };
     ULONG AsUlong;
 } SYSDBG_LIVEDUMP_CONTROL_ADDPAGES, *PSYSDBG_LIVEDUMP_CONTROL_ADDPAGES;
 
+// rev
+typedef struct _SYSDBG_LIVEDUMP_SELECTIVE_CONTROL
+{
+    ULONG Version;
+    ULONG Size;
+    union
+    {
+        ULONGLONG Flags;
+        struct
+        {
+            ULONGLONG ThreadKernelStacks : 1;
+            ULONGLONG ReservedFlags : 63;
+        };
+    };
+    ULONGLONG Reserved[4];
+} SYSDBG_LIVEDUMP_SELECTIVE_CONTROL, *PSYSDBG_LIVEDUMP_SELECTIVE_CONTROL;
+
 #define SYSDBG_LIVEDUMP_CONTROL_VERSION 1
+#define SYSDBG_LIVEDUMP_CONTROL_VERSION_WIN11 2
 
 // private
 typedef struct _SYSDBG_LIVEDUMP_CONTROL
@@ -4472,6 +4492,7 @@ typedef struct _SYSDBG_LIVEDUMP_CONTROL
     HANDLE CancelEventHandle;
     SYSDBG_LIVEDUMP_CONTROL_FLAGS Flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES AddPagesControl;
+    PSYSDBG_LIVEDUMP_SELECTIVE_CONTROL SelectiveControl;
 } SYSDBG_LIVEDUMP_CONTROL, *PSYSDBG_LIVEDUMP_CONTROL;
 
 // private
