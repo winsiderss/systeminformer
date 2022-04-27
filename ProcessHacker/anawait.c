@@ -969,10 +969,6 @@ static PPH_STRING PhpaGetSendMessageReceiver(
     _In_ HANDLE ThreadId
     )
 {
-    static HWND (WINAPI *GetSendMessageReceiver_I)(
-        _In_ HANDLE ThreadId
-        );
-
     HWND windowHandle;
     ULONG threadId;
     ULONG processId;
@@ -981,19 +977,7 @@ static PPH_STRING PhpaGetSendMessageReceiver(
     WCHAR windowClass[64];
     PPH_STRING windowText;
 
-    // GetSendMessageReceiver is an undocumented function exported by
-    // user32.dll. It retrieves the handle of the window which a thread
-    // is sending a message to.
-
-    if (!GetSendMessageReceiver_I)
-        GetSendMessageReceiver_I = PhGetDllProcedureAddress(L"user32.dll", "GetSendMessageReceiver", 0);
-
-    if (!GetSendMessageReceiver_I)
-        return NULL;
-
-    windowHandle = GetSendMessageReceiver_I(ThreadId);
-
-    if (!windowHandle)
+    if (!PhGetSendMessageReceiver(ThreadId, &windowHandle))
         return NULL;
 
     threadId = GetWindowThreadProcessId(windowHandle, &processId);
