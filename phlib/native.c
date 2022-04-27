@@ -474,6 +474,103 @@ NTSTATUS PhTerminateProcessPublic(
         );
 }
 
+// based on https://www.drdobbs.com/a-safer-alternative-to-terminateprocess/184416547 (dmex)
+NTSTATUS PhTerminateProcessAlternative(
+    _In_ HANDLE ProcessHandle,
+    _In_ NTSTATUS ExitStatus,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+#if (PHNT_VERSION >= PHNT_WIN7)
+    NTSTATUS status;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
+    PPH_STRING ntdllFileName = NULL;
+    PVOID rtlExitUserProcess = NULL;
+    HANDLE powerRequestHandle = NULL;
+    HANDLE threadHandle = NULL;
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        goto CleanupExit;
+
+    if (isWow64)
+    {
+        PH_STRINGREF systemRootSr;
+
+        PhGetSystemRoot(&systemRootSr);
+        ntdllFileName = PhConcatStringRefZ(&systemRootSr, L"\\SysWow64\\ntdll.dll");
+    }
+    else
+    {
+#endif
+        PH_STRINGREF systemRootSr;
+
+        PhGetSystemRoot(&systemRootSr);
+        ntdllFileName = PhConcatStringRefZ(&systemRootSr, L"\\System32\\ntdll.dll");
+#ifdef _WIN64
+    }
+#endif
+
+    if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        ntdllFileName->Buffer,
+        "RtlExitUserProcess",
+        0,
+        &rtlExitUserProcess,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = RtlCreateUserThread(
+        ProcessHandle,
+        NULL,
+        FALSE,
+        0,
+        0,
+        0,
+        rtlExitUserProcess,
+        LongToPtr(ExitStatus),
+        &threadHandle,
+        NULL
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+
+CleanupExit:
+
+    if (threadHandle)
+    {
+        NtClose(threadHandle);
+    }
+
+    if (powerRequestHandle)
+    {
+        PhDestroyExecutionRequiredRequest(powerRequestHandle);
+    }
+
+    PhClearReference(&ntdllFileName);
+
+    return status;
+#else
+    return STATUS_UNSUCCESSFUL;
+#endif
+}
+
 /**
  * Queries variable-sized information for a process. The function allocates a buffer to contain the
  * information.
