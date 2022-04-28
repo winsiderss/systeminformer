@@ -889,7 +889,7 @@ VOID PhpProcessQueryStage1(
 
     // Debugged
     if (
-        processItem->QueryHandle &&
+        processHandleLimited &&
         !processItem->IsSubsystemProcess &&
         !Data->IsFilteredHandle && // Don't query the debug object if the handle was filtered (dmex)
         processItem->ProcessId != SYSTEM_PROCESS_ID // Ignore the system process on 20H2 (dmex)
@@ -1300,8 +1300,8 @@ VOID PhpFillProcessItem(
         HANDLE tokenHandle;
 
         if (NT_SUCCESS(PhOpenProcessToken(
-            ProcessItem->QueryHandle, 
-            TOKEN_QUERY, 
+            ProcessItem->QueryHandle,
+            TOKEN_QUERY,
             &tokenHandle
             )))
         {
