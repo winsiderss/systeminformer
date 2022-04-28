@@ -3007,25 +3007,25 @@ typedef enum _STORE_INFORMATION_CLASS
 {
     StorePageRequest = 1,
     StoreStatsRequest = 2, // q: SM_STATS_REQUEST // SmProcessStatsRequest
-    StoreCreateRequest = 3,
-    StoreDeleteRequest = 4,
+    StoreCreateRequest = 3, // s: SM_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    StoreDeleteRequest = 4, // s: SM_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege)
     StoreListRequest = 5, // q: SM_STORE_LIST_REQUEST / SM_STORE_LIST_REQUEST_EX // SmProcessListRequest
     Available1 = 6,
     StoreEmptyRequest = 7,
     CacheListRequest = 8, // q: SMC_CACHE_LIST_REQUEST // SmcProcessListRequest
-    CacheCreateRequest = 9,
-    CacheDeleteRequest = 10,
-    CacheStoreCreateRequest = 11,
-    CacheStoreDeleteRequest = 12,
-    CacheStatsRequest = 13, // SmcProcessStatsRequest
+    CacheCreateRequest = 9, // s: SMC_CACHE_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    CacheDeleteRequest = 10, // s: SMC_CACHE_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    CacheStoreCreateRequest = 11, // s: SMC_STORE_CREATE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    CacheStoreDeleteRequest = 12, // s: SMC_STORE_DELETE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    CacheStatsRequest = 13, // q: SMC_CACHE_STATS_REQUEST // SmcProcessStatsRequest
     Available2 = 14,
     RegistrationRequest = 15, // q: SM_REGISTRATION_REQUEST (requires SeProfileSingleProcessPrivilege) // SmProcessRegistrationRequest
     GlobalCacheStatsRequest = 16,
-    StoreResizeRequest = 17,
-    CacheStoreResizeRequest = 18,
-    SmConfigRequest = 19,
-    StoreHighMemoryPriorityRequest = 20, // SM_STORE_HIGH_MEM_PRIORITY_REQUEST
-    SystemStoreTrimRequest = 21, // SM_SYSTEM_STORE_TRIM_REQUEST
+    StoreResizeRequest = 17, // s: SM_STORE_RESIZE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    CacheStoreResizeRequest = 18, // s: SMC_STORE_RESIZE_REQUEST (requires SeProfileSingleProcessPrivilege)
+    SmConfigRequest = 19, // s: SM_CONFIG_REQUEST (requires SeProfileSingleProcessPrivilege)
+    StoreHighMemoryPriorityRequest = 20, // s: SM_STORE_HIGH_MEM_PRIORITY_REQUEST (requires SeProfileSingleProcessPrivilege)
+    SystemStoreTrimRequest = 21, // s: SM_SYSTEM_STORE_TRIM_REQUEST (requires SeProfileSingleProcessPrivilege)
     MemCompressionInfoRequest = 22,  // q: SM_MEM_COMPRESSION_INFO_REQUEST // SmProcessCompressionInfoRequest
     ProcessStoreInfoRequest = 23, // SmProcessProcessStoreInfoRequest
     StoreInformationMax
@@ -3148,6 +3148,97 @@ typedef struct _ST_STATS
     // ST_STATS_SPACE_BITMAP
 } ST_STATS, *PST_STATS;
 
+#define SYSTEM_STORE_CREATE_INFORMATION_VERSION 6
+
+typedef enum _SM_STORE_TYPE
+{
+    StoreTypeInMemory=0,
+    StoreTypeFile=1,
+    StoreTypeMax=2
+} SM_STORE_TYPE;
+
+typedef struct _SM_STORE_BASIC_PARAMS
+{
+    union
+    {
+        struct
+        {
+            ULONG StoreType : 8; // SM_STORE_TYPE
+            ULONG NoDuplication : 1;
+            ULONG FailNoCompression : 1;
+            ULONG NoCompression : 1 ;
+            ULONG NoEncryption : 1;
+            ULONG NoEvictOnAdd : 1;
+            ULONG PerformsFileIo : 1;
+            ULONG VdlNotSet : 1 ;
+            ULONG UseIntermediateAddBuffer : 1;
+            ULONG CompressNoHuff : 1;
+            ULONG LockActiveRegions : 1;
+            ULONG VirtualRegions : 1;
+            ULONG Spare : 13;
+        };
+        ULONG StoreFlags;
+    };
+    ULONG Granularity;
+    ULONG RegionSize;
+    ULONG RegionCountMax;
+} SM_STORE_BASIC_PARAMS, *PSM_STORE_BASIC_PARAMS;
+
+typedef struct _SMKM_REGION_EXTENT
+{
+    ULONG RegionCount;
+    SIZE_T        ByteOffset;
+} SMKM_REGION_EXTENT, *PSMKM_REGION_EXTENT;
+
+typedef struct _SMKM_FILE_INFO
+{
+    HANDLE FileHandle;
+    struct _FILE_OBJECT *FileObject;
+    struct _FILE_OBJECT *VolumeFileObject;
+    struct _DEVICE_OBJECT *VolumeDeviceObject;
+    HANDLE VolumePnpHandle;
+    struct _IRP *UsageNotificationIrp;
+    PSMKM_REGION_EXTENT Extents;
+    ULONG ExtentCount;
+} SMKM_FILE_INFO, *PSMKM_FILE_INFO;
+
+typedef struct _SM_STORE_CACHE_BACKED_PARAMS
+{
+    ULONG SectorSize;
+    PCHAR EncryptionKey;
+    ULONG EncryptionKeySize;
+    PSMKM_FILE_INFO FileInfo;
+    PVOID EtaContext;
+    struct _RTL_BITMAP *StoreRegionBitmap;
+} SM_STORE_CACHE_BACKED_PARAMS, *PSM_STORE_CACHE_BACKED_PARAMS;
+
+typedef struct _SM_STORE_PARAMETERS
+{
+    SM_STORE_BASIC_PARAMS Store;
+    ULONG Priority;
+    ULONG Flags;
+    SM_STORE_CACHE_BACKED_PARAMS CacheBacked;
+} SM_STORE_PARAMETERS, *PSM_STORE_PARAMETERS;
+
+typedef struct _SM_CREATE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_CREATE_INFORMATION_VERSION
+    ULONG AcquireReference : 1;
+    ULONG KeyedStore : 1;
+    ULONG Spare : 22;
+    SM_STORE_PARAMETERS Params;
+    ULONG StoreId;
+} SM_CREATE_REQUEST, *PSM_CREATE_REQUEST;
+
+#define SYSTEM_STORE_DELETE_INFORMATION_VERSION 1
+
+typedef struct _SM_DELETE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_DELETE_INFORMATION_VERSION
+    ULONG Spare : 24;
+    ULONG StoreId;
+} SM_DELETE_REQUEST, *PSM_DELETE_REQUEST;
+
 #define SYSTEM_STORE_LIST_INFORMATION_VERSION 2
 
 typedef struct _SM_STORE_LIST_REQUEST
@@ -3174,6 +3265,72 @@ typedef struct _SMC_CACHE_LIST_REQUEST
     ULONG Spare : 16;
     ULONG CacheId[16];
 } SMC_CACHE_LIST_REQUEST, *PSMC_CACHE_LIST_REQUEST;
+
+#define SYSTEM_CACHE_CREATE_INFORMATION_VERSION 3
+
+typedef struct _SMC_CACHE_PARAMETERS
+{
+    SIZE_T CacheFileSize;
+    ULONG StoreAlignment;
+    ULONG PerformsFileIo : 1;
+    ULONG VdlNotSet : 1;
+    ULONG Spare : 30;
+    ULONG CacheFlags;
+    ULONG Priority;
+} SMC_CACHE_PARAMETERS, *PSMC_CACHE_PARAMETERS;
+
+typedef struct _SMC_CACHE_CREATE_PARAMETERS
+{
+    SMC_CACHE_PARAMETERS CacheParameters;
+    WCHAR TemplateFilePath[512];
+} SMC_CACHE_CREATE_PARAMETERS, *PSMC_CACHE_CREATE_PARAMETERS;
+
+typedef struct _SMC_CACHE_CREATE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_CACHE_CREATE_INFORMATION_VERSION
+    ULONG Spare : 24;
+    ULONG CacheId;
+    SMC_CACHE_CREATE_PARAMETERS CacheCreateParams;
+} SMC_CACHE_CREATE_REQUEST, *PSMC_CACHE_CREATE_REQUEST;
+
+#define SYSTEM_CACHE_DELETE_INFORMATION_VERSION 1
+
+typedef struct _SMC_CACHE_DELETE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_CACHE_DELETE_INFORMATION_VERSION
+    ULONG Spare : 24;
+    ULONG CacheId;
+} SMC_CACHE_DELETE_REQUEST, *PSMC_CACHE_DELETE_REQUEST;
+
+#define SYSTEM_CACHE_STORE_CREATE_INFORMATION_VERSION 2
+
+typedef enum _SM_STORE_MANAGER_TYPE
+{
+    SmStoreManagerTypePhysical=0,
+    SmStoreManagerTypeVirtual=1,
+    SmStoreManagerTypeMax=2
+} SM_STORE_MANAGER_TYPE;
+
+typedef struct _SMC_STORE_CREATE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_CACHE_STORE_CREATE_INFORMATION_VERSION
+    ULONG Spare : 24;
+    SM_STORE_BASIC_PARAMS StoreParams;
+    ULONG CacheId;
+    SM_STORE_MANAGER_TYPE StoreManagerType;
+    ULONG StoreId;
+} SMC_STORE_CREATE_REQUEST, *PSMC_STORE_CREATE_REQUEST;
+
+#define SYSTEM_CACHE_STORE_DELETE_INFORMATION_VERSION 1
+
+typedef struct _SMC_STORE_DELETE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_CACHE_STORE_DELETE_INFORMATION_VERSION
+    ULONG Spare : 24;
+    ULONG CacheId;
+    SM_STORE_MANAGER_TYPE StoreManagerType;
+    ULONG StoreId;
+} SMC_STORE_DELETE_REQUEST, *PSMC_STORE_DELETE_REQUEST;
 
 #define SYSTEM_CACHE_STATS_INFORMATION_VERSION 3
 
@@ -3205,7 +3362,7 @@ typedef struct _SMC_CACHE_STATS_REQUEST
 
 typedef struct _SM_REGISTRATION_INFO
 {
-    void *CachesUpdatedEvent;
+    HANDLE CachesUpdatedEvent;
 } SM_REGISTRATION_INFO, PSM_REGISTRATION_INFO;
 
 typedef struct _SM_REGISTRATION_REQUEST
@@ -3215,19 +3372,66 @@ typedef struct _SM_REGISTRATION_REQUEST
     SM_REGISTRATION_INFO RegInfo;
 } SM_REGISTRATION_REQUEST, *PSM_REGISTRATION_REQUEST;
 
+#define SYSTEM_STORE_RESIZE_INFORMATION_VERSION 6
+
+typedef struct _SM_STORE_RESIZE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_RESIZE_INFORMATION_VERSION
+    ULONG AddRegions : 1;
+    ULONG Spare : 23;
+    ULONG StoreId;
+    ULONG NumberOfRegions;
+    struct _RTL_BITMAP *RegionBitmap;
+} SM_STORE_RESIZE_REQUEST, *PSM_STORE_RESIZE_REQUEST;
+
+#define SYSTEM_CACHE_STORE_RESIZE_INFORMATION_VERSION 1
+
+typedef struct _SMC_STORE_RESIZE_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_CACHE_STORE_RESIZE_INFORMATION_VERSION
+    ULONG AddRegions : 1;
+    ULONG Spare : 23;
+    ULONG CacheId;
+    ULONG StoreId;
+    SM_STORE_MANAGER_TYPE StoreManagerType;
+    ULONG RegionCount;
+} SMC_STORE_RESIZE_REQUEST, *PSMC_STORE_RESIZE_REQUEST;
+
+#define SYSTEM_STORE_CONFIG_INFORMATION_VERSION 4
+
+typedef enum _SM_CONFIG_TYPE
+{
+    SmConfigDirtyPageCompression = 0,
+    SmConfigAsyncInswap = 1,
+    SmConfigPrefetchSeekThreshold = 2,
+    SmConfigTypeMax = 3
+} SM_CONFIG_TYPE;
+
+typedef struct _SM_CONFIG_REQUEST
+{
+    ULONG Version : 8; // SYSTEM_STORE_CONFIG_INFORMATION_VERSION
+    ULONG Spare : 16;
+    ULONG ConfigType : 8; // SM_CONFIG_TYPE
+    ULONG ConfigValue;
+} SM_CONFIG_REQUEST, *PSM_CONFIG_REQUEST;
+
+#define SYSTEM_STORE_HIGH_MEM_PRIORITY_INFORMATION_VERSION 1
+
 // rev
 typedef struct _SM_STORE_HIGH_MEM_PRIORITY_REQUEST
 {
-    ULONG Version : 8;
+    ULONG Version : 8; // SYSTEM_STORE_HIGH_MEM_PRIORITY_INFORMATION_VERSION
     ULONG SetHighMemoryPriority : 1;
     ULONG Spare : 23;
     HANDLE ProcessHandle;
 } SM_STORE_HIGH_MEM_PRIORITY_REQUEST, *PSM_STORE_HIGH_MEM_PRIORITY_REQUEST;
 
+#define SYSTEM_STORE_TRIM_INFORMATION_VERSION 1
+
 // rev
 typedef struct _SM_SYSTEM_STORE_TRIM_REQUEST
 {
-    ULONG Version : 8;
+    ULONG Version : 8; // SYSTEM_STORE_TRIM_INFORMATION_VERSION
     ULONG Spare : 24;
     SIZE_T PagesToTrim; // ULONG?
 } SM_SYSTEM_STORE_TRIM_REQUEST, *PSM_SYSTEM_STORE_TRIM_REQUEST;
