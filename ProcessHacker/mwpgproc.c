@@ -679,7 +679,7 @@ VOID PhMwpInitializeProcessMenu(
                 PhDestroyEMenuItem(item);
         }
 
-        if (PH_IS_REAL_PROCESS_ID(Processes[0]->ProcessId))
+        if (WindowsVersion >= WINDOWS_11 && PH_IS_REAL_PROCESS_ID(Processes[0]->ProcessId))
         {
             if (PhIsProcessStateFrozen(Processes[0]->ProcessId))
             {
