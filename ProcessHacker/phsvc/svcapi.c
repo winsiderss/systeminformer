@@ -3,7 +3,7 @@
  *   server API
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2019-2021 dmex
+ * Copyright (C) 2019-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -32,7 +32,6 @@
 
 #include <accctrl.h>
 #include <dbghelp.h>
-#include <processsnapshot.h>
 #include <symprv.h>
 
 typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
@@ -1430,31 +1429,18 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     MINIDUMP_CALLBACK_INFORMATION callbackInfo = { 0 };
     HANDLE processHandle = UlongToHandle(Payload->u.WriteMiniDumpProcess.i.LocalProcessHandle);
     ULONG processDumpType = Payload->u.WriteMiniDumpProcess.i.DumpType;
-    HPSS snapshotHandle = NULL;
+    HANDLE snapshotHandle = NULL;
 
-    if (PssCaptureSnapshot_Import())
+    if (NT_SUCCESS(PhCreateProcessSnapshot(&snapshotHandle, processHandle, NULL)))
     {
-        PssCaptureSnapshot_Import()(
-            processHandle,
-            PSS_CAPTURE_VA_CLONE | PSS_CAPTURE_VA_SPACE | PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION |
-            PSS_CAPTURE_IPT_TRACE | PSS_CAPTURE_HANDLE_TRACE | PSS_CAPTURE_HANDLES | PSS_CAPTURE_HANDLE_BASIC_INFORMATION |
-            PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION | PSS_CAPTURE_HANDLE_NAME_INFORMATION |
-            PSS_CAPTURE_THREADS | PSS_CAPTURE_THREAD_CONTEXT | PSS_CREATE_USE_VM_ALLOCATIONS,
-            CONTEXT_ALL,
-            &snapshotHandle
-            );
-
-        if (snapshotHandle)
-        {
-            processDumpType =
-                MiniDumpWithFullMemory |
-                MiniDumpWithHandleData |
-                MiniDumpWithUnloadedModules |
-                MiniDumpWithFullMemoryInfo |
-                MiniDumpWithThreadInfo |
-                MiniDumpIgnoreInaccessibleMemory |
-                MiniDumpWithIptTrace;
-        }
+        processDumpType =
+            MiniDumpWithFullMemory |
+            MiniDumpWithHandleData |
+            MiniDumpWithUnloadedModules |
+            MiniDumpWithFullMemoryInfo |
+            MiniDumpWithThreadInfo |
+            MiniDumpIgnoreInaccessibleMemory |
+            MiniDumpWithIptTrace;
     }
 
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
@@ -1472,22 +1458,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
     {
         if (snapshotHandle)
         {
-            PSS_VA_CLONE_INFORMATION processInfo;
-
-            if (PssQuerySnapshot_Import() && PssQuerySnapshot_Import()(
-                snapshotHandle,
-                PSS_QUERY_VA_CLONE_INFORMATION,
-                &processInfo,
-                sizeof(PSS_VA_CLONE_INFORMATION)
-                ) == ERROR_SUCCESS)
-            {
-                NtClose(processInfo.VaCloneHandle);
-            }
-
-            if (PssFreeSnapshot_Import())
-            {
-                PssFreeSnapshot_Import()(processHandle, snapshotHandle);
-            }
+            PhFreeProcessSnapshot(snapshotHandle, processHandle);
         }
 
         return STATUS_SUCCESS;
@@ -1498,22 +1469,7 @@ NTSTATUS PhSvcApiWriteMiniDumpProcess(
 
         if (snapshotHandle)
         {
-            PSS_VA_CLONE_INFORMATION processInfo;
-
-            if (PssQuerySnapshot_Import() && PssQuerySnapshot_Import()(
-                snapshotHandle,
-                PSS_QUERY_VA_CLONE_INFORMATION,
-                &processInfo,
-                sizeof(PSS_VA_CLONE_INFORMATION)
-                ) == ERROR_SUCCESS)
-            {
-                NtClose(processInfo.VaCloneHandle);
-            }
-
-            if (PssFreeSnapshot_Import())
-            {
-                PssFreeSnapshot_Import()(processHandle, snapshotHandle);
-            }
+            PhFreeProcessSnapshot(snapshotHandle, processHandle);
         }
 
         if (error == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER))
