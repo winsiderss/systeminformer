@@ -547,7 +547,7 @@ BOOLEAN PvpGetMappedImageImphash(
     _Out_opt_ PPH_STRING *ImpHashFuzzy
     )
 {
-    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L".");
+    static PH_STRINGREF separator = PH_STRINGREF_INIT(L".");
     PPH_STRING hashString = NULL;
     PPH_STRING hashFuzzyString = NULL;
     PH_STRING_BUILDER stringBuilder;
@@ -609,7 +609,7 @@ BOOLEAN PvpGetMappedImageImphash(
 
                         importImphashName = PhConcatStringRef3(
                             &importDllName->sr,
-                            &seperator,
+                            &separator,
                             &importFuncName->sr);
                         _wcslwr(importImphashName->Buffer);
 
