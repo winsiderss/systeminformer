@@ -294,6 +294,22 @@ PhSaveListViewGroupStatesToSetting(
     _In_ PWSTR Name,
     _In_ HWND ListViewHandle
     );
+
+VOID
+NTAPI
+PhLoadCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
+    );
+
+VOID
+NTAPI
+PhSaveCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
+    );
 // end_phapppub
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
