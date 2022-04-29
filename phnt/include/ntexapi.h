@@ -3187,7 +3187,7 @@ typedef struct _SM_STORE_BASIC_PARAMS
 typedef struct _SMKM_REGION_EXTENT
 {
     ULONG RegionCount;
-    SIZE_T        ByteOffset;
+    SIZE_T ByteOffset;
 } SMKM_REGION_EXTENT, *PSMKM_REGION_EXTENT;
 
 typedef struct _SMKM_FILE_INFO
