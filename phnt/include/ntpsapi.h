@@ -1687,6 +1687,7 @@ NtWaitForAlertByThreadId(
 #define ProcThreadAttributeSecurityCapabilities 9 // in SECURITY_CAPABILITIES
 #define ProcThreadAttributeConsoleReference 10 // BaseGetConsoleReference (kernelbase.dll)
 #define ProcThreadAttributeProtectionLevel 11 // in ULONG
+#define ProcThreadAttributeOsMaxVersionTested 12 // (from exe.manifest)
 #define ProcThreadAttributeJobList 13 // in HANDLE[] // since WIN10
 #define ProcThreadAttributeChildProcessPolicy 14 // in ULONG
 #define ProcThreadAttributeAllApplicationPackagesPolicy 15 // in ULONG
@@ -1726,6 +1727,10 @@ typedef struct _PROC_THREAD_BNOISOLATION_ATTRIBUTE
 #ifndef PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE
 #define PROC_THREAD_ATTRIBUTE_CONSOLE_REFERENCE \
     ProcThreadAttributeValue(ProcThreadAttributeConsoleReference, FALSE, TRUE, FALSE)
+#endif
+#ifndef PROC_THREAD_ATTRIBUTE_OSMAXVERSIONTESTED
+#define PROC_THREAD_ATTRIBUTE_OSMAXVERSIONTESTED \
+    ProcThreadAttributeValue(ProcThreadAttributeOsMaxVersionTested, FALSE, TRUE, FALSE)
 #endif
 #ifndef PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM
 #define PROC_THREAD_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM \
