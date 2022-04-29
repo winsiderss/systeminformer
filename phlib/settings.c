@@ -1380,3 +1380,93 @@ VOID PhSaveListViewGroupStatesToSetting(
     settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
     PhSetStringSetting2(Name, &settingsString->sr);
 }
+
+VOID PhLoadCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
+    )
+{
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
+    PH_STRINGREF part;
+
+    if (CustomColorCount != 16)
+        return;
+
+    settingsString = PhGetStringSetting(Name);
+
+    if (PhIsNullOrEmptyString(settingsString))
+        goto CleanupExit;
+
+    remaining = PhGetStringRef(settingsString);
+
+    for (ULONG i = 0; i < CustomColorCount; i++)
+    {
+        ULONG64 integer = 0;
+
+        if (remaining.Length == 0)
+            break;
+
+        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
+
+        if (PhStringToInteger64(&part, 10, &integer))
+        {
+            CustomColorList[i] = (COLORREF)integer;
+        }
+    }
+
+CleanupExit:
+    PhClearReference(&settingsString);
+}
+
+VOID PhSaveCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    if (CustomColorCount != 16)
+        return;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    for (ULONG i = 0; i < CustomColorCount; i++)
+    {
+        PH_FORMAT format[2];
+        SIZE_T returnLength;
+        WCHAR formatBuffer[0x100];
+
+        PhInitFormatU(&format[0], CustomColorList[i]);
+        PhInitFormatC(&format[1], L',');
+
+        if (PhFormatToBuffer(
+            format,
+            RTL_NUMBER_OF(format),
+            formatBuffer,
+            sizeof(formatBuffer),
+            &returnLength
+            ))
+        {
+            PH_STRINGREF string;
+
+            string.Buffer = formatBuffer;
+            string.Length = returnLength - sizeof(UNICODE_NULL);
+
+            PhAppendStringBuilder(&stringBuilder, &string);
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"%lu,", CustomColorList[i]);
+        }
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    PhSetStringSetting2(Name, &stringBuilder.String->sr);
+
+    PhDeleteStringBuilder(&stringBuilder);
+}
