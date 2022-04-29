@@ -638,12 +638,14 @@ EXPORTS
     PhGetScalableIntegerPairSetting
     PhGetStringSetting
     PhLoadSettings
+    PhLoadCustomColorList
     PhLoadListViewColumnSettings
     PhLoadListViewColumnsFromSetting
     PhLoadListViewSortColumnsFromSetting
     PhLoadListViewGroupStatesFromSetting
     PhLoadWindowPlacementFromSetting
     PhResetSettings
+    PhSaveCustomColorList
     PhSaveListViewColumnSettings
     PhSaveListViewColumnsToSetting
     PhSaveListViewSortColumnsToSetting
