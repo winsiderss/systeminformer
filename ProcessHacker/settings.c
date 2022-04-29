@@ -159,6 +159,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"NetworkTreeListColumns", L"");
     PhpAddStringSetting(L"NetworkTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
+    PhpAddStringSetting(L"OptionsCustomColorList", L"");
     PhpAddStringSetting(L"OptionsWindowAdvancedColumns", L"");
     PhpAddIntegerSetting(L"OptionsWindowAdvancedFlags", L"0");
     PhpAddIntegerPairSetting(L"OptionsWindowPosition", L"0,0");
