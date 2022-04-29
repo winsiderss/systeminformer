@@ -3,7 +3,7 @@
  *   Process properties: General page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2016-2021 dmex
+ * Copyright (C) 2016-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -443,8 +443,16 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else
             {
-                PhSetDialogItemText(hwndDlg, IDC_PARENTPROCESS,
-                    PhaFormatString(L"Non-existent process (%u)", HandleToUlong(processItem->ParentProcessId))->Buffer);
+                if (processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+                {
+                    PhSetDialogItemText(hwndDlg, IDC_PARENTPROCESS, L"N/A");
+                }
+                else
+                {
+                    PhSetDialogItemText(hwndDlg, IDC_PARENTPROCESS, PhaFormatString(
+                        L"Non-existent process (%lu)", HandleToUlong(processItem->ParentProcessId))->Buffer);
+                }
+
                 EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), FALSE);
             }
 
@@ -458,7 +466,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (parentProcess = PhReferenceProcessItem((HANDLE)((ULONG_PTR)processItem->ConsoleHostProcessId & ~3)))
             {
-                if (parentProcess->ProcessId == 0)
+                if (parentProcess->ProcessId == SYSTEM_IDLE_PROCESS_ID)
                 {
                     PhSetDialogItemText(hwndDlg, IDC_PARENTCONSOLE, L"N/A");
                 }
