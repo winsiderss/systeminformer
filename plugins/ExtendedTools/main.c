@@ -231,8 +231,18 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
     flags = 0;
 
-    if (!processItem)
+    if (processItem)
+    {
+        if (PH_IS_FAKE_PROCESS_ID(processItem->ProcessId) ||
+            processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+        {
+            flags = PH_EMENU_DISABLED;
+        }
+    }
+    else
+    {
         flags = PH_EMENU_DISABLED;
+    }
 
     miscMenu = PhFindEMenuItem(menuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_MISCELLANEOUS);
 

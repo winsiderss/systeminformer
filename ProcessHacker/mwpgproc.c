@@ -550,6 +550,13 @@ VOID PhMwpInitializeProcessMenu(
             PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
             PhEnableEMenuItem(Menu, ID_PROCESS_PROPERTIES, TRUE);
             PhEnableEMenuItem(Menu, ID_PROCESS_SEARCHONLINE, TRUE);
+
+            // Enable the Miscellaneous menu item but disable its children.
+            if (item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_MISCELLANEOUS))
+            {
+                PhSetEnabledEMenuItem(item, TRUE);
+                PhSetFlagsAllEMenuItems(item, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+            }
         }
 
         // Disable the restart menu for service host processes. (dmex)
