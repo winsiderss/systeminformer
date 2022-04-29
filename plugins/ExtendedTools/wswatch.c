@@ -57,6 +57,10 @@ typedef struct _SYMBOL_LOOKUP_RESULT
     PPH_STRING FileName;
 } SYMBOL_LOOKUP_RESULT, *PSYMBOL_LOOKUP_RESULT;
 
+VOID EtpDereferenceWsWatchContext(
+    _In_ PWS_WATCH_CONTEXT Context
+    );
+
 INT_PTR CALLBACK EtpWsWatchDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -69,11 +73,37 @@ VOID EtShowWsWatchDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PWS_WATCH_CONTEXT context;
 
     context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
     context->RefCount = 1;
     context->ProcessItem = PhReferenceObject(ProcessItem);
+
+    if (PH_IS_REAL_PROCESS_ID(context->ProcessId))
+    {
+        status = PhOpenProcess(
+            &context->ProcessHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            context->ProcessId
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            status = PhOpenProcess(
+                &context->ProcessHandle,
+                MAXIMUM_ALLOWED,
+                context->ProcessId
+                );
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
+        EtpDereferenceWsWatchContext(context);
+        return;
+    }
 
     DialogBoxParam(
         PluginInstance->DllBase,
@@ -477,38 +507,6 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             context->ProcessId = context->ProcessItem->ProcessId;
             context->BufferSize = 0x2000;
             context->Buffer = PhAllocate(context->BufferSize);
-
-            if (PH_IS_REAL_PROCESS_ID(context->ProcessId))
-            {
-                NTSTATUS status;
-                HANDLE processHandle;
-
-                status = PhOpenProcess(
-                    &processHandle,
-                    PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                    context->ProcessId
-                    );
-
-                if (!NT_SUCCESS(status))
-                {
-                    status = PhOpenProcess(
-                        &processHandle,
-                        MAXIMUM_ALLOWED,
-                        context->ProcessId
-                        );
-                }
-
-                if (NT_SUCCESS(status))
-                {
-                    context->ProcessHandle = processHandle;
-                }
-                else
-                {
-                    PhShowError(hwndDlg, L"%s", L"Unable to open the process.");
-                    EndDialog(hwndDlg, IDCANCEL);
-                    break;
-                }
-            }
 
             PhInitializeQueuedLock(&context->ResultListLock);
             context->SymbolProvider = PhCreateSymbolProvider(context->ProcessId);
