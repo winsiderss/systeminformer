@@ -1397,12 +1397,12 @@ PPH_STRING PhFormatDateTime(
     ULONG dateBufferSize;
     ULONG count;
 
-    timeBufferSize = GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
-    dateBufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
+    timeBufferSize = GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
+    dateBufferSize = GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, NULL, 0, NULL);
 
     string = PhCreateStringEx(NULL, ((SIZE_T)timeBufferSize + 1 + dateBufferSize) * sizeof(WCHAR));
 
-    if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[0], timeBufferSize))
+    if (!GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[0], timeBufferSize))
     {
         PhDereferenceObject(string);
         return NULL;
@@ -1411,7 +1411,7 @@ PPH_STRING PhFormatDateTime(
     count = (ULONG)PhCountStringZ(string->Buffer);
     string->Buffer[count] = L' ';
 
-    if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[count + 1], dateBufferSize))
+    if (!GetDateFormatEx(LOCALE_NAME_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[count + 1], dateBufferSize, NULL))
     {
         PhDereferenceObject(string);
         return NULL;
