@@ -6103,7 +6103,7 @@ VOID PhTnpInitializeTooltips(
 
     if (Context->HeaderCustomDraw)
     {
-        Context->HeaderHotColumn = ULONG_MAX;
+        Context->HeaderHotColumn = -1;
         Context->HeaderThemeHandle = OpenThemeData(Context->HeaderHandle, VSCLASS_HEADER);
     }
 
@@ -6558,7 +6558,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
             {
-                logFont.lfHeight -= PhMultiplyDivideSigned(3, PhGlobalDpi, 96);
+                logFont.lfHeight -= PhMultiplyDivideSigned(2, PhGlobalDpi, 96);
                 context->HeaderBoldFontHandle = CreateFontIndirect(&logFont);
                 //context->HeaderBoldFontHandle = PhDuplicateFontWithNewHeight(fontHandle, -14);
             }
@@ -6699,7 +6699,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             result = CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
             context->HeaderMouseActive = FALSE;
-            context->HeaderHotColumn = ULONG_MAX;
+            context->HeaderHotColumn = -1;
 
             if (GetCapture() != hwnd)
             {
@@ -6782,7 +6782,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 if (!(column = (PPH_TREENEW_COLUMN)headerItem.lParam))
                     continue;
 
-                if (context->HeaderHotColumn != ULONG_MAX && context->HeaderHotColumn == column->Id)
+                if (context->HeaderHotColumn != -1 && context->HeaderHotColumn == column->Id)
                 {
                     if (context->ThemeSupport)
                     {
