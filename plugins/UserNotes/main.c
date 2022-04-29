@@ -122,60 +122,6 @@ VOID DeleteDbObjectForProcessIfUnused(
     }
 }
 
-VOID LoadCustomColors(
-    VOID
-    )
-{
-    PPH_STRING settingsString;
-    PH_STRINGREF remaining;
-    PH_STRINGREF part;
-
-    settingsString = PhaGetStringSetting(SETTING_NAME_CUSTOM_COLOR_LIST);
-
-    if (PhIsNullOrEmptyString(settingsString))
-        return;
-
-    remaining = PhGetStringRef(settingsString);
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(ProcessCustomColors); i++)
-    {
-        ULONG64 integer = 0;
-
-        if (remaining.Length == 0)
-            break;
-
-        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
-
-        if (PhStringToInteger64(&part, 10, &integer))
-        {
-            ProcessCustomColors[i] = (COLORREF)integer;
-        }
-    }
-}
-
-PPH_STRING SaveCustomColors(
-    VOID
-    )
-{
-    PH_STRING_BUILDER stringBuilder;
-
-    PhInitializeStringBuilder(&stringBuilder, 100);
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(ProcessCustomColors); i++)
-    {
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%lu,",
-            ProcessCustomColors[i]
-            );
-    }
-
-    if (stringBuilder.String->Length != 0)
-        PhRemoveEndStringBuilder(&stringBuilder, 1);
-
-    return PhFinalStringBuilderString(&stringBuilder);
-}
-
 NTSTATUS GetProcessAffinity(
     _In_ HANDLE ProcessHandle,
     _Out_ PKAFFINITY Affinity
@@ -1184,7 +1130,7 @@ VOID NTAPI MenuItemCallback(
             {
                 CHOOSECOLOR chooseColor;
 
-                LoadCustomColors();
+                PhLoadCustomColorList(SETTING_NAME_CUSTOM_COLOR_LIST, ProcessCustomColors, RTL_NUMBER_OF(ProcessCustomColors));
 
                 memset(&chooseColor, 0, sizeof(CHOOSECOLOR));
                 chooseColor.lStructSize = sizeof(CHOOSECOLOR);
@@ -1195,7 +1141,7 @@ VOID NTAPI MenuItemCallback(
 
                 if (ChooseColor(&chooseColor))
                 {
-                    PhSetStringSetting2(SETTING_NAME_CUSTOM_COLOR_LIST, &PH_AUTO_T(PH_STRING, SaveCustomColors())->sr);
+                    PhSaveCustomColorList(SETTING_NAME_CUSTOM_COLOR_LIST, ProcessCustomColors, RTL_NUMBER_OF(ProcessCustomColors));
 
                     LockDb();
 

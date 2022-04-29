@@ -3400,9 +3400,13 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
                         if (item = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
                         {
-                            CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
+                            CHOOSECOLOR chooseColor;
                             COLORREF customColors[16] = { 0 };
 
+                            PhLoadCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+
+                            memset(&chooseColor, 0, sizeof(CHOOSECOLOR));
+                            chooseColor.lStructSize = sizeof(CHOOSECOLOR);
                             chooseColor.hwndOwner = hwndDlg;
                             chooseColor.rgbResult = item->CurrentColor;
                             chooseColor.lpCustColors = customColors;
@@ -3414,6 +3418,8 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                                 item->CurrentColor = chooseColor.rgbResult;
                                 InvalidateRect(HighlightingListViewHandle, NULL, TRUE);
                             }
+
+                            PhSaveCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
                         }
                     }
                 }
@@ -3547,9 +3553,13 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
 
                         if (item = PhGetSelectedListViewItemParam(PhpGraphListViewHandle))
                         {
-                            CHOOSECOLOR chooseColor = { sizeof(CHOOSECOLOR) };
+                            CHOOSECOLOR chooseColor;
                             COLORREF customColors[16] = { 0 };
 
+                            PhLoadCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
+
+                            memset(&chooseColor, 0, sizeof(CHOOSECOLOR));
+                            chooseColor.lStructSize = sizeof(CHOOSECOLOR);
                             chooseColor.hwndOwner = hwndDlg;
                             chooseColor.rgbResult = item->CurrentColor;
                             chooseColor.lpCustColors = customColors;
@@ -3561,6 +3571,8 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                                 item->CurrentColor = chooseColor.rgbResult;
                                 InvalidateRect(PhpGraphListViewHandle, NULL, TRUE);
                             }
+
+                            PhSaveCustomColorList(L"OptionsCustomColorList", customColors, RTL_NUMBER_OF(customColors));
                         }
                     }
                 }
