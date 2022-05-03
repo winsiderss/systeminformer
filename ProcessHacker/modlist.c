@@ -31,6 +31,7 @@
 
 #include <extmgri.h>
 #include <modprv.h>
+#include <svcsup.h>
 #include <phsettings.h>
 
 BOOLEAN PhpModuleNodeHashtableEqualFunction(
@@ -121,6 +122,7 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_COHERENCY, FALSE, L"Image coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PHMOTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_SERVICE, FALSE, L"Service", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 
@@ -424,6 +426,8 @@ VOID PhpDestroyModuleNode(
     PhClearReference(&ModuleNode->LoadTimeText);
     PhClearReference(&ModuleNode->FileModifiedTimeText);
     PhClearReference(&ModuleNode->FileSizeText);
+    PhClearReference(&ModuleNode->ImageCoherencyText);
+    PhClearReference(&ModuleNode->ServiceText);
 
     PhDereferenceObject(ModuleNode->ModuleItem);
 
@@ -1099,13 +1103,29 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         PhInitFormatF(&format[0], (DOUBLE)(moduleItem->ImageCoherency * 100.0f), 2);
                         PhInitFormatS(&format[1], L"%");
 
-                        PhMoveReference(&node->ImageCoherencyText, PhFormat(format, RTL_NUMBER_OF(format), PH_PTR_STR_LEN_1));
+                        PhMoveReference(&node->ImageCoherencyText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = PhGetStringRef(node->ImageCoherencyText);
                     }
                 }
                 break;
             case PHMOTLC_ORIGINALNAME:
                 getCellText->Text = PhGetStringRef(moduleItem->FileName);
+                break;
+            case PHMOTLC_SERVICE:
+                {
+                    if (moduleItem->FileNameWin32 && context->HasServices)
+                    {
+                        PhMoveReference(&node->ServiceText, PhGetServiceNameForModuleReference(
+                            context->ProcessId,
+                            PhGetString(moduleItem->FileNameWin32)
+                            ));
+                        getCellText->Text = PhGetStringRef(node->ServiceText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             default:
                 return FALSE;

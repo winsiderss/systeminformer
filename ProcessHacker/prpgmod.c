@@ -701,8 +701,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->ErrorMessage = NULL;
             modulesContext->SearchboxText = PhReferenceEmptyString();
             modulesContext->FilterEntry = PhAddTreeNewFilter(&modulesContext->ListContext.TreeFilterSupport, PhpModulesTreeFilterCallback, modulesContext);
-            // Initialize the CreateTime for the module timeline. (dmex) 
+            // Initialize the CreateTime for the module timeline. (dmex)
+            modulesContext->ListContext.ProcessId = processItem->ProcessId;
             modulesContext->ListContext.ProcessCreateTime = processItem->CreateTime;
+            modulesContext->ListContext.HasServices = processItem->ServiceList && processItem->ServiceList->Count != 0;
 
             // Initialize the search box. (dmex)
             PhCreateSearchControl(hwndDlg, modulesContext->SearchboxHandle, L"Search Modules (Ctrl+K)");

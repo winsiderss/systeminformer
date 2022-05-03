@@ -32,8 +32,9 @@
 #define PHMOTLC_COHERENCY 21
 #define PHMOTLC_TIMELINE 22
 #define PHMOTLC_ORIGINALNAME 23
+#define PHMOTLC_SERVICE 24
 
-#define PHMOTLC_MAXIMUM 24
+#define PHMOTLC_MAXIMUM 25
 
 // begin_phapppub
 typedef struct _PH_MODULE_NODE
@@ -58,6 +59,7 @@ typedef struct _PH_MODULE_NODE
     PPH_STRING FileModifiedTimeText;
     PPH_STRING FileSizeText;
     PPH_STRING ImageCoherencyText;
+    PPH_STRING ServiceText;
 
     struct _PH_MODULE_NODE *Parent;
     PPH_LIST Children;
@@ -92,7 +94,9 @@ typedef struct _PH_MODULE_LIST_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     PH_CM_MANAGER Cm;
 
+    HANDLE ProcessId;
     LARGE_INTEGER ProcessCreateTime;
+    BOOLEAN HasServices;
     BOOLEAN EnableStateHighlighting;
 
     union
