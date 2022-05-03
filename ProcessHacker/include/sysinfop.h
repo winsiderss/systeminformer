@@ -378,6 +378,13 @@ BOOLEAN PhSipGetMemoryLimits(
     _Out_ PULONGLONG ReservedMemory
     );
 
+_Success_(return)
+BOOLEAN PhSipGetMemoryCompressionLimits(
+    _Out_ DOUBLE *CurrentCompressedMemory,
+    _Out_ DOUBLE *TotalCompressedMemory,
+    _Out_ DOUBLE *TotalSavedMemory
+    );
+
 // I/O section
 
 BOOLEAN PhSipIoSectionCallback(
