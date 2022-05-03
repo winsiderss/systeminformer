@@ -3063,20 +3063,28 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_MINIMUMWORKINGSET:
                 {
-                    PhpUpdateProcessNodeQuotaLimits(node);
                     SIZE_T value = 0;
+                    PhpUpdateProcessNodeQuotaLimits(node);
                     PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &value);
-                    PhMoveReference(&node->MinimumWorkingSetText, PhFormatSize(value, ULONG_MAX));
-                    getCellText->Text = node->MinimumWorkingSetText->sr;
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->MinimumWorkingSetText, PhFormatSize(value, ULONG_MAX));
+                        getCellText->Text = node->MinimumWorkingSetText->sr;
+                    }
                 }
                 break;
             case PHPRTLC_MAXIMUMWORKINGSET:
                 {
-                    PhpUpdateProcessNodeQuotaLimits(node);
                     SIZE_T value = 0;
+                    PhpUpdateProcessNodeQuotaLimits(node);
                     PhpAggregateFieldIfNeeded(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &value);
-                    PhMoveReference(&node->MaximumWorkingSetText, PhFormatSize(value, ULONG_MAX));
-                    getCellText->Text = node->MaximumWorkingSetText->sr;
+
+                    if (value != 0)
+                    {
+                        PhMoveReference(&node->MaximumWorkingSetText, PhFormatSize(value, ULONG_MAX));
+                        getCellText->Text = node->MaximumWorkingSetText->sr;
+                    }
                 }
                 break;
             case PHPRTLC_PRIVATEBYTESDELTA:
@@ -3905,10 +3913,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PEAKPAGEDPOOL:
             case PHPRTLC_NONPAGEDPOOL:
             case PHPRTLC_PEAKNONPAGEDPOOL:
-            case PHPRTLC_MINIMUMWORKINGSET:
-            case PHPRTLC_MAXIMUMWORKINGSET:
             case PHPRTLC_PRIVATEBYTESDELTA:
             case PHPRTLC_CPUCORECYCLES:
+            case PHPRTLC_COMMITSIZE:
                 break;
             default:
                 return FALSE;
@@ -4063,12 +4070,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 case PHPRTLC_PEAKNONPAGEDPOOL:
                     PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, VmCounters.QuotaPeakNonPagedPoolUsage), &number);
                     break;
-                case PHPRTLC_MINIMUMWORKINGSET:
-                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number);
-                    break;
-                case PHPRTLC_MAXIMUMWORKINGSET:
-                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessNode, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number);
-                    break;
                 case PHPRTLC_PRIVATEBYTESDELTA:
                     PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, PrivateBytesDelta.Delta), &number);
                     break;
@@ -4079,6 +4080,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &decimal);
                     }
+                    break;
+                case PHPRTLC_COMMITSIZE:
+                    PhpAggregateFieldTotal(node, AggregateTypeIntPtr, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, SharedCommitCharge), &number);
                     break;
                 }
             }
@@ -4138,8 +4142,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PEAKPAGEDPOOL:
             case PHPRTLC_NONPAGEDPOOL:
             case PHPRTLC_PEAKNONPAGEDPOOL:
-            case PHPRTLC_MINIMUMWORKINGSET:
-            case PHPRTLC_MAXIMUMWORKINGSET:
+            case PHPRTLC_COMMITSIZE:
                 {
                     PH_FORMAT format[1];
 
@@ -4217,7 +4220,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PH_FORMAT format[2];
 
-                    if (decimal == 0.0)
+                    if (decimal == 0)
                         break;
 
                     decimal *= 100;
