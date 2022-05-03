@@ -2180,7 +2180,26 @@ HBITMAP PhGetShieldBitmap(
     {
         HICON shieldIcon;
 
-        if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT, 0, 0))
+        shieldIcon = PhLoadIcon(
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDI_UACSHIELD),
+            PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+            0,
+            0
+            );
+
+        if (!shieldIcon)
+        {
+            shieldIcon = PhLoadIcon(
+                NULL,
+                IDI_SHIELD,
+                PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                0,
+                0
+                );
+        }
+
+        if (shieldIcon)
         {
             shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
             DestroyIcon(shieldIcon);

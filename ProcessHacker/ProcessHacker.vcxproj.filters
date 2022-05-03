@@ -520,5 +520,8 @@
     <Image Include="resources\inactive_search.png">
       <Filter>Resources</Filter>
     </Image>
+    <Image Include="resources\shield.ico">
+      <Filter>Resources</Filter>
+    </Image>
   </ItemGroup>
 </Project>

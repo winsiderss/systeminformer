@@ -632,7 +632,26 @@ HBITMAP ToolbarGetImage(
             HICON shieldIcon;
             HBITMAP toolbarBitmap = NULL;
 
-            if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL, 0, 0))
+            shieldIcon = PhLoadIcon(
+                NtCurrentPeb()->ImageBaseAddress,
+                MAKEINTRESOURCE(PHAPP_IDI_UACSHIELD),
+                PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                0,
+                0
+                );
+
+            if (!shieldIcon)
+            {
+                shieldIcon = PhLoadIcon(
+                    NULL,
+                    IDI_SHIELD,
+                    PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                    0,
+                    0
+                    );
+            }
+
+            if (shieldIcon)
             {
                 toolbarBitmap = PhIconToBitmap(shieldIcon, ToolBarImageSize.cx, ToolBarImageSize.cy);
                 DestroyIcon(shieldIcon);
