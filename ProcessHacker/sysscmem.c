@@ -676,16 +676,39 @@ VOID PhSipNotifyPhysicalGraph(
                 if (PhysicalGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     ULONG usedPages;
-                    PH_FORMAT format[3];
+                    DOUBLE currentCompressedMemory;
+                    DOUBLE totalCompressedMemory;
+                    DOUBLE totalSavedMemory;
+                    PH_FORMAT format[13];
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
-                    // Physical charge: %s\n%s
-                    PhInitFormatSize(&format[0], UInt32x32To64(usedPages, PAGE_SIZE));
-                    PhInitFormatC(&format[1], L'\n');
-                    PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                    // Physical memory: %s\n%s
+                    PhInitFormatS(&format[0], L"Physical memory: ");
+                    PhInitFormatSize(&format[1], UInt32x32To64(usedPages, PAGE_SIZE));
+                    PhInitFormatC(&format[2], L'\n');
+   
+                    if (PhSipGetMemoryCompressionLimits(&currentCompressedMemory, &totalCompressedMemory, &totalSavedMemory))
+                    {
+                        PhInitFormatS(&format[3], L"Compressed memory: ");
+                        PhInitFormatSize(&format[4], (ULONG64)currentCompressedMemory);
+                        PhInitFormatC(&format[5], L'\n');
+                        PhInitFormatS(&format[6], L"Total compressed: ");
+                        PhInitFormatSize(&format[7], (ULONG64)totalCompressedMemory);
+                        PhInitFormatC(&format[8], L'\n');
+                        PhInitFormatS(&format[9], L"Total memory saved: ");
+                        PhInitFormatSize(&format[10], (ULONG64)totalSavedMemory);
+                        PhInitFormatC(&format[11], L'\n');
+                        PhInitFormatSR(&format[12], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
-                    PhMoveReference(&PhysicalGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
+                        PhMoveReference(&PhysicalGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
+                    }
+                    else
+                    {
+                        PhInitFormatSR(&format[3], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&PhysicalGraphState.TooltipText, PhFormat(format, 4, 128));
+                    }
                 }
 
                 getTooltipText->Text = PhysicalGraphState.TooltipText->sr;
@@ -1016,4 +1039,49 @@ BOOLEAN PhSipGetMemoryLimits(
     }
 
     return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhSipGetMemoryCompressionLimits(
+    _Out_ DOUBLE *CurrentCompressedMemory,
+    _Out_ DOUBLE *TotalCompressedMemory,
+    _Out_ DOUBLE *TotalSavedMemory
+    )
+{
+    NTSTATUS status;
+    STORE_INFORMATION storeInfo;
+    SM_MEM_COMPRESSION_INFO_REQUEST compressionInfo;
+    DOUBLE current;
+    DOUBLE total;
+    DOUBLE saved;
+
+    memset(&compressionInfo, 0, sizeof(SM_MEM_COMPRESSION_INFO_REQUEST));
+    compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION;
+
+    memset(&storeInfo, 0, sizeof(STORE_INFORMATION));
+    storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
+    storeInfo.StoreInformationClass = MemCompressionInfoRequest;
+    storeInfo.Data = &compressionInfo;
+    storeInfo.Length = sizeof(compressionInfo);
+
+    status = NtQuerySystemInformation(
+        SystemStoreInformation,
+        &storeInfo,
+        sizeof(STORE_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+    if (!(compressionInfo.TotalDataCompressed && compressionInfo.TotalCompressedSize))
+        return FALSE;
+
+    current = (DOUBLE)compressionInfo.WorkingSetSize / (DOUBLE)(1024 * 1024);
+    total = current * (DOUBLE)compressionInfo.TotalDataCompressed / (DOUBLE)compressionInfo.TotalCompressedSize;
+    saved = total - current;
+
+    *CurrentCompressedMemory = current * 1024 * 1024;
+    *TotalCompressedMemory = total * 1024 * 1024;
+    *TotalSavedMemory = saved * 1024 * 1024;
+    return TRUE;
 }
