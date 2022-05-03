@@ -66,6 +66,8 @@ IDI_PENCIL              ICON                    "resources\\pencil.ico"
 
 IDI_MAGNIFIER           ICON                    "resources\\magnifier.ico"
 
+IDI_UACSHIELD           ICON                    "resources\\shield.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
