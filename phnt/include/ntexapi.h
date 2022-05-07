@@ -3035,13 +3035,13 @@ typedef enum _STORE_INFORMATION_CLASS
 #define SYSTEM_STORE_INFORMATION_VERSION 1
 
 // rev
-typedef struct _STORE_INFORMATION
+typedef struct _SYSTEM_STORE_INFORMATION
 {
     _In_ ULONG Version;
     _In_ STORE_INFORMATION_CLASS StoreInformationClass;
     _Inout_ PVOID Data;
     _Inout_ ULONG Length;
-} STORE_INFORMATION, *PSTORE_INFORMATION;
+} SYSTEM_STORE_INFORMATION, *PSYSTEM_STORE_INFORMATION;
 
 #define SYSTEM_STORE_STATS_INFORMATION_VERSION 2
 
@@ -3445,7 +3445,7 @@ typedef struct _SM_MEM_COMPRESSION_INFO_REQUEST
     ULONG Version : 8; // SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION
     ULONG Spare : 24;
     ULONG CompressionPid;
-    ULONG WorkingSetSize; // ULONGLONG?
+    ULONG WorkingSetSize;
     SIZE_T TotalDataCompressed;
     SIZE_T TotalCompressedSize;
     SIZE_T TotalUniqueDataCompressed;
