@@ -100,8 +100,8 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryWorkingSetInformation, // MEMORY_WORKING_SET_INFORMATION
     MemoryMappedFilenameInformation, // UNICODE_STRING
     MemoryRegionInformation, // MEMORY_REGION_INFORMATION
-    MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION
-    MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION
+    MemoryWorkingSetExInformation, // MEMORY_WORKING_SET_EX_INFORMATION // since VISTA
+    MemorySharedCommitInformation, // MEMORY_SHARED_COMMIT_INFORMATION // since WIN8
     MemoryImageInformation, // MEMORY_IMAGE_INFORMATION
     MemoryRegionInformationEx, // MEMORY_REGION_INFORMATION
     MemoryPrivilegedBasicInformation,
@@ -435,7 +435,7 @@ typedef enum _SECTION_INFORMATION_CLASS
 {
     SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
     SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
-    SectionRelocationInformation, // q; PVOID RelocationAddress // name:wow64:whNtQuerySection_SectionRelocationInformation
+    SectionRelocationInformation, // q; PVOID RelocationAddress // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
     SectionOriginalBaseInformation, // PVOID BaseAddress
     SectionInternalImageInformation, // SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
     MaxSectionInfoClass
