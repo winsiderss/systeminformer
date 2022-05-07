@@ -1039,9 +1039,6 @@ VOID PhMwpOnProcessModified(
     )
 {
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
-
-    if (SignedFilterEntry)
-        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 }
 
 VOID PhMwpOnProcessRemoved(
@@ -1145,6 +1142,9 @@ VOID PhMwpOnProcessesUpdated(
     {
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
     }
+
+    if (SignedFilterEntry)
+        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
     if (count != 0)
         TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, TRUE);
