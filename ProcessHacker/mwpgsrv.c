@@ -3,7 +3,7 @@
  *   Main window: Services tab
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -208,17 +208,6 @@ VOID PhMwpToggleMicrosoftServiceTreeFilter(
     }
     else
     {
-        if (!PhEnableServiceQueryStage2)
-        {
-            PhShowInformation2(
-                PhMainWndHandle,
-                NULL,
-                L"This filter cannot function because digital signature checking is not enabled.\r\n%s",
-                L"Enable it in Options > General and restart Process Hacker."
-                );
-            return;
-        }
-
         MicrosoftFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), PhMwpMicrosoftServiceTreeFilter, NULL);
     }
 
@@ -245,14 +234,40 @@ BOOLEAN PhMwpMicrosoftServiceTreeFilter(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)Node;
 
-    if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->VerifySignerName))
+    if (PhEnableServiceQueryStage2)
     {
-        if (PhEqualStringRef(&serviceNode->ServiceItem->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
-            return FALSE;
+        if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->VerifySignerName))
+        {
+            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+
+            if (PhEqualStringRef(&serviceNode->ServiceItem->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
+                return FALSE;
+        }
     }
+    else
+    {
+        if (!PhIsNullOrEmptyString(serviceNode->ServiceItem->FileName))
+        {
+            PH_IMAGE_VERSION_INFO versionInfo;
+
+            if (PhInitializeImageVersionInfo(&versionInfo, PhGetString(serviceNode->ServiceItem->FileName)))
+            {
+                static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
+
+                // Note: This is how msconfig determines default services. (dmex) 
+                if (versionInfo.CompanyName && PhStartsWithStringRef(&versionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
+                {
+                    PhDeleteImageVersionInfo(&versionInfo);
+                    return FALSE;
+                }
+
+                PhDeleteImageVersionInfo(&versionInfo);
+            }
+        }
+    }
+
 
     return TRUE;
 }
@@ -510,9 +525,6 @@ VOID PhMwpOnServiceModified(
 
     PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
 
-    if (DriverFilterEntry || MicrosoftFilterEntry)
-        PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
-
     serviceChange = PhGetServiceChange(ServiceModifiedData);
 
     switch (serviceChange)
@@ -710,6 +722,9 @@ VOID PhMwpOnServicesUpdated(
     }
 
     PhTickServiceNodes();
+
+    if (DriverFilterEntry || MicrosoftFilterEntry)
+        PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
 
     if (count != 0)
         TreeNew_SetRedraw(PhMwpServiceTreeNewHandle, TRUE);
