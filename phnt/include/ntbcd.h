@@ -165,6 +165,15 @@ BcdExportStore(
 NTSYSAPI
 NTSTATUS
 NTAPI
+BcdExportStoreEx(
+    _In_ HANDLE BcdStoreHandle,
+    _In_ ULONG Flags,
+    _In_ UNICODE_STRING BcdFilePath
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 BcdImportStore(
     _In_ UNICODE_STRING BcdFilePath
     );
