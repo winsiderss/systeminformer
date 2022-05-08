@@ -603,11 +603,12 @@ VOID DeletePluginsTree(
 
 #pragma endregion
 
-PWSTR PhpGetPluginBaseName(
+PPH_STRING PhpGetPluginBaseName(
     _In_ PPH_PLUGIN Plugin
     )
 {
     PPH_STRING fileName;
+    PPH_STRING baseName;
 
     if (fileName = PhGetPluginFileName(Plugin))
     {
@@ -616,17 +617,20 @@ PWSTR PhpGetPluginBaseName(
 
         if (PhSplitStringRefAtLastChar(&fileName->sr, OBJ_NAME_PATH_SEPARATOR, &pathNamePart, &baseNamePart))
         {
+            baseName = PhCreateString2(&baseNamePart);
             PhDereferenceObject(fileName);
-            return baseNamePart.Buffer;
+            return baseName;
         }
 
+        baseName = PhCreateString2(&Plugin->Name);
         PhDereferenceObject(fileName);
-        return Plugin->Name.Buffer;
+        return baseName;
     }
     else
     {
         // Fake disabled plugin.
-        return Plugin->Name.Buffer;
+        baseName = PhCreateString2(&Plugin->Name);
+        return baseName;
     }
 }
 
@@ -635,15 +639,16 @@ BOOLEAN NTAPI PhpEnumeratePluginCallback(
     _In_opt_ PVOID Context
     )
 {
-    PH_STRINGREF pluginBaseName;
+    PPH_STRING pluginBaseName;
 
-    PhInitializeStringRefLongHint(&pluginBaseName, PhpGetPluginBaseName(Information));
+    pluginBaseName = PhpGetPluginBaseName(Information);
 
-    if (!PhIsPluginDisabled(&pluginBaseName))
+    if (!PhIsPluginDisabled(&pluginBaseName->sr))
     {
         AddPluginsNode(Context, Information);
     }
 
+    PhDereferenceObject(pluginBaseName);
     return TRUE;
 }
 
@@ -775,17 +780,15 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                             break;
                         case PH_PLUGIN_TREE_ITEM_MENU_DISABLE:
                             {
-                                PWSTR baseName;
-                                PH_STRINGREF baseNameRef;
-
-                                baseName = PhpGetPluginBaseName(selectedNode->PluginInstance);
-                                PhInitializeStringRef(&baseNameRef, baseName);
-
-                                PhSetPluginDisabled(&baseNameRef, TRUE);
+                                PPH_STRING baseName = PhpGetPluginBaseName(selectedNode->PluginInstance);
+          
+                                PhSetPluginDisabled(&baseName->sr, TRUE);
 
                                 RemovePluginsNode(context, selectedNode);
 
                                 PhSetWindowText(GetDlgItem(hwndDlg, IDC_DISABLED), PhaFormatString(L"Disabled Plugins (%lu)", PhpDisabledPluginsCount())->Buffer);
+
+                                PhDereferenceObject(baseName);
                             }
                             break;
                         case PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES:
