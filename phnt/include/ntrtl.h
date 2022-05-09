@@ -2844,6 +2844,12 @@ RtlUpdateClonedSRWLock(
     _In_ LOGICAL Shared // TRUE to set to shared acquire
     );
 
+// rev
+#define RTL_PROCESS_REFLECTION_FLAGS_INHERIT_HANDLES 0x2
+#define RTL_PROCESS_REFLECTION_FLAGS_NO_SUSPEND 0x4
+#define RTL_PROCESS_REFLECTION_FLAGS_NO_SYNCHRONIZE 0x8
+#define RTL_PROCESS_REFLECTION_FLAGS_NO_CLOSE_EVENT 0x10
+
 // private
 typedef struct _RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION
 {
@@ -2859,7 +2865,7 @@ NTSTATUS
 NTAPI
 RtlCreateProcessReflection(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG Flags, // RTL_CLONE_PROCESS_FLAGS
+    _In_ ULONG Flags, // RTL_PROCESS_REFLECTION_FLAGS_*
     _In_opt_ PVOID StartRoutine,
     _In_opt_ PVOID StartContext,
     _In_opt_ HANDLE EventHandle,
