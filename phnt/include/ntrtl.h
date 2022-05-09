@@ -8356,11 +8356,19 @@ RtlAppxIsFileOwnedByTrustedInstaller(
     );
 #endif
 
-// rev
+// Windows Internals book
+#define PSM_ACTIVATION_TOKEN_PACKAGED_APPLICATION 0x1
+#define PSM_ACTIVATION_TOKEN_SHARED_ENTITY 0x2
+#define PSM_ACTIVATION_TOKEN_FULL_TRUST 0x4
+#define PSM_ACTIVATION_TOKEN_NATIVE_SERVICE 0x8
+#define PSM_ACTIVATION_TOKEN_DEVELOPMENT_APP 0x10
+#define BREAKAWAY_INHIBITED 0x20
+
+// private
 typedef struct _PS_PKG_CLAIM
 {
-    ULONGLONG Flags;
-    ULONGLONG Origin;
+    ULONG Flags;  // PSM_ACTIVATION_TOKEN_*
+    ULONG Origin; // PackageOrigin from appmodel.h
 } PS_PKG_CLAIM, *PPS_PKG_CLAIM;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
