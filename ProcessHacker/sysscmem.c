@@ -300,6 +300,10 @@ VOID PhSipUninitializeMemoryDialog(
 {
     PhDeleteGraphState(&CommitGraphState);
     PhDeleteGraphState(&PhysicalGraphState);
+
+    // Note: Required for SysInfoViewChanging (dmex)
+    CommitGraphHandle = NULL;
+    PhysicalGraphHandle = NULL;
 }
 
 VOID PhSipTickMemoryDialog(

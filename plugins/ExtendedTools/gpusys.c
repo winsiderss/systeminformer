@@ -316,6 +316,14 @@ VOID EtpUninitializeGpuDialog(
         PhDeleteGraphState(&TemperatureGraphState);
         PhDeleteGraphState(&FanRpmGraphState);
     }
+
+    // Note: Required for SysInfoViewChanging (dmex)
+    GpuGraphHandle = NULL;
+    DedicatedGraphHandle = NULL;
+    SharedGraphHandle = NULL;
+    PowerUsageGraphHandle = NULL;
+    TemperatureGraphHandle = NULL;
+    FanRpmGraphHandle = NULL;
 }
 
 VOID EtpTickGpuDialog(

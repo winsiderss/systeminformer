@@ -1597,8 +1597,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 {
                     ICONINFO iconInfo;
                     BITMAP bmp;
-                    LONG width;
-                    LONG height;
+                    LONG width = PhSmallIconSize.X;
+                    LONG height = PhSmallIconSize.Y;
 
                     memset(&iconInfo, 0, sizeof(ICONINFO));
                     memset(&bmp, 0, sizeof(BITMAP));

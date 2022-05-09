@@ -110,7 +110,7 @@ BOOLEAN PhSipCpuSectionCallback(
             {
                 for (ULONG i = 0; i < NumberOfProcessors; i++)
                 {
-                    if (CpusGraphHandle[i])
+                    if (CpusGraphHandle && CpusGraphHandle[i] && CpusGraphState)
                     {
                         CpusGraphState[i].Valid = FALSE;
                         CpusGraphState[i].TooltipIndex = ULONG_MAX;
@@ -293,6 +293,14 @@ VOID PhSipUninitializeCpuDialog(
     PhFree(CpusGraphState);
     PhFree(InterruptInformation);
     PhFree(PowerInformation);
+
+    // Note: Required for SysInfoViewChanging (dmex)
+    NumberOfProcessors = 0;
+    CpuGraphHandle = NULL;
+    CpusGraphHandle = NULL;
+    CpusGraphState = NULL;
+    InterruptInformation = NULL;
+    PowerInformation = NULL;
 
     if (CurrentPerformanceDistribution)
         PhFree(CurrentPerformanceDistribution);

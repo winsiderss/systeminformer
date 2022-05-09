@@ -238,6 +238,9 @@ VOID PhSipUninitializeIoDialog(
     )
 {
     PhDeleteGraphState(&IoGraphState);
+
+    // Note: Required for SysInfoViewChanging (dmex)
+    IoGraphHandle = NULL;
 }
 
 VOID PhSipTickIoDialog(
