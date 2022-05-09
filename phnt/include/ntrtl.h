@@ -3248,6 +3248,32 @@ RtlGetFunctionTableListHead(
 
 #endif
 
+// Activation Contexts
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetActiveActivationContext(
+    _Out_ HANDLE ActCtx
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlAddRefActivationContext(
+    _In_ HANDLE ActCtx
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlReleaseActivationContext(
+    _In_ HANDLE ActCtx
+    );
+
 // Images
 
 NTSYSAPI
