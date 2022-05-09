@@ -4904,6 +4904,21 @@ RtlGetFileMUIPath(
     _Inout_ PULONGLONG Enumerator
     );
 
+// private
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLoadString(
+    _In_ PVOID DllHandle,
+    _In_ ULONG StringId,
+    _In_opt_ PCWSTR StringLanguage,
+    _In_ ULONG Flags,
+    _Out_ PCWSTR *ReturnString,
+    _Out_opt_ PUSHORT ReturnStringLen,
+    _Out_writes_(ReturnLanguageLen) PWSTR ReturnLanguageName,
+    _Inout_opt_ PULONG ReturnLanguageLen
+    );
+
 // Errors
 
 NTSYSAPI
