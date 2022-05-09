@@ -4249,10 +4249,13 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             if (GetKeyState(VK_CONTROL) >= 0)
                 PhDeselectAllProcessNodes();
 
+            node = (PPH_PROCESS_NODE)mouseEvent->Node;
+            if (!node)
+                break;
+
             if (ProcessTreeListSortOrder == NoSortOrder)
             {
                 // in NoSortOrder we select subtree (TheEragon)
-                node = (PPH_PROCESS_NODE)mouseEvent->Node;
 
                 // init last index to self, this way we select only the process if there are no children (TheEragon)
                 ULONG lastChildIndex = mouseEvent->Node->Index;
@@ -4267,11 +4270,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
             else
             {
+                // in sorted order we select all processes with same name (TheEragon)
+
                 ULONG first = ULONG_MAX;
                 ULONG last = 0;
-
-                // in sorted order we select all processes with same name (TheEragon)
-                node = (PPH_PROCESS_NODE)mouseEvent->Node;
 
                 for (ULONG i = 0; i < ProcessNodeList->Count; i++)
                 {
