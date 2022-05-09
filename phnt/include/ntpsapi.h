@@ -1701,7 +1701,7 @@ NtWaitForAlertByThreadId(
 #define ProcThreadAttributeDesktopAppPolicy 18 // in ULONG (PROCESS_CREATION_DESKTOP_APP_*) // since RS2
 #define ProcThreadAttributeBnoIsolation 19 // in PROC_THREAD_BNOISOLATION_ATTRIBUTE
 #define ProcThreadAttributePseudoConsole 22 // in HANDLE (HPCON) // since RS5
-#define ProcThreadAttributeIsolationManifest 23 // in ISOLATION_MANIFEST_PROPERTIES // rev (diversenok)
+#define ProcThreadAttributeIsolationManifest 23 // in ISOLATION_MANIFEST_PROPERTIES // rev (diversenok) // since 19H2+
 #define ProcThreadAttributeMitigationAuditPolicy 24 // in ULONG, ULONG64, or ULONG64[2] // since 21H1
 #define ProcThreadAttributeMachineType 25 // in USHORT // since 21H2
 #define ProcThreadAttributeComponentFilter 26 // in ULONG
