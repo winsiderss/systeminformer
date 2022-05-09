@@ -1591,6 +1591,12 @@ typedef VOID (*PPS_APC_ROUTINE)(
     _In_opt_ PVOID ApcArgument3
     );
 
+#define Wow64EncodeApcRoutine(ApcRoutine) \
+    ((PVOID)((0 - ((LONG_PTR)(ApcRoutine))) << 2))
+
+#define Wow64DecodeApcRoutine(ApcRoutine) \
+    ((PVOID)(0 - (((LONG_PTR)(ApcRoutine)) >> 2)))
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
