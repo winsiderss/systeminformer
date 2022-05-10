@@ -622,7 +622,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
     ULONG Size;
     ULONG_PTR SystemDllWowRelocation;
     ULONG_PTR SystemDllNativeRelocation;
-    ULONG_PTR Wow64SharedInformation[16];
+    ULONG_PTR Wow64SharedInformation[16]; // use WOW64_SHARED_INFORMATION as index
     ULONG RngData;
     union
     {
@@ -659,7 +659,7 @@ LdrAddLoadAsDataTable(
     _In_ PWSTR FilePath,
     _In_ SIZE_T Size,
     _In_ HANDLE Handle,
-    _In_ HANDLE ActCtx // param added on Win10
+    _In_opt_ HANDLE ActCtx
     );
 
 // private
