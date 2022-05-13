@@ -5543,7 +5543,8 @@ typedef enum _SHUTDOWN_ACTION
 {
     ShutdownNoReboot,
     ShutdownReboot,
-    ShutdownPowerOff
+    ShutdownPowerOff,
+    ShutdownRebootForRecovery // since WIN11
 } SHUTDOWN_ACTION;
 
 NTSYSCALLAPI
