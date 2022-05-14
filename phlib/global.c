@@ -3,7 +3,7 @@
  *   global variables and initialization functions
  *
  * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -37,12 +37,17 @@ BOOLEAN PhHeapInitialization(
     _In_opt_ SIZE_T HeapCommitSize
     );
 
+BOOLEAN PhInitializeProcessorInformation(
+    VOID
+    );
+
 PVOID PhInstanceHandle = NULL;
 PWSTR PhApplicationName = NULL;
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;
 RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
 PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
+PHLIBAPI PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };
 ULONG WindowsVersion = WINDOWS_NEW;
 
 // Internal data
@@ -88,6 +93,8 @@ NTSTATUS PhInitializePhLibEx(
 
     if (!PhBaseInitialization())
         return STATUS_UNSUCCESSFUL;
+
+    PhInitializeProcessorInformation();
 
     return STATUS_SUCCESS;
 }
@@ -280,6 +287,74 @@ BOOLEAN PhHeapInitialization(
             sizeof(ULONG)
             );
 #endif
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhInitializeProcessorInformation(
+    VOID
+    )
+{
+    if (
+        USER_SHARED_DATA->ActiveGroupCount == 1 && // optimization (dmex)
+        USER_SHARED_DATA->ActiveProcessorCount > 0 &&
+        USER_SHARED_DATA->ActiveProcessorCount <= MAXIMUM_PROC_PER_GROUP
+        )
+    {
+        PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
+        PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
+        PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
+    }
+    else
+    {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInformation;
+        ULONG processorInformationLength;
+        USHORT numberOfProcessorGroups = 0;
+        USHORT numberOfProcessors = 0;
+        USHORT i;
+
+        if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(
+            RelationGroup,
+            &processorInformation,
+            &processorInformationLength
+            )))
+        {
+            numberOfProcessorGroups = processorInformation->Group.ActiveGroupCount;
+
+            for (i = 0; i < numberOfProcessorGroups; i++)
+            {
+                numberOfProcessors += processorInformation->Group.GroupInfo[i].ActiveProcessorCount;
+            }
+
+            if (numberOfProcessorGroups > 1)
+            {
+                PhSystemProcessorInformation.ActiveProcessorCount = PhAllocate(numberOfProcessorGroups * sizeof(USHORT));
+
+                for (i = 0; i < numberOfProcessorGroups; i++)
+                {
+                    PhSystemProcessorInformation.ActiveProcessorCount[i] = processorInformation->Group.GroupInfo[i].ActiveProcessorCount;
+                }
+            }
+
+            PhFree(processorInformation);
+        }
+
+        assert(numberOfProcessorGroups == USER_SHARED_DATA->ActiveGroupCount);
+        assert(numberOfProcessors == USER_SHARED_DATA->ActiveProcessorCount);
+
+        if (numberOfProcessorGroups > 1 && numberOfProcessors)
+        {
+            PhSystemProcessorInformation.SingleProcessorGroup = FALSE;
+            PhSystemProcessorInformation.NumberOfProcessors = numberOfProcessors;
+            PhSystemProcessorInformation.NumberOfProcessorGroups = numberOfProcessorGroups;
+        }
+        else
+        {
+            PhSystemProcessorInformation.SingleProcessorGroup = TRUE;
+            PhSystemProcessorInformation.NumberOfProcessors = PhSystemBasicInformation.NumberOfProcessors;
+            PhSystemProcessorInformation.NumberOfProcessorGroups = 1;
+        }
     }
 
     return TRUE;

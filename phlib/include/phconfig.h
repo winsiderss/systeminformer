@@ -103,6 +103,18 @@ PhExitApplication(
 #endif
 }
 
+// Processor group support (dmex)
+
+typedef struct _PH_SYSTEM_PROCESSOR_INFORMATION
+{
+    BOOLEAN SingleProcessorGroup;
+    USHORT NumberOfProcessors;
+    USHORT NumberOfProcessorGroups;
+    PUSHORT ActiveProcessorCount;
+} PH_SYSTEM_PROCESSOR_INFORMATION, *PPH_SYSTEM_PROCESSOR_INFORMATION;
+
+PHLIBAPI extern PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation;
+
 #ifdef __cplusplus
 }
 #endif
