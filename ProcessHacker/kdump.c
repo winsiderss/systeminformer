@@ -277,23 +277,40 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
 }
 
 PPH_STRING PhpLiveDumpFileDialogFileName(
-    _In_ HWND ParentWindow
+    _In_ HWND WindowHandle
     )
 {
     static PH_FILETYPE_FILTER filters[] =
     {
-        { L"Windows Memory Dump (*.dmp)", L"*.dmp" },
+        { L"Dump files (*.dmp)", L"*.dmp" },
         { L"All files (*.*)", L"*.*" }
     };
     PPH_STRING fileName = NULL;
     PVOID fileDialog;
+    LARGE_INTEGER time;
+    SYSTEMTIME systemTime;
+    PPH_STRING dateString;
+    PPH_STRING timeString;
+    PPH_STRING suggestedFileName;
+
+    PhQuerySystemTime(&time);
+    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+    dateString = PH_AUTO_T(PH_STRING, PhFormatDate(&systemTime, L"yyyy-MM-dd"));
+    timeString = PH_AUTO_T(PH_STRING, PhFormatTime(&systemTime, L"HH-mm-ss"));
+    suggestedFileName = PH_AUTO_T(PH_STRING, PhFormatString(
+        L"%s_%s_%s.dmp",
+        L"kerneldump",
+        PhGetString(dateString),
+        PhGetString(timeString)
+        ));
 
     if (fileDialog = PhCreateSaveFileDialog())
     {
         PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
-        PhSetFileDialogFileName(fileDialog, L"kerneldump.dmp");
+        PhSetFileDialogFileName(fileDialog, PhGetString(suggestedFileName));
+        PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_DONTADDTORECENT);
 
-        if (PhShowFileDialog(ParentWindow, fileDialog))
+        if (PhShowFileDialog(WindowHandle, fileDialog))
         {
             fileName = PhGetFileDialogFileName(fileDialog);
         }
