@@ -8551,7 +8551,7 @@ NTSTATUS PhCreateProcessReflection(
 
     status = RtlCreateProcessReflection(
         processHandle,
-        RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES,
+        RTL_PROCESS_REFLECTION_FLAGS_INHERIT_HANDLES,
         NULL,
         NULL,
         NULL,
