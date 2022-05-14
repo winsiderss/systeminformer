@@ -615,6 +615,7 @@ VOID PhSipNotifyCommitGraph(
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
 
                     // Commit charge: %s\n%s
+                    //PhInitFormatS(&format[0], L"Commit charge: ");
                     PhInitFormatSize(&format[0], UInt32x32To64(usedPages, PAGE_SIZE));
                     PhInitFormatC(&format[1], L'\n');
                     PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
@@ -683,17 +684,16 @@ VOID PhSipNotifyPhysicalGraph(
                     DOUBLE currentCompressedMemory;
                     DOUBLE totalCompressedMemory;
                     DOUBLE totalSavedMemory;
-                    PH_FORMAT format[13];
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
-                    // Physical memory: %s\n%s
-                    PhInitFormatS(&format[0], L"Physical memory: ");
-                    PhInitFormatSize(&format[1], UInt32x32To64(usedPages, PAGE_SIZE));
-                    PhInitFormatC(&format[2], L'\n');
-   
                     if (PhSipGetMemoryCompressionLimits(&currentCompressedMemory, &totalCompressedMemory, &totalSavedMemory))
                     {
+                        PH_FORMAT format[13];
+
+                        PhInitFormatS(&format[0], L"Physical memory: ");
+                        PhInitFormatSize(&format[1], UInt32x32To64(usedPages, PAGE_SIZE));
+                        PhInitFormatC(&format[2], L'\n');
                         PhInitFormatS(&format[3], L"Compressed memory: ");
                         PhInitFormatSize(&format[4], (ULONG64)currentCompressedMemory);
                         PhInitFormatC(&format[5], L'\n');
@@ -705,13 +705,18 @@ VOID PhSipNotifyPhysicalGraph(
                         PhInitFormatC(&format[11], L'\n');
                         PhInitFormatSR(&format[12], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
-                        PhMoveReference(&PhysicalGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 128));
+                        PhMoveReference(&PhysicalGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
                     else
                     {
-                        PhInitFormatSR(&format[3], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                        PH_FORMAT format[3];
 
-                        PhMoveReference(&PhysicalGraphState.TooltipText, PhFormat(format, 4, 128));
+                        // Physical memory: %s\n%s
+                        PhInitFormatSize(&format[0], UInt32x32To64(usedPages, PAGE_SIZE));
+                        PhInitFormatC(&format[1], L'\n');
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&PhysicalGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                     }
                 }
 
