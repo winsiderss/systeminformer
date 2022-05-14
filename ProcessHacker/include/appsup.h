@@ -22,6 +22,12 @@ NTAPI
 PhIsProcessSuspended(
     _In_ HANDLE ProcessId
     );
+
+BOOLEAN
+NTAPI
+PhIsProcessBackground(
+    _In_ ULONG PriorityClass
+    );
 // end_phapppub
 
 NTSTATUS PhGetProcessSwitchContext(
