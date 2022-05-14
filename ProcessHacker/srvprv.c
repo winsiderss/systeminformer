@@ -375,7 +375,14 @@ VOID PhUpdateProcessItemServices(
 
     // We don't need to lock as long as the service provider
     // never runs concurrently with the process provider. This
-    // is currently true.
+    // is currently true. (wj32)
+
+    // Starting 2022 the service provider runs concurrently with
+    // the process provider and now requires locking. If the service
+    // provider is moved back to the primary provider thread then
+    // remove these locks per the above comments (dmex)
+
+    PhAcquireQueuedLockShared(&PhServiceHashtableLock);
 
     PhBeginEnumHashtable(PhServiceHashtable, &enumContext);
 
@@ -389,6 +396,8 @@ VOID PhUpdateProcessItemServices(
             PhpAddProcessItemService(ProcessItem, *serviceItem);
         }
     }
+
+    PhReleaseQueuedLockShared(&PhServiceHashtableLock);
 }
 
 VOID PhpAddProcessItemService(
