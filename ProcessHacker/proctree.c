@@ -3490,6 +3490,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorPacked;
             else if (PhCsUseColorLowImageCoherency && PhEnableImageCoherencySupport && PhpShouldShowImageCoherency(processItem, TRUE))
                 getNodeColor->BackColor = PhCsColorLowImageCoherency;
+            else if (PhCsUseColorBackgroundProcesses && PhIsProcessBackground(processItem->PriorityClass))
+                getNodeColor->BackColor = PhCsColorBackgroundProcesses;
             else if (PhCsUseColorWow64Processes && processItem->IsWow64)
                 getNodeColor->BackColor = PhCsColorWow64Processes;
             else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)

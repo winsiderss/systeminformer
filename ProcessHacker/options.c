@@ -3232,6 +3232,7 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(L"ColorOwnProcesses", L"Own processes", L"Processes running under the same user account as Process Hacker."),
     COLOR_ITEM(L"ColorSystemProcesses", L"System processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
     COLOR_ITEM(L"ColorServiceProcesses", L"Service processes", L"Processes which host one or more services."),
+    COLOR_ITEM(L"ColorBackgroundProcesses", L"Background processes", L"Processes with a background scheduling priority."),
     COLOR_ITEM(L"ColorJobProcesses", L"Job processes", L"Processes associated with a job."),
 #ifdef _WIN64
     COLOR_ITEM(L"ColorWow64Processes", L"32-bit processes", L"Processes running under WOW64, i.e. 32-bit."),

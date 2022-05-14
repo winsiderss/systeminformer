@@ -35,6 +35,8 @@ EXT ULONG PhCsUseColorSystemProcesses;
 EXT ULONG PhCsColorSystemProcesses;
 EXT ULONG PhCsUseColorServiceProcesses;
 EXT ULONG PhCsColorServiceProcesses;
+EXT ULONG PhCsUseColorBackgroundProcesses;
+EXT ULONG PhCsColorBackgroundProcesses;
 EXT ULONG PhCsUseColorJobProcesses;
 EXT ULONG PhCsColorJobProcesses;
 EXT ULONG PhCsUseColorWow64Processes;
