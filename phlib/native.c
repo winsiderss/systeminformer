@@ -702,7 +702,18 @@ NTSTATUS PhGetProcessImageFileNameWin32(
 
     if (NT_SUCCESS(status))
     {
-        *FileName = PhCreateStringFromUnicodeString(buffer);
+        PPH_STRING fileName;
+
+        // Note: ProcessImageFileNameWin32 returns the NT device path
+        // instead of the Win32 path in cases were the disk volume driver
+        // hasn't registerd with the volume manager and/or ignored the
+        // mount manager ioctls (e.g. ImDisk). We workaround this issue
+        // by calling PhGetFileName and resolving the NT device prefix. (dmex)
+
+        fileName = PhCreateStringFromUnicodeString(buffer);
+        PhMoveReference(&fileName, PhGetFileName(fileName));
+
+        *FileName = fileName;
     }
 
     PhFree(buffer);
