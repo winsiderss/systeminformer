@@ -11568,3 +11568,261 @@ BOOLEAN PhIsKnownDllFileName(
 
     return FALSE;
 }
+
+NTSTATUS PhGetSystemLogicalProcessorInformation(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
+    _Out_ PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *Buffer,
+    _Out_ PULONG BufferLength
+    )
+{
+    static ULONG initialBufferSize[] = { 0x200, 0x80, 0x100, 0x1000 };
+    NTSTATUS status;
+    ULONG classIndex;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG attempts;
+
+    switch (RelationshipType)
+    {
+    case RelationProcessorCore:
+        classIndex = 0;
+        break;
+    case RelationProcessorPackage:
+        classIndex = 1;
+        break;
+    case RelationGroup:
+        classIndex = 2;
+        break;
+    case RelationAll:
+        classIndex = 3;
+        break;
+    default:
+        return STATUS_INVALID_INFO_CLASS;
+    }
+
+    bufferSize = initialBufferSize[classIndex];
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQuerySystemInformationEx(
+        SystemLogicalProcessorAndGroupInformation,
+        &RelationshipType,
+        sizeof(LOGICAL_PROCESSOR_RELATIONSHIP),
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+    attempts = 0;
+
+    while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQuerySystemInformationEx(
+            SystemLogicalProcessorAndGroupInformation,
+            &RelationshipType,
+            sizeof(LOGICAL_PROCESSOR_RELATIONSHIP),
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+        attempts++;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    if (bufferSize <= 0x100000) initialBufferSize[classIndex] = bufferSize;
+    *Buffer = buffer;
+    *BufferLength = bufferSize;
+
+    return status;
+}
+
+// based on GetActiveProcessorCount (dmex)
+USHORT PhGetActiveProcessorCount(
+    _In_ USHORT ProcessorGroup
+    )
+{
+    if (PhSystemProcessorInformation.ActiveProcessorCount)
+    {
+        USHORT numberOfProcessors = 0;
+
+        if (ProcessorGroup == ALL_PROCESSOR_GROUPS)
+        {
+            for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
+            {
+                numberOfProcessors += PhSystemProcessorInformation.ActiveProcessorCount[i];
+            }
+        }
+        else
+        {
+            if (ProcessorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups)
+            {
+                numberOfProcessors = PhSystemProcessorInformation.ActiveProcessorCount[ProcessorGroup];
+            }
+        }
+
+        return numberOfProcessors;
+    }
+    else
+    {
+        return PhSystemProcessorInformation.NumberOfProcessors;
+    }
+}
+
+NTSTATUS PhGetProcessorNumberFromIndex(
+    _In_ ULONG ProcessorIndex,
+    _Out_ PPH_PROCESSOR_NUMBER ProcessorNumber
+    )
+{
+    USHORT processorIndex = 0;
+
+    for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+    {
+        USHORT processorCount = PhGetActiveProcessorCount(processorGroup);
+
+        for (USHORT processorNumber = 0; processorNumber < processorCount; processorNumber++)
+        {
+            if (processorIndex++ == ProcessorIndex)
+            {
+                memset(ProcessorNumber, 0, sizeof(PH_PROCESSOR_NUMBER));
+                (*ProcessorNumber).Group = processorGroup;
+                (*ProcessorNumber).Number = processorNumber;
+                return STATUS_SUCCESS;
+            }
+        }
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+NTSTATUS PhGetProcessorGroupActiveAffinityMask(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PKAFFINITY ActiveProcessorMask
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInformation;
+    ULONG processorInformationLength;
+
+    status = PhGetSystemLogicalProcessorInformation(
+        RelationGroup,
+        &processorInformation,
+        &processorInformationLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ProcessorGroup < processorInformation->Group.ActiveGroupCount)
+        {
+            *ActiveProcessorMask = processorInformation->Group.GroupInfo[ProcessorGroup].ActiveProcessorMask;
+        }
+        else
+        {
+            status = STATUS_UNSUCCESSFUL;
+        }
+
+        PhFree(processorInformation);
+    }
+
+    return status;
+}
+
+// rev from GetNumaHighestNodeNumber (dmex)
+NTSTATUS PhGetNumaHighestNodeNumber(
+    _Out_ PUSHORT NodeNumber
+    )
+{
+    NTSTATUS status;
+    SYSTEM_NUMA_INFORMATION numaProcessorMap;
+
+    status = NtQuerySystemInformation(
+        SystemNumaProcessorMap,
+        &numaProcessorMap,
+        sizeof(SYSTEM_NUMA_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *NodeNumber = (USHORT)numaProcessorMap.HighestNodeNumber;
+    }
+
+    return status;
+}
+
+// rev from GetNumaProcessorNodeEx (dmex)
+BOOLEAN PhGetNumaProcessorNode(
+    _In_ PPH_PROCESSOR_NUMBER ProcessorNumber,
+    _Out_ PUSHORT NodeNumber
+    )
+{
+    NTSTATUS status;
+    SYSTEM_NUMA_INFORMATION numaProcessorMap;
+    USHORT processorNode = 0;
+
+    if (ProcessorNumber->Group >= 20 || ProcessorNumber->Number >= MAXIMUM_PROC_PER_GROUP)
+    {
+        *NodeNumber = USHRT_MAX;
+        return FALSE;
+    }
+
+    status = NtQuerySystemInformation(
+        SystemNumaProcessorMap,
+        &numaProcessorMap,
+        sizeof(SYSTEM_NUMA_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        *NodeNumber = USHRT_MAX;
+        return FALSE;
+    }
+
+    while (
+        numaProcessorMap.ActiveProcessorsGroupAffinity[processorNode].Group != ProcessorNumber->Group ||
+        (numaProcessorMap.ActiveProcessorsGroupAffinity[processorNode].Mask & ((KAFFINITY)1 << ProcessorNumber->Number)) == 0
+        )
+    {
+        if (++processorNode > numaProcessorMap.HighestNodeNumber)
+        {
+            *NodeNumber = USHRT_MAX;
+            return FALSE;
+        }
+    }
+
+    *NodeNumber = processorNode;
+    return TRUE;
+}
+
+// rev from GetNumaProximityNodeEx (dmex)
+NTSTATUS PhGetNumaProximityNode(
+    _In_ ULONG ProximityId,
+    _Out_ PUSHORT NodeNumber
+    )
+{
+    NTSTATUS status;
+    SYSTEM_NUMA_PROXIMITY_MAP numaProximityMap;
+
+    memset(&numaProximityMap, 0, sizeof(SYSTEM_NUMA_PROXIMITY_MAP));
+    numaProximityMap.NodeProximityId = ProximityId;
+
+    status = NtQuerySystemInformation(
+        SystemNumaProximityNodeInformation,
+        &numaProximityMap,
+        sizeof(SYSTEM_NUMA_PROXIMITY_MAP),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *NodeNumber = numaProximityMap.NodeNumber;
+    }
+
+    return status;
+}
