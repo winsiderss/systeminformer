@@ -1993,6 +1993,59 @@ PhIsKnownDllFileName(
     _In_ PPH_STRING FileName
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemLogicalProcessorInformation(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
+    _Out_ PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
+    _Out_ PULONG BufferLength
+    );
+
+PHLIBAPI
+USHORT
+NTAPI
+PhGetActiveProcessorCount(
+    _In_ USHORT ProcessorGroup
+    );
+
+typedef struct _PH_PROCESSOR_NUMBER
+{
+    USHORT Group;
+    USHORT Number;
+} PH_PROCESSOR_NUMBER, *PPH_PROCESSOR_NUMBER;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessorNumberFromIndex(
+    _In_ ULONG ProcessorIndex,
+    _Out_ PPH_PROCESSOR_NUMBER ProcessorNumber
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessorGroupActiveAffinityMask(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PKAFFINITY ActiveProcessorMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetNumaHighestNodeNumber(
+    _Out_ PUSHORT NodeNumber
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetNumaProcessorNode(
+    _In_ PPH_PROCESSOR_NUMBER ProcessorNumber,
+    _Out_ PUSHORT NodeNumber
+    );
+
 #ifdef __cplusplus
 }
 #endif
