@@ -90,6 +90,22 @@ BOOLEAN PhIsProcessSuspended(
     return suspended;
 }
 
+BOOLEAN PhIsProcessBackground(
+    _In_ ULONG PriorityClass
+    )
+{
+    // This is similar to PROCESS_MODE_BACKGROUND_BEGIN (dmex)
+    if (
+        PriorityClass == PROCESS_PRIORITY_CLASS_BELOW_NORMAL ||
+        PriorityClass == PROCESS_PRIORITY_CLASS_IDLE
+        )
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 /**
  * Determines the OS compatibility context of a process.
  *
