@@ -243,6 +243,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorSystemProcesses", L"ffccaa");
     PhpAddIntegerSetting(L"UseColorServiceProcesses", L"1");
     PhpAddIntegerSetting(L"ColorServiceProcesses", L"ffffcc");
+    PhpAddIntegerSetting(L"UseColorBackgroundProcesses", L"0");
+    PhpAddIntegerSetting(L"ColorBackgroundProcesses", L"bcbc78");
     PhpAddIntegerSetting(L"UseColorJobProcesses", L"0");
     PhpAddIntegerSetting(L"ColorJobProcesses", L"3f85cd"); // Peru
     PhpAddIntegerSetting(L"UseColorWow64Processes", L"0");
@@ -325,6 +327,8 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorSystemProcesses);
     PH_UPDATE_SETTING(UseColorServiceProcesses);
     PH_UPDATE_SETTING(ColorServiceProcesses);
+    PH_UPDATE_SETTING(UseColorBackgroundProcesses);
+    PH_UPDATE_SETTING(ColorBackgroundProcesses);
     PH_UPDATE_SETTING(UseColorJobProcesses);
     PH_UPDATE_SETTING(ColorJobProcesses);
     PH_UPDATE_SETTING(UseColorWow64Processes);
