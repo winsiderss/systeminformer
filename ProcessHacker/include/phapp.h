@@ -271,9 +271,9 @@ VOID PhUiAnalyzeWaitThread(
 
 // mdump
 
-BOOLEAN PhUiCreateDumpFileProcess(
-    _In_ HWND hWnd,
-    _In_ PPH_PROCESS_ITEM Process
+VOID PhUiCreateDumpFileProcess(
+    _In_ HWND WindowHandle,
+    _In_ PPH_PROCESS_ITEM ProcessItem
     );
 
 // about
