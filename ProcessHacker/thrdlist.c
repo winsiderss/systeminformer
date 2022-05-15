@@ -609,7 +609,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(IdealProcessor)
 {
-    sortResult = uint64cmp(node1->IdealProcessorMask, node2->IdealProcessorMask);
+    sortResult = int64cmp(node1->IdealProcessorMask, node2->IdealProcessorMask);
     //sortResult = PhCompareStringZ(node1->IdealProcessorText, node2->IdealProcessorText, TRUE);
 }
 END_SORT_FUNCTION
@@ -1102,7 +1102,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     {
                         if (NT_SUCCESS(PhGetThreadIdealProcessor(threadItem->ThreadHandle, &idealProcessorNumber)))
                         {
-                            node->IdealProcessorMask = MAKELONG(idealProcessorNumber.Group, idealProcessorNumber.Number);
+                            node->IdealProcessorMask = MAKELONG(idealProcessorNumber.Number, idealProcessorNumber.Group);
 
                             PhInitFormatU(&format[0], idealProcessorNumber.Group);
                             PhInitFormatC(&format[1], L':');
