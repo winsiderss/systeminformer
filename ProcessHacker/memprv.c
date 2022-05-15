@@ -246,7 +246,7 @@ VOID PhpUpdateHeapRegions(
     NTSTATUS status;
     HANDLE processHandle = NULL;
     HANDLE clientProcessId = List->ProcessId;
-    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo = { 0 };
+    PROCESS_REFLECTION_INFORMATION reflectionInfo = { 0 };
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     HANDLE powerRequestHandle = NULL;
     ULONG heapEntrySize;
@@ -264,13 +264,10 @@ VOID PhpUpdateHeapRegions(
 
         if (PhGetIntegerSetting(L"EnableHeapReflection"))
         {
-            status = RtlCreateProcessReflection(
+            status = PhCreateProcessReflection(
+                &reflectionInfo,
                 processHandle,
-                0,
-                NULL,
-                NULL,
-                NULL,
-                &reflectionInfo
+                List->ProcessId
                 );
 
             if (NT_SUCCESS(status))
@@ -307,14 +304,8 @@ VOID PhpUpdateHeapRegions(
             break;
     }
 
-    if (reflectionInfo.ReflectionProcessHandle)
-    {
-        PhTerminateProcess(reflectionInfo.ReflectionProcessHandle, STATUS_SUCCESS);
-        NtClose(reflectionInfo.ReflectionProcessHandle);
-    }
+    PhFreeProcessReflection(&reflectionInfo);
 
-    if (reflectionInfo.ReflectionThreadHandle)
-        NtClose(reflectionInfo.ReflectionThreadHandle);
     if (processHandle)
         NtClose(processHandle);
 
