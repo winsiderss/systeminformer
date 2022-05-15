@@ -1603,6 +1603,22 @@ PhApiSetResolveToHost(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateProcessReflection(
+    _Out_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeProcessReflection(
+    _In_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateProcessSnapshot(
     _Out_ PHANDLE SnapshotHandle,
     _In_opt_ HANDLE ProcessHandle,
