@@ -8532,19 +8532,23 @@ NTSTATUS PhCreateProcessClone(
 }
 
 NTSTATUS PhCreateProcessReflection(
-    _Out_ PHANDLE ProcessHandle,
-    _In_ HANDLE ProcessId
+    _Out_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessId
     )
 {
-    NTSTATUS status;
-    HANDLE processHandle;
-    RTLP_PROCESS_REFLECTION_REFLECTION_INFORMATION reflectionInfo = { 0 };
+    NTSTATUS status = STATUS_SUCCESS;
+    HANDLE processHandle = ProcessHandle;
+    PROCESS_REFLECTION_INFORMATION reflectionInfo = { 0 };
 
-    status = PhOpenProcess(
-        &processHandle,
-        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE,
-        ProcessId
-        );
+    if (!ProcessHandle)
+    {
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_DUP_HANDLE,
+            ProcessId
+            );
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -8558,16 +8562,31 @@ NTSTATUS PhCreateProcessReflection(
         &reflectionInfo
         );
 
-    NtClose(processHandle);
+    if (!ProcessHandle && processHandle)
+        NtClose(processHandle);
 
     if (NT_SUCCESS(status))
     {
-        *ProcessHandle = reflectionInfo.ReflectionProcessHandle;
-
-        NtClose(reflectionInfo.ReflectionThreadHandle);
+        *ReflectionInformation = reflectionInfo;
     }
 
     return status;
+}
+
+VOID PhFreeProcessReflection(
+    _In_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation
+    )
+{
+    if (ReflectionInformation->ReflectionThreadHandle)
+    {
+        NtClose(ReflectionInformation->ReflectionThreadHandle);
+    }
+
+    if (ReflectionInformation->ReflectionProcessHandle)
+    {
+        NtTerminateProcess(ReflectionInformation->ReflectionProcessHandle, STATUS_SUCCESS);
+        NtClose(ReflectionInformation->ReflectionProcessHandle);
+    }
 }
 
 NTSTATUS PhCreateProcessSnapshot(
