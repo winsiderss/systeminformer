@@ -79,6 +79,7 @@ VOID EtShowWsWatchDialog(
     context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
     context->RefCount = 1;
     context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->ProcessId = ProcessItem->ProcessId;
 
     if (PH_IS_REAL_PROCESS_ID(context->ProcessId))
     {
@@ -504,7 +505,6 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->Hashtable = PhCreateSimpleHashtable(64);
-            context->ProcessId = context->ProcessItem->ProcessId;
             context->BufferSize = 0x2000;
             context->Buffer = PhAllocate(context->BufferSize);
 
