@@ -2390,14 +2390,14 @@ VOID PhProcessProviderUpdate(
                     // User
                     if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                     {
-                        if (!RtlEqualSid(processItem->Sid, tokenUser->User.Sid))
+                        if (!processItem->Sid || !RtlEqualSid(processItem->Sid, tokenUser->User.Sid))
                         {
                             PSID processSid;
 
                             // HACK (dmex)
                             processSid = processItem->Sid;
                             processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
-                            PhFree(processSid);
+                            if (processSid) PhFree(processSid);
 
                             PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
 
