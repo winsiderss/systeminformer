@@ -23,8 +23,6 @@
 
 #include <phapp.h>
 
-#include <taskschd.h>
-
 #include <svcsup.h>
 #include <verify.h>
 #include <lsasup.h>
@@ -33,6 +31,8 @@
 #include <phsettings.h>
 #include <procprv.h>
 #include <srvprv.h>
+
+#include <taskschd.h>
 
 VOID PhpFillUmdfDrivers(
     _In_ PPH_PROCESS_ITEM Process,
@@ -49,26 +49,21 @@ VOID PhpFillMicrosoftEdge(
     _Inout_ PPH_STRING_BUILDER Tasks
     );
 
-// Note: Tooltip information for WMI was disabled
-// after issues reported with suspended WMI processes.
-// See Github issue #713 (dmex)
-//VOID PhpFillWmiProviderHost(
-//    _In_ PPH_PROCESS_ITEM Process,
-//    _Inout_ PPH_STRING_BUILDER Providers
-//    );
-//
-//PPH_STRING PhQueryWmiHostProcessString(
-//    _In_ PPH_PROCESS_ITEM ProcessItem,
-//    _Inout_ PPH_STRING_BUILDER Providers
-//    );
+VOID PhpFillWmiProviderHost(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Providers
+    );
 
-static PH_STRINGREF StandardIndent = PH_STRINGREF_INIT(L"    ");
-
-extern
-BOOLEAN PhpShouldShowImageCoherency(
+extern PPH_STRING PhQueryWmiHostProcessString( // prpgwmi.c
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _Inout_ PPH_STRING_BUILDER Providers
+    );
+extern BOOLEAN PhpShouldShowImageCoherency(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN CheckThreshold
     );
+
+static PH_STRINGREF StandardIndent = PH_STRINGREF_INIT(L"    ");
 
 VOID PhpAppendStringWithLineBreaks(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
@@ -366,25 +361,25 @@ PPH_STRING PhGetProcessTooltipText(
             PhDeleteStringBuilder(&container);
         }
         break;
-    //case WmiProviderHostType:
-    //    {
-    //        PH_STRING_BUILDER provider;
-    //
-    //        PhInitializeStringBuilder(&provider, 40);
-    //
-    //        PhpFillWmiProviderHost(Process, &provider);
-    //
-    //        if (provider.String->Length != 0)
-    //        {
-    //            PhAppendStringBuilder2(&stringBuilder, L"WMI Providers:\n");
-    //            PhAppendStringBuilder(&stringBuilder, &provider.String->sr);
-    //        }
-    //
-    //        PhDeleteStringBuilder(&provider);
-    //
-    //        validForMs = 10 * 1000; // 10 seconds
-    //    }
-    //    break;
+    case WmiProviderHostType:
+        {
+            PH_STRING_BUILDER provider;
+    
+            PhInitializeStringBuilder(&provider, 40);
+    
+            PhpFillWmiProviderHost(Process, &provider);
+    
+            if (provider.String->Length != 0)
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"WMI Providers:\n");
+                PhAppendStringBuilder(&stringBuilder, &provider.String->sr);
+            }
+    
+            PhDeleteStringBuilder(&provider);
+    
+            validForMs = 10 * 1000; // 10 seconds
+        }
+        break;
     }
 
     // Plugin
@@ -767,13 +762,13 @@ VOID PhpFillMicrosoftEdge(
     }
 }
 
-//VOID PhpFillWmiProviderHost(
-//    _In_ PPH_PROCESS_ITEM Process,
-//    _Inout_ PPH_STRING_BUILDER Providers
-//    )
-//{
-//    PhQueryWmiHostProcessString(Process, Providers);
-//}
+VOID PhpFillWmiProviderHost(
+    _In_ PPH_PROCESS_ITEM Process,
+    _Inout_ PPH_STRING_BUILDER Providers
+    )
+{
+    PhQueryWmiHostProcessString(Process, Providers);
+}
 
 PPH_STRING PhGetServiceTooltipText(
     _In_ PPH_SERVICE_ITEM Service
