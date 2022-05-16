@@ -22,6 +22,7 @@
  */
 
 #include <phapp.h>
+#include <phsettings.h>
 #include <phsvccl.h>
 #include <actions.h>
 #include <appresolver.h>
@@ -745,6 +746,8 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 PhLoadWindowPlacementFromSetting(L"SegmentHeapWindowPosition", L"SegmentHeapWindowSize", hwndDlg);
             else
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
