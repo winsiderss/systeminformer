@@ -420,11 +420,23 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
         PVOID processHeapsPtr;
         PVOID *processHeaps;
         PVOID apiSetMap;
+        PVOID readOnlySharedMemory;
+        PVOID codePageData;
+        PVOID gdiSharedHandleTable;
+        PVOID shimData;
+        PVOID activationContextData;
+        PVOID defaultActivationContextData;
 #ifdef _WIN64
         PVOID peb32;
         ULONG processHeapsPtr32;
         ULONG *processHeaps32;
         ULONG apiSetMap32;
+        ULONG readOnlySharedMemory32;
+        ULONG codePageData32;
+        ULONG gdiSharedHandleTable32;
+        ULONG shimData32;
+        ULONG activationContextData32;
+        ULONG defaultActivationContextData32;
 #endif
         if (PhGetIntegerSetting(L"EnableHeapMemoryTagging"))
         {
@@ -468,9 +480,81 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 &apiSetMap,
                 sizeof(PVOID),
                 NULL
-                )))
+                )) && apiSetMap)
             {
                 PhpSetMemoryRegionType(List, apiSetMap, TRUE, ApiSetMapRegion);
+            }
+
+            // CSR shared memory
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ReadOnlySharedMemoryBase)),
+                &readOnlySharedMemory,
+                sizeof(PVOID),
+                NULL
+                )) && readOnlySharedMemory)
+            {
+                PhpSetMemoryRegionType(List, readOnlySharedMemory, TRUE, ReadOnlySharedMemoryRegion);
+            }
+
+            // CodePage data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, AnsiCodePageData)),
+                &codePageData,
+                sizeof(PVOID),
+                NULL
+                )) && codePageData)
+            {
+                PhpSetMemoryRegionType(List, codePageData, TRUE, CodePageDataRegion);
+            }
+
+            // GDI shared handle table
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, GdiSharedHandleTable)),
+                &gdiSharedHandleTable,
+                sizeof(PVOID),
+                NULL
+                )) && gdiSharedHandleTable)
+            {
+                PhpSetMemoryRegionType(List, gdiSharedHandleTable, TRUE, GdiSharedHandleTableRegion);
+            }
+
+            // Shim data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pShimData)),
+                &shimData,
+                sizeof(PVOID),
+                NULL
+                )) && shimData)
+            {
+                PhpSetMemoryRegionType(List, shimData, TRUE, ShimDataRegion);
+            }
+
+            // Activation context data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ActivationContextData)),
+                &activationContextData,
+                sizeof(PVOID),
+                NULL
+                )) && activationContextData)
+            {
+                PhpSetMemoryRegionType(List, activationContextData, TRUE, ActivationContextDataRegion);
+            }
+
+            // Default activation context data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, SystemDefaultActivationContextData)),
+                &defaultActivationContextData,
+                sizeof(PVOID),
+                NULL
+                )) && defaultActivationContextData)
+            {
+                PhpSetMemoryRegionType(List, defaultActivationContextData, TRUE, SystemDefaultActivationContextDataRegion);
             }
         }
 #ifdef _WIN64
@@ -512,9 +596,81 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 &apiSetMap32,
                 sizeof(ULONG),
                 NULL
-                )))
+                )) && apiSetMap32)
             {
                 PhpSetMemoryRegionType(List, UlongToPtr(apiSetMap32), TRUE, ApiSetMapRegion);
+            }
+
+            // CSR shared memory
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ReadOnlySharedMemoryBase)),
+                &readOnlySharedMemory32,
+                sizeof(ULONG),
+                NULL
+                )) && readOnlySharedMemory32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(readOnlySharedMemory32), TRUE, ReadOnlySharedMemoryRegion);
+            }
+
+            // CodePage data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, AnsiCodePageData)),
+                &codePageData32,
+                sizeof(ULONG),
+                NULL
+                )) && codePageData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(codePageData32), TRUE, CodePageDataRegion);
+            }
+
+            // GDI shared handle table
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, GdiSharedHandleTable)),
+                &gdiSharedHandleTable32,
+                sizeof(ULONG),
+                NULL
+                )) && gdiSharedHandleTable32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(gdiSharedHandleTable32), TRUE, GdiSharedHandleTableRegion);
+            }
+
+            // Shim data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, pShimData)),
+                &shimData32,
+                sizeof(ULONG),
+                NULL
+                )) && shimData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(shimData32), TRUE, ShimDataRegion);
+            }
+
+            // Activation context data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, ActivationContextData)),
+                &activationContextData32,
+                sizeof(ULONG),
+                NULL
+                )) && activationContextData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(activationContextData32), TRUE, ActivationContextDataRegion);
+            }
+
+            // Default activation context data
+            if (NT_SUCCESS(NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB32, SystemDefaultActivationContextData)),
+                &defaultActivationContextData32,
+                sizeof(ULONG),
+                NULL
+                )) && defaultActivationContextData32)
+            {
+                PhpSetMemoryRegionType(List, UlongToPtr(defaultActivationContextData32), TRUE, SystemDefaultActivationContextDataRegion);
             }
         }
 #endif
