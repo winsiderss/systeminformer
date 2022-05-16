@@ -3268,7 +3268,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     PhpAggregateFieldIfNeeded(node, AggregateTypeFloat, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CpuUsage), &cpuUsage);
 
                     cpuUsage *= 100;
-                    cpuUsage = cpuUsage * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+                    cpuUsage = cpuUsage * PhSystemProcessorInformation.NumberOfProcessors;
 
                     if (cpuUsage >= 0.01)
                     {
@@ -4203,7 +4203,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         else
                         {
                             PhInitFormatC(&format[0], L'-');
-                            (LONG_PTR)number = -(LONG_PTR)number;
+                            number = -(LONG_PTR)number;
                         }
 
                         format[1].Type = SizeFormatType | FormatUseRadix;
@@ -4226,7 +4226,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         break;
 
                     decimal *= 100;
-                    decimal *= (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+                    decimal *= PhSystemProcessorInformation.NumberOfProcessors;
 
                     PhInitFormatF(&format[0], decimal, PhMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');

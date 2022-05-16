@@ -648,8 +648,8 @@ static NTSTATUS PhpGetThreadHandle(
 
     if (ThreadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
-        if (HandleToUlong(ThreadItem->ThreadId) < (ULONG)PhSystemBasicInformation.NumberOfProcessors)
-            return STATUS_INVALID_PARAMETER;
+        if (HandleToUlong(ThreadItem->ThreadId) < PhSystemProcessorInformation.NumberOfProcessors)
+            return STATUS_UNSUCCESSFUL;
     }
 
     status = PhOpenThread(
@@ -685,7 +685,7 @@ static NTSTATUS PhpGetThreadCycleTime(
     }
     else
     {
-        if (HandleToUlong(ThreadItem->ThreadId) < (ULONG)PhSystemBasicInformation.NumberOfProcessors)
+        if (HandleToUlong(ThreadItem->ThreadId) < PhSystemProcessorInformation.NumberOfProcessors)
         {
             *CycleTime = PhCpuIdleCycleTime[HandleToUlong(ThreadItem->ThreadId)].QuadPart;
             return STATUS_SUCCESS;

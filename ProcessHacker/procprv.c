@@ -269,46 +269,46 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhCpuInformation = PhAllocate(
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
-        (ULONG)PhSystemBasicInformation.NumberOfProcessors
+        PhSystemProcessorInformation.NumberOfProcessors
         );
 
     PhCpuIdleCycleTime = PhAllocate(
         sizeof(LARGE_INTEGER) *
-        (ULONG)PhSystemBasicInformation.NumberOfProcessors
+        PhSystemProcessorInformation.NumberOfProcessors
         );
     PhCpuSystemCycleTime = PhAllocate(
         sizeof(LARGE_INTEGER) *
-        (ULONG)PhSystemBasicInformation.NumberOfProcessors
+        PhSystemProcessorInformation.NumberOfProcessors
         );
 
     usageBuffer = PhAllocate(
         sizeof(FLOAT) *
-        (ULONG)PhSystemBasicInformation.NumberOfProcessors *
+        PhSystemProcessorInformation.NumberOfProcessors *
         2
         );
     deltaBuffer = PhAllocate(
         sizeof(PH_UINT64_DELTA) *
-        (ULONG)PhSystemBasicInformation.NumberOfProcessors *
+        PhSystemProcessorInformation.NumberOfProcessors *
         3 // 4 for PhCpusIdleCycleDelta
         );
     historyBuffer = PhAllocate(
         sizeof(PH_CIRCULAR_BUFFER_FLOAT) *
-        (ULONG)PhSystemBasicInformation.NumberOfProcessors *
+        PhSystemProcessorInformation.NumberOfProcessors *
         2
         );
 
     PhCpusKernelUsage = usageBuffer;
-    PhCpusUserUsage = PhCpusKernelUsage + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    PhCpusUserUsage = PhCpusKernelUsage + PhSystemProcessorInformation.NumberOfProcessors;
 
     PhCpusKernelDelta = deltaBuffer;
-    PhCpusUserDelta = PhCpusKernelDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-    PhCpusIdleDelta = PhCpusUserDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-    //PhCpusIdleCycleDelta = PhCpusIdleDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    PhCpusUserDelta = PhCpusKernelDelta + PhSystemProcessorInformation.NumberOfProcessors;
+    PhCpusIdleDelta = PhCpusUserDelta + PhSystemProcessorInformation.NumberOfProcessors;
+    //PhCpusIdleCycleDelta = PhCpusIdleDelta + PhGetSystemInformation.NumberOfProcessors;
 
     PhCpusKernelHistory = historyBuffer;
-    PhCpusUserHistory = PhCpusKernelHistory + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    PhCpusUserHistory = PhCpusKernelHistory + PhSystemProcessorInformation.NumberOfProcessors;
 
-    memset(deltaBuffer, 0, sizeof(PH_UINT64_DELTA) * (ULONG)PhSystemBasicInformation.NumberOfProcessors);
+    memset(deltaBuffer, 0, sizeof(PH_UINT64_DELTA) * PhSystemProcessorInformation.NumberOfProcessors);
 
     return TRUE;
 }
@@ -1475,12 +1475,15 @@ VOID PhpUpdatePerfInformation(
     VOID
     )
 {
-    NtQuerySystemInformation(
+    if (!NT_SUCCESS(NtQuerySystemInformation(
         SystemPerformanceInformation,
         &PhPerfInformation,
         sizeof(SYSTEM_PERFORMANCE_INFORMATION),
         NULL
-        );
+        )))
+    {
+        memset(&PhPerfInformation, 0, sizeof(SYSTEM_PERFORMANCE_INFORMATION));
+    }
 
     PhUpdateDelta(&PhIoReadDelta, PhPerfInformation.IoReadTransferCount.QuadPart);
     PhUpdateDelta(&PhIoWriteDelta, PhPerfInformation.IoWriteTransferCount.QuadPart);
@@ -1495,17 +1498,54 @@ VOID PhpUpdateCpuInformation(
     ULONG i;
     ULONG64 totalTime;
 
-    NtQuerySystemInformation(
-        SystemProcessorPerformanceInformation,
-        PhCpuInformation,
-        sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
-        NULL
-        );
+    if (PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        if (!NT_SUCCESS(NtQuerySystemInformation(
+            SystemProcessorPerformanceInformation,
+            PhCpuInformation,
+            sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * PhSystemProcessorInformation.NumberOfProcessors,
+            NULL
+            )))
+        {
+            memset(
+                PhCpuInformation,
+                0,
+                sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * PhSystemProcessorInformation.NumberOfProcessors
+                );
+        }
+    }
+    else
+    {
+        USHORT processorCount = 0;
+
+        for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+        {
+            USHORT activeProcessorCount = PhGetActiveProcessorCount(processorGroup);
+
+            if (!NT_SUCCESS(NtQuerySystemInformationEx(
+                SystemProcessorPerformanceInformation,
+                &processorGroup,
+                sizeof(USHORT),
+                PTR_ADD_OFFSET(PhCpuInformation, sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * processorCount),
+                sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * activeProcessorCount,
+                NULL
+                )))
+            {
+                memset(
+                    PTR_ADD_OFFSET(PhCpuInformation, sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * processorCount),
+                    0,
+                    sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * activeProcessorCount
+                    );
+            }
+
+            processorCount += activeProcessorCount;
+        }
+    }
 
     // Zero the CPU totals.
     memset(&PhCpuTotals, 0, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION));
 
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    for (i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
     {
         PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION cpuInfo = &PhCpuInformation[i];
 
@@ -1575,14 +1615,53 @@ VOID PhpUpdateCpuCycleInformation(
     // We need to query this separately because the idle cycle time in SYSTEM_PROCESS_INFORMATION
     // doesn't give us data for individual processors.
 
-    PhGetSystemProcessorIdleCycleTime(
-        PhCpuIdleCycleTime,
-        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
-        );
+    if (PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        if (!NT_SUCCESS(NtQuerySystemInformation(
+            SystemProcessorIdleCycleTimeInformation,
+            PhCpuIdleCycleTime,
+            sizeof(LARGE_INTEGER) * PhSystemProcessorInformation.NumberOfProcessors,
+            NULL
+            )))
+        {
+            memset(
+                PhCpuIdleCycleTime,
+                0,
+                sizeof(LARGE_INTEGER) * PhSystemProcessorInformation.NumberOfProcessors
+                );
+        }
+    }
+    else
+    {
+        USHORT processorCount = 0;
+
+        for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+        {
+            USHORT activeProcessorCount = PhGetActiveProcessorCount(processorGroup);
+
+            if (!NT_SUCCESS(NtQuerySystemInformationEx(
+                SystemProcessorIdleCycleTimeInformation,
+                &processorGroup,
+                sizeof(USHORT),
+                PTR_ADD_OFFSET(PhCpuIdleCycleTime, sizeof(LARGE_INTEGER) * processorCount),
+                sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * activeProcessorCount,
+                NULL
+                )))
+            {
+                memset(
+                    PTR_ADD_OFFSET(PhCpuIdleCycleTime, sizeof(LARGE_INTEGER) * processorCount),
+                    0,
+                    sizeof(LARGE_INTEGER) * activeProcessorCount
+                    );
+            }
+
+            processorCount += activeProcessorCount;
+        }
+    }
 
     total = 0;
 
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    for (i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
     {
         //PhUpdateDelta(&PhCpusIdleCycleDelta[i], PhCpuIdleCycleTime[i].QuadPart);
         total += PhCpuIdleCycleTime[i].QuadPart;
@@ -1593,14 +1672,53 @@ VOID PhpUpdateCpuCycleInformation(
 
     // System
 
-    PhGetSystemProcessorCycleTime(
-        PhCpuSystemCycleTime,
-        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
-        );
+    if (PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        if (!NT_SUCCESS(NtQuerySystemInformation(
+            SystemProcessorCycleTimeInformation,
+            PhCpuSystemCycleTime,
+            sizeof(LARGE_INTEGER) * PhSystemProcessorInformation.NumberOfProcessors,
+            NULL
+            )))
+        {
+            memset(
+                PhCpuSystemCycleTime,
+                0,
+                sizeof(LARGE_INTEGER) * PhSystemProcessorInformation.NumberOfProcessors
+                );
+        }
+    }
+    else
+    {
+        USHORT processorCount = 0;
+
+        for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+        {
+            USHORT activeProcessorCount = PhGetActiveProcessorCount(processorGroup);
+
+            if (!NT_SUCCESS(NtQuerySystemInformationEx(
+                SystemProcessorCycleTimeInformation,
+                &processorGroup,
+                sizeof(USHORT),
+                PTR_ADD_OFFSET(PhCpuSystemCycleTime, sizeof(LARGE_INTEGER) * processorCount),
+                sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * activeProcessorCount,
+                NULL
+                )))
+            {
+                memset(
+                    PTR_ADD_OFFSET(PhCpuSystemCycleTime, sizeof(LARGE_INTEGER) * processorCount),
+                    0,
+                    sizeof(LARGE_INTEGER) * activeProcessorCount
+                    );
+            }
+
+            processorCount += activeProcessorCount;
+        }
+    }
 
     total = 0;
 
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    for (i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
     {
         total += PhCpuSystemCycleTime[i].QuadPart;
     }
@@ -1662,7 +1780,7 @@ VOID PhpUpdateCpuCycleUsageInformation(
         PhCpuUserUsage = baseCpuUsage / 2;
     }
 
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    for (i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
     {
         totalTime = PhCpusKernelDelta[i].Delta + PhCpusUserDelta[i].Delta + PhCpusIdleDelta[i].Delta;
 
@@ -1701,7 +1819,7 @@ VOID PhpInitializeProcessStatistics(
     PhInitializeCircularBuffer_ULONG64(&PhMaxIoWriteHistory, PhStatisticsSampleCount);
 #endif
 
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    for (i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
     {
         PhInitializeCircularBuffer_FLOAT(&PhCpusKernelHistory[i], PhStatisticsSampleCount);
         PhInitializeCircularBuffer_FLOAT(&PhCpusUserHistory[i], PhStatisticsSampleCount);
@@ -1721,7 +1839,7 @@ VOID PhpUpdateSystemHistory(
     PhAddItemCircularBuffer_FLOAT(&PhCpuUserHistory, PhCpuUserUsage);
 
     // CPUs
-    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    for (i = 0; i < PhSystemProcessorInformation.NumberOfProcessors; i++)
     {
         PhAddItemCircularBuffer_FLOAT(&PhCpusKernelHistory[i], PhCpusKernelUsage[i]);
         PhAddItemCircularBuffer_FLOAT(&PhCpusUserHistory[i], PhCpusUserUsage[i]);
