@@ -299,9 +299,8 @@ NTSTATUS PhSipQueryProcessorPerformanceDistribution(
     _Out_ PVOID *Buffer
     );
 
-NTSTATUS PhSipQueryProcessorLogicalInformation(
-    _Out_ PVOID *Buffer,
-    _Out_ PULONG BufferLength
+PPH_STRINGREF PhGetHybridProcessorType(
+    _In_ ULONG ProcessorIndex
     );
 
 // Memory section
