@@ -477,6 +477,24 @@ HRESULT PhCreateAdminTask(
     _In_ PWSTR FileName
     );
 
+// begin_phapppub
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhWordMatchStringRef(
+    _In_ PPH_STRINGREF SearchText,
+    _In_ PPH_STRINGREF Text
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhWordMatchStringZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    );
+// end_phapppub
+
 #define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0) // phapppub
 #define PH_LOAD_SHARED_ICON_LARGE(BaseAddress, Name) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE, 0, 0) // phapppub
 
