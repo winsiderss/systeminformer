@@ -633,10 +633,10 @@ BEGIN_SORT_FUNCTION(CpuCore)
     DOUBLE cpuUsage2;
 
     cpuUsage1 = threadItem1->CpuUsage * 100;
-    cpuUsage1 *= (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    cpuUsage1 *= PhSystemProcessorInformation.NumberOfProcessors;
 
     cpuUsage2 = threadItem2->CpuUsage * 100;
-    cpuUsage2 *= (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    cpuUsage2 *= PhSystemProcessorInformation.NumberOfProcessors;
 
     sortResult = doublecmp(cpuUsage1, cpuUsage2);
 }
@@ -1153,7 +1153,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     FLOAT cpuUsage;
 
                     cpuUsage = threadItem->CpuUsage * 100;
-                    cpuUsage *= (ULONG)PhSystemBasicInformation.NumberOfProcessors; // linux style (dmex)
+                    cpuUsage *= PhSystemProcessorInformation.NumberOfProcessors; // linux style (dmex)
 
                     if (cpuUsage >= 0.01)
                     {
