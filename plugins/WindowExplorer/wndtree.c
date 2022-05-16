@@ -47,42 +47,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
 BOOLEAN WepEnableWindowIcons = FALSE;
 
-BOOLEAN WordMatchStringRef(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length != 0)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length != 0)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN WordMatchStringZ(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRefLongHint(&text, Text);
-
-    return WordMatchStringRef(Context, &text);
-}
-
 BOOLEAN WeWindowTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -99,31 +63,31 @@ BOOLEAN WeWindowTreeFilterCallback(
 
     if (windowNode->WindowClass[0])
     {
-        if (WordMatchStringZ(context, windowNode->WindowClass))
+        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowClass))
             return TRUE;
     }
 
     if (windowNode->WindowHandleString[0])
     {
-        if (WordMatchStringZ(context, windowNode->WindowHandleString))
+        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowHandleString))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->WindowText))
     {
-        if (WordMatchStringRef(context, &windowNode->WindowText->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->WindowText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->ThreadString))
     {
-        if (WordMatchStringRef(context, &windowNode->ThreadString->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->ThreadString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->ModuleString))
     {
-        if (WordMatchStringRef(context, &windowNode->ModuleString->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->ModuleString->sr))
             return TRUE;
     }
 

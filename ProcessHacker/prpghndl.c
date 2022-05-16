@@ -230,42 +230,6 @@ VOID PhShowHandleContextMenu(
     PhFree(handles);
 }
 
-static BOOLEAN PhpWordMatchHandleStringRef(
-    _In_ PPH_STRING SearchText,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = SearchText->sr;
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static BOOLEAN PhpWordMatchHandleStringZ(
-    _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRefLongHint(&text, Text);
-
-    return PhpWordMatchHandleStringRef(SearchText, &text);
-}
-
 BOOLEAN PhpHandleTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -308,31 +272,31 @@ BOOLEAN PhpHandleTreeFilterCallback(
 
     if (!PhIsNullOrEmptyString(handleItem->TypeName))
     {
-        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleItem->TypeName->sr))
+        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleItem->TypeName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(handleItem->ObjectName))
     {
-        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleItem->ObjectName->sr))
+        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleItem->ObjectName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(handleItem->BestObjectName))
     {
-        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleItem->BestObjectName->sr))
+        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleItem->BestObjectName->sr))
             return TRUE;
     }
 
     if (handleItem->HandleString[0])
     {
-        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleItem->HandleString))
+        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleItem->HandleString))
             return TRUE;
     }
 
     if (handleItem->GrantedAccessString[0])
     {
-        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleItem->GrantedAccessString))
+        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleItem->GrantedAccessString))
             return TRUE;
     }
 
@@ -342,19 +306,19 @@ BOOLEAN PhpHandleTreeFilterCallback(
 
     if (handleNode->ObjectString[0])
     {
-        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleNode->ObjectString))
+        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleNode->ObjectString))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(handleNode->GrantedAccessSymbolicText))
     {
-        if (PhpWordMatchHandleStringRef(handlesContext->SearchboxText, &handleNode->GrantedAccessSymbolicText->sr))
+        if (PhWordMatchStringRef(&handlesContext->SearchboxText->sr, &handleNode->GrantedAccessSymbolicText->sr))
             return TRUE;
     }
 
     if (handleNode->FileShareAccessText[0])
     {
-        if (PhpWordMatchHandleStringZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
+        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleNode->FileShareAccessText))
             return TRUE;
     }
 

@@ -1850,42 +1850,6 @@ VOID DotNetAsmRefreshTraceQuery(
     //}
 }
 
-BOOLEAN WordMatchStringRef(
-    _Inout_ PASMPAGE_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchBoxText);
-
-    while (remainingPart.Length != 0)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length != 0)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN WordMatchStringZ(
-    _Inout_ PASMPAGE_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRefLongHint(&text, Text);
-
-    return WordMatchStringRef(Context, &text);
-}
-
 BOOLEAN DotNetAsmTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1908,25 +1872,25 @@ BOOLEAN DotNetAsmTreeFilterCallback(
 
     if (!PhIsNullOrEmptyString(node->IdText))
     {
-        if (WordMatchStringRef(context, &node->IdText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->IdText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->FlagsText))
     {
-        if (WordMatchStringRef(context, &node->FlagsText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->FlagsText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->PathText))
     {
-        if (WordMatchStringRef(context, &node->PathText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->PathText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->NativePathText))
     {
-        if (WordMatchStringRef(context, &node->NativePathText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->NativePathText->sr))
             return TRUE;
     }
 

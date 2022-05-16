@@ -350,42 +350,6 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     return STATUS_UNSUCCESSFUL;
 }
 
-static BOOLEAN PhpWordMatchThreadStringRef(
-    _In_ PPH_STRING SearchText,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = SearchText->sr;
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static BOOLEAN PhpWordMatchThreadStringZ(
-    _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-
-    return PhpWordMatchThreadStringRef(SearchText, &text);
-}
-
 BOOLEAN PhpThreadTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PPH_THREADS_CONTEXT Context
@@ -406,91 +370,91 @@ BOOLEAN PhpThreadTreeFilterCallback(
 
     if (threadNode->ThreadIdText[0])
     {
-        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->ThreadIdText))
+        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->ThreadIdText))
             return TRUE;
     }
 
     if (threadNode->PriorityText[0])
     {
-        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->PriorityText))
+        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->PriorityText))
             return TRUE;
     }
 
     if (threadNode->BasePriorityText[0])
     {
-        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->BasePriorityText))
+        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->BasePriorityText))
             return TRUE;
     }
 
     if (threadNode->IdealProcessorText[0])
     {
-        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->IdealProcessorText))
+        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->IdealProcessorText))
             return TRUE;
     }
 
     if (threadNode->ThreadIdHexText[0])
     {
-        if (PhpWordMatchThreadStringZ(Context->SearchboxText, threadNode->ThreadIdHexText))
+        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->ThreadIdHexText))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->StartAddressText))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->StartAddressText->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->StartAddressText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->PrioritySymbolicText))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->PrioritySymbolicText->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->PrioritySymbolicText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->CreatedText))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->CreatedText->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->CreatedText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->NameText))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->NameText->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->NameText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->StateText))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->StateText->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->StateText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->LastSystemCallText))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->LastSystemCallText->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->LastSystemCallText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->LastErrorCodeText))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->LastErrorCodeText->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->LastErrorCodeText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->ServiceName))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->ThreadItem->ServiceName->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->ThreadItem->ServiceName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressString))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->ThreadItem->StartAddressString->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->ThreadItem->StartAddressString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(threadNode->ThreadItem->StartAddressFileName))
     {
-        if (PhpWordMatchThreadStringRef(Context->SearchboxText, &threadNode->ThreadItem->StartAddressFileName->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &threadNode->ThreadItem->StartAddressFileName->sr))
             return TRUE;
     }
 

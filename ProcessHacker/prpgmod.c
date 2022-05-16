@@ -184,42 +184,6 @@ VOID PhShowModuleContextMenu(
     PhFree(modules);
 }
 
-static BOOLEAN PhpWordMatchHandleStringRef(
-    _In_ PPH_STRING SearchText,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(SearchText);
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static BOOLEAN PhpWordMatchHandleStringZ(
-    _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-
-    return PhpWordMatchHandleStringRef(SearchText, &text);
-}
-
 BOOLEAN PhpModulesTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PPH_MODULES_CONTEXT Context
@@ -295,92 +259,92 @@ BOOLEAN PhpModulesTreeFilterCallback(
 
     if (!PhIsNullOrEmptyString(moduleItem->Name))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->Name->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->Name->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->FileNameWin32))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->FileNameWin32->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->FileNameWin32->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VerifySignerName))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VerifySignerName->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VerifySignerName->sr))
             return TRUE;
     }
 
     if (moduleItem->BaseAddressString[0])
     {
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, moduleItem->BaseAddressString))
+        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->BaseAddressString))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.CompanyName))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.CompanyName->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.CompanyName->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.FileDescription))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.FileDescription->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.FileDescription->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.FileVersion))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.FileVersion->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.FileVersion->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(moduleItem->VersionInfo.ProductName))
     {
-        if (PhpWordMatchHandleStringRef(Context->SearchboxText, &moduleItem->VersionInfo.ProductName->sr))
+        if (PhWordMatchStringRef(&Context->SearchboxText->sr, &moduleItem->VersionInfo.ProductName->sr))
             return TRUE;
     }
 
     if (moduleItem->EntryPointAddressString[0])
     {
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
+        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->EntryPointAddressString))
             return TRUE;
     }
 
     if (moduleItem->ParentBaseAddressString[0])
     {
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
+        if (PhWordMatchStringZ(Context->SearchboxText, moduleItem->ParentBaseAddressString))
             return TRUE;
     }
 
     switch (moduleItem->LoadReason)
     {
     case LoadReasonStaticDependency:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Static dependency"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Static dependency"))
             return TRUE;
         break;
     case LoadReasonStaticForwarderDependency:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Static forwarder dependency"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Static forwarder dependency"))
             return TRUE;
         break;
     case LoadReasonDynamicForwarderDependency:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Dynamic forwarder dependency"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Dynamic forwarder dependency"))
             return TRUE;
         break;
     case LoadReasonDelayloadDependency:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Delay load dependency"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Delay load dependency"))
             return TRUE;
         break;
     case LoadReasonDynamicLoad:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Dynamic"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Dynamic"))
             return TRUE;
         break;
     case LoadReasonAsImageLoad:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Image"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Image"))
             return TRUE;
         break;
     case LoadReasonAsDataLoad:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Data"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Data"))
             return TRUE;
         break;
     }
@@ -388,16 +352,16 @@ BOOLEAN PhpModulesTreeFilterCallback(
     switch (moduleItem->VerifyResult)
     {
     case VrNoSignature:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"No Signature"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"No Signature"))
             return TRUE;
         break;
     case VrExpired:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Expired"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Expired"))
             return TRUE;
         break;
     case VrRevoked:
     case VrDistrust:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Revoked"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Revoked"))
             return TRUE;
         break;
     }
@@ -405,7 +369,7 @@ BOOLEAN PhpModulesTreeFilterCallback(
     switch (moduleItem->VerifyResult)
     {
     case VrTrusted:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Trusted"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Trusted"))
             return TRUE;
         break;
     case VrNoSignature:
@@ -414,7 +378,7 @@ BOOLEAN PhpModulesTreeFilterCallback(
     case VrDistrust:
     case VrUnknown:
     case VrBadSignature:
-        if (PhpWordMatchHandleStringZ(Context->SearchboxText, L"Bad"))
+        if (PhWordMatchStringZ(Context->SearchboxText, L"Bad"))
             return TRUE;
         break;
     }
