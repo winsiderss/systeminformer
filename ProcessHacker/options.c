@@ -2358,14 +2358,14 @@ BOOLEAN OptionsAdvancedNodeHashtableEqualFunction(
     PPH_OPTIONS_ADVANCED_ROOT_NODE node1 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)Entry1;
     PPH_OPTIONS_ADVANCED_ROOT_NODE node2 = *(PPH_OPTIONS_ADVANCED_ROOT_NODE*)Entry2;
 
-    return PhEqualString(node1->Name, node2->Name, TRUE);
+    return PhEqualStringRef(&node1->Name->sr, &node2->Name->sr, TRUE);
 }
 
 ULONG OptionsAdvancedNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRef(&(*(PPH_OPTIONS_ADVANCED_ROOT_NODE*)Entry)->Name->sr, TRUE);
+    return PhHashStringRefEx(&(*(PPH_OPTIONS_ADVANCED_ROOT_NODE*)Entry)->Name->sr, TRUE, PH_STRING_HASH_X65599);
 }
 
 VOID DestroyOptionsAdvancedNode(
@@ -2809,42 +2809,6 @@ static BOOLEAN PhpOptionsSettingsCallback(
     return TRUE;
 }
 
-static BOOLEAN PhpWordMatchHandleStringRef(
-    _In_ PPH_STRING SearchText,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = SearchText->sr;
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static BOOLEAN PhpWordMatchHandleStringZ(
-    _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-
-    return PhpWordMatchHandleStringRef(SearchText, &text);
-}
-
 BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_ PVOID Context
@@ -2956,11 +2920,11 @@ BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
     if (PhIsNullOrEmptyString(context->SearchBoxText))
         return TRUE;
 
-    if (PhpWordMatchHandleStringRef(context->SearchBoxText, &node->Name->sr))
+    if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->Name->sr))
         return TRUE;  
-    if (PhpWordMatchHandleStringRef(context->SearchBoxText, &node->DefaultString->sr))
+    if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->DefaultString->sr))
         return TRUE;
-    if (PhpWordMatchHandleStringRef(context->SearchBoxText, &node->ValueString->sr))
+    if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->ValueString->sr))
         return TRUE;
 
     return FALSE;

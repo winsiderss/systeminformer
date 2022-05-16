@@ -46,12 +46,12 @@ typedef enum _ENVIRONMENT_TREE_MENU_ITEM
     ENVIRONMENT_TREE_MENU_ITEM_MAXIMUM
 } ENVIRONMENT_TREE_MENU_ITEM;
 
-typedef enum _ENVIRONMENT_TREE_COLUMN_ITEM_NAME
+typedef enum _ENVIRONMENT_TREE_COLUMN_ITEM
 {
     ENVIRONMENT_COLUMN_ITEM_NAME,
     ENVIRONMENT_COLUMN_ITEM_VALUE,
     ENVIRONMENT_COLUMN_ITEM_MAXIMUM
-} ENVIRONMENT_TREE_COLUMN_ITEM_NAME;
+} ENVIRONMENT_TREE_COLUMN_ITEM;
 
 typedef enum _PROCESS_ENVIRONMENT_TREENODE_TYPE
 {
@@ -272,7 +272,6 @@ VOID PhpRefreshEnvironmentList(
         else
         {
             PhpSetEnvironmentListStatusMessage(Context, status);
-            TreeNew_NodesStructured(Context->TreeNewHandle);
         }
 
         NtClose(processHandle);
@@ -708,42 +707,6 @@ VOID PhpShowEnvironmentNodeContextMenu(
     PhDestroyEMenu(menu);
 }
 
-static BOOLEAN PhpWordMatchEnvironmentStringRef(
-    _In_ PPH_STRINGREF SearchText,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = *SearchText;
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static BOOLEAN PhpWordMatchEnvironmentStringZ(
-    _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-
-    return PhpWordMatchEnvironmentStringRef(&SearchText->sr, &text);
-}
-
 VOID PhLoadSettingsEnvironmentList(
     _Inout_ PPH_ENVIRONMENT_CONTEXT Context
     )
@@ -817,17 +780,17 @@ BOOLEAN PhpEnvironmentNodeHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PPHP_PROCESS_ENVIRONMENT_TREENODE poolTagNode1 = *(PPHP_PROCESS_ENVIRONMENT_TREENODE *)Entry1;
-    PPHP_PROCESS_ENVIRONMENT_TREENODE poolTagNode2 = *(PPHP_PROCESS_ENVIRONMENT_TREENODE *)Entry2;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE node1 = *(PPHP_PROCESS_ENVIRONMENT_TREENODE *)Entry1;
+    PPHP_PROCESS_ENVIRONMENT_TREENODE node2 = *(PPHP_PROCESS_ENVIRONMENT_TREENODE *)Entry2;
 
-    return PhEqualStringRef(&poolTagNode1->NameText->sr, &poolTagNode2->NameText->sr, TRUE);
+    return PhEqualStringRef(&node1->NameText->sr, &node2->NameText->sr, TRUE);
 }
 
 ULONG PhpEnvironmentNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRef(&(*(PPHP_PROCESS_ENVIRONMENT_TREENODE*)Entry)->NameText->sr, TRUE);
+    return PhHashStringRefEx(&(*(PPHP_PROCESS_ENVIRONMENT_TREENODE*)Entry)->NameText->sr, TRUE, PH_STRING_HASH_X65599);
 }
 
 VOID PhpDestroyEnvironmentNode(
@@ -1143,12 +1106,13 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewSortChanged:
         {
             TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
-            // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
 
             // HACK
             if (context->TreeFilterSupport.FilterList)
                 PhApplyTreeNewFilters(&context->TreeFilterSupport);
+
+            // Force a rebuild to sort the items.
+            TreeNew_NodesStructured(hwnd);
         }
         return TRUE;
     case TreeNewContextMenu:
@@ -1212,7 +1176,7 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
         return TRUE;
     case TreeNewLeftDoubleClick:
         {
-            SendMessage(context->WindowHandle, WM_COMMAND, WM_PH_SET_LIST_VIEW_SETTINGS, 0); // HACK
+            SendMessage(context->WindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, 0); // HACK
         }
         return TRUE;
     case TreeNewGetDialogCode:
@@ -1382,13 +1346,13 @@ BOOLEAN PhpProcessEnvironmentTreeFilterCallback(
 
     if (!PhIsNullOrEmptyString(environmentNode->NameText))
     {
-        if (PhpWordMatchEnvironmentStringRef(&context->SearchboxText->sr, &environmentNode->NameText->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &environmentNode->NameText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(environmentNode->ValueText))
     {
-        if (PhpWordMatchEnvironmentStringRef(&context->SearchboxText->sr, &environmentNode->ValueText->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &environmentNode->ValueText->sr))
             return TRUE;
     }
 
@@ -1591,7 +1555,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PhpRefreshEnvironmentList(context, processItem);
                 }
                 break;
-            case WM_PH_SET_LIST_VIEW_SETTINGS: // HACK
+            case ID_SHOWCONTEXTMENU:
                 {
                     PPHP_PROCESS_ENVIRONMENT_TREENODE item = PhpGetSelectedEnvironmentNode(context);
                     BOOLEAN refresh;

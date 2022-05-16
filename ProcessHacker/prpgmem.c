@@ -3,7 +3,7 @@
  *   Process properties: Memory page
  *
  * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * Copyright (C) 2017-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -199,42 +199,6 @@ VOID PhShowMemoryContextMenu(
     PhFree(memoryNodes);
 }
 
-static BOOLEAN PhpWordMatchHandleStringRef(
-    _In_ PPH_STRING SearchText,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = SearchText->sr;
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static BOOLEAN PhpWordMatchHandleStringZ(
-    _In_ PPH_STRING SearchText,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-
-    return PhpWordMatchHandleStringRef(SearchText, &text);
-}
-
 BOOLEAN PhpMemoryTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -293,28 +257,28 @@ BOOLEAN PhpMemoryTreeFilterCallback(
 
     if (memoryNode->BaseAddressText[0])
     {
-        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, memoryNode->BaseAddressText))
+        if (PhWordMatchStringZ(memoryContext->SearchboxText, memoryNode->BaseAddressText))
             return TRUE;
     }
 
     useText = PH_AUTO(PhGetMemoryRegionUseText(memoryItem));
     if (!PhIsNullOrEmptyString(useText))
     {
-        if (PhpWordMatchHandleStringRef(memoryContext->SearchboxText, &useText->sr))
+        if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, &useText->sr))
             return TRUE;
     }
     
     tempString = PhGetMemoryTypeString(memoryItem->Type);
     if (tempString[0])
     {
-        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, tempString))
+        if (PhWordMatchStringZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 
     tempString = PhGetMemoryStateString(memoryItem->State);
     if (tempString[0])
     {
-        if (PhpWordMatchHandleStringZ(memoryContext->SearchboxText, tempString))
+        if (PhWordMatchStringZ(memoryContext->SearchboxText, tempString))
             return TRUE;
     }
 

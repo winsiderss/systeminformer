@@ -136,30 +136,6 @@ static HFONT PhpColumnsGetCurrentFont(
     return font;
 }
 
-BOOLEAN PhpColumnsWordMatchStringRef(
-    _In_ PPH_STRING SearchboxText,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = SearchboxText->sr;
-
-    while (remainingPart.Length)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
 VOID PhpColumnsResetListBox(
     _In_ HWND ListBoxHandle,
     _In_ PPH_STRING SearchboxText,
@@ -191,7 +167,7 @@ VOID PhpColumnsResetListBox(
 
             PhInitializeStringRefLongHint(&text, Array->Items[i]);
 
-            if (PhpColumnsWordMatchStringRef(SearchboxText, &text))
+            if (PhWordMatchStringRef(&SearchboxText->sr, &text))
             {
                 ListBox_InsertString(ListBoxHandle, index, Array->Items[i]);
                 index++;
