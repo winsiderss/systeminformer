@@ -2633,3 +2633,61 @@ CleanupExit:
 
     return status;
 }
+
+BOOLEAN PhWordMatchStringRef(
+    _In_ PPH_STRINGREF SearchText,
+    _In_ PPH_STRINGREF Text
+    )
+{
+    PH_STRINGREF part;
+    PH_STRINGREF remainingPart;
+
+    remainingPart = *SearchText;
+
+    while (remainingPart.Length)
+    {
+        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
+
+        if (part.Length)
+        {
+            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhWordMatchStringZ(
+    _In_ PPH_STRING SearchText,
+    _In_ PWSTR Text
+    )
+{
+    PH_STRINGREF text;
+
+    PhInitializeStringRefLongHint(&text, Text);
+
+    return PhWordMatchStringRef(&SearchText->sr, &text);
+}
+
+//#include <wuapi.h>
+//BOOLEAN PhIsSystemRebootRequired(
+//    VOID
+//    )
+//{
+//    VARIANT_BOOL rebootRequired = VARIANT_FALSE;
+//    ISystemInformation* systemInformation = NULL;
+//
+//    if (SUCCEEDED(PhGetClassObject(
+//        L"wuapi.dll",
+//        &CLSID_SystemInformation,
+//        &IID_ISystemInformation,
+//        &systemInformation
+//        )))
+//    {
+//        ISystemInformation_get_RebootRequired(systemInformation, &rebootRequired);
+//        ISystemInformation_Release(systemInformation);
+//    }
+//
+//    return rebootRequired == VARIANT_TRUE;
+//}
