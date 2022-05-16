@@ -8236,6 +8236,24 @@ RtlFlsFree(
     _In_ ULONG FlsIndex
     );
 
+#if (PHNT_VERSION >= PHNT_20H1)
+NTSYSAPI
+NTSTATUS
+WINAPI 
+RtlFlsGetValue(
+    _In_ ULONG FlsIndex,
+    _Out_ PVOID* FlsData
+    );
+
+NTSYSAPI
+NTSTATUS
+WINAPI
+RtlFlsSetValue(
+    _In_ ULONG FlsIndex,
+    _In_ PVOID FlsData
+    );
+#endif
+
 typedef enum _STATE_LOCATION_TYPE 
 {
     LocationTypeRegistry,
