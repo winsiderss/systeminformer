@@ -507,6 +507,18 @@ PPH_STRING PhGetMemoryRegionUseText(
             type == CfgBitmap32Region ? L" 32-bit" : L"");
     case ApiSetMapRegion:
         return PhFormatString(L"ApiSetMap");
+    case ReadOnlySharedMemoryRegion:
+        return PhFormatString(L"CSR shared memory");
+    case CodePageDataRegion:
+        return PhFormatString(L"CodePage data");
+    case GdiSharedHandleTableRegion:
+        return PhFormatString(L"GDI shared handle table");
+    case ShimDataRegion:
+        return PhFormatString(L"Shim data");
+    case ActivationContextDataRegion:
+        return PhFormatString(L"Activation context data");
+    case SystemDefaultActivationContextDataRegion:
+        return PhFormatString(L"Default activation context data");
     default:
         return PhReferenceEmptyString();
     }
