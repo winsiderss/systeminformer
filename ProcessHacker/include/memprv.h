@@ -25,6 +25,12 @@ typedef enum _PH_MEMORY_REGION_TYPE
     CfgBitmap32Region,
     ApiSetMapRegion,
     HypervisorSharedDataRegion,
+    ReadOnlySharedMemoryRegion,
+    CodePageDataRegion,
+    GdiSharedHandleTableRegion,
+    ShimDataRegion,
+    ActivationContextDataRegion,
+    SystemDefaultActivationContextDataRegion
 } PH_MEMORY_REGION_TYPE;
 
 typedef struct _PH_MEMORY_ITEM
