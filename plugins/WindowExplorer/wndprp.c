@@ -920,8 +920,8 @@ VOID WepRefreshDpiContext(
 
         if (hlib)
         {
-           GetWindowDpiAwarenessContext_I = PhGetDllBaseProcedureAddress(hlib, "GetWindowDpiAwarenessContext", 0);
-           AreDpiAwarenessContextsEqual_I = PhGetDllBaseProcedureAddress(hlib, "AreDpiAwarenessContextsEqual", 0);
+           GetWindowDpiAwarenessContext_I = PhGetProcedureAddress(hlib, "GetWindowDpiAwarenessContext", 0);
+           AreDpiAwarenessContextsEqual_I = PhGetProcedureAddress(hlib, "AreDpiAwarenessContextsEqual", 0);
         }
 
         PhEndInitOnce (&InitOnce);
