@@ -3346,7 +3346,7 @@ ZwQueueApcThreadEx(
     _In_opt_ PVOID ApcArgument3
     );
 
-#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+#if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
 typedef enum _QUEUE_USER_APC_FLAGS
 {
     QUEUE_USER_APC_FLAGS_NONE = 0x0,
