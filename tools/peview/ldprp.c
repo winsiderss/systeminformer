@@ -420,6 +420,10 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 { \
                     ADD_VALUE(L"Cast guard failure mode", PhaFormatString(L"0x%Ix", (Config)->CastGuardOsDeterminedFailureMode)->Buffer); \
                 } \
+                if (RTL_CONTAINS_FIELD((Config), (Config)->Size, GuardMemcpyFunctionPointer)) \
+                { \
+                    ADD_VALUE(L"Guard memcpy function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardMemcpyFunctionPointer)->Buffer); \
+                } \
             }
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
