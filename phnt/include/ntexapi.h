@@ -1214,7 +1214,7 @@ NtWaitForWorkViaWorkerFactory(
     _Out_writes_to_(Count, *PacketsReturned) struct _FILE_IO_COMPLETION_INFORMATION *MiniPackets,
     _In_ ULONG Count,
     _Out_ PULONG PacketsReturned,
-    _In_ PWORKER_FACTORY_DEFERRED_WORK DeferredWork
+    _In_ struct _WORKER_FACTORY_DEFERRED_WORK* DeferredWork
     );
 
 #else
