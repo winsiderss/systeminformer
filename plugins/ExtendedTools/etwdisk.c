@@ -299,6 +299,7 @@ VOID EtpProcessDiskPacket(
         diskItem = EtCreateDiskItem();
 
         diskItem->ProcessId = diskEvent->ClientId.UniqueProcess;
+        PhPrintUInt32(diskItem->ProcessIdString, HandleToUlong(diskItem->ProcessId));
         PhSetReference(&diskItem->FileName, Packet->FileName);
         diskItem->FileNameWin32 = PhGetFileName(diskItem->FileName);
 

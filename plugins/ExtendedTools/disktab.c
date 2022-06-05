@@ -3,7 +3,7 @@
  *   ETW disk monitoring
  *
  * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2018-2020 dmex
+ * Copyright (C) 2018-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -297,6 +297,8 @@ VOID EtInitializeDiskTreeList(
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"Total rate average", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_IOPRIORITY, TRUE, L"I/O priority", 70, PH_ALIGN_LEFT, 5, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_RESPONSETIME, TRUE, L"Response time (ms)", 70, PH_ALIGN_RIGHT, 6, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_PID, FALSE, L"PID", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -513,6 +515,12 @@ BEGIN_SORT_FUNCTION(ResponseTime)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Pid)
+{
+    sortResult = intptrcmp((LONG_PTR)diskItem1->ProcessId, (LONG_PTR)diskItem2->ProcessId);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -542,7 +550,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     SORT_FUNCTION(WriteRateAverage),
                     SORT_FUNCTION(TotalRateAverage),
                     SORT_FUNCTION(IoPriority),
-                    SORT_FUNCTION(ResponseTime)
+                    SORT_FUNCTION(ResponseTime),
+                    SORT_FUNCTION(Pid),
+                    SORT_FUNCTION(File),
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -699,6 +709,12 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     }
                 }
                 break;
+            case ETDSTNC_PID:
+                PhInitializeStringRefLongHint(&getCellText->Text, diskItem->ProcessIdString);
+                break;
+            case ETDSTNC_ORIGINALNAME:
+                getCellText->Text = PhGetStringRef(diskItem->FileName);
+                break;
             default:
                 return FALSE;
             }
@@ -847,21 +863,21 @@ PPH_STRING EtpGetDiskItemProcessName(
     _In_ PET_DISK_ITEM DiskItem
     )
 {
-    PH_FORMAT format[4];
+    PH_FORMAT format[1];
 
-    if (!DiskItem->ProcessId)
-        return PhCreateString(L"No process");
-
-    PhInitFormatS(&format[1], L" (");
-    PhInitFormatU(&format[2], HandleToUlong(DiskItem->ProcessId));
-    PhInitFormatC(&format[3], ')');
-
-    if (DiskItem->ProcessName)
-        PhInitFormatSR(&format[0], DiskItem->ProcessName->sr);
+    if (DiskItem->ProcessId)
+    {
+        if (DiskItem->ProcessName)
+            PhInitFormatSR(&format[0], DiskItem->ProcessName->sr);
+        else
+            PhInitFormatS(&format[0], L"Unknown process");
+    }
     else
-        PhInitFormatS(&format[0], L"Unknown process");
+    {
+        PhInitFormatS(&format[0], L"No process");
+    }
 
-    return PhFormat(format, 4, 96);
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
 PET_DISK_ITEM EtGetSelectedDiskItem(
