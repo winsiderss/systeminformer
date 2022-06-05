@@ -3346,14 +3346,6 @@ ZwQueueApcThreadEx(
     _In_opt_ PVOID ApcArgument3
     );
 
-#if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
-typedef enum _QUEUE_USER_APC_FLAGS
-{
-    QUEUE_USER_APC_FLAGS_NONE = 0x0,
-    QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC = 0x1,
-} QUEUE_USER_APC_FLAGS;
-#endif
-
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -4603,7 +4595,10 @@ NTSTATUS
 NTAPI
 ZwWaitForWorkViaWorkerFactory(
     _In_ HANDLE WorkerFactoryHandle,
-    _Out_ struct _FILE_IO_COMPLETION_INFORMATION *MiniPacket
+    _Out_writes_to_(Count, *PacketsReturned) struct _FILE_IO_COMPLETION_INFORMATION *MiniPackets,
+    _In_ ULONG Count,
+    _Out_ PULONG PacketsReturned,
+    _In_ struct _WORKER_FACTORY_DEFERRED_WORK* DeferredWork
     );
 
 NTSYSCALLAPI
