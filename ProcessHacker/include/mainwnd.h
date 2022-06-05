@@ -12,8 +12,7 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_UPDATE_FONT (WM_APP + 136)
 // end_phapppub
 #define WM_PH_INVOKE (WM_APP + 145)
-#define WM_PH_CALLBACK (WM_APP + 146)
-#define WM_PH_LAST (WM_APP + 146)
+#define WM_PH_LAST (WM_APP + 145)
 
 // begin_phapppub
 PHAPPAPI
@@ -114,6 +113,15 @@ PhPluginInvokeWindowCallback(
 // end_phapppub
 #define ProcessHacker_IconClick() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK, 0, 0)
+
+// begin_phapppub
+PHAPPAPI
+PVOID
+NTAPI
+PhPluginCreateTabPage(
+    _In_ PVOID Page
+    );
+// end_phapppub
 
 typedef struct _PH_SHOW_MEMORY_EDITOR
 {

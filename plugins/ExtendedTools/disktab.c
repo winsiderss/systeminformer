@@ -65,7 +65,7 @@ VOID EtInitializeDiskTab(
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Disk");
     page.Callback = EtpDiskPageCallback;
-    DiskPage = ProcessHacker_CreateTabPage(&page);
+    DiskPage = PhPluginCreateTabPage(&page);
 
     if (ToolStatusInterface)
     {
