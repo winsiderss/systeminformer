@@ -909,7 +909,7 @@ VOID PhMwpOnCommand(
             PVOID fileDialog = PhCreateOpenFileDialog();
 
             PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
-            PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_NOPATHVALIDATE);
+            PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_NOPATHVALIDATE | PH_FILEDIALOG_DONTADDTORECENT);
 
             if (PhShowFileDialog(WindowHandle, fileDialog))
             {

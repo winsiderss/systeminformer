@@ -3079,6 +3079,7 @@ BOOLEAN PhUiLoadDllProcess(
     PPH_STRING fileName;
 
     fileDialog = PhCreateOpenFileDialog();
+    PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_DONTADDTORECENT);
     PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
 
     if (!PhShowFileDialog(hWnd, fileDialog))
