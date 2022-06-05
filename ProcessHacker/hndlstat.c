@@ -148,7 +148,6 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
             ULONG_PTR i;
 
             PhSetApplicationWindowIcon(hwndDlg);
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             processId = context->ProcessId;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -168,6 +167,7 @@ INT_PTR CALLBACK PhpHandleStatisticsDlgProc(
 
             if (PhGetScalableIntegerPairSetting(L"HandleStatisticsWindowSize", TRUE).X)
                 PhLoadWindowPlacementFromSetting(NULL, L"HandleStatisticsWindowSize", hwndDlg);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             for (i = 0; i < context->Handles->NumberOfHandles; i++)
             {
