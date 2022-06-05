@@ -1143,8 +1143,8 @@ namespace CustomBuildTool
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
                         httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
-                        httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                        httpClient.DefaultRequestVersion = HttpVersion.Version20;
+                        //httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                        //httpClient.DefaultRequestVersion = HttpVersion.Version20;
 
                         using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
                         {
