@@ -172,16 +172,24 @@ VOID PhpSetEnvironmentListStatusMessage(
     _In_ ULONG Status
     )
 {
-    PPH_STRING statusMessage;
+    if (Context->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
+    {
+        PhMoveReference(&Context->StatusMessage, PhCreateString(L"There are no environment variables to display."));
+        TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->StatusMessage->sr, 0);
+    }
+    else
+    {
+        PPH_STRING statusMessage;
 
-    statusMessage = PhGetStatusMessage(Status, 0);
-    PhMoveReference(&Context->StatusMessage, PhConcatStrings2(
-        L"Unable to query environment information:\n",
-        PhGetStringOrDefault(statusMessage, L"Unknown error.")
-        ));
-    TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->StatusMessage->sr, 0);
-    //TreeNew_NodesStructured(Context->TreeNewHandle);
-    PhClearReference(&statusMessage);
+        statusMessage = PhGetStatusMessage(Status, 0);
+        PhMoveReference(&Context->StatusMessage, PhConcatStrings2(
+            L"Unable to query environment information:\n",
+            PhGetStringOrDefault(statusMessage, L"Unknown error.")
+            ));
+        TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->StatusMessage->sr, 0);
+        //TreeNew_NodesStructured(Context->TreeNewHandle);
+        PhClearReference(&statusMessage);
+    }
 }
 
 VOID PhpRefreshEnvironmentList(
