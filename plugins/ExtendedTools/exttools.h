@@ -143,6 +143,7 @@ typedef struct _ET_DISK_ITEM
     PPH_STRING FileName;
     PPH_STRING FileNameWin32;
     PPH_STRING ProcessName;
+    WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
 
     PPH_PROCESS_ITEM ProcessItem;
     ULONG_PTR ProcessIconIndex;
@@ -177,7 +178,9 @@ typedef struct _ET_DISK_ITEM
 #define ETDSTNC_TOTALRATEAVERAGE 4
 #define ETDSTNC_IOPRIORITY 5
 #define ETDSTNC_RESPONSETIME 6
-#define ETDSTNC_MAXIMUM 7
+#define ETDSTNC_PID 7
+#define ETDSTNC_ORIGINALNAME 8
+#define ETDSTNC_MAXIMUM 9
 
 typedef struct _ET_DISK_NODE
 {
