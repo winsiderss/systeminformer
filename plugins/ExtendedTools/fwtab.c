@@ -231,7 +231,7 @@ VOID EtInitializeFirewallTab(
     PhInitializeStringRef(&page.Name, L"Firewall");
     page.Callback = FwTabPageCallback;
 
-    EtFwAddedTabPage = ProcessHacker_CreateTabPage(&page);
+    EtFwAddedTabPage = PhPluginCreateTabPage(&page);
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
     {
