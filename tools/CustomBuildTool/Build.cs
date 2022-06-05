@@ -111,6 +111,34 @@ namespace CustomBuildTool
                     if (Directory.Exists(folder))
                         Directory.Delete(folder, true);
                 }
+
+                var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
+                {
+                    AttributesToSkip = FileAttributes.Offline,
+                    RecurseSubdirectories = true,
+                    ReturnSpecialDirectories = false
+                });
+
+                foreach (string folder in project_folders)
+                {
+                    string name = Path.GetFileName(folder);
+
+                    if (
+                        string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
+                        )
+                    {
+                        if (Directory.Exists(folder))
+                        {
+                            try
+                            {
+                                Directory.Delete(folder, true);
+                            }
+                            catch (Exception)
+                            { }
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -948,7 +976,7 @@ namespace CustomBuildTool
         public static bool BuildDeployUpdateConfig()
         {
             string buildBuildId;
-            string buildJobId;
+            //string buildJobId;
             string buildPostUrl;
             string buildPostApiKey;
             string buildPostSfUrl;
@@ -965,7 +993,7 @@ namespace CustomBuildTool
                 return true;
 
             buildBuildId = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_ID%");
-            buildJobId = Win32.GetEnvironmentVariable("%APPVEYOR_JOB_ID%");
+            //buildJobId = Win32.GetEnvironmentVariable("%APPVEYOR_JOB_ID%");
             buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%");
             buildPostApiKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_KEY%");
             buildPostSfUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_SF_API%");
@@ -979,8 +1007,8 @@ namespace CustomBuildTool
 
             if (string.IsNullOrEmpty(buildBuildId))
                 return false;
-            if (string.IsNullOrEmpty(buildJobId))
-                return false;
+            //if (string.IsNullOrEmpty(buildJobId))
+            //    return false;
             if (string.IsNullOrEmpty(buildPostUrl))
                 return false;
             if (string.IsNullOrEmpty(buildPostApiKey))
@@ -1071,6 +1099,20 @@ namespace CustomBuildTool
                 return false;
             }
 
+            GithubRelease githubMirrorUpload = BuildDeployUploadGithubConfig();
+
+            if (githubMirrorUpload == null)
+                return false;
+
+            string binziplink = githubMirrorUpload.GetFileUrl($"processhacker-{BuildVersion}-bin.zip");
+            string setupexelink = githubMirrorUpload.GetFileUrl($"processhacker-{BuildVersion}-setup.exe");
+
+            if (string.IsNullOrWhiteSpace(binziplink) || string.IsNullOrWhiteSpace(setupexelink))
+            {
+                Program.PrintColorMessage("build-github downloads not found.", ConsoleColor.Red);
+                return false;
+            }
+
             try
             {
                 BuildUpdateRequest buildUpdateRequest = new BuildUpdateRequest
@@ -1079,11 +1121,11 @@ namespace CustomBuildTool
                     BuildVersion = BuildVersion,
                     BuildCommit = BuildCommit,
                     BuildId = buildBuildId,
-                    BinUrl = $"https://ci.appveyor.com/api/buildjobs/{buildJobId}/artifacts/processhacker-{BuildVersion}-bin.zip",
+                    BinUrl = binziplink, // $"https://ci.appveyor.com/api/buildjobs/{buildJobId}/artifacts/processhacker-{BuildVersion}-bin.zip",
                     BinLength = buildBinFileLength.ToString(),
                     BinHash = buildBinHash,
                     BinSig = BuildBinSig,
-                    SetupUrl = $"https://ci.appveyor.com/api/buildjobs/{buildJobId}/artifacts/processhacker-{BuildVersion}-setup.exe",
+                    SetupUrl = setupexelink, // $"https://ci.appveyor.com/api/buildjobs/{buildJobId}/artifacts/processhacker-{BuildVersion}-setup.exe",
                     SetupLength = buildSetupFileLength.ToString(),
                     SetupHash = buildSetupHash,
                     SetupSig = BuildSetupSig,
@@ -1101,6 +1143,8 @@ namespace CustomBuildTool
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
                         httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
+                        httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                        httpClient.DefaultRequestVersion = HttpVersion.Version20;
 
                         using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
                         {
@@ -1127,6 +1171,8 @@ namespace CustomBuildTool
                         using (HttpClient httpClient = new HttpClient(httpClientHandler))
                         {
                             httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
+                            httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                            httpClient.DefaultRequestVersion = HttpVersion.Version20;
 
                             using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
                             {
@@ -1212,8 +1258,8 @@ namespace CustomBuildTool
 
                         Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
 
-                        using (FileStream stream = File.OpenRead(sourceFile))
-                        using (BufferedStream localStream = new BufferedStream(stream))
+                        using (FileStream fileStream = File.OpenRead(sourceFile))
+                        using (BufferedStream localStream = new BufferedStream(fileStream))
                         using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
                         {
                             localStream.CopyTo(remoteStream);
@@ -1275,6 +1321,87 @@ namespace CustomBuildTool
             }
 
             return true;
+        }
+
+        public static GithubRelease BuildDeployUploadGithubConfig()
+        {
+            if (!Github.DeleteRelease(BuildVersion))
+                return null;
+
+            var mirror = new GithubRelease();
+
+            try
+            {
+                // Create a new github release.
+
+                var response = Github.CreateRelease(BuildVersion);
+
+                if (response == null)
+                {
+                    Program.PrintColorMessage("[Github.CreateRelease]", ConsoleColor.Red);
+                    return null;
+                }
+
+                // Upload the files.
+
+                foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                {
+                    if (!file.UploadNightly)
+                        continue;
+
+                    string sourceFile = BuildOutputFolder + file.FileName;
+
+                    if (File.Exists(sourceFile))
+                    {
+                        var result = Github.UploadAssets(BuildVersion, sourceFile, response.upload_url);
+
+                        if (result == null)
+                        {
+                            Program.PrintColorMessage("[Github.UploadAssets]", ConsoleColor.Red);
+                            return null;
+                        }
+
+                        //mirror.Files.Add(new GithubReleaseAsset(file.FileName, result.download_url));
+                    }
+                }
+
+                // Update the release and make it public.
+
+                var update = Github.UpdateRelease(response.ReleaseId);
+
+                if (update == null)
+                {
+                    Program.PrintColorMessage("[Github.UpdateRelease]", ConsoleColor.Red);
+                    return null;
+                }
+
+                // Grab the download urls.
+
+                foreach (var file in update.Assets)
+                {
+                    if (!file.Uploaded)
+                    {
+                        continue;
+                    }
+
+                    mirror.Files.Add(new GithubReleaseAsset(file.Name, file.download_url));
+                }
+
+                mirror.ReleaseId = update.ReleaseId;
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage("[Github] " + ex, ConsoleColor.Red);
+                return null;
+            }
+
+            if (!mirror.Valid)
+            {
+                Program.PrintColorMessage("[Github-Valid]" , ConsoleColor.Red);
+                return null;
+            }
+
+            return mirror;
         }
 
         //public static void BuildAppxPackage(BuildFlags Flags)
