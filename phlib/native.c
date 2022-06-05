@@ -10629,9 +10629,6 @@ NTSTATUS PhGetProcessCodePage(
     }
 
 #ifdef _WIN64
-    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
-        return status;
-
     if (isWow64)
     {
         PH_STRINGREF systemRootSr;
