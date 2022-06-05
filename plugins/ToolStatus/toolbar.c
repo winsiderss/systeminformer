@@ -2,7 +2,7 @@
  * Process Hacker ToolStatus -
  *   main toolbar
  *
- * Copyright (C) 2011-2019 dmex
+ * Copyright (C) 2011-2022 dmex
  *
  * This file is part of Process Hacker.
  *
@@ -104,7 +104,7 @@ BOOLEAN RebarBandExists(
     return FALSE;
 }
 
-VOID RebarLoadSettings(
+VOID RebarCreateOrUpdateWindow(
     VOID
     )
 {
@@ -149,15 +149,12 @@ VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
         SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-
-        // Add the buttons to the toolbar.
-        ToolbarLoadButtonSettings();
         // Configure the toolbar imagelist.
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Configure the toolbar font.
         SetWindowFont(ToolBarHandle, ToolbarWindowFont, FALSE);
-        // Resize the toolbar.
-        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+        // Add the buttons to the toolbar.
+        ToolbarLoadButtonSettings();
 
         // Inset the toolbar into the rebar control, also
         // determine the font size and adjust the toolbar height.
@@ -300,7 +297,7 @@ VOID ToolbarLoadSettings(
     VOID
     )
 {
-    RebarLoadSettings();
+    RebarCreateOrUpdateWindow();
 
     if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle)
     {
@@ -431,7 +428,7 @@ VOID ToolbarResetSettings(
         SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 
     // Add the default buttons.
-    SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+    ToolbarLoadDefaultButtonSettings();
 }
 
 PWSTR ToolbarGetText(
@@ -665,7 +662,7 @@ HBITMAP ToolbarGetImage(
     return NULL;
 }
 
-VOID ToolbarLoadDefaultToolbarButtons(
+VOID ToolbarLoadDefaultButtonSettings(
     VOID
     )
 {
@@ -688,6 +685,10 @@ VOID ToolbarLoadDefaultToolbarButtons(
 
             DeleteBitmap(bitmap);
         }
+
+        // Note: We have to set the string here because TBIF_TEXT doesn't update
+        // the button text length when the button is disabled. (dmex)
+        ToolbarButtons[i].iString = (INT_PTR)ToolbarGetText(i);
     }
 
     // Load default settings
@@ -710,20 +711,20 @@ VOID ToolbarLoadButtonSettings(
 
     if (remaining.Length == 0)
     {
-        ToolbarLoadDefaultToolbarButtons();
+        ToolbarLoadDefaultButtonSettings();
         return;
     }
 
     // Query the number of buttons to insert
     if (!PhSplitStringRefAtChar(&remaining, L'|', &part, &remaining))
     {
-        ToolbarLoadDefaultToolbarButtons();
+        ToolbarLoadDefaultButtonSettings();
         return;
     }
 
     if (!PhStringToInteger64(&part, 10, &countInteger))
     {
-        ToolbarLoadDefaultToolbarButtons();
+        ToolbarLoadDefaultButtonSettings();
         return;
     }
 
@@ -751,6 +752,9 @@ VOID ToolbarLoadButtonSettings(
         if (commandInteger)
         {
             buttonArray[index].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+            // Note: We have to set the string here because TBIF_TEXT doesn't update
+            // the button text length when the button is disabled. (dmex)
+            buttonArray[index].iString = (INT_PTR)ToolbarGetText((INT)commandInteger);
         }
         else
         {

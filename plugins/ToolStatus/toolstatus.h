@@ -189,6 +189,10 @@ HBITMAP ToolbarGetImage(
     _In_ INT CommandID
     );
 
+VOID ToolbarLoadDefaultButtonSettings(
+    VOID
+    );
+
 VOID ToolbarLoadButtonSettings(
     VOID
     );
