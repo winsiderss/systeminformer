@@ -984,9 +984,84 @@ namespace CustomBuildTool
         [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
     }
 
+    public class GithubReleasesRequest
+    {
+        [JsonPropertyName("tag_name")] public string ReleaseTag { get; set; }
+        [JsonPropertyName("target_commitish")] public string Branch { get; set; }
+        [JsonPropertyName("name")] public string Name { get; set; }
+        [JsonPropertyName("body")] public string Description { get; set; }
+
+        [JsonPropertyName("draft")] public bool Draft { get; set; }
+        [JsonPropertyName("prerelease")] public bool Prerelease { get; set; }
+        [JsonPropertyName("generate_release_notes")] public bool generate_release_notes { get; set; }
+
+        public override string ToString()
+        {
+            return this.ReleaseTag;
+        }
+    }
+
+    public class GithubReleasesResponse
+    {
+        [JsonPropertyName("id")] public long ID { get; set; }
+        [JsonPropertyName("upload_url")] public string upload_url { get; set; }
+        [JsonPropertyName("html_url")] public string html_url { get; set; }
+        [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; set; }
+        [JsonIgnore] public string ReleaseId { get { return this.ID.ToString(); } }
+
+        public override string ToString()
+        {
+            return this.ReleaseId;
+        }
+    }
+
+    public class GithubAssetsResponse
+    {
+        [JsonPropertyName("name")] public string Name { get; set; }
+        [JsonPropertyName("label")] public string Label { get; set; }
+        [JsonPropertyName("size")] public long Size { get; set; }
+        [JsonPropertyName("state")] public string State { get; set; }
+        [JsonPropertyName("browser_download_url")] public string download_url { get; set; }
+
+        [JsonIgnore]
+        public bool Uploaded
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(this.State) && string.Equals(this.State, "uploaded", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        public override string ToString()
+        {
+            return this.Name;
+        }
+    }
+
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     [JsonSerializable(typeof(BuildUpdateRequest))]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSerializable(typeof(GithubReleasesRequest))]
+    public partial class GithubReleasesRequestContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(GithubReleasesResponse))]
+    public partial class GithubReleasesResponseContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(GithubAssetsResponse))]
+    public partial class GithubAssetsResponseContext : JsonSerializerContext
     {
 
     }

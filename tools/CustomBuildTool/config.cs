@@ -36,6 +36,11 @@ namespace CustomBuildTool
             this.FileName = Filename;
             this.UploadNightly = UploadNightly;
         }
+
+        public override string ToString()
+        {
+            return this.FileName;
+        }
     }
 
     public static class BuildConfig
