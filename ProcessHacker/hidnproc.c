@@ -121,7 +121,6 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhHiddenProcessesListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_PROCESSES);
             methodHandle = GetDlgItem(hwndDlg, IDC_METHOD);
 
@@ -160,7 +159,10 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &MinimumSize);
 
-            PhLoadWindowPlacementFromSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
+            if (PhGetIntegerPairSetting(L"HiddenProcessesWindowPosition").X)
+                PhLoadWindowPlacementFromSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
         }
