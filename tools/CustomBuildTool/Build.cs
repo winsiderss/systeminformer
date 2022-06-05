@@ -98,19 +98,31 @@ namespace CustomBuildTool
         {
             try
             {
-                foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                if (Directory.Exists(BuildOutputFolder)) // output
                 {
-                    string sourceFile = BuildOutputFolder + file.FileName;
-
-                    if (File.Exists(sourceFile))
-                        File.Delete(sourceFile);
+                    Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
+                    Directory.Delete(BuildOutputFolder, true);
                 }
 
-                foreach (string folder in BuildConfig.Build_Sdk_Directories)
+                if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
                 {
-                    if (Directory.Exists(folder))
-                        Directory.Delete(folder, true);
+                    Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
+                    Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
                 }
+
+                //foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                //{
+                //    string sourceFile = BuildOutputFolder + file.FileName;
+                //
+                //    if (File.Exists(sourceFile))
+                //        File.Delete(sourceFile);
+                //}
+                //
+                //foreach (string folder in BuildConfig.Build_Sdk_Directories)
+                //{
+                //    if (Directory.Exists(folder))
+                //        Directory.Delete(folder, true);
+                //}
 
                 var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
                 {
@@ -121,23 +133,25 @@ namespace CustomBuildTool
 
                 foreach (string folder in project_folders)
                 {
-                    string name = Path.GetFileName(folder);
-
-                    if (
-                        string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
-                        )
+                    try
                     {
-                        if (Directory.Exists(folder))
+                        string path = Path.GetFullPath(folder);
+                        string name = Path.GetFileName(path);
+
+                        if (
+                            string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
+                            )
                         {
-                            try
+                            if (Directory.Exists(path))
                             {
-                                Directory.Delete(folder, true);
+                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+                                Directory.Delete(path, true);
                             }
-                            catch (Exception)
-                            { }
                         }
                     }
+                    catch (Exception)
+                    { }
                 }
             }
             catch (Exception ex)
