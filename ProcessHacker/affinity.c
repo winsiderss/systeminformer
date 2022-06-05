@@ -320,45 +320,29 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     context->ProcessItem->ProcessId
                     )))
                 {
-                    USHORT groupBuffer[20] = { 0 };
-                    USHORT groupCount = RTL_NUMBER_OF(groupBuffer);
+                    status = PhGetProcessGroupAffinity(processHandle, &processGroupAffinity);
 
-                    if (NT_SUCCESS(PhGetProcessGroupInformation(
-                        processHandle,
-                        &groupCount,
-                        groupBuffer
-                        )) && groupCount > 1)
+                    // Add workaround for current process (dmex)
+                    if (status == STATUS_INVALID_PARAMETER && context->ProcessItem->ProcessId == NtCurrentProcessId())
                     {
-                        // We can't change affinity of multi-group processes. We can only change
-                        // affinity for individual threads in this case. (dmex).
-                        status = STATUS_RETRY;
+                        PROCESS_BASIC_INFORMATION basicInfo;
+
+                        status = PhGetProcessBasicInformation(processHandle, &basicInfo);
+
+                        if (NT_SUCCESS(status))
+                        {
+                            processGroupAffinity.Mask = basicInfo.AffinityMask;
+                        }
                     }
 
                     if (NT_SUCCESS(status))
                     {
-                        status = PhGetProcessGroupAffinity(processHandle, &processGroupAffinity);
+                        context->AffinityMask = processGroupAffinity.Mask;
+                        context->AffinityGroup = processGroupAffinity.Group;
 
-                        if (status == STATUS_INVALID_PARAMETER && context->ProcessItem->ProcessId == NtCurrentProcessId())
+                        if (context->GroupComboHandle)
                         {
-                            PROCESS_BASIC_INFORMATION basicInfo;
-                            
-                            status = PhGetProcessBasicInformation(processHandle, &basicInfo);
-                            
-                            if (NT_SUCCESS(status))
-                            {
-                                processGroupAffinity.Mask = basicInfo.AffinityMask;
-                            }
-                        }
-
-                        if (NT_SUCCESS(status))
-                        {
-                            context->AffinityMask = processGroupAffinity.Mask;
-                            context->AffinityGroup = processGroupAffinity.Group;
-
-                            if (context->GroupComboHandle)
-                            {
-                                ComboBox_SetCurSel(context->GroupComboHandle, processGroupAffinity.Group);
-                            }
+                            ComboBox_SetCurSel(context->GroupComboHandle, processGroupAffinity.Group);
                         }
                     }
 
