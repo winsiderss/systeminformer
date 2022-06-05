@@ -3924,7 +3924,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
 
             // NOTE: Windows Task Manager doesn't loop subitems when summing the totals but instead just returns the system totals.
-            // We could do the same for some columns like CPU when/if the loop becomes a performance issue but sum the real values for now. (dmex)
+            // We should do the same for some columns like CPU when/if the below loop/aggregate fields becomes a performance issue. (dmex)
 
             for (ULONG i = 0; i < ProcessNodeList->Count; i++)
             {
@@ -4017,13 +4017,28 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                     break;
                 case PHPRTLC_CYCLES:
-                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Value), &number);
+                    {
+                        if (node->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+                            continue;
+
+                        PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Value), &number);
+                    }
                     break;
                 case PHPRTLC_CYCLESDELTA:
-                    PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Delta), &number);
+                    {
+                        if (node->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+                            continue;
+
+                        PhpAggregateFieldTotal(node, AggregateTypeInt64, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, CycleTimeDelta.Delta), &number);
+                    }
                     break;
                 case PHPRTLC_CONTEXTSWITCHES:
-                    PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Value), &number);
+                    {
+                        if (node->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+                            continue;
+
+                        PhpAggregateFieldTotal(node, AggregateTypeInt32, AggregateLocationProcessItem, FIELD_OFFSET(PH_PROCESS_ITEM, ContextSwitchesDelta.Value), &number);
+                    }
                     break;
                 case PHPRTLC_CONTEXTSWITCHESDELTA:
                     {
