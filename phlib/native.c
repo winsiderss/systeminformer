@@ -10579,6 +10579,58 @@ NTSTATUS PhGetProcessCodePage(
 #ifdef _WIN64
     if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
         return status;
+#endif
+
+    if (WindowsVersion >= WINDOWS_11)
+    {
+#ifdef _WIN64
+        if (isWow64)
+        {
+            PVOID peb32;
+
+            status = PhGetProcessPeb32(ProcessHandle, &peb32);
+
+            if (!NT_SUCCESS(status))
+                return status;
+
+            status = NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb32, UFIELD_OFFSET(PEB, ActiveCodePage)),
+                &codePage,
+                sizeof(USHORT),
+                NULL
+                );
+        }
+        else
+#endif
+        {
+            PVOID peb;
+
+            status = PhGetProcessPeb(ProcessHandle, &peb);
+
+            if (!NT_SUCCESS(status))
+                return status;
+
+            status = NtReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(peb, UFIELD_OFFSET(PEB, ActiveCodePage)),
+                &codePage,
+                sizeof(USHORT),
+                NULL
+                );
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            *ProcessCodePage = codePage;
+        }
+
+        return status;
+    }
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+        return status;
 
     if (isWow64)
     {
