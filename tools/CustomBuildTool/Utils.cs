@@ -286,6 +286,7 @@ namespace CustomBuildTool
     {
         private static readonly string[] MsBuildPathArray =
         {
+            "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
             "\\MSBuild\\Current\\Bin\\MSBuild.exe",
             "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
         };
