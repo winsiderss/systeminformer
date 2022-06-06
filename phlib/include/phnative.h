@@ -1846,6 +1846,14 @@ PhGetProcessArchitecture(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessImageBaseAddress(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* ImageBaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessCodePage(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessCodePage

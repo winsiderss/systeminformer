@@ -1182,7 +1182,6 @@ NTSTATUS PhGetProcessImageCoherency(
     NTSTATUS status;
     HANDLE processHandle;
     PPH_IMAGE_COHERENCY_CONTEXT context;
-    PROCESS_BASIC_INFORMATION basicInfo;
     PVOID remoteImageBase;
 
     context = NULL;
@@ -1202,16 +1201,7 @@ NTSTATUS PhGetProcessImageCoherency(
     //
     // Get the remote image base 
     //
-    status = PhGetProcessBasicInformation(processHandle, &basicInfo);
-    if (NT_SUCCESS(status))
-    {
-        status = NtReadVirtualMemory(processHandle,
-                                     PTR_ADD_OFFSET(basicInfo.PebBaseAddress,
-                                                    FIELD_OFFSET(PEB, ImageBaseAddress)),
-                                     &remoteImageBase,
-                                     sizeof(PVOID),
-                                     NULL);
-    }
+    status = PhGetProcessImageBaseAddress(processHandle, &remoteImageBase);
     if (!NT_SUCCESS(status))
     {
         remoteImageBase = NULL;
