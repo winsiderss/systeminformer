@@ -8066,6 +8066,16 @@ PVOID PhLoadLibrary(
         return baseAddress;
     }
 
+    if (WindowsVersion < WINDOWS_8)
+    {
+        // Note: This case is required for Windows 7 without KB2533623 (dmex)
+
+        if (baseAddress = LoadLibraryEx(LibFileName, NULL, 0))
+        {
+            return baseAddress;
+        }
+    }
+
     return NULL;
 }
 
