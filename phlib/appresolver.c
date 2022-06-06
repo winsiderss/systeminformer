@@ -221,7 +221,7 @@ BOOLEAN PhAppResolverGetAppIdForWindow(
 }
 
 HRESULT PhAppResolverActivateAppId(
-    _In_ PPH_STRING AppUserModelId,
+    _In_ PPH_STRING ApplicationUserModelId,
     _In_opt_ PWSTR CommandLine,
     _Out_opt_ HANDLE *ProcessId
     )
@@ -243,7 +243,7 @@ HRESULT PhAppResolverActivateAppId(
 
         status = IApplicationActivationManager_ActivateApplication(
             applicationActivationManager,
-            PhGetString(AppUserModelId),
+            PhGetString(ApplicationUserModelId),
             CommandLine,
             AO_NONE,
             &processId
