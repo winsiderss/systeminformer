@@ -63,9 +63,9 @@ PPH_STRING PvpGetPeGuardFlagsText(
     if (GuardFlags & IMAGE_GUARD_DELAYLOAD_IAT_IN_ITS_OWN_SECTION)
         PhAppendStringBuilder2(&stringBuilder, L"Delay-load private section, ");
     if (GuardFlags & IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION)
-        PhAppendStringBuilder2(&stringBuilder, L"Export supression, ");
+        PhAppendStringBuilder2(&stringBuilder, L"Export suppression, ");
     if (GuardFlags & IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT)
-        PhAppendStringBuilder2(&stringBuilder, L"Export information supression, ");
+        PhAppendStringBuilder2(&stringBuilder, L"Export information suppression, ");
     if (GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT)
         PhAppendStringBuilder2(&stringBuilder, L"Longjump table, ");
     if (GuardFlags & IMAGE_GUARD_RETPOLINE_PRESENT)
