@@ -1102,40 +1102,30 @@ static VOID PhpUpdateProcessNodeImage(
         else if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
         {
             HANDLE processHandle;
-            PROCESS_BASIC_INFORMATION basicInfo;
             PVOID imageBaseAddress;
             PH_REMOTE_MAPPED_IMAGE mappedImage;
 
             if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
             {
-                if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)) && basicInfo.PebBaseAddress != 0)
+                if (NT_SUCCESS(PhGetProcessImageBaseAddress(processHandle, &imageBaseAddress)))
                 {
-                    if (NT_SUCCESS(NtReadVirtualMemory(
-                        processHandle,
-                        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageBaseAddress)),
-                        &imageBaseAddress,
-                        sizeof(PVOID),
-                        NULL
-                        )))
+                    if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
                     {
-                        if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
+                        ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                        ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
+
+                        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                         {
-                            ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                            ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
-
-                            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                            {
-                                ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                                ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                            }
-                            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                            {
-                                ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                                ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                            }
-
-                            PhUnloadRemoteMappedImage(&mappedImage);
+                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
                         }
+                        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                        {
+                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                        }
+
+                        PhUnloadRemoteMappedImage(&mappedImage);
                     }
                 }
 
