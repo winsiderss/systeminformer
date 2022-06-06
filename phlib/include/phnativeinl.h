@@ -257,6 +257,56 @@ PhSetProcessErrorMode(
 }
 
 /**
+ * Gets whether the process is running under the POSIX subsystem.
+ *
+ * \param ProcessHandle A handle to a process. The handle
+ * must have PROCESS_QUERY_LIMITED_INFORMATION and
+ * PROCESS_VM_READ access.
+ * \param IsPosix A variable which receives a boolean
+ * indicating whether the process is running under the
+ * POSIX subsystem.
+ */
+NTSTATUS PhGetProcessIsPosix(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN IsPosix
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    ULONG imageSubsystem;
+
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        *IsPosix = FALSE; // Not supported (dmex)
+        return STATUS_SUCCESS;
+    }
+
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // No PEB for processes like System.
+    if (!basicInfo.PebBaseAddress)
+        return STATUS_UNSUCCESSFUL;
+
+    status = NtReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageSubsystem)),
+        &imageSubsystem,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsPosix = imageSubsystem == IMAGE_SUBSYSTEM_POSIX_CUI;
+    }
+
+    return status;
+}
+
+/**
  * Gets a process' no-execute status.
  *
  * \param ProcessHandle A handle to a process. The handle must have PROCESS_QUERY_INFORMATION
