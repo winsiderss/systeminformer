@@ -1393,10 +1393,12 @@ VOID PhpFillProcessItem(
         if (WindowsVersion >= WINDOWS_11)
         {
             BOOLEAN xfguardEnabled;
+            BOOLEAN xfguardAuditEnabled;
 
-            if (NT_SUCCESS(PhGetProcessIsXFGuardEnabled(ProcessItem->QueryHandle, &xfguardEnabled)))
+            if (NT_SUCCESS(PhGetProcessIsXFGuardEnabled(ProcessItem->QueryHandle, &xfguardEnabled, &xfguardAuditEnabled)))
             {
                 ProcessItem->IsXfgEnabled = xfguardEnabled;
+                ProcessItem->IsXfgAuditEnabled = xfguardAuditEnabled;
             }
         }
     }

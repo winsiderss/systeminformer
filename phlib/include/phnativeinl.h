@@ -724,8 +724,9 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessIsXFGuardEnabled(
     _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN IsXFGuardEnabled
-)
+    _Out_ PBOOLEAN IsXFGuardEnabled,
+    _Out_ PBOOLEAN IsXFGuardAuditEnabled
+    )
 {
     NTSTATUS status;
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
@@ -744,8 +745,10 @@ PhGetProcessIsXFGuardEnabled(
     {
 #if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
         *IsXFGuardEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 3);
+        *IsXFGuardAuditEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 4);
 #else
         *IsXFGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableXfg;
+        *IsXFGuardAuditEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableXfgAuditMode;
 #endif
     }
 
