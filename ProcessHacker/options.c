@@ -1101,7 +1101,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     {
         status = PhOpenKey(
             &keyHandle,
-            DELETE,
+            KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
             &keypath->sr,
             OBJ_OPENIF
