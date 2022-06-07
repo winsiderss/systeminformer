@@ -2058,7 +2058,13 @@ BEGIN_SORT_FUNCTION(CfGuard)
 
     if (sortResult == 0)
     {
-        sortResult = uintcmp(node1->ProcessItem->IsControlFlowGuardEnabled, node2->ProcessItem->IsControlFlowGuardEnabled);
+        // prefer XFG audit over CFG
+        sortResult = uintcmp(node1->ProcessItem->IsXfgAuditEnabled, node2->ProcessItem->IsXfgAuditEnabled);
+
+        if (sortResult == 0)
+        {
+            sortResult = uintcmp(node1->ProcessItem->IsControlFlowGuardEnabled, node2->ProcessItem->IsControlFlowGuardEnabled);
+        }
     }
 }
 END_SORT_FUNCTION
@@ -3159,7 +3165,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_CFGUARD:
-                if (processItem->IsXfgEnabled)
+                if (processItem->IsXfgAuditEnabled)
+                    PhInitializeStringRef(&getCellText->Text, L"XF Guard (audit)");
+                else if (processItem->IsXfgEnabled)
                     PhInitializeStringRef(&getCellText->Text, L"XF Guard");
                 else if (processItem->IsControlFlowGuardEnabled)
                     PhInitializeStringRef(&getCellText->Text, L"CF Guard");
