@@ -309,6 +309,13 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                     PhInitializeStringBuilder(&sb, 50);
                     if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict ");
 
+#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+                    if (_bittest((const PLONG)&data->Flags, 4))
+#else
+                    if (data->EnableXfgAuditMode)
+#endif
+                        PhAppendStringBuilder2(&sb, L"Audit ");
+
                 #if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
                     PhAppendStringBuilder2(&sb, _bittest((const PLONG)&data->Flags, 3) ? L"XF Guard" : L"CF Guard");
                 #else
@@ -330,6 +337,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
                     {
                         PhAppendStringBuilder2(&sb, L"Extended Control Flow Guard (XFG) is enabled for the process.\r\n");
 
+                        if (data->EnableXfgAuditMode) PhAppendStringBuilder2(&sb, L"Audit XFG : XFG is running in audit mode.\r\n");
                         if (data->StrictMode) PhAppendStringBuilder2(&sb, L"Strict XFG : only XFG modules can be loaded.\r\n");
                         if (data->EnableExportSuppression) PhAppendStringBuilder2(&sb, L"Dll Exports can be marked as XFG invalid targets.\r\n");
                     }
