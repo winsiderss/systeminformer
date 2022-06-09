@@ -407,7 +407,7 @@ namespace CustomBuildTool
 
         public static string GetMsbuildFilePath()
         {
-            if (string.IsNullOrEmpty(MsBuildFilePath))
+            if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
                 VisualStudioInstance instance = GetVisualStudioInstance();
 
@@ -426,11 +426,11 @@ namespace CustomBuildTool
                 }
             }
 
-            if (string.IsNullOrEmpty(MsBuildFilePath))
+            if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
                 string vswhere = GetVswhereFilePath();
 
-                if (string.IsNullOrEmpty(vswhere))
+                if (string.IsNullOrWhiteSpace(vswhere))
                     return null;
 
                 // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
@@ -444,7 +444,7 @@ namespace CustomBuildTool
                     "-property installationPath "
                     );
 
-                if (!string.IsNullOrEmpty(vswhereResult))
+                if (!string.IsNullOrWhiteSpace(vswhereResult))
                 {
                     foreach (string path in MsBuildPathArray)
                     {
@@ -527,7 +527,7 @@ namespace CustomBuildTool
                 {
                     var result = versionList[versionList.Count - 1];
 
-                    if (!string.IsNullOrEmpty(result.Value))
+                    if (!string.IsNullOrWhiteSpace(result.Value))
                     {
                         return result.Value;
                     }
@@ -565,7 +565,7 @@ namespace CustomBuildTool
                 {
                     var result = versionList[versionList.Count - 1];
 
-                    if (!string.IsNullOrEmpty(result.Value))
+                    if (!string.IsNullOrWhiteSpace(result.Value))
                     {
                         return result.Value;
                     }
@@ -598,7 +598,7 @@ namespace CustomBuildTool
         //
         //    vswhere = GetVswhereFilePath();
         //
-        //    if (string.IsNullOrEmpty(vswhere))
+        //    if (string.IsNullOrWhiteSpace(vswhere))
         //        return null;
         //
         //    vswhereResult = Win32.ShellExecute(
@@ -611,7 +611,7 @@ namespace CustomBuildTool
         //        "-property installationPath "
         //        );
         //
-        //    if (string.IsNullOrEmpty(vswhereResult))
+        //    if (string.IsNullOrWhiteSpace(vswhereResult))
         //        return null;
         //
         //    foreach (string path in MsBuildPathArray)
@@ -762,7 +762,7 @@ namespace CustomBuildTool
                 {
                     string result = versions[^1];
 
-                    if (!string.IsNullOrEmpty(result))
+                    if (!string.IsNullOrWhiteSpace(result))
                     {
                         return result;
                     }

@@ -37,7 +37,7 @@ namespace CustomBuildTool
             if (includeBaseName)
                 sourceFolder = Path.GetDirectoryName(sourceFolder);
 
-            int length = string.IsNullOrEmpty(sourceFolder) ? 0 : sourceFolder.Length;
+            int length = string.IsNullOrWhiteSpace(sourceFolder) ? 0 : sourceFolder.Length;
             if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
                 length++;
 
@@ -179,9 +179,9 @@ namespace CustomBuildTool
                         continue;
 
                     // Ignore junk directories
-                    if (filesToAdd[i].Contains("bin\\Debug") ||
-                        filesToAdd[i].Contains("obj\\") ||
-                        filesToAdd[i].Contains("tests\\"))
+                    if (filesToAdd[i].Contains("bin\\Debug", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].Contains("obj\\", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].Contains("tests\\", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);
