@@ -172,7 +172,7 @@ VOID PhpSetEnvironmentListStatusMessage(
     _In_ ULONG Status
     )
 {
-    if (Context->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
+    if (Context->ProcessItem->State & PH_PROCESS_ITEM_REMOVED || Status == STATUS_PARTIAL_COPY)
     {
         PhMoveReference(&Context->StatusMessage, PhCreateString(L"There are no environment variables to display."));
         TreeNew_SetEmptyText(Context->TreeNewHandle, &Context->StatusMessage->sr, 0);
