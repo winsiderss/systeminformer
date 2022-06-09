@@ -741,7 +741,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 //SendMessage(GetParent(context->WindowHandle), WM_COMMAND, MAKEWPARAM(context->CommandID, BN_CLICKED), 0);
 
                 SetFocus(hWnd);
-                Static_SetText(hWnd, L"");
+                PhSetWindowText(hWnd, L"");
             }
 
             if (GetCapture() == hWnd)

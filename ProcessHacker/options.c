@@ -1311,13 +1311,13 @@ VOID PhpRefreshTaskManagerState(
 
     if (PhpIsDefaultTaskManager())
     {
-        Static_SetText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is the default Task Manager:");
-        Button_SetText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Restore default...");
+        PhSetWindowText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is the default Task Manager:");
+        PhSetWindowText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Restore default...");
     }
     else
     {
-        Static_SetText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is not the default Task Manager:");
-        Button_SetText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Make default...");
+        PhSetWindowText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is not the default Task Manager:");
+        PhSetWindowText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Make default...");
     }
 }
 
