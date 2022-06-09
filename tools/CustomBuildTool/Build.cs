@@ -71,7 +71,7 @@ namespace CustomBuildTool
             }
 
             Build.TimeStart = DateTime.Now;
-            Build.BuildNightly = !string.IsNullOrEmpty(Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%"));
+            Build.BuildNightly = !string.IsNullOrWhiteSpace(Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%"));
             Build.BuildOutputFolder = VisualStudio.GetOutputDirectoryPath();
 
             {
@@ -174,14 +174,14 @@ namespace CustomBuildTool
                 string currentGitDir = VisualStudio.GetGitWorkPath();
                 string currentGitPath = VisualStudio.GetGitFilePath();
 
-                if (!string.IsNullOrEmpty(currentGitDir) && !string.IsNullOrEmpty(currentGitPath))
+                if (!string.IsNullOrWhiteSpace(currentGitDir) && !string.IsNullOrWhiteSpace(currentGitPath))
                 {
                     BuildBranch = Win32.ShellExecute(currentGitPath, currentGitDir + "rev-parse --abbrev-ref HEAD").Trim();
                     BuildCommit = Win32.ShellExecute(currentGitPath, currentGitDir + "rev-parse HEAD").Trim();
                     BuildCount = Win32.ShellExecute(currentGitPath, currentGitDir + "rev-list --count " + BuildBranch).Trim();
                     string currentGitTag = Win32.ShellExecute(currentGitPath, currentGitDir + "describe --abbrev=0 --tags --always").Trim();
 
-                    if (!string.IsNullOrEmpty(currentGitTag))
+                    if (!string.IsNullOrWhiteSpace(currentGitTag))
                     {
                         BuildRevision = Win32.ShellExecute(currentGitPath, currentGitDir + "rev-list --count \"" + currentGitTag + ".." + BuildBranch + "\"").Trim();
                         BuildVersion = "3.0." + BuildRevision;
@@ -192,10 +192,10 @@ namespace CustomBuildTool
             catch (Exception) {  }
 
             if (
-                string.IsNullOrEmpty(BuildBranch) ||
-                string.IsNullOrEmpty(BuildCommit) ||
-                string.IsNullOrEmpty(BuildCount) ||
-                string.IsNullOrEmpty(BuildRevision)
+                string.IsNullOrWhiteSpace(BuildBranch) ||
+                string.IsNullOrWhiteSpace(BuildCommit) ||
+                string.IsNullOrWhiteSpace(BuildCount) ||
+                string.IsNullOrWhiteSpace(BuildRevision)
                 )
             {
                 BuildBranch = string.Empty;
@@ -223,14 +223,14 @@ namespace CustomBuildTool
                 Program.PrintColorMessage(Environment.NewLine + "Building... ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(BuildLongVersion, ConsoleColor.Green, false);
 
-                if (!string.IsNullOrEmpty(BuildCommit))
+                if (!string.IsNullOrWhiteSpace(BuildCommit))
                 {
                     Program.PrintColorMessage(" (", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(BuildCommit.Substring(0, 7), ConsoleColor.DarkYellow, false);
                     Program.PrintColorMessage(")", ConsoleColor.DarkGray, false);
                 }
 
-                if (!string.IsNullOrEmpty(BuildBranch))
+                if (!string.IsNullOrWhiteSpace(BuildBranch))
                 {
                     Program.PrintColorMessage(" [", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(BuildBranch, ConsoleColor.DarkBlue, false);
@@ -496,7 +496,7 @@ namespace CustomBuildTool
             {
                 string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
 
-                if (!string.IsNullOrEmpty(kphKey))
+                if (!string.IsNullOrWhiteSpace(kphKey))
                 {
                     Verify.Decrypt(Verify.GetPath("kph.s"), Verify.GetPath("kph.key"), kphKey);
                 }
@@ -865,6 +865,7 @@ namespace CustomBuildTool
             {
                 StringBuilder compilerOptions = new StringBuilder();
                 StringBuilder commandLine = new StringBuilder();
+
                 Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x32", ConsoleColor.Green, false, Flags);
@@ -872,11 +873,11 @@ namespace CustomBuildTool
 
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
-                if (!string.IsNullOrEmpty(BuildCommit))
+                if (!string.IsNullOrWhiteSpace(BuildCommit))
                     compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\";");
-                if (!string.IsNullOrEmpty(BuildRevision))
+                if (!string.IsNullOrWhiteSpace(BuildRevision))
                     compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
-                if (!string.IsNullOrEmpty(BuildCount))
+                if (!string.IsNullOrWhiteSpace(BuildCount))
                     compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
                 commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet ");
@@ -904,6 +905,7 @@ namespace CustomBuildTool
             {
                 StringBuilder compilerOptions = new StringBuilder();
                 StringBuilder commandLine = new StringBuilder();
+
                 Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
                 Program.PrintColorMessage("Building " + Path.GetFileNameWithoutExtension(Solution) + " (", ConsoleColor.Cyan, false, Flags);
                 Program.PrintColorMessage("x64", ConsoleColor.Green, false, Flags);
@@ -911,11 +913,11 @@ namespace CustomBuildTool
 
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
-                if (!string.IsNullOrEmpty(BuildCommit))
+                if (!string.IsNullOrWhiteSpace(BuildCommit))
                     compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\";");
-                if (!string.IsNullOrEmpty(BuildRevision))
+                if (!string.IsNullOrWhiteSpace(BuildRevision))
                     compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
-                if (!string.IsNullOrEmpty(BuildCount))
+                if (!string.IsNullOrWhiteSpace(BuildCount))
                     compilerOptions.Append($"PHAPP_VERSION_BUILD=\"{BuildCount}\"");
 
                 commandLine.Append("/m /nologo /nodereuse:false /verbosity:quiet ");
@@ -947,10 +949,10 @@ namespace CustomBuildTool
             if (!File.Exists("tools\\versioning\\version.rc"))
                 return true;
 
+            StringBuilder commandLine = new StringBuilder();
             string windowsSdkPath = VisualStudio.GetWindowsSdkPath();
             string windowsSdkIncludePath = VisualStudio.GetWindowsSdkIncludePath();
             string resIncludePath = Path.GetFullPath("processhacker");
-            StringBuilder commandLine = new StringBuilder("/nologo /v ");
             string rcExePath = windowsSdkPath + "\\x64\\rc.exe";
 
             if (!File.Exists(rcExePath))
@@ -959,15 +961,15 @@ namespace CustomBuildTool
                 return true;
             }
 
-            commandLine.Append($"/i \"{windowsSdkIncludePath}\\um\" /i \"{windowsSdkIncludePath}\\shared\" /i \"{resIncludePath}\" ");
+            commandLine.Append($"/nologo /v /i \"{windowsSdkIncludePath}\\um\" /i \"{windowsSdkIncludePath}\\shared\" /i \"{resIncludePath}\" ");
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
                 commandLine.Append(" /d \"PH_BUILD_API\" ");
-            if (!string.IsNullOrEmpty(BuildCommit))
+            if (!string.IsNullOrWhiteSpace(BuildCommit))
                 commandLine.Append($"/d \"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\"\" ");
-            if (!string.IsNullOrEmpty(BuildRevision))
+            if (!string.IsNullOrWhiteSpace(BuildRevision))
                 commandLine.Append($"/d \"PHAPP_VERSION_REVISION=\"{BuildRevision}\"\" ");
-            if (!string.IsNullOrEmpty(BuildCount))
+            if (!string.IsNullOrWhiteSpace(BuildCount))
                 commandLine.Append($"/d \"PHAPP_VERSION_BUILD=\"{BuildCount}\"\" ");
 
             commandLine.Append("/fo tools\\versioning\\version.res tools\\versioning\\version.rc");
@@ -984,9 +986,9 @@ namespace CustomBuildTool
                 return false;
             }
 
-
             return true;
         }
+
         public static bool BuildDeployUpdateConfig()
         {
             string buildBuildId;
@@ -1019,19 +1021,19 @@ namespace CustomBuildTool
             BuildBinSig = null;
             BuildSetupSig = null;
 
-            if (string.IsNullOrEmpty(buildBuildId))
+            if (string.IsNullOrWhiteSpace(buildBuildId))
                 return false;
-            //if (string.IsNullOrEmpty(buildJobId))
+            //if (string.IsNullOrWhiteSpace(buildJobId))
             //    return false;
-            if (string.IsNullOrEmpty(buildPostUrl))
+            if (string.IsNullOrWhiteSpace(buildPostUrl))
                 return false;
-            if (string.IsNullOrEmpty(buildPostApiKey))
+            if (string.IsNullOrWhiteSpace(buildPostApiKey))
                 return false;
-            if (string.IsNullOrEmpty(buildPostSfUrl))
+            if (string.IsNullOrWhiteSpace(buildPostSfUrl))
                 return false;
-            if (string.IsNullOrEmpty(buildPostSfApiKey))
+            if (string.IsNullOrWhiteSpace(buildPostSfApiKey))
                 return false;
-            if (string.IsNullOrEmpty(BuildVersion))
+            if (string.IsNullOrWhiteSpace(BuildVersion))
                 return false;
 
             Program.PrintColorMessage(Environment.NewLine + "Uploading build artifacts... " + BuildVersion, ConsoleColor.Cyan);
@@ -1040,7 +1042,7 @@ namespace CustomBuildTool
             {
                 string buildKey = Win32.GetEnvironmentVariable("%NIGHTLY_BUILD_KEY%");
 
-                if (!string.IsNullOrEmpty(buildKey))
+                if (!string.IsNullOrWhiteSpace(buildKey))
                 {
                     Verify.Decrypt(Verify.GetPath("nightly.s"), Verify.GetPath("nightly.key"), buildKey);
                 }
@@ -1074,12 +1076,12 @@ namespace CustomBuildTool
             if (BuildNightly && File.Exists(Verify.GetPath("nightly.key")))
                 File.Delete(Verify.GetPath("nightly.key"));
 
-            if (string.IsNullOrEmpty(BuildBinSig))
+            if (string.IsNullOrWhiteSpace(BuildBinSig))
             {
                 Program.PrintColorMessage("build-bin.sig not found.", ConsoleColor.Red);
                 return false;
             }
-            if (string.IsNullOrEmpty(BuildSetupSig))
+            if (string.IsNullOrWhiteSpace(BuildSetupSig))
             {
                 Program.PrintColorMessage("build-setup.sig not found.", ConsoleColor.Red);
                 return false;
@@ -1093,7 +1095,7 @@ namespace CustomBuildTool
                 buildBinHash = Verify.HashFile(buildFilename);
             }
 
-            if (string.IsNullOrEmpty(buildBinHash))
+            if (string.IsNullOrWhiteSpace(buildBinHash))
             {
                 Program.PrintColorMessage("build-bin hash not found.", ConsoleColor.Red);
                 return false;
@@ -1107,7 +1109,7 @@ namespace CustomBuildTool
                 buildSetupHash = Verify.HashFile(buildFilename);
             }
 
-            if (string.IsNullOrEmpty(buildSetupHash))
+            if (string.IsNullOrWhiteSpace(buildSetupHash))
             {
                 Program.PrintColorMessage("build-setup hash not found.", ConsoleColor.Red);
                 return false;
@@ -1237,11 +1239,11 @@ namespace CustomBuildTool
             buildPostKey = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_KEY%");
             buildPostName = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_NAME%");
 
-            if (string.IsNullOrEmpty(buildPostUrl))
+            if (string.IsNullOrWhiteSpace(buildPostUrl))
                 return false;
-            if (string.IsNullOrEmpty(buildPostKey))
+            if (string.IsNullOrWhiteSpace(buildPostKey))
                 return false;
-            if (string.IsNullOrEmpty(buildPostName))
+            if (string.IsNullOrWhiteSpace(buildPostName))
                 return false;
 
             Program.PrintColorMessage(string.Empty, ConsoleColor.Black);
@@ -1444,7 +1446,7 @@ namespace CustomBuildTool
         //        }
         //    }
         //
-        //    if (string.IsNullOrEmpty(sdkRootPath))
+        //    if (string.IsNullOrWhiteSpace(sdkRootPath))
         //    {
         //        Program.PrintColorMessage("[Skipped] Windows SDK", ConsoleColor.Red);
         //        return;
@@ -1630,7 +1632,7 @@ namespace CustomBuildTool
         //        }
         //    }
         //
-        //    if (string.IsNullOrEmpty(sdkRootPath))
+        //    if (string.IsNullOrWhiteSpace(sdkRootPath))
         //    {
         //        Program.PrintColorMessage("[Skipped] Windows SDK", ConsoleColor.Red);
         //        return false;
@@ -1658,7 +1660,7 @@ namespace CustomBuildTool
         //            BuildOutputFolder + "\\processhacker-appx.cer "
         //            );
         //
-        //        if (!string.IsNullOrEmpty(output) && !output.Equals("Succeeded", StringComparison.OrdinalIgnoreCase))
+        //        if (!string.IsNullOrWhiteSpace(output) && !output.Equals("Succeeded", StringComparison.OrdinalIgnoreCase))
         //        {
         //            Program.PrintColorMessage("[MakeCert] " + output, ConsoleColor.Red);
         //            return false;
@@ -1670,7 +1672,7 @@ namespace CustomBuildTool
         //            "/pfx " + BuildOutputFolder + "\\processhacker-appx.pfx "
         //            );
         //
-        //        if (!string.IsNullOrEmpty(output))
+        //        if (!string.IsNullOrWhiteSpace(output))
         //        {
         //            Program.PrintColorMessage("[Pvk2Pfx] " + output, ConsoleColor.Red);
         //            return false;
@@ -1680,7 +1682,7 @@ namespace CustomBuildTool
         //            "-addStore TrustedPeople " + BuildOutputFolder + "\\processhacker-appx.cer"
         //            );
         //
-        //        if (!string.IsNullOrEmpty(output) && !output.Contains("command completed successfully", StringComparison.OrdinalIgnoreCase))
+        //        if (!string.IsNullOrWhiteSpace(output) && !output.Contains("command completed successfully", StringComparison.OrdinalIgnoreCase))
         //        {
         //            Program.PrintColorMessage("[Certutil] " + output, ConsoleColor.Red);
         //            return false;

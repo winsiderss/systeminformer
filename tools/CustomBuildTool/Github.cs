@@ -9,12 +9,10 @@ using System.Collections.Generic;
 
 namespace CustomBuildTool
 {
-#nullable enable
-
     public static class Github
     {
-        private static string BaseUrl = string.Empty;
-        private static string BaseToken = string.Empty;
+        private static readonly string BaseUrl = string.Empty;
+        private static readonly string BaseToken = string.Empty;
 
         static Github()
         {
@@ -22,11 +20,11 @@ namespace CustomBuildTool
             BaseToken = Win32.GetEnvironmentVariable("%APPVEYOR_GITHUB_MIRROR_KEY%");
         }
 
-        public static GithubReleasesResponse? CreateRelease(string Version)
+        public static GithubReleasesResponse CreateRelease(string Version)
         {
-            if (string.IsNullOrEmpty(BaseUrl))
+            if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
-            if (string.IsNullOrEmpty(BaseToken))
+            if (string.IsNullOrWhiteSpace(BaseToken))
                 return null;
 
             try
@@ -107,9 +105,9 @@ namespace CustomBuildTool
 
         public static bool DeleteRelease(string Version)
         {
-            if (string.IsNullOrEmpty(BaseUrl))
+            if (string.IsNullOrWhiteSpace(BaseUrl))
                 return false;
-            if (string.IsNullOrEmpty(BaseToken))
+            if (string.IsNullOrWhiteSpace(BaseToken))
                 return false;
 
             try
@@ -191,11 +189,11 @@ namespace CustomBuildTool
             return false;
         }
 
-        public static GithubReleasesResponse? UpdateRelease(string ReleaseId)
+        public static GithubReleasesResponse UpdateRelease(string ReleaseId)
         {
-            if (string.IsNullOrEmpty(BaseUrl))
+            if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
-            if (string.IsNullOrEmpty(BaseToken))
+            if (string.IsNullOrWhiteSpace(BaseToken))
                 return null;
 
             try
@@ -272,14 +270,14 @@ namespace CustomBuildTool
             return null;
         }
 
-        public static GithubAssetsResponse? UploadAssets(string Version, string FileName, string UploadUrl)
+        public static GithubAssetsResponse UploadAssets(string Version, string FileName, string UploadUrl)
         {
             string upload_name;
             string upload_url;
 
-            if (string.IsNullOrEmpty(BaseUrl))
+            if (string.IsNullOrWhiteSpace(BaseUrl))
                 return null;
-            if (string.IsNullOrEmpty(BaseToken))
+            if (string.IsNullOrWhiteSpace(BaseToken))
                 return null;
 
             if (!UploadUrl.Contains("{?name,label}", StringComparison.OrdinalIgnoreCase))
@@ -355,9 +353,7 @@ namespace CustomBuildTool
         }
     }
 
-#nullable disable
-
-    public class GithubRelease : IEquatable<GithubRelease>
+    public class GithubRelease : IComparable, IComparable<GithubRelease>, IEquatable<GithubRelease>
     {
         public string ReleaseId;
         public List<GithubReleaseAsset> Files;
@@ -414,9 +410,28 @@ namespace CustomBuildTool
         {
             return this.ReleaseId.Equals(other.ReleaseId, StringComparison.OrdinalIgnoreCase);
         }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null)
+                return 1;
+
+            if (obj is GithubRelease package)
+                return this.ReleaseId.CompareTo(package.ReleaseId);
+            else
+                return 1;
+        }
+
+        public int CompareTo(GithubRelease obj)
+        {
+            if (obj == null)
+                return 1;
+
+            return this.ReleaseId.CompareTo(obj.ReleaseId);
+        }
     }
 
-    public class GithubReleaseAsset : IEquatable<GithubReleaseAsset>
+    public class GithubReleaseAsset : IComparable, IComparable<GithubReleaseAsset>, IEquatable<GithubReleaseAsset>
     {
         public string Filename { get; private set; }
         public string DownloadUrl { get; private set; }
@@ -451,6 +466,25 @@ namespace CustomBuildTool
         public bool Equals(GithubReleaseAsset other)
         {
             return this.Filename.Equals(other.Filename, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public int CompareTo(object obj)
+        {
+            if (obj == null)
+                return 1;
+
+            if (obj is GithubReleaseAsset package)
+                return this.Filename.CompareTo(package.Filename);
+            else
+                return 1;
+        }
+
+        public int CompareTo(GithubReleaseAsset obj)
+        {
+            if (obj == null)
+                return 1;
+
+            return this.Filename.CompareTo(obj.Filename);
         }
     }
 }
