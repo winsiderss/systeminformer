@@ -274,7 +274,7 @@ VOID RebarCreateOrUpdateWindow(
         {
             // Clear search text and reset search filters.
             SetFocus(SearchboxHandle);
-            Static_SetText(SearchboxHandle, L"");
+            PhSetWindowText(SearchboxHandle, L"");
 
             if (IsWindowVisible(SearchboxHandle))
                 ShowWindow(SearchboxHandle, SW_HIDE);
