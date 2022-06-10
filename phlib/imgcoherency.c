@@ -43,6 +43,8 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
     NTSTATUS MappedImageStatus;               /**< Status of initializing MappedImage */
     PH_MAPPED_IMAGE MappedImage;              /**< On-disk image mapping */
     PPH_HASHTABLE MappedImageReloc;           /**< On-disk mapped image relocations table */
+    ULONG MappedImageIatRva;                  /**< On-disk import address table RVA */
+    ULONG MappedImageIatSize;                 /**< On-disk import address table size */
 
     NTSTATUS RemoteMappedImageStatus;         /**< Status of initializing RemoteMappedImage */
     PH_REMOTE_MAPPED_IMAGE RemoteMappedImage; /**< Remote image mapping */
@@ -216,6 +218,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     if (NT_SUCCESS(context->MappedImageStatus))
     {
         PH_MAPPED_IMAGE_RELOC relocs;
+        PIMAGE_DATA_DIRECTORY directory;
 
         //
         // Build a hash table for the relocation entries to skip later.
@@ -260,6 +263,14 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
             }
 
             PhFreeMappedImageRelocations(&relocs);
+        }
+
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&context->MappedImage,
+                                                 IMAGE_DIRECTORY_ENTRY_IAT,
+                                                 &directory)))
+        {
+            context->MappedImageIatRva = directory->VirtualAddress;
+            context->MappedImageIatSize = directory->Size;
         }
     }
 
@@ -516,14 +527,14 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
 }
 
 /**
-* Skip bytes callback to skip relocations during inspection.
+* Skip bytes callback to skip bytes during inspection.
 *
 * \param[in] Rva - Current rva in the range being inspected.
 * \param[in] Context - Relocation skip context.
 *
-* \return Number of bytes to skip if a relocation is encountered, 0 otherwise.
+* \return Number of bytes to skip, 0 otherwise.
 */
-ULONG CALLBACK PhpImgCoherencySkipRelocations(
+ULONG CALLBACK PhpImgCoherencySkip(
     _In_ ULONG Rva,
     _In_opt_ PVOID Context
     )
@@ -538,24 +549,29 @@ ULONG CALLBACK PhpImgCoherencySkipRelocations(
 
     context = (PPH_IMAGE_COHERENCY_CONTEXT)Context;
 
-    if (!context->MappedImageReloc)
+    if (context->MappedImageReloc)
     {
-        return 0;
+        //
+        // Look up the RVA in our hash table, if we find one we will skip the
+        // number of bytes stored in the hash table for that entry.
+        //
+        entry = PhFindItemSimpleHashtable(context->MappedImageReloc,
+                                          PTR_ADD_OFFSET(NULL, Rva));
+        if (entry)
+        {
+            return PtrToUlong(*entry);
+        }
     }
 
-    //
-    // Look up the RVA in our hash table, if we find one we will skip the
-    // number of bytes stored in the hash table for that entry.
-    //
-
-    entry = PhFindItemSimpleHashtable(context->MappedImageReloc,
-                                      PTR_ADD_OFFSET(NULL, Rva));
-    if (!entry)
+    if (context->MappedImageIatRva && (context->MappedImageIatRva == Rva))
     {
-        return 0;
+        //
+        // Skip over the import address table.
+        //
+        return context->MappedImageIatSize;
     }
 
-    return PtrToUlong(*entry);
+    return 0;
 }
 
 /**
@@ -634,7 +650,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
                                                     mappedSection->VirtualAddress,
                                                     size,
                                                     Context,
-                                                    PhpImgCoherencySkipRelocations,
+                                                    PhpImgCoherencySkip,
                                                     Context);
 
                 bytesInspected = (Context->TotalBytes - prevTotal);
@@ -662,7 +678,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
                                                             addressOfEntry,
                                                             length,
                                                             Context,
-                                                            PhpImgCoherencySkipRelocations,
+                                                            PhpImgCoherencySkip,
                                                             Context);
                     }
                 }
