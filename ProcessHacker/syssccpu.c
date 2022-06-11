@@ -1645,6 +1645,7 @@ ULONG PhSipGetProcessorRelationshipIndex(
     return ULONG_MAX;
 }
 
+#ifndef _ARM64_
 // Hybrid CPU detection (dmex)
 
 #define CPUID_EXTENDED_FEATURES_FUNCTION 0x07
@@ -1664,8 +1665,8 @@ typedef union _CPUID_HYBRID_INFORMATION
     INT32 AsINT32[4];
     struct
     {
-        UINT32 ModelId : 24;
-        UINT32 CoreType : 8;
+        INT32 ModelId : 24;
+        INT32 CoreType : 8;
     };
 } CPUID_HYBRID_INFORMATION;
 
@@ -1781,3 +1782,11 @@ PPH_STRINGREF PhGetHybridProcessorType(
 
     return NULL;
 }
+#else
+PPH_STRINGREF PhGetHybridProcessorType(
+    _In_ ULONG ProcessorIndex
+    )
+{
+    return NULL;
+}
+#endif
