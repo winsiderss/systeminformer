@@ -10,21 +10,21 @@
  *
  * Copyright (c) 2008-2009 Yahoo! Inc.  All rights reserved.
  * The copyrights to the contents of this file are licensed under the MIT License
- * (http://www.opensource.org/licenses/mit-license.php)
+ * (https://www.opensource.org/licenses/mit-license.php)
  */
 
 /**
  * @file
- * @brief Internal string buffer handing.  Unless you're writing a
+ * @brief Internal string buffer handling.  Unless you're writing a
  *        json_object_to_json_string_fn implementation for use with
  *        json_object_set_serializer() direct use of this is not
  *        recommended.
  */
-#ifndef _printbuf_h_
-#define _printbuf_h_
+#ifndef _json_c_printbuf_h_
+#define _json_c_printbuf_h_
 
 #ifndef JSON_EXPORT
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && defined(JSON_C_DLL)
 #define JSON_EXPORT __declspec(dllexport)
 #else
 #define JSON_EXPORT extern

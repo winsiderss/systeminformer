@@ -230,7 +230,7 @@ VOID PhAddJsonObjectValue(
     _In_ PVOID Value
     )
 {
-    json_object_object_add_ex(Object, Key, Value, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, Value, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObject(
@@ -239,7 +239,7 @@ VOID PhAddJsonObject(
     _In_ PSTR Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_string(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_string(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObject2(
@@ -251,7 +251,7 @@ VOID PhAddJsonObject2(
 {
     PVOID string = json_object_new_string_len(Value, (UINT32)Length);
 
-    json_object_object_add_ex(Object, Key, string, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, string, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObjectInt64(
@@ -260,7 +260,7 @@ VOID PhAddJsonObjectInt64(
     _In_ LONGLONG Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_int64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_int64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObjectUInt64(
@@ -269,7 +269,7 @@ VOID PhAddJsonObjectUInt64(
     _In_ ULONGLONG Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_uint64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_uint64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObjectDouble(
@@ -278,7 +278,7 @@ VOID PhAddJsonObjectDouble(
     _In_ DOUBLE Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_double(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_double(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 PVOID PhCreateJsonArray(
