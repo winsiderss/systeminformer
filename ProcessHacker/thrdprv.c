@@ -776,11 +776,14 @@ VOID PhpThreadProviderUpdate(
     // TIDs, so we'll assign unique TIDs. (wj32)
     if (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
     {
+        ULONG processorIndex = 0;
+
         for (i = 0; i < numberOfThreads; i++)
         {
-            if (!threads[i].ClientId.UniqueThread) // Don't assign a pseudo TID when there's a valid TID (dmex)
+            if (!threads[i].ClientId.UniqueThread)
             {
-                threads[i].ClientId.UniqueThread = UlongToHandle(i);
+                threads[i].ClientId.UniqueThread = UlongToHandle(processorIndex);
+                processorIndex++;
             }
         }
     }
