@@ -3934,6 +3934,18 @@ RtlReplaceSystemDirectoryInPath(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_21H2)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWow64GetProcessMachines(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUSHORT ProcessMachine,
+    _Out_ PUSHORT NativeMachine
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_REDSTONE2)
 
 // private
