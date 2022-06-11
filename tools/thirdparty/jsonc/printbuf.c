@@ -10,7 +10,7 @@
  *
  * Copyright (c) 2008-2009 Yahoo! Inc.  All rights reserved.
  * The copyrights to the contents of this file are licensed under the MIT License
- * (http://www.opensource.org/licenses/mit-license.php)
+ * (https://www.opensource.org/licenses/mit-license.php)
  */
 
 #include "config.h"
@@ -91,7 +91,7 @@ static int printbuf_extend(struct printbuf *p, int min_size)
 int printbuf_memappend(struct printbuf *p, const char *buf, int size)
 {
     /* Prevent signed integer overflows with large buffers. */
-    if (size > INT_MAX - p->bpos - 1)
+    if (size < 0 || size > INT_MAX - p->bpos - 1)
         return -1;
     if (p->size <= p->bpos + size + 1)
     {
@@ -126,7 +126,7 @@ int printbuf_memset(struct printbuf *pb, int offset, int charvalue, int len)
     if (offset == -1)
         offset = pb->bpos;
     /* Prevent signed integer overflows with large buffers. */
-    if (len > INT_MAX - offset)
+    if (len < 0 || offset < -1 || len > INT_MAX - offset)
         return -1;
     size_needed = offset + len;
     if (pb->size < size_needed)
@@ -135,6 +135,8 @@ int printbuf_memset(struct printbuf *pb, int offset, int charvalue, int len)
             return -1;
     }
 
+    if (pb->bpos < offset)
+        memset(pb->buf + pb->bpos, '\0', offset - pb->bpos);
     memset(pb->buf + offset, charvalue, len);
     if (pb->bpos < size_needed)
         pb->bpos = size_needed;
@@ -149,16 +151,16 @@ int sprintbuf(struct printbuf *p, const char *msg, ...)
     int size;
     char buf[128];
 
-    /* user stack buffer first */
+    /* use stack buffer first */
     va_start(ap, msg);
     size = vsnprintf(buf, 128, msg, ap);
     va_end(ap);
     /* if string is greater than stack buffer, then use dynamic string
-     * with vasprintf.  Note: some implementation of vsnprintf return -1
+     * with vasprintf.  Note: some implementations of vsnprintf return -1
      * if output is truncated whereas some return the number of bytes that
      * would have been written - this code handles both cases.
      */
-    if (size == -1 || size > 127)
+    if (size < 0 || size > 127)
     {
         va_start(ap, msg);
         if ((size = vasprintf(&t, msg, ap)) < 0)
@@ -167,15 +169,14 @@ int sprintbuf(struct printbuf *p, const char *msg, ...)
             return -1;
         }
         va_end(ap);
-        printbuf_memappend(p, t, size);
+        size = printbuf_memappend(p, t, size);
         free(t);
-        return size;
     }
     else
     {
-        printbuf_memappend(p, buf, size);
-        return size;
+        size = printbuf_memappend(p, buf, size);
     }
+    return size;
 }
 
 void printbuf_reset(struct printbuf *p)

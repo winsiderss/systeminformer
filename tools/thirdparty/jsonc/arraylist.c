@@ -45,6 +45,8 @@ struct array_list *array_list_new2(array_list_free_fn *free_fn, int initial_size
 {
     struct array_list *arr;
 
+    if (initial_size < 0 || (size_t)initial_size >= SIZE_T_MAX / sizeof(void *))
+        return NULL;
     arr = (struct array_list *)malloc(sizeof(struct array_list));
     if (!arr)
         return NULL;
@@ -106,6 +108,8 @@ int array_list_shrink(struct array_list *arr, size_t empty_slots)
     void *t;
     size_t new_size;
 
+    if (empty_slots >= SIZE_T_MAX / sizeof(void *) - arr->length)
+        return -1;
     new_size = arr->length + empty_slots;
     if (new_size == arr->size)
         return 0;

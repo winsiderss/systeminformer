@@ -17,13 +17,13 @@
 extern "C" {
 #endif
 
-//#ifndef JSON_EXPORT
-//#if defined(_MSC_VER)
-//#define JSON_EXPORT __declspec(dllexport)
-//#else
+#ifndef JSON_EXPORT
+#if defined(_MSC_VER) && defined(JSON_C_DLL)
+#define JSON_EXPORT __declspec(dllexport)
+#else
 #define JSON_EXPORT extern
-//#endif
-//#endif
+#endif
+#endif
 
 struct printbuf;
 
