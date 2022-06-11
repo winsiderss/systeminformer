@@ -1,6 +1,5 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Process Hacker
  *
  * Copyright (C) 2020 dmex
  *
