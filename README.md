@@ -1,5 +1,5 @@
 [![Build status](https://img.shields.io/appveyor/ci/systeminformer/systeminformer.svg?style=for-the-badge)](https://ci.appveyor.com/project/systeminformer/systeminformer)
-[![Build contributors](https://img.shields.io/github/contributors/systeminformer/systeminformer.svg?style=for-the-badge&color=blue)](https://github.com/systeminformer/systeminformer/graphs/contributors)
+[![Build contributors](https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue)](https://github.com/winsiderss/systeminformer/graphs/contributors)
 [![Licence](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue)](https://opensource.org/licenses/MIT)
 [![Github stats](https://img.shields.io/github/downloads/systeminformer/systeminformer/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=systeminformer&repository=systeminformer)
 [![SourceForge stats](https://img.shields.io/sourceforge/dt/systeminformer.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/systeminformer/files/stats/timeline?dates=2008-10-01%20to%202020-09-01&period=monthly)
