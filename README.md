@@ -4,7 +4,7 @@
 [![Github stats](https://img.shields.io/github/downloads/systeminformer/systeminformer/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=systeminformer&repository=systeminformer)
 [![SourceForge stats](https://img.shields.io/sourceforge/dt/systeminformer.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/systeminformer/files/stats/timeline?dates=2008-10-01%20to%202020-09-01&period=monthly)
 
-<img align="left" src="ProcessHacker/resources/ProcessHacker.png" width="128" height="128"> 
+<img align="left" src="ProcessHacker/resources/systeminformer.png" width="128" height="128"> 
 
 ## System Informer
 
