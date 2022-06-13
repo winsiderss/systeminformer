@@ -68,7 +68,7 @@ Disk and Network information provided by the ExtendedTools plugin is
 only available when running System Informer with administrative
 rights.
 
-## KProcessHacker
+## KSystemInformer
 
 System Informer uses a kernel-mode driver, KSystemInformer, to
 assist with certain functionality. This includes:
