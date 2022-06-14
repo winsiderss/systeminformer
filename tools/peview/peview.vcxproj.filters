@@ -191,7 +191,7 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\ProcessHacker.ico">
+    <Image Include="resources\SystemInformer.ico">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="resources\inactive_search.png">

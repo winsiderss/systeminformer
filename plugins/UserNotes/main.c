@@ -448,7 +448,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                             config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
                             config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                             config.pszMainIcon = TD_ERROR_ICON;
-                            config.pszWindowTitle = L"Process Hacker";
+                            config.pszWindowTitle = L"System Informer";
                             config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
                             config.cxWidth = 200;
 
@@ -491,7 +491,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                             config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
                             config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                             config.pszMainIcon = TD_ERROR_ICON;
-                            config.pszWindowTitle = L"Process Hacker";
+                            config.pszWindowTitle = L"System Informer";
                             config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
                             config.cxWidth = 200;
 
@@ -534,7 +534,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
                             config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
                             config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                             config.pszMainIcon = TD_ERROR_ICON;
-                            config.pszWindowTitle = L"Process Hacker";
+                            config.pszWindowTitle = L"System Informer";
                             config.pszMainInstruction = L"Unable to update the IFEO key for priority.";
                             config.cxWidth = 200;
 
@@ -599,7 +599,7 @@ VOID ShowProcessPriorityDialog(
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.pszWindowTitle = PhGetString(FileName);
     config.pszMainInstruction = L"Select the default process priority.";
-    config.pszContent = L"The process priority will be applied by Windows even when Process Hacker isn't currently running. "
+    config.pszContent = L"The process priority will be applied by Windows even when System Informer isn't currently running. "
     L"Note: Realtime priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
     config.nDefaultButton = IDCANCEL;
     config.pRadioButtons = TaskDialogRadioButtonArray;
@@ -682,7 +682,7 @@ VOID ShowProcessIoPriorityDialog(
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.pszWindowTitle = PhGetString(FileName);
     config.pszMainInstruction = L"Select the default process IO priority.";
-    config.pszContent = L"The IO priority will be applied by Windows even when Process Hacker isn't currently running. "
+    config.pszContent = L"The IO priority will be applied by Windows even when System Informer isn't currently running. "
     L"Note: High IO priority requires the User has the SeIncreaseBasePriorityPrivilege or the process running as Administrator.";
     config.nDefaultButton = IDCANCEL;
     config.pRadioButtons = TaskDialogRadioButtonArray;
@@ -760,7 +760,7 @@ VOID ShowProcessPagePriorityDialog(
     config.hMainIcon = PhGetApplicationIcon(FALSE);
     config.pszWindowTitle = PhGetString(FileName);
     config.pszMainInstruction = L"Select the default process page priority.";
-    config.pszContent = L"The page priority will be applied by Windows even when Process Hacker isn't currently running.";
+    config.pszContent = L"The page priority will be applied by Windows even when System Informer isn't currently running.";
     config.nDefaultButton = IDCANCEL;
     config.pRadioButtons = TaskDialogRadioButtonArray;
     config.cRadioButtons = RTL_NUMBER_OF(TaskDialogRadioButtonArray);
@@ -1492,7 +1492,7 @@ VOID NTAPI MenuHookCallback(
 
             PhReferenceObject(processItem);
 
-            // Don't show the default Process Hacker affinity dialog.
+            // Don't show the default System Informer affinity dialog.
             menuHookInfo->Handled = TRUE;
 
             // Show the affinity dialog (with our values).

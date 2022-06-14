@@ -431,7 +431,7 @@ BOOLEAN UpdateDownloadUpdateData(
     }
 
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhFormatString(
-        L"Downloading Process Hacker %s...", 
+        L"Downloading System Informer %s...", 
         PhGetString(Context->RelVersion)
         )->Buffer);
 

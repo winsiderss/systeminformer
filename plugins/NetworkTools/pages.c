@@ -216,7 +216,7 @@ VOID ShowDbInstallRestartDialog(
 
     config.pszWindowTitle = L"Network Tools - GeoIP Updater";
     config.pszMainInstruction = L"The GeoIP database has been installed";
-    config.pszContent = L"You need to restart Process Hacker for the changes to take effect...";
+    config.pszContent = L"You need to restart System Informer for the changes to take effect...";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

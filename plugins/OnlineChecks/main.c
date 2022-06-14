@@ -189,9 +189,9 @@ VOID NTAPI MenuItemCallback(
                 config.hwndParent = menuItem->OwnerWindow;
                 config.hMainIcon = PhGetApplicationIcon(FALSE);
                 config.cxWidth = 180;
-                config.pszWindowTitle = L"Process Hacker - VirusTotal";
-                config.pszMainInstruction = L"VirusTotal scanning requires a restart of Process Hacker.";
-                config.pszContent = L"Do you want to restart Process Hacker now?";
+                config.pszWindowTitle = L"System Informer - VirusTotal";
+                config.pszMainInstruction = L"VirusTotal scanning requires a restart of System Informer.";
+                config.pszContent = L"Do you want to restart System Informer now?";
 
                 if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result == IDYES)
                 {

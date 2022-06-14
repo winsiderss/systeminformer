@@ -345,7 +345,7 @@ INT WINAPI wWinMain(
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return EXIT_FAILURE;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker - Setup", ULONG_MAX, Instance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLibEx(L"System Informer - Setup", ULONG_MAX, Instance, 0, 0)))
         return EXIT_FAILURE;
 
     SetupInitializeMutant();

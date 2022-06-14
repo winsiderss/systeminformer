@@ -426,7 +426,7 @@
     <Image Include="resources\application.ico" />
     <Image Include="resources\inactive_search.bmp" />
     <Image Include="resources\inactive_search.png" />
-    <Image Include="resources\ProcessHacker.ico" />
+    <Image Include="resources\SystemInformer.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

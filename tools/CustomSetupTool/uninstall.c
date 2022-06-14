@@ -174,7 +174,7 @@ VOID ShowUninstallCompletedPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Process Hacker has been uninstalled.";
+    config.pszMainInstruction = L"System Informer has been uninstalled.";
     config.pszContent = L"Click close to exit setup.";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
@@ -196,7 +196,7 @@ VOID ShowUninstallingPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Uninstalling Process Hacker...";
+    config.pszMainInstruction = L"Uninstalling System Informer...";
     
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
@@ -217,7 +217,7 @@ VOID ShowUninstallErrorPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Process Hacker could not be uninstalled.";
+    config.pszMainInstruction = L"System Informer could not be uninstalled.";
     config.pszContent = L"Click retry to try again or close to exit setup.";
     
     TaskDialogNavigatePage(Context->DialogHandle, &config);
@@ -245,7 +245,7 @@ VOID ShowUninstallPageDialog(
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = PhApplicationName;
-    config.pszContent = L"Are you sure you want to uninstall Process Hacker?";
+    config.pszContent = L"Are you sure you want to uninstall System Informer?";
     config.pszVerificationText = L"Remove application settings";
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.nDefaultButton = IDCANCEL;

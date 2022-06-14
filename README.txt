@@ -5,7 +5,7 @@ Process Hacker is a powerful free and open source process viewer.
 Simply run ProcessHacker.exe to start Process Hacker. There are two
 versions, 32-bit (x86) and 64-bit (x64). If you are not sure which
 version to use, open Control Panel > System and check the "System
-type". You cannot run the 32-bit version of Process Hacker on a
+type". You cannot run the 32-bit version of System Informer on a
 64-bit system and expect it to work correctly, unlike other programs.
 
 ## System requirements

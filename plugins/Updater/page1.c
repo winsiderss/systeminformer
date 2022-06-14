@@ -62,9 +62,9 @@ VOID ShowCheckForUpdatesDialog(
     config.pfCallback = CheckForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
-    config.pszMainInstruction = L"Check for an updated Process Hacker release?";
-    //config.pszContent = L"The updater will check for an updated Process Hacker release which then can be optionally downloaded and installed.\r\n\r\nClick Check to continue.";
+    config.pszWindowTitle = L"System Informer - Updater";
+    config.pszMainInstruction = L"Check for an updated System Informer release?";
+    //config.pszContent = L"The updater will check for an updated System Informer release which then can be optionally downloaded and installed.\r\n\r\nClick Check to continue.";
     config.pszContent = L"Click Check to continue.\r\n";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
