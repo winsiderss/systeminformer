@@ -64,7 +64,7 @@ BEGIN
             VALUE "CompanyName", "Process Hacker"
             VALUE "FileDescription", "Process Hacker"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3. Copyright (C) 2022"
+            VALUE "LegalCopyright", "Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "ProductName", "Process Hacker"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
