@@ -52,7 +52,7 @@ VOID ShowCheckingForUpdatesDialog(
     config.pfCallback = CheckingForUpdatesCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"Checking for an updated release...";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);

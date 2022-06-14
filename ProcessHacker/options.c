@@ -366,7 +366,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         hwndDlg,
                         TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
                         TD_WARNING_ICON,
-                        L"Do you want to reset all settings and restart Process Hacker?",
+                        L"Do you want to reset all settings and restart System Informer?",
                         L""
                         ) == IDYES)
                     {
@@ -816,7 +816,7 @@ static VOID WriteCurrentUserRun(
         0
         )))
     {
-        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Process Hacker");
+        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
 
         if (Present)
         {
@@ -922,7 +922,7 @@ VOID PhpSetDefaultTaskManager(
     if (PhpIsDefaultTaskManager())
         message = L"Do you want to restore the default Windows Task Manager?";
     else
-        message = L"Do you want to make Process Hacker the default Windows Task Manager?";
+        message = L"Do you want to make System Informer the default Windows Task Manager?";
 
     if (PhShowMessage2(
         ParentWindowHandle,
@@ -1299,12 +1299,12 @@ VOID PhpRefreshTaskManagerState(
 
     if (PhpIsDefaultTaskManager())
     {
-        PhSetWindowText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is the default Task Manager:");
+        PhSetWindowText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"System Informer is the default Task Manager:");
         PhSetWindowText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Restore default...");
     }
     else
     {
-        PhSetWindowText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"Process Hacker is not the default Task Manager:");
+        PhSetWindowText(GetDlgItem(WindowHandle, IDC_DEFSTATE), L"System Informer is not the default Task Manager:");
         PhSetWindowText(GetDlgItem(WindowHandle, IDC_REPLACETASKMANAGER), L"Make default...");
     }
 }
@@ -1441,8 +1441,8 @@ static VOID PhpOptionsNotifyChangeCallback(
             PhMainWndHandle,
             TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
             TD_INFORMATION_ICON,
-            L"One or more options you have changed requires a restart of Process Hacker.",
-            L"Do you want to restart Process Hacker now?"
+            L"One or more options you have changed requires a restart of System Informer.",
+            L"Do you want to restart System Informer now?"
             ) == IDYES)
         {
             ProcessHacker_PrepareForEarlyShutdown();
@@ -1881,8 +1881,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                             PhOptionsWindowHandle,
                                                             TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
                                                             TD_WARNING_ICON,
-                                                            L"WARNING: You have not installed Process Hacker into a secure location.",
-                                                            L"Enabling the 'start as admin' option is not recommended when running Process Hacker from outside a secure location (e.g. Program Files).\r\n\r\nAre you sure you want to continue?"
+                                                            L"WARNING: You have not installed System Informer into a secure location.",
+                                                            L"Enabling the 'start as admin' option is not recommended when running System Informer from outside a secure location (e.g. Program Files).\r\n\r\nAre you sure you want to continue?"
                                                             ) == IDNO)
                                                         {
                                                             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
@@ -3181,7 +3181,7 @@ typedef struct _COLOR_ITEM
 
 static COLOR_ITEM ColorItems[] =
 {
-    COLOR_ITEM(L"ColorOwnProcesses", L"Own processes", L"Processes running under the same user account as Process Hacker."),
+    COLOR_ITEM(L"ColorOwnProcesses", L"Own processes", L"Processes running under the same user account as System Informer."),
     COLOR_ITEM(L"ColorSystemProcesses", L"System processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
     COLOR_ITEM(L"ColorServiceProcesses", L"Service processes", L"Processes which host one or more services."),
     COLOR_ITEM(L"ColorBackgroundProcesses", L"Background processes", L"Processes with a background scheduling priority."),

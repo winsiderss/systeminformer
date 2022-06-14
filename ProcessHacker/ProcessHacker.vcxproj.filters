@@ -463,7 +463,7 @@
     <None Include="resources\cross.bmp">
       <Filter>Resources</Filter>
     </None>
-    <None Include="ProcessHacker.ico">
+    <None Include="SystemInformer.ico">
       <Filter>Resources</Filter>
     </None>
     <None Include="resources\ProcessHacker.png">

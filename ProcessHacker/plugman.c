@@ -903,7 +903,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
 //            ParentWindowHandle, 
 //            L"Plugins are not enabled.",
 //            L"%s",
-//            L"To use plugins enable them in Options and restart Process Hacker."
+//            L"To use plugins enable them in Options and restart System Informer."
 //            );
 //    }
 //}

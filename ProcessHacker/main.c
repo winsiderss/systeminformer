@@ -111,7 +111,7 @@ INT WINAPI wWinMain(
     PHP_BASE_THREAD_DBG dbg;
 #endif
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker", ULONG_MAX, Instance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLibEx(L"System Informer", ULONG_MAX, Instance, 0, 0)))
         return 1;
     if (!PhInitializeDirectoryPolicy())
         return 1;
@@ -219,9 +219,9 @@ INT WINAPI wWinMain(
         PhShowWarning(
             NULL,
             L"%s",
-            L"You are attempting to run the 32-bit version of Process Hacker on 64-bit Windows. "
+            L"You are attempting to run the 32-bit version of System Informer on 64-bit Windows. "
             L"Most features will not work correctly.\n\n"
-            L"Please run the 64-bit version of Process Hacker instead."
+            L"Please run the 64-bit version of System Informer instead."
             );
         PhExitApplication(STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT);
     }
@@ -703,7 +703,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
         config.pszWindowTitle = PhApplicationName;
         config.pszMainIcon = TD_ERROR_ICON;
-        config.pszMainInstruction = L"Process Hacker has crashed :(";
+        config.pszMainInstruction = L"System Informer has crashed :(";
         config.pszContent = PhGetStringOrEmpty(message);
         config.cButtons = RTL_NUMBER_OF(buttons);
         config.pButtons = buttons;
@@ -745,7 +745,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
         if (PhShowMessage(
             NULL,
             MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
-            L"Process Hacker has crashed :(\r\n\r\n%s",
+            L"System Informer has crashed :(\r\n\r\n%s",
             L"Do you want to create a minidump on the Desktop?"
             ) == IDYES)
         {
@@ -1252,7 +1252,7 @@ VOID PhInitializeKph(
                     if (PhShowMessage(
                         NULL,
                         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
-                        L"Process Hacker needs to reset the driver configuration\r\n\r\n%s",
+                        L"System Informer needs to reset the driver configuration\r\n\r\n%s",
                         L"Do you want to continue?"
                         ) != IDYES)
                     {
@@ -1417,7 +1417,7 @@ VOID PhpInitializeSettings(
                     NULL,
                     TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
                     TD_WARNING_ICON,
-                    L"Process Hacker's settings file is corrupt. Do you want to reset it?",
+                    L"System Informer's settings file is corrupt. Do you want to reset it?",
                     L"If you select No, the settings system will not function properly."
                     ) == IDYES)
                 {
@@ -1723,7 +1723,7 @@ VOID PhpProcessStartupParameters(
         status = KphInstallEx(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
-            PhShowStatus(NULL, L"Unable to install KProcessHacker", status, 0);
+            PhShowStatus(NULL, L"Unable to install KSystemInformer", status, 0);
 
         PhExitApplication(status);
     }
@@ -1735,7 +1735,7 @@ VOID PhpProcessStartupParameters(
         status = KphUninstall(KPH_DEVICE_SHORT_NAME);
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
-            PhShowStatus(NULL, L"Unable to uninstall KProcessHacker", status, 0);
+            PhShowStatus(NULL, L"Unable to uninstall KSystemInformer", status, 0);
 
         PhExitApplication(status);
     }

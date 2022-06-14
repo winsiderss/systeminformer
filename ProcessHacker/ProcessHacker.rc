@@ -52,7 +52,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_PROCESSHACKER       ICON                    "ProcessHacker.ico"
+IDI_PROCESSHACKER       ICON                    "SystemInformer.ico"
 
 IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
 
@@ -172,20 +172,20 @@ BEGIN
     PUSHBUTTON      "Options",IDC_OPTIONS,2,212,50,14
 END
 
-IDD_ABOUT DIALOGEX 0, 0, 270, 195
+IDD_ABOUT DIALOGEX 0, 0, 270, 215
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     ICON            IDI_PROCESSHACKER,IDC_FILEICON,16,11,20,20
-    CONTROL         "Process Hacker",IDC_ABOUT_NAME,"SysLink",WS_TABSTOP,45,10,192,8
+    CONTROL         "System Informer",IDC_ABOUT_NAME,"SysLink",WS_TABSTOP,45,10,192,8
     LTEXT           "Copyright (c) 2022",IDC_STATIC,45,23,193,8
-    LTEXT           "Winsider Seminars & Solutions, Inc.",IDC_STATIC,45,36,80,8
-    CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,49,248,121
-    CONTROL         "<a href=""https://processhacker.sourceforge.io"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
-                    "SysLink",WS_TABSTOP,7,177,130,11
-    PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,174,50,14
-    DEFPUSHBUTTON   "OK",IDOK,213,174,50,14
+    LTEXT           "Winsider Seminars && Solutions, Inc.",IDC_STATIC,45,36,193,8
+    CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,49,248,141
+    CONTROL         "<a href=""https://processhacker.sourceforge.io"">System Informer on SourceForge.net</a>",IDC_LINK_SF,
+                    "SysLink",WS_TABSTOP,7,197,130,11
+    PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,194,50,14
+    DEFPUSHBUTTON   "OK",IDOK,213,194,50,14
 END
 
 IDD_SRVLIST DIALOGEX 0, 0, 237, 201
@@ -651,7 +651,7 @@ BEGIN
     CONTROL         "Automatic",IDC_SAMPLECOUNTAUTOMATIC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,233,56,48,10
     CONTROL         "",IDC_SETTINGS,"SysListView32",LVS_LIST | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_TABSTOP,7,103,301,110
     LTEXT           "Application font:",IDC_STATIC,121,72,54,8
-    RTEXT           "Process Hacker is the default Task Manager:",IDC_DEFSTATE,7,88,166,8
+    RTEXT           "System Informer is the default Task Manager:",IDC_DEFSTATE,7,88,166,8
     LTEXT           "Symbol path:",IDC_STATIC,7,39,43,8
     EDITTEXT        IDC_DBGHELPSEARCHPATH,61,38,247,12,ES_AUTOHSCROLL
 END

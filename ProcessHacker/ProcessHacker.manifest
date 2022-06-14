@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity name="Process Hacker" processorArchitecture="*" version="2.0.0.0" type="win32"/>
-  <description>Process Hacker</description>
+  <assemblyIdentity name="System Informer" processorArchitecture="*" version="2.0.0.0" type="win32"/>
+  <description>System Informer</description>
   <dependency>
     <dependentAssembly>
       <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>

@@ -524,7 +524,7 @@
     <None Include="resources\application.ico" />
     <None Include="resources\cog.ico" />
     <None Include="resources\cross.bmp" />
-    <None Include="ProcessHacker.ico" />
+    <None Include="SystemInformer.ico" />
     <None Include="resources\ProcessHacker.png" />
     <None Include="resources\tick.bmp" />
   </ItemGroup>
