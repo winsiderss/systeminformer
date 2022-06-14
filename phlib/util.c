@@ -24,9 +24,9 @@
 #include <mapimg.h>
 #include <wslsup.h>
 
-#include "md5.h"
-#include "sha.h"
-#include "sha256.h"
+#include "..\tools\thirdparty\md5\md5.h"
+#include "..\tools\thirdparty\sha\sha.h"
+#include "..\tools\thirdparty\sha256\sha256.h"
 
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = ULONG_MAX;

@@ -71,9 +71,6 @@
     <ClCompile Include="maplib.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="md5.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="native.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -90,9 +87,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="secedit.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sha.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="svcsup.c">
@@ -135,9 +129,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sha256.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="settings.c">
