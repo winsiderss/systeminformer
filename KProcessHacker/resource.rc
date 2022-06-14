@@ -19,7 +19,7 @@
 
 #define VER_COMPANYNAME_STR "ProcessHacker\0"
 #define VER_FILEDESCRIPTION_STR "ProcessHacker\0"
-#define VER_LEGALCOPYRIGHT_STR "Licensed under the GNU GPL, v3.\0"
+#define VER_LEGALCOPYRIGHT_STR "Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.\0"
 #define VER_ORIGINALFILENAME_STR "ProcessHacker.sys\0"
 #define VER_PRODUCTNAME_STR "ProcessHacker\0"
 
