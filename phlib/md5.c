@@ -7,7 +7,7 @@
  * published by the Free Software Foundation.
  */
 
-/* This code was modified for Process Hacker. */
+/* This code was modified for System Informer. */
 
 #include <phbase.h>
 #include "md5.h"

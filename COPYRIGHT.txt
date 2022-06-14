@@ -1,21 +1,7 @@
-== Process Hacker ==
-Process Hacker is licensed under the GNU GPL v3, with exceptions. A full
-copy of the license is provided in LICENSE.txt.
+== System Informer ==
+System Informer is licensed. A full copy of the license is provided in LICENSE.txt.
 
-    Copyright (C) 2009-2016 wj32 and various authors
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
 
 == Mini-XML ==
 Process Hacker uses Mini-XML licensed under the following terms:
@@ -129,4 +115,4 @@ Process Hacker uses "strnatcmp.c" licensed under the following terms:
      misrepresented as being the original software.
     3. This notice may not be removed or altered from any source distribution.
 
-    This code has been modified for Process Hacker.
+    This code has been modified for System Informer.
