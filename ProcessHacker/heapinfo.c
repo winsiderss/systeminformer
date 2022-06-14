@@ -554,7 +554,7 @@ VOID PhpEnumerateProcessHeaps(
                 Context->WindowHandle,
                 L"Unable to query 32bit heap information.",
                 L"%s",
-                L"The 32-bit version of Process Hacker could not be located."
+                L"The 32-bit version of System Informer could not be located."
                 );
             goto CleanupExit;
         }

@@ -30,7 +30,7 @@ body:
     attributes:
       label: Environment (optional)
       placeholder: |
-        Process Hacker (stable/nightly) version
+        System Informer (stable/nightly) version
         Windows version
         Any other information?
       render: shell

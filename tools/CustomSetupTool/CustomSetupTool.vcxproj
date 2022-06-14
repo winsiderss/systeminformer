@@ -147,7 +147,7 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="ProcessHacker.ico" />
+    <Image Include="SystemInformer.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

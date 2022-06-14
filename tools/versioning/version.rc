@@ -61,11 +61,11 @@ BEGIN
     BEGIN
         BLOCK "0c0904b0"
         BEGIN
-            VALUE "CompanyName", "Process Hacker"
-            VALUE "FileDescription", "Process Hacker"
+            VALUE "CompanyName", "System Informer"
+            VALUE "FileDescription", "System Informer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "LegalCopyright", "Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved."
-            VALUE "ProductName", "Process Hacker"
+            VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END

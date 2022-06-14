@@ -45,7 +45,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 
 #if (PHAPP_VERSION_REVISION != 0)
             appName = PhFormatString(
-                L"Process Hacker %lu.%lu.%lu (<a href=\"https://github.com/processhacker/processhacker/commit/%hs\">%hs</a>)",
+                L"System Informer %lu.%lu.%lu (<a href=\"https://github.com/processhacker/processhacker/commit/%hs\">%hs</a>)",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR,
                 PHAPP_VERSION_REVISION,
@@ -54,7 +54,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 );
 #else
             appName = PhFormatString(
-                L"Process Hacker %lu.%lu",
+                L"System Informer %lu.%lu",
                 PHAPP_VERSION_MAJOR,
                 PHAPP_VERSION_MINOR
                 );
@@ -67,9 +67,12 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 L"Thanks to:\n"
                 L"    <a href=\"https://github.com/wj32\">wj32</a> - Wen Jia Liu\n"
                 L"    <a href=\"https://github.com/dmex\">dmex</a> - Steven G\n"
-                L"    <a href=\"https://github.com/processhacker/processhacker/graphs/contributors\">Contributors</a> - thank you for your additions!\n"
+                L"    <a href=\"https://github.com/jxy-s\">jxy-s</a> - Johnny Shaw\n"
+                L"    <a href=\"https://github.com/ionescu007\">ionescu007</a> - Alex Ionescu\n"
+                L"    <a href=\"https://github.com/yardenshafir\">yardenshafir</a> - Yarden Shafir\n"
+                L"    <a href=\"https://github.com/winsiderss/systeminformer/graphs/contributors\">Contributors</a> - thank you for your additions!\n"
                 L"    Donors - thank you for your support!\n\n"
-                L"Process Hacker uses the following components:\n"
+                L"System Informer uses the following components:\n"
                 L"    <a href=\"https://github.com/michaelrsweet/mxml\">Mini-XML</a> by Michael Sweet\n"
                 L"    <a href=\"https://www.pcre.org\">PCRE</a>\n"
                 L"    <a href=\"https://github.com/json-c/json-c\">json-c</a>\n"
@@ -187,7 +190,7 @@ PPH_STRING PhGetDiagnosticsString(
 
 #if (PHAPP_VERSION_REVISION != 0)
     PhAppendFormatStringBuilder(&stringBuilder,
-        L"Process Hacker\r\nVersion: %lu.%lu.%lu (%hs)\r\n\r\n",
+        L"System Informer\r\nVersion: %lu.%lu.%lu (%hs)\r\n\r\n",
         PHAPP_VERSION_MAJOR,
         PHAPP_VERSION_MINOR,
         PHAPP_VERSION_REVISION,
@@ -195,7 +198,7 @@ PPH_STRING PhGetDiagnosticsString(
         );
 #else
     PhAppendFormatStringBuilder(&stringBuilder,
-        L"Process Hacker\r\nVersion: %lu.%lu\r\n\r\n",
+        L"System Informer\r\nVersion: %lu.%lu\r\n\r\n",
         PHAPP_VERSION_MAJOR,
         PHAPP_VERSION_MINOR
         );

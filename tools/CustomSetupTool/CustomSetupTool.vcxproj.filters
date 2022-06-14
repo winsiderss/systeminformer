@@ -80,7 +80,7 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="ProcessHacker.ico">
+    <Image Include="SystemInformer.ico">
       <Filter>Resource Files\Content</Filter>
     </Image>
   </ItemGroup>

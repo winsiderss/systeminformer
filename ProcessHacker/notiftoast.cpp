@@ -612,7 +612,7 @@ VOID PhUninitializeToastRuntime()
      in PH::Toast::Initialize.
 
     @code
-            hr = PhShowToast(L"Process Hacker", 
+            hr = PhShowToast(L"System Informer", 
                              L"<toast>"
                              L"    <visual>"
                              L"       <binding template=\"ToastImageAndText02\">"

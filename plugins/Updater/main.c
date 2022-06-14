@@ -122,7 +122,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Update Checker";
             info->Author = L"dmex";
-            info->Description = L"Plugin for checking new Process Hacker releases via the Help menu.";
+            info->Description = L"Plugin for checking new System Informer releases via the Help menu.";
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),

@@ -187,7 +187,7 @@ VOID ShowUpdateInstallDialog(
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"Ready to install update?";
     config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
 
@@ -225,7 +225,7 @@ PPH_STRING UpdaterGetLatestVersionText(
     else
     {
         version = PhFormatString(
-            L"Process Hacker %lu.%lu.%lu",
+            L"System Informer %lu.%lu.%lu",
             majorVersion,
             minorVersion,
             revisionVersion
@@ -259,7 +259,7 @@ VOID ShowLatestVersionDialog(
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"You're running the latest version.";
     config.pszContent = PH_AUTO_T(PH_STRING, UpdaterGetLatestVersionText(Context))->Buffer;
 
@@ -281,7 +281,7 @@ VOID ShowNewerVersionDialog(
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"You're running a pre-release build.";
     config.pszContent = PhaFormatString(
         L"Pre-release build: v%s\r\n",
@@ -306,7 +306,7 @@ VOID ShowUpdateFailedDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"Error downloading the update.";
 
     if (SignatureFailed)
