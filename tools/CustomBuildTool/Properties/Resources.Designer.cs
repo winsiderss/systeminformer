@@ -68,7 +68,7 @@ namespace CustomBuildTool.Properties {
         ///    xmlns:rescap=&quot;http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities&quot;
         ///    xmlns:desktop=&quot;http://schemas.microsoft.com/appx/manifest/desktop/windows10&quot;&gt;
         ///    &lt;Identity
-        ///        Name=&quot;ProcessHacker&quot;
+        ///        Name=&quot;SystemInformer&quot;
         ///        Version=&quot;PH_APPX_VERSION&quot;
         ///        ProcessorArchi [rest of string was truncated]&quot;;.
         /// </summary>

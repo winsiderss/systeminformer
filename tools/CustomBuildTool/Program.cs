@@ -34,13 +34,13 @@ namespace CustomBuildTool
             //{
             //    Build.SetupBuildEnvironment(true);
             //
-            //    if (!Build.BuildSolution("ProcessHacker.sln",
+            //    if (!Build.BuildSolution("SystemInformer.sln",
             //        BuildFlags.Build32bit | BuildFlags.Build64bit |
             //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
             //        ))
             //        return;
             //
-            //    if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //    if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
             //        return;
             //    if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
             //        return;
@@ -81,7 +81,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-sdk"))
             {
-                Build.CopyKProcessHacker(
+                Build.CopyKernelDriver(
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug
                     );
@@ -93,7 +93,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
@@ -113,13 +113,13 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(false);
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
 
-                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
                 if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
@@ -152,14 +152,14 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
                     );
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose |
                     BuildFlags.BuildApi
                     ))
                     return;
 
-                if (!Build.CopyKProcessHacker(
+                if (!Build.CopyKernelDriver(
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose))
                     return;
@@ -202,13 +202,13 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
                     );
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     Environment.Exit(1);
 
-                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     Environment.Exit(1);
 
                 if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -254,13 +254,13 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
                     );
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
 
-                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
                 if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;

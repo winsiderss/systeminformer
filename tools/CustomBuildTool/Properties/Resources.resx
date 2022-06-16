@@ -125,15 +125,15 @@
     xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
     xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"&gt;
     &lt;Identity
-        Name="ProcessHacker"
+        Name="SystemInformer"
         Version="PH_APPX_VERSION"
         ProcessorArchitecture="PH_APPX_ARCH"
-        Publisher="CN=ProcessHacker, O=ProcessHacker, C=AU" /&gt;
+        Publisher="CN=SystemInformer, O=SystemInformer, C=AU" /&gt;
     &lt;Properties&gt;
-        &lt;DisplayName&gt;Process Hacker&lt;/DisplayName&gt;
-        &lt;PublisherDisplayName&gt;Process Hacker&lt;/PublisherDisplayName&gt;
-        &lt;Description&gt;ProcessHacker&lt;/Description&gt;
-        &lt;Logo&gt;Assets\ProcessHacker-44.png&lt;/Logo&gt;
+        &lt;DisplayName&gt;System Informer&lt;/DisplayName&gt;
+        &lt;PublisherDisplayName&gt;System Informer&lt;/PublisherDisplayName&gt;
+        &lt;Description&gt;SystemInformer&lt;/Description&gt;
+        &lt;Logo&gt;Assets\SystemInformer-44.png&lt;/Logo&gt;
     &lt;/Properties&gt;
     &lt;Resources&gt;
         &lt;Resource Language="en-US" /&gt;
@@ -146,13 +146,13 @@
     &lt;rescap:Capability Name="allowElevation" /&gt;
   &lt;/Capabilities&gt;
   &lt;Applications&gt;
-    &lt;Application Id="ProcessHacker" Executable="ProcessHacker.exe" EntryPoint="Windows.FullTrustApplication"&gt;
+    &lt;Application Id="SystemInformer" Executable="SystemInformer.exe" EntryPoint="Windows.FullTrustApplication"&gt;
         &lt;uap:VisualElements
             BackgroundColor="transparent"
-            DisplayName="ProcessHacker"
-            Square150x150Logo="Assets\ProcessHacker-150.png"
-            Square44x44Logo="Assets\ProcessHacker-44.png"
-            Description="ProcessHacker"&gt;
+            DisplayName="SystemInformer"
+            Square150x150Logo="Assets\SystemInformer-150.png"
+            Square44x44Logo="Assets\SystemInformer-44.png"
+            Description="SystemInformer"&gt;
             &lt;uap:DefaultTile&gt;
               &lt;uap:ShowNameOnTiles&gt;
                 &lt;uap:ShowOn Tile="square150x150Logo" /&gt;
