@@ -1,7 +1,7 @@
 ## Building
-Process Hacker must be built using a Microsoft C compiler. Do not attempt to use any other compiler or be prepared to spend a long time trying to fix things. The only tested IDE is Visual Studio 2015.
+System Informer must be built using a Microsoft C compiler. Do not attempt to use any other compiler or be prepared to spend a long time trying to fix things. The only tested IDE is Visual Studio 2015.
 
-The Windows SDK 10 must be installed. To create a XP-compatible driver, KProcessHacker must be built using WDK v7, not the latest WDK.
+The Windows SDK 10 must be installed. To create a XP-compatible driver, KSystemInformer must be built using WDK v7, not the latest WDK.
 
 ## Conventions
 
