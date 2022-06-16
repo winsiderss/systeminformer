@@ -18,13 +18,13 @@ if defined VSINSTALLPATH2019 (
       goto end
    )
 
-   msbuild KProcessHacker\KProcessHacker.sln -property:Configuration=Debug -property:Platform=Win32 -verbosity:minimal
+   msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=Win32 -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
 
-   msbuild KProcessHacker\KProcessHacker.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:minimal
+   msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
 
-   msbuild KProcessHacker\KProcessHacker.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+   msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
 
 ) else (
@@ -39,10 +39,10 @@ if defined VSINSTALLPATH2019 (
       goto end
    )
 
-   msbuild KProcessHacker\KProcessHacker.sln -property:Configuration=Debug -property:Platform=x64 /p:TargetVersion="Windows10" -verbosity:minimal
+   msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=x64 /p:TargetVersion="Windows10" -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
 
-   msbuild KProcessHacker\KProcessHacker.sln -property:Configuration=Debug -property:Platform=ARM64 /p:TargetVersion="Windows10" -verbosity:minimal
+   msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 /p:TargetVersion="Windows10" -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
 )
 

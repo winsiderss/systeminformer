@@ -16,10 +16,10 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
-msbuild ProcessHacker.sln -property:Configuration=Debug -property:Platform=Win32 -verbosity:normal
+msbuild SystemInformer.sln -property:Configuration=Debug -property:Platform=Win32 -verbosity:normal
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild ProcessHacker.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:normal
+msbuild SystemInformer.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:normal
 if %ERRORLEVEL% neq 0 goto end
 
 tools\CustomBuildTool\bin\Release\CustomBuildTool.exe -sdk
