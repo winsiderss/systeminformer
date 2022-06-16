@@ -6050,7 +6050,7 @@ HANDLE PhGetNamespaceHandle(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static UNICODE_STRING namespacePathUs = RTL_CONSTANT_STRING(L"\\BaseNamedObjects\\ProcessHacker");
+    static UNICODE_STRING namespacePathUs = RTL_CONSTANT_STRING(L"\\BaseNamedObjects\\SystemInformer");
     static HANDLE directory = NULL;
 
     if (PhBeginInitOnce(&initOnce))
@@ -7114,7 +7114,7 @@ static NTSTATUS PhpFixupLoaderEntryImageImports(
         importThunk = PTR_ADD_OFFSET(BaseAddress, importDirectory->FirstThunk);
         originalThunk = PTR_ADD_OFFSET(BaseAddress, importDirectory->OriginalFirstThunk ? importDirectory->OriginalFirstThunk : importDirectory->FirstThunk);
 
-        if (PhEqualBytesZ(importName, "ProcessHacker.exe", FALSE))
+        if (PhEqualBytesZ(importName, "SystemInformer.exe", FALSE))
         {
             importBaseAddress = PhInstanceHandle;
             status = STATUS_SUCCESS;
@@ -7307,7 +7307,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
         if (PhEqualBytesZ(importName, ImportDllName, TRUE))
         {
-            if (PhEqualBytesZ(importName, "ProcessHacker.exe", FALSE))
+            if (PhEqualBytesZ(importName, "SystemInformer.exe", FALSE))
             {
                 importBaseAddress = PhInstanceHandle;
                 status = STATUS_SUCCESS;
@@ -7780,11 +7780,11 @@ NTSTATUS PhLoadPluginImage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    //status = PhLoaderEntryLoadAllImportsForDll(imageBaseAddress, "ProcessHacker.exe");
+    //status = PhLoaderEntryLoadAllImportsForDll(imageBaseAddress, "SystemInformer.exe");
     status = PhpFixupLoaderEntryImageDelayImports(
         imageBaseAddress,
         imageNtHeaders,
-        "ProcessHacker.exe"
+        "SystemInformer.exe"
         );
 
     if (!NT_SUCCESS(status))

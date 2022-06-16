@@ -182,7 +182,7 @@ BEGIN
     LTEXT           "Copyright (c) 2022",IDC_STATIC,45,23,193,8
     LTEXT           "Winsider Seminars && Solutions, Inc.",IDC_STATIC,45,36,193,8
     CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,49,248,141
-    CONTROL         "<a href=""https://processhacker.sourceforge.io"">System Informer on SourceForge.net</a>",IDC_LINK_SF,
+    CONTROL         "<a href=""https://systeminformer.sourceforge.io"">System Informer on SourceForge.net</a>",IDC_LINK_SF,
                     "SysLink",WS_TABSTOP,7,197,130,11
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,194,50,14
     DEFPUSHBUTTON   "OK",IDOK,213,194,50,14
