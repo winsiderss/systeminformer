@@ -16,14 +16,14 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
-msbuild KProcessHacker\KProcessHacker.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild ProcessHacker.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+msbuild SystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
 mkdir sdk\lib\arm64
-copy bin\DebugARM64\ProcessHacker.lib sdk\lib\arm64
+copy bin\DebugARM64\SystemInformer.lib sdk\lib\arm64
 
 msbuild plugins\Plugins.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 
