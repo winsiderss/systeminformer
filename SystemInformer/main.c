@@ -1114,7 +1114,7 @@ VOID PhEnableTerminationPolicy(
 }
 
 NTSTATUS PhpReadSignature(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_ PUCHAR *Signature,
     _Out_ PULONG SignatureSize
     )
@@ -1127,7 +1127,7 @@ NTSTATUS PhpReadSignature(
 
     status = PhCreateFileWin32(
         &fileHandle,
-        FileName,
+        FileName->Buffer,
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -1218,24 +1218,48 @@ VOID PhInitializeKph(
     VOID
     )
 {
+    static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
+    static PH_STRINGREF driverSigExtension = PH_STRINGREF_INIT(L".sig");
     NTSTATUS status;
-    PPH_STRING kphDirectory = NULL;
+    PPH_STRING fileName = NULL;
     PPH_STRING kphFileName = NULL;
     PPH_STRING kphSigFileName = NULL;
     PPH_STRING kphServiceName = NULL;
-
-    if (!(kphDirectory = PhGetApplicationDirectory()))
-        return;
+    ULONG_PTR indexOfBackslash;
+    ULONG_PTR indexOfLastDot;
 
     kphServiceName = PhGetStringSetting(L"KphServiceName");
-
     if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
         PhClearReference(&kphServiceName);
 
-    kphFileName = PhConcatStringRefZ(&kphDirectory->sr, L"kprocesshacker.sys");
-    kphSigFileName = PhConcatStringRefZ(&kphDirectory->sr, L"processhacker.sig");
+    if (!(fileName = PhGetApplicationFileName()))
+        goto CleanupExit;
 
-    // Reset KPH after a Windows build update. (dmex)
+    indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
+    indexOfLastDot = PhFindLastCharInString(fileName, 0, L'.');
+
+    if (
+        indexOfBackslash != SIZE_MAX &&
+        indexOfLastDot != SIZE_MAX &&
+        indexOfLastDot > indexOfBackslash
+        )
+    {
+        PH_STRINGREF applicationNameSr;
+
+        applicationNameSr.Buffer = fileName->Buffer + indexOfBackslash + 1;
+        applicationNameSr.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
+        fileName->Length = (indexOfBackslash + 1) * sizeof(WCHAR);
+
+        kphFileName = PhConcatStringRef3(&fileName->sr, &applicationNameSr, &driverExtension);
+        kphSigFileName = PhConcatStringRef3(&fileName->sr, &applicationNameSr, &driverSigExtension);
+    }
+
+    if (PhIsNullOrEmptyString(kphFileName))
+        goto CleanupExit;
+    if (PhIsNullOrEmptyString(kphSigFileName))
+        goto CleanupExit;
+
+    // Reset driver parameters after a Windows build update. (dmex)
     {
         ULONG latestBuildNumber = PhGetIntegerSetting(L"KphBuildNumber");
 
@@ -1290,7 +1314,7 @@ VOID PhInitializeKph(
             ULONG signatureSize;
 
             status = PhpReadSignature(
-                kphSigFileName->Buffer,
+                &kphSigFileName->sr,
                 &signature,
                 &signatureSize
                 );
@@ -1325,14 +1349,15 @@ VOID PhInitializeKph(
             PhpShowKphError(L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
     }
 
+CleanupExit:
     if (kphServiceName)
         PhDereferenceObject(kphServiceName);
     if (kphSigFileName)
         PhDereferenceObject(kphSigFileName);
     if (kphFileName)
         PhDereferenceObject(kphFileName);
-    if (kphDirectory)
-        PhDereferenceObject(kphDirectory);
+    if (fileName)
+        PhDereferenceObject(fileName);
 }
 
 BOOLEAN PhInitializeAppSystem(
@@ -1706,21 +1731,55 @@ VOID PhpProcessStartupParameters(
 
     if (PhStartupParameters.InstallKph)
     {
-        NTSTATUS status;
-        PPH_STRING applicationDirectory;
-        PPH_STRING kprocesshackerFileName;
-        KPH_PARAMETERS parameters;
+        static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
+        NTSTATUS status = STATUS_UNSUCCESSFUL;
+        PPH_STRING fileName;
+        PPH_STRING kphFileName;
+        ULONG_PTR indexOfBackslash;
+        ULONG_PTR indexOfLastDot;
 
-        if (!(applicationDirectory = PhGetApplicationDirectory()))
-            return;
+        if (fileName = PhGetApplicationFileName())
+        {
+            indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
+            indexOfLastDot = PhFindLastCharInString(fileName, 0, L'.');
 
-        kprocesshackerFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"\\kprocesshacker.sys");
-        PhDereferenceObject(applicationDirectory);
+            if (
+                indexOfBackslash != SIZE_MAX &&
+                indexOfLastDot != SIZE_MAX &&
+                indexOfLastDot > indexOfBackslash
+                )
+            {
+                PH_STRINGREF applicationNameSr;
 
-        parameters.SecurityLevel = KphSecuritySignatureCheck;
-        parameters.CreateDynamicConfiguration = TRUE;
+                applicationNameSr.Buffer = fileName->Buffer + indexOfBackslash + 1;
+                applicationNameSr.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
+                fileName->Length = (indexOfBackslash + 1) * sizeof(WCHAR);
 
-        status = KphInstallEx(KPH_DEVICE_SHORT_NAME, kprocesshackerFileName->Buffer, &parameters);
+                kphFileName = PhConcatStringRef3(
+                    &fileName->sr,
+                    &applicationNameSr,
+                    &driverExtension
+                    );
+
+                if (kphFileName)
+                {
+                    KPH_PARAMETERS parameters;
+
+                    parameters.SecurityLevel = KphSecuritySignatureCheck;
+                    parameters.CreateDynamicConfiguration = TRUE;
+
+                    status = KphInstallEx(
+                        KPH_DEVICE_SHORT_NAME,
+                        kphFileName->Buffer,
+                        &parameters
+                        );
+
+                    PhDereferenceObject(kphFileName);
+                }
+            }
+
+            PhDereferenceObject(fileName);
+        }
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to install KSystemInformer", status, 0);
