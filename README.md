@@ -1,4 +1,4 @@
-[![Build status](https://img.shields.io/appveyor/ci/winsiderss/systeminformer.svg?style=for-the-badge)](https://ci.appveyor.com/project/systeminformer/systeminformer)
+[![Build status](https://img.shields.io/appveyor/ci/winsiderss/systeminformer.svg?style=for-the-badge)](https://ci.appveyor.com/project/winsiderss/systeminformer)
 [![Build contributors](https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue)](https://github.com/winsiderss/systeminformer/graphs/contributors)
 [![Licence](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue)](https://opensource.org/licenses/MIT)
 [![Github stats](https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=systeminformer&repository=systeminformer)
