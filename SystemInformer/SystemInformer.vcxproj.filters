@@ -9,7 +9,7 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
-    <Filter Include="Process Hacker">
+    <Filter Include="System Informer">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
@@ -22,163 +22,163 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="about.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="actions.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="affinity.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="anawait.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="appsup.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="chcol.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="chdlg.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="chproc.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="dbgcon.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="findobj.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="gdihndl.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="hidnproc.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="hndlprp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="hndlprv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="hndlstat.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="infodlg.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="itemtips.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="jobprp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="log.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="logwnd.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="main.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="mainwnd.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="mdump.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memedit.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memprot.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memprv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memrslt.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memsrch.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="modprv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="netprv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="netstk.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="notifico.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="ntobjprp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="options.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="pagfiles.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="plugin.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="plugman.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="procprp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="procprv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="procrec.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="proctree.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="runas.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="sessprp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="srvcr.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="srvprp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="srvprv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="sysinfo.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="thrdprv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="thrdstk.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="tokprp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="srvctl.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="srvlist.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="modlist.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="phsvc\svcmain.c">
       <Filter>phsvc</Filter>
@@ -196,121 +196,121 @@
       <Filter>phsvc</Filter>
     </ClCompile>
     <ClCompile Include="sessmsg.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="sessshad.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="colmgr.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="netlist.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="extmgr.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="thrdlist.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="hndllist.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memlists.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="memlist.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="miniinfo.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="procgrp.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="procmtgn.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="mtgndlg.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="hndlmenu.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="syssccpu.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="sysscmem.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="sysscio.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpggen.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgstat.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgperf.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgthrd.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgtok.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgmod.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgmem.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgenv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpghndl.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgjob.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgsrv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="mwpgproc.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="mwpgsrv.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="mwpgnet.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="searchbox.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="settings.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgwmi.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="colsetmgr.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="kdump.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="heapinfo.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="notiftoast.cpp">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
     <ClCompile Include="prpgvdm.c">
-      <Filter>Process Hacker</Filter>
+      <Filter>System Informer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -466,7 +466,7 @@
     <None Include="SystemInformer.ico">
       <Filter>Resources</Filter>
     </None>
-    <None Include="resources\ProcessHacker.png">
+    <None Include="resources\SystemInformer.png">
       <Filter>Resources</Filter>
     </None>
     <None Include="resources\tick.bmp">
@@ -478,12 +478,12 @@
     <None Include="resources\cog.ico">
       <Filter>Resources</Filter>
     </None>
-    <None Include="ProcessHacker.def">
+    <None Include="SystemInformer.def">
       <Filter>Module</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="ProcessHacker.rc">
+    <ResourceCompile Include="SystemInformer.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
     <ResourceCompile Include="version.rc">
@@ -491,7 +491,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="ProcessHacker.manifest">
+    <Manifest Include="SystemInformer.manifest">
       <Filter>Resources</Filter>
     </Manifest>
   </ItemGroup>

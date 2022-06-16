@@ -4,7 +4,7 @@
 [![Github stats](https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=systeminformer&repository=systeminformer)
 [![SourceForge stats](https://img.shields.io/sourceforge/dt/systeminformer.svg?style=for-the-badge&color=red)](https://sourceforge.net/projects/systeminformer/files/stats/timeline?dates=2008-10-01%20to%202020-09-01&period=monthly)
 
-<img align="left" src="ProcessHacker/resources/systeminformer.png" width="128" height="128"> 
+<img align="left" src="SystemInformer/resources/systeminformer.png" width="128" height="128"> 
 
 ## System Informer
 
@@ -33,7 +33,7 @@ Windows 7 or higher, 32-bit or 64-bit.
 
 Requires Visual Studio (2019 or later).
 
-Execute `build_release.cmd` located in the `build` directory to compile the project or load the `ProcessHacker.sln` and `Plugins.sln` solutions if you prefer building the project using Visual Studio.
+Execute `build_release.cmd` located in the `build` directory to compile the project or load the `SystemInformer.sln` and `Plugins.sln` solutions if you prefer building the project using Visual Studio.
 
 You can download the free [Visual Studio Community Edition](https://www.visualstudio.com/vs/community/) to build the Process Hacker source code.
 
@@ -67,26 +67,3 @@ are up to date.
 Disk and Network information provided by the ExtendedTools plugin is
 only available when running System Informer with administrative
 rights.
-
-## KSystemInformer
-
-System Informer uses a kernel-mode driver, KSystemInformer, to
-assist with certain functionality. This includes:
-
-* Capturing kernel-mode stack traces
-* More efficiently enumerating process handles
-* Retrieving names for file handles
-* Retrieving names for EtwRegistration objects
-* Setting handle attributes
-
-Note that by default, KSystemInformer only allows connections from
-processes with administrative privileges (SeDebugPrivilege). To allow System Informer
-to show details for all processes when it is not running as administrator:
-
-1. In Registry Editor, navigate to:
-   HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\KSystemInformer
-2. Under this key, create a key named Parameters if it does not exist.
-3. Create a DWORD value named SecurityLevel and set it to 2. If you are
-   not using an official build, you may need to set it to 0 instead.
-4. Restart the KSystemInformer service (sc stop KSystemInformer,
-   sc start KSystemInformer).
