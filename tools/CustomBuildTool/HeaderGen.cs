@@ -55,7 +55,7 @@ namespace CustomBuildTool
         private static readonly string Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
         private static readonly string Footer = "\r\n#ifdef __cplusplus\r\n}\r\n#endif\r\n\r\n#endif\r\n";
 
-        private static readonly string BaseDirectory = "ProcessHacker\\include";
+        private static readonly string BaseDirectory = "SystemInformer\\include";
         private static readonly string OutputFile = "..\\sdk\\phapppub.h";
 
         private static readonly string[] Modes = new[] { "phapppub" };

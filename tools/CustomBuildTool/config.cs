@@ -36,12 +36,12 @@ namespace CustomBuildTool
     {
         public static readonly List<BuildFile> Build_Release_Files = new List<BuildFile>
         {
-            new BuildFile("\\processhacker-build-setup.exe", true), // nightly
-            new BuildFile("\\processhacker-build-bin.zip", true), // nightly
-            new BuildFile("\\processhacker-build-src.zip", false),
-            new BuildFile("\\processhacker-build-sdk.zip", false),
-            new BuildFile("\\processhacker-build-pdb.zip", false),
-            //new BuildFile("\\processhacker-build-checksums.txt", false),
+            new BuildFile("\\systeminformer-build-setup.exe", true), // nightly
+            new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
+            new BuildFile("\\systeminformer-build-src.zip", false),
+            new BuildFile("\\systeminformer-build-sdk.zip", false),
+            new BuildFile("\\systeminformer-build-pdb.zip", false),
+            //new BuildFile("\\systeminformer-build-checksums.txt", false),
         };
 
         public static readonly string[] Build_Sdk_Directories =
