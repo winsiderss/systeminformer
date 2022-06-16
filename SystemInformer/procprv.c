@@ -439,6 +439,10 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 
+    //  Note: Technically this list will continue to grow as long as a process is running and it keeps spawning threads.
+    //        Currently not detecting threads that are no longer around
+    if (processItem->ThreadList) PhDereferenceObject(processItem->ThreadList);
+
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
@@ -1959,7 +1963,8 @@ VOID PhpGetProcessThreadInformation(
     _Out_opt_ PBOOLEAN IsSuspended,
     _Out_opt_ PBOOLEAN IsPartiallySuspended,
     _Out_opt_ PULONG64 ContextSwitches,
-    _Out_opt_ PULONG ProcessorQueueLength
+    _Out_opt_ PULONG ProcessorQueueLength,
+    _Out_opt_ PPH_LIST threadList
     )
 {
     ULONG i;
@@ -1991,6 +1996,47 @@ VOID PhpGetProcessThreadInformation(
         }
 
         contextSwitches += Process->Threads[i].ContextSwitches;
+
+        //
+        // Store all threads
+        //
+
+        if (threadList && Process->Threads[i].ClientId.UniqueThread)
+        {
+            //Check if thread already exists
+            BOOL isThreadAddedAlready = FALSE;
+            for (ULONG a = 0; a < threadList->Count; a++)
+            {
+                // Instead of storing the entire SYSTEM_THREAD_INFORMATION, let's just store the TID
+
+                //SYSTEM_THREAD_INFORMATION* thread = threadList->Items[a];
+                HANDLE* threadTID = threadList->Items[a];
+
+                if (threadTID == 0)
+                {
+                    isThreadAddedAlready = TRUE;
+                    break;
+                }
+
+                if (threadTID == Process->Threads[i].ClientId.UniqueThread)
+                {
+                    isThreadAddedAlready = TRUE;
+                    break;
+                }
+            }
+
+            if (!isThreadAddedAlready)
+            {
+                // Instead of storing the entire SYSTEM_THREAD_INFORMATION, let's just store the TID (as HANDLE)
+
+                //      Note: Technically this list will continue to grow as long as a process is running and it keeps spawning threads.
+                //            Currently not detecting threads that are no longer around
+
+                //PhAddItemList(threadList, &Process->Threads[i]);
+                PhAddItemList(threadList, Process->Threads[i].ClientId.UniqueThread);
+            }
+        }
+
     }
 
     // HACK: Minimal/Reflected processes don't have threads. (dmex)
@@ -2315,7 +2361,16 @@ VOID PhProcessProviderUpdate(
             PhpAddProcessRecord(processRecord);
             processItem->Record = processRecord;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength);
+            // Thread list updates:
+            processItem->ThreadListLock.Value = 0;
+            if (!processItem->ThreadList)
+            {
+                processItem->ThreadList = PhCreateList(1);
+            }
+            PhAcquireQueuedLockShared(&processItem->ThreadListLock);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &processorQueueLength, processItem->ThreadList);
+            PhReleaseQueuedLockShared(&processItem->ThreadListLock);
+
             PhpUpdateDynamicInfoProcessItem(processItem, process);
             PhTotalCpuQueueLength += processorQueueLength;
 
@@ -2382,7 +2437,7 @@ VOID PhProcessProviderUpdate(
             FLOAT kernelCpuUsage;
             FLOAT userCpuUsage;
 
-            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads);
+            PhpGetProcessThreadInformation(process, &isSuspended, &isPartiallySuspended, &contextSwitches, &readyThreads, processItem->ThreadList);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
             PhpFillProcessItemExtension(processItem, process);
             PhTotalCpuQueueLength += readyThreads;

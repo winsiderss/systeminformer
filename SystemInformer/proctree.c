@@ -36,6 +36,8 @@
 #include <phsettings.h>
 #include <procprv.h>
 
+#include <srvprv.h>
+
 typedef enum _PHP_AGGREGATE_TYPE
 {
     AggregateTypeFloat,
@@ -227,6 +229,11 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_PARENTCONSOLEPID, FALSE, L"Parent console PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_COMMITSIZE, FALSE, L"Shared commit", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIORITYBOOST, FALSE, L"Priority boost", 45, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_SERVICENAMES, FALSE, L"Services", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_LEFT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_SVCCOUNT, FALSE, L"# Svc", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVCOUNT, FALSE, L"# Privs", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_GRPCOUNT, FALSE, L"# Groups", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_THREADTOKENCOUNT, FALSE, L"# Thread Tokens", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -598,6 +605,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ParentPidText);
     PhClearReference(&ProcessNode->ParentConsolePidText);
     PhClearReference(&ProcessNode->SharedCommitText);
+    PhClearReference(&ProcessNode->SvcNames);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1003,6 +1011,33 @@ static VOID PhpUpdateProcessNodeToken(
                         ProcessNode->VirtualizationAllowed = FALSE; // display N/A on error
                     }
                 }
+
+                //
+                // Added count of Privileges and Groups
+                //
+                PTOKEN_PRIVILEGES privileges;
+                if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &privileges)))
+                {
+                    ProcessNode->PrivilegeCount = privileges->PrivilegeCount;
+                }
+                else
+                {
+                    ProcessNode->PrivilegeCount = -1;
+                }
+
+                PTOKEN_GROUPS groups;
+                if (NT_SUCCESS(PhGetTokenGroups(tokenHandle, &groups)))
+                {
+                    ProcessNode->GroupCount = groups->GroupCount;
+                }
+                else
+                {
+                    ProcessNode->GroupCount = -1;
+                }
+
+                // Need to free in order to prevent a slow memory leak
+                PhFree(privileges);
+                PhFree(groups);
 
                 NtClose(tokenHandle);
             }
@@ -1450,6 +1485,155 @@ static VOID PhpUpdateProcessNodePriorityBoost(
         ProcessNode->ValidMask |= PHPN_PRIORITYBOOST;
     }
 }
+
+// This method was added to be called from the sort logic for sorting this column
+// It needs to refresh all nodes's (PPH_PROCESS_NODE) service names (in the sorting function referred to generically as node1, node2)
+// This was the logic that existed in the switch case for case PHPRTLC_SERVICENAMES:
+// Then instead of 'node' and 'processItem' utilize 'ProcessNode' and 'ProcessNode->ProcessItem' to referr to the various available attributes
+static VOID PhpUpdateProcessServiceNames(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+)
+{
+    if (!(ProcessNode->ValidMask & PHPN_SERVICENAMES))		// Bitwise flag for calling this update method
+    {
+        if (!ProcessNode->SvcNames)
+        {
+            ProcessNode->SvcNames = PhCreateString(L"");
+        }
+
+        if ((ProcessNode->ProcessItem->ServiceList && ProcessNode->ProcessItem->ServiceList->Count != 0))
+        {
+            PH_STRING_BUILDER stringBuilder;
+            PhInitializeStringBuilder(&stringBuilder, 1000);
+
+            // Based on itemtips.c	 :	serviceList = PhCreateList(Process->ServiceList->Count);
+            //		I don't think ServiceListLock is needed, since we are not modyfing this, just simply reading it.
+            //		In itemtips.c its inserting items
+
+            //PhAcquireQueuedLockShared(&ProcessNode->ProcessItem->ServiceListLock);
+
+            for (ULONG i = 0; i < ProcessNode->ProcessItem->ServiceList->Count; i++)
+            {
+                PPH_SERVICE_ITEM serviceItem = ProcessNode->ProcessItem->ServiceList->Items[i];
+
+                PhAppendStringBuilder(&stringBuilder, &serviceItem->Name->sr);
+                PhAppendStringBuilder2(&stringBuilder, L" (");
+                PhAppendStringBuilder(&stringBuilder, &serviceItem->DisplayName->sr);
+                PhAppendStringBuilder2(&stringBuilder, L")");
+
+                if (i + 1 < ProcessNode->ProcessItem->ServiceList->Count)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"  |  ");
+                }
+            }
+
+            //PhReleaseQueuedLockShared(&ProcessNode->ProcessItem->ServiceListLock);
+
+            // Destroy the blank string above, before assigneding to this instead
+            PhDereferenceObject(ProcessNode->SvcNames);
+
+            ProcessNode->SvcNames = PhFinalStringBuilderString(&stringBuilder);
+        }
+
+        ProcessNode->ValidMask |= PHPN_SERVICENAMES;
+    }
+}
+
+static VOID PhpUpdateProcessServiceCount(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+)
+{
+    if (!(ProcessNode->ValidMask & PHPN_SVCCOUNT))		// Bitwise flag for calling this update method
+    {
+        ProcessNode->SvcCount = 0;     // Default to nothing
+
+        PhAcquireQueuedLockShared(&ProcessNode->ProcessItem->ServiceListLock);
+
+        if ((ProcessNode->ProcessItem->ServiceList && ProcessNode->ProcessItem->ServiceList->Count != 0))
+        {
+
+            ULONG count = ProcessNode->ProcessItem->ServiceList->Count;
+            ProcessNode->SvcCount = count;									// Remeber this ULONG count for sorting on it
+            PhPrintInt32(ProcessNode->SvcCountText, count);					// What will be displayed in the column (converting ULONG to WCHAR array (PWSTR))
+        }
+
+        PhReleaseQueuedLockShared(&ProcessNode->ProcessItem->ServiceListLock);
+
+        ProcessNode->ValidMask |= PHPN_SVCCOUNT;
+    }
+}
+
+//
+//   This reads in the newly accessible list (ProcessNode->ProcessItem->ThreadList) from procprv.c that is always storing newly createdthread TIDs
+//
+static VOID PhpUpdateProcessNodeThreadTokenCount(_Inout_ PPH_PROCESS_NODE ProcessNode)
+{
+    if (!(ProcessNode->ValidMask & PHPN_THREADTOKENCOUNT))
+    {
+        ProcessNode->ThreadsWithTokenCounter = 0;
+
+        // I don't think this is neccessary here to check for ThreadListLock, as we are simply reading the list
+        //		it is not being modified
+
+        //PhAcquireQueuedLockShared(&ProcessNode->ProcessItem->ThreadListLock);
+
+        if (ProcessNode->ProcessItem->QueryHandle && ProcessNode->ProcessItem->ThreadList)
+        {
+            for (ULONG i = 0; i < ProcessNode->ProcessItem->ThreadList->Count; i++)
+            {
+                //SYSTEM_THREAD_INFORMATION* thread = ProcessNode->ProcessItem->ThreadList->Items[i];
+
+                // Instead, now just going to store TIDs instead of the entire SYSTEM_THREAD_INFORMATION
+                HANDLE* tid = ProcessNode->ProcessItem->ThreadList->Items[i];           // Basically the thread->ClientId.UniqueThread part of SYSTEM_THREAD_INFORMATION
+
+                //ULONG tidTest = HandleToUlong(thread->ClientId.UniqueThread);
+
+                // See thrdprv.c	:		for (i = 0; i < numberOfThreads; i++)
+
+                // ClientId.UniqueThread is a HANDLE, but its just a Thread ID. However leaving as Handle since PhOpenThread accepts it as one
+                HANDLE threadHandle = NULL;
+                if (NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_INFORMATION, tid)))
+                {
+                    // Success
+                }
+                else
+                {
+                    // Otherwise, try to open another way
+                    PhOpenThread(threadHandle, THREAD_QUERY_LIMITED_INFORMATION, tid);
+                }
+
+                if (threadHandle)
+                {
+                    // Like in thrdlist.c test to see if this thread has a token by attempting to open it
+                    HANDLE tokenHandle;
+                    if (NT_SUCCESS(NtOpenThreadToken(
+                        threadHandle,
+                        TOKEN_QUERY,
+                        TRUE,
+                        &tokenHandle
+                    )))
+                    {
+                        NtClose(tokenHandle);
+
+                        // Yes - Has token
+                        ProcessNode->ThreadsWithTokenCounter++;
+                    }
+                    else
+                    {
+                        // No - no token for this thread
+                    }
+
+                    NtClose(threadHandle);
+                }
+            }
+        }
+
+        //PhReleaseQueuedLockShared(&ProcessNode->ProcessItem->ThreadListLock);
+
+        ProcessNode->ValidMask |= PHPN_THREADTOKENCOUNT;
+    }
+}
+
 
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
@@ -2197,6 +2381,57 @@ BEGIN_SORT_FUNCTION(PriorityBoost)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ServiceCount)
+{
+    PhpUpdateProcessServiceCount(node1);
+    PhpUpdateProcessServiceCount(node2);
+    sortResult = uint64cmp(node1->SvcCount, node2->SvcCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ServiceNames)
+{
+    // This 'Update' method is neccesary to avoid needing to scroll thru the entire list for having this column refresh
+    // This is then also called by the switch case
+    PhpUpdateProcessServiceNames(node1);
+    PhpUpdateProcessServiceNames(node2);
+
+    sortResult = PhCompareStringWithNullSortOrder(node1->SvcNames, node2->SvcNames, ProcessTreeListSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PrivCount)
+{
+    // Implemented privilege counting piggybacking on the already existing 'Update' method for Token which was used for testing VirtualizationAllowed
+    PhpUpdateProcessNodeToken(node1);
+    PhpUpdateProcessNodeToken(node2);
+    sortResult = int64cmp(node1->PrivilegeCount, node2->PrivilegeCount);			// Using a LONG instead of ULONG so that -1 will represent N/A (cannot query privs)
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(GrpCount)
+{
+    // (same as above for PrivCount)
+    PhpUpdateProcessNodeToken(node1);
+    PhpUpdateProcessNodeToken(node2);
+    sortResult = int64cmp(node1->GroupCount, node2->GroupCount);					// Using a LONG instead of ULONG so that -1 will represent N/A (cannot query groups)
+}
+END_SORT_FUNCTION
+
+
+BEGIN_SORT_FUNCTION(ThreadTokenCount)
+{
+    // Sorting functions notes:
+    //		If its needed to access the procprv.h's	PH_PROCESS_ITEM then use processItem1 and processItem2
+    //		If its needed to access proctree.h's PH_PROCESS_NODE then use node1 and node2
+
+    PhpUpdateProcessNodeThreadTokenCount(node1);
+    PhpUpdateProcessNodeThreadTokenCount(node2);
+
+    sortResult = uint64cmp(node1->ThreadsWithTokenCounter, node2->ThreadsWithTokenCounter);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2334,6 +2569,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(ParentConsolePid),
                         SORT_FUNCTION(SharedCommit),
                         SORT_FUNCTION(PriorityBoost),
+                        SORT_FUNCTION(ServiceCount),
+                        SORT_FUNCTION(ServiceNames),
+                        SORT_FUNCTION(PrivCount),
+                        SORT_FUNCTION(GrpCount),
+                        SORT_FUNCTION(ThreadTokenCount),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3409,6 +3649,55 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                 }
                 break;
+
+            case PHPRTLC_SERVICENAMES:
+            {
+                // This logic was broken out to this method so it can be called on sorting, so that the sort works on just the column click (and doesn't require scrolling to resort the whole thing)
+                PhpUpdateProcessServiceNames(node);
+
+                PhInitializeStringRefLongHint(&getCellText->Text, node->SvcNames->Buffer);
+            }
+            break;
+
+            case PHPRTLC_SVCCOUNT:
+            {
+                // Broken out like above
+                PhpUpdateProcessServiceCount(node);
+
+                PhInitializeStringRefLongHint(&getCellText->Text, node->SvcCountText);
+            }
+            break;
+
+            case PHPRTLC_PRIVCOUNT:
+            {
+                PhpUpdateProcessNodeToken(node);
+
+                PhPrintInt32(node->PrivilegeCountText, node->PrivilegeCount);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->PrivilegeCountText);
+            }
+            break;
+
+            case PHPRTLC_GRPCOUNT:
+            {
+                PhpUpdateProcessNodeToken(node);
+
+                PhPrintInt32(node->GroupCountText, node->GroupCount);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->GroupCountText);
+            }
+            break;
+
+            case PHPRTLC_THREADTOKENCOUNT:
+            {
+                // Refresh
+                PhpUpdateProcessNodeThreadTokenCount(node);
+
+                // Now display: node (PH_PROCESS_NODE) ->ThreadsWithTokenCounter ...
+
+                PhMoveReference(&node->ThreadsWithTokenCounterText, PhFormatUInt64(node->ThreadsWithTokenCounter, TRUE));
+                getCellText->Text = node->ThreadsWithTokenCounterText->sr;
+            }
+            break;
+
             default:
                 return FALSE;
             }

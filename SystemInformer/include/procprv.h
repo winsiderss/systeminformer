@@ -185,6 +185,10 @@ typedef struct _PH_PROCESS_ITEM
     PPH_POINTER_LIST ServiceList;
     PH_QUEUED_LOCK ServiceListLock;
 
+    // List of SYSTEM_THREAD_INFORMATION
+    PPH_LIST ThreadList;
+    PH_QUEUED_LOCK ThreadListLock;
+
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     //WCHAR SessionIdString[PH_INT32_STR_LEN_1];

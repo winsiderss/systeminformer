@@ -107,8 +107,14 @@
 #define PHPRTLC_PARENTCONSOLEPID 94
 #define PHPRTLC_COMMITSIZE 95
 #define PHPRTLC_PRIORITYBOOST 96
+#define PHPRTLC_SVCCOUNT 97
+#define PHPRTLC_SERVICENAMES 98
+#define PHPRTLC_PRIVCOUNT 99
+#define PHPRTLC_GRPCOUNT 100
+#define PHPRTLC_THREADTOKENCOUNT 101
 
-#define PHPRTLC_MAXIMUM 97
+
+#define PHPRTLC_MAXIMUM 102
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -130,6 +136,9 @@
 #define PHPN_CODEPAGE 0x10000
 #define PHPN_POWERTHROTTLING 0x20000
 #define PHPN_PRIORITYBOOST 0x40000
+#define PHPN_THREADTOKENCOUNT 0x80000   // 0x40000 * 2
+#define PHPN_SERVICENAMES 0x100000      // 0x80000 * 2
+#define PHPN_SVCCOUNT 0x200000	        // 0x10000 * 2
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -259,6 +268,15 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ParentPidText;
     PPH_STRING ParentConsolePidText;
     PPH_STRING SharedCommitText;
+    ULONG SvcCount;									// For sorting comparison
+    WCHAR SvcCountText[PH_INT32_STR_LEN_1];			// For actual textual string of the [n] number of service as a fixed size string array
+    PPH_STRING SvcNames;							// Arbitrary length string built by PhStringBuilder 
+    LONG PrivilegeCount;							// Count of privs (used for sorting uint64cmp)
+    WCHAR PrivilegeCountText[PH_INT32_STR_LEN_1];	// Count of privs: fixed text string for column display
+    LONG GroupCount;								// Count of groups (used for sorting via uint64cmp)
+    WCHAR GroupCountText[PH_INT32_STR_LEN_1];		// Count of groups: fixed text string for column display
+    ULONG ThreadsWithTokenCounter;					// Count of threads that have a token (when tracking thread TIDs via the newly added functionality in procprv.c)
+    PPH_STRING ThreadsWithTokenCounterText;			// Count of threads: fixed text string for column display
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
