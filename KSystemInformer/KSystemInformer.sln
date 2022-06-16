@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KProcessHacker", "KProcessHacker.vcxproj", "{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KSystemInformer", "KSystemInformer.vcxproj", "{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
