@@ -1150,7 +1150,7 @@ VOID PhWritePhTextHeader(
     SYSTEMTIME systemTime;
     PPH_STRING timeString;
 
-    PhWriteStringAsUtf8FileStream2(FileStream, L"Process Hacker ");
+    PhWriteStringAsUtf8FileStream2(FileStream, L"System Informer ");
 
     if (version = PhGetPhVersion())
     {

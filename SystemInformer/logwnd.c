@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2014-2021
+ *     dmex    2014-2022
  *
  */
 
@@ -245,7 +245,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                     fileDialog = PhCreateSaveFileDialog();
 
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-                    PhSetFileDialogFileName(fileDialog, L"Process Hacker Log.txt");
+                    PhSetFileDialogFileName(fileDialog, L"System Informer Log.txt");
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
