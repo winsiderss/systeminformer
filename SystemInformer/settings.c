@@ -55,6 +55,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableShortRelativeStartTime", L"1");
     PhpAddIntegerSetting(L"EnableShutdownCriticalMenu", L"0");
+    PhpAddIntegerSetting(L"EnableShutdownBootMenu", L"1");
     PhpAddIntegerSetting(L"EnableSilentCrashNotify", L"0");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
