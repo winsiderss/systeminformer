@@ -495,7 +495,7 @@ VOID PhLoadPlugins(
         }
     }
 
-    if (!PhGetIntegerSetting(L"EnableSafeDefaultPlugins"))
+    if (!PhGetIntegerSetting(L"EnableDefaultSafePlugins"))
     {
         HANDLE pluginsDirectoryHandle;
 
@@ -509,13 +509,13 @@ VOID PhLoadPlugins(
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            UNICODE_STRING pattern = RTL_CONSTANT_STRING(L"*.dll");
+            UNICODE_STRING pluginsSearchPattern = RTL_CONSTANT_STRING(L"*.dll");
 
             if (!NT_SUCCESS(PhEnumDirectoryFileEx(
                 pluginsDirectoryHandle,
                 FileNamesInformation,
                 FALSE,
-                &pattern,
+                &pluginsSearchPattern,
                 EnumPluginsDirectoryCallback,
                 pluginLoadErrors
                 )))
@@ -527,7 +527,7 @@ VOID PhLoadPlugins(
                     pluginsDirectoryHandle,
                     FileNamesInformation,
                     TRUE,
-                    &pattern,
+                    &pluginsSearchPattern,
                     EnumPluginsDirectoryCallback,
                     pluginLoadErrors
                     );

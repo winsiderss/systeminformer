@@ -1384,7 +1384,7 @@ VOID PhpInitializeSettings(
 
     if (!PhStartupParameters.NoSettings)
     {
-        static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\settings.xml");
+        static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
         static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
         PPH_STRING settingsFileName;
 

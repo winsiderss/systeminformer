@@ -513,7 +513,7 @@ VOID PhpProcessModulesSave(
     PPH_PROCESS_ITEM processItem;
 
     processItem = PhReferenceProcessItem(ModulesContext->Provider->ProcessId);
-    PhInitFormatS(&format[0], L"Process Hacker (");
+    PhInitFormatS(&format[0], L"System Informer (");
     PhInitFormatS(&format[1], processItem ? PhGetStringOrDefault(processItem->ProcessName, L"Unknown process") : L"Unknown process");
     PhInitFormatS(&format[2], L") Modules");
     PhInitFormatS(&format[3], L".txt");

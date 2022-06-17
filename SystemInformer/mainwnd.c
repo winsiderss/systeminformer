@@ -667,7 +667,7 @@ VOID PhMwpOnCommand(
             PVOID fileDialog = PhCreateSaveFileDialog();
             PH_FORMAT format[3];
 
-            PhInitFormatS(&format[0], L"Process Hacker ");
+            PhInitFormatS(&format[0], L"System Informer ");
             PhInitFormatSR(&format[1], CurrentPage->Name);
             PhInitFormatS(&format[2], L".txt");
 
