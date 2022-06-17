@@ -1090,7 +1090,8 @@ PVOID PhUiCreateComputerBootDeviceMenu(
     )
 {
     PPH_EMENU_ITEM menuItem;
-    PPH_LIST bootApplicationList;
+    static PPH_LIST bootApplicationList;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     menuItem = PhCreateEMenuItem(PH_EMENU_DISABLED, ID_COMPUTER_RESTARTBOOTDEVICE, L"Restart to boot application", NULL, NULL);
 
@@ -1099,9 +1100,14 @@ PVOID PhUiCreateComputerBootDeviceMenu(
 
     if (!DelayLoadMenu)
     {
-        BOOLEAN bootEnumerateAllObjects = !!PhGetIntegerSetting(L"EnableBootObjectsEnumerate");
+        if (PhBeginInitOnce(&initOnce))
+        {
+            BOOLEAN bootEnumerateAllObjects = !!PhGetIntegerSetting(L"EnableBootObjectsEnumerate");
+            bootApplicationList = PhBcdQueryBootApplicationList(bootEnumerateAllObjects);
+            PhEndInitOnce(&initOnce);
+        }
 
-        if (bootApplicationList = PhBcdQueryBootApplicationList(bootEnumerateAllObjects))
+        if (bootApplicationList)
         {
             for (ULONG i = 0; i < bootApplicationList->Count; i++)
             {
@@ -1121,8 +1127,6 @@ PVOID PhUiCreateComputerBootDeviceMenu(
 
             if (bootApplicationList->Count)
                 PhSetEnabledEMenuItem(menuItem, TRUE);
-
-            PhBcdDestroyBootApplicationList(bootApplicationList);
         }
     }
 
@@ -1134,7 +1138,8 @@ PVOID PhUiCreateComputerFirmwareDeviceMenu(
     )
 {
     PPH_EMENU_ITEM menuItem;
-    PPH_LIST firmwareApplicationList;
+    static PPH_LIST firmwareApplicationList;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     menuItem = PhCreateEMenuItem(PH_EMENU_DISABLED, ID_COMPUTER_RESTARTFWDEVICE, L"Restart to firmware application", NULL, NULL);
 
@@ -1143,7 +1148,13 @@ PVOID PhUiCreateComputerFirmwareDeviceMenu(
 
     if (!DelayLoadMenu)
     {
-        if (firmwareApplicationList = PhBcdQueryFirmwareBootApplicationList())
+        if (PhBeginInitOnce(&initOnce))
+        {
+            firmwareApplicationList = PhBcdQueryFirmwareBootApplicationList();
+            PhEndInitOnce(&initOnce);
+        }
+
+        if (firmwareApplicationList)
         {
             for (ULONG i = 0; i < firmwareApplicationList->Count; i++)
             {
@@ -1163,8 +1174,6 @@ PVOID PhUiCreateComputerFirmwareDeviceMenu(
 
             if (firmwareApplicationList->Count)
                 PhSetEnabledEMenuItem(menuItem, TRUE);
-
-            PhBcdDestroyBootApplicationList(firmwareApplicationList);
         }
     }
 
