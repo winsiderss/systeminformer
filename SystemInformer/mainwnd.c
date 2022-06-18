@@ -100,17 +100,84 @@ BOOLEAN PhMainWndInitialization(
         PhInitializeStringBuilder(&stringBuilder, 100);
         PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
 
-        if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+        if (!PhGetIntegerSetting(L"EnableVerboseWindowTitle"))
         {
-            PhAppendStringBuilder2(&stringBuilder, L" [");
-            PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
-            PhAppendCharStringBuilder(&stringBuilder, L']');
-            if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, L'+');
-            PhDereferenceObject(currentUserName);
-        }
+            if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+            {
+                PhAppendStringBuilder2(&stringBuilder, L" [");
+                PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
+                PhAppendCharStringBuilder(&stringBuilder, L']');
+                if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, L'+');
+                PhDereferenceObject(currentUserName);
+            }
 
-        if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
-            PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+            if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
+                PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+        }
+        else
+        {
+            DWORD myPID = GetCurrentProcessId();
+            WCHAR myPIDStrArr[PH_INT32_STR_LEN_1];
+            PhPrintUInt32(myPIDStrArr, (ULONG)myPID);
+            PhAppendStringBuilder2(&stringBuilder, L" ");
+            PhAppendStringBuilder2(&stringBuilder, myPIDStrArr);
+            PhAppendStringBuilder2(&stringBuilder, L" ");
+
+            BOOL isRunningAsSystem = FALSE;
+
+            if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+            {
+                PPH_STRING strSystemUsername = PhCreateString(L"NT Authority\\System");
+                isRunningAsSystem = (PhCompareString(currentUserName, strSystemUsername, TRUE) == 0);
+                PhDereferenceObject(strSystemUsername);
+
+                if (KphIsConnected())
+                    PhAppendStringBuilder2(&stringBuilder, L" <Driver-Connected>");
+                else
+                    PhAppendStringBuilder2(&stringBuilder, L" <No-Driver>");
+
+                PhDereferenceObject(currentUserName);
+            }
+
+            // Session ID\WindowStation\Desktop ...
+
+            PhAppendStringBuilder2(&stringBuilder, L" : ");
+            ULONG sessionID;
+            PhGetProcessSessionId(GetCurrentProcess(), &sessionID);
+
+            WCHAR SessionIdString[PH_INT32_STR_LEN_1];
+            PhPrintUInt32(SessionIdString, sessionID);
+            PhAppendStringBuilder2(&stringBuilder, SessionIdString);
+            PhAppendStringBuilder2(&stringBuilder, L"\\");
+
+            // Read the desktop name of this current process -- This will suffice for now
+            //      Would instead be better to open the handle to this desktop and Read the object name, since this string could be blank
+            PPH_STRING strDesktopinfo;
+            if (NT_SUCCESS(PhGetProcessDesktopInfo(GetCurrentProcess(), &strDesktopinfo)))
+            {
+                PhAppendStringBuilder(&stringBuilder, &strDesktopinfo->sr);
+                PhDereferenceObject(strDesktopinfo);
+            }
+
+            BOOL isHighILOrGreater = FALSE;
+            MANDATORY_LEVEL integrityLevel;
+            PWSTR integrityString;
+            if (NT_SUCCESS(PhGetTokenIntegrityLevel(PhGetOwnTokenAttributes().TokenHandle, &integrityLevel, &integrityString)))
+            {
+                isHighILOrGreater = (integrityLevel >= MandatoryLevelHigh);
+            }
+
+            // Elevation attribute wont be set for NT Authority\System. Better to check for High or greater integrity
+            if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull || isRunningAsSystem || isHighILOrGreater)
+                PhAppendStringBuilder2(&stringBuilder, L" (Elevated)");
+            else
+                PhAppendStringBuilder2(&stringBuilder, L" (Not Elevated)");
+
+            if (IsDebuggerPresent())
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"     ** BEING DEBUGGED **");
+            }
+        }
 
         windowName = PhFinalStringBuilderString(&stringBuilder);
     }

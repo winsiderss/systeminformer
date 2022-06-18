@@ -21,7 +21,7 @@
 
 VOID PhAddDefaultSettings(
     VOID
-    )
+)
 {
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
@@ -296,11 +296,13 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorPowerUsage", L"77ff77");
     PhpAddIntegerSetting(L"ColorTemperature", L"7777ff");
     PhpAddIntegerSetting(L"ColorFanRpm", L"ff7777");
+
+    PhpAddIntegerSetting(L"EnableVerboseWindowTitle", L"0");
 }
 
 VOID PhUpdateCachedSettings(
     VOID
-    )
+)
 {
     PH_UPDATE_SETTING(ForceNoParent);
     PH_UPDATE_SETTING(HighlightingDuration);
