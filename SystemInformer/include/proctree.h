@@ -107,8 +107,10 @@
 #define PHPRTLC_PARENTCONSOLEPID 94
 #define PHPRTLC_COMMITSIZE 95
 #define PHPRTLC_PRIORITYBOOST 96
+#define PHPRTLC_PRIVILEGECOUNT 97
+#define PHPRTLC_GROUPCOUNT 98
 
-#define PHPRTLC_MAXIMUM 97
+#define PHPRTLC_MAXIMUM 99
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -259,6 +261,10 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ParentPidText;
     PPH_STRING ParentConsolePidText;
     PPH_STRING SharedCommitText;
+    LONG PrivilegeCountValue;						// Count of privs (used for sorting uint64cmp)
+    WCHAR PrivilegeCountText[PH_INT32_STR_LEN_1];	// Count of privs: fixed text string
+    LONG GroupCountValue;							// Count of groups (used for sorting via uint64cmp)
+    WCHAR GroupCountText[PH_INT32_STR_LEN_1];		// Count of groups: fixed text string
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

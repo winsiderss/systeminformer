@@ -227,6 +227,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_PARENTCONSOLEPID, FALSE, L"Parent console PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_COMMITSIZE, FALSE, L"Shared commit", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIORITYBOOST, FALSE, L"Priority boost", 45, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIVILEGECOUNT, FALSE, L"Privilege Count", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_GROUPCOUNT, FALSE, L"Group Count", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -1002,6 +1004,18 @@ static VOID PhpUpdateProcessNodeToken(
                     {
                         ProcessNode->VirtualizationAllowed = FALSE; // display N/A on error
                     }
+                }
+
+                PTOKEN_PRIVILEGES privileges;
+                if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &privileges)))
+                {
+                    ProcessNode->PrivilegeCountValue = privileges->PrivilegeCount;
+                }
+
+                PTOKEN_GROUPS groups;
+                if (NT_SUCCESS(PhGetTokenGroups(tokenHandle, &groups)))
+                {
+                    ProcessNode->GroupCountValue = groups->GroupCount;
                 }
 
                 NtClose(tokenHandle);
@@ -2197,6 +2211,23 @@ BEGIN_SORT_FUNCTION(PriorityBoost)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PrivCount)
+{
+    PhpUpdateProcessNodeToken(node1);
+    PhpUpdateProcessNodeToken(node2);
+    sortResult = int64cmp(node1->PrivilegeCountValue, node2->PrivilegeCountValue);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(GrpCount)
+{
+    // (same as above for PrivCount)
+    PhpUpdateProcessNodeToken(node1);
+    PhpUpdateProcessNodeToken(node2);
+    sortResult = int64cmp(node1->GroupCountValue, node2->GroupCountValue);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2334,6 +2365,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(ParentConsolePid),
                         SORT_FUNCTION(SharedCommit),
                         SORT_FUNCTION(PriorityBoost),
+                        SORT_FUNCTION(PrivCount),
+                        SORT_FUNCTION(GrpCount),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3409,6 +3442,25 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                 }
                 break;
+
+            case PHPRTLC_PRIVILEGECOUNT:
+            {
+                PhpUpdateProcessNodeToken(node);
+
+                PhPrintInt32(node->PrivilegeCountText, node->PrivilegeCountValue);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->PrivilegeCountText);
+            }
+            break;
+
+            case PHPRTLC_GROUPCOUNT:
+            {
+                PhpUpdateProcessNodeToken(node);
+
+                PhPrintInt32(node->GroupCountText, node->GroupCountValue);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->GroupCountText);
+            }
+            break;
+
             default:
                 return FALSE;
             }
