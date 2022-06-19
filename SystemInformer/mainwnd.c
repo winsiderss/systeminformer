@@ -667,7 +667,7 @@ VOID PhMwpOnCommand(
             PVOID fileDialog = PhCreateSaveFileDialog();
             PH_FORMAT format[3];
 
-            PhInitFormatS(&format[0], L"Process Hacker ");
+            PhInitFormatS(&format[0], L"System Informer ");
             PhInitFormatSR(&format[1], CurrentPage->Name);
             PhInitFormatS(&format[2], L".txt");
 
@@ -2286,8 +2286,11 @@ PPH_EMENU PhpCreateComputerMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot options", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhUiCreateComputerBootDeviceMenu(DelayLoadMenu), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhUiCreateComputerFirmwareDeviceMenu(DelayLoadMenu), ULONG_MAX);
+    if (PhGetIntegerSetting(L"EnableShutdownBootMenu"))
+    {
+        PhInsertEMenuItem(menuItem, PhUiCreateComputerBootDeviceMenu(DelayLoadMenu), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, PhUiCreateComputerFirmwareDeviceMenu(DelayLoadMenu), ULONG_MAX);
+    }
     PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);

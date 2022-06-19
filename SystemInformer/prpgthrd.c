@@ -688,7 +688,7 @@ VOID PhpProcessThreadsSave(
     PPH_PROCESS_ITEM processItem;
 
     processItem = PhReferenceProcessItem(ThreadsContext->Provider->ProcessId);
-    PhInitFormatS(&format[0], L"Process Hacker (");
+    PhInitFormatS(&format[0], L"System Informer (");
     PhInitFormatS(&format[1], PhGetStringOrDefault(processItem->ProcessName, L"Unknown process"));
     PhInitFormatS(&format[2], L") Threads");
     PhInitFormatS(&format[3], L".txt");

@@ -51,10 +51,11 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
-    PhpAddIntegerSetting(L"EnableSafeDefaultPlugins", L"1");
+    PhpAddIntegerSetting(L"EnableDefaultSafePlugins", L"1");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableShortRelativeStartTime", L"1");
     PhpAddIntegerSetting(L"EnableShutdownCriticalMenu", L"0");
+    PhpAddIntegerSetting(L"EnableShutdownBootMenu", L"1");
     PhpAddIntegerSetting(L"EnableSilentCrashNotify", L"0");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");

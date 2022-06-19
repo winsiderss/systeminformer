@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -99,7 +99,7 @@ VOID PeInitializeSettings(
     VOID
     )
 {
-    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\peview.xml");
+    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\peview.xml");
     static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     NTSTATUS status;
     PPH_STRING appFileName;
