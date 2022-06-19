@@ -1551,6 +1551,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             PhTickThreadNodes(&threadsContext->ListContext);
 
+            // Refresh the visible nodes.
+            PhApplyTreeNewFilters(&threadsContext->ListContext.TreeFilterSupport);
+
             if (count != 0)
                 TreeNew_SetRedraw(threadsContext->TreeNewHandle, TRUE);
 
