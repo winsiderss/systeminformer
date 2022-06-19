@@ -21,7 +21,7 @@
 
 VOID PhAddDefaultSettings(
     VOID
-)
+    )
 {
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"1");
     PhpAddIntegerSetting(L"CloseOnEscape", L"0");
