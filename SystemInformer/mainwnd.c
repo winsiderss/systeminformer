@@ -143,7 +143,7 @@ BOOLEAN PhMainWndInitialization(
 
             PhAppendStringBuilder2(&stringBuilder, L" : ");
             ULONG sessionID;
-            PhGetProcessSessionId(GetCurrentProcess(), &sessionID);
+            PhGetProcessSessionId(NtCurrentProcess(), &sessionID);
 
             WCHAR SessionIdString[PH_INT32_STR_LEN_1];
             PhPrintUInt32(SessionIdString, sessionID);
