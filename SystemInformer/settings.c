@@ -302,7 +302,7 @@ VOID PhAddDefaultSettings(
 
 VOID PhUpdateCachedSettings(
     VOID
-)
+    )
 {
     PH_UPDATE_SETTING(ForceNoParent);
     PH_UPDATE_SETTING(HighlightingDuration);
