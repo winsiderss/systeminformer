@@ -116,12 +116,7 @@ BOOLEAN PhMainWndInitialization(
         }
         else
         {
-            DWORD myPID = GetCurrentProcessId();
-            WCHAR myPIDStrArr[PH_INT32_STR_LEN_1];
-            PhPrintUInt32(myPIDStrArr, (ULONG)myPID);
-            PhAppendStringBuilder2(&stringBuilder, L" ");
-            PhAppendStringBuilder2(&stringBuilder, myPIDStrArr);
-            PhAppendStringBuilder2(&stringBuilder, L" ");
+            PhAppendFormatStringBuilder(&stringBuilder, L" %lu", HandleToUlong(NtCurrentProcessId()));
 
             BOOL isRunningAsSystem = FALSE;
 
