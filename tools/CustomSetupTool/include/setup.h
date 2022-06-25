@@ -34,7 +34,7 @@
 #include <uxtheme.h>
 
 #include "resource.h"
-#include "..\..\ProcessHacker\include\phappres.h"
+#include "..\..\SystemInformer\include\phappres.h"
 
 #define SETUP_SHOWDIALOG (WM_APP + 1)
 #define SETUP_SHOWINSTALL (WM_APP + 2)
