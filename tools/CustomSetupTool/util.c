@@ -452,7 +452,7 @@ VOID SetupStartKph(
     {
         PPH_STRING clientPath;
 
-        clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+        clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
         if (PhDoesFileExistsWin32(PhGetString(clientPath)))
         {
@@ -489,7 +489,7 @@ BOOLEAN SetupUninstallKph(
     Context->SetupKphInstallRequired = SetupKphCheckInstallState();
 
     // Stop and uninstall the current installation.
-    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
     if (PhDoesFileExistsWin32(PhGetString(clientPath)))
     {
@@ -529,7 +529,7 @@ VOID SetupSetWindowsOptions(
 
     if (string = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
     {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
         SetupCreateLink(
             PhGetString(string),
@@ -544,7 +544,7 @@ VOID SetupSetWindowsOptions(
 
     if (string = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
     {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
         SetupCreateLink(
             PhGetString(string),
@@ -785,7 +785,7 @@ BOOLEAN SetupExecuteProcessHacker(
     if (PhIsNullOrEmptyString(Context->SetupInstallPath))
         return FALSE;
 
-    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
     if (PhDoesFileExistsWin32(clientPath->Buffer))
     {
@@ -1079,7 +1079,7 @@ BOOLEAN CheckProcessHackerInstalled(
 
     if (!PhIsNullOrEmptyString(installPath))
     {
-        exePath = SetupCreateFullPath(installPath, L"\\ProcessHacker.exe");
+        exePath = SetupCreateFullPath(installPath, L"\\SystemInformer.exe");
 
         // Check if the value has a valid file path.
         installed = PhDoesFileExistsWin32(PhGetString(exePath));
