@@ -1834,7 +1834,7 @@ VOID PhpConvertStackFrame(
  * \li \c PH_WALK_I386_STACK Walks the x86 stack. On AMD64 systems this flag walks the WOW64 stack.
  * \li \c PH_WALK_AMD64_STACK Walks the AMD64 stack. On x86 systems this flag is ignored.
  * \li \c PH_WALK_KERNEL_STACK Walks the kernel stack. This flag is ignored if there is no active
- * KProcessHacker connection.
+ * KSystemInformer connection.
  * \param Callback A callback function which is executed for each stack frame.
  * \param Context A user-defined value to pass to the callback function.
  */
@@ -1858,7 +1858,7 @@ NTSTATUS PhWalkThreadStack(
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
     {
-        if (KphIsConnected() || !ClientId)
+        if ((KphLevel() >= KphLevelMed) || !ClientId)
         {
             if (!NT_SUCCESS(status = PhOpenThreadProcess(
                 ThreadHandle,
@@ -1924,7 +1924,7 @@ NTSTATUS PhWalkThreadStack(
     }
 
     // Kernel stack walk.
-    if ((Flags & PH_WALK_KERNEL_STACK) && KphIsConnected())
+    if ((Flags & PH_WALK_KERNEL_STACK) && (KphLevel() >= KphLevelMed))
     {
         PVOID stack[256 - 2]; // See MAX_STACK_DEPTH
         ULONG capturedFrames = 0;

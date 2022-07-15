@@ -1017,7 +1017,7 @@ NTSTATUS PhpFindObjectsThreadStart(
         PH_WORK_QUEUE workQueue;
         processHandleHashtable = PhCreateSimpleHashtable(8);
 
-        if (!KphIsConnected())
+        if (KphLevel() < KphLevelMed)
         {
             useWorkQueue = TRUE;
             PhInitializeWorkQueue(&workQueue, 1, 20, 1000);

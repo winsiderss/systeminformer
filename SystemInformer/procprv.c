@@ -798,7 +798,7 @@ VOID PhpProcessQueryStage1(
     // Job
     if (processHandleLimited)
     {
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             HANDLE jobHandle = NULL;
 
@@ -828,7 +828,7 @@ VOID PhpProcessQueryStage1(
         }
         else
         {
-            // KProcessHacker is not available. We can determine if the process is in a job, but we
+            // KSystemInformer is not available. We can determine if the process is in a job, but we
             // can't get a handle to the job.
 
             status = NtIsProcessInJob(processHandleLimited, NULL);
@@ -2570,7 +2570,7 @@ VOID PhProcessProviderUpdate(
                 BOOLEAN isInSignificantJob = FALSE;
                 BOOLEAN isInJob = FALSE;
 
-                if (KphIsConnected())
+                if (KphLevel() >= KphLevelMed)
                 {
                     HANDLE jobHandle = NULL;
 

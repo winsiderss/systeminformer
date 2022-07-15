@@ -105,8 +105,29 @@ BOOLEAN PhMainWndInitialization(
             PhAppendStringBuilder2(&stringBuilder, L" [");
             PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
             PhAppendCharStringBuilder(&stringBuilder, L']');
-            if (KphIsConnected()) PhAppendCharStringBuilder(&stringBuilder, L'+');
             PhDereferenceObject(currentUserName);
+        }
+
+        switch (KphLevel())
+        {
+        case KphLevelMax:
+            PhAppendStringBuilder2(&stringBuilder, L"++");
+            break;
+        case KphLevelHigh:
+            PhAppendStringBuilder2(&stringBuilder, L"+");
+            break;
+        case KphLevelMed:
+            PhAppendStringBuilder2(&stringBuilder, L"~");
+            break;
+        case KphLevelLow:
+            PhAppendStringBuilder2(&stringBuilder, L"-");
+            break;
+        case KphLevelMin:
+            PhAppendStringBuilder2(&stringBuilder, L"--");
+            break;
+        case KphLevelNone:
+        default:
+            break;
         }
 
         if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
@@ -3804,29 +3825,43 @@ BOOLEAN PhGetKernelDriverSystemStart( // TODO: Move and rename (dmex)
     VOID
     )
 {
+    BOOLEAN result = FALSE;
+    PPH_STRING kphServiceName;
     HANDLE keyHandle = NULL;
-    BOOLEAN installedAsService = FALSE;
     PH_STRINGREF parametersKeyNameSr;
     PH_FORMAT format[2];
     SIZE_T returnLength;
     WCHAR parametersKeyName[MAX_PATH];
 
-    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatS(&format[1], KPH_DEVICE_SHORT_NAME);
+    kphServiceName = PhGetStringSetting(L"KphServiceName");
+    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
+    {
+        PhClearReference(&kphServiceName);
+        kphServiceName = PhCreateString(L"KSystemInformer");
+    }
 
-    if (!PhFormatToBuffer(
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+    PhInitFormatSR(&format[1], kphServiceName->sr);
+
+    result = PhFormatToBuffer(
         format,
         RTL_NUMBER_OF(format),
         parametersKeyName,
         sizeof(parametersKeyName),
         &returnLength
-        ))
+        );
+
+    PhDereferenceObject(kphServiceName);
+
+    if (!result)
     {
         return FALSE;
     }
 
     parametersKeyNameSr.Buffer = parametersKeyName;
     parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+    result = FALSE;
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -3838,13 +3873,13 @@ BOOLEAN PhGetKernelDriverSystemStart( // TODO: Move and rename (dmex)
     {
         if (PhQueryRegistryUlong(keyHandle, L"Start") == SERVICE_SYSTEM_START)
         {
-            installedAsService = TRUE;
+            result = TRUE;
         }
 
         NtClose(keyHandle);
     }
 
-    return installedAsService;
+    return result;
 }
 
 PVOID PhPluginInvokeWindowCallback(

@@ -120,6 +120,7 @@ NTSTATUS PhOpenProcess(
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
+    KPH_LEVEL level;
 
     clientId.UniqueProcess = ProcessId;
     clientId.UniqueThread = NULL;
@@ -132,7 +133,9 @@ NTSTATUS PhOpenProcess(
     }
 #endif
 
-    if (KphIsVerified() && (DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
+    level = KphLevel();
+
+    if ((level >= KphLevelMed) && (DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)
     {
         status = KphOpenProcess(
             ProcessHandle,
@@ -150,7 +153,7 @@ NTSTATUS PhOpenProcess(
             &clientId
             );
 
-        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        if (status == STATUS_ACCESS_DENIED && (level == KphLevelMax))
         {
             status = KphOpenProcess(
                 ProcessHandle,
@@ -201,6 +204,7 @@ NTSTATUS PhOpenThread(
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     CLIENT_ID clientId;
+    KPH_LEVEL level;
 
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
@@ -213,7 +217,9 @@ NTSTATUS PhOpenThread(
     }
 #endif
 
-    if (KphIsVerified() && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
+    level = KphLevel();
+
+    if ((level >= KphLevelMed) && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
     {
         status = KphOpenThread(
             ThreadHandle,
@@ -231,7 +237,7 @@ NTSTATUS PhOpenThread(
             &clientId
             );
 
-        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        if (status == STATUS_ACCESS_DENIED && (level == KphLevelMax))
         {
             status = KphOpenThread(
                 ThreadHandle,
@@ -271,33 +277,41 @@ NTSTATUS PhOpenThreadProcess(
     _In_ HANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE ProcessHandle
-    )
+)
 {
-    if (KphIsConnected())
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    KPH_LEVEL level;
+
+    status = STATUS_UNSUCCESSFUL;
+
+    level = KphLevel();
+
+    if ((level == KphLevelMax) ||
+        ((level >= KphLevelMed) &&
+         ((DesiredAccess & KPH_PROCESS_READ_ACCESS) == DesiredAccess)))
     {
-        return KphOpenThreadProcess(
+        status = KphOpenThreadProcess(
             ThreadHandle,
             DesiredAccess,
             ProcessHandle
             );
     }
-    else
-    {
-        NTSTATUS status;
-        THREAD_BASIC_INFORMATION basicInfo;
 
-        if (!NT_SUCCESS(status = PhGetThreadBasicInformation(
-            ThreadHandle,
-            &basicInfo
-            )))
-            return status;
+    if (NT_SUCCESS(status))
+        return status;
 
-        return PhOpenProcess(
-            ProcessHandle,
-            DesiredAccess,
-            basicInfo.ClientId.UniqueProcess
-            );
-    }
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(
+        ThreadHandle,
+        &basicInfo
+        )))
+        return status;
+
+    return PhOpenProcess(
+        ProcessHandle,
+        DesiredAccess,
+        basicInfo.ClientId.UniqueProcess
+        );
 }
 
 /**
@@ -314,8 +328,11 @@ NTSTATUS PhOpenProcessToken(
     )
 {
     NTSTATUS status;
+    KPH_LEVEL level;
 
-    if (KphIsVerified() && (DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
+    level = KphLevel();
+
+    if ((level >= KphLevelMed) && (DesiredAccess & KPH_TOKEN_READ_ACCESS) == DesiredAccess)
     {
         status = KphOpenProcessToken(
             ProcessHandle,
@@ -331,7 +348,7 @@ NTSTATUS PhOpenProcessToken(
             TokenHandle
             );
 
-        if (status == STATUS_ACCESS_DENIED && KphIsVerified())
+        if (status == STATUS_ACCESS_DENIED && (level == KphLevelMax))
         {
             status = KphOpenProcessToken(
                 ProcessHandle,
@@ -434,7 +451,7 @@ NTSTATUS PhTerminateProcess(
 {
     NTSTATUS status;
 
-    if (KphIsVerified())
+    if (KphLevel() == KphLevelMax)
     {
         status = KphTerminateProcess(
             ProcessHandle,
@@ -815,26 +832,21 @@ NTSTATUS PhGetProcessIsBeingDebugged(
         return status;
     }
 
-    if (KphIsVerified()) // KphIsVerified required for STATUS_ACCESS_DENIED (dmex)
+    if (KphLevel() >= KphLevelLow)
     {
-        status = NtQueryInformationProcess(
+        KPH_PROCESS_STATE processState;
+
+        status = KphQueryInformationProcess(
             ProcessHandle,
-            ProcessDebugObjectHandle,
-            &debugHandle,
-            sizeof(HANDLE),
+            KphProcessStateInformation,
+            &processState,
+            sizeof(processState),
             NULL
             );
 
         if (NT_SUCCESS(status))
         {
-            *IsBeingDebugged = TRUE;
-            NtClose(debugHandle);
-            return STATUS_SUCCESS;
-        }
-        else if (status == STATUS_ACCESS_DENIED)
-        {
-            *IsBeingDebugged = TRUE;
-            return STATUS_SUCCESS;
+            *IsBeingDebugged = !BooleanFlagOn(processState, KPH_PROCESS_NOT_BEING_DEBUGGED);
         }
     }
 
@@ -4021,7 +4033,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
  *
  * \retval STATUS_OBJECT_NAME_NOT_FOUND The driver could not be found.
  *
- * \remarks This function requires a valid KProcessHacker handle.
+ * \remarks This function requires a valid KSystemInformer handle.
  */
 NTSTATUS PhOpenDriverByBaseAddress(
     _Out_ PHANDLE DriverHandle,
@@ -4084,7 +4096,7 @@ NTSTATUS PhOpenDriverByBaseAddress(
  * \param Buffer A variable which receives a pointer to a buffer containing the information. You
  * must free the buffer using PhFree() when you no longer need it.
  *
- * \remarks This function requires a valid KProcessHacker handle.
+ * \remarks This function requires a valid KSystemInformer handle.
  */
 NTSTATUS PhpQueryDriverVariableSize(
     _In_ HANDLE DriverHandle,
@@ -4131,7 +4143,7 @@ NTSTATUS PhpQueryDriverVariableSize(
  * \param Name A variable which receives a pointer to a string containing the object name. You must
  * free the string using PhDereferenceObject() when you no longer need it.
  *
- * \remarks This function requires a valid KProcessHacker handle.
+ * \remarks This function requires a valid KSystemInformer handle.
  */
 NTSTATUS PhGetDriverName(
     _In_ HANDLE DriverHandle,
@@ -4161,7 +4173,7 @@ NTSTATUS PhGetDriverName(
  * \param ServiceKeyName A variable which receives a pointer to a string containing the service key
  * name. You must free the string using PhDereferenceObject() when you no longer need it.
  *
- * \remarks This function requires a valid KProcessHacker handle.
+ * \remarks This function requires a valid KSystemInformer handle.
  */
 NTSTATUS PhGetDriverServiceKeyName(
     _In_ HANDLE DriverHandle,
@@ -4255,10 +4267,10 @@ NTSTATUS PhpUnloadDriver(
  * \param BaseAddress The base address of the driver. This parameter can be NULL if a value is
  * specified in \c Name.
  * \param Name The base name of the driver. This parameter can be NULL if a value is specified in
- * \c BaseAddress and KProcessHacker is loaded.
+ * \c BaseAddress and KSystemInformer is loaded.
  *
  * \retval STATUS_INVALID_PARAMETER_MIX Both \c BaseAddress and \c Name were null, or \c Name was
- * not specified and KProcessHacker is not loaded.
+ * not specified and KSystemInformer is not loaded.
  * \retval STATUS_OBJECT_NAME_NOT_FOUND The driver could not be found.
  */
 NTSTATUS PhUnloadDriver(
@@ -4269,15 +4281,18 @@ NTSTATUS PhUnloadDriver(
     NTSTATUS status;
     HANDLE driverHandle;
     PPH_STRING serviceKeyName = NULL;
+    KPH_LEVEL level;
+
+    level = KphLevel();
 
     if (!BaseAddress && !Name)
         return STATUS_INVALID_PARAMETER_MIX;
-    if (!Name && !KphIsConnected())
+    if (!Name && (level != KphLevelMax))
         return STATUS_INVALID_PARAMETER_MIX;
 
     // Try to get the service key name by scanning the Driver directory.
 
-    if (KphIsConnected() && BaseAddress)
+    if ((level == KphLevelMax) && BaseAddress)
     {
         if (NT_SUCCESS(PhOpenDriverByBaseAddress(
             &driverHandle,

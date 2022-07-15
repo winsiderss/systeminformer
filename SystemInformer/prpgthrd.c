@@ -889,7 +889,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     threadsContext->ListContext.UseCycleTime = TRUE;
 
-                    // We can't use cycle time for protected processes (without KProcessHacker). (wj32)
+                    // We can't use cycle time for protected processes (without KSystemInformer). (wj32)
                     if (processItem->IsProtectedProcess)
                     {
                         threadsContext->ListContext.UseCycleTime = FALSE;

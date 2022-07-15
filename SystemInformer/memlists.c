@@ -274,7 +274,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                 HANDLE processHandle;
                                 PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
 
-                                if (!KphIsVerified()) // required for PROCESS_SET_QUOTA (dmex)
+                                if (KphLevel() < KphLevelMax) // required for CompressionPid (dmex)
                                 {
                                     PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
                                     break;

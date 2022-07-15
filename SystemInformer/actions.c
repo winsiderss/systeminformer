@@ -4869,7 +4869,7 @@ BOOLEAN PhUiSetAttributesHandle(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (!KphIsConnected())
+    if (KphLevel() < KphLevelMax)
     {
         PhShowError2(hWnd, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
         return FALSE;

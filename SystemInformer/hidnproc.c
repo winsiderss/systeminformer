@@ -17,14 +17,14 @@
  * in order to find processes which have been unlinked from the active process
  * list (EPROCESS.ActiveProcessLinks). This method is not effective when
  * either NtOpenProcess is hooked or PsLookupProcessByProcessId is hooked
- * (KProcessHacker cannot bypass this).
+ * (KSystemInformer cannot bypass this).
  *
  * CSR Handles. This enumerates handles in all running CSR processes, and works
  * even when a process has been unlinked from the active process list and
  * has been removed from the client ID table (PspCidTable). However, the method
  * does not detect native executables since CSR is not notified about them.
  * Some rootkits hook NtQuerySystemInformation in order to modify the returned
- * handle information; Process Hacker bypasses this by using KProcessHacker,
+ * handle information; Process Hacker bypasses this by using KSystemInformer,
  * which calls ExEnumHandleTable directly. Note that both process and thread
  * handles are examined.
  */

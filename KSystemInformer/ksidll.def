@@ -1,0 +1,5 @@
+LIBRARY ksi.dll
+EXPORTS
+    DllInitialize       PRIVATE
+    KsiInitializeApc
+    KsiInsertQueueApc

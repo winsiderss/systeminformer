@@ -161,6 +161,9 @@
     <ClCompile Include="bcd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kphcomms.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -239,9 +242,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phintrnl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\kphapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphuser.h">
@@ -325,9 +325,6 @@
     <ClInclude Include="include\guisup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\kphuserp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\settings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -350,6 +347,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\bcd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphcomms.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
