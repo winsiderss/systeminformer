@@ -8112,6 +8112,11 @@ NTSTATUS PhLoadLibraryAsImageResource(
     imageBaseAddress = NULL;
     imageBaseSize = 0;
 
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = TRUE;
+#endif
+
     status = NtMapViewOfSection(
         sectionHandle,
         NtCurrentProcess(),
@@ -8124,6 +8129,11 @@ NTSTATUS PhLoadLibraryAsImageResource(
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );
+
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = FALSE;
+#endif
 
     NtClose(sectionHandle);
 
@@ -8143,7 +8153,24 @@ NTSTATUS PhFreeLibraryAsImageResource(
     _In_ PVOID BaseAddress
     )
 {
-    return NtUnmapViewOfSection(NtCurrentProcess(), LDR_IMAGEMAPPING_TO_MAPPEDVIEW(BaseAddress));
+    NTSTATUS status;
+
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = TRUE;
+#endif
+
+    status = NtUnmapViewOfSection(
+        NtCurrentProcess(),
+        LDR_IMAGEMAPPING_TO_MAPPEDVIEW(BaseAddress)
+        );
+
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = FALSE;
+#endif
+
+    return status;
 }
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
