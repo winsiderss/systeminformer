@@ -9165,6 +9165,123 @@ NTSTATUS PhDeleteDirectory(
     return status;
 }
 
+NTSTATUS PhCopyFileWin32(
+    _In_ PWSTR OldFileName,
+    _In_ PWSTR NewFileName,
+    _In_ BOOLEAN FailIfExists
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    HANDLE newFileHandle;
+    FILE_BASIC_INFORMATION basicInfo;
+    LARGE_INTEGER newFileSize;
+    IO_STATUS_BLOCK isb;
+    BYTE buffer[PAGE_SIZE];
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        OldFileName,
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetFileBasicInformation(fileHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetFileSize(fileHandle, &newFileSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhCreateFileWin32Ex(
+        &newFileHandle,
+        NewFileName,
+        FILE_GENERIC_WRITE,
+        &newFileSize,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FailIfExists ? FILE_CREATE : FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    while (TRUE)
+    {
+        status = NtReadFile(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            buffer,
+            sizeof(buffer),
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+        if (isb.Information == 0)
+            break;
+
+        status = NtWriteFile(
+            newFileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            buffer,
+            (ULONG)isb.Information,
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+        if (isb.Information == 0)
+            break;
+    }
+
+    if (status == STATUS_END_OF_FILE)
+    {
+        status = STATUS_SUCCESS;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        NtSetInformationFile(
+            newFileHandle,
+            &isb,
+            &basicInfo,
+            sizeof(FILE_BASIC_INFORMATION),
+            FileBasicInformation
+            );
+    }
+    else
+    {
+        PhDeleteFile(newFileHandle);
+    }
+
+    NtClose(newFileHandle);
+
+CleanupExit:
+    NtClose(fileHandle);
+
+    return status;
+}
+
 NTSTATUS PhMoveFileWin32(
     _In_ PWSTR OldFileName,
     _In_ PWSTR NewFileName
