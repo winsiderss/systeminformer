@@ -50,8 +50,8 @@ extern PPH_STRING SearchboxText;
 //       + the number of bytes of data specified in the RequestSize parameter.
 // This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message)
 //       + space for an IO_STATUS_BLOCK structure.
-#define ICMP_BUFFER_SIZE(EchoReplyLength, Buffer) \
-    (ULONG)(((EchoReplyLength) + (Buffer)->Length) + 8 + sizeof(IO_STATUS_BLOCK) + MAX_OPT_SIZE)
+#define ICMP_BUFFER_SIZE(EchoReplyLength, BufferLength) \
+    (ULONG)(((EchoReplyLength) + (BufferLength)) + 8 + sizeof(IO_STATUS_BLOCK) + MAX_OPT_SIZE)
 
 #define BITS_IN_ONE_BYTE 8
 #define NDIS_UNIT_OF_MEASUREMENT 100
@@ -84,7 +84,7 @@ typedef enum _PH_NETWORK_ACTION
 #define NTM_RECEIVEDTRACE (WM_APP + 1)
 #define NTM_RECEIVEDWHOIS (WM_APP + 2)
 #define NTM_RECEIVEDFINISH (WM_APP + 3)
-#define WM_TRACERT_UPDATE (WM_APP + 4)
+//#define WM_TRACERT_UPDATE (WM_APP + 4)
 #define WM_TRACERT_HOSTNAME (WM_APP + 5)
 #define WM_TRACERT_COUNTRY (WM_APP + 6)
 
@@ -99,13 +99,13 @@ typedef struct _NETWORK_PING_CONTEXT
     HWND PingGraphHandle;
     HFONT FontHandle;
 
-    ULONG PingTimeout;
-    ULONG CurrentPingMs;
+    ULONG Timeout;
+    FLOAT CurrentPingMs;
     ULONG MinPingScaling;
     ULONG HashFailCount;
     ULONG UnknownAddrCount;
-    ULONG PingMinMs;
-    ULONG PingMaxMs;
+    FLOAT PingMinMs;
+    FLOAT PingMaxMs;
     ULONG PingSentCount;
     ULONG PingRecvCount;
     ULONG PingLossCount;
@@ -114,7 +114,7 @@ typedef struct _NETWORK_PING_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PH_WORK_QUEUE PingWorkQueue;
     PH_GRAPH_STATE PingGraphState;
-    PH_CIRCULAR_BUFFER_ULONG PingHistory;
+    PH_CIRCULAR_BUFFER_FLOAT PingHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     PH_IP_ENDPOINT RemoteEndpoint;
@@ -171,6 +171,7 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     HFONT TreeNewFont;
     PH_LAYOUT_MANAGER LayoutManager;
 
+    ULONG Timeout;
     ULONG MaximumHops;
     BOOLEAN Cancel;
     PH_WORK_QUEUE WorkQueue;
