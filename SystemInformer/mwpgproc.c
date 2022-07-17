@@ -508,7 +508,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
     if (SetPriorityBoost && priorityBoost)
     {
-        PhSetFlagsEMenuItem(Menu, ID_PRIORITY_BOOST,
+        PhSetFlagsEMenuItem(Menu, ID_PROCESS_BOOST,
             PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 }
@@ -624,8 +624,8 @@ VOID PhMwpInitializeProcessMenu(
             ID_PROCESS_TERMINATE,
             ID_PROCESS_SUSPEND,
             ID_PROCESS_RESUME,
-            ID_PROCESS_THAW,
-            ID_PROCESS_FREEZE,
+            //ID_PROCESS_THAW,
+            //ID_PROCESS_FREEZE,
             ID_MISCELLANEOUS_REDUCEWORKINGSET,
             ID_PROCESS_COPY
         };
@@ -782,10 +782,9 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_VIRTUALIZATION, L"Virtuali&zation", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_BOOST, L"&Boost", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, NULL);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Boost", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, NULL), ULONG_MAX);
