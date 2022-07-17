@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2020
+ *     dmex    2016-2022
  *
  */
 
@@ -34,6 +34,7 @@ typedef struct _DB_OBJECT
     BOOLEAN Collapse;
     KAFFINITY AffinityMask;
     ULONG PagePriorityPlusOne;
+    BOOLEAN Boost;
 } DB_OBJECT, *PDB_OBJECT;
 
 VOID InitializeDb(

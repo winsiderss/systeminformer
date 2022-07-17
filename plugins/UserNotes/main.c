@@ -63,7 +63,8 @@ BOOLEAN MatchDbObjectIntent(
         (!(Intent & INTENT_PROCESS_HIGHLIGHT) || Object->BackColor != ULONG_MAX) &&
         (!(Intent & INTENT_PROCESS_COLLAPSE) || Object->Collapse == TRUE) &&
         (!(Intent & INTENT_PROCESS_AFFINITY) || Object->AffinityMask != 0) &&
-        (!(Intent & INTENT_PROCESS_PAGEPRIORITY) || Object->PagePriorityPlusOne != 0);
+        (!(Intent & INTENT_PROCESS_PAGEPRIORITY) || Object->PagePriorityPlusOne != 0) &&
+        (!(Intent & INTENT_PROCESS_BOOST) || Object->Boost == TRUE);
 }
 
 PDB_OBJECT FindDbObjectForProcess(
@@ -103,8 +104,9 @@ VOID DeleteDbObjectForProcessIfUnused(
         Object->PriorityClass == 0 &&
         Object->IoPriorityPlusOne == 0 &&
         Object->BackColor == ULONG_MAX &&
-        Object->Collapse == FALSE && 
-        Object->AffinityMask == 0
+        Object->Collapse == FALSE &&
+        Object->AffinityMask == 0 &&
+        Object->Boost == FALSE
         )
     {
         DeleteDbObject(Object);
@@ -237,15 +239,41 @@ ULONG GetPagePriorityFromId(
     return ULONG_MAX;
 }
 
+VOID InitializeDbPath(
+    VOID
+    )
+{
+    static PH_STRINGREF databaseFileNameSr = PH_STRINGREF_INIT(L"usernotesdb.xml");
+    PPH_STRING fileName;
+
+    fileName = PhGetApplicationDirectoryFileNameWin32(&databaseFileNameSr);
+
+    if (fileName && PhDoesFileExistsWin32(PhGetString(fileName)))
+    {
+        SetDbPath(fileName);
+    }
+    else
+    {
+        if (fileName = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH))
+        {
+            fileName = PH_AUTO(PhExpandEnvironmentStrings(&fileName->sr));
+
+            if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
+            {
+                fileName = PH_AUTO(PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
+            }
+
+            SetDbPath(fileName);
+        }
+    }
+}
+
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF databaseFile = PH_STRINGREF_INIT(L"usernotesdb.xml");
     PPH_PLUGIN toolStatusPlugin;
-    PPH_STRING directory;
-    PPH_STRING path;
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
     {
@@ -255,27 +283,7 @@ VOID NTAPI LoadCallback(
             ToolStatusInterface = NULL;
     }
 
-    directory = PH_AUTO(PhGetApplicationDirectory());
-    path = PH_AUTO(PhConcatStringRef2(&directory->sr, &databaseFile));
-
-    if (PhDoesFileExistsWin32(path->Buffer))
-    {
-        SetDbPath(path);
-    }
-    else
-    {
-        path = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH);
-        path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
-
-        if (PhDetermineDosPathNameType(path->Buffer) == RtlPathTypeRelative)
-        {
-            directory = PH_AUTO(PhGetApplicationDirectory());
-            path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
-        }
-
-        SetDbPath(path);
-    }
-
+    InitializeDbPath();
     InitializeDb();
     LoadDb();
 }
@@ -1387,6 +1395,110 @@ VOID NTAPI MenuItemCallback(
             }
         }
         break;
+    case PROCESS_BOOST_PRIORITY_ID:
+        {
+            NTSTATUS status = STATUS_RETRY;
+            BOOLEAN priorityBoost = FALSE;
+
+            if (processItem->QueryHandle)
+            {
+                status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost);
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                HANDLE processHandle;
+
+                status = PhOpenProcess(
+                    &processHandle,
+                    PROCESS_SET_INFORMATION,
+                    processItem->ProcessId
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    status = PhSetProcessPriorityBoost(processHandle, !priorityBoost);
+                    NtClose(processHandle);
+                }
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(menuItem->OwnerWindow, L"Unable to change the process boost priority.", status, 0);
+            }
+        }
+        break;
+    case PROCESS_BOOST_PRIORITY_SAVE_ID:
+        {
+            LockDb();
+
+            if ((object = FindDbObject(FILE_TAG, &processItem->ProcessName->sr)) && object->Boost)
+            {
+                object->Boost = FALSE;
+                DeleteDbObjectForProcessIfUnused(object);
+            }
+            else
+            {
+                NTSTATUS status = STATUS_RETRY;
+                BOOLEAN priorityBoost = FALSE;
+
+                if (processItem->QueryHandle)
+                {
+                    status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost);
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->Boost = TRUE; // intentional
+                }
+                else
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process boost priority.", status, 0);  
+                }
+            }
+
+            UnlockDb();
+            SaveDb();
+        }
+        break;
+    case PROCESS_BOOST_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID:
+        {
+            if (processItem->CommandLine)
+            {
+                LockDb();
+
+                if ((object = FindDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr)) && object->Boost)
+                {
+                    object->Boost = FALSE;
+                    DeleteDbObjectForProcessIfUnused(object);
+                }
+                else
+                {
+                    NTSTATUS status = STATUS_RETRY;
+                    BOOLEAN priorityBoost = FALSE;
+
+                    if (processItem->QueryHandle)
+                    {
+                        status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost);
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+                        object->Boost = TRUE; // intentional
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process boost priority.", status, 0);
+                    }
+                }
+
+                UnlockDb();
+                SaveDb();
+            }
+        }
+        break;
     }
 
     PhDereferenceObject(processItem);
@@ -1756,6 +1868,8 @@ VOID AddSavePriorityMenuItemsAndHook(
     )
 {
     PPH_EMENU_ITEM affinityMenuItem;
+    PPH_EMENU_ITEM boostMenuItem;
+    PPH_EMENU_ITEM boostPluginMenuItem;
     PPH_EMENU_ITEM priorityMenuItem;
     PPH_EMENU_ITEM ioPriorityMenuItem;
     PPH_EMENU_ITEM pagePriorityMenuItem;
@@ -1788,6 +1902,43 @@ VOID AddSavePriorityMenuItemsAndHook(
             saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
 
         UnlockDb();
+    }
+
+    // Boost
+    if (boostMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_BOOST))
+    {
+        // HACK: Change default Boost menu-item into a drop-down list.
+        ULONG index = PhIndexOfEMenuItem(MenuInfo->Menu, boostMenuItem);
+        PhRemoveEMenuItem(MenuInfo->Menu, boostMenuItem, 0);
+
+        boostMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Boost", NULL);
+        PhInsertEMenuItem(boostMenuItem, boostPluginMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_BOOST_PRIORITY_ID, L"Set &boost", NULL), ULONG_MAX);
+        PhInsertEMenuItem(boostMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+        PhInsertEMenuItem(boostMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_BOOST_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
+        PhInsertEMenuItem(boostMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_BOOST_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
+        PhInsertEMenuItem(MenuInfo->Menu, boostMenuItem, index);
+
+        if (!ProcessItem->CommandLine)
+            saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
+
+        LockDb();
+
+        if ((object = FindDbObject(FILE_TAG, &ProcessItem->ProcessName->sr)) && object->Boost)
+            saveMenuItem->Flags |= PH_EMENU_CHECKED;
+        if (ProcessItem->CommandLine && (object = FindDbObject(COMMAND_LINE_TAG, &ProcessItem->CommandLine->sr)) && object->Boost)
+            saveForCommandLineMenuItem->Flags |= PH_EMENU_CHECKED;
+
+        UnlockDb();
+
+        if (ProcessItem->QueryHandle)
+        {
+            BOOLEAN priorityBoost = FALSE;
+
+            if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessItem->QueryHandle, &priorityBoost)) && priorityBoost)
+            {
+                boostPluginMenuItem->Flags |= PH_EMENU_CHECKED;
+            }
+        }
     }
 
     // Priority
@@ -2165,6 +2316,22 @@ VOID ProcessesUpdatedCallback(
                     if (pagePriority != object->PagePriorityPlusOne - 1)
                     {
                         PhSetProcessItemPagePriority(processItem, object->PagePriorityPlusOne - 1);
+                    }
+                }
+            }
+        }
+
+        if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_BOOST))
+        {
+            if (object->Boost)
+            {
+                BOOLEAN priorityBoost = FALSE;
+
+                if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost)))
+                {
+                    if (priorityBoost != object->Boost)
+                    {
+                        PhSetProcessItemPriorityBoost(processItem, object->Boost);
                     }
                 }
             }
