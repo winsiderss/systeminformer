@@ -256,6 +256,59 @@ VOID PhNfCreateIconThreadDelayed(
     }
 }
 
+PPH_NF_ICON PhNfRegisterIcon(
+    _In_opt_ struct _PH_PLUGIN* Plugin,
+    _In_ ULONG Id,
+    _In_ GUID Guid,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags,
+    _In_opt_ PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback,
+    _In_opt_ PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback
+    )
+{
+    PPH_NF_ICON icon;
+
+    icon = PhAllocateZero(sizeof(PH_NF_ICON));
+    icon->Plugin = Plugin;
+    icon->SubId = Id;
+    icon->Context = Context;
+    icon->Pointers = &PhNfpPointers;
+    icon->Text = Text;
+    icon->Flags = Flags;
+    icon->UpdateCallback = UpdateCallback;
+    icon->MessageCallback = MessageCallback;
+    icon->TextCache = PhReferenceEmptyString();
+    icon->IconId = PhTrayIconItemList->Count + 1; // HACK
+    icon->IconGuid = Guid;
+
+    PhAddItemList(PhTrayIconItemList, icon);
+
+    return icon;
+}
+
+PPH_NF_ICON PhNfPluginRegisterIcon(
+    _In_ struct _PH_PLUGIN* Plugin,
+    _In_ ULONG SubId,
+    _In_ GUID Guid,
+    _In_opt_ PVOID Context,
+    _In_ PWSTR Text,
+    _In_ ULONG Flags,
+    _In_ struct _PH_NF_ICON_REGISTRATION_DATA* RegistrationData
+    )
+{
+    return PhNfRegisterIcon(
+        Plugin,
+        SubId,
+        Guid,
+        Context,
+        Text,
+        Flags,
+        RegistrationData->UpdateCallback,
+        RegistrationData->MessageCallback
+        );
+}
+
 VOID PhNfLoadStage2(
     VOID
     )
@@ -278,7 +331,7 @@ VOID PhNfLoadStage2(
     {
         PH_TRAY_ICON_POINTERS pointers;
 
-        pointers.RegisterTrayIcon = PhNfPluginRegisterIcon;
+        pointers.RegisterTrayIcon = (PPH_REGISTER_TRAY_ICON)PhNfPluginRegisterIcon;
 
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackTrayIconsInitializing), &pointers);
     }
@@ -590,59 +643,6 @@ HICON PhNfBitmapToIcon(
     iconInfo.hbmColor = Bitmap;
 
     return CreateIconIndirect(&iconInfo);
-}
-
-PPH_NF_ICON PhNfRegisterIcon(
-    _In_opt_ struct _PH_PLUGIN *Plugin,
-    _In_ ULONG Id,
-    _In_ GUID Guid,
-    _In_opt_ PVOID Context,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags,
-    _In_opt_ PPH_NF_ICON_UPDATE_CALLBACK UpdateCallback,
-    _In_opt_ PPH_NF_ICON_MESSAGE_CALLBACK MessageCallback
-    )
-{
-    PPH_NF_ICON icon;
-
-    icon = PhAllocateZero(sizeof(PH_NF_ICON));
-    icon->Plugin = Plugin;
-    icon->SubId = Id;
-    icon->Context = Context;
-    icon->Pointers = &PhNfpPointers;
-    icon->Text = Text;
-    icon->Flags = Flags;
-    icon->UpdateCallback = UpdateCallback;
-    icon->MessageCallback = MessageCallback;
-    icon->TextCache = PhReferenceEmptyString();
-    icon->IconId = PhTrayIconItemList->Count + 1; // HACK
-    icon->IconGuid = Guid;
-
-    PhAddItemList(PhTrayIconItemList, icon);
-
-    return icon;
-}
-
-struct _PH_NF_ICON *PhNfPluginRegisterIcon(
-    _In_ struct _PH_PLUGIN * Plugin,
-    _In_ ULONG Id,
-    _In_ GUID Guid,
-    _In_opt_ PVOID Context,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
-    )
-{
-    return PhNfRegisterIcon(
-        Plugin,
-        Id,
-        Guid,
-        Context,
-        Text,
-        Flags,
-        RegistrationData->UpdateCallback,
-        RegistrationData->MessageCallback
-        );
 }
 
 PPH_NF_ICON PhNfGetIconById(
