@@ -159,6 +159,9 @@ VOID EtpQueryAdapterDriverModel(
         case KMT_DRIVERVERSION_WDDM_3_0:
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 3.0");
             break;
+        case KMT_DRIVERVERSION_WDDM_3_1:
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 3.1");
+            break;
         default:
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"ERROR");
             break;

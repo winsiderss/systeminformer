@@ -483,10 +483,18 @@ D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PhLoadLibrary(L"dxgi.dll");
-        PhLoadLibrary(L"d3d11.dll");
-        CreateDXGIFactory1_I = PhGetModuleProcAddress(L"dxgi.dll", "CreateDXGIFactory1");
-        D3D11CreateDevice_I = PhGetModuleProcAddress(L"d3d11.dll", "D3D11CreateDevice");
+        PVOID dxgi;
+        PVOID d3d11;
+
+        if (dxgi = PhLoadLibrary(L"dxgi.dll"))
+        {
+            CreateDXGIFactory1_I = PhGetProcedureAddress(dxgi, "CreateDXGIFactory1", 0);
+        }
+
+        if (d3d11 = PhLoadLibrary(L"d3d11.dll"))
+        {
+            D3D11CreateDevice_I = PhGetProcedureAddress(d3d11, "D3D11CreateDevice", 0);
+        }
 
         PhEndInitOnce(&initOnce);
     }
