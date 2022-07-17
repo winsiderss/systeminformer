@@ -309,7 +309,7 @@ VOID PhpInitializeThreadMenu(
      
         if (threadPriorityBoost)
         {
-            PhSetFlagsEMenuItem(Menu, ID_PRIORITY_BOOST,
+            PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST,
                 PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
@@ -465,13 +465,12 @@ PPH_EMENU PhpCreateThreadMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ANALYZE_WAIT, L"Analy&ze", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_BOOST, L"&Boost", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_CRITICAL, L"Critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_PERMISSIONS, L"Per&missions", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_THREAD_TOKEN, L"&Token", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, 0, L"&Priority", NULL, NULL);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Boost", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_TIMECRITICAL, L"Time &critical", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_HIGHEST, L"&Highest", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"&Above normal", NULL, NULL), ULONG_MAX);
@@ -1109,6 +1108,42 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhFree(threads);
                 }
                 break;
+            case ID_THREAD_BOOST:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
+
+                    if (threadItem)
+                    {
+                        NTSTATUS status;
+                        HANDLE threadHandle;
+
+                        if (NT_SUCCESS(status = PhOpenThread(
+                            &threadHandle,
+                            THREAD_QUERY_LIMITED_INFORMATION,
+                            threadItem->ThreadId
+                            )))
+                        {
+                            BOOLEAN threadPriorityBoost = FALSE;
+                            ULONG numberOfThreads;
+                            PPH_THREAD_ITEM* threads;
+
+                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+
+                            PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
+                            PhReferenceObjects(threads, numberOfThreads);
+                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoost);
+                            PhDereferenceObjects(threads, numberOfThreads);
+                            PhFree(threads);
+
+                            NtClose(threadHandle);
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
+                        }
+                    }
+                }
+                break;
             case ID_THREAD_CRITICAL:
                 {
                     PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
@@ -1228,42 +1263,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             threadsContext->Provider->SymbolProvider
                             );
                         PhDereferenceObject(threadsContext->Provider->SymbolProvider);
-                    }
-                }
-                break;
-            case ID_PRIORITY_BOOST:
-                {
-                    PPH_THREAD_ITEM threadItem = PhGetSelectedThreadItem(&threadsContext->ListContext);
-
-                    if (threadItem)
-                    {
-                        NTSTATUS status;
-                        HANDLE threadHandle;
-
-                        if (NT_SUCCESS(status = PhOpenThread(
-                            &threadHandle,
-                            THREAD_QUERY_LIMITED_INFORMATION,
-                            threadItem->ThreadId
-                            )))
-                        {
-                            BOOLEAN threadPriorityBoost = FALSE;
-                            ULONG numberOfThreads;
-                            PPH_THREAD_ITEM* threads;
-
-                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
-
-                            PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
-                            PhReferenceObjects(threads, numberOfThreads);
-                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoost);
-                            PhDereferenceObjects(threads, numberOfThreads);
-                            PhFree(threads);
-
-                            NtClose(threadHandle);
-                        }
-                        else
-                        {
-                            PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
-                        }
                     }
                 }
                 break;

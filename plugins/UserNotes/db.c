@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2021
+ *     dmex    2016-2022
  *
  */
 
@@ -195,6 +195,7 @@ NTSTATUS LoadDb(
         PPH_STRING collapse = NULL;
         PPH_STRING affinityMask = NULL;
         PPH_STRING pagePriorityPlusOne = NULL;
+        PPH_STRING boost = NULL;
 
         if (PhGetXmlNodeAttributeCount(currentNode) >= 2)
         {
@@ -224,6 +225,8 @@ NTSTATUS LoadDb(
                     PhMoveReference(&affinityMask, PhConvertUtf8ToUtf16(elementValue));
                 else if (PhEqualBytesZ(elementName, "pagepriorityplusone", TRUE))
                     PhMoveReference(&pagePriorityPlusOne, PhConvertUtf8ToUtf16(elementValue));
+                else if (PhEqualBytesZ(elementName, "boost", TRUE))
+                    PhMoveReference(&boost, PhConvertUtf8ToUtf16(elementValue));
             }
         }
 
@@ -285,6 +288,15 @@ NTSTATUS LoadDb(
             object->PagePriorityPlusOne = (ULONG)pagePriorityInteger;
         }
 
+        if (object && boost)
+        {
+            ULONG64 boostInteger = 0;
+
+            PhStringToInteger64(&boost->sr, 10, &boostInteger);
+
+            object->Boost = !!boostInteger;
+        }
+
         PhClearReference(&tag);
         PhClearReference(&name);
         PhClearReference(&priorityClass);
@@ -294,6 +306,7 @@ NTSTATUS LoadDb(
         PhClearReference(&collapse);
         PhClearReference(&affinityMask);
         PhClearReference(&pagePriorityPlusOne);
+        PhClearReference(&boost);
     }
 
     UnlockDb();
@@ -363,6 +376,7 @@ NTSTATUS SaveDb(
         PPH_BYTES objectAffinityMaskUtf8;
         PPH_BYTES objectCommentUtf8;
         PPH_BYTES objectPagePriorityPlusOneUtf8;
+        PPH_BYTES objectBoostUtf8;
 
         objectTagUtf8 = FormatValueToUtf8((*object)->Tag);
         objectPriorityClassUtf8 = FormatValueToUtf8((*object)->PriorityClass);
@@ -373,6 +387,7 @@ NTSTATUS SaveDb(
         objectNameUtf8 = StringRefToUtf8(&(*object)->Name->sr);
         objectCommentUtf8 = StringRefToUtf8(&(*object)->Comment->sr);
         objectPagePriorityPlusOneUtf8 = FormatValueToUtf8((*object)->PagePriorityPlusOne);
+        objectBoostUtf8 = FormatValueToUtf8((*object)->Boost);
 
         // Create the setting element.
         objectNode = PhCreateXmlNode(topNode, "object");
@@ -384,6 +399,7 @@ NTSTATUS SaveDb(
         PhSetXmlNodeAttributeText(objectNode, "collapse", objectCollapseUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "affinity", objectAffinityMaskUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "pagepriorityplusone", objectPagePriorityPlusOneUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "boost", objectBoostUtf8->Buffer);
 
         // Set the value.
         PhCreateXmlOpaqueNode(objectNode, objectCommentUtf8->Buffer);
@@ -397,6 +413,8 @@ NTSTATUS SaveDb(
         PhDereferenceObject(objectPriorityClassUtf8);
         PhDereferenceObject(objectNameUtf8);
         PhDereferenceObject(objectTagUtf8);
+        PhDereferenceObject(objectPagePriorityPlusOneUtf8);
+        PhDereferenceObject(objectBoostUtf8);
     }
 
     UnlockDb();

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2021
+ *     dmex    2021-2022
  *
  */
 
@@ -28,7 +28,6 @@ VOID FileLogInitialization(
 {
     NTSTATUS status;
     PPH_STRING fileName;
-    PPH_STRING directory;
 
     fileName = PhaGetStringSetting(SETTING_NAME_LOG_FILENAME);
 
@@ -36,10 +35,9 @@ VOID FileLogInitialization(
     {
         fileName = PH_AUTO(PhExpandEnvironmentStrings(&fileName->sr));
 
-        if (PhDetermineDosPathNameType(fileName->Buffer) == RtlPathTypeRelative)
+        if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
         {
-            directory = PH_AUTO(PhGetApplicationDirectory());
-            fileName = PH_AUTO(PhConcatStringRef2(&directory->sr, &fileName->sr));
+            fileName = PH_AUTO(PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
         }
 
         status = PhCreateFileStream(

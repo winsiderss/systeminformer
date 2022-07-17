@@ -464,6 +464,8 @@ PhSetApplicationWindowIcon(
     );
 // end_phapppub
 
+#define SI_RUNAS_ADMIN_TASK_NAME L"SystemInformerTaskAdmin"
+
 HRESULT PhRunAsAdminTask(
     _In_ PWSTR TaskName
     );

@@ -1693,6 +1693,7 @@ NtWaitForAlertByThreadId(
 #define ProcThreadAttributeComponentFilter 26 // in ULONG
 #define ProcThreadAttributeEnableOptionalXStateFeatures 27 // in ULONG64 // since WIN11
 #define ProcThreadAttributeCreateStore 28 // ULONG // rev (diversenok)
+#define ProcThreadAttributeTrustedApp 29
 
 #ifndef PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS
 #define PROC_THREAD_ATTRIBUTE_EXTENDED_FLAGS \
@@ -1728,21 +1729,23 @@ NtWaitForAlertByThreadId(
 #endif
 
 // private
-typedef struct _PROC_THREAD_ATTRIBUTE {
+typedef struct _PROC_THREAD_ATTRIBUTE
+{
     ULONG_PTR Attribute;
     SIZE_T Size;
     ULONG_PTR Value;
 } PROC_THREAD_ATTRIBUTE, *PPROC_THREAD_ATTRIBUTE;
 
 // private
-typedef struct _PROC_THREAD_ATTRIBUTE_LIST {
+typedef struct _PROC_THREAD_ATTRIBUTE_LIST
+{
     ULONG PresentFlags;
     ULONG AttributeCount;
     ULONG LastAttribute;
     ULONG SpareUlong0;
     PPROC_THREAD_ATTRIBUTE ExtendedFlagsAttribute;
     PROC_THREAD_ATTRIBUTE Attributes[1];
-} PROC_THREAD_ATTRIBUTE_LIST;
+} PROC_THREAD_ATTRIBUTE_LIST, *PPROC_THREAD_ATTRIBUTE_LIST;
 
 // private
 #define EXTENDED_PROCESS_CREATION_FLAG_ELEVATION_HANDLED 0x00000001
@@ -1760,7 +1763,8 @@ typedef struct _PROC_THREAD_ATTRIBUTE_LIST {
 #define PROTECTION_LEVEL_AUTHENTICODE 0x00000007
 
 // private
-typedef enum _SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS {
+typedef enum _SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS
+{
     SeSafeOpenExperienceNone = 0x00,
     SeSafeOpenExperienceCalled = 0x01,
     SeSafeOpenExperienceAppRepCalled = 0x02,
@@ -1773,7 +1777,8 @@ typedef enum _SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS {
 } SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS;
 
 // private
-typedef struct _SE_SAFE_OPEN_PROMPT_RESULTS {
+typedef struct _SE_SAFE_OPEN_PROMPT_RESULTS
+{
     SE_SAFE_OPEN_PROMPT_EXPERIENCE_RESULTS Results;
     WCHAR Path[MAX_PATH];
 } SE_SAFE_OPEN_PROMPT_RESULTS, *PSE_SAFE_OPEN_PROMPT_RESULTS;
@@ -1785,7 +1790,8 @@ typedef struct _PROC_THREAD_BNOISOLATION_ATTRIBUTE
 } PROC_THREAD_BNOISOLATION_ATTRIBUTE, *PPROC_THREAD_BNOISOLATION_ATTRIBUTE;
 
 // private
-typedef struct _ISOLATION_MANIFEST_PROPERTIES {
+typedef struct _ISOLATION_MANIFEST_PROPERTIES
+{
     UNICODE_STRING InstancePath;
     UNICODE_STRING FriendlyName;
     UNICODE_STRING Description;

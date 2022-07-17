@@ -376,6 +376,7 @@ EXPORTS
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
     PhGetApplicationDirectory
+    PhGetApplicationDirectoryFileNameWin32
     PhGetApplicationFileName
     PhGetBaseDirectory
     PhGetBaseName
@@ -397,6 +398,7 @@ EXPORTS
     PhGetSystemDirectory
     PhGetSystemRoot
     PhGetWin32Message
+    PhGetTemporaryDirectoryRandomAlphaFileName
     PhInitializeHash
     PhInitializeImageVersionInfo
     PhLargeIntegerToLocalSystemTime
