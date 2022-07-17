@@ -1255,43 +1255,43 @@ namespace CustomBuildTool
                 return false;
             }
 
-            try
-            {
-                foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                {
-                    if (!file.UploadNightly)
-                        continue;
-
-                    string sourceFile = BuildOutputFolder + file.FileName;
-
-                    if (File.Exists(sourceFile))
-                    {
-                        bool uploaded;
-                        string fileName;
-
-                        fileName = sourceFile.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
-
-                        File.Move(sourceFile, fileName, true);
-                        uploaded = AppVeyor.UploadFile(fileName);
-                        File.Move(fileName, sourceFile, true);
-
-                        if (!uploaded)
-                        {
-                            Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
-                return false;
-            }
+            //try
+            //{
+            //    foreach (BuildFile file in BuildConfig.Build_Release_Files)
+            //    {
+            //        if (!file.UploadNightly)
+            //            continue;
+            //
+            //        string sourceFile = BuildOutputFolder + file.FileName;
+            //
+            //        if (File.Exists(sourceFile))
+            //        {
+            //            bool uploaded;
+            //            string fileName;
+            //
+            //            fileName = sourceFile.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+            //
+            //            File.Move(sourceFile, fileName, true);
+            //            uploaded = AppVeyor.UploadFile(fileName);
+            //            File.Move(fileName, sourceFile, true);
+            //
+            //            if (!uploaded)
+            //            {
+            //                Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
+            //                return false;
+            //            }
+            //        }
+            //        else
+            //        {
+            //            Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
+            //        }
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
+            //    return false;
+            //}
 
             return true;
         }
