@@ -88,6 +88,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_STYLES,
     WINDOW_PROPERTIES_INDEX_EXSTYLES,
     WINDOW_PROPERTIES_INDEX_AUTOMATION,
+    WINDOW_PROPERTIES_INDEX_DPICONTEXT,
 
     WINDOW_PROPERTIES_INDEX_CLASS_NAME,
     WINDOW_PROPERTIES_INDEX_CLASS_ATOM,
@@ -99,7 +100,6 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_CLASS_BACKBRUSH,
     WINDOW_PROPERTIES_INDEX_CLASS_MENUNAME,
     WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC,
-    WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT
 } NETADAPTER_DETAILS_INDEX;
 
 NTSTATUS WepPropertiesThreadStart(
@@ -896,88 +896,83 @@ VOID WepRefreshDpiContext(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
-    static PH_INITONCE InitOnce = PH_INITONCE_INIT;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static DPI_AWARENESS_CONTEXT (WINAPI* GetWindowDpiAwarenessContext_I)(_In_ HWND hwnd) = NULL;
     static BOOL (WINAPI* AreDpiAwarenessContextsEqual_I)(_In_ DPI_AWARENESS_CONTEXT dpiContextA, _In_ DPI_AWARENESS_CONTEXT dpiContextB) = NULL;
+    DPI_AWARENESS_CONTEXT dpiContext;
+    PVOID moduleHandle;
 
-	DPI_AWARENESS_CONTEXT dpiContext;
-    PVOID hlib;
-
-    if (PhBeginInitOnce(&InitOnce))
+    if (PhBeginInitOnce(&initOnce))
     {
-        hlib = PhLoadLibrary (L"user32.dll");
-
-        if (hlib)
+        if (moduleHandle = PhLoadLibrary(L"user32.dll"))
         {
-           GetWindowDpiAwarenessContext_I = PhGetProcedureAddress(hlib, "GetWindowDpiAwarenessContext", 0);
-           AreDpiAwarenessContextsEqual_I = PhGetProcedureAddress(hlib, "AreDpiAwarenessContextsEqual", 0);
+           GetWindowDpiAwarenessContext_I = PhGetProcedureAddress(moduleHandle, "GetWindowDpiAwarenessContext", 0);
+           AreDpiAwarenessContextsEqual_I = PhGetProcedureAddress(moduleHandle, "AreDpiAwarenessContextsEqual", 0);
         }
 
-        PhEndInitOnce (&InitOnce);
+        PhEndInitOnce(&initOnce);
     }
 
     // Windows 10, version 1607+
     if(!GetWindowDpiAwarenessContext_I || !AreDpiAwarenessContextsEqual_I)
     {
-        PhSetListViewSubItem (Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT, 1, L"n/a");
+        PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_DPICONTEXT, 1, L"N/A");
     }
     else
     {
-	    dpiContext = GetWindowDpiAwarenessContext_I (Context->WindowHandle);
+	    dpiContext = GetWindowDpiAwarenessContext_I(Context->WindowHandle);
 
         if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_UNAWARE))
         {
-            PhSetListViewSubItem (
+            PhSetListViewSubItem(
                 Context->ListViewHandle,
-                WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT,
+                WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
                 L"DPI unaware"
-            );
+                );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_SYSTEM_AWARE))
         {
             PhSetListViewSubItem (
                 Context->ListViewHandle,
-                WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT,
+                WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
                 L"System DPI aware"
-            );
+                );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext,DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
         {
             PhSetListViewSubItem (
                 Context->ListViewHandle,
-                WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT,
+                WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
                 L"Per monitor v1"
-            );
+                );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
         {
             PhSetListViewSubItem(
                 Context->ListViewHandle,
-                WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT,
+                WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
                 L"Per Monitor v2"
-            );
+                );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED))
         {
-            PhSetListViewSubItem (
+            PhSetListViewSubItem(
                 Context->ListViewHandle,
-                WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT,
+                WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
                 L"DPI unaware with improved quality of GDI-based content"
-            );
+                );
         }
         else
         {
-            PhSetListViewSubItem (Context->ListViewHandle,
-                WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT, 1, PhaFormatString (
-                L"unknown (0x%Ix)",
+            PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_DPICONTEXT, 1, PhaFormatString(
+                L"Unknown (0x%Ix)",
                 (ULONG_PTR)dpiContext
-                )->Buffer
-            );
+                )->Buffer);
         }
     }
 }
@@ -1008,6 +1003,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_STYLES, L"Styles", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_EXSTYLES, L"Extended styles", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_AUTOMATION, L"Automation server", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DPICONTEXT, L"DPI Context", NULL);
 
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_NAME, L"Name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_ATOM, L"Atom", NULL);
@@ -1019,7 +1015,6 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_BACKBRUSH, L"Background brush", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_MENUNAME, L"Menu name", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC, L"Window procedure", NULL);
-    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_DPICONTEXT, L"DPI Context", NULL);
 }
 
 INT_PTR CALLBACK WepWindowGeneralDlgProc(
@@ -1047,7 +1042,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
         {
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_WINDOWINFO);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(GetParent(hwndDlg));
 
             if (PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_PROPERTY_POSITION).X == 0) // HACK
                 PhCenterWindow(GetParent(hwndDlg), context->ParentWindowHandle);

@@ -285,7 +285,7 @@ namespace CustomBuildTool
                 if (!Build.BuildSetupExe())
                     return;
                 Build.BuildPdbZip();
-                Build.BuildSdkZip();
+                //Build.BuildSdkZip();
                 //Build.BuildSrcZip();
                 Build.BuildChecksumsFile();
                 Build.ShowBuildStats();

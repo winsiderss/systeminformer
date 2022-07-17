@@ -193,14 +193,4 @@ typedef struct _PH_NF_ICON_REGISTRATION_DATA
 } PH_NF_ICON_REGISTRATION_DATA, *PPH_NF_ICON_REGISTRATION_DATA;
 // end_phapppub
 
-struct _PH_NF_ICON *PhNfPluginRegisterIcon(
-    _In_ struct _PH_PLUGIN * Plugin,
-    _In_ ULONG SubId,
-    _In_ GUID Guid,
-    _In_opt_ PVOID Context,
-    _In_ PWSTR Text,
-    _In_ ULONG Flags,
-    _In_ struct _PH_NF_ICON_REGISTRATION_DATA *RegistrationData
-    );
-
 #endif

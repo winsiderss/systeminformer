@@ -1264,6 +1264,29 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_PROCESS_BOOST:
+        {
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (processItem)
+            {
+                BOOLEAN priorityBoost = FALSE;
+                HANDLE processHandle;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_LIMITED_INFORMATION,
+                    processItem->ProcessId
+                    )))
+                {
+                    PhGetProcessPriorityBoost(processHandle, &priorityBoost);
+                    NtClose(processHandle);
+                }
+
+                PhUiSetBoostPriorityProcess(PhMainWndHandle, processItem, !priorityBoost);
+            }
+        }
+        break;
     case ID_MISCELLANEOUS_SETCRITICAL:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
@@ -1379,29 +1402,6 @@ VOID PhMwpOnCommand(
             if (processItem)
             {
                 PhShowRunAsDialog(WindowHandle, processItem->ProcessId);
-            }
-        }
-        break;
-    case ID_PRIORITY_BOOST:
-        {
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
-
-            if (processItem)
-            {
-                BOOLEAN priorityBoost = FALSE;
-                HANDLE processHandle;
-
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_QUERY_LIMITED_INFORMATION,
-                    processItem->ProcessId
-                    )))
-                {
-                    PhGetProcessPriorityBoost(processHandle, &priorityBoost);
-                    NtClose(processHandle);
-                }
-
-                PhUiSetBoostPriorityProcess(PhMainWndHandle, processItem, !priorityBoost);
             }
         }
         break;
@@ -3161,7 +3161,7 @@ VOID PhAddMiniProcessMenuItems(
 
     priorityMenu = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, ProcessId);
 
-    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BOOST, L"Boost", NULL, ProcessId), ULONG_MAX);
+    PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PROCESS_BOOST, L"Boost", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, ProcessId), ULONG_MAX);
     PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"&High", NULL, ProcessId), ULONG_MAX);
@@ -3251,7 +3251,7 @@ BOOLEAN PhHandleMiniProcessMenuItem(
             }
         }
         break;
-    case ID_PRIORITY_BOOST:
+    case ID_PROCESS_BOOST:
         {
             HANDLE processId = MenuItem->Context;
             PPH_PROCESS_ITEM processItem;
@@ -3719,6 +3719,53 @@ ULONG PhGetWindowsVersion(
     )
 {
     return WindowsVersion;
+}
+
+BOOLEAN PhGetKernelDriverSystemStart( // TODO: Move and rename (dmex)
+    VOID
+    )
+{
+    HANDLE keyHandle = NULL;
+    BOOLEAN installedAsService = FALSE;
+    PH_STRINGREF parametersKeyNameSr;
+    PH_FORMAT format[2];
+    SIZE_T returnLength;
+    WCHAR parametersKeyName[MAX_PATH];
+
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+    PhInitFormatS(&format[1], KPH_DEVICE_SHORT_NAME);
+
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        parametersKeyName,
+        sizeof(parametersKeyName),
+        &returnLength
+        ))
+    {
+        return FALSE;
+    }
+
+    parametersKeyNameSr.Buffer = parametersKeyName;
+    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &parametersKeyNameSr,
+        0
+        )))
+    {
+        if (PhQueryRegistryUlong(keyHandle, L"Start") == SERVICE_SYSTEM_START)
+        {
+            installedAsService = TRUE;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    return installedAsService;
 }
 
 PVOID PhPluginInvokeWindowCallback(

@@ -177,6 +177,68 @@ namespace CustomBuildTool
 
             return string.Empty;
         }
+
+        private static readonly UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
+        private static readonly UIntPtr HKEY_CURRENT_USER = new UIntPtr(0x80000001u);
+        private static readonly uint KEY_READ = 0x20019u;
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern uint RegOpenKeyExW(UIntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, out UIntPtr KeyHandle);
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern uint RegQueryValueExW(UIntPtr KeyHandle, string ValueName, IntPtr Reserved, out int DataType, IntPtr DataBuffer, ref int DataLength);
+        [DllImport("advapi32.dll", ExactSpelling = true)]
+        private static extern uint RegCloseKey(UIntPtr KeyHandle);
+
+        public static string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
+        {
+            string value = string.Empty;
+            UIntPtr keyHandle;
+            IntPtr valueBuffer;
+
+            if (RegOpenKeyExW(
+                LocalMachine ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER,
+                KeyName,
+                0,
+                KEY_READ,
+                out keyHandle
+                ) == 0)
+            {
+                int valueType;
+                int valueLength = 0;
+
+                RegQueryValueExW(
+                    keyHandle,
+                    ValueName,
+                    IntPtr.Zero,
+                    out valueType,
+                    IntPtr.Zero,
+                    ref valueLength
+                    );
+
+                if (valueType == 1 || valueLength > 4)
+                {
+                    valueBuffer = Marshal.AllocHGlobal(valueLength);
+
+                    if (RegQueryValueExW(
+                        keyHandle,
+                        ValueName,
+                        IntPtr.Zero,
+                        out valueType,
+                        valueBuffer,
+                        ref valueLength
+                        ) == 0)
+                    {
+                        value = Marshal.PtrToStringUni(valueBuffer, valueLength / 2 - 1);
+                    }
+
+                    Marshal.FreeHGlobal(valueBuffer);
+                }
+
+                RegCloseKey(keyHandle);
+            }
+
+            return string.IsNullOrWhiteSpace(value) ? DefaultValue : value;
+        }
     }
 
     public static class Verify
@@ -492,13 +554,12 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
 
-            // Note: This does not use the registry lookup because .NET Core requires registry dependencies. (dmex)
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\Include");
 
-            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\Include");
-
-            if (Directory.Exists(kitpath32))
+            if (Directory.Exists(kitsPath))
             {
-                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
 
                 foreach (string path in windowsKitsDirectory)
                 {
@@ -530,13 +591,12 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
 
-            // Note: This does not use the registry lookup because .NET Core requires registry dependencies. (dmex)
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
 
-            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin");
-
-            if (Directory.Exists(kitpath32))
+            if (Directory.Exists(kitsPath))
             {
-                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
 
                 foreach (string path in windowsKitsDirectory)
                 {

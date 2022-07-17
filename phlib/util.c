@@ -2847,6 +2847,57 @@ PPH_STRING PhGetApplicationDirectory(
     return directoryPath;
 }
 
+PPH_STRING PhGetApplicationDirectoryFileNameWin32(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    PPH_STRING applicationFileName = NULL;
+    PPH_STRING applicationDirectory;
+
+    if (applicationDirectory = PhGetApplicationDirectory())
+    {
+        applicationFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
+        PhReferenceObject(applicationDirectory);
+    }
+
+    return applicationFileName;
+}
+
+PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
+    VOID
+    )
+{
+    static PH_STRINGREF randomAlphaDirectoryStringRef = PH_STRINGREF_INIT(L"%TEMP%\\");
+    static PH_STRINGREF directorySeparator = PH_STRINGREF_INIT(L"\\");
+    PPH_STRING randomAlphaFileName = NULL;
+    PPH_STRING randomAlphaDirectory;
+    PH_STRINGREF randomAlphaStringRef;
+    WCHAR randomAlphaString[32] = L"";
+
+    PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
+    randomAlphaStringRef.Buffer = randomAlphaString;
+    randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
+
+    if (randomAlphaDirectory = PhExpandEnvironmentStrings(&randomAlphaDirectoryStringRef))
+    {
+        randomAlphaFileName = PhConcatStringRef2(&randomAlphaDirectory->sr, &randomAlphaStringRef);
+        PhDereferenceObject(randomAlphaDirectory);
+    }
+
+    if (randomAlphaFileName)
+    {
+        if (!NT_SUCCESS(PhCreateDirectory(randomAlphaFileName)))
+        {
+            PhReferenceObject(randomAlphaFileName);
+            return NULL;
+        }
+
+        PhMoveReference(&randomAlphaFileName, PhConcatStringRef2(&randomAlphaFileName->sr, &directorySeparator));
+    }
+
+    return randomAlphaFileName;
+}
+
 /**
  * Gets a known location as a file name.
  *
@@ -8112,6 +8163,11 @@ NTSTATUS PhLoadLibraryAsImageResource(
     imageBaseAddress = NULL;
     imageBaseSize = 0;
 
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = TRUE;
+#endif
+
     status = NtMapViewOfSection(
         sectionHandle,
         NtCurrentProcess(),
@@ -8124,6 +8180,11 @@ NTSTATUS PhLoadLibraryAsImageResource(
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );
+
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = FALSE;
+#endif
 
     NtClose(sectionHandle);
 
@@ -8143,7 +8204,24 @@ NTSTATUS PhFreeLibraryAsImageResource(
     _In_ PVOID BaseAddress
     )
 {
-    return NtUnmapViewOfSection(NtCurrentProcess(), LDR_IMAGEMAPPING_TO_MAPPEDVIEW(BaseAddress));
+    NTSTATUS status;
+
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = TRUE;
+#endif
+
+    status = NtUnmapViewOfSection(
+        NtCurrentProcess(),
+        LDR_IMAGEMAPPING_TO_MAPPEDVIEW(BaseAddress)
+        );
+
+#ifdef DEBUG
+    if (WindowsVersion < WINDOWS_8)
+        NtCurrentTeb()->SuppressDebugMsg = FALSE;
+#endif
+
+    return status;
 }
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)

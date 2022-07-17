@@ -724,6 +724,20 @@ PhGetApplicationDirectory(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetApplicationDirectoryFileNameWin32(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetTemporaryDirectoryRandomAlphaFileName(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetKnownLocation(
     _In_ ULONG Folder,
     _In_opt_ PWSTR AppendPath
@@ -1317,8 +1331,8 @@ PhLoadResourceCopy(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
-    _Out_opt_ ULONG * ResourceLength,
-    _Out_opt_ PVOID * ResourceBuffer
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_opt_ PVOID *ResourceBuffer
     );
 
 PHLIBAPI

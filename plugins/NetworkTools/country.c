@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016
+ *     dmex    2016-2022
  *
  */
 
@@ -35,23 +35,15 @@ PPH_STRING NetToolsGetGeoLiteDbPath(
 
     fileName = PhGetExpandStringSetting(SettingName);
 
-    if (!PhIsNullOrEmptyString(fileName))
+    if (PhIsNullOrEmptyString(fileName))  
+        return NULL;
+
+    if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
     {
-        if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
-        {
-            PPH_STRING directory;
-
-            directory = PhGetApplicationDirectory();
-            PhMoveReference(&fileName, PhConcatStringRef2(&directory->sr, &fileName->sr));
-            PhDereferenceObject(directory);
-        }
-
-        return fileName;
+        PhMoveReference(&fileName, PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
     }
 
-    PhClearReference(&fileName);
-
-    return NULL;
+    return fileName;
 }
 
 BOOLEAN NetToolsGeoLiteInitialized(

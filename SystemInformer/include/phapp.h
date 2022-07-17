@@ -336,6 +336,14 @@ PhSetProcessItemPriority(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ PROCESS_PRIORITY_CLASS PriorityClass
     );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetProcessItemPriorityBoost(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN PriorityBoost
+    );
 // end_phapppub
 
 PHAPPAPI

@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2019
+ *     dmex    2016-202
  *
  */
 
@@ -18,51 +18,22 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     { IDYES, L"Install" }
 };
 
-BOOLEAN UpdaterIsKphInstallRequired(
-    VOID
-    )
-{
-    static PH_STRINGREF kph3ServiceKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KProcessHacker3");
-    BOOLEAN kphInstallRequired = FALSE;
-    HANDLE runKeyHandle;
-
-    if (NT_SUCCESS(PhOpenKey(
-        &runKeyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &kph3ServiceKeyName,
-        0
-        )))
-    {
-        // Make sure we re-install the driver when KPH was installed as a service. 
-        if (PhQueryRegistryUlong(runKeyHandle, L"Start") == SERVICE_SYSTEM_START)
-        {
-            kphInstallRequired = TRUE;
-        }
-
-        NtClose(runKeyHandle);
-    }
-
-    return kphInstallRequired;
-}
-
 BOOLEAN UpdaterCheckApplicationDirectory(
     VOID
     )
 {
+    static PH_STRINGREF fileNameStringRef = PH_STRINGREF_INIT(L"\\test");
     HANDLE fileHandle;
-    PPH_STRING directory;
-    PPH_STRING file;
+    PPH_STRING fileName;
 
-    if (UpdaterIsKphInstallRequired())
+    fileName = PhGetApplicationDirectoryFileNameWin32(&fileNameStringRef);
+
+    if (PhIsNullOrEmptyString(fileName))
         return FALSE;
-
-    directory = PhGetApplicationDirectory();
-    file = PhConcatStrings(2, PhGetStringOrEmpty(directory), L"\\processhacker.update");
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
-        PhGetString(file),
+        PhGetString(fileName),
         FILE_GENERIC_WRITE | DELETE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -70,15 +41,12 @@ BOOLEAN UpdaterCheckApplicationDirectory(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
         )))
     {
-        PhDereferenceObject(file);
-        PhDereferenceObject(directory);
-
+        PhDereferenceObject(fileName);
         NtClose(fileHandle);
         return TRUE;
     }
 
-    PhDereferenceObject(file);
-    PhDereferenceObject(directory);
+    PhDereferenceObject(fileName);
     return FALSE;
 }
 

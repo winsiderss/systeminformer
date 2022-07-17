@@ -2122,7 +2122,7 @@ BOOLEAN PhShellOpenKey2(
         )))
         goto CleanupExit;
 
-    memcpy(favoriteName, L"A_ProcessHacker", 15 * sizeof(WCHAR));
+    memcpy(favoriteName, L"A_SystemInformer", 15 * sizeof(WCHAR));
     PhGenerateRandomAlphaString(&favoriteName[15], 16);
     PhInitializeStringRefLongHint(&valueName, favoriteName);
 
