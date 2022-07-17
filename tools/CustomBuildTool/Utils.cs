@@ -178,21 +178,21 @@ namespace CustomBuildTool
             return string.Empty;
         }
 
-        private static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(0x80000002u);
-        private static readonly IntPtr HKEY_CURRENT_USER = new IntPtr(0x80000001u);
+        private static readonly UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
+        private static readonly UIntPtr HKEY_CURRENT_USER = new UIntPtr(0x80000001u);
         private static readonly uint KEY_READ = 0x20019u;
 
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        private static extern uint RegOpenKeyExW(IntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, out IntPtr KeyHandle);
+        private static extern uint RegOpenKeyExW(UIntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, out UIntPtr KeyHandle);
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        private static extern uint RegQueryValueExW(IntPtr KeyHandle, string ValueName, IntPtr Reserved, out int DataType, IntPtr DataBuffer, ref int DataLength);
+        private static extern uint RegQueryValueExW(UIntPtr KeyHandle, string ValueName, IntPtr Reserved, out int DataType, IntPtr DataBuffer, ref int DataLength);
         [DllImport("advapi32.dll", ExactSpelling = true)]
-        private static extern uint RegCloseKey(IntPtr KeyHandle);
+        private static extern uint RegCloseKey(UIntPtr KeyHandle);
 
         public static string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
         {
             string value = string.Empty;
-            IntPtr keyHandle;
+            UIntPtr keyHandle;
             IntPtr valueBuffer;
 
             if (RegOpenKeyExW(
