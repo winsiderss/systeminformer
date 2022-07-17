@@ -2847,6 +2847,22 @@ PPH_STRING PhGetApplicationDirectory(
     return directoryPath;
 }
 
+PPH_STRING PhGetApplicationDirectoryFileNameWin32(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    PPH_STRING applicationFileName = NULL;
+    PPH_STRING applicationDirectory;
+
+    if (applicationDirectory = PhGetApplicationDirectory())
+    {
+        applicationFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
+        PhReferenceObject(applicationDirectory);
+    }
+
+    return applicationFileName;
+}
+
 /**
  * Gets a known location as a file name.
  *

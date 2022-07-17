@@ -724,6 +724,13 @@ PhGetApplicationDirectory(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetApplicationDirectoryFileNameWin32(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetKnownLocation(
     _In_ ULONG Folder,
     _In_opt_ PWSTR AppendPath
