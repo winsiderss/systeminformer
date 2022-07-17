@@ -1022,6 +1022,9 @@ BOOLEAN EtFwGetFilterDisplayData(
     )
 {
     PETFW_FILTER_DISPLAY_CONTEXT entry;
+    PPH_STRING filterName = NULL;
+    PPH_STRING filterDescription = NULL;
+    FWPM_FILTER* filter;
 
     if (!EtFwFilterDisplayDataHashTable)
         return FALSE;
@@ -1044,11 +1047,7 @@ BOOLEAN EtFwGetFilterDisplayData(
 
     PhReleaseQueuedLockShared(&EtFwFilterDisplayDataHashTableLock);
 
-    PPH_STRING filterName = NULL;
-    PPH_STRING filterDescription = NULL;
-    FWPM_FILTER* filter;
-
-    if (FilterId && FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
+    if (FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
     {
         if (filter->displayData.name)
             filterName = PhCreateString(filter->displayData.name);
@@ -1848,7 +1847,7 @@ ULONG EtFwMonitorInitialize(
     // Create a non-dynamic BFE session
 
     session.flags = 0;
-    session.displayData.name  = L"ProcessHackerFirewallSession";
+    session.displayData.name  = L"SiEtwFirewallSession";
     session.displayData.description = L"";
 
     status = FwpmEngineOpen(

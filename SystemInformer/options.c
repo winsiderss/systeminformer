@@ -1895,7 +1895,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
 
                                             status = PhCreateAdminTask(
-                                                L"ProcessHackerTaskAdmin",
+                                                SI_RUNAS_ADMIN_TASK_NAME,
                                                 quotedFileName->Buffer
                                                 );
                                             
@@ -2020,7 +2020,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                     {
                                         if (!!PhGetIntegerSetting(L"EnableStartAsAdmin"))
                                         {
-                                            PhDeleteAdminTask(L"ProcessHackerTaskAdmin");
+                                            PhDeleteAdminTask(SI_RUNAS_ADMIN_TASK_NAME);
                                         }
                                     }
                                     break;

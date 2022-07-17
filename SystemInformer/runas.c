@@ -1832,7 +1832,7 @@ NTSTATUS PhExecuteRunAsCommand3(
 
     // An existing instance was not available. Proceed normally.
 
-    memcpy(serviceName, L"ProcessHacker", 13 * sizeof(WCHAR));
+    memcpy(serviceName, L"SystemInformer", 13 * sizeof(WCHAR));
     PhGenerateRandomAlphaString(&serviceName[13], 16);
     PhAcquireQueuedLockExclusive(&RunAsOldServiceLock);
     memcpy(RunAsOldServiceName, serviceName, sizeof(serviceName));

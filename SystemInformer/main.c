@@ -152,7 +152,7 @@ INT WINAPI wWinMain(
         {
             AllowSetForegroundWindow(ASFW_ANY);
 
-            if (SUCCEEDED(PhRunAsAdminTask(L"ProcessHackerTaskAdmin")))
+            if (SUCCEEDED(PhRunAsAdminTask(SI_RUNAS_ADMIN_TASK_NAME)))
             {
                 PhActivatePreviousInstance();
                 PhExitApplication(STATUS_SUCCESS);
@@ -425,7 +425,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"PhMutant_");
+    static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
     HANDLE objectHandle;
     UNICODE_STRING objectNameUs;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -611,7 +611,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     dumpFileName = PhConcatStrings(
         4,
         PhGetString(dumpDirectory),
-        L"\\ProcessHacker_",
+        L"\\SystemInformer_",
         alphastring,
         L"_DumpFile.dmp"
         );
@@ -802,7 +802,7 @@ BOOLEAN PhInitializeNamespacePolicy(
     PH_STRINGREF objectNameSr;
     PH_FORMAT format[2];
 
-    PhInitFormatS(&format[0], L"PhMutant_");
+    PhInitFormatS(&format[0], L"SiMutant_");
     PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
     if (!PhFormatToBuffer(
@@ -1390,7 +1390,7 @@ VOID PhpInitializeSettings(
 
         // There are three possible locations for the settings file:
         // 1. The file name given in the command line.
-        // 2. A file named ProcessHacker.exe.settings.xml in the program directory. (This changes
+        // 2. A file named SystemInformer.exe.settings.xml in the program directory. (This changes
         //    based on the executable file name.)
         // 3. The default location.
 
