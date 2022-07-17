@@ -311,8 +311,12 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                 {
                     status = PhGetProcessGroupAffinity(processHandle, &processGroupAffinity);
 
-                    // Add workaround for current process (dmex)
-                    if (status == STATUS_INVALID_PARAMETER && context->ProcessItem->ProcessId == NtCurrentProcessId())
+                    if (status == STATUS_INVALID_PARAMETER || status == STATUS_INVALID_INFO_CLASS) // GH#1299: Required for Windows 7 (dmex)
+                    {
+                        status = PhGetProcessAffinityMask(processHandle, &processGroupAffinity.Mask);
+                    }
+
+                    if (status == STATUS_INVALID_PARAMETER || status == STATUS_INVALID_INFO_CLASS) // Required for multi-group processes (dmex)
                     {
                         PROCESS_BASIC_INFORMATION basicInfo;
 
@@ -479,20 +483,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
             if (!NT_SUCCESS(status))
             {
-                if (status == STATUS_RETRY)
-                {
-                    PhShowInformation2(
-                        hwndDlg,
-                        L"Unable to query the current affinity.",
-                        L"This process has multi-group affinity, %s",
-                        L"you can only change affinity for individual threads."
-                        );
-                }
-                else
-                {
-                    PhShowStatus(hwndDlg, L"Unable to query the current affinity.", status, 0);
-                }
-
+                PhShowStatus(hwndDlg, L"Unable to query the current affinity.", status, 0);
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             }
