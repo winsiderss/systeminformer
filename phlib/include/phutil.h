@@ -731,6 +731,13 @@ PhGetApplicationDirectoryFileNameWin32(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetTemporaryDirectoryRandomAlphaFileName(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetKnownLocation(
     _In_ ULONG Folder,
     _In_opt_ PWSTR AppendPath

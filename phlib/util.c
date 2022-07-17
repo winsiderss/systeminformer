@@ -2863,6 +2863,34 @@ PPH_STRING PhGetApplicationDirectoryFileNameWin32(
     return applicationFileName;
 }
 
+PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
+    VOID
+    )
+{
+    static PH_STRINGREF randomDirectoryPath = PH_STRINGREF_INIT(L"%TEMP%\\");
+    PPH_STRING randomAlphaFileName = NULL;
+    PPH_STRING randomAlphaDirectory;
+    PH_STRINGREF randomAlphaStringRef;
+    WCHAR randomAlphaString[32] = L"";
+
+    PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
+    randomAlphaStringRef.Buffer = randomAlphaString;
+    randomAlphaStringRef.Length = RTL_NUMBER_OF(randomAlphaString) - sizeof(UNICODE_NULL);
+
+    if (randomAlphaDirectory = PhExpandEnvironmentStrings(&randomDirectoryPath))
+    {
+        randomAlphaFileName = PhConcatStringRef2(&randomAlphaDirectory->sr, &randomAlphaStringRef);
+        PhDereferenceObject(randomAlphaDirectory);
+    }
+
+    if (PhIsNullOrEmptyString(randomAlphaFileName))
+        return NULL;
+    if (!NT_SUCCESS(PhCreateDirectory(randomAlphaFileName)))
+        return NULL;
+
+    return randomAlphaFileName;
+}
+
 /**
  * Gets a known location as a file name.
  *

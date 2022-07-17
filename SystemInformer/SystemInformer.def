@@ -398,6 +398,7 @@ EXPORTS
     PhGetSystemDirectory
     PhGetSystemRoot
     PhGetWin32Message
+    PhGetTemporaryDirectoryRandomAlphaFileName
     PhInitializeHash
     PhInitializeImageVersionInfo
     PhLargeIntegerToLocalSystemTime
