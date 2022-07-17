@@ -2867,7 +2867,8 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     VOID
     )
 {
-    static PH_STRINGREF randomDirectoryPath = PH_STRINGREF_INIT(L"%TEMP%\\");
+    static PH_STRINGREF randomAlphaDirectoryStringRef = PH_STRINGREF_INIT(L"%TEMP%\\");
+    static PH_STRINGREF directorySeparator = PH_STRINGREF_INIT(L"\\");
     PPH_STRING randomAlphaFileName = NULL;
     PPH_STRING randomAlphaDirectory;
     PH_STRINGREF randomAlphaStringRef;
@@ -2875,18 +2876,24 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 
     PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
     randomAlphaStringRef.Buffer = randomAlphaString;
-    randomAlphaStringRef.Length = RTL_NUMBER_OF(randomAlphaString) - sizeof(UNICODE_NULL);
+    randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
 
-    if (randomAlphaDirectory = PhExpandEnvironmentStrings(&randomDirectoryPath))
+    if (randomAlphaDirectory = PhExpandEnvironmentStrings(&randomAlphaDirectoryStringRef))
     {
         randomAlphaFileName = PhConcatStringRef2(&randomAlphaDirectory->sr, &randomAlphaStringRef);
         PhDereferenceObject(randomAlphaDirectory);
     }
 
-    if (PhIsNullOrEmptyString(randomAlphaFileName))
-        return NULL;
-    if (!NT_SUCCESS(PhCreateDirectory(randomAlphaFileName)))
-        return NULL;
+    if (randomAlphaFileName)
+    {
+        if (!NT_SUCCESS(PhCreateDirectory(randomAlphaFileName)))
+        {
+            PhReferenceObject(randomAlphaFileName);
+            return NULL;
+        }
+
+        PhMoveReference(&randomAlphaFileName, PhConcatStringRef2(&randomAlphaFileName->sr, &directorySeparator));
+    }
 
     return randomAlphaFileName;
 }
