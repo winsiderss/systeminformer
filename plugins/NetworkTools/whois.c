@@ -665,7 +665,7 @@ INT_PTR CALLBACK WhoisDlgProc(
                 RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
             }
 
-            SetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
+            PhSetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
 
             //SendMessage(context->RichEditHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
@@ -746,23 +746,22 @@ INT_PTR CALLBACK WhoisDlgProc(
             RichEditSetText(context->RichEditHandle, trimString->Buffer);
         }
         break;
-    case WM_TRACERT_UPDATE:
-        {
-            PPH_STRING windowText;
-
-            if (windowText = PhGetWindowText(context->WindowHandle))
-            {
-                PPH_STRING text;
-
-                text = PhConcatStrings2(windowText->Buffer, L" Finished.");
-                Static_SetText(context->WindowHandle, text->Buffer);
-
-                PhDereferenceObject(text);
-                PhDereferenceObject(windowText);
-
-            }
-        }
-        break;
+    //case WM_TRACERT_UPDATE:
+    //    {
+    //        PPH_STRING windowText;
+    //
+    //        if (windowText = PhGetWindowText(context->WindowHandle))
+    //        {
+    //            PPH_STRING text;
+    //
+    //            text = PhConcatStrings2(windowText->Buffer, L" Finished.");
+    //            PhSetWindowText(context->WindowHandle, text->Buffer);
+    //
+    //            PhDereferenceObject(text);
+    //            PhDereferenceObject(windowText);
+    //        }
+    //    }
+    //    break;
     case WM_CONTEXTMENU:
         {
             POINT point;

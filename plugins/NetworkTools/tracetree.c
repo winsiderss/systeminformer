@@ -86,25 +86,25 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping1)
 {
-    sortResult = uint64cmp(node1->PingList[0], node2->PingList[0]);
+    sortResult = singlecmp(node1->PingList[0], node2->PingList[0]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping2)
 {
-    sortResult = uint64cmp(node1->PingList[1], node2->PingList[1]);
+    sortResult = singlecmp(node1->PingList[1], node2->PingList[1]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping3)
 {
-    sortResult = uint64cmp(node1->PingList[2], node2->PingList[2]);
+    sortResult = singlecmp(node1->PingList[2], node2->PingList[2]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping4)
 {
-    sortResult = uint64cmp(node1->PingList[3], node2->PingList[3]);
+    sortResult = singlecmp(node1->PingList[3], node2->PingList[3]);
 }
 END_SORT_FUNCTION
 
@@ -269,13 +269,15 @@ VOID UpdateTracertNodePingText(
     if (Node->PingStatus[Index] == IP_SUCCESS ||
         Node->PingStatus[Index] == IP_TTL_EXPIRED_TRANSIT) // IP_HOP_LIMIT_EXCEEDED
     {
-        if (Node->PingList[Index])
+        if (Node->PingList[Index] != 0.0f)
         {
-            PhMoveReference(
-                &Node->PingString[Index], 
-                PhFormatString(L"%s ms", PhaFormatUInt64(Node->PingList[Index], TRUE)->Buffer)
-                );
+            PH_FORMAT format[2];
 
+            // %.2f ms
+            PhInitFormatF(&format[0], Node->PingList[Index], 2);
+            PhInitFormatS(&format[1], L" ms");
+
+            PhMoveReference(&Node->PingString[Index], PhFormat(format, RTL_NUMBER_OF(format), 0));
             CellText->Text = PhGetStringRef(Node->PingString[Index]);
         }
         else
@@ -379,7 +381,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             case TREE_COLUMN_ITEM_TTL:
                 {
                     PhMoveReference(&node->TtlString, PhFormatUInt64(node->TTL, TRUE));
-                    getCellText->Text = node->TtlString->sr;
+                    getCellText->Text = PhGetStringRef(node->TtlString);
                 }
                 break;
             case TREE_COLUMN_ITEM_PING1:
@@ -614,10 +616,10 @@ VOID InitializeTracertTree(
     TreeNew_SetCallback(Context->TreeNewHandle, TracertTreeNewCallback, Context);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, TRUE, L"TTL", 30, PH_ALIGN_LEFT, -2, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING1, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING1, DT_RIGHT);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING2, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING2, DT_RIGHT);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING3, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING3, DT_RIGHT);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING4, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING4, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING1, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING1, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING2, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING2, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING3, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING3, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING4, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING4, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_IPADDR, TRUE, L"IP Address", 120, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_IPADDR, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TRUE, L"Hostname", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_HOSTNAME, 0);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, TREE_COLUMN_ITEM_COUNTRY, TRUE, L"Country", 130, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
@@ -634,8 +636,6 @@ VOID DeleteTracertTree(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
-    TracertSaveSettingsTreeList(Context);
-
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         DestroyTracertNode(Context->NodeList->Items[i]);
