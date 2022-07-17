@@ -3721,6 +3721,53 @@ ULONG PhGetWindowsVersion(
     return WindowsVersion;
 }
 
+BOOLEAN PhGetKernelDriverSystemStart( // TODO: Move and rename (dmex)
+    VOID
+    )
+{
+    HANDLE keyHandle = NULL;
+    BOOLEAN installedAsService = FALSE;
+    PH_STRINGREF parametersKeyNameSr;
+    PH_FORMAT format[2];
+    SIZE_T returnLength;
+    WCHAR parametersKeyName[MAX_PATH];
+
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+    PhInitFormatS(&format[1], KPH_DEVICE_SHORT_NAME);
+
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        parametersKeyName,
+        sizeof(parametersKeyName),
+        &returnLength
+        ))
+    {
+        return FALSE;
+    }
+
+    parametersKeyNameSr.Buffer = parametersKeyName;
+    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &parametersKeyNameSr,
+        0
+        )))
+    {
+        if (PhQueryRegistryUlong(keyHandle, L"Start") == SERVICE_SYSTEM_START)
+        {
+            installedAsService = TRUE;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    return installedAsService;
+}
+
 PVOID PhPluginInvokeWindowCallback(
     _In_ PH_MAINWINDOW_CALLBACK_TYPE Event,
     _In_opt_ PVOID wparam,
