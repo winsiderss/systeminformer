@@ -1,21 +1,12 @@
 /*
- * Process Hacker Toolchain -
- *   project setup
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * This file is part of Process Hacker.
+ * This file is part of System Informer.
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Authors:
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     dmex
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <setup.h>
@@ -461,7 +452,7 @@ VOID SetupStartKph(
     {
         PPH_STRING clientPath;
 
-        clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+        clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
         if (PhDoesFileExistsWin32(PhGetString(clientPath)))
         {
@@ -498,7 +489,7 @@ BOOLEAN SetupUninstallKph(
     Context->SetupKphInstallRequired = SetupKphCheckInstallState();
 
     // Stop and uninstall the current installation.
-    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
     if (PhDoesFileExistsWin32(PhGetString(clientPath)))
     {
@@ -530,15 +521,15 @@ VOID SetupSetWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Process Hacker.lnk");
+    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
     static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
-    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\Process Hacker.lnk");
+    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
     PPH_STRING clientPathString;
     PPH_STRING string;
 
     if (string = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
     {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
         SetupCreateLink(
             PhGetString(string),
@@ -553,7 +544,7 @@ VOID SetupSetWindowsOptions(
 
     if (string = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
     {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
         SetupCreateLink(
             PhGetString(string),
@@ -581,8 +572,8 @@ VOID SetupSetWindowsOptions(
         PhDereferenceObject(string);
     }
 
-    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\Process Hacker.lnk"))
-    // PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\Process Hacker.lnk")
+    // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\System Informer.lnk"))
+    // PhGetKnownLocation(CSIDL_COMMON_DESKTOPDIRECTORY, L"\\System Informer.lnk")
     // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk")
 
     // Reset the settings file.
@@ -662,7 +653,7 @@ VOID SetupSetWindowsOptions(
     //        PPH_STRING value;
     //        UNICODE_STRING valueName;
     //
-    //        RtlInitUnicodeString(&valueName, L"Process Hacker");
+    //        RtlInitUnicodeString(&valueName, L"System Informer");
     //
     //        if (Context->SetupCreateMinimizedSystemStartup)
     //            value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\" -hide");
@@ -683,9 +674,9 @@ VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF desktopShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Process Hacker.lnk");
+    static PH_STRINGREF desktopShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
     static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
-    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\Process Hacker.lnk");
+    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
     PPH_STRING string;
     HANDLE keyHandle;
 
@@ -748,9 +739,9 @@ VOID SetupChangeNotifyShortcuts(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Process Hacker.lnk");
+    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
     static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
-    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\Process Hacker.lnk");
+    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
     PPH_STRING string;
 
     if (string = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
@@ -794,7 +785,7 @@ BOOLEAN SetupExecuteProcessHacker(
     if (PhIsNullOrEmptyString(Context->SetupInstallPath))
         return FALSE;
 
-    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\ProcessHacker.exe");
+    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
     if (PhDoesFileExistsWin32(clientPath->Buffer))
     {
@@ -1088,7 +1079,7 @@ BOOLEAN CheckProcessHackerInstalled(
 
     if (!PhIsNullOrEmptyString(installPath))
     {
-        exePath = SetupCreateFullPath(installPath, L"\\ProcessHacker.exe");
+        exePath = SetupCreateFullPath(installPath, L"\\SystemInformer.exe");
 
         // Check if the value has a valid file path.
         installed = PhDoesFileExistsWin32(PhGetString(exePath));

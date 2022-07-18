@@ -1,24 +1,13 @@
 /*
- * Process Hacker .NET Tools -
- *   CLR data access functions
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2011-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011-2015
+ *     dmex    2011-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "dn.h"
@@ -869,7 +858,7 @@ PPH_LIST DnProcessAppDomainListDeserialize(
     PVOID jsonArray;
     ULONG arrayLength;
 
-    if (!(jsonArray = PhCreateJsonParser(String->Buffer)))
+    if (!(jsonArray = PhCreateJsonParserEx(String, FALSE)))
         return NULL;
     if (PhGetJsonObjectType(jsonArray) != PH_JSON_OBJECT_TYPE_ARRAY)
         goto CleanupExit;
@@ -1404,39 +1393,29 @@ TryAppLocal:
                 &mscordacResourceBuffer
                 ))
             {
-                static PH_STRINGREF tempFilePath = PH_STRINGREF_INIT(L"%TEMP%\\");
                 NTSTATUS status;
-                HANDLE fileHandle = NULL;
-                LARGE_INTEGER allocationSize;
-                PPH_STRING tempFileName;
-                WCHAR alphaString[32] = L"";
+                HANDLE fileHandle;
+                PPH_STRING fileName;
+                LARGE_INTEGER fileSize;
+                IO_STATUS_BLOCK isb;
 
-                PhGenerateRandomAlphaString(alphaString, RTL_NUMBER_OF(alphaString));
-                tempFileName = PhExpandEnvironmentStrings(&tempFilePath);
-                tempFileName = PhConcatStringRefZ(&tempFileName->sr, alphaString);
+                fileName = PhGetTemporaryDirectoryRandomAlphaFileName();
+                fileSize.QuadPart = mscordacResourceLength;
 
-                if (NT_SUCCESS(status = PhCreateDirectory(tempFileName)))
+                status = PhCreateFileWin32Ex(
+                    &fileHandle,
+                    PhGetString(fileName),
+                    FILE_GENERIC_WRITE,
+                    &fileSize,
+                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    FILE_CREATE,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY,
+                    NULL
+                    );
+
+                if (NT_SUCCESS(status))
                 {
-                    PhMoveReference(&tempFileName, PhConcatStringRef2(&tempFileName->sr, &mscordaccoreNameSr));
-
-                    allocationSize.QuadPart = mscordacResourceLength;
-                    status = PhCreateFileWin32Ex(
-                        &fileHandle,
-                        PhGetString(tempFileName),
-                        FILE_GENERIC_WRITE,
-                        &allocationSize,
-                        FILE_ATTRIBUTE_NORMAL,
-                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                        FILE_CREATE,
-                        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY,
-                        NULL
-                        );
-                }
-
-                if (NT_SUCCESS(status) && fileHandle)
-                {
-                    IO_STATUS_BLOCK isb;
-
                     status = NtWriteFile(
                         fileHandle,
                         NULL,
@@ -1458,7 +1437,7 @@ TryAppLocal:
                     PPH_STRING signerName;
 
                     verifyResult = PhVerifyFile(
-                        PhGetString(tempFileName),
+                        PhGetString(fileName),
                         &signerName
                         );
 
@@ -1467,18 +1446,18 @@ TryAppLocal:
                         signerName && PhEqualString2(signerName, L"Microsoft Corporation", TRUE)
                         )
                     {
-                        mscordacBaseAddress = PhLoadLibrary(PhGetString(tempFileName));
+                        mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
                     }
 
                     if (mscordacBaseAddress)
-                        PhSetReference(&dataTarget->DaccorePath, tempFileName);
+                        PhSetReference(&dataTarget->DaccorePath, fileName);
                     else
-                        PhDeleteFileWin32(PhGetString(tempFileName));
+                        PhDeleteFileWin32(PhGetString(fileName));
 
                     PhClearReference(&signerName);
                 }
 
-                PhClearReference(&tempFileName);
+                PhClearReference(&fileName);
             }
 
             PhFreeLibraryAsImageResource(imageBaseAddress);

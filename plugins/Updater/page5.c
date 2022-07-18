@@ -1,23 +1,12 @@
 /*
- * Process Hacker Plugins -
- *   Update Checker Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2016-2019 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2016-202
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "updater.h"
@@ -29,51 +18,22 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     { IDYES, L"Install" }
 };
 
-BOOLEAN UpdaterIsKphInstallRequired(
-    VOID
-    )
-{
-    static PH_STRINGREF kph3ServiceKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KProcessHacker3");
-    BOOLEAN kphInstallRequired = FALSE;
-    HANDLE runKeyHandle;
-
-    if (NT_SUCCESS(PhOpenKey(
-        &runKeyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &kph3ServiceKeyName,
-        0
-        )))
-    {
-        // Make sure we re-install the driver when KPH was installed as a service. 
-        if (PhQueryRegistryUlong(runKeyHandle, L"Start") == SERVICE_SYSTEM_START)
-        {
-            kphInstallRequired = TRUE;
-        }
-
-        NtClose(runKeyHandle);
-    }
-
-    return kphInstallRequired;
-}
-
 BOOLEAN UpdaterCheckApplicationDirectory(
     VOID
     )
 {
+    static PH_STRINGREF fileNameStringRef = PH_STRINGREF_INIT(L"\\test");
     HANDLE fileHandle;
-    PPH_STRING directory;
-    PPH_STRING file;
+    PPH_STRING fileName;
 
-    if (UpdaterIsKphInstallRequired())
+    fileName = PhGetApplicationDirectoryFileNameWin32(&fileNameStringRef);
+
+    if (PhIsNullOrEmptyString(fileName))
         return FALSE;
-
-    directory = PhGetApplicationDirectory();
-    file = PhConcatStrings(2, PhGetStringOrEmpty(directory), L"\\processhacker.update");
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
-        PhGetString(file),
+        PhGetString(fileName),
         FILE_GENERIC_WRITE | DELETE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -81,15 +41,12 @@ BOOLEAN UpdaterCheckApplicationDirectory(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
         )))
     {
-        PhDereferenceObject(file);
-        PhDereferenceObject(directory);
-
+        PhDereferenceObject(fileName);
         NtClose(fileHandle);
         return TRUE;
     }
 
-    PhDereferenceObject(file);
-    PhDereferenceObject(directory);
+    PhDereferenceObject(fileName);
     return FALSE;
 }
 
@@ -198,7 +155,7 @@ VOID ShowUpdateInstallDialog(
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"Ready to install update?";
     config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
 
@@ -236,7 +193,7 @@ PPH_STRING UpdaterGetLatestVersionText(
     else
     {
         version = PhFormatString(
-            L"Process Hacker %lu.%lu.%lu",
+            L"System Informer %lu.%lu.%lu",
             majorVersion,
             minorVersion,
             revisionVersion
@@ -270,7 +227,7 @@ VOID ShowLatestVersionDialog(
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"You're running the latest version.";
     config.pszContent = PH_AUTO_T(PH_STRING, UpdaterGetLatestVersionText(Context))->Buffer;
 
@@ -292,7 +249,7 @@ VOID ShowNewerVersionDialog(
     config.pfCallback = FinalTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"You're running a pre-release build.";
     config.pszContent = PhaFormatString(
         L"Pre-release build: v%s\r\n",
@@ -317,7 +274,7 @@ VOID ShowUpdateFailedDialog(
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON | TDCBF_RETRY_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE);
 
-    config.pszWindowTitle = L"Process Hacker - Updater";
+    config.pszWindowTitle = L"System Informer - Updater";
     config.pszMainInstruction = L"Error downloading the update.";
 
     if (SignatureFailed)

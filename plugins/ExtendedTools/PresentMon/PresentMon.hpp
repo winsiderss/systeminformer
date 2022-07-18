@@ -44,11 +44,11 @@ struct SwapChainData
 struct ProcessInfo
 {
     std::unordered_map<uint64_t, SwapChainData> mSwapChain;
-    HANDLE ProcessHandle;
+    PPH_PROCESS_ITEM ProcessItem;
 };
 
 // ConsumerThread.cpp:
-VOID StartConsumerThread(_In_ TRACEHANDLE traceHandle);
+VOID StartConsumerThread(_In_ TRACEHANDLE TraceHandle);
 VOID WaitForConsumerThreadToExit(VOID);
 
 // OutputThread.cpp:
@@ -56,7 +56,7 @@ VOID StartOutputThread(VOID);
 VOID StopOutputThread(VOID);
 
 // TraceSession.cpp:
-VOID DequeueAnalyzedInfo(std::vector<std::shared_ptr<PresentEvent>>* presentEvents, std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents);
+VOID DequeueAnalyzedInfo(std::vector<std::shared_ptr<PresentEvent>>* presentEvents); // std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents
 DOUBLE QpcDeltaToSeconds(_In_ ULONGLONG qpcDelta);
 ULONGLONG SecondsDeltaToQpc(_In_ DOUBLE secondsDelta);
 DOUBLE QpcToSeconds(_In_ ULONGLONG qpc);

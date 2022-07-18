@@ -36,6 +36,9 @@
     <ClCompile Include="recovery.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="svcpnp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extsrv.h">

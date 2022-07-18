@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2018-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2018-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -26,7 +15,6 @@ typedef struct _PVP_PE_STREAMS_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
 } PVP_PE_STREAMS_CONTEXT, *PPVP_PE_STREAMS_CONTEXT;
@@ -198,6 +186,8 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HIMAGELIST listViewImageList;
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -214,8 +204,8 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (context->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
 
             PvpPeEnumerateFileStreams(context->ListViewHandle);
 
@@ -225,12 +215,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(L"ImageStreamsListViewColumns", context->ListViewHandle);
-
-            if (context->ListViewImageList)
-                PhImageListDestroy(context->ListViewImageList);
-
             PhDeleteLayoutManager(&context->LayoutManager);
-
             PhFree(context);
         }
         break;
@@ -301,6 +286,17 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
 
                 PhFree(listviewItems);
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

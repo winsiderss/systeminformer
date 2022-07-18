@@ -34,7 +34,9 @@ extern ULONG WindowsVersion;
 #define WINDOWS_10_20H1 109 // May, 2020
 #define WINDOWS_10_20H2 110 // October, 2020
 #define WINDOWS_10_21H1 111 // May, 2021
-#define WINDOWS_11 112 // October, 2021
+#define WINDOWS_10_21H2 112 // November, 2021
+#define WINDOWS_11 113 // October, 2021
+#define WINDOWS_11_22H1 114 // February, 2022
 #define WINDOWS_NEW ULONG_MAX
 
 // Debugging
@@ -100,6 +102,18 @@ PhExitApplication(
     ExitProcess(Status);
 #endif
 }
+
+// Processor group support (dmex)
+
+typedef struct _PH_SYSTEM_PROCESSOR_INFORMATION
+{
+    BOOLEAN SingleProcessorGroup;
+    USHORT NumberOfProcessors;
+    USHORT NumberOfProcessorGroups;
+    PUSHORT ActiveProcessorCount;
+} PH_SYSTEM_PROCESSOR_INFORMATION, *PPH_SYSTEM_PROCESSOR_INFORMATION;
+
+PHLIBAPI extern PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation;
 
 #ifdef __cplusplus
 }

@@ -71,7 +71,7 @@ struct json_object_iterator json_object_iter_begin(struct json_object *obj)
 
     /// @note For a pair-less Object, head is NULL, which matches our
     ///       definition of the "end" iterator
-    iter.opaque_ = pTable->head;
+    iter.opaque_ = lh_table_head(pTable);
     return iter;
 }
 
@@ -98,7 +98,7 @@ void json_object_iter_next(struct json_object_iterator *iter)
     JASSERT(NULL != iter);
     JASSERT(kObjectEndIterValue != iter->opaque_);
 
-    iter->opaque_ = ((const struct lh_entry *)iter->opaque_)->next;
+    iter->opaque_ = lh_entry_next(((const struct lh_entry *)iter->opaque_));
 }
 
 /**

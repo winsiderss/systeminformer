@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   LXSS support helpers
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2019-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2019-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <ph.h>
@@ -26,11 +15,10 @@
 BOOLEAN NTAPI PhpWslDistributionNamesCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
-    if (Context)
-        PhAddItemList(Context, PhCreateStringEx(Information->Name, Information->NameLength));
+    PhAddItemList(Context, PhCreateStringEx(Information->Name, Information->NameLength));
     return TRUE;
 }
 
@@ -199,11 +187,32 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
         &lxssFileName->sr
         ));
 
-    if (PhCreateProcessLxss(
+    if (!PhCreateProcessLxss(
         lxssDistroName,
         lxssCommandLine,
         &lxssCommandResult
         ))
+    {
+        // The dpkg metadata for some packages doesn't contain /usr for
+        // /usr/bin/ paths. Try lookup the package again without /usr. (dmex)
+        if (PhStartsWithString2(lxssFileName, L"/usr", TRUE))
+        {
+            PhSkipStringRef(&lxssFileName->sr, 4 * sizeof(WCHAR));
+
+            PhMoveReference(&lxssCommandLine, PhConcatStringRef2(
+                &lxssDpkgCommandLine,
+                &lxssFileName->sr
+                ));
+    
+            PhCreateProcessLxss(
+                lxssDistroName,
+                lxssCommandLine,
+                &lxssCommandResult
+                );
+        }
+    }
+
+    if (!PhIsNullOrEmptyString(lxssCommandResult))
     {
         PH_STRINGREF remainingPart;
         PH_STRINGREF packagePart;
@@ -278,15 +287,15 @@ BOOLEAN PhCreateProcessLxss(
     _Out_ PPH_STRING *Result
     )
 {
-    NTSTATUS status;
-    PPH_STRING lxssOutputString;
+    BOOLEAN result = FALSE;
+    PPH_STRING lxssOutputString = NULL;
     PPH_STRING lxssCommandLine;
     PPH_STRING systemDirectory;
     HANDLE processHandle;
-    HANDLE outputReadHandle, outputWriteHandle;
-    HANDLE inputReadHandle, inputWriteHandle;
+    HANDLE outputReadHandle = NULL, outputWriteHandle = NULL;
+    HANDLE inputReadHandle = NULL, inputWriteHandle = NULL;
+    STARTUPINFOEX startupInfo = { 0 };
     PROCESS_BASIC_INFORMATION basicInfo;
-    STARTUPINFO startupInfo;
     PH_FORMAT format[4];
 
     // "wsl.exe -u root -d %s -e %s"
@@ -313,91 +322,118 @@ BOOLEAN PhCreateProcessLxss(
         PhDereferenceObject(systemDirectory);
     }
 
-    status = PhCreatePipeEx(
+    if (!NT_SUCCESS(PhCreatePipeEx(
         &outputReadHandle,
         &outputWriteHandle,
         TRUE,
         NULL
-        );
+        )))
+    {
+        goto CleanupExit;
+    }
 
-    if (!NT_SUCCESS(status))
-        return FALSE;
-
-    status = PhCreatePipeEx(
+    if (!NT_SUCCESS(PhCreatePipeEx(
         &inputReadHandle,
         &inputWriteHandle,
         TRUE,
         NULL
-        );
-
-    if (!NT_SUCCESS(status))
+        )))
     {
-        NtClose(outputWriteHandle);
-        NtClose(outputReadHandle);
-        return FALSE;
+        goto CleanupExit;
     }
 
-    memset(&startupInfo, 0, sizeof(STARTUPINFO));
-    startupInfo.cb = sizeof(STARTUPINFO);
-    startupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_FORCEOFFFEEDBACK | STARTF_USESTDHANDLES;
-    startupInfo.wShowWindow = SW_HIDE;
-    startupInfo.hStdInput = inputReadHandle;
-    startupInfo.hStdOutput = outputWriteHandle;
-    startupInfo.hStdError = outputWriteHandle;
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_FORCEOFFFEEDBACK | STARTF_USESTDHANDLES;
+    startupInfo.StartupInfo.wShowWindow = SW_HIDE;
+    startupInfo.StartupInfo.hStdInput = inputReadHandle;
+    startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
+    startupInfo.StartupInfo.hStdError = outputWriteHandle;
 
-    status = PhCreateProcessWin32Ex(
+#if (PHNT_VERSION >= PHNT_WIN7)
+    {
+        SIZE_T attributeListLength = 0;
+
+        if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+            goto CleanupExit;
+
+        startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+        if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+            goto CleanupExit;
+
+        if (!UpdateProcThreadAttribute(
+            startupInfo.lpAttributeList,
+            0,
+            PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+            &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
+            sizeof(HANDLE[2]),
+            NULL,
+            NULL
+            ))
+        {
+            goto CleanupExit;
+        }
+    }
+#endif
+
+    if (!NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
         PhGetString(lxssCommandLine),
         NULL,
         NULL,
-        &startupInfo,
-        PH_CREATE_PROCESS_INHERIT_HANDLES | PH_CREATE_PROCESS_NEW_CONSOLE | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE,
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_INHERIT_HANDLES | PH_CREATE_PROCESS_NEW_CONSOLE |
+        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
         NULL,
         NULL,
         &processHandle,
         NULL
-        );
-
-    if (!NT_SUCCESS(status))
+        )))
     {
-        NtClose(outputWriteHandle);
-        NtClose(outputReadHandle);
-        NtClose(inputReadHandle);
-        NtClose(inputWriteHandle);
-        return FALSE;
+        goto CleanupExit;
     }
 
-    // Note: Close the write handles or the child process
-    // won't exit and ReadFile will block indefinitely. (dmex)
-    NtClose(inputReadHandle);
-    NtClose(outputWriteHandle);
+    // Close the handles. (dmex)
+    NtClose(inputReadHandle); inputReadHandle = NULL;
+    NtClose(outputWriteHandle); outputWriteHandle = NULL;
 
     // Read the pipe data. (dmex)
     lxssOutputString = PhGetFileText(outputReadHandle, TRUE);
 
     // Get the exit code after we finish reading the data from the pipe. (dmex)
-    if (NT_SUCCESS(status = PhGetProcessBasicInformation(processHandle, &basicInfo)))
+    if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
     {
-        status = basicInfo.ExitStatus;
+        if (basicInfo.ExitStatus == 0)
+        {
+            *Result = PhReferenceObject(lxssOutputString);
+            result = TRUE;
+        }
     }
 
-    // Note: Don't use NTSTATUS now that we have the lxss exit code. (dmex)
-    if (status == 0)
-    {
-        if (Result) *Result = lxssOutputString;
-        if (processHandle) NtClose(processHandle);
-        if (outputReadHandle) NtClose(outputReadHandle);
-        if (inputWriteHandle) NtClose(inputWriteHandle);
+    NtClose(processHandle);
 
-        return TRUE;
-    }
-    else
-    {
-        if (lxssOutputString) PhDereferenceObject(lxssOutputString);
-        if (processHandle) NtClose(processHandle);
-        if (outputReadHandle) NtClose(outputReadHandle);
-        if (inputWriteHandle) NtClose(inputWriteHandle);
+CleanupExit:
 
-        return FALSE;
+    if (lxssOutputString)
+        PhDereferenceObject(lxssOutputString);
+    if (lxssCommandLine)
+        PhDereferenceObject(lxssCommandLine);
+
+    if (outputWriteHandle)
+        NtClose(outputWriteHandle);
+    if (outputReadHandle)
+        NtClose(outputReadHandle);
+    if (inputReadHandle)
+        NtClose(inputReadHandle);
+    if (inputWriteHandle)
+        NtClose(inputWriteHandle);
+
+    if (startupInfo.lpAttributeList)
+    {
+        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        PhFree(startupInfo.lpAttributeList);
     }
+
+    return result;
 }

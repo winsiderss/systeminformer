@@ -1,24 +1,13 @@
 /*
- * Process Hacker ToolStatus -
- *   main program
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2011-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2016
+ *     dmex    2011-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "toolstatus.h"
@@ -45,6 +34,9 @@ ULONG ProcessesUpdatedCount = 0;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
 BOOLEAN EnableThemeSupport = FALSE;
+BOOLEAN IsWindowSizeMove = FALSE;
+BOOLEAN IsWindowMinimized = FALSE;
+BOOLEAN IsWindowMaximized = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
@@ -511,6 +503,29 @@ VOID NTAPI LayoutPaddingCallback(
     }
 }
 
+BOOLEAN CheckRebarLastRedrawMessage(
+    VOID
+    )
+{
+    static LARGE_INTEGER lastUpdateTimeTicks = { 0 };
+    LARGE_INTEGER currentUpdateTimeTicks;
+    LARGE_INTEGER currentUpdateTimeFrequency;
+
+    PhQueryPerformanceCounter(&currentUpdateTimeTicks, &currentUpdateTimeFrequency);
+
+    if (lastUpdateTimeTicks.QuadPart == 0)
+        lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
+
+    if (((currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks.QuadPart) / currentUpdateTimeFrequency.QuadPart) > 1)
+    {
+        lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
+        return TRUE;
+    }
+
+    lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
+    return FALSE;
+}
+
 BOOLEAN NTAPI MessageLoopFilter(
     _In_ PMSG Message,
     _In_ PVOID Context
@@ -848,8 +863,14 @@ LRESULT CALLBACK MainWndSubclassProc(
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), ULONG_MAX);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), ULONG_MAX);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART_UPDATE, L"Update and restart", NULL, NULL), ULONG_MAX);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN_UPDATE, L"Update and shut down", NULL, NULL), ULONG_MAX);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), ULONG_MAX);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, PHAPP_ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
+                                        PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
                                         PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
 
@@ -971,14 +992,21 @@ LRESULT CALLBACK MainWndSubclassProc(
                             break;
 
                         menu = PhCreateEMenu();
+
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOCK, L"&Lock", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_LOGOFF, L"Log o&ff", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SLEEP, L"&Sleep", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_HIBERNATE, L"&Hibernate", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART_UPDATE, L"Update and restart", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN_UPDATE, L"Update and shut down", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTART, L"R&estart", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTADVOPTIONS, L"Restart to advanced options", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_RESTARTBOOTOPTIONS, L"Restart to boot &options", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, PHAPP_ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWN, L"Shu&t down", NULL, NULL), ULONG_MAX);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_ID_COMPUTER_SHUTDOWNHYBRID, L"H&ybrid shut down", NULL, NULL), ULONG_MAX);
 
@@ -1258,36 +1286,104 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_SHOWWINDOW:
         {
-            UpdateGraphs = (BOOLEAN)wParam;
+            UpdateGraphs = !!(BOOL)wParam;
+        }
+        break;
+    case WM_ENTERSIZEMOVE:
+        {
+            IsWindowSizeMove = TRUE;
+        }
+        break;
+    case WM_EXITSIZEMOVE:
+        {
+            IsWindowSizeMove = FALSE;
+        }
+        break;
+    case WM_WINDOWPOSCHANGED:
+        {
+            if (IsWindowSizeMove)
+                break;
+
+            // Note: The toolbar graphs sometimes stop updating after restoring
+            // the window because WindowsNT doesn't always send a SC_RESTORE message...
+            // The below code is an attempt at working around this issue. (dmex)
+
+            BOOLEAN minimized = !!IsMinimized(hWnd);
+            BOOLEAN maximized = !!IsMaximized(hWnd);
+
+            if (IsWindowMinimized != minimized)
+            {
+                IsWindowMinimized = minimized;
+                // Make sure graph drawing is enabled when not minimized. (dmex)
+                UpdateGraphs = !minimized;
+
+                if (UpdateGraphs && RebarHandle && ToolbarGraphsEnabled())// && CheckRebarLastRedrawMessage())
+                {
+                    // See notes in SC_RESTORE (dmex)
+                    ToolbarUpdateGraphVisualStates();
+                    SetWindowPos(RebarHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
+                }
+            }
+
+            if (IsWindowMaximized != maximized)
+            {
+                IsWindowMaximized = minimized;
+
+                if (UpdateGraphs && RebarHandle && ToolbarGraphsEnabled())// && CheckRebarLastRedrawMessage())
+                {
+                    // See notes in SC_RESTORE (dmex)
+                    ToolbarUpdateGraphVisualStates();
+                    SetWindowPos(RebarHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
+                }
+            }
         }
         break;
     case WM_SYSCOMMAND:
         {
-            if ((wParam & 0xFFF0) == SC_KEYMENU && lParam == 0)
-            {
-                if (!ToolStatusConfig.AutoHideMenu)
-                    break;
+            UINT command = (wParam & 0xFFF0);
 
-                if (GetMenu(hWnd))
-                {
-                    SetMenu(hWnd, NULL);
-                }
-                else
-                {
-                    SetMenu(hWnd, MainMenu);
-                    DrawMenuBar(hWnd);
-                }
-            }
-            else if ((wParam & 0xFFF0) == SC_MINIMIZE)
+            switch (command)
             {
-                UpdateGraphs = FALSE;
-            }
-            else if ((wParam & 0xFFF0) == SC_RESTORE)
-            {
-                UpdateGraphs = TRUE;
+            case SC_KEYMENU:
+                {
+                    if (lParam != 0)
+                        break;
 
-                // TODO: The graphs don't redraw when updating is disabled (e.g. F6) and you maximize then restore the main window.
-                RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+                    if (!ToolStatusConfig.AutoHideMenu)
+                        break;
+
+                    if (GetMenu(hWnd))
+                    {
+                        SetMenu(hWnd, NULL);
+                    }
+                    else
+                    {
+                        SetMenu(hWnd, MainMenu);
+                        DrawMenuBar(hWnd);
+                    }
+                }
+                break;
+            case SC_MINIMIZE:
+                {
+                    UpdateGraphs = FALSE;
+                }
+                break;
+            case SC_RESTORE:
+                {
+                    UpdateGraphs = TRUE;
+
+                    //if (RebarHandle && CheckRebarLastRedrawMessage())
+                    //{
+                    //    ToolbarUpdateGraphVisualStates();
+                    //
+                    //    // NOTE: Maximizing and restoring the window when updating is paused will cause the graphs to leave
+                    //    // artiacts on the window because the rebar control doesn't redraw... so we'll force the rebar to redraw.
+                    //    // TODO: Figure out the exact SetWindowPos flags required. (dmex)
+                    //    SetWindowPos(RebarHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING);
+                    //    //RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+                    //}
+                }
+                break;
             }
         }
         break;
@@ -1647,6 +1743,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_TOOLBARDISPLAYSTYLE, L"1" },
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
                 { IntegerSettingType, SETTING_NAME_TASKBARDISPLAYSTYLE, L"0" },
+                { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
@@ -1661,7 +1758,6 @@ LOGICAL DllMain(
             info->DisplayName = L"Toolbar and Status Bar";
             info->Author = L"dmex, wj32";
             info->Description = L"Adds a Toolbar, Status Bar and Search box.\r\n\r\nModern Toolbar icons by http://www.icons8.com";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1119";
             info->Interface = &PluginInterface;
 
             PhRegisterCallback(

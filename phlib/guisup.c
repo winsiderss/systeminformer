@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   GUI support functions
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2009-2016
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <ph.h>
@@ -29,6 +18,7 @@
 #include <fastlock.h>
 #include <guisupp.h>
 
+#include <math.h>
 #include <commoncontrols.h>
 #include <shellapi.h>
 #include <uxtheme.h>
@@ -61,7 +51,6 @@ HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
-_IsImmersiveProcess IsImmersiveProcess_I = NULL;
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -100,11 +89,6 @@ VOID PhGuiSupportInitialization(
     {
         PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
         ReleaseDC(NULL, hdc);
-    }
-
-    if (WindowsVersion >= WINDOWS_8)
-    {
-        IsImmersiveProcess_I = PhGetDllProcedureAddress(L"user32.dll", "IsImmersiveProcess", 0);
     }
 }
 
@@ -530,7 +514,7 @@ PPH_STRING PhGetListBoxString(
     if (length == LB_ERR)
         return NULL;
     if (length == 0)
-        return PhReferenceEmptyString();
+        return NULL;
 
     string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
 
@@ -1020,6 +1004,37 @@ HWND PhCreateDialog(
         );
 
     return dialogHandle;
+}
+
+HWND PhCreateWindow(
+    _In_ ULONG ExStyle,
+    _In_opt_ PCWSTR ClassName,
+    _In_opt_ PCWSTR WindowName,
+    _In_ ULONG Style,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ INT Width,
+    _In_ INT Height,
+    _In_opt_ HWND ParentWindow,
+    _In_opt_ HMENU MenuHandle,
+    _In_opt_ PVOID InstanceHandle,
+    _In_opt_ PVOID Parameter
+    )
+{
+    return CreateWindowEx(
+        ExStyle,
+        ClassName,
+        WindowName,
+        Style,
+        X,
+        Y,
+        Width,
+        Height,
+        ParentWindow,
+        MenuHandle,
+        InstanceHandle,
+        Parameter
+        );
 }
 
 BOOLEAN PhModalPropertySheet(
@@ -1556,8 +1571,8 @@ HWND PhGetProcessMainWindowEx(
     else
         PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessId);
 
-    if (processHandle && WindowsVersion >= WINDOWS_8 && IsImmersiveProcess_I)
-        context.IsImmersive = !!IsImmersiveProcess_I(processHandle);
+    if (processHandle && WindowsVersion >= WINDOWS_8)
+        context.IsImmersive = PhIsImmersiveProcess(processHandle);
 
     PhEnumWindows(PhpGetProcessMainWindowEnumWindowsProc, &context);
     //PhEnumChildWindows(NULL, 0x800, PhpGetProcessMainWindowEnumWindowsProc, &context);
@@ -1769,6 +1784,93 @@ HANDLE PhGetGlobalTimerQueue(
     return PhTimerQueueHandle;
 }
 
+BOOLEAN PhIsImmersiveProcess(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* IsImmersiveProcess_I)(
+        _In_ HANDLE ProcessHandle
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_8)
+            IsImmersiveProcess_I = PhGetDllProcedureAddress(L"user32.dll", "IsImmersiveProcess", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!IsImmersiveProcess_I)
+        return FALSE;
+
+    return !!IsImmersiveProcess_I(ProcessHandle);
+}
+
+_Success_(return)
+BOOLEAN PhGetProcessDpiAwareness(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ProcessDpiAwareness
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *GetProcessDpiAwarenessInternal_I)(
+        _In_ HANDLE hprocess,
+        _Out_ ULONG *value
+        );
+    ULONG dpiAwareness = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        GetProcessDpiAwarenessInternal_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!GetProcessDpiAwarenessInternal_I)
+        return FALSE;
+
+    if (GetProcessDpiAwarenessInternal_I(ProcessHandle, &dpiAwareness))
+    {
+        *ProcessDpiAwareness = dpiAwareness;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
+BOOLEAN PhGetSendMessageReceiver(
+    _In_ HANDLE ThreadId,
+    _Out_ HWND *WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HWND (WINAPI *GetSendMessageReceiver_I)(
+        _In_ HANDLE ThreadId
+        );
+    HWND windowHandle;
+
+    // GetSendMessageReceiver is an undocumented function exported by
+    // user32.dll. It retrieves the handle of the window which a thread
+    // is sending a message to. (wj32)
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        GetSendMessageReceiver_I = PhGetDllProcedureAddress(L"user32.dll", "GetSendMessageReceiver", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!GetSendMessageReceiver_I)
+        return FALSE;
+
+    if (windowHandle = GetSendMessageReceiver_I(ThreadId)) // && GetLastError() == ERROR_SUCCESS
+    {
+        *WindowHandle = windowHandle;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 // rev from ExtractIconExW
 _Success_(return)
 BOOLEAN PhExtractIcon(
@@ -1914,6 +2016,12 @@ BOOLEAN PhLoadIconFromResourceDirectory(
     return TRUE;
 }
 
+#ifndef MAKEFOURCC
+#define MAKEFOURCC(ch0, ch1, ch2, ch3) \
+ ((ULONG)(BYTE)(ch0) | ((ULONG)(BYTE)(ch1) << 8) | \
+ ((ULONG)(BYTE)(ch2) << 16) | ((ULONG)(BYTE)(ch3) << 24 ))
+#endif
+
 // https://docs.microsoft.com/en-us/windows/win32/menurc/newheader
 // One or more RESDIR structures immediately follow the NEWHEADER structure.
 typedef struct _NEWHEADER
@@ -1967,7 +2075,7 @@ HICON PhCreateIconFromResourceDirectory(
         )
     {
         // CreateIconFromResourceEx seems to know what formats are supported so these
-        // size/format checks are probably redundant and not required?
+        // size/format checks are probably redundant and not required? (dmex)
         return NULL;
     }
 
@@ -2006,8 +2114,8 @@ PPH_STRING PhpGetImageMunResourcePath(
     }
 
     // 19H1 and above relocated binary resources into the \SystemResources\ directory.
-    // This is implemented as a hook inside EnumResouceNamesExW:
-    // PrivateExtractIconExW -> EnumResouceNamesExW -> GetMunResourceModuleForEnumIfExist.
+    // This is implemented as a hook inside EnumResourceNamesExW:
+    // PrivateExtractIconExW -> EnumResourceNamesExW -> GetMunResourceModuleForEnumIfExist.
     //
     // GetMunResourceModuleForEnumIfExist trims the path and inserts '\SystemResources\' and '.mun'
     // to locate the binary with the icon resources. For example:
@@ -2349,6 +2457,19 @@ HICON PhImageListGetIcon(
     return iconhandle;
 }
 
+BOOLEAN PhImageListGetIconSize(
+    _In_ HIMAGELIST ImageListHandle,
+    _Out_ PINT cx,
+    _Out_ PINT cy
+    )
+{
+    return SUCCEEDED(IImageList2_GetIconSize(
+        (IImageList2*)ImageListHandle,
+        cx,
+        cy
+        ));
+}
+
 BOOLEAN PhImageListReplace(
     _In_ HIMAGELIST ImageListHandle,
     _In_ UINT Index,
@@ -2370,7 +2491,8 @@ BOOLEAN PhImageListDrawIcon(
     _In_ HDC Hdc,
     _In_ INT x,
     _In_ INT y,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ BOOLEAN Disabled
     )
 {
     return PhImageListDrawEx(
@@ -2383,7 +2505,8 @@ BOOLEAN PhImageListDrawIcon(
         0,
         CLR_DEFAULT,
         CLR_DEFAULT,
-        Style
+        Style,
+        Disabled ? ILS_SATURATE : ILS_NORMAL
         );
 }
 
@@ -2397,7 +2520,8 @@ BOOLEAN PhImageListDrawEx(
     _In_ INT dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ DWORD State
     )
 {
     IMAGELISTDRAWPARAMS imagelistDraw;
@@ -2414,6 +2538,7 @@ BOOLEAN PhImageListDrawEx(
     imagelistDraw.rgbBk = BackColor;
     imagelistDraw.rgbFg = ForeColor;
     imagelistDraw.fStyle = Style;
+    imagelistDraw.fState = State;
 
     return SUCCEEDED(IImageList2_Draw((IImageList2*)ImageListHandle, &imagelistDraw));
 }
@@ -2478,7 +2603,17 @@ VOID PhCustomDrawTreeTimeLine(
         createTime.QuadPart = systemTime.QuadPart - CreateTime->QuadPart;
     }
 
+    // Note: Time is 8 bytes, Float is 4 bytes. Use DOUBLE type at some stage. (dmex)
     percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+
+    if (!(Flags & PH_DRAW_TIMELINE_OVERFLOW))
+    {
+        // Prevent overflow from changing the system time to an earlier date. (dmex)
+        if (fabsf(percent) > 100.f)
+            percent = 100.f;
+        if (fabsf(percent) < 0.0005f)
+            percent = 0.f;
+    }
 
     if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
         FillRect(Hdc, &rect, PhMenuBackgroundBrush);
@@ -2511,9 +2646,15 @@ VOID PhCustomDrawTreeTimeLine(
         previousBrush = SelectBrush(Hdc, GetStockBrush(DC_BRUSH));
     }
 
-    // Prevent overflow from changing the system time to an earlier date. (dmex)
-    if (percent > 100.f) percent = 100.f;
-    // TODO: This still loses a small fraction of precision compared to PE here causing a 1px difference. (dmex)
+    if (Flags & PH_DRAW_TIMELINE_OVERFLOW)
+    {
+        // Prevent overflow from changing the system time to an earlier date. (dmex)
+        if (fabsf(percent) > 100.f)
+            percent = 100.f;
+        if (fabsf(percent) < 0.0005f)
+            percent = 0.f;
+    }
+
     //rect.right = ((LONG)(rect.left + ((rect.right - rect.left) * (LONG)percent) / 100));
     //rect.left = ((LONG)(rect.right + ((rect.left - rect.right) * (LONG)percent) / 100));
     rect.left = (LONG)(rect.right + ((rect.left - rect.right) * percent / 100));

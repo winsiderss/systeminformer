@@ -1,4 +1,125 @@
 
+0.16 (up to commit 66dcdf5, 2022-04-13)
+========================================
+
+Deprecated and removed features:
+--------------------------------
+* JSON_C_OBJECT_KEY_IS_CONSTANT is deprecated in favor of
+  JSON_C_OBJECT_ADD_CONSTANT_KEY
+* Direct access to lh_table and lh_entry structure members is deprecated.  
+  Use access functions instead, lh_table_head(), lh_entry_next(), etc...
+* Drop REFCOUNT_DEBUG code.
+
+New features
+------------
+* The 0.16 release introduces no new features
+
+Build changes
+-------------
+* Add a DISABLE_EXTRA_LIBS option to skip using libbsd
+* Add a DISABLE_JSON_POINTER option to skip compiling in json_pointer support.
+
+Significant changes and bug fixes
+---------------------------------
+* Cap string length at INT_MAX to avoid various issues with very long strings.
+* json_object_deep_copy: fix deep copy of strings containing '\0'
+* Fix read past end of buffer in the "json_parse" command
+* Avoid out of memory accesses in the locally provided vasprintf() function
+  (for those platforms that use it)
+* Handle allocation failure in json_tokener_new_ex
+* Fix use-after-free in json_tokener_new_ex() in the event of printbuf_new() returning NULL
+* printbuf_memset(): set gaps to zero - areas within the print buffer which
+  have not been initialized by using printbuf_memset
+* printbuf: return -1 on invalid arguments (len < 0 or total buffer > INT_MAX)
+* sprintbuf(): propagate printbuf_memappend errors back to the caller
+
+Optimizations
+--------------
+* Speed up parsing by replacing ctype functions with simplified, faster 
+  non-locale-sensitive ones in json_tokener and json_object_to_json_string.
+* Neither vertical tab nor formfeed are considered whitespace per the JSON spec
+* json_object: speed up creation of objects, calloc() -> malloc() + set fields
+* Avoid needless extra strlen() call in json_c_shallow_copy_default() and
+  json_object_equal() when the object is known to be a json_type_string.
+
+Other changes
+-------------
+* Validate size arguments in arraylist functions.
+* Use getrandom() if available; with GRND_NONBLOCK to allow use of json-c
+  very early during boot, such as part of cryptsetup.
+* Use arc4random() if it's available.
+* random_seed: on error, continue to next method instead of exiting the process
+* Close file when unable to read from /dev/urandom in get_dev_random_seed()
+
+***
+
+0.15 (up to commit 870965e, 2020/07/26)
+========================================
+
+Deprecated and removed features:
+--------------------------------
+* Deprecate `array_list_new()` in favor of `array_list_new2()`
+* Remove the THIS_FUNCTION_IS_DEPRECATED define.
+* Remove config.h.win32
+
+New features
+------------
+* Add a `JSON_TOKENER_ALLOW_TRAILING_CHARS` flag to allow multiple objects
+  to be parsed even when `JSON_TOKENER_STRICT` is set.
+* Add `json_object_new_array_ext(int)` and `array_list_new_2(int)` to allow
+   arrays to be allocated with the exact size needed, when known.
+* Add `json_object_array_shrink()` (and `array_list_shrink()`) and use it in 
+   json_tokener to minimize the amount of memory used.
+* Add a json_parse binary, for use in testing changes (not installed, but 
+   available in the apps directory).
+
+Build changes
+-------------
+* #639/#621 - Add symbol versions to all exported symbols
+* #508/#634 - Always enable -fPIC to allow use of the json-c static library in
+   other libraries
+* Build both static and shared libraries at the same time.
+* #626 - Restore compatibility with cmake 2.8 
+* #471 - Always create directories with mode 0755, regardless of umask.
+* #606/#604 - Improve support for OSes like AIX and IBM i, as well as for
+   MINGW32 and old versions of MSVC
+* #451/#617 - Add a DISABLE_THREAD_LOCAL_STORAGE cmake option to disable 
+   the use of thread-local storage.
+
+Significant changes and bug fixes
+---------------------------------
+* Split the internal json_object structure into several sub-types, one for
+   each json_type (json_object_object, json_object_string, etc...).
+  This improves memory usage and speed, with the benchmark under
+   bench/ report 5.8% faster test time and 6%(max RSS)-12%(peak heap)
+   less memory usage.
+  Memory used just for json_object structures decreased 27%, so use cases
+   with fewer arrays and/or strings would benefit more.
+* Minimize memory usage in array handling in json_tokener by shrinking
+   arrays to the exact number of elements parsed.  On bench/ benchmark:
+   9% faster test time, 39%(max RSS)-50%(peak heap) less memory usage.
+   Add json_object_array_shrink() and array_list_shrink() functions.
+* #616 - Parsing of surrogate pairs in unicode escapes now properly handles
+   incremental parsing.
+* Fix incremental parsing of numbers, especially those with exponents, e.g.
+   so parsing "[0", "e+", "-]" now properly returns an error.
+  Strict mode now rejects missing exponents ("0e").
+* Successfully return number objects at the top level even when they are
+   followed by a "-", "." or "e".  This makes parsing things like "123-45"
+   behave consistently with things like "123xyz".
+
+Other changes
+-------------
+* #589 - Detect broken RDRAND during initialization; also, fix segfault
+    in the CPUID check.
+* #592 - Fix integer overflows to prevert out of bounds write on large input.
+* Protect against division by zero in linkhash, when created with zero size.
+* #602 - Fix json_parse_uint64() internal error checking, leaving the retval
+    untouched in more failure cases.
+* #614 - Prevent truncation when custom double formatters insert extra \0's
+
+
+***
 
 0.14 (up to commit 9ed00a6, 2020/04/14)
 =========================================
@@ -118,7 +239,7 @@ Behavior changes:
 * Use size_t for array length and size.  Platforms where sizeof(size_t) != sizeof(int) may not be backwards compatible
 	See commits 45c56b, 92e9a5 and others.
 
-* Check for failue when allocating memory, returning NULL and errno=ENOMEM.
+* Check for failure when allocating memory, returning NULL and errno=ENOMEM.
 	 See commit 2149a04.
 
 * Change json_object_object_add() return type from void to int, and will return -1 on failures, instead of exiting. (Note: this is not an ABI change)
@@ -309,7 +430,7 @@ List of new functions added:
   * Add an alternative iterator implementation, see json_object_iterator.h
   * Make json_object_iter public to enable external use of the
      json_object_object_foreachC macro.
-  * Add a printbuf_memset() function to provide an effecient way to set and
+  * Add a printbuf_memset() function to provide an efficient way to set and
      append things like whitespace indentation.
   * Adjust json_object_is_type and json_object_get_type so they return
       json_type_null for NULL objects and handle NULL passed to
@@ -395,7 +516,7 @@ List of new functions added:
 0.7
 ===
   * Add escaping of backslash to json output
-  * Add escaping of foward slash on tokenizing and output
+  * Add escaping of forward slash on tokenizing and output
   * Changes to internal tokenizer from using recursion to
     using a depth state structure to allow incremental parsing
 

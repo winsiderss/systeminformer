@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   base support functions
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2019-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2016
+ *     dmex    2019-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -224,6 +213,64 @@ NTSTATUS PhpBaseThreadStart(
     return status;
 }
 
+// rev from RtlCreateUserThread (dmex)
+NTSTATUS PhCreateUserThread(
+    _Out_opt_ PHANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG CreateFlags,
+    _In_opt_ SIZE_T StackSize,
+    _In_ PUSER_THREAD_START_ROUTINE StartAddress,
+    _In_opt_ PVOID Parameter
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[2])] = { 0 };
+    PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
+    CLIENT_ID clientId = { 0 };
+    PTEB teb = NULL;
+
+    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    attributeList->TotalLength = sizeof(buffer);
+    attributeList->Attributes[0].Attribute = PS_ATTRIBUTE_CLIENT_ID;
+    attributeList->Attributes[0].Size = sizeof(CLIENT_ID);
+    attributeList->Attributes[0].ValuePtr = &clientId;
+    attributeList->Attributes[0].ReturnLength = NULL;
+    attributeList->Attributes[1].Attribute = PS_ATTRIBUTE_TEB_ADDRESS;
+    attributeList->Attributes[1].Size = sizeof(PTEB);
+    attributeList->Attributes[1].ValuePtr = &teb;
+    attributeList->Attributes[1].ReturnLength = NULL;
+
+    status = NtCreateThreadEx(
+        &threadHandle,
+        THREAD_ALL_ACCESS,
+        &objectAttributes,
+        ProcessHandle,
+        StartAddress,
+        Parameter,
+        CreateFlags,
+        0,
+        StackSize,
+        StackSize,
+        NULL // attributeList
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ThreadHandle)
+        {
+            *ThreadHandle = threadHandle;
+        }
+        else if (threadHandle)
+        {
+            NtClose(threadHandle);
+        }
+    }
+
+    return status;
+}
+
 /**
  * Creates a thread.
  *
@@ -257,12 +304,6 @@ HANDLE PhCreateThread(
         &threadHandle,
         NULL
         );
-
-    // NOTE: PhCreateThread previously used CreateThread with callers using GetLastError()
-    // for checking errors. We need to preserve this behavior for compatibility -dmex
-    // TODO: Migrate code over to PhCreateThreadEx and remove this function.
-    //RtlSetLastWin32ErrorAndNtStatusFromNtStatus(status);
-    SetLastError(RtlNtStatusToDosError(status));
 
     if (NT_SUCCESS(status))
     {
@@ -1108,7 +1149,7 @@ FORCEINLINE LONG PhpCompareStringZNatural(
          misrepresented as being the original software.
         3. This notice may not be removed or altered from any source distribution.
 
-        This code has been modified for Process Hacker.
+        This code has been modified for System Informer.
      */
 
     ULONG ai, bi;

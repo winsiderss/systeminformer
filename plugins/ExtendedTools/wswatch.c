@@ -1,24 +1,13 @@
 /*
- * Process Hacker Extended Tools -
- *   working set watch
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011 wj32
- * Copyright (C) 2018-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011
+ *     dmex    2018-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -57,6 +46,10 @@ typedef struct _SYMBOL_LOOKUP_RESULT
     PPH_STRING FileName;
 } SYMBOL_LOOKUP_RESULT, *PSYMBOL_LOOKUP_RESULT;
 
+VOID EtpDereferenceWsWatchContext(
+    _In_ PWS_WATCH_CONTEXT Context
+    );
+
 INT_PTR CALLBACK EtpWsWatchDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -69,11 +62,38 @@ VOID EtShowWsWatchDialog(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PWS_WATCH_CONTEXT context;
 
     context = PhAllocateZero(sizeof(WS_WATCH_CONTEXT));
     context->RefCount = 1;
     context->ProcessItem = PhReferenceObject(ProcessItem);
+    context->ProcessId = ProcessItem->ProcessId;
+
+    if (PH_IS_REAL_PROCESS_ID(context->ProcessId))
+    {
+        status = PhOpenProcess(
+            &context->ProcessHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            context->ProcessId
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            status = PhOpenProcess(
+                &context->ProcessHandle,
+                MAXIMUM_ALLOWED,
+                context->ProcessId
+                );
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to open the process.", status, 0);
+        EtpDereferenceWsWatchContext(context);
+        return;
+    }
 
     DialogBoxParam(
         PluginInstance->DllBase,
@@ -85,14 +105,14 @@ VOID EtShowWsWatchDialog(
 }
 
 VOID EtpReferenceWsWatchContext(
-    _Inout_ PWS_WATCH_CONTEXT Context
+    _In_ PWS_WATCH_CONTEXT Context
     )
 {
     _InterlockedIncrement(&Context->RefCount);
 }
 
 VOID EtpDereferenceWsWatchContext(
-    _Inout_ PWS_WATCH_CONTEXT Context
+    _In_ PWS_WATCH_CONTEXT Context
     )
 {
     if (_InterlockedDecrement(&Context->RefCount) == 0)
@@ -179,7 +199,7 @@ static VOID EtpQueueSymbolLookup(
 {
     PSYMBOL_LOOKUP_RESULT result;
 
-    result = PhAllocate(sizeof(SYMBOL_LOOKUP_RESULT));
+    result = PhAllocateZero(sizeof(SYMBOL_LOOKUP_RESULT));
     result->Context = Context;
     result->Address = Address;
     EtpReferenceWsWatchContext(Context);
@@ -256,6 +276,9 @@ static VOID EtpProcessSymbolLookupResults(
             0,
             PhGetString(result->Symbol)
             );
+
+        if (result->FileName)
+            PhMoveReference(&result->FileName, PhGetFileName(result->FileName));
 
         PhSetListViewSubItem(
             Context->ListViewHandle,
@@ -471,45 +494,11 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             context->Hashtable = PhCreateSimpleHashtable(64);
-            context->ProcessId = context->ProcessItem->ProcessId;
             context->BufferSize = 0x2000;
             context->Buffer = PhAllocate(context->BufferSize);
 
-            if (PH_IS_REAL_PROCESS_ID(context->ProcessId))
-            {
-                NTSTATUS status;
-                HANDLE processHandle;
-
-                status = PhOpenProcess(
-                    &processHandle,
-                    PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                    context->ProcessId
-                    );
-
-                if (!NT_SUCCESS(status))
-                {
-                    status = PhOpenProcess(
-                        &processHandle,
-                        MAXIMUM_ALLOWED,
-                        context->ProcessId
-                        );
-                }
-
-                if (NT_SUCCESS(status))
-                {
-                    context->ProcessHandle = processHandle;
-                }
-                else
-                {
-                    PhShowError(hwndDlg, L"%s", L"Unable to open the process.");
-                    EndDialog(hwndDlg, IDCANCEL);
-                    break;
-                }
-            }
-
             PhInitializeQueuedLock(&context->ResultListLock);
             context->SymbolProvider = PhCreateSymbolProvider(context->ProcessId);
-            PhLoadSymbolProviderOptions(context->SymbolProvider);
 
             if (!context->SymbolProvider)
             {
@@ -517,6 +506,8 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             }
+
+            PhLoadSymbolProviderOptions(context->SymbolProvider);
 
             // Load symbols for both process and kernel modules.
             context->LoadingSymbolsForProcessId = context->ProcessId;
@@ -763,6 +754,12 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             PhDestroyEMenu(menu);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

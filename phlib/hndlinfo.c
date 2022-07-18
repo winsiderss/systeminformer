@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   handle information
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2015
+ *     dmex    2017-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <ph.h>
@@ -449,7 +438,7 @@ VOID PhInitializeEtwTraceGuidCache(
 
     PhInitializeArray(EtwTraceGuidArrayList, sizeof(PH_ETW_TRACEGUID_ENTRY), 2000);
 
-    if (!(jsonObject = PhCreateJsonParser(capabilityListString->Buffer)))
+    if (!(jsonObject = PhCreateJsonParserEx(capabilityListString, FALSE)))
         return;
 
     if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))
@@ -677,12 +666,17 @@ PPH_STRING PhGetPnPDeviceName(
             else
                 deviceDesc = PhCreateString2(&displayDesc);
 
+            if (deviceName->Length >= sizeof(UNICODE_NULL) && deviceName->Buffer[deviceName->Length / sizeof(WCHAR)] == UNICODE_NULL)
+                deviceName->Length -= sizeof(UNICODE_NULL); // PhTrimToNullTerminatorString(deviceName);
+            if (deviceDesc->Length >= sizeof(UNICODE_NULL) && deviceDesc->Buffer[deviceDesc->Length / sizeof(WCHAR)] == UNICODE_NULL)
+                deviceDesc->Length -= sizeof(UNICODE_NULL); // PhTrimToNullTerminatorString(deviceDesc);
+
             if (!PhIsNullOrEmptyString(deviceDesc))
             {
                 PH_FORMAT format[4];
 
                 PhInitFormatSR(&format[0], deviceDesc->sr);
-                PhInitFormatS(&format[1], L"(PDO: ");
+                PhInitFormatS(&format[1], L" (PDO: ");
                 PhInitFormatSR(&format[2], ObjectName->sr);
                 PhInitFormatC(&format[3], ')');
 
@@ -693,7 +687,7 @@ PPH_STRING PhGetPnPDeviceName(
                 PH_FORMAT format[4];
 
                 PhInitFormatSR(&format[0], deviceName->sr);
-                PhInitFormatS(&format[1], L"(PDO: ");
+                PhInitFormatS(&format[1], L" (PDO: ");
                 PhInitFormatSR(&format[2], ObjectName->sr);
                 PhInitFormatC(&format[3], ')');
 
@@ -1018,13 +1012,13 @@ NTSTATUS PhpGetBestObjectName(
         {
             if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
             {
-                // The device might be a PDO... Query the PnP manager for the friendy name of the device.
+                // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
                 bestObjectName = PhGetPnPDeviceName(ObjectName);
             }
 
             if (!bestObjectName)
             {
-                // The file doesn't have a DOS filename and doesn't have a PnP friendy name.
+                // The file doesn't have a DOS filename and doesn't have a PnP friendly name.
                 PhSetReference(&bestObjectName, ObjectName);
             }
         }

@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   tree new (tree list control)
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011-2016
+ *     dmex    2017-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -464,7 +453,8 @@ BOOLEAN PhTnpOnCreate(
         Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
     }
 
-    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW)
+    // TODO: HeaderCustomDraw doesn't support classic theme on Windows 7 (dmex)
+    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW && WindowsVersion > WINDOWS_7)
         Context->HeaderCustomDraw = TRUE;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
@@ -5083,7 +5073,7 @@ VOID PhTnpPaint(
     vScrollPosition = Context->VScrollPosition;
     hScrollPosition = Context->HScrollPosition;
 
-    // Calculate the indicies of the first and last rows that need painting. These indicies are
+    // Calculate the indices of the first and last rows that need painting. These indices are
     // relative to the top of the view area.
 
     firstRowToUpdate = (PaintRect->top - Context->HeaderHeight) / Context->RowHeight;
@@ -5097,7 +5087,7 @@ VOID PhTnpPaint(
     rowRect.right = Context->NormalLeft + Context->TotalViewX - Context->HScrollPosition;
     rowRect.bottom = rowRect.top + Context->RowHeight;
 
-    // Change the indicies to absolute row indicies.
+    // Change the indices to absolute row indices.
 
     firstRowToUpdate += vScrollPosition;
     lastRowToUpdate += vScrollPosition;
@@ -5450,7 +5440,9 @@ VOID PhTnpPaint(
         //    InvalidateRect(Context->FixedHeaderHandle, NULL, FALSE);
         //}
 
-        // TODO: This invalidates the whole header even when nothing changes. 
+        // TODO:
+        // 1) PhTickProcessNodes excludes the header when invalidating the treelist.
+        // 2) This invalidates the whole header even when nothing changes.
         // We can add a callback similar to TreeNewGetHeaderText that returns TRUE
         // for headers that have custom text and need invalidating? (dmex)
 
@@ -5701,7 +5693,8 @@ VOID PhTnpDrawCell(
                 SmallIconHeight,
                 CLR_DEFAULT,
                 CLR_NONE,
-                ILD_NORMAL | ILD_TRANSPARENT
+                ILD_NORMAL | ILD_TRANSPARENT,
+                ILS_NORMAL
                 );
 
             textRect.left += SmallIconWidth + TNP_ICON_RIGHT_PADDING;
@@ -6099,7 +6092,7 @@ VOID PhTnpInitializeTooltips(
 
     if (Context->HeaderCustomDraw)
     {
-        Context->HeaderHotColumn = ULONG_MAX;
+        Context->HeaderHotColumn = -1;
         Context->HeaderThemeHandle = OpenThemeData(Context->HeaderHandle, VSCLASS_HEADER);
     }
 
@@ -6554,7 +6547,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
             {
-                logFont.lfHeight -= PhMultiplyDivideSigned(3, PhGlobalDpi, 96);
+                logFont.lfHeight -= PhMultiplyDivideSigned(2, PhGlobalDpi, 96);
                 context->HeaderBoldFontHandle = CreateFontIndirect(&logFont);
                 //context->HeaderBoldFontHandle = PhDuplicateFontWithNewHeight(fontHandle, -14);
             }
@@ -6695,7 +6688,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             result = CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
             context->HeaderMouseActive = FALSE;
-            context->HeaderHotColumn = ULONG_MAX;
+            context->HeaderHotColumn = -1;
 
             if (GetCapture() != hwnd)
             {
@@ -6778,7 +6771,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 if (!(column = (PPH_TREENEW_COLUMN)headerItem.lParam))
                     continue;
 
-                if (context->HeaderHotColumn != ULONG_MAX && context->HeaderHotColumn == column->Id)
+                if (context->HeaderHotColumn != -1 && context->HeaderHotColumn == column->Id)
                 {
                     if (context->ThemeSupport)
                     {
@@ -6912,6 +6905,65 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                             DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS | DT_TOP | DT_RIGHT
                             );
                         SelectFont(bufferDc, oldFont);
+                    }
+
+                    if (headerItem.fmt & HDF_SORTDOWN)
+                    {
+                        if (context->HeaderThemeHandle)
+                        {
+                            SIZE sortArrowSize;
+
+                            if (GetThemePartSize(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDDOWN,
+                                NULL,
+                                TS_TRUE,
+                                &sortArrowSize
+                                ) == S_OK)
+                            {
+                                headerRect.bottom = sortArrowSize.cy;
+                            }
+
+                            DrawThemeBackground(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDDOWN,
+                                &headerRect,
+                                NULL
+                                );
+                        }
+                    }
+                    else if (headerItem.fmt & HDF_SORTUP)
+                    {
+                        if (context->HeaderThemeHandle)
+                        {
+                            SIZE sortArrowSize;
+
+                            if (GetThemePartSize(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDUP,
+                                NULL,
+                                TS_TRUE,
+                                &sortArrowSize
+                                ) == S_OK)
+                            {
+                                headerRect.bottom = sortArrowSize.cy;
+                            }
+
+                            DrawThemeBackground(
+                                context->HeaderThemeHandle,
+                                bufferDc,
+                                HP_HEADERSORTARROW,
+                                HSAS_SORTEDUP,
+                                &headerRect,
+                                NULL
+                                );
+                        }
                     }
                 }
             }

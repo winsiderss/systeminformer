@@ -1,24 +1,13 @@
 /*
- * Process Hacker Extended Tools -
- *   ETW disk monitoring
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2018-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011-2015
+ *     dmex    2018-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -31,7 +20,7 @@ static BOOLEAN DiskTreeNewCreated = FALSE;
 static HWND DiskTreeNewHandle = NULL;
 static ULONG DiskTreeNewSortColumn = 0;
 static PH_SORT_ORDER DiskTreeNewSortOrder = NoSortOrder;
-static PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires Process Hacker to be restarted with administrative privileges.");
+static PH_STRINGREF DiskTreeEmptyText = PH_STRINGREF_INIT(L"Disk monitoring requires System Informer to be restarted with administrative privileges.");
 static PPH_STRING DiskTreeErrorText = NULL;
 
 static PPH_HASHTABLE DiskNodeHashtable = NULL; // hashtable of all nodes
@@ -65,7 +54,7 @@ VOID EtInitializeDiskTab(
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
     PhInitializeStringRef(&page.Name, L"Disk");
     page.Callback = EtpDiskPageCallback;
-    DiskPage = ProcessHacker_CreateTabPage(&page);
+    DiskPage = PhPluginCreateTabPage(&page);
 
     if (ToolStatusInterface)
     {
@@ -297,6 +286,8 @@ VOID EtInitializeDiskTreeList(
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_TOTALRATEAVERAGE, TRUE, L"Total rate average", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_IOPRIORITY, TRUE, L"I/O priority", 70, PH_ALIGN_LEFT, 5, 0, TRUE);
     PhAddTreeNewColumnEx(hwnd, ETDSTNC_RESPONSETIME, TRUE, L"Response time (ms)", 70, PH_ALIGN_RIGHT, 6, 0, TRUE);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_PID, FALSE, L"PID", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, ETDSTNC_ORIGINALNAME, FALSE, L"Original name", 200, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -513,6 +504,12 @@ BEGIN_SORT_FUNCTION(ResponseTime)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Pid)
+{
+    sortResult = intptrcmp((LONG_PTR)diskItem1->ProcessId, (LONG_PTR)diskItem2->ProcessId);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -542,7 +539,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     SORT_FUNCTION(WriteRateAverage),
                     SORT_FUNCTION(TotalRateAverage),
                     SORT_FUNCTION(IoPriority),
-                    SORT_FUNCTION(ResponseTime)
+                    SORT_FUNCTION(ResponseTime),
+                    SORT_FUNCTION(Pid),
+                    SORT_FUNCTION(File),
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -596,7 +595,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     number = diskItem->ReadAverage;
                     number *= 1000;
-                    number /= PhGetIntegerSetting(L"UpdateInterval");
+                    number /= EtUpdateInterval;
 
                     if (number != 0)
                     {
@@ -620,7 +619,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     number = diskItem->WriteAverage;
                     number *= 1000;
-                    number /= PhGetIntegerSetting(L"UpdateInterval");
+                    number /= EtUpdateInterval;
 
                     if (number != 0)
                     {
@@ -644,7 +643,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
                     number = diskItem->ReadAverage + diskItem->WriteAverage;
                     number *= 1000;
-                    number /= PhGetIntegerSetting(L"UpdateInterval");
+                    number /= EtUpdateInterval;
 
                     if (number != 0)
                     {
@@ -698,6 +697,12 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                         getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
                     }
                 }
+                break;
+            case ETDSTNC_PID:
+                PhInitializeStringRefLongHint(&getCellText->Text, diskItem->ProcessIdString);
+                break;
+            case ETDSTNC_ORIGINALNAME:
+                getCellText->Text = PhGetStringRef(diskItem->FileName);
                 break;
             default:
                 return FALSE;
@@ -847,21 +852,21 @@ PPH_STRING EtpGetDiskItemProcessName(
     _In_ PET_DISK_ITEM DiskItem
     )
 {
-    PH_FORMAT format[4];
+    PH_FORMAT format[1];
 
-    if (!DiskItem->ProcessId)
-        return PhCreateString(L"No process");
-
-    PhInitFormatS(&format[1], L" (");
-    PhInitFormatU(&format[2], HandleToUlong(DiskItem->ProcessId));
-    PhInitFormatC(&format[3], ')');
-
-    if (DiskItem->ProcessName)
-        PhInitFormatSR(&format[0], DiskItem->ProcessName->sr);
+    if (DiskItem->ProcessId)
+    {
+        if (DiskItem->ProcessName)
+            PhInitFormatSR(&format[0], DiskItem->ProcessName->sr);
+        else
+            PhInitFormatS(&format[0], L"Unknown process");
+    }
     else
-        PhInitFormatS(&format[0], L"Unknown process");
+    {
+        PhInitFormatS(&format[0], L"No process");
+    }
 
-    return PhFormat(format, 4, 96);
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
 PET_DISK_ITEM EtGetSelectedDiskItem(

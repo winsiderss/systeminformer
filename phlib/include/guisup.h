@@ -11,10 +11,6 @@ extern "C" {
 
 // guisup
 
-typedef BOOL (WINAPI *_IsImmersiveProcess)(
-    _In_ HANDLE ProcessHandle
-    );
-
 #define RFF_NOBROWSE 0x0001
 #define RFF_NODEFAULT 0x0002
 #define RFF_CALCDIRECTORY 0x0004
@@ -46,7 +42,6 @@ typedef HANDLE HTHEME;
 #define DCX_USESTYLE 0x00010000
 #define DCX_NODELETERGN 0x00040000
 
-extern _IsImmersiveProcess IsImmersiveProcess_I;
 extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_INTEGER_PAIR PhLargeIconSize;
 
@@ -436,6 +431,24 @@ PhCreateDialog(
     _In_ PWSTR Template,
     _In_opt_ HWND ParentWindow,
     _In_ DLGPROC DialogProc,
+    _In_opt_ PVOID Parameter
+    );
+
+PHLIBAPI
+HWND
+NTAPI
+PhCreateWindow(
+    _In_ ULONG ExStyle,
+    _In_opt_ PCWSTR ClassName,
+    _In_opt_ PCWSTR WindowName,
+    _In_ ULONG Style,
+    _In_ INT X,
+    _In_ INT Y,
+    _In_ INT Width,
+    _In_ INT Height,
+    _In_opt_ HWND ParentWindow,
+    _In_opt_ HMENU MenuHandle,
+    _In_opt_ PVOID InstanceHandle,
     _In_opt_ PVOID Parameter
     );
 
@@ -947,6 +960,31 @@ PhGetGlobalTimerQueue(
     VOID
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsImmersiveProcess(
+    _In_ HANDLE ProcessHandle
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetProcessDpiAwareness(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG ProcessDpiAwareness
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetSendMessageReceiver(
+    _In_ HANDLE ThreadId,
+    _Out_ HWND *WindowHandle
+    );
+
 _Success_(return)
 PHLIBAPI
 BOOLEAN
@@ -1061,7 +1099,8 @@ PhImageListDrawIcon(
     _In_ HDC Hdc,
     _In_ INT x,
     _In_ INT y,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ BOOLEAN Disabled
     );
 
 PHLIBAPI
@@ -1077,7 +1116,8 @@ PhImageListDrawEx(
     _In_ INT dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
-    _In_ UINT Style
+    _In_ UINT Style,
+    _In_ DWORD State
     );
 
 #define PH_DRAW_TIMELINE_OVERFLOW 0x1

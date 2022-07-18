@@ -30,7 +30,9 @@
     <ClInclude Include="prpsh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="fmifs.h" />
+    <ClInclude Include="fmifs.h">
+      <Filter>Source Files\Disk</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">

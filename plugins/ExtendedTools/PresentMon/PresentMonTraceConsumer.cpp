@@ -150,8 +150,8 @@ bool mSeenDxgkPresentInfo = false;
 PH_FAST_LOCK mPresentEventMutex = PH_FAST_LOCK_INIT;
 std::vector<std::shared_ptr<PresentEvent>> mCompletePresentEvents;
 
-PH_FAST_LOCK mLostPresentEventMutex = PH_FAST_LOCK_INIT;
-std::vector<std::shared_ptr<PresentEvent>> mLostPresentEvents;
+//PH_FAST_LOCK mLostPresentEventMutex = PH_FAST_LOCK_INIT;
+//std::vector<std::shared_ptr<PresentEvent>> mLostPresentEvents;
 
 VOID CompletePresent(std::shared_ptr<PresentEvent> p);
 std::shared_ptr<PresentEvent> FindBySubmitSequence(uint32_t submitSequence);
@@ -190,12 +190,13 @@ PresentEvent::PresentEvent(EVENT_HEADER const& hdr, ::Runtime runtime)
     , SeenInFrameEvent(false)
     , Completed(false)
     , IsLost(false)
+    , PresentInDwmWaitingStruct(false)
+    , Spare(0)
     , mAllPresentsTrackingIndex(0)
     , DxgKrnlHContext(0)
     , Win32KPresentCount(0)
     , Win32KBindId(0)
     , LegacyBlitTokenData(0)
-    , PresentInDwmWaitingStruct(false)
 {
 
 }
@@ -893,8 +894,6 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
         break;
     case Microsoft_Windows_DxgKrnl::VSyncDPC_Info::Id:
         {
-            //auto data = reinterpret_cast<Microsoft_Windows_DxgKrnl::VSyncDPC_Info_Struct<void*>*>(pEventRecord->UserData);
-
             auto FlipFenceId = mMetadata.GetEventData<uint64_t>(pEventRecord, L"FlipFenceId");
             HandleDxgkSyncDPC(hdr, (ULONG)(FlipFenceId >> 32u));
         }
@@ -943,7 +942,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
                     CompletePresent(present);
                 }
             }
-
+            
             // We use the first observed event to indicate that Dxgk provider is
             // running and able to successfully track/complete presents.
             //
@@ -1142,7 +1141,7 @@ typedef struct _DXGKETW_SCHEDULER_MMIO_FLIP_64 {
 
 void HandleWin7DxgkBlt(EVENT_RECORD* pEventRecord)
 {
-    auto pBltEvent = reinterpret_cast<Win7::DXGKETW_BLTEVENT*>(pEventRecord->UserData);
+    auto pBltEvent = static_cast<Win7::DXGKETW_BLTEVENT*>(pEventRecord->UserData);
     HandleDxgkBlt(
         pEventRecord->EventHeader,
         pBltEvent->hwnd,
@@ -1151,7 +1150,7 @@ void HandleWin7DxgkBlt(EVENT_RECORD* pEventRecord)
 
 void HandleWin7DxgkFlip(EVENT_RECORD* pEventRecord)
 {
-    auto pFlipEvent = reinterpret_cast<Win7::DXGKETW_FLIPEVENT*>(pEventRecord->UserData);
+    auto pFlipEvent = static_cast<Win7::DXGKETW_FLIPEVENT*>(pEventRecord->UserData);
     HandleDxgkFlip(
         pEventRecord->EventHeader,
         pFlipEvent->FlipInterval,
@@ -1160,7 +1159,7 @@ void HandleWin7DxgkFlip(EVENT_RECORD* pEventRecord)
 
 void HandleWin7DxgkPresentHistory(EVENT_RECORD* pEventRecord)
 {
-    auto pPresentHistoryEvent = reinterpret_cast<Win7::DXGKETW_PRESENTHISTORYEVENT*>(pEventRecord->UserData);
+    auto pPresentHistoryEvent = static_cast<Win7::DXGKETW_PRESENTHISTORYEVENT*>(pEventRecord->UserData);
     if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_START)
     {
         HandleDxgkPresentHistory(
@@ -1179,7 +1178,7 @@ void HandleWin7DxgkQueuePacket(EVENT_RECORD* pEventRecord)
 {
     if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_START)
     {
-        auto pSubmitEvent = reinterpret_cast<Win7::DXGKETW_QUEUESUBMITEVENT*>(pEventRecord->UserData);
+        auto pSubmitEvent = static_cast<Win7::DXGKETW_QUEUESUBMITEVENT*>(pEventRecord->UserData);
         HandleDxgkQueueSubmit(
             pEventRecord->EventHeader,
             pSubmitEvent->PacketType,
@@ -1190,14 +1189,14 @@ void HandleWin7DxgkQueuePacket(EVENT_RECORD* pEventRecord)
     }
     else if (pEventRecord->EventHeader.EventDescriptor.Opcode == EVENT_TRACE_TYPE_STOP)
     {
-        auto pCompleteEvent = reinterpret_cast<Win7::DXGKETW_QUEUECOMPLETEEVENT*>(pEventRecord->UserData);
+        auto pCompleteEvent = static_cast<Win7::DXGKETW_QUEUECOMPLETEEVENT*>(pEventRecord->UserData);
         HandleDxgkQueueComplete(pEventRecord->EventHeader, pCompleteEvent->SubmitSequence);
     }
 }
 
 void HandleWin7DxgkVSyncDPC(EVENT_RECORD* pEventRecord)
 {
-    auto pVSyncDPCEvent = reinterpret_cast<Win7::DXGKETW_SCHEDULER_VSYNC_DPC*>(pEventRecord->UserData);
+    auto pVSyncDPCEvent = static_cast<Win7::DXGKETW_SCHEDULER_VSYNC_DPC*>(pEventRecord->UserData);
 
     // Windows 7 does not support MultiPlaneOverlay.
     HandleDxgkSyncDPC(pEventRecord->EventHeader, (uint32_t)(pVSyncDPCEvent->FlipFenceId.QuadPart >> 32u));
@@ -1207,7 +1206,7 @@ void HandleWin7DxgkMMIOFlip(EVENT_RECORD* pEventRecord)
 {
     if (pEventRecord->EventHeader.Flags & EVENT_HEADER_FLAG_32_BIT_HEADER)
     {
-        auto pMMIOFlipEvent = reinterpret_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_32*>(pEventRecord->UserData);
+        auto pMMIOFlipEvent = static_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_32*>(pEventRecord->UserData);
         HandleDxgkMMIOFlip(
             pEventRecord->EventHeader,
             pMMIOFlipEvent->FlipSubmitSequence,
@@ -1215,7 +1214,7 @@ void HandleWin7DxgkMMIOFlip(EVENT_RECORD* pEventRecord)
     }
     else
     {
-        auto pMMIOFlipEvent = reinterpret_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_64*>(pEventRecord->UserData);
+        auto pMMIOFlipEvent = static_cast<Win7::DXGKETW_SCHEDULER_MMIO_FLIP_64*>(pEventRecord->UserData);
         HandleDxgkMMIOFlip(
             pEventRecord->EventHeader,
             pMMIOFlipEvent->FlipSubmitSequence,
@@ -1231,8 +1230,6 @@ void HandleWin32kEvent(EVENT_RECORD* pEventRecord)
     {
     case Microsoft_Windows_Win32k::TokenCompositionSurfaceObject_Info::Id:
         {
-            //auto data = reinterpret_cast<Microsoft_Windows_Win32k::TokenCompositionSurfaceObject_Info_Struct<int>*>(pEventRecord->ExtendedData);
-
             EventDataDesc desc[] = {
                 { L"CompositionSurfaceLuid" },
                 { L"PresentCount" },
@@ -1571,7 +1568,7 @@ void RemoveLostPresent(std::shared_ptr<PresentEvent> p)
 
     p->IsLost = true;
 
-    // Presents dependent on this event can no longer be trakced.
+    // Presents dependent on this event can no longer be tracked.
     for (auto& dependentPresent : p->DependentPresents)
     {
         if (!dependentPresent->IsLost)
@@ -1614,11 +1611,11 @@ void RemoveLostPresent(std::shared_ptr<PresentEvent> p)
     assert(hasRemovedElement);
 
     // Update the list of lost presents.
-    {
-        PhAcquireFastLockExclusive(&mPresentEventMutex);
-        mLostPresentEvents.push_back(mAllPresents[p->mAllPresentsTrackingIndex]);
-        PhReleaseFastLockExclusive(&mPresentEventMutex);
-    }
+    //{
+    //    PhAcquireFastLockExclusive(&mLostPresentEventMutex);
+    //    mLostPresentEvents.push_back(mAllPresents[p->mAllPresentsTrackingIndex]);
+    //    PhReleaseFastLockExclusive(&mLostPresentEventMutex);
+    //}
 
     mAllPresents[p->mAllPresentsTrackingIndex] = nullptr;
 }
@@ -1850,9 +1847,9 @@ void DequeuePresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresent
     PhReleaseFastLockExclusive(&mPresentEventMutex);
 }
 
-void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents)
-{
-    PhAcquireFastLockExclusive(&mLostPresentEventMutex);
-    outPresentEvents.swap(mLostPresentEvents);
-    PhReleaseFastLockExclusive(&mLostPresentEventMutex);
-}
+//void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents)
+//{
+//    PhAcquireFastLockExclusive(&mLostPresentEventMutex);
+//    outPresentEvents.swap(mLostPresentEvents);
+//    PhReleaseFastLockExclusive(&mLostPresentEventMutex);
+//}

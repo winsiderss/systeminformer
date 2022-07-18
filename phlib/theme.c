@@ -1,24 +1,13 @@
 /*
-* Process Hacker -
-*   Window theme support functions
-*
-* Copyright (C) 2018-2019 dmex
-*
-* This file is part of Process Hacker.
-*
-* Process Hacker is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Process Hacker is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2018-2019
+ *
+ */
 
 #include <ph.h>
 #include <guisup.h>
@@ -141,6 +130,13 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
     _In_ LPARAM lParam
     );
 
+LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 // Win10-RS5 (uxtheme.dll ordinal 132)
 BOOL (WINAPI *ShouldAppsUseDarkMode_I)(
     VOID
@@ -183,13 +179,6 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
     _In_ HWND WindowHandle
     ) = NULL;
 
-HRESULT (WINAPI* DwmSetWindowAttribute_I)(
-    _In_ HWND WindowHandle,
-    _In_ ULONG AttributeId,
-    _In_reads_bytes_(AttributeLength) PVOID Attribute,
-    _In_ ULONG AttributeLength
-    );
-
 //HRESULT (WINAPI* DwmGetColorizationColor_I)(
 //    _Out_ PULONG Colorization,
 //    _Out_ PBOOL OpaqueBlend
@@ -222,11 +211,6 @@ VOID PhInitializeWindowTheme(
         if (PhBeginInitOnce(&initOnce))
         {
             PVOID module;
-
-            if (module = PhLoadLibrary(L"dwmapi.dll"))
-            {
-                DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(module, "DwmSetWindowAttribute", 0);
-            }
 
             if (WindowsVersion >= WINDOWS_10_19H2)
             {
@@ -407,6 +391,39 @@ VOID PhReInitializeWindowTheme(
     InvalidateRect(WindowHandle, NULL, FALSE);
 }
 
+HRESULT PhSetWindowThemeAttribute(
+    _In_ HWND WindowHandle,
+    _In_ ULONG AttributeId,
+    _In_reads_bytes_(AttributeLength) PVOID Attribute,
+    _In_ ULONG AttributeLength
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* DwmSetWindowAttribute_I)(
+        _In_ HWND WindowHandle,
+        _In_ ULONG AttributeId,
+        _In_reads_bytes_(AttributeLength) PVOID Attribute,
+        _In_ ULONG AttributeLength
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"dwmapi.dll"))
+        {
+            DwmSetWindowAttribute_I = PhGetDllBaseProcedureAddress(baseAddress, "DwmSetWindowAttribute", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!DwmSetWindowAttribute_I)
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+
+    return DwmSetWindowAttribute_I(WindowHandle, AttributeId, Attribute, AttributeLength);
+}
+
 VOID PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
     )
@@ -418,37 +435,48 @@ VOID PhInitializeThemeWindowFrame(
 #ifndef DWMWA_CAPTION_COLOR
 #define DWMWA_CAPTION_COLOR 35
 #endif
-
-    if (WindowsVersion >= WINDOWS_10_RS5 && DwmSetWindowAttribute_I)
+#ifndef DWMWA_SYSTEMBACKDROP_TYPE
+#define DWMWA_SYSTEMBACKDROP_TYPE 38
+#endif
+    
+    if (WindowsVersion >= WINDOWS_10_RS5)
     {
-        switch (PhpThemeColorMode)
+        if (PhpThemeEnable)
         {
-        case 0: // New colors
+            switch (PhpThemeColorMode)
             {
-                if (FAILED(DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+            case 0: // New colors
                 {
-                    DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
-                }
+                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+                    {
+                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+                    }
 
-                //if (WindowsVersion > WINDOWS_11)
-                //{
-                //    DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
-                //}
-            }
-            break;
-        case 1: // Old colors
-            {
-                if (FAILED(DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
-                {
-                    DwmSetWindowAttribute_I(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+                    //if (WindowsVersion > WINDOWS_11)
+                    //{
+                    //    PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
+                    //}
                 }
+                break;
+            case 1: // Old colors
+                {
+                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
+                    {
+                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+                    }
 
-                if (WindowsVersion >= WINDOWS_11)
-                {
-                    DwmSetWindowAttribute_I(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
+                    if (WindowsVersion >= WINDOWS_11)
+                    {
+                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
+                    }
                 }
+                break;
             }
-            break;
+        }
+
+        if (WindowsVersion >= WINDOWS_11_22H1)
+        {
+            PhSetWindowThemeAttribute(WindowHandle, DWMWA_SYSTEMBACKDROP_TYPE, &(ULONG){ 1 }, sizeof(ULONG));
         }
     }
 }
@@ -466,16 +494,24 @@ HBRUSH PhWindowThemeControlColor(
     {
     case CTLCOLOR_EDIT:
         {
-            switch (PhpThemeColorMode)
+            if (PhpThemeEnable)
             {
-            case 0: // New colors
-                SetTextColor(Hdc, RGB(0x0, 0x0, 0x0));
-                SetDCBrushColor(Hdc, PhThemeWindowTextColor);
-                break;
-            case 1: // Old colors
-                SetTextColor(Hdc, PhThemeWindowTextColor);
-                SetDCBrushColor(Hdc, RGB(60, 60, 60));
-                break;
+                switch (PhpThemeColorMode)
+                {
+                case 0: // New colors
+                    SetTextColor(Hdc, RGB(0x0, 0x0, 0x0));
+                    SetDCBrushColor(Hdc, PhThemeWindowTextColor);
+                    break;
+                case 1: // Old colors
+                    SetTextColor(Hdc, PhThemeWindowTextColor);
+                    SetDCBrushColor(Hdc, RGB(60, 60, 60));
+                    break;
+                }
+            }
+            else
+            {
+                SetTextColor(Hdc, GetSysColor(COLOR_WINDOWTEXT));
+                SetDCBrushColor(Hdc, GetSysColor(COLOR_WINDOW));
             }
 
             return GetStockBrush(DC_BRUSH);
@@ -483,7 +519,15 @@ HBRUSH PhWindowThemeControlColor(
         break;
     case CTLCOLOR_SCROLLBAR:
         {
-            SetDCBrushColor(Hdc, RGB(23, 23, 23));
+            if (PhpThemeEnable)
+            {
+                SetDCBrushColor(Hdc, RGB(23, 23, 23));
+            }
+            else
+            {
+                SetDCBrushColor(Hdc, GetSysColor(COLOR_SCROLLBAR));
+            }
+
             return GetStockBrush(DC_BRUSH);
         }
         break;
@@ -509,8 +553,8 @@ HBRUSH PhWindowThemeControlColor(
             }
             else
             {
-                SetTextColor(Hdc, RGB(0x00, 0x00, 0x00));
-                SetDCBrushColor(Hdc, RGB(0xff, 0xff, 0xff));
+                SetTextColor(Hdc, GetSysColor(COLOR_WINDOWTEXT));
+                SetDCBrushColor(Hdc, GetSysColor(COLOR_WINDOW));
             }
 
             return GetStockBrush(DC_BRUSH);
@@ -692,6 +736,16 @@ VOID PhInitializeWindowThemeComboboxControl(
     InvalidateRect(ComboBoxControl, NULL, FALSE);
 }
 
+VOID PhInitializeWindowThemeACLUI(
+    _In_ HWND ACLUIControl
+)
+{
+    PhSetWindowContext(ACLUIControl, LONG_MAX, (PVOID)GetWindowLongPtr(ACLUIControl, GWLP_WNDPROC));
+    SetWindowLongPtr(ACLUIControl, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowACLUISubclassProc);
+
+    InvalidateRect(ACLUIControl, NULL, FALSE);
+}
+
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
@@ -828,7 +882,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         case 0: // New colors
             break;
         case 1: // Old colors
-            TreeView_SetBkColor(WindowHandle, RGB(30, 30, 30));
+            TreeView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor);// RGB(30, 30, 30));
             //TreeView_SetTextBkColor(WindowHandle, RGB(30, 30, 30));
             TreeView_SetTextColor(WindowHandle, PhThemeWindowTextColor);
             break;
@@ -939,6 +993,23 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhInitializeWindowThemeComboboxControl(WindowHandle);
         }
+    }
+    else if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            switch (PhpThemeColorMode)
+            {
+            case 0: // New colors
+                PhSetControlTheme(WindowHandle, L"explorer");
+                break;
+            case 1: // Old colors
+                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+                break;
+            }
+        }
+
+        PhInitializeWindowThemeACLUI(WindowHandle);
     }
 
     return TRUE;
@@ -1220,7 +1291,7 @@ BOOLEAN PhThemeWindowDrawItem(
                 PH_STRINGREF firstPart;
                 PH_STRINGREF secondPart;
 
-                PhInitializeStringRef(&part, menuItemInfo->Text);
+                PhInitializeStringRefLongHint(&part, menuItemInfo->Text);
                 PhSplitStringRefAtLastChar(&part, L'\b', &firstPart, &secondPart);
 
                 //SetDCBrushColor(DrawInfo->hDC, RGB(28, 28, 28));
@@ -1295,19 +1366,18 @@ BOOLEAN PhThemeWindowDrawItem(
                 SelectFont(DrawInfo->hDC, oldFont);
             }
 
-            //if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
-            //{
-            //    static HTHEME MenuThemeHandle = NULL;
-            //
-            //    if (!MenuThemeHandle)
-            //    {
-            //        MenuThemeHandle = OpenThemeData(NULL, L"Menu");
-            //    }
-            //
-            //    rect.left = rect.right - 25;
-            //
-            //    DrawThemeBackground(MenuThemeHandle, DrawInfo->hDC, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL, &rect, NULL);
-            //}
+            if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
+            {
+                static HTHEME menuThemeHandle = NULL;
+            
+                if (!menuThemeHandle)
+                {
+                    menuThemeHandle = OpenThemeData(NULL, L"Menu");
+                }
+            
+                rect.left = rect.right - 25;
+                DrawThemeBackground(menuThemeHandle, DrawInfo->hDC, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL, &rect, NULL);
+            }
 
             ExcludeClipRect(DrawInfo->hDC, rect.left, rect.top, rect.right, rect.bottom);
 
@@ -1516,8 +1586,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 {
                     ICONINFO iconInfo;
                     BITMAP bmp;
-                    LONG width;
-                    LONG height;
+                    LONG width = PhSmallIconSize.X;
+                    LONG height = PhSmallIconSize.Y;
 
                     memset(&iconInfo, 0, sizeof(ICONINFO));
                     memset(&bmp, 0, sizeof(BITMAP));
@@ -1752,6 +1822,12 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 DrawInfo->nmcd.dwItemSpec,
                 0
                 ) == 0;
+            BOOLEAN isEnabled = SendMessage(
+                DrawInfo->nmcd.hdr.hwndFrom,
+                TB_ISBUTTONENABLED,
+                DrawInfo->nmcd.dwItemSpec,
+                0
+                ) != 0;
 
             if (SendMessage(
                 DrawInfo->nmcd.hdr.hwndFrom,
@@ -1878,7 +1954,8 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                         DrawInfo->nmcd.hdc,
                         x,
                         y,
-                        ILD_NORMAL
+                        ILD_NORMAL,
+                        !isEnabled
                         );
                 }
             }
@@ -2429,7 +2506,6 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
             bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
             oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
-
             TabCtrl_AdjustRect(WindowHandle, FALSE, &clientRect); // Make sure we don't paint in the client area.
             ExcludeClipRect(bufferDc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
@@ -2501,7 +2577,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
                     {
                     case 0: // New colors
                         {
-                            if (TabCtrl_GetCurSel(WindowHandle) == i)
+                            if (currentSelection == i)
                             {
                                 SetTextColor(bufferDc, RGB(0xff, 0xff, 0xff));
                                 SetDCBrushColor(bufferDc, RGB(128, 128, 128));
@@ -3385,6 +3461,45 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
             }
         }
         return DefWindowProc(WindowHandle, uMsg, wParam, lParam);
+    }
+
+    return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
+}
+
+LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+)
+{
+    WNDPROC oldWndProc;
+
+    if (!(oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX)))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
+            SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            RECT rc;
+            GetClientRect(WindowHandle, &rc);
+            FillRect((HDC)wParam, &rc, PhMenuBackgroundBrush);
+            return 1;
+        }
+    case WM_CTLCOLORSTATIC:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, PhThemeWindowTextColor);
+            SetDCBrushColor((HDC)wParam, PhThemeWindowBackgroundColor);
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
+        }
     }
 
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);

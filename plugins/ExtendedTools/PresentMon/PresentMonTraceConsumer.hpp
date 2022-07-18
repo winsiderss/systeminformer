@@ -70,7 +70,7 @@ struct PresentEvent
 
     union
     {
-        ULONG Flags;
+        ULONG Flags{};
         struct
         {
             ULONG SupportsTearing : 1;
@@ -178,4 +178,4 @@ void HandleWin7DxgkVSyncDPC(EVENT_RECORD* pEventRecord);
 void HandleWin7DxgkMMIOFlip(EVENT_RECORD* pEventRecord);
 
 void DequeuePresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents);
-void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents);
+//void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents);

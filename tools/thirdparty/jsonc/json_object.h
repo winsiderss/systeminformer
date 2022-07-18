@@ -52,7 +52,7 @@ extern "C" {
  * json_object_to_file_ext() functions which causes
  * the output to be formatted.
  *
- * See the "Two Space Tab" option at http://jsonformatter.curiousconcept.com/
+ * See the "Two Space Tab" option at https://jsonformatter.curiousconcept.com/
  * for an example of the format.
  */
 #define JSON_C_TO_STRING_PRETTY (1 << 1)
@@ -100,9 +100,17 @@ extern "C" {
  * key is given as a real constant value in the function
  * call, e.g. as in
  *   json_object_object_add_ex(obj, "ip", json,
- *       JSON_C_OBJECT_KEY_IS_CONSTANT);
+ *       JSON_C_OBJECT_ADD_CONSTANT_KEY);
  */
-#define JSON_C_OBJECT_KEY_IS_CONSTANT (1 << 2)
+#define JSON_C_OBJECT_ADD_CONSTANT_KEY (1 << 2)
+/**
+ * This flag is an alias to JSON_C_OBJECT_ADD_CONSTANT_KEY.
+ * Historically, this flag was used first and the new name
+ * JSON_C_OBJECT_ADD_CONSTANT_KEY was introduced for version
+ * 0.16.00 in order to have regular naming.
+ * Use of this flag is now legacy.
+ */
+#define JSON_C_OBJECT_KEY_IS_CONSTANT  JSON_C_OBJECT_ADD_CONSTANT_KEY
 
 /**
  * Set the global value of an option, which will apply to all
@@ -131,7 +139,7 @@ extern "C" {
  *    beyond the lifetime of the parent object.
  * - Detaching an object field or array index from its parent object
  *    (using `json_object_object_del()` or `json_object_array_del_idx()`)
- * - Sharing a json_object with multiple (not necesarily parallel) threads
+ * - Sharing a json_object with multiple (not necessarily parallel) threads
  *    of execution that all expect to free it (with `json_object_put()`) when
  *    they're done.
  *
@@ -470,50 +478,50 @@ JSON_EXPORT void json_object_object_del(struct json_object *obj, const char *key
  * @param val the local name for the json_object* object variable defined in
  *            the body
  */
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__) && __STDC_VERSION__ >= 199901L
+#if defined(__GNUC__) && !defined(__STRICT_ANSI__) && (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
 
 #define json_object_object_foreach(obj, key, val)                                \
-    char *key = NULL;                                                        \
-    struct json_object *val __attribute__((__unused__)) = NULL;              \
-    for (struct lh_entry *entry##key = json_object_get_object(obj)->head,    \
-                         *entry_next##key = NULL;                            \
-         ({                                                                  \
-             if (entry##key)                                             \
-             {                                                           \
-                 key = (char *)lh_entry_k(entry##key);               \
-                 val = (struct json_object *)lh_entry_v(entry##key); \
-                 entry_next##key = entry##key->next;                 \
-             };                                                          \
-             entry##key;                                                 \
-         });                                                                 \
-         entry##key = entry_next##key)
+  char *key = NULL;                                                        \
+  struct json_object *val __attribute__((__unused__)) = NULL;              \
+  for (struct lh_entry *entry##key = lh_table_head(json_object_get_object(obj)),    \
+                       *entry_next##key = NULL;                            \
+       ({                                                                  \
+         if (entry##key)                                             \
+         {                                                           \
+           key = (char *)lh_entry_k(entry##key);               \
+           val = (struct json_object *)lh_entry_v(entry##key); \
+           entry_next##key = lh_entry_next(entry##key);        \
+         };                                                          \
+         entry##key;                                                 \
+       });                                                                 \
+       entry##key = entry_next##key)
 
 #else /* ANSI C or MSC */
 
 #define json_object_object_foreach(obj, key, val)                              \
-    char *key = NULL;                                                      \
-    struct json_object *val = NULL;                                        \
-    struct lh_entry *entry##key;                                           \
-    struct lh_entry *entry_next##key = NULL;                               \
-    for (entry##key = json_object_get_object(obj)->head;                   \
-         (entry##key ? (key = (char *)lh_entry_k(entry##key),              \
-                       val = (struct json_object *)lh_entry_v(entry##key), \
-                       entry_next##key = entry##key->next, entry##key)     \
-                     : 0);                                                 \
-         entry##key = entry_next##key)
+  char *key = NULL;                                                      \
+  struct json_object *val = NULL;                                        \
+  struct lh_entry *entry##key;                                           \
+  struct lh_entry *entry_next##key = NULL;                               \
+  for (entry##key = lh_table_head(json_object_get_object(obj));          \
+       (entry##key ? (key = (char *)lh_entry_k(entry##key),              \
+                     val = (struct json_object *)lh_entry_v(entry##key), \
+                     entry_next##key = lh_entry_next(entry##key), entry##key)     \
+                   : 0);                                                 \
+       entry##key = entry_next##key)
 
-#endif /* defined(__GNUC__) && !defined(__STRICT_ANSI__) && __STDC_VERSION__ >= 199901L */
+#endif /* defined(__GNUC__) && !defined(__STRICT_ANSI__) && (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) */
 
 /** Iterate through all keys and values of an object (ANSI C Safe)
  * @param obj the json_object instance
  * @param iter the object iterator, use type json_object_iter
  */
 #define json_object_object_foreachC(obj, iter)                                                  \
-    for (iter.entry = json_object_get_object(obj)->head;                                    \
-         (iter.entry ? (iter.key = (char *)lh_entry_k(iter.entry),                          \
-                       iter.val = (struct json_object *)lh_entry_v(iter.entry), iter.entry) \
-                     : 0);                                                                  \
-         iter.entry = iter.entry->next)
+  for (iter.entry = lh_table_head(json_object_get_object(obj));                                    \
+       (iter.entry ? (iter.key = (char *)lh_entry_k(iter.entry),                          \
+                     iter.val = (struct json_object *)lh_entry_v(iter.entry), iter.entry) \
+                   : 0);                                                                  \
+       iter.entry = lh_entry_next(iter.entry))
 
 /* Array type methods */
 
@@ -656,8 +664,9 @@ JSON_EXPORT struct json_object *json_object_new_boolean(json_bool b);
  * The type is coerced to a json_bool if the passed object is not a json_bool.
  * integer and double objects will return 0 if there value is zero
  * or 1 otherwise. If the passed object is a string it will return
- * 1 if it has a non zero length. If any other object type is passed
- * 1 will be returned if the object is not NULL.
+ * 1 if it has a non zero length. 
+ * If any other object type is passed 0 will be returned, even non-empty
+ *  json_type_array and json_type_object objects.
  *
  * @param obj the json_object instance
  * @returns a json_bool
@@ -738,7 +747,7 @@ JSON_EXPORT int json_object_set_int(struct json_object *obj, int new_value);
  *
  * @param obj the json_object instance
  * @param val the value to add
- * @returns 1 if the increment succeded, 0 otherwise
+ * @returns 1 if the increment succeeded, 0 otherwise
  */
 JSON_EXPORT int json_object_int_inc(struct json_object *obj, int64_t val);
 
@@ -1055,7 +1064,7 @@ JSON_EXPORT json_c_shallow_copy_fn json_c_shallow_copy_default;
  *                     when custom serializers are in use.  See also
  *                     json_object set_serializer.
  *
- * @returns 0 if the copy went well, -1 if an error occured during copy
+ * @returns 0 if the copy went well, -1 if an error occurred during copy
  *          or if the destination pointer is non-NULL
  */
 

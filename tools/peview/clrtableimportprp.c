@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2021-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -61,7 +50,7 @@ BOOLEAN PvpGetMetaDataInterface(
     {
         CLRCreateInstanceFnPtr CLRCreateInstance_I = NULL;
         ICLRMetaHost* clrMetaHost = NULL;
-        ICLRRuntimeInfo* clrRuntimInfo = NULL;
+        ICLRRuntimeInfo* clrRuntimeInfo = NULL;
 
         if (CLRCreateInstance_I = PhGetDllBaseProcedureAddress(clrCoreBaseAddress, "CLRCreateInstance", 0))
         {
@@ -85,17 +74,17 @@ BOOLEAN PvpGetMetaDataInterface(
                         clrMetaHost,
                         version,
                         &IID_ICLRRuntimeInfo,
-                        &clrRuntimInfo
+                        &clrRuntimeInfo
                         )))
                     {
                         ICLRRuntimeInfo_GetInterface(
-                            clrRuntimInfo,
+                            clrRuntimeInfo,
                             &CLSID_CorMetaDataDispenser,
                             &IID_IMetaDataDispenser,
                             &clrMetadataInterface
                             );
 
-                        ICLRRuntimeInfo_Release(clrRuntimInfo);
+                        ICLRRuntimeInfo_Release(clrRuntimeInfo);
                     }
                 }
 
@@ -142,6 +131,21 @@ VOID PvpEnumerateClrImports(
 
             if (importDll->Functions)
             {
+                if (importDll->ImportName)
+                {
+                    PPH_STRING importDllName;
+
+                    if (importDllName = PhApiSetResolveToHost(&importDll->ImportName->sr))
+                    {
+                        PhMoveReference(&importDll->ImportName, PhFormatString(
+                            L"%s (%s)",
+                            PhGetString(importDll->ImportName),
+                            PhGetString(importDllName))
+                            );
+                        PhDereferenceObject(importDllName);
+                    }
+                }
+
                 for (j = 0; j < importDll->Functions->Count; j++)
                 {
                     PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction = importDll->Functions->Items[j];
@@ -274,6 +278,17 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
     case WM_CONTEXTMENU:
         {
             PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

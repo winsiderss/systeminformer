@@ -1,23 +1,12 @@
 /*
- * Process Hacker Extended Tools -
- *   Frames properties page
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2021-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -221,6 +210,21 @@ VOID FramesPropLayoutGraphs(
     ULONG graphWidth;
     ULONG graphHeight;
 
+    Context->FramesPerSecondGraphState.Valid = FALSE;
+    Context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesLatencyGraphState.Valid = FALSE;
+    Context->FramesLatencyGraphState.TooltipIndex = ULONG_MAX;
+    Context->PresentIntervalGraphState.Valid = FALSE;
+    Context->PresentIntervalGraphState.TooltipIndex = ULONG_MAX;
+    Context->PresentDurationGraphState.Valid = FALSE;
+    Context->PresentDurationGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesRenderTimeGraphState.Valid = FALSE;
+    Context->FramesRenderTimeGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesDisplayTimeGraphState.Valid = FALSE;
+    Context->FramesDisplayTimeGraphState.TooltipIndex = ULONG_MAX;
+    Context->FramesDisplayLatencyGraphState.Valid = FALSE;
+    Context->FramesDisplayLatencyGraphState.TooltipIndex = ULONG_MAX;
+
     GetClientRect(Context->WindowHandle, &clientRect);
     graphWidth = clientRect.right - margin.left - margin.right;
     graphHeight = (clientRect.bottom - margin.top - margin.bottom - between * 6) / 7;
@@ -368,6 +372,29 @@ VOID FramesPropUpdateGraphs(
     InvalidateRect(Context->FramesDisplayLatencyGraphHandle, NULL, FALSE);
 }
 
+VOID FramesPropUpdatePanel(
+    _In_ PET_FRAMES_CONTEXT Context
+    )
+{
+    PCWSTR runtime;
+    PCWSTR presentMode;
+    PPH_STRING string;
+    PH_FORMAT format[5];
+
+    runtime = EtRuntimeToString(Context->Block->FramesRuntime);
+    presentMode = EtPresentModeToString(Context->Block->FramesPresentMode);
+
+    PhInitFormatS(&format[0], L"FPS: ");
+    PhInitFormatS(&format[1], (PWSTR)presentMode);
+    PhInitFormatS(&format[2], L" (");
+    PhInitFormatS(&format[3], (PWSTR)runtime);
+    PhInitFormatC(&format[4], L')');
+
+    string = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    PhSetWindowText(Context->FramesPerSecondGroupBox, PhGetString(string));
+    PhDereferenceObject(string);
+}
+
 VOID NTAPI FramesProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -444,6 +471,8 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
+
             PhDeleteGraphState(&context->FramesPerSecondGraphState);
             PhDeleteGraphState(&context->FramesLatencyGraphState);
             PhDeleteGraphState(&context->PresentIntervalGraphState);
@@ -467,7 +496,6 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
             if (context->FramesDisplayLatencyGraphHandle)
                 DestroyWindow(context->FramesDisplayLatencyGraphHandle);
 
-            PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedRegistration);
             PhFree(context);
         }
         break;
@@ -484,7 +512,58 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                context->Enabled = TRUE;
+                {
+                    context->Enabled = TRUE;
+
+                    if (context->FramesPerSecondGraphHandle)
+                    {
+                        context->FramesPerSecondGraphState.Valid = FALSE;
+                        context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesPerSecondGraphHandle);
+                    }
+
+                    if (context->FramesLatencyGraphHandle)
+                    {
+                        context->FramesLatencyGraphState.Valid = FALSE;
+                        context->FramesLatencyGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesLatencyGraphHandle);
+                    }
+
+                    if (context->PresentIntervalGraphHandle)
+                    {
+                        context->PresentIntervalGraphState.Valid = FALSE;
+                        context->PresentIntervalGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->PresentIntervalGraphHandle);
+                    }
+
+                    if (context->PresentDurationGraphHandle)
+                    {
+                        context->PresentDurationGraphState.Valid = FALSE;
+                        context->PresentDurationGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->PresentDurationGraphHandle);
+                    }
+
+                    if (context->FramesRenderTimeGraphHandle)
+                    {
+                        context->FramesRenderTimeGraphState.Valid = FALSE;
+                        context->FramesRenderTimeGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesRenderTimeGraphHandle);
+                    }
+
+                    if (context->FramesDisplayTimeGraphHandle)
+                    {
+                        context->FramesDisplayTimeGraphState.Valid = FALSE;
+                        context->FramesDisplayTimeGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesDisplayTimeGraphHandle);
+                    }
+
+                    if (context->FramesDisplayLatencyGraphHandle)
+                    {
+                        context->FramesDisplayLatencyGraphState.Valid = FALSE;
+                        context->FramesDisplayLatencyGraphState.TooltipIndex = ULONG_MAX;
+                        Graph_Draw(context->FramesDisplayLatencyGraphHandle);
+                    }
+                }
                 break;
             case PSN_KILLACTIVE:
                 context->Enabled = FALSE;
@@ -524,7 +603,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesPerSecondGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -579,13 +658,13 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesLatencyGraphState.Valid = TRUE;
                         }
                         
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
 
                             PhInitFormatF(&format[0], context->Block->FramesLatency, 2);
-                            PhInitFormatS(&format[1], L" ms/frame");
+                            PhInitFormatS(&format[1], L" ms");
 
                             PhMoveReference(&context->FramesLatencyGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
 
@@ -634,7 +713,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->PresentIntervalGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -689,7 +768,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->PresentDurationGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -744,7 +823,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesRenderTimeGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -799,7 +878,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesDisplayTimeGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -854,7 +933,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             context->FramesDisplayLatencyGraphState.Valid = TRUE;
                         }
 
-                        if (PhGetIntegerSetting(L"GraphShowText"))
+                        if (EtGraphShowText)
                         {
                             HDC hdc;
                             PH_FORMAT format[2];
@@ -915,7 +994,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                                 value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesLatencyHistory, getTooltipText->Index);
 
                                 PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms/frame\n");
+                                PhInitFormatS(&format[1], L" ms\n");
                                 PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
                                 PhMoveReference(&context->FramesLatencyGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
@@ -1021,10 +1100,10 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
         break;
     case ET_WM_UPDATE:
         {
-            if (context->Enabled)
+            if (!(processItem->State & PH_PROCESS_ITEM_REMOVED) && context->Enabled)
             {
                 FramesPropUpdateGraphs(context);
-                //FramesPropUpdatePanel(context);
+                FramesPropUpdatePanel(context);
             }
         }
         break;

@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2021-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -115,7 +104,7 @@ VOID PvEnumerateExceptionEntries(
     {
         for (ULONG i = 0; i < exceptions.NumberOfEntries; i++)
         {
-            PIMAGE_RUNTIME_FUNCTION_ENTRY entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY));
+            PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry = PTR_ADD_OFFSET(exceptions.ExceptionDirectory, i * sizeof(PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64));
             INT lvItemIndex;
             PPH_STRING symbol;
             PPH_STRING symbolName = NULL;
@@ -175,19 +164,23 @@ VOID PvEnumerateExceptionEntries(
             }
         }
     }
+    else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+    {
+        /* Todo */
+    }
 
     //ExtendedListView_SortItems(ListViewHandle);
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-INT NTAPI PvpPeExceptionSizeCompareFunction(
+INT NTAPI PvpPeExceptionSizeCompareFunctionAmd64(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_ PVOID Context
     )
 {
-    PIMAGE_RUNTIME_FUNCTION_ENTRY entry1 = Item1;
-    PIMAGE_RUNTIME_FUNCTION_ENTRY entry2 = Item2;
+    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry1 = Item1;
+    PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 entry2 = Item2;
 
     return uintptrcmp((ULONG_PTR)entry1->EndAddress - entry1->BeginAddress, (ULONG_PTR)entry2->EndAddress - entry2->BeginAddress);
 }
@@ -245,7 +238,7 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"SEH Handler");
                 PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"Section");
-                PhLoadListViewColumnsFromSetting(L"ImageExceptions32ListViewColumns", context->ListViewHandle);
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsIa32ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_AMD64)
             {
@@ -255,9 +248,13 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
                 PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Size");
                 PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 200, L"Symbol");
                 PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Section");
-                PhLoadListViewColumnsFromSetting(L"ImageExceptions64ListViewColumns", context->ListViewHandle);
+                PhLoadListViewColumnsFromSetting(L"ImageExceptionsAmd64ListViewColumns", context->ListViewHandle);
 
-                ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PvpPeExceptionSizeCompareFunction);
+                ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, PvpPeExceptionSizeCompareFunctionAmd64);
+            }
+            else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+            {
+                /* Todo */
             }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -279,11 +276,15 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
 
             if (imageMachine == IMAGE_FILE_MACHINE_I386)
             {
-                PhSaveListViewColumnsToSetting(L"ImageExceptions32ListViewColumns", context->ListViewHandle);
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsIa32ListViewColumns", context->ListViewHandle);
             }
             else if (imageMachine == IMAGE_FILE_MACHINE_AMD64)
             {
-                PhSaveListViewColumnsToSetting(L"ImageExceptions64ListViewColumns", context->ListViewHandle);
+                PhSaveListViewColumnsToSetting(L"ImageExceptionsAmd64ListViewColumns", context->ListViewHandle);
+            }
+            else if (imageMachine == IMAGE_FILE_MACHINE_ARM64)
+            {
+                /* Todo */
             }
 
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -315,6 +316,17 @@ INT_PTR CALLBACK PvpPeExceptionDlgProc(
     case WM_CONTEXTMENU:
         {
             PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

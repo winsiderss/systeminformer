@@ -40,7 +40,6 @@ typedef struct _PH_PROVIDER_THREAD
 {
     HANDLE ThreadHandle;
     HANDLE TimerHandle;
-    HANDLE EventHandle;
     ULONG Interval;
     PH_PROVIDER_THREAD_STATE State;
 

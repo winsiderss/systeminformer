@@ -338,6 +338,7 @@
     <ClCompile Include="jsonc\strerror_override.c" />
     <ClCompile Include="maxminddb\data-pool.c" />
     <ClCompile Include="maxminddb\maxminddb.c" />
+    <ClCompile Include="md5\md5.c" />
     <ClCompile Include="miniz\miniz.c" />
     <ClCompile Include="mxml\mxml-attr.c" />
     <ClCompile Include="mxml\mxml-entity.c" />
@@ -377,6 +378,8 @@
     <ClCompile Include="pcre\pcre2_ucd.c" />
     <ClCompile Include="pcre\pcre2_valid_utf.c" />
     <ClCompile Include="pcre\pcre2_xclass.c" />
+    <ClCompile Include="sha256\sha256.c" />
+    <ClCompile Include="sha\sha.c" />
     <ClCompile Include="ssdeep\fuzzy.c" />
     <ClCompile Include="tlsh\tlsh.cpp" />
     <ClCompile Include="tlsh\tlsh_impl.cpp" />
@@ -501,6 +504,7 @@
     <ClInclude Include="maxminddb\maxminddb-compat-util.h" />
     <ClInclude Include="maxminddb\maxminddb.h" />
     <ClInclude Include="maxminddb\maxminddb_config.h" />
+    <ClInclude Include="md5\md5.h" />
     <ClInclude Include="miniz\miniz.h" />
     <ClInclude Include="mxml\config.h" />
     <ClInclude Include="mxml\mxml-private.h" />
@@ -511,12 +515,14 @@
     <ClInclude Include="pcre\pcre2_internal.h" />
     <ClInclude Include="pcre\pcre2_intmodedep.h" />
     <ClInclude Include="pcre\pcre2_ucp.h" />
+    <ClInclude Include="sha256\sha256.h" />
+    <ClInclude Include="sha\sha.h" />
     <ClInclude Include="ssdeep\fuzzy.h" />
     <ClInclude Include="tlsh\tlsh.h" />
     <ClInclude Include="tlsh\tlsh_impl.h" />
     <ClInclude Include="tlsh\tlsh_util.h" />
+    <ClInclude Include="tlsh\tlsh_win_version.h" />
     <ClInclude Include="tlsh\tlsh_wrapper.h" />
-    <ClInclude Include="tlsh\WinFunctions.h" />
     <ClInclude Include="tlsh\win_version.h" />
   </ItemGroup>
   <ItemGroup>

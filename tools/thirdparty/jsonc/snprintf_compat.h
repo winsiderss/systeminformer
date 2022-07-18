@@ -4,6 +4,10 @@
 #pragma warning(push)
 #pragma warning(disable: 4996)
 
+#ifndef WIN32
+#define WIN32
+#endif
+
 /**
  * @file
  * @brief Do not use, json-c internal, may be changed or removed at any time.

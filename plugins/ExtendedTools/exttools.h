@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2015
+ *     dmex    2018-2022
+ *
+ */
+
 #ifndef EXTTOOLS_H
 #define EXTTOOLS_H
 
@@ -9,9 +21,26 @@
 
 #include "resource.h"
 
-#include <d3d11.h>
-
 #include "framemon.h"
+
+// d3dkmddi requires the WDK (dmex)
+#if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
+#ifdef __has_include
+#if __has_include (<dxmini.h>) && \
+__has_include (<d3dkmddi.h>) && \
+__has_include (<d3dkmthk.h>)
+#include <dxmini.h>
+#include <d3dkmddi.h>
+#include <d3dkmthk.h>
+#else
+#include "d3dkmt/d3dkmthk.h"
+#endif
+#else
+#include "d3dkmt/d3dkmthk.h"
+#endif
+#else
+#include "d3dkmt/d3dkmthk.h"
+#endif
 
 #define PH_RECORD_MAX_USAGE 1
 
@@ -22,19 +51,18 @@ extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
+extern BOOLEAN EtGraphShowText;
+extern BOOLEAN EtEnableScaleGraph;
 extern BOOLEAN EtPropagateCpuUsage;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
 #define SETTING_NAME_ENABLE_GPUPERFCOUNTERS (PLUGIN_NAME L".EnableGpuPerformanceCounters")
-#define SETTING_NAME_ENABLE_DISKEXT (PLUGIN_NAME L".EnableDiskExt")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (PLUGIN_NAME L".EnableEtwMonitor")
 #define SETTING_NAME_ENABLE_GPU_MONITOR (PLUGIN_NAME L".EnableGpuMonitor")
 #define SETTING_NAME_ENABLE_FPS_MONITOR (PLUGIN_NAME L".EnableFpsMonitor")
 #define SETTING_NAME_ENABLE_SYSINFO_GRAPHS (PLUGIN_NAME L".EnableSysInfoGraphs")
-#define SETTING_NAME_GPU_NODE_BITMAP (PLUGIN_NAME L".GpuNodeBitmap")
-#define SETTING_NAME_GPU_LAST_NODE_COUNT (PLUGIN_NAME L".GpuLastNodeCount")
 #define SETTING_NAME_UNLOADED_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
 #define SETTING_NAME_UNLOADED_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
 #define SETTING_NAME_UNLOADED_COLUMNS (PLUGIN_NAME L".UnloadedListColumns")
@@ -51,10 +79,15 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_FW_TREE_LIST_COLUMNS (PLUGIN_NAME L".FwTreeColumns")
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
+#define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
 
 // Window messages
 #define ET_WM_SHOWDIALOG (WM_APP + 1)
 #define ET_WM_UPDATE (WM_APP + 2)
+
+VOID EtLoadSettings(
+    VOID
+    );
 
 // phsvc extensions
 
@@ -99,6 +132,7 @@ typedef struct _ET_DISK_ITEM
     PPH_STRING FileName;
     PPH_STRING FileNameWin32;
     PPH_STRING ProcessName;
+    WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
 
     PPH_PROCESS_ITEM ProcessItem;
     ULONG_PTR ProcessIconIndex;
@@ -133,7 +167,9 @@ typedef struct _ET_DISK_ITEM
 #define ETDSTNC_TOTALRATEAVERAGE 4
 #define ETDSTNC_IOPRIORITY 5
 #define ETDSTNC_RESPONSETIME 6
-#define ETDSTNC_MAXIMUM 7
+#define ETDSTNC_PID 7
+#define ETDSTNC_ORIGINALNAME 8
+#define ETDSTNC_MAXIMUM 9
 
 typedef struct _ET_DISK_NODE
 {
@@ -216,13 +252,10 @@ typedef enum _ET_PROCESS_STATISTICS_CATEGORY
 
 typedef enum _ET_PROCESS_STATISTICS_INDEX
 {
-    ET_PROCESS_STATISTICS_INDEX_RUNNINGTIME,
-    ET_PROCESS_STATISTICS_INDEX_CONTEXTSWITCHES,
-    //ET_PROCESS_STATISTICS_INDEX_TOTALNODES,
-    //ET_PROCESS_STATISTICS_INDEX_TOTALSEGMENTS,
-    ET_PROCESS_STATISTICS_INDEX_TOTALDEDICATED,
-    ET_PROCESS_STATISTICS_INDEX_TOTALSHARED,
-    ET_PROCESS_STATISTICS_INDEX_TOTALCOMMIT,
+    ET_PROCESS_STATISTICS_INDEX_GPUTOTALDEDICATED,
+    ET_PROCESS_STATISTICS_INDEX_GPUTOTALSHARED,
+    ET_PROCESS_STATISTICS_INDEX_GPUTOTALCOMMIT,
+    ET_PROCESS_STATISTICS_INDEX_GPUTOTAL,
 
     ET_PROCESS_STATISTICS_INDEX_DISKREADS,
     ET_PROCESS_STATISTICS_INDEX_DISKREADBYTES,
@@ -230,6 +263,9 @@ typedef enum _ET_PROCESS_STATISTICS_INDEX
     ET_PROCESS_STATISTICS_INDEX_DISKWRITES,
     ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTES,
     ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTESDELTA,
+    ET_PROCESS_STATISTICS_INDEX_DISKTOTAL,
+    ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTES,
+    ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTESDELTA,
 
     ET_PROCESS_STATISTICS_INDEX_NETWORKREADS,
     ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTES,
@@ -237,6 +273,9 @@ typedef enum _ET_PROCESS_STATISTICS_INDEX
     ET_PROCESS_STATISTICS_INDEX_NETWORKWRITES,
     ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTES,
     ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTESDELTA,
+    ET_PROCESS_STATISTICS_INDEX_NETWORKTOTAL,
+    ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTES,
+    ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA,
 
     ET_PROCESS_STATISTICS_INDEX_MAX
 } ET_PROCESS_STATISTICS_INDEX;
@@ -311,7 +350,6 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
     ULONG64 GpuCommitUsage;
-    ULONG64 GpuContextSwitches;
 
     FLOAT FramesPerSecond;
     FLOAT FramesLatency;
@@ -320,6 +358,8 @@ typedef struct _ET_PROCESS_BLOCK
     FLOAT FramesMsUntilRenderComplete;
     FLOAT FramesMsUntilDisplayed;
     FLOAT FramesDisplayLatency;
+    USHORT FramesRuntime;
+    USHORT FramesPresentMode;
     PH_CIRCULAR_BUFFER_FLOAT FramesPerSecondHistory;
     PH_CIRCULAR_BUFFER_FLOAT FramesLatencyHistory;
     PH_CIRCULAR_BUFFER_FLOAT FramesMsBetweenPresentsHistory;
@@ -513,7 +553,10 @@ VOID EtSaveSettingsDiskTreeList(
 
 // gpumon
 
+typedef D3DKMT_HANDLE* PD3DKMT_HANDLE;
+
 extern BOOLEAN EtGpuEnabled;
+extern BOOLEAN EtGpuSupported;
 extern BOOLEAN EtD3DEnabled;
 EXTERN_C BOOLEAN EtFramesEnabled;
 extern PPH_LIST EtpGpuAdapterList;
@@ -556,6 +599,12 @@ NTSTATUS EtQueryAdapterInformation(
     _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
     _Out_writes_bytes_opt_(InformationLength) PVOID Information,
     _In_ UINT32 InformationLength
+    );
+
+_Success_(return)
+BOOLEAN EtOpenAdapterFromDeviceName(
+    _Out_ PD3DKMT_HANDLE AdapterHandle,
+    _In_ PWSTR DeviceName
     );
 
 BOOLEAN EtCloseAdapterHandle(
@@ -733,8 +782,24 @@ VOID EtShowWsWatchDialog(
 
 // counters
 
+VOID EtPerfCounterInitialization(
+    VOID
+    );
+
+NTSTATUS EtUpdatePerfCounterData(
+    VOID
+    );
+
 FLOAT EtLookupProcessGpuUtilization(
     _In_ HANDLE ProcessId
+    );
+
+_Success_(return)
+BOOLEAN EtLookupProcessGpuMemoryCounters(
+    _In_opt_ HANDLE ProcessId,
+    _Out_ PULONG64 SharedUsage,
+    _Out_ PULONG64 DedicatedUsage,
+    _Out_ PULONG64 CommitUsage
     );
 
 FLOAT EtLookupTotalGpuUtilization(
@@ -745,31 +810,11 @@ FLOAT EtLookupTotalGpuEngineUtilization(
     _In_ ULONG EngineId
     );
 
-ULONG64 EtLookupProcessGpuDedicated(
-    _In_opt_ HANDLE ProcessId
-    );
-
-ULONG64 EtLookupTotalProcessGpuDedicated(
+ULONG64 EtLookupTotalGpuDedicated(
     VOID
-    );
-
-ULONG64 EtLookupTotalAdapterGpuDedicated(
-    VOID
-    );
-
-ULONG64 EtLookupProcessGpuSharedUsage(
-    _In_opt_ HANDLE ProcessId
     );
 
 ULONG64 EtLookupTotalGpuShared(
-    VOID
-    );
-
-ULONG64 EtLookupProcessGpuCommitUsage(
-    _In_opt_ HANDLE ProcessId
-    );
-
-ULONG64 EtLookupTotalGpuCommit(
     VOID
     );
 
@@ -839,7 +884,9 @@ typedef struct _FW_EVENT_ITEM
         struct
         {
             BOOLEAN Loopback : 1;
-            BOOLEAN Spare : 7;
+            BOOLEAN Spare : 5;
+            BOOLEAN LocalHostnameResolved : 1;
+            BOOLEAN RemoteHostnameResolved : 1;
         };
     };
 

@@ -7,6 +7,7 @@ extern "C" {
 
 extern WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
+extern USHORT PhMaxPrecisionUnit;
 
 typedef struct _PH_INTEGER_PAIR
 {
@@ -723,6 +724,20 @@ PhGetApplicationDirectory(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetApplicationDirectoryFileNameWin32(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetTemporaryDirectoryRandomAlphaFileName(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetKnownLocation(
     _In_ ULONG Folder,
     _In_opt_ PWSTR AppendPath
@@ -848,6 +863,30 @@ NTAPI
 PhFilterTokenForLimitedUser(
     _In_ HANDLE TokenHandle,
     _Out_ PHANDLE NewTokenHandle
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetSecurityDescriptorAsString(
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+PHLIBAPI
+PSECURITY_DESCRIPTOR
+NTAPI
+PhGetSecurityDescriptorFromString(
+    _In_ PWSTR SecurityDescriptorString
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetObjectSecurityDescriptorAsString(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* SecurityDescriptorString
     );
 
 PHLIBAPI
@@ -1006,6 +1045,7 @@ PhShowFileDialog(
 #define PH_FILEDIALOG_STRICTFILETYPES 0x80
 #define PH_FILEDIALOG_PICKFOLDERS 0x100
 #define PH_FILEDIALOG_NOPATHVALIDATE 0x200
+#define PH_FILEDIALOG_DONTADDTORECENT 0x400
 
 PHLIBAPI
 ULONG
@@ -1291,8 +1331,8 @@ PhLoadResourceCopy(
     _In_ PVOID DllBase,
     _In_ PCWSTR Name,
     _In_ PCWSTR Type,
-    _Out_opt_ ULONG * ResourceLength,
-    _Out_opt_ PVOID * ResourceBuffer
+    _Out_opt_ ULONG *ResourceLength,
+    _Out_opt_ PVOID *ResourceBuffer
     );
 
 PHLIBAPI
@@ -1338,15 +1378,16 @@ PhGetDllFileName(
 PHLIBAPI
 PVOID
 NTAPI
-PhGetLoaderEntryDllBase(
-    _In_ PWSTR DllName
+PhGetLoaderEntryStringRefDllBase(
+    _In_opt_ PPH_STRINGREF FullDllName,
+    _In_opt_ PPH_STRINGREF BaseDllName
     );
 
 PHLIBAPI
 PVOID
 NTAPI
-PhGetLoaderEntryFullDllBase(
-    _In_ PWSTR FullDllName
+PhGetLoaderEntryDllBase(
+    _In_ PWSTR DllName
     );
 
 PHLIBAPI
@@ -1571,6 +1612,39 @@ PPH_STRING
 NTAPI
 PhApiSetResolveToHost(
     _In_ PPH_STRINGREF ApiSetName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateProcessReflection(
+    _Out_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeProcessReflection(
+    _In_ PPROCESS_REFLECTION_INFORMATION ReflectionInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateProcessSnapshot(
+    _Out_ PHANDLE SnapshotHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeProcessSnapshot(
+    _In_ HANDLE SnapshotHandle,
+    _In_ HANDLE ProcessHandle
     );
 
 #ifdef __cplusplus

@@ -1,23 +1,12 @@
 /*
- * PE viewer -
- *   pdb support
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -172,32 +161,32 @@ VOID PrintVariant(
     _In_ PPH_STRING_BUILDER StringBuilder,
     _In_ VARIANT var)
 {
-    switch (var.vt)
+    switch (V_VT(&var))
     {
     case VT_UI1:
     case VT_I1:
-        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.bVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", V_UI1(&var));
         break;
     case VT_I2:
     case VT_UI2:
     case VT_BOOL:
-        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.iVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", V_I2(&var));
         break;
     case VT_I4:
     case VT_UI4:
     case VT_INT:
     case VT_UINT:
     case VT_ERROR:
-        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", var.lVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" 0x%X", V_I4(&var));
         break;
     case VT_R4:
-        PhAppendFormatStringBuilder(StringBuilder, L" %g", var.fltVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" %g", V_R4(&var));
         break;
     case VT_R8:
-        PhAppendFormatStringBuilder(StringBuilder, L" %g", var.dblVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" %g", V_R8(&var));
         break;
     case VT_BSTR:
-        PhAppendFormatStringBuilder(StringBuilder, L" \"%s\"", var.bstrVal);
+        PhAppendFormatStringBuilder(StringBuilder, L" \"%s\"", V_BSTR(&var));
         break;
     default:
         PhAppendStringBuilder2(StringBuilder, L" ??");
@@ -1248,23 +1237,22 @@ NTSTATUS PeDumpFileSymbols(
                 &size
                 );
 
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(NULL, L"Unable to load the file.", status, 0);
+                return status;
+            }
+
             if (PvpLoadDbgHelp(&PvSymbolProvider))
             {
-                PPH_STRING fileName;
-
-                if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), viewBase, &fileName)))
+                if (PhLoadFileNameSymbolProvider(
+                    PvSymbolProvider,
+                    PvFileName,
+                    (ULONG64)viewBase,
+                    (ULONG)size
+                    ))
                 {
-                    if (PhLoadModuleSymbolProvider(
-                        PvSymbolProvider,
-                        fileName,
-                        (ULONG64)viewBase,
-                        (ULONG)size
-                        ))
-                    {
-                        baseOfDll = (ULONG64)viewBase;
-                    }
-
-                    PhDereferenceObject(fileName);
+                    baseOfDll = (ULONG64)viewBase;
                 }
             }
 

@@ -1,23 +1,12 @@
 /*
- * Process Hacker Network Tools -
- *   Tracert dialog
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2015-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "nettools.h"
@@ -97,25 +86,25 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping1)
 {
-    sortResult = uint64cmp(node1->PingList[0], node2->PingList[0]);
+    sortResult = singlecmp(node1->PingList[0], node2->PingList[0]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping2)
 {
-    sortResult = uint64cmp(node1->PingList[1], node2->PingList[1]);
+    sortResult = singlecmp(node1->PingList[1], node2->PingList[1]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping3)
 {
-    sortResult = uint64cmp(node1->PingList[2], node2->PingList[2]);
+    sortResult = singlecmp(node1->PingList[2], node2->PingList[2]);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Ping4)
 {
-    sortResult = uint64cmp(node1->PingList[3], node2->PingList[3]);
+    sortResult = singlecmp(node1->PingList[3], node2->PingList[3]);
 }
 END_SORT_FUNCTION
 
@@ -280,13 +269,15 @@ VOID UpdateTracertNodePingText(
     if (Node->PingStatus[Index] == IP_SUCCESS ||
         Node->PingStatus[Index] == IP_TTL_EXPIRED_TRANSIT) // IP_HOP_LIMIT_EXCEEDED
     {
-        if (Node->PingList[Index])
+        if (Node->PingList[Index] != 0.0f)
         {
-            PhMoveReference(
-                &Node->PingString[Index], 
-                PhFormatString(L"%s ms", PhaFormatUInt64(Node->PingList[Index], TRUE)->Buffer)
-                );
+            PH_FORMAT format[2];
 
+            // %.2f ms
+            PhInitFormatF(&format[0], Node->PingList[Index], 2);
+            PhInitFormatS(&format[1], L" ms");
+
+            PhMoveReference(&Node->PingString[Index], PhFormat(format, RTL_NUMBER_OF(format), 0));
             CellText->Text = PhGetStringRef(Node->PingString[Index]);
         }
         else
@@ -390,7 +381,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             case TREE_COLUMN_ITEM_TTL:
                 {
                     PhMoveReference(&node->TtlString, PhFormatUInt64(node->TTL, TRUE));
-                    getCellText->Text = node->TtlString->sr;
+                    getCellText->Text = PhGetStringRef(node->TtlString);
                 }
                 break;
             case TREE_COLUMN_ITEM_PING1:
@@ -505,7 +496,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             // Padding
             rect.left += 5;
 
-            if (GeoDbLoaded && node->RemoteCountryCode && node->RemoteCountryName)
+            if (node->RemoteCountryCode && node->RemoteCountryName)
             {
                 if (node->CountryIconIndex == INT_MAX)
                     node->CountryIconIndex = LookupCountryIcon(node->RemoteCountryCode);
@@ -524,8 +515,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
                     DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
             }
-
-            if (!GeoDbLoaded)
+            else if (!GeoDbInitialized)
             {
                 DrawText(hdc, L"Geoip database not found.", -1, &rect, DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS | DT_SINGLELINE);
             }
@@ -626,10 +616,10 @@ VOID InitializeTracertTree(
     TreeNew_SetCallback(Context->TreeNewHandle, TracertTreeNewCallback, Context);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TTL, TRUE, L"TTL", 30, PH_ALIGN_LEFT, -2, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING1, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING1, DT_RIGHT);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING2, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING2, DT_RIGHT);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING3, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING3, DT_RIGHT);
-    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING4, TRUE, L"Time", 50, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING4, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING1, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING1, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING2, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING2, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING3, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING3, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_PING4, TRUE, L"Time", 70, PH_ALIGN_RIGHT, TREE_COLUMN_ITEM_PING4, DT_RIGHT);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_IPADDR, TRUE, L"IP Address", 120, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_IPADDR, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_HOSTNAME, TRUE, L"Hostname", 150, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_HOSTNAME, 0);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, TREE_COLUMN_ITEM_COUNTRY, TRUE, L"Country", 130, PH_ALIGN_LEFT, TREE_COLUMN_ITEM_COUNTRY, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
@@ -646,8 +636,6 @@ VOID DeleteTracertTree(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
-    TracertSaveSettingsTreeList(Context);
-
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
         DestroyTracertNode(Context->NodeList->Items[i]);

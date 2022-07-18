@@ -8,7 +8,7 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "winres.h"
-#include "../../../ProcessHacker/include/phappres.h"
+#include "../../../SystemInformer/include/phappres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -34,7 +34,7 @@ END
 2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
-    "#include ""../../../ProcessHacker/include/phappres.h""\r\n"
+    "#include ""../../../SystemInformer/include/phappres.h""\r\n"
     "\0"
 END
 
@@ -64,7 +64,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON                ICON                    "ProcessHacker.ico"
+IDI_ICON                ICON                    "SystemInformer.ico"
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

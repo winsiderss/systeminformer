@@ -1,23 +1,12 @@
 ﻿/*
- * Process Hacker Toolchain - 
- *   Build script
- * 
- * Copyright (C) dmex
- * 
- * This file is part of Process Hacker.
- * 
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This file is part of System Informer.
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * Authors:
+ *
+ *     dmex
+ *
  */
 
 using System;
@@ -37,7 +26,7 @@ namespace CustomBuildTool
             if (includeBaseName)
                 sourceFolder = Path.GetDirectoryName(sourceFolder);
 
-            int length = string.IsNullOrEmpty(sourceFolder) ? 0 : sourceFolder.Length;
+            int length = string.IsNullOrWhiteSpace(sourceFolder) ? 0 : sourceFolder.Length;
             if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
                 length++;
 
@@ -179,9 +168,9 @@ namespace CustomBuildTool
                         continue;
 
                     // Ignore junk directories
-                    if (filesToAdd[i].Contains("bin\\Debug") ||
-                        filesToAdd[i].Contains("obj\\") ||
-                        filesToAdd[i].Contains("tests\\"))
+                    if (filesToAdd[i].Contains("bin\\Debug", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].Contains("obj\\", StringComparison.OrdinalIgnoreCase) ||
+                        filesToAdd[i].Contains("tests\\", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     archive.CreateEntryFromFile(filesToAdd[i], entryNames[i], CompressionLevel.Optimal);

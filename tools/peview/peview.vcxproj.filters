@@ -22,12 +22,6 @@
     <Filter Include="Source Files\Pages\Linux">
       <UniqueIdentifier>{3213da7e-9e01-48a4-8895-c4dd1499b2fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\ssdeep">
-      <UniqueIdentifier>{84ecc5ac-b90d-41b6-a9f2-5cf08691450e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\tlsh">
-      <UniqueIdentifier>{349c41fa-6b58-4e7f-a61e-0b384b92ca8f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\DIA-SDK">
       <UniqueIdentifier>{ce2627d7-7f04-4e4b-ab4b-64e8e5cd0e25}</UniqueIdentifier>
     </Filter>
@@ -197,7 +191,7 @@
     </Manifest>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\ProcessHacker.ico">
+    <Image Include="resources\SystemInformer.ico">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="resources\inactive_search.png">

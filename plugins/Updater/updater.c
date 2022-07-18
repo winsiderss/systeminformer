@@ -1,23 +1,12 @@
 /*
- * Process Hacker Plugins -
- *   Update Checker Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2011-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "updater.h"
@@ -293,7 +282,7 @@ ULONG64 ParseVersionString(
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
 
-    PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
+    PhInitializeStringRefLongHint(&remaining, PhGetStringOrEmpty(VersionString));
 
     PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &minorPart, &remaining);
@@ -409,7 +398,7 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
-    if (!(jsonObject = PhCreateJsonParser(jsonString->Buffer)))
+    if (!(jsonObject = PhCreateJsonParserEx(jsonString, FALSE)))
         goto CleanupExit;
 
     Context->Version = PhGetJsonValueAsString(jsonObject, "version");
@@ -1077,12 +1066,8 @@ VOID ShowStartupUpdateDialog(
     if (jsonString && jsonString->Length)
     {
         PVOID jsonObject;
-        PPH_BYTES jsonStringUtf8;
 
-        jsonStringUtf8 = PhConvertUtf16ToUtf8Ex(jsonString->Buffer, jsonString->Length);
-        jsonObject = PhCreateJsonParser(jsonStringUtf8->Buffer);
-
-        if (jsonObject)
+        if (jsonObject = PhCreateJsonParserEx(jsonString, TRUE))
         {
             context->Version = PhGetJsonValueAsString(jsonObject, "version");
             context->RelDate = PhGetJsonValueAsString(jsonObject, "updated");
@@ -1099,8 +1084,6 @@ VOID ShowStartupUpdateDialog(
 #endif
             PhFreeJsonObject(jsonObject);
         }
-
-        PhDereferenceObject(jsonStringUtf8);
     }
 
     if (PhIsNullOrEmptyString(context->Version) &&

@@ -1,6 +1,6 @@
 # Security Policies and Procedures
 
-This document outlines security procedures and general policies for the Process Hacker project.
+This document outlines security procedures and general policies for the System Informer project.
 
   * [Reporting a Bug](#reporting-a-bug)
   * [Disclosure Policy](#disclosure-policy)
@@ -8,12 +8,12 @@ This document outlines security procedures and general policies for the Process 
 
 ## Reporting a Bug
 
-The Process Hacker team and community take all security bugs very seriously. We appreciate efforts 
+The System Informer team and community take all security bugs very seriously. We appreciate efforts 
 for responsible disclosure and will make every effort to acknowledge your contributions.
 
-Report security bugs by emailing the lead maintainers at dmex04@gmail.com and wj32.64@gmail.com.
+Report security bugs by emailing the lead maintainers at dmex04@gmail.com and johnny.shaw@live.com.
 
-The Process Hacker team will acknowledge your email within 48 hours, and will send a
+The System Informer team will acknowledge your email within 48 hours, and will send a
 more detailed response indicating the next steps in handling
 your report. After the initial reply to your report, the security team will
 endeavor to keep you informed of the progress towards a fix and full
@@ -24,7 +24,7 @@ the module.
 
 ## Disclosure Policy
 
-When the Process Hacker team receives a security bug report, they will assign it to a
+When the System Informer team receives a security bug report, they will assign it to a
 primary developer. This person will coordinate the fix and release process,
 involving the following steps:
 
@@ -33,8 +33,3 @@ involving the following steps:
   * Seek review from respected third-party security experts.
   * Prepare fixes for all releases still under maintenance. These fixes will be
     released as fast as possible.
-
-## Comments on this Policy
-
-If you have suggestions on how this process could be improved please submit a
-pull request.

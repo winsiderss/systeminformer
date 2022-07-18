@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: General Questions
+    url: https://github.com/winsiderss/systeminformer/discussions/new
+    about: Have a question? Start a new discussion.
+  - name: Review open issues
+    url: https://github.com/winsiderss/systeminformer/issues
+    about: Check existing bug reports for already reported issues.
+  - name: Create a blank issue
+    url: https://github.com/winsiderss/systeminformer/issues/new
+    about: Create a blank issue for anything else.

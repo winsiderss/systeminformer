@@ -1,21 +1,12 @@
 /*
- * Process Hacker Toolchain -
- *   project setup
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * This file is part of Process Hacker.
+ * This file is part of System Informer.
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Authors:
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     dmex
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <setup.h>
@@ -68,9 +59,9 @@ VOID ShowLicencePageDialog(
     config.lpCallbackData = (LONG_PTR)Context;
     config.cxWidth = 200;
 
-    config.pszWindowTitle = L"Process Hacker - Setup";
+    config.pszWindowTitle = L"System Informer - Setup";
     config.pszMainInstruction = L"License Agreement";
-    config.pszContent = L"Process Hacker is distributed under the GNU GPL version 3:\r\n<a href=\"https://raw.githubusercontent.com/processhacker/processhacker/master/LICENSE.txt\">View LICENSE.txt</a>\r\n\r\nSelect \"Next\" to continue.";
+    config.pszContent = L"System Informer is distributed by Winsider Seminars & Solutions, Inc.:\r\n<a href=\"https://raw.githubusercontent.com/winsiderss/systeminformer/blob/master/LICENSE.txt\">View LICENSE.txt</a>\r\n\r\nSelect \"Next\" to continue.";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

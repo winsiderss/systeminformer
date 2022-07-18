@@ -1,23 +1,12 @@
 ﻿/*
- * Process Hacker Toolchain - 
- *   Build script
- * 
- * Copyright (C) dmex
- * 
- * This file is part of Process Hacker.
- * 
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This file is part of System Informer.
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * Authors:
+ *
+ *     dmex
+ *
  */
 
 using System;
@@ -36,18 +25,23 @@ namespace CustomBuildTool
             this.FileName = Filename;
             this.UploadNightly = UploadNightly;
         }
+
+        public override string ToString()
+        {
+            return this.FileName;
+        }
     }
 
     public static class BuildConfig
     {
         public static readonly List<BuildFile> Build_Release_Files = new List<BuildFile>
         {
-            new BuildFile("\\processhacker-build-setup.exe", true), // nightly
-            new BuildFile("\\processhacker-build-bin.zip", true), // nightly
-            new BuildFile("\\processhacker-build-src.zip", false),
-            new BuildFile("\\processhacker-build-sdk.zip", false),
-            new BuildFile("\\processhacker-build-pdb.zip", false),
-            //new BuildFile("\\processhacker-build-checksums.txt", false),
+            new BuildFile("\\systeminformer-build-setup.exe", true), // nightly
+            new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
+            new BuildFile("\\systeminformer-build-src.zip", false),
+            new BuildFile("\\systeminformer-build-sdk.zip", false),
+            new BuildFile("\\systeminformer-build-pdb.zip", false),
+            //new BuildFile("\\systeminformer-build-checksums.txt", false),
         };
 
         public static readonly string[] Build_Sdk_Directories =
@@ -101,6 +95,7 @@ namespace CustomBuildTool
         public static readonly string[] Build_Phlib_Headers =
         {
             "appresolver.h",
+            "banned.h",
             "circbuf.h",
             "circbuf_h.h",
             "cpysave.h",
@@ -140,8 +135,7 @@ namespace CustomBuildTool
             "templ.h",
             "treenew.h",
             "verify.h",
-            "workqueue.h",
-            "banned.h"
+            "workqueue.h"
         };
     }
 }

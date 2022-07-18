@@ -1,24 +1,13 @@
 /*
- * Process Hacker Extended Tools -
- *   GPU mini information section
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015 wj32
- * Copyright (C) 2016-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2015
+ *     dmex    2016-2020
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -50,7 +39,7 @@ BOOLEAN EtpGpuListSectionCallback(
 
             // GPU    %.2f%%
             PhInitFormatS(&format[0], L"GPU    ");
-            PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
+            PhInitFormatF(&format[1], EtGpuNodeUsage * 100, 2);
             PhInitFormatC(&format[2], L'%');
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
@@ -116,7 +105,7 @@ BOOLEAN EtpGpuListSectionCallback(
             gpuUsage = *(PFLOAT)getUsageText->SortData->UserData;
 
             // %.2f%%
-            PhInitFormatF(&format[0], (DOUBLE)gpuUsage * 100, 2);
+            PhInitFormatF(&format[0], gpuUsage * 100, 2);
             PhInitFormatC(&format[1], L'%');
 
             PhMoveReference(&getUsageText->Line1, PhFormat(format, RTL_NUMBER_OF(format), 0));

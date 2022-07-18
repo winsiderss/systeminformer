@@ -3368,13 +3368,13 @@ static mz_bool mz_zip_get_file_modified_time(const char *pFilename, MZ_TIME_T *p
 
 static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_time, MZ_TIME_T modified_time)
 {
-    struct utimbuf t;
+    struct _utimbuf t;
 
     memset(&t, 0, sizeof(t));
     t.actime = access_time;
     t.modtime = modified_time;
 
-    return !utime(pFilename, &t);
+    return !_utime(pFilename, &t);
 }
 #endif /* #ifndef MINIZ_NO_STDIO */
 #endif /* #ifndef MINIZ_NO_TIME */

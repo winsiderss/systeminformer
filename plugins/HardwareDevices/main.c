@@ -1,24 +1,13 @@
 /*
- * Process Hacker Plugins -
- *   Hardware Devices Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2016
+ *     dmex    2015-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "devices.h"
@@ -300,6 +289,37 @@ BOOLEAN HardwareDeviceRestart(
     return TRUE;
 }
 
+BOOLEAN HardwareDeviceUninstall(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    )
+{
+    CONFIGRET result;
+    DEVINST deviceInstanceHandle;
+
+    result = CM_Locate_DevNode(
+        &deviceInstanceHandle,
+        DeviceInstance->Buffer,
+        CM_LOCATE_DEVNODE_PHANTOM
+        );
+
+    if (result != CR_SUCCESS)
+    {
+        PhShowStatus(ParentWindow, L"Failed to uninstall the device.", 0, CM_MapCrToWin32Err(result, ERROR_UNKNOWN_PROPERTY));
+        return FALSE;
+    }
+
+    result = CM_Uninstall_DevInst(deviceInstanceHandle, 0);
+
+    if (result != CR_SUCCESS)
+    {
+        PhShowStatus(ParentWindow, L"Failed to uninstall the device.", 0, CM_MapCrToWin32Err(result, ERROR_UNKNOWN_PROPERTY));
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN HardwareDeviceShowProperties(
     _In_ HWND WindowHandle,
     _In_ PPH_STRING DeviceInstance
@@ -449,6 +469,7 @@ VOID ShowDeviceMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Restart", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Uninstall", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     subMenu = PhCreateEMenuItem(0, 0, L"Open key", NULL, NULL);
     PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 4, L"Hardware", NULL, NULL), ULONG_MAX);
@@ -457,7 +478,7 @@ VOID ShowDeviceMenu(
     PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 7, L"Config", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, subMenu, ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Properties", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 10, L"Properties", NULL, NULL), ULONG_MAX);
 
     selectedItem = PhShowEMenu(
         menu,
@@ -480,13 +501,21 @@ VOID ShowDeviceMenu(
             HardwareDeviceRestart(ParentWindow, DeviceInstance);
             break;
         case 3:
-            HardwareDeviceShowProperties(ParentWindow, DeviceInstance);
+            {
+                if (HardwareDeviceUninstall(ParentWindow, DeviceInstance))
+                {
+                    NOTHING;
+                }
+            }
             break;
         case 4:
         case 5:
         case 6:
         case 7:
             HardwareDeviceOpenKey(ParentWindow, DeviceInstance, selectedItem->Id);
+            break;
+        case 10:
+            HardwareDeviceShowProperties(ParentWindow, DeviceInstance);
             break;
         }
     }

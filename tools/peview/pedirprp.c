@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2019-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2019-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -80,7 +69,6 @@ typedef struct _PV_DIRECTORY_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
-    HANDLE UpdateTimerHandle;
 
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
@@ -171,19 +159,6 @@ VOID PvAddPendingDirectoryNodes(
     if (needsFullUpdate)
         TreeNew_NodesStructured(Context->TreeNewHandle);
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
-}
-
-VOID CALLBACK PvDirectoryTreeUpdateCallback(
-    _In_ PPV_DIRECTORY_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->UpdateTimerHandle)
-        return;
-
-    PvAddPendingDirectoryNodes(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 VOID PvpPeEnumerateImageDataDirectory(
@@ -297,7 +272,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //directoryNode->HashString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->HashString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
 
         __try
@@ -316,7 +291,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //directoryNode->EntropyString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->EntropyString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
 
         __try
@@ -337,7 +312,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //directoryNode->SsdeepString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->SsdeepString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->SsdeepString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
 
         __try
@@ -362,7 +337,7 @@ VOID PvpPeEnumerateImageDataDirectory(
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             //sectionNode->TlshString = PhGetNtMessage(GetExceptionCode());
-            directoryNode->TlshString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+            directoryNode->TlshString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
         }
     }
 
@@ -449,27 +424,11 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
 
             PhCreateThread2(PvpPeDirectoryEnumerateThread, context);
 
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PvDirectoryTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
-
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PhSaveSettingsDirectoryList(context);
             PvDeleteDirectoryTree(context);
         }
@@ -531,12 +490,6 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PvAddPendingDirectoryNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyDirectoriesText, 0);
@@ -588,6 +541,17 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
 
                 PhDestroyEMenu(menu);
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

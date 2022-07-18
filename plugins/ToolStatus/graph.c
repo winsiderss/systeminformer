@@ -1,29 +1,18 @@
 /*
- * Process Hacker ToolStatus -
- *   Toolbar Graph Bands
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2015-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "toolstatus.h"
 
-PPH_LIST PhpToolbarGraphList = NULL;
-PPH_HASHTABLE PhpToolbarGraphHashtable = NULL;
+static PPH_LIST PhpToolbarGraphList = NULL;
+static PPH_HASHTABLE PhpToolbarGraphHashtable = NULL;
 
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback);
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback);
@@ -273,9 +262,6 @@ VOID ToolbarUpdateGraphs(
     VOID
     )
 {
-    if (!ToolStatusConfig.ToolBarEnabled)
-        return;
-
     for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
     {
         PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
@@ -292,6 +278,29 @@ VOID ToolbarUpdateGraphs(
         Graph_Draw(graph->GraphHandle);
         Graph_UpdateTooltip(graph->GraphHandle);
         InvalidateRect(graph->GraphHandle, NULL, FALSE);
+    }
+}
+
+VOID ToolbarUpdateGraphVisualStates(
+    VOID
+    )
+{
+    if (!ToolStatusConfig.ToolBarEnabled)
+        return;
+
+    for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
+    {
+        PPH_TOOLBAR_GRAPH graph = PhpToolbarGraphList->Items[i];
+
+        if (!(graph->Flags & TOOLSTATUS_GRAPH_ENABLED))
+            continue;
+
+        if (!graph->GraphHandle)
+            continue;
+
+        graph->GraphState.Valid = FALSE;
+        graph->GraphState.TooltipIndex = ULONG_MAX;
+        Graph_Draw(graph->GraphHandle);
     }
 }
 
@@ -708,15 +717,25 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback)
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
             PPH_PROCESS_RECORD record = NULL;
 
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
             {
-                record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
-            }
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"CPU");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = PhSipReferenceMaxCpuRecord(mouseEvent->Index);
+                    }
 
-            if (record)
-            {
-                PhShowProcessRecordDialog(PhMainWndHandle, record);
-                PhDereferenceProcessRecord(record);
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
             }
         }
         break;
@@ -788,7 +807,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
         break;
     case GCN_MOUSEEVENT:
         {
-            NOTHING;
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            {
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"Memory");
+                }
+            }
         }
         break;
     }
@@ -859,7 +886,15 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
         break;
     case GCN_MOUSEEVENT:
         {
-            NOTHING;
+            PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
+
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+            {
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"Memory");
+                }
+            }
         }
         break;
     }
@@ -948,15 +983,25 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
             PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)Header;
             PPH_PROCESS_RECORD record = NULL;
 
-            if (mouseEvent->Message == WM_LBUTTONDBLCLK && mouseEvent->Index < mouseEvent->TotalCount)
+            if (mouseEvent->Message == WM_LBUTTONDBLCLK)
             {
-                record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
-            }
+                if (PhGetIntegerSetting(SETTING_NAME_SHOWSYSINFOGRAPH))
+                {
+                    PhShowSystemInformationDialog(L"I/O");
+                }
+                else
+                {
+                    if (mouseEvent->Index < mouseEvent->TotalCount)
+                    {
+                        record = PhSipReferenceMaxIoRecord(mouseEvent->Index);
+                    }
 
-            if (record)
-            {
-                PhShowProcessRecordDialog(PhMainWndHandle, record);
-                PhDereferenceProcessRecord(record);
+                    if (record)
+                    {
+                        PhShowProcessRecordDialog(PhMainWndHandle, record);
+                        PhDereferenceProcessRecord(record);
+                    }
+                }
             }
         }
         break;

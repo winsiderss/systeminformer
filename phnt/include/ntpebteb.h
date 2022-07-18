@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Process and Thread Environment Block support functions
+ * Process and Thread Environment Block support functions
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _NTPEBTEB_H
@@ -170,7 +156,7 @@ typedef struct _PEB
     ULONG ImageSubsystem;
     ULONG ImageSubsystemMajorVersion;
     ULONG ImageSubsystemMinorVersion;
-    ULONG_PTR ActiveProcessAffinityMask;
+    KAFFINITY ActiveProcessAffinityMask;
     GDI_HANDLE_BUFFER GdiHandleBuffer;
     PVOID PostProcessInitRoutine;
 
@@ -193,17 +179,28 @@ typedef struct _PEB
 
     SIZE_T MinimumStackCommit;
 
-    PVOID SparePointers[4]; // 19H1 (previously FlsCallback to FlsHighIndex)
-    ULONG SpareUlongs[5]; // 19H1
-    //PVOID* FlsCallback;
-    //LIST_ENTRY FlsListHead;
-    //PVOID FlsBitmap;
-    //ULONG FlsBitmapBits[FLS_MAXIMUM_AVAILABLE / (sizeof(ULONG) * 8)];
-    //ULONG FlsHighIndex;
+    PVOID SparePointers[2]; // 19H1 (previously FlsCallback to FlsHighIndex)
+    PVOID PatchLoaderData;
+    PVOID ChpeV2ProcessInfo; // _CHPEV2_PROCESS_INFO
+
+    ULONG AppModelFeatureState;
+    ULONG SpareUlongs[2];
+
+    USHORT ActiveCodePage;
+    USHORT OemCodePage;
+    USHORT UseCaseMapping;
+    USHORT UnusedNlsField;
 
     PVOID WerRegistrationData;
     PVOID WerShipAssertPtr;
-    PVOID pUnused; // pContextData
+
+    union
+    {
+        PVOID pContextData; // WIN7
+        PVOID pUnused; // WIN10
+        PVOID EcCodeBitMap; // WIN11
+    };
+
     PVOID pImageHeaderHash;
     union
     {
@@ -236,18 +233,21 @@ typedef struct _PEB
         };
     };
     ULONG NtGlobalFlag2;
+    ULONGLONG ExtendedFeatureDisableMask; // since WIN11
 } PEB, *PPEB;
 
 #ifdef _WIN64
 C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
 //C_ASSERT(sizeof(PEB) == 0x7B0); // REDSTONE3
 //C_ASSERT(sizeof(PEB) == 0x7B8); // REDSTONE4
-C_ASSERT(sizeof(PEB) == 0x7C8); // REDSTONE5 // 19H1
+//C_ASSERT(sizeof(PEB) == 0x7C8); // REDSTONE5 // 19H1
+C_ASSERT(sizeof(PEB) == 0x7d0); // WIN11
 #else
 C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
 //C_ASSERT(sizeof(PEB) == 0x468); // REDSTONE3
 //C_ASSERT(sizeof(PEB) == 0x470); // REDSTONE4
-C_ASSERT(sizeof(PEB) == 0x480); // REDSTONE5 // 19H1
+//C_ASSERT(sizeof(PEB) == 0x480); // REDSTONE5 // 19H1
+C_ASSERT(sizeof(PEB) == 0x488); // WIN11
 #endif
 
 #define GDI_BATCH_BUFFER_SIZE 310
@@ -430,7 +430,7 @@ typedef struct _TEB
             USHORT LoadOwner : 1;
             USHORT LoaderWorker : 1;
             USHORT SkipLoaderInit : 1;
-            USHORT SpareSameTebBits : 1;
+            USHORT SkipFileAPIBrokering : 1;
         };
     };
 

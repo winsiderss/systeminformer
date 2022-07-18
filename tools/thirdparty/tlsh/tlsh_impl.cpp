@@ -67,6 +67,7 @@
 #include <cmath>
 #include <algorithm>
 //#include <string.h>
+#include <errno.h>
 
 #define RANGE_LVALUE 256
 #define RANGE_QRATIO 16
@@ -122,6 +123,25 @@ static unsigned char v_table[256] = {
     51, 65, 28, 144, 254, 221, 93, 189, 194, 139, 112, 43, 71, 109, 184, 209
 };
 
+static unsigned char v_table48[256] = {
+	1, 39, 1, 12, 32, 34, 6, 22, 25, 1, 6, 36, 48, 38, 44, 19,
+	14, 5, 21, 37, 17, 37, 26, 32, 16, 47, 24, 34, 44, 46, 38, 8,
+	14, 33, 8, 7, 45, 48, 48, 2, 29, 5, 33, 18, 45, 0, 31, 30,
+	25, 11, 46, 22, 38, 45, 48, 34, 24, 48, 20, 22, 48, 35, 5, 43,
+	1, 42, 9, 22, 12, 48, 34, 31, 16, 5, 31, 7, 15, 14, 39, 48,
+	30, 25, 19, 10, 18, 10, 10, 3, 48, 27, 17, 43, 38, 35, 0, 48,
+	36, 8, 4, 27, 32, 37, 14, 4, 34, 30, 43, 13, 9, 48, 24, 27,
+	23, 20, 31, 30, 35, 40, 9, 3, 26, 11, 44, 32, 40, 18, 4, 10,
+	42, 30, 0, 39, 12, 35, 13, 26, 47, 26, 48, 46, 33, 18, 15, 8,
+	26, 7, 19, 23, 48, 14, 3, 6, 7, 11, 7, 28, 42, 5, 23, 35,
+	29, 29, 15, 46, 31, 47, 41, 16, 9, 41, 33, 32, 25, 16, 37, 27,
+	22, 25, 2, 13, 46, 20, 9, 1, 38, 36, 15, 20, 10, 23, 21, 37,
+	27, 44, 19, 28, 24, 48, 42, 4, 29, 12, 21, 48, 19, 13, 39, 11,
+	41, 40, 42, 3, 6, 0, 11, 33, 20, 47, 2, 12, 21, 36, 21, 28,
+	44, 36, 18, 28, 41, 6, 15, 8, 41, 40, 17, 4, 39, 47, 2, 24,
+	3, 17, 28, 0, 48, 29, 45, 45, 2, 43, 16, 43, 23, 13, 40, 17,
+};
+
 // Pearson's algorithm
 unsigned char b_mapping(unsigned char salt, unsigned char i, unsigned char j, unsigned char k) {
     unsigned char h = 0;
@@ -145,7 +165,11 @@ unsigned char faster_b_mapping(unsigned char mod_salt, unsigned char i, unsigned
 }
 */
 
-#define fast_b_mapping(ms,i,j,k) (v_table[ v_table[ v_table[ms^i] ^ j] ^ k ])
+#if defined BUCKETS_48
+#define fast_b_mapping(ms,i,j,k) (v_table48[ v_table[ v_table[ms^i] ^ j] ^ k ])
+#else
+#define fast_b_mapping(ms,i,j,k) (v_table  [ v_table[ v_table[ms^i] ^ j] ^ k ])
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -161,15 +185,15 @@ unsigned char faster_b_mapping(unsigned char mod_salt, unsigned char i, unsigned
 	#define SLIDING_WND_SIZE_M1	7
 #endif
 
-void TlshImpl::update(const unsigned char* data, unsigned int len) 
+#define RNG_SIZE    	SLIDING_WND_SIZE
+#define RNG_IDX(i)	((i+RNG_SIZE)%RNG_SIZE)
+
+void TlshImpl::update(const unsigned char* data, unsigned int len, int tlsh_option)
 {
     if (this->lsh_code_valid) {
       //fprintf(stderr, "call to update() on a tlsh that is already valid\n");
       return;
     }   
-
-    #define RNG_SIZE    	SLIDING_WND_SIZE
-    #define RNG_IDX(i)	((i+RNG_SIZE)%RNG_SIZE)
 	
     unsigned int fed_len = this->data_len;
 
@@ -180,7 +204,12 @@ void TlshImpl::update(const unsigned char* data, unsigned int len)
 
 #if SLIDING_WND_SIZE==5
     if (TLSH_CHECKSUM_LEN == 1) {
-	fast_update(data, len);
+	fast_update5(data, len, tlsh_option);
+#ifndef CHECKSUM_0B
+	if ((tlsh_option & TLSH_OPTION_THREADED) || (tlsh_option & TLSH_OPTION_PRIVATE)) {
+		this->lsh_bin.checksum[0] = 0;
+	}
+#endif
 	return;
     }
 #endif
@@ -294,104 +323,396 @@ void TlshImpl::update(const unsigned char* data, unsigned int len)
         }
     }
     this->data_len += len;
+#ifndef CHECKSUM_0B
+    if ((tlsh_option & TLSH_OPTION_THREADED) || (tlsh_option & TLSH_OPTION_PRIVATE)) {
+	for (int k = 0; k < TLSH_CHECKSUM_LEN; k++) {
+		this->lsh_bin.checksum[k] = 0;
+	}
+    }
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// update for the case when SLIDING_WND_SIZE==5 && (TLSH_CHECKSUM_LEN == 1)
+// update for the case when SLIDING_WND_SIZE==5
+// have different optimized functions for
+//	default TLSH
+//	threaded TLSH
+//	private TLSH
 /////////////////////////////////////////////////////////////////////////////
+static void raw_fast_update5(
+	// inputs
+	const unsigned char* data,
+	unsigned int len,
+	unsigned int fed_len,
+	// outputs
+	unsigned int *a_bucket,
+	unsigned char *ret_checksum,
+	unsigned char *slide_window
+	);
 
-void TlshImpl::fast_update(const unsigned char* data, unsigned int len) 
+static void raw_fast_update5_private(
+	// inputs
+	const unsigned char* data,
+	unsigned int len,
+	unsigned int fed_len,
+	// outputs
+	unsigned int *a_bucket,
+	unsigned char *slide_window
+	);
+
+#ifdef THREADING_IMPLEMENTED
+#include <thread>
+#endif
+
+struct raw_args {
+	// inputs
+	const unsigned char* data;
+	unsigned int len;
+	unsigned int fed_len;
+	// outputs
+	unsigned int bucket[256];
+	unsigned char slide_window[5];
+};
+
+static void raw_fast_update5_nochecksum( struct raw_args *ra );
+
+static struct raw_args call1;
+static struct raw_args call2;
+
+void thread1()
 {
-	unsigned int fed_len = this->data_len;
-	int j = (int)(this->data_len % RNG_SIZE);
-	unsigned char checksum = this->lsh_bin.checksum[0];
+	raw_fast_update5_nochecksum( &call1 );
+}
+void thread2()
+{
+	raw_fast_update5_nochecksum( &call2 );
+}
 
-	for( unsigned int i=0; i<len;  ) {
-		if ( fed_len >= SLIDING_WND_SIZE_M1 ) {
-			//only calculate when input >= 5 bytes
-			if ((i >= 4) && (i+5 < len)) {
-				unsigned a0 = data[i-4];
-				unsigned a1 = data[i-3];
-				unsigned a2 = data[i-2];
-				unsigned a3 = data[i-1];
-				unsigned a4 = data[i];
-				unsigned a5 = data[i+1];
-				unsigned a6 = data[i+2];
-				unsigned a7 = data[i+3];
-				unsigned a8 = data[i+4];
+void TlshImpl::fast_update5(const unsigned char* data, unsigned int len, int tlsh_option)
+{
+#ifdef THREADING_IMPLEMENTED
+	if ((len >= 10000) && (tlsh_option & TLSH_OPTION_THREADED)) {
+		unsigned len2A = len / 2;
+		unsigned len2B = len - len2A;
+		// printf("method 2	len=%d	len2A=%d	len2B=%d\n", len, len2A, len2B);
 
-				checksum = fast_b_mapping(1, a4, a3, checksum );
-				this->a_bucket[ fast_b_mapping(49,  a4, a3, a2 ) ]++;
-				this->a_bucket[ fast_b_mapping(12,  a4, a3, a1 ) ]++;
-				this->a_bucket[ fast_b_mapping(178, a4, a2, a1 ) ]++;
-				this->a_bucket[ fast_b_mapping(166, a4, a2, a0 ) ]++;
-				this->a_bucket[ fast_b_mapping(84,  a4, a3, a0 ) ]++;
-				this->a_bucket[ fast_b_mapping(230, a4, a1, a0 ) ]++;
+		for (int bi=0; bi<256; bi++) {
+			call1.bucket[bi] = 0;
+			call2.bucket[bi] = 0;
+		}
+		for (int di=0; di<5; di++) {
+			call1.slide_window[di] = 0;
+			int didx = len2A - 5 + di;
+			int wi = didx % 5;
+			call2.slide_window[wi] = data[didx];
+		}
 
-				checksum = fast_b_mapping(1, a5, a4, checksum );
-				this->a_bucket[ fast_b_mapping(49,  a5, a4, a3 ) ]++;
-				this->a_bucket[ fast_b_mapping(12,  a5, a4, a2 ) ]++;
-				this->a_bucket[ fast_b_mapping(178, a5, a3, a2 ) ]++;
-				this->a_bucket[ fast_b_mapping(166, a5, a3, a1 ) ]++;
-				this->a_bucket[ fast_b_mapping(84,  a5, a4, a1 ) ]++;
-				this->a_bucket[ fast_b_mapping(230, a5, a2, a1 ) ]++;
+		call1.data	= data;
+		call1.len	= len2A;
+		call1.fed_len	= 0;
 
-				checksum = fast_b_mapping(1, a6, a5, checksum );
-				this->a_bucket[ fast_b_mapping(49,  a6, a5, a4 ) ]++;
-				this->a_bucket[ fast_b_mapping(12,  a6, a5, a3 ) ]++;
-				this->a_bucket[ fast_b_mapping(178, a6, a4, a3 ) ]++;
-				this->a_bucket[ fast_b_mapping(166, a6, a4, a2 ) ]++;
-				this->a_bucket[ fast_b_mapping(84,  a6, a5, a2 ) ]++;
-				this->a_bucket[ fast_b_mapping(230, a6, a3, a2 ) ]++;
+		call2.data	= &data[len2A];
+		call2.len	= len2B;
+		call2.fed_len	= len2A;
 
-				checksum = fast_b_mapping(1, a7, a6, checksum );
-				this->a_bucket[ fast_b_mapping(49,  a7, a6, a5 ) ]++;
-				this->a_bucket[ fast_b_mapping(12,  a7, a6, a4 ) ]++;
-				this->a_bucket[ fast_b_mapping(178, a7, a5, a4 ) ]++;
-				this->a_bucket[ fast_b_mapping(166, a7, a5, a3 ) ]++;
-				this->a_bucket[ fast_b_mapping(84,  a7, a6, a3 ) ]++;
-				this->a_bucket[ fast_b_mapping(230, a7, a4, a3 ) ]++;
+		std::thread t1(thread1);
+		std::thread t2(thread2);
+		t1.join();
+		t2.join();
 
-				checksum = fast_b_mapping(1, a8, a7, checksum );
-				this->a_bucket[ fast_b_mapping(49,  a8, a7, a6 ) ]++;
-				this->a_bucket[ fast_b_mapping(12,  a8, a7, a5 ) ]++;
-				this->a_bucket[ fast_b_mapping(178, a8, a6, a5 ) ]++;
-				this->a_bucket[ fast_b_mapping(166, a8, a6, a4 ) ]++;
-				this->a_bucket[ fast_b_mapping(84,  a8, a7, a4 ) ]++;
-				this->a_bucket[ fast_b_mapping(230, a8, a5, a4 ) ]++;
+		this->data_len += len;
 
-				i=i+5;
-				fed_len=fed_len+5;
-				j=RNG_IDX(j+5);
-			} else {
-				this->slide_window[j] = data[i];
-				int j_1 = RNG_IDX(j-1); if (i >= 1) { this->slide_window[j_1] = data[i-1]; }
-				int j_2 = RNG_IDX(j-2); if (i >= 2) { this->slide_window[j_2] = data[i-2]; }
-				int j_3 = RNG_IDX(j-3); if (i >= 3) { this->slide_window[j_3] = data[i-3]; }
-				int j_4 = RNG_IDX(j-4); if (i >= 4) { this->slide_window[j_4] = data[i-4]; }
+		for (int bi=0; bi<128; bi++) {
+			this->a_bucket[bi] += (call1.bucket[bi] + call2.bucket[bi]) ;
+			// printf("bucket	%d	=%d\n", bi, this->a_bucket[bi] );
+		}
+		return;
+	}
+#endif
+	if (tlsh_option & TLSH_OPTION_PRIVATE) {
+		raw_fast_update5_private(data, len, this->data_len, this->a_bucket,                               this->slide_window);
+		this->data_len += len;
+		this->lsh_bin.checksum[0] = 0;
+	} else {
+		raw_fast_update5        (data, len, this->data_len, this->a_bucket, &(this->lsh_bin.checksum[0]), this->slide_window);
+		this->data_len += len;
+	}
+}
 
-				checksum = fast_b_mapping(1, this->slide_window[j], this->slide_window[j_1], checksum );
-				this->a_bucket[ fast_b_mapping(49,  this->slide_window[j], this->slide_window[j_1], this->slide_window[j_2] ) ]++;
-				this->a_bucket[ fast_b_mapping(12,  this->slide_window[j], this->slide_window[j_1], this->slide_window[j_3] ) ]++;
-				this->a_bucket[ fast_b_mapping(178, this->slide_window[j], this->slide_window[j_2], this->slide_window[j_3] ) ]++;
-				this->a_bucket[ fast_b_mapping(166, this->slide_window[j], this->slide_window[j_2], this->slide_window[j_4] ) ]++;
-				this->a_bucket[ fast_b_mapping(84,  this->slide_window[j], this->slide_window[j_1], this->slide_window[j_4] ) ]++;
-				this->a_bucket[ fast_b_mapping(230, this->slide_window[j], this->slide_window[j_3], this->slide_window[j_4] ) ]++;
-				i++;
-				fed_len++;
-				j=RNG_IDX(j+1);
-			}
+static void raw_fast_update5(
+	// inputs
+	const unsigned char* data,
+	unsigned int len,
+	unsigned int fed_len,
+	// outputs
+	unsigned int *a_bucket,
+	unsigned char *ret_checksum,
+	unsigned char *slide_window
+	)
+{
+	int j = (int)(fed_len % RNG_SIZE);
+	unsigned char checksum = *ret_checksum;
+
+	unsigned int start_i=0;
+	if ( fed_len < SLIDING_WND_SIZE_M1 ) {
+		int extra = SLIDING_WND_SIZE_M1 - fed_len;
+		start_i	= extra;
+		j	= (j + extra) % RNG_SIZE;
+	}
+	for( unsigned int i=start_i; i<len;  ) {
+		//only calculate when input >= 5 bytes
+		if ((i >= 4) && (i+5 < len)) {
+			unsigned char a0 = data[i-4];
+			unsigned char a1 = data[i-3];
+			unsigned char a2 = data[i-2];
+			unsigned char a3 = data[i-1];
+			unsigned char a4 = data[i];
+			unsigned char a5 = data[i+1];
+			unsigned char a6 = data[i+2];
+			unsigned char a7 = data[i+3];
+			unsigned char a8 = data[i+4];
+
+			checksum = fast_b_mapping(1, a4, a3, checksum );
+			a_bucket[ fast_b_mapping(49,  a4, a3, a2 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a4, a3, a1 ) ]++;
+			a_bucket[ fast_b_mapping(178, a4, a2, a1 ) ]++;
+			a_bucket[ fast_b_mapping(166, a4, a2, a0 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a4, a3, a0 ) ]++;
+			a_bucket[ fast_b_mapping(230, a4, a1, a0 ) ]++;
+
+			checksum = fast_b_mapping(1, a5, a4, checksum );
+			a_bucket[ fast_b_mapping(49,  a5, a4, a3 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a5, a4, a2 ) ]++;
+			a_bucket[ fast_b_mapping(178, a5, a3, a2 ) ]++;
+			a_bucket[ fast_b_mapping(166, a5, a3, a1 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a5, a4, a1 ) ]++;
+			a_bucket[ fast_b_mapping(230, a5, a2, a1 ) ]++;
+
+			checksum = fast_b_mapping(1, a6, a5, checksum );
+			a_bucket[ fast_b_mapping(49,  a6, a5, a4 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a6, a5, a3 ) ]++;
+			a_bucket[ fast_b_mapping(178, a6, a4, a3 ) ]++;
+			a_bucket[ fast_b_mapping(166, a6, a4, a2 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a6, a5, a2 ) ]++;
+			a_bucket[ fast_b_mapping(230, a6, a3, a2 ) ]++;
+
+			checksum = fast_b_mapping(1, a7, a6, checksum );
+			a_bucket[ fast_b_mapping(49,  a7, a6, a5 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a7, a6, a4 ) ]++;
+			a_bucket[ fast_b_mapping(178, a7, a5, a4 ) ]++;
+			a_bucket[ fast_b_mapping(166, a7, a5, a3 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a7, a6, a3 ) ]++;
+			a_bucket[ fast_b_mapping(230, a7, a4, a3 ) ]++;
+
+			checksum = fast_b_mapping(1, a8, a7, checksum );
+			a_bucket[ fast_b_mapping(49,  a8, a7, a6 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a8, a7, a5 ) ]++;
+			a_bucket[ fast_b_mapping(178, a8, a6, a5 ) ]++;
+			a_bucket[ fast_b_mapping(166, a8, a6, a4 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a8, a7, a4 ) ]++;
+			a_bucket[ fast_b_mapping(230, a8, a5, a4 ) ]++;
+
+			i=i+5;
+			j=RNG_IDX(j+5);
 		} else {
+			slide_window[j] = data[i];
+			int j_1 = RNG_IDX(j-1); if (i >= 1) { slide_window[j_1] = data[i-1]; }
+			int j_2 = RNG_IDX(j-2); if (i >= 2) { slide_window[j_2] = data[i-2]; }
+			int j_3 = RNG_IDX(j-3); if (i >= 3) { slide_window[j_3] = data[i-3]; }
+			int j_4 = RNG_IDX(j-4); if (i >= 4) { slide_window[j_4] = data[i-4]; }
+
+			checksum = fast_b_mapping(1, slide_window[j], slide_window[j_1], checksum );
+			a_bucket[ fast_b_mapping(49,  slide_window[j], slide_window[j_1], slide_window[j_2] ) ]++;
+			a_bucket[ fast_b_mapping(12,  slide_window[j], slide_window[j_1], slide_window[j_3] ) ]++;
+			a_bucket[ fast_b_mapping(178, slide_window[j], slide_window[j_2], slide_window[j_3] ) ]++;
+			a_bucket[ fast_b_mapping(166, slide_window[j], slide_window[j_2], slide_window[j_4] ) ]++;
+			a_bucket[ fast_b_mapping(84,  slide_window[j], slide_window[j_1], slide_window[j_4] ) ]++;
+			a_bucket[ fast_b_mapping(230, slide_window[j], slide_window[j_3], slide_window[j_4] ) ]++;
 			i++;
-			fed_len++;
 			j=RNG_IDX(j+1);
 		}
 	}
-	this->lsh_bin.checksum[0] = checksum;
-	this->data_len += len;
+	*ret_checksum = checksum;
+}
+
+static void raw_fast_update5_private(
+	// inputs
+	const unsigned char* data,
+	unsigned int len,
+	unsigned int fed_len,
+	// outputs
+	unsigned int *a_bucket,
+	unsigned char *slide_window
+	)
+{
+	int j = (int)(fed_len % RNG_SIZE);
+
+	unsigned int start_i=0;
+	if ( fed_len < SLIDING_WND_SIZE_M1 ) {
+		int extra = SLIDING_WND_SIZE_M1 - fed_len;
+		start_i	= extra;
+		j	= (j + extra) % RNG_SIZE;
+	}
+	for( unsigned int i=start_i; i<len;  ) {
+		//only calculate when input >= 5 bytes
+		if ((i >= 4) && (i+5 < len)) {
+			unsigned char a0 = data[i-4];
+			unsigned char a1 = data[i-3];
+			unsigned char a2 = data[i-2];
+			unsigned char a3 = data[i-1];
+			unsigned char a4 = data[i];
+			unsigned char a5 = data[i+1];
+			unsigned char a6 = data[i+2];
+			unsigned char a7 = data[i+3];
+			unsigned char a8 = data[i+4];
+
+			a_bucket[ fast_b_mapping(49,  a4, a3, a2 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a4, a3, a1 ) ]++;
+			a_bucket[ fast_b_mapping(178, a4, a2, a1 ) ]++;
+			a_bucket[ fast_b_mapping(166, a4, a2, a0 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a4, a3, a0 ) ]++;
+			a_bucket[ fast_b_mapping(230, a4, a1, a0 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a5, a4, a3 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a5, a4, a2 ) ]++;
+			a_bucket[ fast_b_mapping(178, a5, a3, a2 ) ]++;
+			a_bucket[ fast_b_mapping(166, a5, a3, a1 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a5, a4, a1 ) ]++;
+			a_bucket[ fast_b_mapping(230, a5, a2, a1 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a6, a5, a4 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a6, a5, a3 ) ]++;
+			a_bucket[ fast_b_mapping(178, a6, a4, a3 ) ]++;
+			a_bucket[ fast_b_mapping(166, a6, a4, a2 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a6, a5, a2 ) ]++;
+			a_bucket[ fast_b_mapping(230, a6, a3, a2 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a7, a6, a5 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a7, a6, a4 ) ]++;
+			a_bucket[ fast_b_mapping(178, a7, a5, a4 ) ]++;
+			a_bucket[ fast_b_mapping(166, a7, a5, a3 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a7, a6, a3 ) ]++;
+			a_bucket[ fast_b_mapping(230, a7, a4, a3 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a8, a7, a6 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a8, a7, a5 ) ]++;
+			a_bucket[ fast_b_mapping(178, a8, a6, a5 ) ]++;
+			a_bucket[ fast_b_mapping(166, a8, a6, a4 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a8, a7, a4 ) ]++;
+			a_bucket[ fast_b_mapping(230, a8, a5, a4 ) ]++;
+
+			i=i+5;
+			j=RNG_IDX(j+5);
+		} else {
+			slide_window[j] = data[i];
+			int j_1 = RNG_IDX(j-1); if (i >= 1) { slide_window[j_1] = data[i-1]; }
+			int j_2 = RNG_IDX(j-2); if (i >= 2) { slide_window[j_2] = data[i-2]; }
+			int j_3 = RNG_IDX(j-3); if (i >= 3) { slide_window[j_3] = data[i-3]; }
+			int j_4 = RNG_IDX(j-4); if (i >= 4) { slide_window[j_4] = data[i-4]; }
+
+			a_bucket[ fast_b_mapping(49,  slide_window[j], slide_window[j_1], slide_window[j_2] ) ]++;
+			a_bucket[ fast_b_mapping(12,  slide_window[j], slide_window[j_1], slide_window[j_3] ) ]++;
+			a_bucket[ fast_b_mapping(178, slide_window[j], slide_window[j_2], slide_window[j_3] ) ]++;
+			a_bucket[ fast_b_mapping(166, slide_window[j], slide_window[j_2], slide_window[j_4] ) ]++;
+			a_bucket[ fast_b_mapping(84,  slide_window[j], slide_window[j_1], slide_window[j_4] ) ]++;
+			a_bucket[ fast_b_mapping(230, slide_window[j], slide_window[j_3], slide_window[j_4] ) ]++;
+			i++;
+			j=RNG_IDX(j+1);
+		}
+	}
+}
+
+static void raw_fast_update5_nochecksum( struct raw_args *ra )
+{
+	const unsigned char* data	= ra->data;
+	unsigned int len		= ra->len;
+	// outputs
+	unsigned int *a_bucket		= ra->bucket;
+	unsigned char *slide_window	= ra->slide_window;
+
+	int j = (int)(ra->fed_len % RNG_SIZE);
+
+	unsigned int start_i=0;
+	if ( ra->fed_len < SLIDING_WND_SIZE_M1 ) {
+		int extra = SLIDING_WND_SIZE_M1 - ra->fed_len;
+		start_i	= extra;
+		j	= (j + extra) % RNG_SIZE;
+	}
+	for( unsigned int i=start_i; i<len;  ) {
+		//only calculate when input >= 5 bytes
+		if ((i >= 4) && (i+5 < len)) {
+			unsigned char a0 = data[i-4];
+			unsigned char a1 = data[i-3];
+			unsigned char a2 = data[i-2];
+			unsigned char a3 = data[i-1];
+			unsigned char a4 = data[i];
+			unsigned char a5 = data[i+1];
+			unsigned char a6 = data[i+2];
+			unsigned char a7 = data[i+3];
+			unsigned char a8 = data[i+4];
+
+			a_bucket[ fast_b_mapping(49,  a4, a3, a2 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a4, a3, a1 ) ]++;
+			a_bucket[ fast_b_mapping(178, a4, a2, a1 ) ]++;
+			a_bucket[ fast_b_mapping(166, a4, a2, a0 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a4, a3, a0 ) ]++;
+			a_bucket[ fast_b_mapping(230, a4, a1, a0 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a5, a4, a3 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a5, a4, a2 ) ]++;
+			a_bucket[ fast_b_mapping(178, a5, a3, a2 ) ]++;
+			a_bucket[ fast_b_mapping(166, a5, a3, a1 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a5, a4, a1 ) ]++;
+			a_bucket[ fast_b_mapping(230, a5, a2, a1 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a6, a5, a4 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a6, a5, a3 ) ]++;
+			a_bucket[ fast_b_mapping(178, a6, a4, a3 ) ]++;
+			a_bucket[ fast_b_mapping(166, a6, a4, a2 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a6, a5, a2 ) ]++;
+			a_bucket[ fast_b_mapping(230, a6, a3, a2 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a7, a6, a5 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a7, a6, a4 ) ]++;
+			a_bucket[ fast_b_mapping(178, a7, a5, a4 ) ]++;
+			a_bucket[ fast_b_mapping(166, a7, a5, a3 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a7, a6, a3 ) ]++;
+			a_bucket[ fast_b_mapping(230, a7, a4, a3 ) ]++;
+
+			a_bucket[ fast_b_mapping(49,  a8, a7, a6 ) ]++;
+			a_bucket[ fast_b_mapping(12,  a8, a7, a5 ) ]++;
+			a_bucket[ fast_b_mapping(178, a8, a6, a5 ) ]++;
+			a_bucket[ fast_b_mapping(166, a8, a6, a4 ) ]++;
+			a_bucket[ fast_b_mapping(84,  a8, a7, a4 ) ]++;
+			a_bucket[ fast_b_mapping(230, a8, a5, a4 ) ]++;
+
+			i=i+5;
+			j=RNG_IDX(j+5);
+		} else {
+			slide_window[j] = data[i];
+			int j_1 = RNG_IDX(j-1); if (i >= 1) { slide_window[j_1] = data[i-1]; }
+			int j_2 = RNG_IDX(j-2); if (i >= 2) { slide_window[j_2] = data[i-2]; }
+			int j_3 = RNG_IDX(j-3); if (i >= 3) { slide_window[j_3] = data[i-3]; }
+			int j_4 = RNG_IDX(j-4); if (i >= 4) { slide_window[j_4] = data[i-4]; }
+
+			a_bucket[ fast_b_mapping(49,  slide_window[j], slide_window[j_1], slide_window[j_2] ) ]++;
+			a_bucket[ fast_b_mapping(12,  slide_window[j], slide_window[j_1], slide_window[j_3] ) ]++;
+			a_bucket[ fast_b_mapping(178, slide_window[j], slide_window[j_2], slide_window[j_3] ) ]++;
+			a_bucket[ fast_b_mapping(166, slide_window[j], slide_window[j_2], slide_window[j_4] ) ]++;
+			a_bucket[ fast_b_mapping(84,  slide_window[j], slide_window[j_1], slide_window[j_4] ) ]++;
+			a_bucket[ fast_b_mapping(230, slide_window[j], slide_window[j_3], slide_window[j_4] ) ]++;
+			i++;
+			j=RNG_IDX(j+1);
+		}
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// fc_cons_option - a bitfield
+//	0	default
+//	1	force (now the default)
+//	2	conservative
+//	4	do not delete a_bucket
 /////////////////////////////////////////////////////////////////////////////
 
 /* to signal the class there is no more data to be added */
@@ -402,12 +723,12 @@ void TlshImpl::final(int fc_cons_option)
       return;
     }   
     // incoming data must more than or equal to MIN_DATA_LENGTH bytes
-    if ((fc_cons_option <= 1) && (this->data_len < MIN_DATA_LENGTH)) {
+    if (((fc_cons_option & TLSH_OPTION_CONSERVATIVE) == 0) && (this->data_len < MIN_DATA_LENGTH)) {
       // this->lsh_code be empty
       delete [] this->a_bucket; this->a_bucket = NULL;
       return;
     }
-    if ((fc_cons_option == 2) && (this->data_len < MIN_CONSERVATIVE_DATA_LENGTH)) {
+    if ((fc_cons_option & TLSH_OPTION_CONSERVATIVE) && (this->data_len < MIN_CONSERVATIVE_DATA_LENGTH)) {
       // this->lsh_code be empty
       delete [] this->a_bucket; this->a_bucket = NULL;
       return;
@@ -454,13 +775,15 @@ void TlshImpl::final(int fc_cons_option)
                 h += 2 << (j*2);
             } else if( q1 < k ) {
                 h += 1 << (j*2);
-            }
+	    }
         }
         this->lsh_bin.tmp_code[i] = h;
     }
 
-    //Done with a_bucket so deallocate
-    delete [] this->a_bucket; this->a_bucket = NULL;
+    if ((fc_cons_option & TLSH_OPTION_KEEP_BUCKET) == 0) {
+        //Done with a_bucket so deallocate
+        delete [] this->a_bucket; this->a_bucket = NULL;
+    }
     
     this->lsh_bin.Lvalue = l_capturing(this->data_len);
     this->lsh_bin.Q.QR.Q1ratio = (unsigned int) ((float)(q1*100)/(float) q3) % 16;
@@ -652,6 +975,12 @@ unsigned char bv;
 		return(p3);
 	}
 	return(p4);
+}
+int TlshImpl::HistogramCount(int bucket)
+{
+	if (this->a_bucket == NULL)
+		return(-1);
+	return(this->a_bucket[EFF_BUCKETS - 1 - bucket]);
 }
 
 int TlshImpl::totalDiff(const TlshImpl& other, bool len_diff) const

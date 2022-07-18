@@ -8,7 +8,7 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "winres.h"
-#include "../../../ProcessHacker/include/phappres.h"
+#include "../../../SystemInformer/include/phappres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -34,7 +34,7 @@ END
 2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
-    "#include ""../../../ProcessHacker/include/phappres.h""\r\n"
+    "#include ""../../../SystemInformer/include/phappres.h""\r\n"
     "\0"
 END
 
@@ -68,13 +68,13 @@ BEGIN
     BEGIN
         BLOCK "0c0904b0"
         BEGIN
-            VALUE "CompanyName", "Process Hacker"
-            VALUE "FileDescription", "Process Hacker - Setup"
+            VALUE "CompanyName", "System Informer"
+            VALUE "FileDescription", "System Informer - Setup"
             VALUE "FileVersion", PHAPP_VERSION_STRING
-            VALUE "InternalName", "processhacker-setup.exe"
-            VALUE "LegalCopyright", "Licensed under the GNU GPL, v3. Copyright (C) 2017"
-            VALUE "OriginalFilename", "processhacker-setup.exe"
-            VALUE "ProductName", "Process Hacker"
+            VALUE "InternalName", "systeminformer-setup.exe"
+            VALUE "LegalCopyright", "Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "OriginalFilename", "systeminformer-setup.exe"
+            VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
@@ -101,7 +101,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 //
 #if defined(PH_BUILD_API)
 
-IDR_BIN_DATA            RCDATA                  "../../../build/output/processhacker-build-bin.64"
+IDR_BIN_DATA            RCDATA                  "../../../build/output/systeminformer-build-bin.64"
 
 #endif
 

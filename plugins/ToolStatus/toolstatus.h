@@ -1,24 +1,13 @@
 /*
- * Process Hacker ToolStatus -
- *   toolstatus header
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2011-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2013
+ *     dmex    2011-2020
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _TOOLSTATUS_H
@@ -45,6 +34,7 @@
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
 #define SETTING_NAME_TASKBARDISPLAYSTYLE (PLUGIN_NAME L".TaskbarDisplayStyle")
+#define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
 
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
@@ -188,6 +178,10 @@ HBITMAP ToolbarGetImage(
     _In_ INT CommandID
     );
 
+VOID ToolbarLoadDefaultButtonSettings(
+    VOID
+    );
+
 VOID ToolbarLoadButtonSettings(
     VOID
     );
@@ -300,6 +294,10 @@ VOID ToolbarCreateGraphs(
     );
 
 VOID ToolbarUpdateGraphs(
+    VOID
+    );
+
+VOID ToolbarUpdateGraphVisualStates(
     VOID
     );
 

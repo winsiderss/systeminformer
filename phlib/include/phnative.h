@@ -148,30 +148,6 @@ PhSetObjectSecurity(
     );
 
 PHLIBAPI
-PPH_STRING
-NTAPI
-PhGetSecurityDescriptorAsString(
-    _In_ SECURITY_INFORMATION SecurityInformation,
-    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
-    );
-
-PHLIBAPI
-PSECURITY_DESCRIPTOR
-NTAPI
-PhGetSecurityDescriptorFromString(
-    _In_ PWSTR SecurityDescriptorString
-    );
-
-_Success_(return)
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhGetObjectSecurityDescriptorAsString(
-    _In_ HANDLE Handle,
-    _Out_ PPH_STRING* SecurityDescriptorString
-    );
-
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhTerminateProcess(
@@ -1322,6 +1298,7 @@ typedef struct _PH_MODULE_INFO
     ULONG Type;
     PVOID BaseAddress;
     PVOID ParentBaseAddress;
+    PVOID OriginalBaseAddress;
     ULONG Size;
     PVOID EntryPoint;
     ULONG Flags;
@@ -1621,6 +1598,15 @@ PhDeleteFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCopyFileWin32(
+    _In_ PWSTR OldFileName,
+    _In_ PWSTR NewFileName,
+    _In_ BOOLEAN FailIfExists
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhMoveFileWin32(
     _In_ PWSTR OldFileName,
     _In_ PWSTR NewFileName
@@ -1793,6 +1779,7 @@ typedef struct _PH_PROCESS_DEBUG_HEAP_ENTRY
 {
     ULONG Flags;
     ULONG Signature;
+    UCHAR HeapFrontEndType;
     ULONG NumberOfEntries;
     PVOID BaseAddress;
     SIZE_T BytesAllocated;
@@ -1803,6 +1790,7 @@ typedef struct _PH_PROCESS_DEBUG_HEAP_ENTRY32
 {
     ULONG Flags;
     ULONG Signature;
+    UCHAR HeapFrontEndType;
     ULONG NumberOfEntries;
     ULONG BaseAddress;
     ULONG BytesAllocated;
@@ -1823,6 +1811,31 @@ typedef struct _PH_PROCESS_DEBUG_HEAP_INFORMATION32
     PH_PROCESS_DEBUG_HEAP_ENTRY32 Heaps[1];
 } PH_PROCESS_DEBUG_HEAP_INFORMATION32, *PPH_PROCESS_DEBUG_HEAP_INFORMATION32;
 
+typedef struct _PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64 {
+    DWORD BeginAddress;
+    DWORD EndAddress;
+    union {
+        DWORD UnwindInfoAddress;
+        DWORD UnwindData;
+    } DUMMYUNIONNAME;
+} PH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64, *PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_AMD64;
+
+typedef struct _PH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64 {
+    DWORD BeginAddress;
+    union {
+        DWORD UnwindData;
+        struct {
+            DWORD Flag : 2;
+            DWORD FunctionLength : 11;
+            DWORD RegF : 3;
+            DWORD RegI : 4;
+            DWORD H : 1;
+            DWORD CR : 2;
+            DWORD FrameSize : 9;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
+} PH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64, *PPH_IMAGE_RUNTIME_FUNCTION_ENTRY_ARM64;
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -1842,9 +1855,26 @@ PhGetProcessArchitecture(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessImageBaseAddress(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVOID* ImageBaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessCodePage(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessCodePage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessConsoleCodePage(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN ConsoleOutputCP,
+    _Out_ PUSHORT ConsoleCodePage
     );
 
 PHLIBAPI
@@ -1902,6 +1932,35 @@ PhGetThreadApartmentState(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadStackLimits(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG_PTR LowPart,
+    _Out_ PULONG_PTR HighPart
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadStackSize(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONG_PTR StackUsage,
+    _Out_ PULONG_PTR StackLimit
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadIsFiber(
+    _In_ HANDLE ThreadHandle,
+    _In_opt_ HANDLE ProcessHandle,
+    _Out_ PBOOLEAN ThreadIsFiber
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhIsFirmwareSupported(
@@ -1942,6 +2001,66 @@ NTSTATUS
 NTAPI
 PhThawProcess(
     _In_ HANDLE ProcessId
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsKnownDllFileName(
+    _In_ PPH_STRING FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemLogicalProcessorInformation(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
+    _Out_ PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
+    _Out_ PULONG BufferLength
+    );
+
+PHLIBAPI
+USHORT
+NTAPI
+PhGetActiveProcessorCount(
+    _In_ USHORT ProcessorGroup
+    );
+
+typedef struct _PH_PROCESSOR_NUMBER
+{
+    USHORT Group;
+    USHORT Number;
+} PH_PROCESSOR_NUMBER, *PPH_PROCESSOR_NUMBER;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessorNumberFromIndex(
+    _In_ ULONG ProcessorIndex,
+    _Out_ PPH_PROCESSOR_NUMBER ProcessorNumber
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessorGroupActiveAffinityMask(
+    _In_ USHORT ProcessorGroup,
+    _Out_ PKAFFINITY ActiveProcessorMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetNumaHighestNodeNumber(
+    _Out_ PUSHORT NodeNumber
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetNumaProcessorNode(
+    _In_ PPH_PROCESSOR_NUMBER ProcessorNumber,
+    _Out_ PUSHORT NodeNumber
     );
 
 #ifdef __cplusplus

@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KSystemInformer", "KSystemInformer.vcxproj", "{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|ARM64 = Release|ARM64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|ARM64.Build.0 = Debug|ARM64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|Win32.Build.0 = Debug|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|Win32.Deploy.0 = Debug|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|x64.ActiveCfg = Debug|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|x64.Build.0 = Debug|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Debug|x64.Deploy.0 = Debug|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|ARM64.ActiveCfg = Release|ARM64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|ARM64.Build.0 = Release|ARM64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|ARM64.Deploy.0 = Release|ARM64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|Win32.ActiveCfg = Release|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|Win32.Build.0 = Release|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|Win32.Deploy.0 = Release|Win32
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|x64.ActiveCfg = Release|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|x64.Build.0 = Release|x64
+		{F4853009-C5D2-4A25-BE4D-BB0D9F84E2FF}.Release|x64.Deploy.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4989C8A8-DCF1-48A9-9012-23369AB01403}
+	EndGlobalSection
+EndGlobal

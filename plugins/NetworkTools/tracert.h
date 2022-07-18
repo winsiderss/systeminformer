@@ -1,33 +1,19 @@
 /*
- * Process Hacker Network Tools -
- *   Tracert header
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2019 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2015-2019
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _TRACERT_H_
 #define _TRACERT_H_
 
+#define DEFAULT_MINIMUM_INTERVAL 1000
 #define DEFAULT_MAXIMUM_PINGS 4
-#define DEFAULT_SEND_SIZE 64
-#define DEFAULT_RECEIVE_SIZE ((sizeof(ICMP_ECHO_REPLY) + DEFAULT_SEND_SIZE + MAX_OPT_SIZE))
-#define DEFAULT_TIMEOUT 1000
-#define MIN_INTERVAL 500 //1000
 #define TRACERT_SHOWCONTEXTMENU (WM_APP + 1)
 
 typedef enum _TRACERT_TREE_COLUMN_ITEM_NAME
@@ -51,7 +37,7 @@ typedef struct _TRACERT_ROOT_NODE
     ULONG TTL;
 
     ULONG PingStatus[DEFAULT_MAXIMUM_PINGS];
-    ULONG PingList[DEFAULT_MAXIMUM_PINGS];
+    FLOAT PingList[DEFAULT_MAXIMUM_PINGS];
 
     PPH_STRING PingString[DEFAULT_MAXIMUM_PINGS];
     PPH_STRING PingMessage[DEFAULT_MAXIMUM_PINGS];
@@ -74,6 +60,10 @@ typedef struct _TRACERT_RESOLVE_WORKITEM
     ULONG Index;
     WCHAR SocketAddressHostname[NI_MAXHOST];
 } TRACERT_RESOLVE_WORKITEM, *PTRACERT_RESOLVE_WORKITEM;
+
+VOID TracertSaveSettingsTreeList(
+    _Inout_ PNETWORK_TRACERT_CONTEXT Context
+    );
 
 VOID InitializeTracertTree(
     _Inout_ PNETWORK_TRACERT_CONTEXT Context

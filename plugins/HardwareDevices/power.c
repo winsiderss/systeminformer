@@ -1,23 +1,12 @@
 /*
- * Process Hacker Plugins -
- *   Hardware Devices Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2021-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "devices.h"
@@ -311,7 +300,11 @@ VOID RaplDeviceSampleData(
 
     if (DeviceIndex == EV_EMI_DEVICE_INDEX_MAX)
     {
-        DeviceEntry->CurrentComponentPower = (DeviceEntry->CurrentProcessorPower - (DeviceEntry->CurrentCorePower + DeviceEntry->CurrentDiscreteGpuPower));
+        if (DeviceEntry->CurrentProcessorPower && DeviceEntry->CurrentCorePower)
+            DeviceEntry->CurrentComponentPower = (DeviceEntry->CurrentProcessorPower - (DeviceEntry->CurrentCorePower + DeviceEntry->CurrentDiscreteGpuPower));
+        else
+            DeviceEntry->CurrentComponentPower = 0.0;
+
         DeviceEntry->CurrentTotalPower =
             DeviceEntry->CurrentProcessorPower +
             DeviceEntry->CurrentCorePower +
@@ -323,17 +316,24 @@ VOID RaplDeviceSampleData(
     data = PTR_ADD_OFFSET(MeasurementData, sizeof(EMI_CHANNEL_MEASUREMENT_DATA) * DeviceEntry->ChannelIndex[DeviceIndex]);
     lastAbsoluteEnergy = DeviceEntry->ChannelData[DeviceIndex].AbsoluteEnergy;
     lastAbsoluteTime = DeviceEntry->ChannelData[DeviceIndex].AbsoluteTime;
+    DeviceEntry->ChannelData[DeviceIndex].AbsoluteEnergy = data->AbsoluteEnergy;
+    DeviceEntry->ChannelData[DeviceIndex].AbsoluteTime = data->AbsoluteTime;
+
     numerator = (FLOAT)lastAbsoluteEnergy - (FLOAT)data->AbsoluteEnergy;
     denomenator = (FLOAT)(lastAbsoluteTime / 36) - (FLOAT)(data->AbsoluteTime / 36);
-    counterValue = numerator / denomenator;
+
+    if (numerator && denomenator)
+        counterValue = numerator / denomenator;
+    else
+        counterValue = 0.0;
 
     switch (DeviceIndex)
     {
     case EV_EMI_DEVICE_INDEX_PACKAGE:
-        DeviceEntry->CurrentProcessorPower = counterValue / 1000.f; // always supported per spec
+        DeviceEntry->CurrentProcessorPower = counterValue ? counterValue / 1000.f : 0.f; // always supported per spec
         break;
     case EV_EMI_DEVICE_INDEX_CORE:
-        DeviceEntry->CurrentCorePower = counterValue / 1000.f; // always supported per spec
+        DeviceEntry->CurrentCorePower = counterValue ? counterValue / 1000.f : 0.f; // always supported per spec
         break;
     case EV_EMI_DEVICE_INDEX_DIMM:
         DeviceEntry->CurrentDramPower = counterValue ? counterValue / 1000.f : 0.f; // might be unavailable
@@ -342,7 +342,4 @@ VOID RaplDeviceSampleData(
         DeviceEntry->CurrentDiscreteGpuPower = counterValue ? counterValue / 1000.f : 0.f; // might be unavailable
         break;
     }
-
-    DeviceEntry->ChannelData[DeviceIndex].AbsoluteEnergy = data->AbsoluteEnergy;
-    DeviceEntry->ChannelData[DeviceIndex].AbsoluteTime = data->AbsoluteTime;
 }

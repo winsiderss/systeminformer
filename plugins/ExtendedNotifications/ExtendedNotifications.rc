@@ -91,7 +91,7 @@ BEGIN
     LTEXT           "Log all events to this file (leave blank to disable this feature):",IDC_STATIC,13,18,196,8
     EDITTEXT        IDC_LOGFILENAME,13,29,178,12,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse...",IDC_BROWSE,194,28,50,14
-    LTEXT           "Changes will require a restart of Process Hacker.",IDC_STATIC,14,45,157,8
+    LTEXT           "Changes will require a restart of System Informer.",IDC_STATIC,14,45,157,8
 END
 
 

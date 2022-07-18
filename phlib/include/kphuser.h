@@ -60,6 +60,13 @@ KphSetParameters(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+KphParametersExists(
+    _In_opt_ PWSTR ServiceName
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 KphResetParameters(

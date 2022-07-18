@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -147,7 +136,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
     {
         PPV_CLR_IMAGE_IMPORT_DLL importDll;
 
-        importDll = (PPV_CLR_IMAGE_IMPORT_DLL)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL));
+        importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL)));
         importDll->ImportName = PhCreateString(const_cast<wchar_t*>(L"Unknown"));
         importDll->ImportToken = ULONG_MAX;
 
@@ -167,7 +156,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                 {
                     PPV_CLR_IMAGE_IMPORT_DLL importDll;
 
-                    importDll = (PPV_CLR_IMAGE_IMPORT_DLL)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL));
+                    importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL)));
                     importDll->ImportName = PhConvertUtf8ToUtf16(const_cast<char*>(moduleName));
                     importDll->ImportToken = TokenFromRid(i, mdtModuleRef);
 
@@ -208,7 +197,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
             for (ULONG i = 0; i < clrImportsList->Count; i++)
             {
-                PPV_CLR_IMAGE_IMPORT_DLL importDll = (PPV_CLR_IMAGE_IMPORT_DLL)clrImportsList->Items[i];
+                PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[i]);
 
                 if (importDll->ImportToken == moduleTokenValue)
                 {
@@ -221,7 +210,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                     {
                         PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
 
-                        importFunction = (PPV_CLR_IMAGE_IMPORT_FUNCTION)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION));
+                        importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
                         importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
                         importFunction->Flags = importFlagsValue;
                         importFunction->Offset = importOffsetValue;
@@ -236,7 +225,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
             if (!found)
             {
-                PPV_CLR_IMAGE_IMPORT_DLL unknownImportDll = (PPV_CLR_IMAGE_IMPORT_DLL)clrImportsList->Items[0];
+                PPV_CLR_IMAGE_IMPORT_DLL unknownImportDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[0]);
 
                 if (!unknownImportDll->Functions)
                     unknownImportDll->Functions = PhCreateList(1);
@@ -247,7 +236,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
                 {
                     PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
 
-                    importFunction = (PPV_CLR_IMAGE_IMPORT_FUNCTION)PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION));
+                    importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
                     importFunction->FunctionName = PhConvertUtf8ToUtf16(const_cast<char*>(importName));
                     importFunction->Flags = importFlagsValue;
                     importFunction->Offset = importOffsetValue;

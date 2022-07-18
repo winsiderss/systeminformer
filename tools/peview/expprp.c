@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2011
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -61,7 +50,6 @@ typedef struct _PV_EXPORT_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
-    HANDLE UpdateTimerHandle;
 
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
@@ -154,19 +142,6 @@ VOID PvAddPendingExportNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
-VOID CALLBACK PvExportTreeUpdateCallback(
-    _In_ PPV_EXPORT_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->UpdateTimerHandle)
-        return;
-
-    PvAddPendingExportNodes(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
-}
-
 NTSTATUS PvpPeExportsEnumerateThread(
     _In_ PPV_EXPORT_CONTEXT Context
     )
@@ -220,8 +195,11 @@ NTSTATUS PvpPeExportsEnumerateThread(
                 }
                 else
                 {
-                    PhPrintPointer(value, exportFunction.Function);
-                    exportNode->AddressString = PhCreateString(value);
+                    if (exportFunction.Function)
+                    {
+                        PhPrintPointer(value, exportFunction.Function);
+                        exportNode->AddressString = PhCreateString(value);
+                    }
                 }
 
                 if (exportEntry.Name)
@@ -271,11 +249,12 @@ NTSTATUS PvpPeExportsEnumerateThread(
                                 );
                         }
 
-                        if (exportSymbolName)
+                        if (!PhIsNullOrEmptyString(exportSymbolName))
                         {
                             exportNode->NameString = PhConcatStringRefZ(&exportSymbolName->sr, L" (unnamed)");
                         }
-    
+
+                        PhClearReference(&exportSymbolName);
                         PhClearReference(&exportSymbol);
                     }
                 }
@@ -344,27 +323,11 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
 
             PhCreateThread2(PvpPeExportsEnumerateThread, context);
 
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PvExportTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
-
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PhSaveSettingsExportList(context);
             PvDeleteExportTree(context);
         }
@@ -426,12 +389,6 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PvAddPendingExportNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyExportsText, 0);
@@ -483,6 +440,17 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
 
                 PhDestroyEMenu(menu);
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }
@@ -771,12 +739,7 @@ BOOLEAN NTAPI PvExportTreeNewCallback(
                 getCellText->Text = PhGetStringRef(node->AddressString);
                 break;
             case PV_EXPORT_TREE_COLUMN_ITEM_NAME:
-                {
-                    if (node->NameString)
-                        getCellText->Text = PhGetStringRef(node->NameString);
-                    else
-                        PhInitializeStringRefLongHint(&getCellText->Text, L"(unnamed)");
-                }
+                getCellText->Text = PhGetStringRef(node->NameString);
                 break;
             case PV_EXPORT_TREE_COLUMN_ITEM_ORDINAL:
                 getCellText->Text = PhGetStringRef(node->OrdinalString);

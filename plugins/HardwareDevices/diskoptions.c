@@ -1,23 +1,12 @@
 /*
- * Process Hacker Plugins -
- *   Hardware Devices Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2015-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "devices.h"
@@ -648,7 +637,7 @@ VOID LoadDiskDriveImages(
 
     if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL))
     {
-        Context->ImageList = PhImageListCreate(
+        HIMAGELIST imageList = PhImageListCreate(
             24, // GetSystemMetrics(SM_CXSMICON)
             24, // GetSystemMetrics(SM_CYSMICON)
             ILC_MASK | ILC_COLOR32,
@@ -656,10 +645,10 @@ VOID LoadDiskDriveImages(
             1
             );
 
-        PhImageListAddIcon(Context->ImageList, smallIcon);
+        PhImageListAddIcon(imageList, smallIcon);
         DestroyIcon(smallIcon);
 
-        ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
+        ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
     }
 
     PhDereferenceObject(deviceIconPath);
@@ -710,6 +699,9 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
             FindDiskDrives(context);
 
+            if (ListView_GetItemCount(context->ListViewHandle) == 0)
+                PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+
             context->OptionsChanged = FALSE;
         }
         break;
@@ -721,7 +713,6 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                 DiskDrivesSaveList();
 
             FreeListViewDiskDriveEntries(context);
-            if (context->ImageList) PhImageListDestroy(context->ImageList);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
@@ -787,6 +778,10 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
                     {
                         ShowDeviceMenu(hwndDlg, deviceInstance);
                         PhDereferenceObject(deviceInstance);
+
+                        FreeListViewDiskDriveEntries(context);
+                        ListView_DeleteAllItems(context->ListViewHandle);
+                        FindDiskDrives(context);
                     }
                 }
             }

@@ -1,23 +1,12 @@
 /*
- * Process Hacker Plugins -
- *   Update Checker Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2011-2020
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "updater.h"
@@ -158,9 +147,9 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
 
     // Co-Authored-By: NAME <EMAIL>
 
-    if ((authoredByNameIndex = PhFindStringInString(CommitMessage, 0, L"Co-Authored-By:")) == -1)
+    if ((authoredByNameIndex = PhFindStringInString(CommitMessage, 0, L"Co-Authored-By:")) == SIZE_MAX)
         return FALSE;
-    if ((authoredByNameLength = PhFindStringInString(CommitMessage, authoredByNameIndex, L" <")) == -1)
+    if ((authoredByNameLength = PhFindStringInString(CommitMessage, authoredByNameIndex, L" <")) == SIZE_MAX)
         return FALSE;
     if ((authoredByNameLength = authoredByNameLength - authoredByNameIndex) == 0)
         return FALSE;
@@ -168,7 +157,7 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
     authoredByName = PhSubstring(
         CommitMessage,
         authoredByNameIndex + wcslen(L"Co-Authored-By:"),
-        (ULONG)authoredByNameLength - wcslen(L"Co-Authored-By:")
+        authoredByNameLength - wcslen(L"Co-Authored-By:")
         );
 
     if (CommitCoAuthorName)
@@ -219,7 +208,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
         goto CleanupExit;
 
-    if (!(jsonRootObject = PhCreateJsonParser(jsonString->Buffer)))
+    if (!(jsonRootObject = PhCreateJsonParserEx(jsonString, FALSE)))
         goto CleanupExit;
 
     if (PhGetJsonObjectType(jsonRootObject) != PH_JSON_OBJECT_TYPE_ARRAY)
@@ -300,7 +289,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
                     PhMoveReference(&entry->CommitAuthorString, authorNameString);
                 }
 
-                if ((commitMessageAuthorIndex = PhFindStringInString(entry->CommitMessageString, 0, L"Co-Authored-By:")) != -1)
+                if ((commitMessageAuthorIndex = PhFindStringInString(entry->CommitMessageString, 0, L"Co-Authored-By:")) != SIZE_MAX)
                 {
                     PhMoveReference(
                         &entry->CommitMessageString,
@@ -505,6 +494,8 @@ INT_PTR CALLBACK TextDlgProc(
 
             //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
             PhCreateThread2(PhpUpdaterQueryCommitHistoryThread, hwndDlg);
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
@@ -619,7 +610,10 @@ INT_PTR CALLBACK TextDlgProc(
                                         if (PhEqualString(commitHash, shortCommitHash, TRUE))
                                         {
                                             newFont = context->ListViewBoldFont;
-                                            customDraw->clrText = RGB(0, 0, 0x0);
+                                            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                                                customDraw->clrText = RGB(125, 125, 125);
+                                            else
+                                                customDraw->clrText = GetSysColor(COLOR_WINDOWTEXT);
                                             SelectFont(customDraw->nmcd.hdc, newFont);
                                         }
 

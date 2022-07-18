@@ -1,23 +1,12 @@
 /*
- * Process Hacker Extended Tools -
- *   GPU details window
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2018-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2018-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -66,7 +55,7 @@ VOID EtpGpuDetailsAddListViewItemGroups(
 }
 
 VOID EtpQueryAdapterDeviceProperties(
-    _In_ PWSTR DeviceName,
+    _In_ PCWSTR DeviceName,
     _In_ HWND ListViewHandle)
 {
     PPH_STRING driverDate;
@@ -169,6 +158,9 @@ VOID EtpQueryAdapterDriverModel(
             break;
         case KMT_DRIVERVERSION_WDDM_3_0:
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 3.0");
+            break;
+        case KMT_DRIVERVERSION_WDDM_3_1:
+            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 3.1");
             break;
         default:
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"ERROR");
@@ -362,7 +354,7 @@ VOID EtpGpuDetailsEnumAdapters(
         gpuAdapter = EtpGpuAdapterList->Items[i];
 
         memset(&openAdapterFromDeviceName, 0, sizeof(D3DKMT_OPENADAPTERFROMDEVICENAME));
-        openAdapterFromDeviceName.DeviceName = PhGetString(gpuAdapter->DeviceInterface);
+        openAdapterFromDeviceName.pDeviceName = PhGetString(gpuAdapter->DeviceInterface);
 
         if (!NT_SUCCESS(D3DKMTOpenAdapterFromDeviceName(&openAdapterFromDeviceName)))
             continue;
@@ -371,22 +363,22 @@ VOID EtpGpuDetailsEnumAdapters(
         {
             if (PhAddListViewGroup(ListViewHandle, i, PhGetString(gpuAdapter->Description)) == MAXINT)
             {
-                EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+                EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
                 continue;
             }
 
             EtpGpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.DeviceName, ListViewHandle);
+        EtpQueryAdapterDeviceProperties(openAdapterFromDeviceName.pDeviceName, ListViewHandle);
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDriverModel(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDriverModel(openAdapterFromDeviceName.hAdapter, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
-        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterDeviceIds(openAdapterFromDeviceName.hAdapter, ListViewHandle);
         //EtQueryAdapterFeatureLevel(openAdapterFromDeviceName.AdapterLuid);
-        EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
+        EtpQueryAdapterPerfInfo(openAdapterFromDeviceName.hAdapter, ListViewHandle);
 
-        EtCloseAdapterHandle(openAdapterFromDeviceName.AdapterHandle);
+        EtCloseAdapterHandle(openAdapterFromDeviceName.hAdapter);
     }
 }
 

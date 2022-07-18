@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Object Manager support functions
+ * Object Manager support functions
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _NTOBAPI_H
@@ -36,7 +22,9 @@
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define SYMBOLIC_LINK_QUERY 0x0001
+#define SYMBOLIC_LINK_SET 0x0002
 #define SYMBOLIC_LINK_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0x1)
+#define SYMBOLIC_LINK_ALL_ACCESS_EX (STANDARD_RIGHTS_REQUIRED | 0xFFFF)
 #endif
 
 #ifndef OBJ_PROTECT_CLOSE
@@ -64,6 +52,7 @@ typedef enum _OBJECT_INFORMATION_CLASS
 #else
 #define ObjectBasicInformation 0
 #define ObjectNameInformation 1
+#define ObjectTypeInformation 2
 #define ObjectTypesInformation 3
 #define ObjectHandleFlagInformation 4
 #define ObjectSessionInformation 5
@@ -436,6 +425,7 @@ typedef enum _SYMBOLIC_LINK_INFO_CLASS
     MaxnSymbolicLinkInfoClass
 } SYMBOLIC_LINK_INFO_CLASS;
 
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -445,6 +435,7 @@ NtSetInformationSymbolicLink(
     _In_reads_bytes_(SymbolicLinkInformationLength) PVOID SymbolicLinkInformation,
     _In_ ULONG SymbolicLinkInformationLength
     );
+#endif
 
 #endif
 

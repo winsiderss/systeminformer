@@ -1,24 +1,13 @@
 /*
- * Process Hacker User Notes -
- *   database functions
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011-2015
+ *     dmex    2016-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "usernotes.h"
@@ -206,6 +195,7 @@ NTSTATUS LoadDb(
         PPH_STRING collapse = NULL;
         PPH_STRING affinityMask = NULL;
         PPH_STRING pagePriorityPlusOne = NULL;
+        PPH_STRING boost = NULL;
 
         if (PhGetXmlNodeAttributeCount(currentNode) >= 2)
         {
@@ -235,10 +225,12 @@ NTSTATUS LoadDb(
                     PhMoveReference(&affinityMask, PhConvertUtf8ToUtf16(elementValue));
                 else if (PhEqualBytesZ(elementName, "pagepriorityplusone", TRUE))
                     PhMoveReference(&pagePriorityPlusOne, PhConvertUtf8ToUtf16(elementValue));
+                else if (PhEqualBytesZ(elementName, "boost", TRUE))
+                    PhMoveReference(&boost, PhConvertUtf8ToUtf16(elementValue));
             }
         }
 
-        comment = PhGetOpaqueXmlNodeText(currentNode);
+        comment = PhGetXmlNodeOpaqueText(currentNode);
 
         if (tag && name)
         {
@@ -284,7 +276,7 @@ NTSTATUS LoadDb(
 
             PhStringToInteger64(&affinityMask->sr, 10, &affinityInteger);
 
-            object->AffinityMask = (ULONG_PTR)affinityInteger;
+            object->AffinityMask = (KAFFINITY)affinityInteger;
         }
 
         if (object && pagePriorityPlusOne)
@@ -296,6 +288,15 @@ NTSTATUS LoadDb(
             object->PagePriorityPlusOne = (ULONG)pagePriorityInteger;
         }
 
+        if (object && boost)
+        {
+            ULONG64 boostInteger = 0;
+
+            PhStringToInteger64(&boost->sr, 10, &boostInteger);
+
+            object->Boost = !!boostInteger;
+        }
+
         PhClearReference(&tag);
         PhClearReference(&name);
         PhClearReference(&priorityClass);
@@ -305,6 +306,7 @@ NTSTATUS LoadDb(
         PhClearReference(&collapse);
         PhClearReference(&affinityMask);
         PhClearReference(&pagePriorityPlusOne);
+        PhClearReference(&boost);
     }
 
     UnlockDb();
@@ -374,6 +376,7 @@ NTSTATUS SaveDb(
         PPH_BYTES objectAffinityMaskUtf8;
         PPH_BYTES objectCommentUtf8;
         PPH_BYTES objectPagePriorityPlusOneUtf8;
+        PPH_BYTES objectBoostUtf8;
 
         objectTagUtf8 = FormatValueToUtf8((*object)->Tag);
         objectPriorityClassUtf8 = FormatValueToUtf8((*object)->PriorityClass);
@@ -384,6 +387,7 @@ NTSTATUS SaveDb(
         objectNameUtf8 = StringRefToUtf8(&(*object)->Name->sr);
         objectCommentUtf8 = StringRefToUtf8(&(*object)->Comment->sr);
         objectPagePriorityPlusOneUtf8 = FormatValueToUtf8((*object)->PagePriorityPlusOne);
+        objectBoostUtf8 = FormatValueToUtf8((*object)->Boost);
 
         // Create the setting element.
         objectNode = PhCreateXmlNode(topNode, "object");
@@ -395,6 +399,7 @@ NTSTATUS SaveDb(
         PhSetXmlNodeAttributeText(objectNode, "collapse", objectCollapseUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "affinity", objectAffinityMaskUtf8->Buffer);
         PhSetXmlNodeAttributeText(objectNode, "pagepriorityplusone", objectPagePriorityPlusOneUtf8->Buffer);
+        PhSetXmlNodeAttributeText(objectNode, "boost", objectBoostUtf8->Buffer);
 
         // Set the value.
         PhCreateXmlOpaqueNode(objectNode, objectCommentUtf8->Buffer);
@@ -408,6 +413,8 @@ NTSTATUS SaveDb(
         PhDereferenceObject(objectPriorityClassUtf8);
         PhDereferenceObject(objectNameUtf8);
         PhDereferenceObject(objectTagUtf8);
+        PhDereferenceObject(objectPagePriorityPlusOneUtf8);
+        PhDereferenceObject(objectBoostUtf8);
     }
 
     UnlockDb();

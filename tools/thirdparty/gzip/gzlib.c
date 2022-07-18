@@ -96,10 +96,10 @@ local gzFile gz_open(path, fd, mode)
     gz_statep state;
     size_t len;
     int oflag;
-#ifdef O_CLOEXEC
+#ifdef _O_CLOEXEC
     int cloexec = 0;
 #endif
-#ifdef O_EXCL
+#ifdef _O_EXCL
     int exclusive = 0;
 #endif
 
@@ -146,7 +146,7 @@ local gzFile gz_open(path, fd, mode)
                 cloexec = 1;
                 break;
 #endif
-#ifdef O_EXCL
+#ifdef _O_EXCL
             case 'x':
                 exclusive = 1;
                 break;
@@ -219,24 +219,24 @@ local gzFile gz_open(path, fd, mode)
 
     /* compute the flags for open() */
     oflag =
-#ifdef O_LARGEFILE
-        O_LARGEFILE |
+#ifdef _O_LARGEFILE
+        _O_LARGEFILE |
 #endif
-#ifdef O_BINARY
-        O_BINARY |
+#ifdef _O_BINARY
+        _O_BINARY |
 #endif
 #ifdef O_CLOEXEC
         (cloexec ? O_CLOEXEC : 0) |
 #endif
         (state->mode == GZ_READ ?
-         O_RDONLY :
-         (O_WRONLY | O_CREAT |
-#ifdef O_EXCL
-          (exclusive ? O_EXCL : 0) |
+         _O_RDONLY :
+         (_O_WRONLY | _O_CREAT |
+#ifdef _O_EXCL
+          (exclusive ? _O_EXCL : 0) |
 #endif
           (state->mode == GZ_WRITE ?
-           O_TRUNC :
-           O_APPEND)));
+           _O_TRUNC :
+           _O_APPEND)));
 
     /* open the file with the appropriate flags (or just use fd) */
     state->fd = fd > -1 ? fd : (

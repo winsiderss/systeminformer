@@ -37,7 +37,9 @@
 #define IDC_STAT_RESPONSETIME           1029
 #define IDC_GPUDISCRETE_L               1030
 #define IDC_CPUCOMP_L                   1031
+#define IDC_STAT_QUEUELENGTH            1031
 #define IDC_TOTALPOWER_L                1032
+#define IDC_STAT_SPLITCOUNT             1032
 #define IDC_TITLE                       1033
 #define IDC_DISKNAME                    1034
 #define IDC_DEVICENAME                  1035
@@ -51,7 +53,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
+#define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1041
 #define _APS_NEXT_SYMED_VALUE           109

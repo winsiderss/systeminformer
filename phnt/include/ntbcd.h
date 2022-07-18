@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Boot Configuration Data (BCD) support functions
+ * Boot Configuration Data (BCD) support functions
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _NTBCD_H
@@ -165,6 +151,15 @@ BcdExportStore(
 NTSYSAPI
 NTSTATUS
 NTAPI
+BcdExportStoreEx(
+    _In_ HANDLE BcdStoreHandle,
+    _In_ ULONG Flags,
+    _In_ UNICODE_STRING BcdFilePath
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 BcdImportStore(
     _In_ UNICODE_STRING BcdFilePath
     );
@@ -299,7 +294,7 @@ typedef enum _BCD_INHERITED_CLASS_TYPE
     ((BCD_APPLICATION_OBJECT_TYPE)((((ULONG)DataType)) & 0xFFFFF))
 
 #define BCD_OBJECT_OSLOADER_TYPE \
-    MAKE_BCD_APPLICATION_OBJECT(BCD_APPLICATION_IMAGE_BOOT_APPLICATION, BCD_APPLICATION_OBJECT_WINDOWS_BOOT_LOADER);
+    MAKE_BCD_APPLICATION_OBJECT(BCD_APPLICATION_IMAGE_BOOT_APPLICATION, BCD_APPLICATION_OBJECT_WINDOWS_BOOT_LOADER)
 
 typedef union _BCD_OBJECT_DATATYPE
 {
@@ -316,19 +311,19 @@ typedef union _BCD_OBJECT_DATATYPE
             BCD_APPLICATION_OBJECT_TYPE ApplicationType : 20;
             BCD_APPLICATION_IMAGE_TYPE ImageType : 4;
             ULONG Reserved : 4;
-            ULONG ObjectType : 4;
+            BCD_OBJECT_TYPE ObjectType : 4;
         } Application;
         struct
         {
             ULONG Value : 20;
             BCD_INHERITED_CLASS_TYPE Class : 4;
             ULONG Reserved : 4;
-            ULONG ObjectType : 4;
+            BCD_OBJECT_TYPE ObjectType : 4;
         } Inherit;
         struct
         {
             ULONG Reserved : 28;
-            ULONG ObjectType : 4;
+            BCD_OBJECT_TYPE ObjectType : 4;
         } Device;
     };
 } BCD_OBJECT_DATATYPE, *PBCD_OBJECT_DATATYPE;
@@ -502,17 +497,14 @@ typedef enum _BCD_ELEMENT_DEVICE_TYPE
 #define GET_BCDE_DATA_SUBTYPE(DataType) \
     ((ULONG)((((ULONG)DataType)) & 0x00FFFFFF))
 
-typedef struct _BCD_ELEMENT_DATATYPE
+typedef union _BCD_ELEMENT_DATATYPE
 {
-    union
+    ULONG PackedValue;
+    struct
     {
-        ULONG PackedValue;
-        struct
-        {
-            ULONG SubType : 24;
-            BCD_ELEMENT_DATATYPE_FORMAT Format : 4;
-            BCD_ELEMENT_DATATYPE_CLASS Class : 4;
-        };
+        ULONG SubType : 24;
+        BCD_ELEMENT_DATATYPE_FORMAT Format : 4;
+        BCD_ELEMENT_DATATYPE_CLASS Class : 4;
     };
 } BCD_ELEMENT_DATATYPE, *PBCD_ELEMENT_DATATYPE;
 

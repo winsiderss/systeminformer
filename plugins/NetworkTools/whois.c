@@ -1,23 +1,12 @@
 /*
- * Process Hacker Network Tools -
- *   Whois dialog
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2013-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2013-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "nettools.h"
@@ -193,7 +182,7 @@ BOOLEAN WhoisExtractServerUrl(
     whoisServerName = PhSubstring(
         WhoisResponse,
         whoisServerHostnameIndex + wcslen(L"whois:"),
-        (ULONG)whoisServerHostnameLength - wcslen(L"whois:")
+        whoisServerHostnameLength - wcslen(L"whois:")
         );
 
     if (WhoisServerAddress)
@@ -229,7 +218,7 @@ BOOLEAN WhoisExtractReferralServer(
     whoisServerName = PhSubstring(
         WhoisResponse,
         whoisServerHostnameIndex + wcslen(L"ReferralServer:"),
-        (ULONG)whoisServerHostnameLength - wcslen(L"ReferralServer:")
+        whoisServerHostnameLength - wcslen(L"ReferralServer:")
         );
 
     whoisServerHostname = TrimString(whoisServerName);
@@ -332,7 +321,7 @@ BOOLEAN WhoisConnectServer(
                 sizeof(dnsRecord->Data.A.IpAddress)
                 );
 
-            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
+            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
             {
                 ULONG bestInterfaceIndex;
 
@@ -380,7 +369,7 @@ BOOLEAN WhoisConnectServer(
                 sizeof(dnsRecord->Data.AAAA.Ip6Address.IP6Byte)
                 );
 
-            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0)) != INVALID_SOCKET)
+            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
             {
                 ULONG bestInterfaceIndex;
 
@@ -676,7 +665,7 @@ INT_PTR CALLBACK WhoisDlgProc(
                 RtlIpv6AddressToString(&context->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
             }
 
-            SetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
+            PhSetWindowText(hwndDlg, PhaFormatString(L"Whois %s...", context->IpAddressString)->Buffer);
 
             //SendMessage(context->RichEditHandle, EM_SETBKGNDCOLOR, RGB(0, 0, 0), 0);
             SendMessage(context->RichEditHandle, EM_SETEVENTMASK, 0, SendMessage(context->RichEditHandle, EM_GETEVENTMASK, 0, 0) | ENM_LINK);
@@ -757,23 +746,22 @@ INT_PTR CALLBACK WhoisDlgProc(
             RichEditSetText(context->RichEditHandle, trimString->Buffer);
         }
         break;
-    case WM_TRACERT_UPDATE:
-        {
-            PPH_STRING windowText;
-
-            if (windowText = PhGetWindowText(context->WindowHandle))
-            {
-                PPH_STRING text;
-
-                text = PhConcatStrings2(windowText->Buffer, L" Finished.");
-                Static_SetText(context->WindowHandle, text->Buffer);
-
-                PhDereferenceObject(text);
-                PhDereferenceObject(windowText);
-
-            }
-        }
-        break;
+    //case WM_TRACERT_UPDATE:
+    //    {
+    //        PPH_STRING windowText;
+    //
+    //        if (windowText = PhGetWindowText(context->WindowHandle))
+    //        {
+    //            PPH_STRING text;
+    //
+    //            text = PhConcatStrings2(windowText->Buffer, L" Finished.");
+    //            PhSetWindowText(context->WindowHandle, text->Buffer);
+    //
+    //            PhDereferenceObject(text);
+    //            PhDereferenceObject(windowText);
+    //        }
+    //    }
+    //    break;
     case WM_CONTEXTMENU:
         {
             POINT point;

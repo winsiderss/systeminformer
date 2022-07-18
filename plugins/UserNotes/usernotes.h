@@ -1,24 +1,13 @@
 /*
- * Process Hacker User Notes -
- *   UserNotes Header
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011-2015
+ *     dmex    2016-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _USERNOTES_H_
@@ -27,7 +16,6 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
-#include <shlobj.h>
 
 #include "db.h"
 #include "resource.h"
@@ -39,6 +27,7 @@
 #define INTENT_PROCESS_COLLAPSE 0x10
 #define INTENT_PROCESS_AFFINITY 0x20
 #define INTENT_PROCESS_PAGEPRIORITY 0x40
+#define INTENT_PROCESS_BOOST 0x80
 
 typedef enum _USERNOTES_COMMAND_ID
 {
@@ -55,6 +44,12 @@ typedef enum _USERNOTES_COMMAND_ID
     PROCESS_PAGE_PRIORITY_SAVE_ID,
     PROCESS_PAGE_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID,
     PROCESS_PAGE_PRIORITY_SAVE_IFEO,
+    PROCESS_BOOST_PRIORITY_ID,
+    PROCESS_BOOST_PRIORITY_SAVE_ID,
+    PROCESS_BOOST_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID,
+    FILE_PRIORITY_SAVE_IFEO,
+    FILE_IO_PRIORITY_SAVE_IFEO,
+    FILE_PAGE_PRIORITY_SAVE_IFEO,
 } USERNOTES_COMMAND_ID;
 
 #define COMMENT_COLUMN_ID 1

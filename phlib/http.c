@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   http/http2/dns wrappers
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2017-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <ph.h>
@@ -650,21 +639,18 @@ NTSTATUS PhHttpSocketDownloadToFile(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF tempFilePath = PH_STRINGREF_INIT(L"%TEMP%\\");
     NTSTATUS status;
     HANDLE fileHandle;
-    LARGE_INTEGER allocationSize;
+    LARGE_INTEGER fileSize;
     ULONG numberOfBytesTotal = 0;
     ULONG numberOfBytesRead = 0;
     ULONG64 numberOfBytesReadTotal = 0;
     ULONG64 timeTicks;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
-    PPH_STRING tempDirectory;
-    PPH_STRING tempFileName;
+    PPH_STRING fileName;
     PH_HTTPDOWNLOAD_CONTEXT context;
     IO_STATUS_BLOCK isb;
-    WCHAR alphaString[32] = L"";
     BYTE buffer[PAGE_SIZE];
 
     PhQuerySystemTime(&timeStart);
@@ -675,16 +661,17 @@ NTSTATUS PhHttpSocketDownloadToFile(
     if (numberOfBytesTotal == 0)
         return STATUS_UNSUCCESSFUL;
 
-    tempDirectory = PhExpandEnvironmentStrings(&tempFilePath);
-    PhGenerateRandomAlphaString(alphaString, RTL_NUMBER_OF(alphaString));
-    tempFileName = PhConcatStrings2(PhGetString(tempDirectory), alphaString);
+    fileName = PhGetTemporaryDirectoryRandomAlphaFileName();
+    fileSize.QuadPart = numberOfBytesTotal;
 
-    allocationSize.QuadPart = numberOfBytesTotal;
+    if (PhIsNullOrEmptyString(fileName))
+        return STATUS_UNSUCCESSFUL;
+
     status = PhCreateFileWin32Ex(
         &fileHandle,
-        PhGetString(tempFileName),
+        PhGetString(fileName),
         FILE_GENERIC_WRITE,
-        &allocationSize,
+        &fileSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_CREATE,
@@ -694,10 +681,11 @@ NTSTATUS PhHttpSocketDownloadToFile(
 
     if (!NT_SUCCESS(status))
     {
-        PhDereferenceObject(tempFileName);
-        PhDereferenceObject(tempDirectory);
+        PhDereferenceObject(fileName);
         return status;
     }
+
+    memset(buffer, 0, sizeof(buffer));
 
     while (PhHttpSocketReadData(HttpContext, buffer, PAGE_SIZE, &numberOfBytesRead))
     {
@@ -763,11 +751,11 @@ NTSTATUS PhHttpSocketDownloadToFile(
         {
             if (indexOfFileName != ULONG_MAX)
             {
-                directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-
-                status = PhCreateDirectory(directoryName);
-
-                PhDereferenceObject(directoryName);
+                if (directoryName = PhSubstring(fullPath, 0, indexOfFileName))
+                {
+                    status = PhCreateDirectory(directoryName);
+                    PhDereferenceObject(directoryName);
+                }
             }
 
             PhDereferenceObject(fullPath);
@@ -775,12 +763,11 @@ NTSTATUS PhHttpSocketDownloadToFile(
 
         if (NT_SUCCESS(status))
         {
-            status = PhMoveFileWin32(PhGetString(tempFileName), FileName);
+            status = PhMoveFileWin32(PhGetString(fileName), FileName);
         }
     }
 
-    PhDereferenceObject(tempFileName);
-    PhDereferenceObject(tempDirectory);
+    PhDereferenceObject(fileName);
 
     return status;
 }

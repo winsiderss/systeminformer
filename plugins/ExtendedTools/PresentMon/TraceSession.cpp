@@ -43,7 +43,7 @@ ULONG EnableFilteredProvider(
     if (memory == nullptr)
         return ERROR_NOT_ENOUGH_MEMORY;
 
-    auto filterEventIds = (EVENT_FILTER_EVENT_ID*)memory;
+    auto filterEventIds = static_cast<EVENT_FILTER_EVENT_ID*>(memory);
     filterEventIds->FilterIn = TRUE;
     filterEventIds->Reserved = 0;
     filterEventIds->Count = 0;
@@ -54,8 +54,8 @@ ULONG EnableFilteredProvider(
     }
 
     EVENT_FILTER_DESCRIPTOR filterDesc = { };
-    filterDesc.Ptr = (ULONGLONG)filterEventIds;
-    filterDesc.Size = (ULONG)memorySize;
+    filterDesc.Ptr = reinterpret_cast<ULONGLONG>(filterEventIds);
+    filterDesc.Size = static_cast<ULONG>(memorySize);
     filterDesc.Type = EVENT_FILTER_TYPE_EVENT_ID;
 
     ENABLE_TRACE_PARAMETERS params = { };
@@ -203,12 +203,12 @@ void CALLBACK EventRecordCallback(EVENT_RECORD* pEventRecord)
 
     if (hdr.ProviderId == Microsoft_Windows_DxgKrnl::GUID)
         HandleDXGKEvent(pEventRecord);
+    else if (hdr.ProviderId == Microsoft_Windows_DXGI::GUID)
+        HandleDXGIEvent(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_Win32k::GUID)
         HandleWin32kEvent(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_Dwm_Core::GUID)
         HandleDWMEvent(pEventRecord);
-    else if (hdr.ProviderId == Microsoft_Windows_DXGI::GUID)
-        HandleDXGIEvent(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_D3D9::GUID)
         HandleD3D9Event(pEventRecord);
     else if (hdr.ProviderId == Microsoft_Windows_Dwm_Core::Win7::GUID)
@@ -273,6 +273,7 @@ BOOLEAN StartFpsTraceSession(
     sessionProps.Wnode.BufferSize = (ULONG)sizeof(TraceProperties);
     sessionProps.Wnode.ClientContext = 1;
     sessionProps.LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
+    sessionProps.EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
     sessionProps.LogFileNameOffset = 0;
     sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);  // Location of session name; will be written by StartTrace()
 
@@ -295,6 +296,17 @@ BOOLEAN StartFpsTraceSession(
             L"PhPresentTraceSession",
             &sessionProps
             );
+
+        if (status == ERROR_SUCCESS)
+        {
+            status = EnableProviders(mSessionHandle, sessionProps.Wnode.Guid);
+
+            if (status != ERROR_SUCCESS)
+            {
+                TraceSession_Stop();
+                return FALSE;
+            }
+        }
     }
 
     if (status != ERROR_SUCCESS)
@@ -318,14 +330,6 @@ BOOLEAN StartFpsTraceSession(
         }
     }
 
-    status = EnableProviders(mSessionHandle, sessionProps.Wnode.Guid);
-
-    if (status != ERROR_SUCCESS)
-    {
-        TraceSession_Stop();
-        return FALSE;
-    }
-
     StartConsumerThread(mTraceHandle);
     StartOutputThread();
 
@@ -344,12 +348,11 @@ VOID StopFpsTraceSession(
 }
 
 VOID DequeueAnalyzedInfo(
-    std::vector<std::shared_ptr<PresentEvent>>* presentEvents,
-    std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents
+    std::vector<std::shared_ptr<PresentEvent>>* presentEvents
     )
 {
     DequeuePresentEvents(*presentEvents);
-    DequeueLostPresentEvents(*lostPresentEvents);
+    //DequeueLostPresentEvents(*lostPresentEvents);
 }
 
 DOUBLE QpcDeltaToSeconds(

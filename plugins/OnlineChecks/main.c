@@ -1,24 +1,13 @@
 /*
- * Process Hacker Online Checks -
- *   Main Program
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2013
+ *     dmex    2012-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "onlnchk.h"
@@ -200,9 +189,9 @@ VOID NTAPI MenuItemCallback(
                 config.hwndParent = menuItem->OwnerWindow;
                 config.hMainIcon = PhGetApplicationIcon(FALSE);
                 config.cxWidth = 180;
-                config.pszWindowTitle = L"Process Hacker - VirusTotal";
-                config.pszMainInstruction = L"VirusTotal scanning requires a restart of Process Hacker.";
-                config.pszContent = L"Do you want to restart Process Hacker now?";
+                config.pszWindowTitle = L"System Informer - VirusTotal";
+                config.pszMainInstruction = L"VirusTotal scanning requires a restart of System Informer.";
+                config.pszContent = L"Do you want to restart System Informer now?";
 
                 if (SUCCEEDED(TaskDialogIndirect(&config, &result, NULL, NULL)) && result == IDYES)
                 {
@@ -400,9 +389,9 @@ VOID NTAPI ServiceMenuInitializingCallback(
         serviceItem = NULL;
 
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Sen&d to", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_HYBRIDANALYSIS_UPLOAD_SERVICE, L"&hybrid-analysis.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.&jotti.org", serviceItem ? serviceItem : NULL), ULONG_MAX);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"&virustotal.com", serviceItem ? serviceItem : NULL), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, sendToMenu, ULONG_MAX);
 
@@ -791,7 +780,6 @@ LOGICAL DllMain(
             info->DisplayName = L"Online Checks";
             info->Author = L"dmex, wj32";
             info->Description = L"Allows files to be checked with online services.";
-            info->Url = L"https://wj32.org/processhacker/forums/viewtopic.php?t=1118";
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

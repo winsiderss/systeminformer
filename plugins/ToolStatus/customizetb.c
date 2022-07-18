@@ -1,23 +1,12 @@
 /*
- * Process Hacker ToolStatus -
- *   Toolbar Customize Dialog
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2017 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2015-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "toolstatus.h"
@@ -507,6 +496,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
+            context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
 
             context->CXWidth = PH_SCALE_DPI(16);
 
@@ -516,7 +506,6 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 context->BrushHot = CreateSolidBrush(RGB(128, 128, 128));
                 context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
                 context->TextColor = RGB(0xff, 0xff, 0xff);
-                context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
             }
             else
             {
@@ -524,7 +513,6 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
                 context->BrushPushed = CreateSolidBrush(RGB(153, 209, 255));
                 context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
-                context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
             }
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
@@ -543,6 +531,9 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             ToolbarSaveButtonSettings();
             ToolbarLoadSettings();
             CustomizeFreeToolbarItems(context);
+
+            if (context->BrushNormal)
+                DeleteBrush(context->BrushNormal);
 
             if (context->BrushHot)
                 DeleteBrush(context->BrushHot);
@@ -865,34 +856,15 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 SelectFont(bufferDc, context->FontHandle);
                 SetBkMode(bufferDc, TRANSPARENT);
 
-                if (isFocused)
-                {
+                if (isFocused || isSelected)
                     FillRect(bufferDc, &bufferRect, context->BrushHot);
-                    //FrameRect(bufferDc, &bufferRect, GetStockBrush(BLACK_BRUSH));
-
-                    if (!itemContext->IsVirtual)
-                    {
-                        SetTextColor(bufferDc, context->TextColor);
-                    }
-                    else
-                    {
-                        SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
-                    }
-                }
                 else
-                {
                     FillRect(bufferDc, &bufferRect, context->BrushNormal);
-                    //FrameRect(bufferDc, &bufferRect, GetSysColorBrush(COLOR_HIGHLIGHTTEXT));
 
-                    if (!itemContext->IsVirtual)
-                    {
-                        SetTextColor(bufferDc, context->TextColor);
-                    }
-                    else
-                    {
-                        SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
-                    }
-                }
+                if (!itemContext->IsVirtual)
+                    SetTextColor(bufferDc, context->TextColor);
+                else
+                    SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
 
                 if (itemContext->IconHandle && !itemContext->IsSeparator)
                 {
@@ -952,6 +924,12 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

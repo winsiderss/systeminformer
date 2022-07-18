@@ -1,21 +1,12 @@
 /*
- * Process Hacker Toolchain -
- *   project setup
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * This file is part of Process Hacker.
+ * This file is part of System Informer.
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Authors:
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     dmex
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <setup.h>
@@ -345,7 +336,7 @@ INT WINAPI wWinMain(
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return EXIT_FAILURE;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"Process Hacker - Setup", ULONG_MAX, Instance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLibEx(L"System Informer - Setup", ULONG_MAX, Instance, 0, 0)))
         return EXIT_FAILURE;
 
     SetupInitializeMutant();

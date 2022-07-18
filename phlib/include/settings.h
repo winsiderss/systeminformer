@@ -129,7 +129,7 @@ PhGetExpandStringSetting(
 
     setting = PhGetStringSetting(Name);
 #ifdef __cplusplus
-    PhMoveReference((PVOID*)&setting, PhExpandEnvironmentStrings(&setting->sr));
+    PhMoveReference(reinterpret_cast<PVOID*>(&setting), PhExpandEnvironmentStrings(&setting->sr));
 #else
     PhMoveReference(&setting, PhExpandEnvironmentStrings(&setting->sr));
 #endif
@@ -293,6 +293,22 @@ NTAPI
 PhSaveListViewGroupStatesToSetting(
     _In_ PWSTR Name,
     _In_ HWND ListViewHandle
+    );
+
+VOID
+NTAPI
+PhLoadCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
+    );
+
+VOID
+NTAPI
+PhSaveCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
     );
 // end_phapppub
 

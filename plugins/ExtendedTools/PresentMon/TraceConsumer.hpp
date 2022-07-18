@@ -47,7 +47,13 @@ struct EventDataDesc
 
     template<typename T> T GetData() const
     {
-        assert(status_ & PROP_STATUS_FOUND);
+        if (!(status_ & PROP_STATUS_FOUND))
+        {
+            T t{};
+            return t;
+        }
+
+        //assert(status_ & PROP_STATUS_FOUND);
         assert(data_ != nullptr);
 
         // Expect the correct size, except allow 32-bit pointer/size_t to promote to u64

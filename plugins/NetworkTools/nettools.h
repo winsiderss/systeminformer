@@ -1,24 +1,13 @@
 /*
- * Process Hacker Network Tools -
- *   Main header
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2013 wj32
- * Copyright (C) 2012-2019 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2013
+ *     dmex    2012-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _NET_TOOLS_H_
@@ -53,7 +42,7 @@
 #define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
 
 extern PPH_PLUGIN PluginInstance;
-extern BOOLEAN GeoDbLoaded;
+extern BOOLEAN GeoDbInitialized;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
@@ -61,8 +50,8 @@ extern PPH_STRING SearchboxText;
 //       + the number of bytes of data specified in the RequestSize parameter.
 // This buffer should also be large enough to also hold 8 more bytes of data (the size of an ICMP error message)
 //       + space for an IO_STATUS_BLOCK structure.
-#define ICMP_BUFFER_SIZE(EchoReplyLength, Buffer) \
-    (ULONG)(((EchoReplyLength) + (Buffer)->Length) + 8 + sizeof(IO_STATUS_BLOCK) + MAX_OPT_SIZE)
+#define ICMP_BUFFER_SIZE(EchoReplyLength, BufferLength) \
+    (ULONG)(((EchoReplyLength) + (BufferLength)) + 8 + sizeof(IO_STATUS_BLOCK) + MAX_OPT_SIZE)
 
 #define BITS_IN_ONE_BYTE 8
 #define NDIS_UNIT_OF_MEASUREMENT 100
@@ -95,7 +84,7 @@ typedef enum _PH_NETWORK_ACTION
 #define NTM_RECEIVEDTRACE (WM_APP + 1)
 #define NTM_RECEIVEDWHOIS (WM_APP + 2)
 #define NTM_RECEIVEDFINISH (WM_APP + 3)
-#define WM_TRACERT_UPDATE (WM_APP + 4)
+//#define WM_TRACERT_UPDATE (WM_APP + 4)
 #define WM_TRACERT_HOSTNAME (WM_APP + 5)
 #define WM_TRACERT_COUNTRY (WM_APP + 6)
 
@@ -110,13 +99,13 @@ typedef struct _NETWORK_PING_CONTEXT
     HWND PingGraphHandle;
     HFONT FontHandle;
 
-    ULONG PingTimeout;
-    ULONG CurrentPingMs;
+    ULONG Timeout;
+    FLOAT CurrentPingMs;
     ULONG MinPingScaling;
     ULONG HashFailCount;
     ULONG UnknownAddrCount;
-    ULONG PingMinMs;
-    ULONG PingMaxMs;
+    FLOAT PingMinMs;
+    FLOAT PingMaxMs;
     ULONG PingSentCount;
     ULONG PingRecvCount;
     ULONG PingLossCount;
@@ -125,7 +114,7 @@ typedef struct _NETWORK_PING_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
     PH_WORK_QUEUE PingWorkQueue;
     PH_GRAPH_STATE PingGraphState;
-    PH_CIRCULAR_BUFFER_ULONG PingHistory;
+    PH_CIRCULAR_BUFFER_FLOAT PingHistory;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     PH_IP_ENDPOINT RemoteEndpoint;
@@ -182,6 +171,7 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     HFONT TreeNewFont;
     PH_LAYOUT_MANAGER LayoutManager;
 
+    ULONG Timeout;
     ULONG MaximumHops;
     BOOLEAN Cancel;
     PH_WORK_QUEUE WorkQueue;
@@ -265,10 +255,6 @@ typedef enum _NETWORK_COLUMN_ID
 
 PPH_STRING NetToolsGetGeoLiteDbPath(
     _In_ PWSTR SettingName
-    );
-
-VOID LoadGeoLiteDb(
-    VOID
     );
 
 VOID FreeGeoLiteDb(

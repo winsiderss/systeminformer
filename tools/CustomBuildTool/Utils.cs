@@ -1,23 +1,12 @@
 ﻿/*
- * Process Hacker Toolchain - 
- *   Build script
- * 
- * Copyright (C) dmex
- * 
- * This file is part of Process Hacker.
- * 
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This file is part of System Informer.
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * Authors:
+ *
+ *     dmex
+ *
  */
 
 using System;
@@ -188,6 +177,68 @@ namespace CustomBuildTool
 
             return string.Empty;
         }
+
+        private static readonly UIntPtr HKEY_LOCAL_MACHINE = new UIntPtr(0x80000002u);
+        private static readonly UIntPtr HKEY_CURRENT_USER = new UIntPtr(0x80000001u);
+        private static readonly uint KEY_READ = 0x20019u;
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern uint RegOpenKeyExW(UIntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, out UIntPtr KeyHandle);
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+        private static extern uint RegQueryValueExW(UIntPtr KeyHandle, string ValueName, IntPtr Reserved, out int DataType, IntPtr DataBuffer, ref int DataLength);
+        [DllImport("advapi32.dll", ExactSpelling = true)]
+        private static extern uint RegCloseKey(UIntPtr KeyHandle);
+
+        public static string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
+        {
+            string value = string.Empty;
+            UIntPtr keyHandle;
+            IntPtr valueBuffer;
+
+            if (RegOpenKeyExW(
+                LocalMachine ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER,
+                KeyName,
+                0,
+                KEY_READ,
+                out keyHandle
+                ) == 0)
+            {
+                int valueType;
+                int valueLength = 0;
+
+                RegQueryValueExW(
+                    keyHandle,
+                    ValueName,
+                    IntPtr.Zero,
+                    out valueType,
+                    IntPtr.Zero,
+                    ref valueLength
+                    );
+
+                if (valueType == 1 || valueLength > 4)
+                {
+                    valueBuffer = Marshal.AllocHGlobal(valueLength);
+
+                    if (RegQueryValueExW(
+                        keyHandle,
+                        ValueName,
+                        IntPtr.Zero,
+                        out valueType,
+                        valueBuffer,
+                        ref valueLength
+                        ) == 0)
+                    {
+                        value = Marshal.PtrToStringUni(valueBuffer, valueLength / 2 - 1);
+                    }
+
+                    Marshal.FreeHGlobal(valueBuffer);
+                }
+
+                RegCloseKey(keyHandle);
+            }
+
+            return string.IsNullOrWhiteSpace(value) ? DefaultValue : value;
+        }
     }
 
     public static class Verify
@@ -286,6 +337,7 @@ namespace CustomBuildTool
     {
         private static readonly string[] MsBuildPathArray =
         {
+            "\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe",
             "\\MSBuild\\Current\\Bin\\MSBuild.exe",
             "\\MSBuild\\15.0\\Bin\\MSBuild.exe"
         };
@@ -406,7 +458,7 @@ namespace CustomBuildTool
 
         public static string GetMsbuildFilePath()
         {
-            if (string.IsNullOrEmpty(MsBuildFilePath))
+            if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
                 VisualStudioInstance instance = GetVisualStudioInstance();
 
@@ -425,11 +477,11 @@ namespace CustomBuildTool
                 }
             }
 
-            if (string.IsNullOrEmpty(MsBuildFilePath))
+            if (string.IsNullOrWhiteSpace(MsBuildFilePath))
             {
                 string vswhere = GetVswhereFilePath();
 
-                if (string.IsNullOrEmpty(vswhere))
+                if (string.IsNullOrWhiteSpace(vswhere))
                     return null;
 
                 // -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe"
@@ -443,7 +495,7 @@ namespace CustomBuildTool
                     "-property installationPath "
                     );
 
-                if (!string.IsNullOrEmpty(vswhereResult))
+                if (!string.IsNullOrWhiteSpace(vswhereResult))
                 {
                     foreach (string path in MsBuildPathArray)
                     {
@@ -502,13 +554,12 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
 
-            // Note: This does not use the registry lookup because .NET Core requires registry dependencies. (dmex)
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\Include");
 
-            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\Include");
-
-            if (Directory.Exists(kitpath32))
+            if (Directory.Exists(kitsPath))
             {
-                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
 
                 foreach (string path in windowsKitsDirectory)
                 {
@@ -526,7 +577,7 @@ namespace CustomBuildTool
                 {
                     var result = versionList[versionList.Count - 1];
 
-                    if (!string.IsNullOrEmpty(result.Value))
+                    if (!string.IsNullOrWhiteSpace(result.Value))
                     {
                         return result.Value;
                     }
@@ -540,13 +591,12 @@ namespace CustomBuildTool
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
 
-            // Note: This does not use the registry lookup because .NET Core requires registry dependencies. (dmex)
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
 
-            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin");
-
-            if (Directory.Exists(kitpath32))
+            if (Directory.Exists(kitsPath))
             {
-                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
 
                 foreach (string path in windowsKitsDirectory)
                 {
@@ -564,7 +614,7 @@ namespace CustomBuildTool
                 {
                     var result = versionList[versionList.Count - 1];
 
-                    if (!string.IsNullOrEmpty(result.Value))
+                    if (!string.IsNullOrWhiteSpace(result.Value))
                     {
                         return result.Value;
                     }
@@ -597,7 +647,7 @@ namespace CustomBuildTool
         //
         //    vswhere = GetVswhereFilePath();
         //
-        //    if (string.IsNullOrEmpty(vswhere))
+        //    if (string.IsNullOrWhiteSpace(vswhere))
         //        return null;
         //
         //    vswhereResult = Win32.ShellExecute(
@@ -610,7 +660,7 @@ namespace CustomBuildTool
         //        "-property installationPath "
         //        );
         //
-        //    if (string.IsNullOrEmpty(vswhereResult))
+        //    if (string.IsNullOrWhiteSpace(vswhereResult))
         //        return null;
         //
         //    foreach (string path in MsBuildPathArray)
@@ -732,12 +782,93 @@ namespace CustomBuildTool
 
         public string GetWindowsSdkVersion()
         {
-            VisualStudioPackage package = GetLatestSdkPackage();
+            List<string> versions = new List<string>();
+            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin");
 
-            if (package == null)
-                return string.Empty;
+            if (Directory.Exists(kitpath32))
+            {
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
 
-            return package.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length);
+                foreach (string path in windowsKitsDirectory)
+                {
+                    string name = System.IO.Path.GetFileName(path);
+
+                    if (Version.TryParse(name, out var version))
+                    {
+                        versions.Add(name);
+                    }
+                }
+
+                versions.Sort((p1, p2) =>
+                {
+                    if (Version.TryParse(p1, out Version v1) && Version.TryParse(p2, out Version v2))
+                        return v1.CompareTo(v2);
+                    else
+                        return 1;
+                });
+
+                if (versions.Count > 0)
+                {
+                    string result = versions[^1];
+
+                    if (!string.IsNullOrWhiteSpace(result))
+                    {
+                        return result;
+                    }
+                }
+            }
+
+            {
+                VisualStudioPackage package = GetLatestSdkPackage();
+
+                if (package == null)
+                    return string.Empty;
+
+                // SDK
+                if (package.Id.Length > "Microsoft.VisualStudio.Component.Windows10SDK.".Length)
+                {
+                    return package.Id.Substring("Microsoft.VisualStudio.Component.Windows10SDK.".Length);
+                }
+                else
+                {
+                    var found = this.Packages.FindAll(p =>
+                    {
+                        return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
+                            p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
+                    });
+
+                    foreach (var sdk in found)
+                    {
+                        string[] tokens = sdk.Id.Split(".", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                        foreach (string name in tokens)
+                        {
+                            if (uint.TryParse(name, out uint version))
+                            {
+                                versions.Add(name);
+                                break;
+                            }
+                        }
+                    }
+
+                    versions.Sort((p1, p2) =>
+                    {
+                        if (Version.TryParse(p1, out Version v1) && Version.TryParse(p2, out Version v2))
+                            return v1.CompareTo(v2);
+                        else
+                            return 1;
+                    });
+
+                    if (versions.Count > 0)
+                    {
+                        return versions[^1];
+                    }
+                    else
+                    {
+                        return package.UniqueId;
+                    }
+                }
+            }
         }
 
         public string GetWindowsSdkFullVersion()
@@ -903,9 +1034,84 @@ namespace CustomBuildTool
         [JsonPropertyName("setup_sig")] public string SetupSig { get; set; }
     }
 
+    public class GithubReleasesRequest
+    {
+        [JsonPropertyName("tag_name")] public string ReleaseTag { get; set; }
+        [JsonPropertyName("target_commitish")] public string Branch { get; set; }
+        [JsonPropertyName("name")] public string Name { get; set; }
+        [JsonPropertyName("body")] public string Description { get; set; }
+
+        [JsonPropertyName("draft")] public bool Draft { get; set; }
+        [JsonPropertyName("prerelease")] public bool Prerelease { get; set; }
+        [JsonPropertyName("generate_release_notes")] public bool generate_release_notes { get; set; }
+
+        public override string ToString()
+        {
+            return this.ReleaseTag;
+        }
+    }
+
+    public class GithubReleasesResponse
+    {
+        [JsonPropertyName("id")] public long ID { get; set; }
+        [JsonPropertyName("upload_url")] public string upload_url { get; set; }
+        [JsonPropertyName("html_url")] public string html_url { get; set; }
+        [JsonPropertyName("assets")] public List<GithubAssetsResponse> Assets { get; set; }
+        [JsonIgnore] public string ReleaseId { get { return this.ID.ToString(); } }
+
+        public override string ToString()
+        {
+            return this.ReleaseId;
+        }
+    }
+
+    public class GithubAssetsResponse
+    {
+        [JsonPropertyName("name")] public string Name { get; set; }
+        [JsonPropertyName("label")] public string Label { get; set; }
+        [JsonPropertyName("size")] public long Size { get; set; }
+        [JsonPropertyName("state")] public string State { get; set; }
+        [JsonPropertyName("browser_download_url")] public string download_url { get; set; }
+
+        [JsonIgnore]
+        public bool Uploaded
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(this.State) && string.Equals(this.State, "uploaded", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        public override string ToString()
+        {
+            return this.Name;
+        }
+    }
+
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
     [JsonSerializable(typeof(BuildUpdateRequest))]
     public partial class BuildUpdateRequestContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Serialization)]
+    [JsonSerializable(typeof(GithubReleasesRequest))]
+    public partial class GithubReleasesRequestContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(GithubReleasesResponse))]
+    public partial class GithubReleasesResponseContext : JsonSerializerContext
+    {
+
+    }
+
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(GithubAssetsResponse))]
+    public partial class GithubAssetsResponseContext : JsonSerializerContext
     {
 
     }

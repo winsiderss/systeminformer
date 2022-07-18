@@ -1,30 +1,19 @@
 /*
- * Process Hacker Network Tools  -
- *   IP Country support
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2016-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2016-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "nettools.h"
 #include <commonutil.h>
 #include "..\..\tools\thirdparty\maxminddb\maxminddb.h"
 
-BOOLEAN GeoDbLoaded = FALSE;
+BOOLEAN GeoDbInitialized = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
 HIMAGELIST GeoImageList = NULL;
 MMDB_s GeoDbCountry = { 0 };
@@ -42,73 +31,67 @@ PPH_STRING NetToolsGetGeoLiteDbPath(
     _In_ PWSTR SettingName
     )
 {
-    PPH_STRING databaseFile;
-    PPH_STRING directory;
-    PPH_STRING path;
+    PPH_STRING fileName;
 
-    if (!(databaseFile = PhGetExpandStringSetting(SettingName)))
+    fileName = PhGetExpandStringSetting(SettingName);
+
+    if (PhIsNullOrEmptyString(fileName))  
         return NULL;
 
-    PhMoveReference(&databaseFile, PhGetBaseName(databaseFile));
-
-    directory = PH_AUTO(PhGetApplicationDirectory());
-    path = PH_AUTO(PhConcatStringRef2(&directory->sr, &databaseFile->sr));
-
-    if (PhDoesFileExistsWin32(path->Buffer))
+    if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
     {
-        return PhReferenceObject(path);
-    }
-    else
-    {
-        path = PhaGetStringSetting(SettingName);
-        path = PH_AUTO(PhExpandEnvironmentStrings(&path->sr));
-
-        if (PhDetermineDosPathNameType(path->Buffer) == RtlPathTypeRelative)
-        {
-            directory = PH_AUTO(PhGetApplicationDirectory());
-            path = PH_AUTO(PhConcatStringRef2(&directory->sr, &path->sr));
-        }
-
-        return PhReferenceObject(path);
+        PhMoveReference(&fileName, PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
     }
 
-    return NULL;
+    return fileName;
 }
 
-VOID LoadGeoLiteDb(
+BOOLEAN NetToolsGeoLiteInitialized(
     VOID
     )
 {
-    PPH_STRING dbpath;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
-    if (dbpath = NetToolsGetGeoLiteDbPath(SETTING_NAME_DB_LOCATION))
+    if (PhBeginInitOnce(&initOnce))
     {
-        if (MMDB_open(dbpath->Buffer, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
+        PPH_STRING dbpath;
+
+        if (dbpath = NetToolsGetGeoLiteDbPath(SETTING_NAME_DB_LOCATION))
         {
-            LARGE_INTEGER systemTime;
-            ULONG secondsSince1970;
-
-            // Query the current time
-            PhQuerySystemTime(&systemTime);
-            // Convert to unix epoch time
-            RtlTimeToSecondsSince1970(&systemTime, &secondsSince1970);
-
-            // Check if the Geoip database is older than 6 months (182 days = approx. 6 months).
-            if ((secondsSince1970 - GeoDbCountry.metadata.build_epoch) > (182 * 24 * 60 * 60))
+            if (MMDB_open(dbpath->Buffer, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
             {
-                GeoDbExpired = TRUE;
+                LARGE_INTEGER systemTime;
+                ULONG secondsSince1970;
+
+                // Query the current time
+                PhQuerySystemTime(&systemTime);
+                // Convert to unix epoch time
+                RtlTimeToSecondsSince1970(&systemTime, &secondsSince1970);
+
+                // Check if the Geoip database is older than 6 months (182 days = approx. 6 months).
+                if ((secondsSince1970 - GeoDbCountry.metadata.build_epoch) > (182 * 24 * 60 * 60))
+                {
+                    GeoDbExpired = TRUE;
+                }
+
+                GeoImageList = PhImageListCreate(
+                    16,
+                    11,
+                    ILC_MASK | ILC_COLOR32,
+                    20,
+                    20
+                    );
+
+                GeoDbInitialized = TRUE;
             }
 
-            GeoDbLoaded = TRUE;
+            PhDereferenceObject(dbpath);
         }
 
-        if (GeoDbLoaded)
-        {
-            GeoImageList = PhImageListCreate(16, 11, ILC_MASK | ILC_COLOR32, 20, 20);
-        }
-
-        PhDereferenceObject(dbpath);
+        PhEndInitOnce(&initOnce);
     }
+
+    return GeoDbInitialized;
 }
 
 VOID FreeGeoLiteDb(
@@ -121,7 +104,7 @@ VOID FreeGeoLiteDb(
         PhImageListDestroy(GeoImageList);
     }
 
-    if (GeoDbLoaded)
+    if (GeoDbInitialized)
     {
         MMDB_close(&GeoDbCountry);
     }
@@ -256,7 +239,7 @@ BOOLEAN LookupCountryCodeFromMmdb(
     MMDB_lookup_result_s mmdb_result;
     INT mmdb_error = 0;
 
-    if (!GeoDbLoaded)
+    if (!NetToolsGeoLiteInitialized())
         return FALSE;
 
     if (RemoteAddress.Type == PH_IPV4_NETWORK_TYPE)
@@ -338,7 +321,7 @@ BOOLEAN LookupSockInAddr4CountryCode(
     SOCKADDR_IN ipv4SockAddr;
     INT mmdb_error = 0;
 
-    if (!GeoDbLoaded)
+    if (!NetToolsGeoLiteInitialized())
         return FALSE;
 
     if (
@@ -388,7 +371,7 @@ BOOLEAN LookupSockInAddr6CountryCode(
     SOCKADDR_IN6 ipv6SockAddr;
     INT mmdb_error = 0;
 
-    if (!GeoDbLoaded)
+    if (!NetToolsGeoLiteInitialized())
         return FALSE;
 
     if (
@@ -616,7 +599,8 @@ VOID DrawCountryIcon(
         hdc,
         rect.left, 
         rect.top + ((rect.bottom - rect.top) - 11) / 2, 
-        ILD_NORMAL
+        ILD_NORMAL,
+        FALSE
         );
 }
 
@@ -628,16 +612,7 @@ BOOLEAN NetworkToolsGeoDbCacheHashtableEqualFunction(
     PGEODB_IPADDR_CACHE_ENTRY entry1 = Entry1;
     PGEODB_IPADDR_CACHE_ENTRY entry2 = Entry2;
 
-    if (entry1->RemoteAddress.Type == PH_IPV4_NETWORK_TYPE && entry2->RemoteAddress.Type == PH_IPV4_NETWORK_TYPE)
-    {
-        return IN4_ADDR_EQUAL(&entry1->RemoteAddress.InAddr, &entry2->RemoteAddress.InAddr);
-    }
-    else  if (entry1->RemoteAddress.Type == PH_IPV6_NETWORK_TYPE && entry2->RemoteAddress.Type == PH_IPV6_NETWORK_TYPE)
-    {
-        return IN6_ADDR_EQUAL(&entry1->RemoteAddress.In6Addr, &entry2->RemoteAddress.In6Addr);
-    }
-
-    return FALSE;
+    return PhEqualIpAddress(&entry1->RemoteAddress, &entry2->RemoteAddress);
 }
 
 ULONG NetworkToolsGeoDbCacheHashtableHashFunction(

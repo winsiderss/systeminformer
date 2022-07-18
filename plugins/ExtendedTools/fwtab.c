@@ -1,23 +1,12 @@
 /*
- * Process Hacker Extended Tools -
- *   Firewall monitoring
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2015-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -29,7 +18,7 @@ BOOLEAN FwTreeNewCreated = FALSE;
 HWND FwTreeNewHandle = NULL;
 ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
-PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires Process Hacker to be restarted with administrative privileges.");
+PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires System Informer to be restarted with administrative privileges.");
 PPH_STRING FwTreeErrorText = NULL;
 PPH_MAIN_TAB_PAGE EtFwAddedTabPage;
 PH_PROVIDER_EVENT_QUEUE FwNetworkEventQueue;
@@ -45,10 +34,6 @@ ULONG EtFwStatus = ERROR_SUCCESS;
 ULONG EtFwIconWidth = 16;
 PPH_STRING EtFwStatusText = NULL;
 PPH_LIST FwNodeList = NULL;
-
-HWND NTAPI EtpToolStatusGetTreeNewHandle(
-    VOID
-    );
 
 BOOLEAN FwTabPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -235,7 +220,7 @@ VOID EtInitializeFirewallTab(
     PhInitializeStringRef(&page.Name, L"Firewall");
     page.Callback = FwTabPageCallback;
 
-    EtFwAddedTabPage = ProcessHacker_CreateTabPage(&page);
+    EtFwAddedTabPage = PhPluginCreateTabPage(&page);
 
     if (toolStatusPlugin = PhFindPlugin(TOOLSTATUS_PLUGIN_NAME))
     {
@@ -286,11 +271,11 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_LOCALADDRESSSSCOPE, FALSE, L"Local address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_LOCALADDRESSSSCOPE, 0);
     PhAddTreeNewColumn(FwTreeNewHandle, FW_COLUMN_REMOTEADDRESSSCOPE, FALSE, L"Remote address scope", 80, PH_ALIGN_LEFT, FW_COLUMN_REMOTEADDRESSSCOPE, 0);
 
-    LoadSettingsFwTreeList(TreeNewHandle);
-
     TreeNew_SetRedraw(FwTreeNewHandle, TRUE);
     TreeNew_SetSort(FwTreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
     TreeNew_SetTriState(FwTreeNewHandle, TRUE);
+
+    LoadSettingsFwTreeList(TreeNewHandle);
 
     PhInitializeTreeNewFilterSupport(&EtFwFilterSupport, TreeNewHandle, FwNodeList);
 
@@ -756,23 +741,23 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     {
                     case PH_IPV4_NETWORK_TYPE:
                         {
-                            ULONG ipv4AddressStringLength = INET_ADDRSTRLEN;
+                            ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
 
                             if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->LocalEndpoint.Address.Ipv4, 0, node->LocalAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = ipv4AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
                     case PH_IPV6_NETWORK_TYPE:
                         {
-                            ULONG ipv6AddressStringLength = INET6_ADDRSTRLEN;
+                            ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->LocalAddressString);
 
                             if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->LocalEndpoint.Address.Ipv6, node->ScopeId, 0, node->LocalAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->LocalAddressString;
-                                getCellText->Text.Length = (node->LocalAddressStringLength = ipv6AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->LocalAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -798,9 +783,13 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_LOCALHOSTNAME:
                 {
-                    if (node->LocalHostnameString)
+                    if (node->LocalHostnameResolved)
                     {
-                        getCellText->Text = PhGetStringRef(node->LocalHostnameString);
+                        // Exclude empty hostnames from drawing (dmex)
+                        if (!PhIsNullOrEmptyString(node->LocalHostnameString))
+                            getCellText->Text = node->LocalHostnameString->sr;
+                        else
+                            PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                     else
                     {
@@ -814,23 +803,23 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     {
                     case PH_IPV4_NETWORK_TYPE:
                         {
-                            ULONG ipv4AddressStringLength = INET_ADDRSTRLEN;
+                            ULONG ipv4AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
 
                             if (NT_SUCCESS(RtlIpv4AddressToStringEx((PIN_ADDR)&node->RemoteEndpoint.Address.Ipv4, 0, node->RemoteAddressString, &ipv4AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipv4AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv4AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
                     case PH_IPV6_NETWORK_TYPE:
                         {
-                            ULONG ipv6AddressStringLength = INET6_ADDRSTRLEN;
+                            ULONG ipv6AddressStringLength = RTL_NUMBER_OF(node->RemoteAddressString);
 
                             if (NT_SUCCESS(RtlIpv6AddressToStringEx((PIN6_ADDR)&node->RemoteEndpoint.Address.Ipv6, node->ScopeId, 0, node->RemoteAddressString, &ipv6AddressStringLength)))
                             {
                                 getCellText->Text.Buffer = node->RemoteAddressString;
-                                getCellText->Text.Length = (node->RemoteAddressStringLength = ipv6AddressStringLength) * sizeof(WCHAR);
+                                getCellText->Text.Length = (node->RemoteAddressStringLength = (ipv6AddressStringLength - 1)) * sizeof(WCHAR);
                             }
                         }
                         break;
@@ -856,9 +845,13 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 break;
             case FW_COLUMN_REMOTEHOSTNAME:
                 {
-                    if (node->RemoteHostnameString)
+                    if (node->RemoteHostnameResolved)
                     {
-                        getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
+                        // Exclude empty hostnames from drawing (dmex)
+                        if (!PhIsNullOrEmptyString(node->RemoteHostnameString))
+                            getCellText->Text = PhGetStringRef(node->RemoteHostnameString);
+                        else
+                            PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                     else
                     {
@@ -1233,7 +1226,8 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 hdc,
                 rect.left,
                 rect.top + ((rect.bottom - rect.top) - 16) / 2,
-                ILD_NORMAL | ILD_TRANSPARENT
+                ILD_NORMAL | ILD_TRANSPARENT,
+                FALSE
                 );
 
             // Padding

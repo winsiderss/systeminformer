@@ -1,33 +1,21 @@
 /*
- * Process Hacker -
- *   json and xml wrapper
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2017-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <ph.h>
 #include <phbasesup.h>
 #include <phutil.h>
+#include <json.h>
 
 #include "..\tools\thirdparty\jsonc\json.h"
 #include "..\tools\thirdparty\mxml\mxml.h"
-
-#include <json.h>
 
 static json_object_ptr json_get_object(
     _In_ json_object_ptr rootObj, 
@@ -49,6 +37,72 @@ PVOID PhCreateJsonParser(
     )
 {
     return json_tokener_parse(JsonString);
+}
+
+PVOID PhCreateJsonParserEx(
+    _In_ PVOID JsonString,
+    _In_ BOOLEAN Unicode
+    )
+{
+    json_tokener* tokenerObject;
+    json_object_ptr jsonObject;
+
+    if (Unicode)
+    {
+        PPH_STRING jsonStringUtf16 = JsonString;
+        PPH_BYTES jsonStringUtf8;
+
+        if (jsonStringUtf16->Length / sizeof(WCHAR) >= INT32_MAX)
+            return NULL;
+        if (!(tokenerObject = json_tokener_new()))
+            return NULL;
+
+        json_tokener_set_flags(
+            tokenerObject,
+            JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8
+            );
+
+        jsonStringUtf8 = PhConvertUtf16ToUtf8Ex(
+            jsonStringUtf16->Buffer,
+            jsonStringUtf16->Length
+            );
+        jsonObject = json_tokener_parse_ex(
+            tokenerObject,
+            jsonStringUtf8->Buffer,
+            (INT)jsonStringUtf8->Length
+            );
+        PhDereferenceObject(jsonStringUtf8);
+    }
+    else
+    {
+        PPH_BYTES jsonStringUtf8 = JsonString;
+
+        if (jsonStringUtf8->Length >= INT32_MAX)
+            return NULL;
+        if (!(tokenerObject = json_tokener_new()))
+            return NULL;
+
+        json_tokener_set_flags(
+            tokenerObject,
+            JSON_TOKENER_STRICT | JSON_TOKENER_VALIDATE_UTF8
+            );
+
+        jsonObject = json_tokener_parse_ex(
+            tokenerObject,
+            jsonStringUtf8->Buffer,
+            (INT)jsonStringUtf8->Length
+            );
+    }
+
+    if (json_tokener_get_error(tokenerObject) != json_tokener_success)
+    {
+        json_tokener_free(tokenerObject);
+        return NULL;
+    }
+
+    json_tokener_free(tokenerObject);
+
+    return jsonObject;
 }
 
 VOID PhFreeJsonObject(
@@ -165,7 +219,7 @@ VOID PhAddJsonObjectValue(
     _In_ PVOID Value
     )
 {
-    json_object_object_add_ex(Object, Key, Value, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, Value, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObject(
@@ -174,7 +228,7 @@ VOID PhAddJsonObject(
     _In_ PSTR Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_string(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_string(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObject2(
@@ -186,7 +240,7 @@ VOID PhAddJsonObject2(
 {
     PVOID string = json_object_new_string_len(Value, (UINT32)Length);
 
-    json_object_object_add_ex(Object, Key, string, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, string, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObjectInt64(
@@ -195,7 +249,7 @@ VOID PhAddJsonObjectInt64(
     _In_ LONGLONG Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_int64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_int64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObjectUInt64(
@@ -204,7 +258,7 @@ VOID PhAddJsonObjectUInt64(
     _In_ ULONGLONG Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_uint64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_uint64(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObjectDouble(
@@ -213,7 +267,7 @@ VOID PhAddJsonObjectDouble(
     _In_ DOUBLE Value
     )
 {
-    json_object_object_add_ex(Object, Key, json_object_new_double(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_KEY_IS_CONSTANT);
+    json_object_object_add_ex(Object, Key, json_object_new_double(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 PVOID PhCreateJsonArray(
@@ -312,6 +366,29 @@ VOID PhSaveJsonObjectToFile(
 }
 
 // XML support
+
+PVOID PhLoadXmlObjectFromString(
+    _In_ PSTR String
+    )
+{
+    mxml_node_t* currentNode;
+
+    if (currentNode = mxmlLoadString(
+        NULL,
+        String,
+        MXML_OPAQUE_CALLBACK
+        ))
+    {
+        if (mxmlGetType(currentNode) == MXML_ELEMENT)
+        {
+            return currentNode;
+        }
+
+        mxmlDelete(currentNode);
+    }
+
+    return NULL;
+}
 
 NTSTATUS PhLoadXmlObjectFromFile(
     _In_ PWSTR FileName,
@@ -424,33 +501,29 @@ NTSTATUS PhSaveXmlObjectToFile(
     return status;
 }
 
-PVOID PhLoadXmlObjectFromString(
-    _In_ PWSTR String
+VOID PhFreeXmlObject(
+    _In_ PVOID XmlRootObject
+    )
+{
+    mxmlDelete(XmlRootObject);
+}
+
+PVOID PhGetXmlObject(
+    _In_ PVOID XmlNodeObject,
+    _In_ PSTR Path
     )
 {
     mxml_node_t* currentNode;
-    PPH_BYTES string;
+    mxml_node_t* realNode;
 
-    string = PhConvertUtf16ToUtf8(String);
-
-    currentNode = mxmlLoadString(
-        NULL,
-        string->Buffer,
-        MXML_OPAQUE_CALLBACK
-        );
-
-    if (currentNode)
+    if (currentNode = mxmlFindPath(XmlNodeObject, Path))
     {
-        if (mxmlGetType(currentNode) == MXML_ELEMENT)
-        {
-            PhDereferenceObject(string);
-            return currentNode;
-        }
+        if (realNode = mxmlGetParent(currentNode))
+            return realNode;
 
-        mxmlDelete(currentNode);
+        return currentNode;
     }
 
-    PhDereferenceObject(string);   
     return NULL;
 }
 
@@ -470,11 +543,15 @@ PVOID PhCreateXmlOpaqueNode(
     return mxmlNewOpaque(ParentNode, Value);
 }
 
-VOID PhFreeXmlObject(
-    _In_ PVOID XmlRootObject
+PVOID PhFindXmlObject(
+    _In_ PVOID XmlNodeObject,
+    _In_opt_ PVOID XmlTopObject,
+    _In_opt_ PSTR Element,
+    _In_opt_ PSTR Attribute,
+    _In_opt_ PSTR Value
     )
 {
-    mxmlDelete(XmlRootObject);
+    return mxmlFindElement(XmlNodeObject, XmlTopObject, Element, Attribute, Value, MXML_DESCEND);
 }
 
 PVOID PhGetXmlNodeFirstChild(
@@ -491,7 +568,7 @@ PVOID PhGetXmlNodeNextChild(
     return mxmlGetNextSibling(XmlNodeObject);
 }
 
-PPH_STRING PhGetOpaqueXmlNodeText(
+PPH_STRING PhGetXmlNodeOpaqueText(
     _In_ PVOID XmlNodeObject
     )
 {
@@ -578,4 +655,35 @@ BOOLEAN PhEnumXmlNode(
     }
 
     return TRUE;
+}
+
+PPH_XML_INTERFACE PhGetXmlInterface(
+    _In_ ULONG Version
+    )
+{
+    static PH_XML_INTERFACE PhXmlInterface =
+    {
+        PH_XML_INTERFACE_VERSION,
+        PhLoadXmlObjectFromString,
+        PhLoadXmlObjectFromFile,
+        PhSaveXmlObjectToFile,
+        PhFreeXmlObject,
+        PhGetXmlObject,
+        PhCreateXmlNode,
+        PhCreateXmlOpaqueNode,
+        PhFindXmlObject,
+        PhGetXmlNodeFirstChild,
+        PhGetXmlNodeNextChild,
+        PhGetXmlNodeOpaqueText,
+        PhGetXmlNodeElementText,
+        PhGetXmlNodeAttributeText,
+        PhGetXmlNodeAttributeByIndex,
+        PhSetXmlNodeAttributeText,
+        PhGetXmlNodeAttributeCount
+    };
+
+    if (Version < PH_XML_INTERFACE_VERSION)
+        return NULL;
+
+    return &PhXmlInterface;
 }

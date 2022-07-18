@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   settings
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2016 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2016
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -47,10 +36,6 @@ BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
     _In_ PVOID Entry
-    );
-
-ULONG PhpGetCurrentScale(
-    VOID
     );
 
 VOID PhpFreeSettingValue(
@@ -106,23 +91,7 @@ static ULONG PhpGetCurrentScale(
     VOID
     )
 {
-    static PH_INITONCE initOnce;
-    static ULONG dpi = 96;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        HDC hdc;
-
-        if (hdc = GetDC(NULL))
-        {
-            dpi = GetDeviceCaps(hdc, LOGPIXELSY);
-            ReleaseDC(NULL, hdc);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return dpi;
+    return PhGlobalDpi;
 }
 
 PPH_STRING PhSettingToString(
@@ -352,7 +321,7 @@ _May_raise_ ULONG PhGetIntegerSetting(
     PH_STRINGREF name;
     ULONG value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -383,7 +352,7 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairSetting(
     PH_STRINGREF name;
     PH_INTEGER_PAIR value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -415,7 +384,7 @@ _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairSetting(
     PH_STRINGREF name;
     PH_SCALABLE_INTEGER_PAIR value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -460,7 +429,7 @@ _May_raise_ PPH_STRING PhGetStringSetting(
     PH_STRINGREF name;
     PPH_STRING value;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
@@ -518,7 +487,7 @@ _May_raise_ VOID PhSetIntegerSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -543,7 +512,7 @@ _May_raise_ VOID PhSetIntegerPairSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -568,7 +537,7 @@ _May_raise_ VOID PhSetScalableIntegerPairSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -606,7 +575,7 @@ _May_raise_ VOID PhSetStringSetting(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -632,7 +601,7 @@ _May_raise_ VOID PhSetStringSetting2(
     PPH_SETTING setting;
     PH_STRINGREF name;
 
-    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -765,7 +734,7 @@ NTSTATUS PhLoadSettings(
 
         if (settingName = PhGetXmlNodeAttributeText(currentNode, "name"))
         {
-            PPH_STRING settingValue = PhGetOpaqueXmlNodeText(currentNode);
+            PPH_STRING settingValue = PhGetXmlNodeOpaqueText(currentNode);
 
             PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -1399,4 +1368,94 @@ VOID PhSaveListViewGroupStatesToSetting(
 
     settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
     PhSetStringSetting2(Name, &settingsString->sr);
+}
+
+VOID PhLoadCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
+    )
+{
+    PPH_STRING settingsString;
+    PH_STRINGREF remaining;
+    PH_STRINGREF part;
+
+    if (CustomColorCount != 16)
+        return;
+
+    settingsString = PhGetStringSetting(Name);
+
+    if (PhIsNullOrEmptyString(settingsString))
+        goto CleanupExit;
+
+    remaining = PhGetStringRef(settingsString);
+
+    for (ULONG i = 0; i < CustomColorCount; i++)
+    {
+        ULONG64 integer = 0;
+
+        if (remaining.Length == 0)
+            break;
+
+        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
+
+        if (PhStringToInteger64(&part, 10, &integer))
+        {
+            CustomColorList[i] = (COLORREF)integer;
+        }
+    }
+
+CleanupExit:
+    PhClearReference(&settingsString);
+}
+
+VOID PhSaveCustomColorList(
+    _In_ PWSTR Name,
+    _In_ PULONG CustomColorList,
+    _In_ ULONG CustomColorCount
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+
+    if (CustomColorCount != 16)
+        return;
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    for (ULONG i = 0; i < CustomColorCount; i++)
+    {
+        PH_FORMAT format[2];
+        SIZE_T returnLength;
+        WCHAR formatBuffer[0x100];
+
+        PhInitFormatU(&format[0], CustomColorList[i]);
+        PhInitFormatC(&format[1], L',');
+
+        if (PhFormatToBuffer(
+            format,
+            RTL_NUMBER_OF(format),
+            formatBuffer,
+            sizeof(formatBuffer),
+            &returnLength
+            ))
+        {
+            PH_STRINGREF string;
+
+            string.Buffer = formatBuffer;
+            string.Length = returnLength - sizeof(UNICODE_NULL);
+
+            PhAppendStringBuilder(&stringBuilder, &string);
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"%lu,", CustomColorList[i]);
+        }
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    PhSetStringSetting2(Name, &stringBuilder.String->sr);
+
+    PhDeleteStringBuilder(&stringBuilder);
 }

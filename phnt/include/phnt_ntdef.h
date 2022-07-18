@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Native definition support
+ * Native definition support
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _PHNT_NTDEF_H
@@ -70,7 +56,7 @@ typedef PCSTR PCSZ;
 // Specific
 
 typedef UCHAR KIRQL, *PKIRQL;
-typedef LONG KPRIORITY;
+typedef LONG KPRIORITY, *PKPRIORITY;
 typedef USHORT RTL_ATOM, *PRTL_ATOM;
 
 typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
@@ -332,6 +318,20 @@ typedef struct _KSYSTEM_TIME
 } KSYSTEM_TIME, *PKSYSTEM_TIME;
 
 #include <poppack.h>
+
+// NT macros used to test, set and clear flags
+#ifndef FlagOn
+#define FlagOn(_F, _SF) ((_F) & (_SF))
+#endif
+#ifndef BooleanFlagOn
+#define BooleanFlagOn(F, SF) ((BOOLEAN)(((F) & (SF)) != 0))
+#endif
+#ifndef SetFlag
+#define SetFlag(_F, _SF) ((_F) |= (_SF))
+#endif
+#ifndef ClearFlag
+#define ClearFlag(_F, _SF) ((_F) &= ~(_SF))
+#endif
 
 #endif
 

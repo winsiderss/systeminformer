@@ -106,7 +106,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Changes to settings will require a restart of Process Hacker.",IDC_STATIC,7,6,193,8
+    LTEXT           "Changes to settings will require a restart of System Informer.",IDC_STATIC,7,6,193,8
     CONTROL         "Enable Disk and Network monitoring",IDC_ENABLEETWMONITOR,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,130,10
     CONTROL         "Enable GPU monitoring",IDC_ENABLEGPUMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,88,10
@@ -266,8 +266,8 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     GROUPBOX        "FPS",IDC_GROUPFPS,7,7,355,53,0,WS_EX_TRANSPARENT
     GROUPBOX        "Time per frame",IDC_GROUPFPSLATENCY,7,60,355,21,0,WS_EX_TRANSPARENT
-    GROUPBOX        "Time until present",IDC_GROUPFPSPRESENT,7,82,355,22,0,WS_EX_TRANSPARENT
-    GROUPBOX        "Time during present",IDC_GROUPFPSPRESENTINTERVAL,7,107,355,22,0,WS_EX_TRANSPARENT
+    GROUPBOX        "Present interval",IDC_GROUPFPSPRESENT,7,82,355,22,0,WS_EX_TRANSPARENT
+    GROUPBOX        "Present duration",IDC_GROUPFPSPRESENTINTERVAL,7,107,355,22,0,WS_EX_TRANSPARENT
     GROUPBOX        "Time until frame rendered",IDC_GROUPFPSFRAMERENDER,7,133,355,22,0,WS_EX_TRANSPARENT
     GROUPBOX        "Time until frame displayed",IDC_GROUPFPSFRAMEDISPLAY,7,159,355,22,0,WS_EX_TRANSPARENT
     GROUPBOX        "Average display latency",IDC_GROUPFPSDISPLAYLATENCY,7,184,355,22,0,WS_EX_TRANSPARENT

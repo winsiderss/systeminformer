@@ -297,7 +297,6 @@
     <ClCompile Include="mapexlf.c" />
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
-    <ClCompile Include="md5.c" />
     <ClCompile Include="native.c" />
     <ClCompile Include="provider.c" />
     <ClCompile Include="queuedlock.c" />
@@ -305,8 +304,6 @@
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
     <ClCompile Include="settings.c" />
-    <ClCompile Include="sha.c" />
-    <ClCompile Include="sha256.c" />
     <ClCompile Include="theme.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="svcsup.c" />

@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2011
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -59,7 +48,6 @@ typedef struct _PV_IMPORT_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
-    HANDLE UpdateTimerHandle;
 
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
@@ -152,19 +140,6 @@ VOID PvAddPendingImportNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
-VOID CALLBACK PvImportTreeUpdateCallback(
-    _In_ PPV_IMPORT_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->UpdateTimerHandle)
-        return;
-
-    PvAddPendingImportNodes(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
-}
-
 PPH_STRING PvpQueryModuleOrdinalName(
     _In_ PPH_STRING FileName,
     _In_ USHORT Ordinal
@@ -230,22 +205,29 @@ PPH_STRING PvpQueryModuleOrdinalName(
 
                                 if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), (PVOID)mappedImage.ViewBase, &exportFileName)))
                                 {
-                                    if (PhLoadModuleSymbolProvider(
-                                        PvSymbolProvider,
-                                        exportFileName,
-                                        (ULONG64)mappedImage.ViewBase,
-                                        (ULONG)mappedImage.Size
-                                        ))
+                                    PPH_SYMBOL_PROVIDER moduleSymbolProvider = NULL;
+
+                                    if (PvpLoadDbgHelp(&moduleSymbolProvider))
                                     {
-                                        // Try find the export name using symbols.
-                                        exportSymbol = PhGetSymbolFromAddress(
-                                            PvSymbolProvider,
-                                            (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
-                                            NULL,
-                                            NULL,
-                                            &exportSymbolName,
-                                            NULL
-                                            );
+                                        if (PhLoadModuleSymbolProvider(
+                                            moduleSymbolProvider,
+                                            exportFileName,
+                                            (ULONG64)mappedImage.ViewBase,
+                                            (ULONG)mappedImage.Size
+                                            ))
+                                        {
+                                            // Try find the export name using symbols.
+                                            exportSymbol = PhGetSymbolFromAddress(
+                                                moduleSymbolProvider,
+                                                (ULONG64)PTR_ADD_OFFSET(mappedImage.ViewBase, exportFunction.Function),
+                                                NULL,
+                                                NULL,
+                                                &exportSymbolName,
+                                                NULL
+                                                );
+                                        }
+
+                                        PhDereferenceObject(moduleSymbolProvider);
                                     }
 
                                     PhDereferenceObject(exportFileName);
@@ -353,8 +335,13 @@ VOID PvpProcessImports(
                         if (exportDllName = PhConvertUtf8ToUtf16(importDll.Name))
                         {
                             PPH_STRING filePath;
+                            PPH_STRING importDllName;
 
-                            // TODO: Implement ApiSet mappings for exportDllName. (dmex)
+                            if (importDllName = PhApiSetResolveToHost(&exportDllName->sr))
+                            {
+                                PhMoveReference(&exportDllName, importDllName);
+                            }
+
                             // TODO: Add DLL directory to PhSearchFilePath for locating non-system images. (dmex)
 
                             if (filePath = PhSearchFilePath(exportDllName->Buffer, L".dll"))
@@ -510,27 +497,11 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
 
             PhCreateThread2(PvpPeImportsEnumerateThread, context);
 
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PvImportTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
-
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PhSaveSettingsImportList(context);
             PvDeleteImportTree(context);
         }
@@ -592,12 +563,6 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PvAddPendingImportNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyImportsText, 0);
@@ -649,6 +614,17 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
 
                 PhDestroyEMenu(menu);
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

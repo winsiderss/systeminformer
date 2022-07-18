@@ -19,6 +19,7 @@
 #define IDD_SRVTRIGGER                  108
 #define IDD_VALUE                       109
 #define IDD_SRVTRIGGERS                 110
+#define IDD_SRVPNP                      111
 #define IDC_SERVICES_LAYOUT             1001
 #define IDC_MESSAGE                     1002
 #define IDC_FIRSTFAILURE                1003
@@ -65,7 +66,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
+#define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1047
 #define _APS_NEXT_SYMED_VALUE           107

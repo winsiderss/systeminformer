@@ -1,27 +1,48 @@
 /*
- * Process Hacker Network Tools -
- *   Tracert dialog
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2015-2021
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "nettools.h"
 #include "tracert.h"
+
+PPH_OBJECT_TYPE TracertContextType = NULL;
+PH_INITONCE TracertContextTypeInitOnce = PH_INITONCE_INIT;
+
+VOID TracertContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PNETWORK_TRACERT_CONTEXT context = Object;
+
+    PhDeleteWorkQueue(&context->WorkQueue);
+    DeleteTracertTree(context);
+}
+
+PNETWORK_TRACERT_CONTEXT CreateTracertContext(
+    VOID
+    )
+{
+    PNETWORK_TRACERT_CONTEXT context;
+
+    if (PhBeginInitOnce(&TracertContextTypeInitOnce))
+    {
+        TracertContextType = PhCreateObjectType(L"PingContextObjectType", 0, TracertContextDeleteProcedure);
+        PhEndInitOnce(&TracertContextTypeInitOnce);
+    }
+
+    context = PhCreateObject(sizeof(NETWORK_TRACERT_CONTEXT), TracertContextType);
+    memset(context, 0, sizeof(NETWORK_TRACERT_CONTEXT));
+
+    return context;
+}
 
 PPH_STRING TracertGetErrorMessage(
     _In_ IP_STATUS Result
@@ -99,6 +120,7 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
                 return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
             } 
         }
+        break;
     case PH_IPV6_NETWORK_TYPE:
         {
             static PH_STRINGREF reverseLookupDomainNameSr = PH_STRINGREF_INIT(DNS_IP6_REVERSE_DOMAIN_STRING);
@@ -149,9 +171,10 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
 
             return PhFinalStringBuilderString(&stringBuilder);
         }
-    default:
-        return NULL;
+        break;
     }
+
+    return NULL;
 }
 
 NTSTATUS TracertHostnameLookupCallback(
@@ -161,8 +184,8 @@ NTSTATUS TracertHostnameLookupCallback(
     PTRACERT_RESOLVE_WORKITEM workitem = Parameter;
     BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING dnsHostNameString = NULL;
-    PPH_STRING dnsReverseNameString = NULL;
-    PDNS_RECORD dnsRecordList = NULL;
+    PPH_STRING dnsReverseNameString;
+    PDNS_RECORD dnsRecordList;
 
     if (workitem->Type == PH_IPV4_NETWORK_TYPE)
     {
@@ -293,7 +316,7 @@ VOID TracertQueueHostLookup(
             else
             {
                 // Make sure we don't append the same address. (dmex)
-                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
+                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == SIZE_MAX)
                 {
                     // Append multiple address routes for the same ping or 'hop', to the node. (dmex)
                     PhMoveReference(
@@ -345,7 +368,7 @@ VOID TracertQueueHostLookup(
             else
             {
                 // Make sure we don't append the same address.
-                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == -1)
+                if (PhFindStringInString(Node->IpAddressString, 0, addressString) == SIZE_MAX)
                 {
                     // Append multiple address routes for the same ping or 'hop', to the node. (dmex)
                     PhMoveReference(
@@ -392,11 +415,18 @@ NTSTATUS NetworkTracertThreadStart(
     SOCKADDR_STORAGE sourceAddress = { 0 };
     SOCKADDR_STORAGE destinationAddress = { 0 };
     BOOLEAN icmpReplyStatusFatal = FALSE;
+    FLOAT icmpCurrentPingMs = 0.0f;
+    ULONG icmpCurrentOverhead = 0;
     ULONG icmpReplyCount = 0;
     ULONG icmpReplyLength = 0;
     PVOID icmpReplyBuffer = NULL;
+    ULONG icmpEchoBufferLength = 0;
     PPH_BYTES icmpEchoBuffer = NULL;
     PPH_STRING icmpRandString = NULL;
+    LARGE_INTEGER performanceCounterStart;
+    LARGE_INTEGER performanceCounterEnd;
+    LARGE_INTEGER performanceCounterFrequency;
+    FLOAT performanceCounterTime = 0.0f;
     IP_OPTION_INFORMATION pingOptions =
     {
         1,
@@ -405,15 +435,19 @@ NTSTATUS NetworkTracertThreadStart(
         0
     };
 
-    if (icmpRandString = PhCreateStringEx(NULL, PhGetIntegerSetting(SETTING_NAME_PING_SIZE) * sizeof(WCHAR) + sizeof(UNICODE_NULL)))
+    PhQueryPerformanceFrequency(&performanceCounterFrequency);
+    icmpEchoBufferLength = PhGetIntegerSetting(SETTING_NAME_PING_SIZE);
+
+    if (icmpRandString = PhCreateStringEx(NULL, icmpEchoBufferLength * sizeof(WCHAR) + sizeof(UNICODE_NULL)))
     {
         PhGenerateRandomAlphaString(icmpRandString->Buffer, (ULONG)icmpRandString->Length / sizeof(WCHAR));
-
-        icmpEchoBuffer = PhConvertUtf16ToMultiByte(icmpRandString->Buffer);
+        icmpEchoBuffer = PhConvertUtf16ToMultiByteEx(icmpRandString->Buffer, icmpRandString->Length - sizeof(UNICODE_NULL));
         PhDereferenceObject(icmpRandString);
     }
 
     if (!icmpEchoBuffer)
+        goto CleanupExit;
+    if (icmpEchoBuffer->Length != icmpEchoBufferLength)
         goto CleanupExit;
 
     switch (context->RemoteEndpoint.Address.Type)
@@ -461,9 +495,10 @@ NTSTATUS NetworkTracertThreadStart(
 
             if (context->RemoteEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
             {
-                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer);
-                icmpReplyBuffer = PhAllocate(icmpReplyLength);
-                memset(icmpReplyBuffer, 0, icmpReplyLength);
+                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer->Length);
+                icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
+
+                PhQueryPerformanceCounter(&performanceCounterStart, NULL);
 
                 icmpReplyCount = IcmpSendEcho2Ex(
                     icmpHandle,
@@ -477,12 +512,21 @@ NTSTATUS NetworkTracertThreadStart(
                     &pingOptions,
                     icmpReplyBuffer,
                     icmpReplyLength,
-                    DEFAULT_TIMEOUT
+                    context->Timeout
                     );
+
+                PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
 
                 if (icmpReplyCount > 0)
                 {
                     PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
+
+                    performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
+                    performanceCounterTime *= 1000000;
+                    performanceCounterTime /= performanceCounterFrequency.QuadPart;
+                    performanceCounterTime /= 1000;
+                    icmpCurrentOverhead = (ULONG)performanceCounterTime - reply4->RoundTripTime;
+                    icmpCurrentPingMs = performanceCounterTime - (FLOAT)icmpCurrentOverhead;
 
                     memcpy_s(&last4ReplyAddress, sizeof(IN_ADDR), &reply4->Address, sizeof(IN_ADDR));
 
@@ -493,7 +537,7 @@ NTSTATUS NetworkTracertThreadStart(
                         );
 
                     node->PingStatus[ii] = reply4->Status;
-                    node->PingList[ii] = reply4->RoundTripTime;
+                    node->PingList[ii] = icmpCurrentPingMs;
                     UpdateTracertNode(context, node);
 
                     if (reply4->Status == IP_SUCCESS)
@@ -507,9 +551,9 @@ NTSTATUS NetworkTracertThreadStart(
                         //break; // add break for instant failure
                     }
 
-                    if (reply4->Status == IP_HOP_LIMIT_EXCEEDED && reply4->RoundTripTime < MIN_INTERVAL)
+                    if (reply4->Status == IP_HOP_LIMIT_EXCEEDED && reply4->RoundTripTime < DEFAULT_MINIMUM_INTERVAL)
                     {
-                        //PhDelayExecution(MIN_INTERVAL - reply4->RoundTripTime);
+                        //PhDelayExecution(DEFAULT_MINIMUM_INTERVAL - reply4->RoundTripTime);
                     }
 
                     //if (reply4->Status != IP_REQ_TIMED_OUT)
@@ -532,9 +576,10 @@ NTSTATUS NetworkTracertThreadStart(
             }
             else
             {
-                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer);
-                icmpReplyBuffer = PhAllocate(icmpReplyLength);
-                memset(icmpReplyBuffer, 0, icmpReplyLength);
+                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer->Length);
+                icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
+
+                PhQueryPerformanceCounter(&performanceCounterStart, NULL);
 
                 icmpReplyCount = Icmp6SendEcho2(
                     icmpHandle,
@@ -548,12 +593,21 @@ NTSTATUS NetworkTracertThreadStart(
                     &pingOptions,
                     icmpReplyBuffer,
                     icmpReplyLength,
-                    DEFAULT_TIMEOUT
+                    context->Timeout
                     );
+
+                PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
 
                 if (icmpReplyCount > 0)
                 {
                     PICMPV6_ECHO_REPLY reply6 = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
+
+                    performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
+                    performanceCounterTime *= 1000000;
+                    performanceCounterTime /= performanceCounterFrequency.QuadPart;
+                    performanceCounterTime /= 1000;
+                    icmpCurrentOverhead = (ULONG)performanceCounterTime - reply6->RoundTripTime;
+                    icmpCurrentPingMs = performanceCounterTime - (FLOAT)icmpCurrentOverhead;
 
                     memcpy(&last6ReplyAddress, &reply6->Address.sin6_addr, sizeof(IN6_ADDR));
 
@@ -564,7 +618,7 @@ NTSTATUS NetworkTracertThreadStart(
                         );
               
                     node->PingStatus[ii] = reply6->Status;
-                    node->PingList[ii] = reply6->RoundTripTime;
+                    node->PingList[ii] = icmpCurrentPingMs;
                     UpdateTracertNode(context, node);
 
                     if (reply6->Status == IP_SUCCESS)
@@ -580,9 +634,9 @@ NTSTATUS NetworkTracertThreadStart(
 
                     if (reply6->Status == IP_HOP_LIMIT_EXCEEDED)
                     {
-                        if (reply6->RoundTripTime < MIN_INTERVAL)
+                        if (reply6->RoundTripTime < DEFAULT_MINIMUM_INTERVAL)
                         {
-                            //PhDelayExecution(MIN_INTERVAL - reply6->RoundTripTime);
+                            //PhDelayExecution(DEFAULT_MINIMUM_INTERVAL - reply6->RoundTripTime);
                         }
                     }
                 }
@@ -601,8 +655,8 @@ NTSTATUS NetworkTracertThreadStart(
         if (icmpReplyStatusFatal)
         {
             // If the route becomes unavailable the error response is IP_DEST_NO_ROUTE, since this node cannot 
-            // forward packets the responses will all be from this same address so we need to end the trace
-            // and wait for the route to become available - this is also what tracert does. (dmex)
+            // forward packets the responses will all be from this same address. We need to end the trace
+            // and wait for the route to become available (tracert does the same in this case). (dmex)
             break;
         }
 
@@ -622,14 +676,12 @@ NTSTATUS NetworkTracertThreadStart(
 
 CleanupExit:
 
-    if (icmpHandle != INVALID_HANDLE_VALUE)
+    if (icmpHandle && icmpHandle != INVALID_HANDLE_VALUE)
         IcmpCloseHandle(icmpHandle);
 
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, (LPARAM)icmpReplyStatusFatal);
     PhDereferenceObject(context);
-
-    if (icmpEchoBuffer)
-        PhDereferenceObject(icmpEchoBuffer);
+    PhClearReference(&icmpEchoBuffer);
 
     return STATUS_SUCCESS;
 }
@@ -790,27 +842,6 @@ INT_PTR CALLBACK TracertDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            context->Cancel = TRUE;
-
-            PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
-
-            DeleteTracertTree(context);
-
-            if (context->FontHandle)
-                DeleteFont(context->FontHandle);
-            if (context->TreeNewFont)
-                DeleteFont(context->TreeNewFont);
-
-            PhDeleteWorkQueue(&context->WorkQueue);
-            PhDeleteLayoutManager(&context->LayoutManager);
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhDereferenceObject(context);
-
-            PostQuitMessage(0);
-        }
     }
 
     if (!context)
@@ -820,16 +851,17 @@ INT_PTR CALLBACK TracertDlgProc(
     {
     case WM_INITDIALOG:
         {
-            Static_SetText(hwndDlg,
+            PhSetWindowText(hwndDlg,
                 PhaFormatString(L"Tracing %s...", context->IpAddressString)->Buffer
                 );
-            Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS),
+            PhSetWindowText(GetDlgItem(hwndDlg, IDC_STATUS),
                 PhaFormatString(L"Tracing route to %s with %lu bytes of data...", context->IpAddressString, PhGetIntegerSetting(SETTING_NAME_PING_SIZE))->Buffer
                 );
 
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST_TRACERT);
             context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, GetDlgItem(hwndDlg, IDC_STATUS));
+            context->Timeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -856,6 +888,26 @@ INT_PTR CALLBACK TracertDlgProc(
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
+    case WM_DESTROY:
+        {
+            context->Cancel = TRUE;
+
+            PhSaveWindowPlacementToSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
+
+            TracertSaveSettingsTreeList(context);
+
+            if (context->FontHandle)
+                DeleteFont(context->FontHandle);
+            if (context->TreeNewFont)
+                DeleteFont(context->TreeNewFont);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhDereferenceObject(context);
+
+            PostQuitMessage(0);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -869,11 +921,11 @@ INT_PTR CALLBACK TracertDlgProc(
                 break;
             case IDC_REFRESH:
                 {
-                    Static_SetText(context->WindowHandle, PhaFormatString(
+                    PhSetWindowText(context->WindowHandle, PhaFormatString(
                         L"Tracing %s...",
                         context->IpAddressString
                         )->Buffer);
-                    Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
+                    PhSetWindowText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
                         L"Tracing route to %s with %lu bytes of data...",
                         context->IpAddressString,
                         PhGetIntegerSetting(SETTING_NAME_PING_SIZE)
@@ -989,12 +1041,12 @@ INT_PTR CALLBACK TracertDlgProc(
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_REFRESH), TRUE);
 
-            Static_SetText(context->WindowHandle, PhaFormatString(
+            PhSetWindowText(context->WindowHandle, PhaFormatString(
                 L"Tracing %s... %s", 
                 context->IpAddressString,
                 failed ? L"error" : L"complete"
                 )->Buffer);
-            Static_SetText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
+            PhSetWindowText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
                 L"Tracing route to %s with %lu bytes of data... %s.", 
                 context->IpAddressString, 
                 PhGetIntegerSetting(SETTING_NAME_PING_SIZE),
@@ -1021,7 +1073,7 @@ INT_PTR CALLBACK TracertDlgProc(
                 else
                 {
                     // Make sure we don't append the same address. (dmex)
-                    if (PhFindStringInString(traceNode->HostnameString, 0, PhGetStringOrEmpty(hostName)) == -1)
+                    if (PhFindStringInString(traceNode->HostnameString, 0, PhGetStringOrEmpty(hostName)) == SIZE_MAX)
                     {
                         // Append multiple address routes for the same ping or 'hop', to the node. (dmex)
                         PhMoveReference(
@@ -1096,9 +1148,7 @@ VOID ShowTracertWindow(
 {
     PNETWORK_TRACERT_CONTEXT context;
 
-    context = (PNETWORK_TRACERT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_TRACERT_CONTEXT));
-    memset(context, 0, sizeof(NETWORK_TRACERT_CONTEXT));
-
+    context = CreateTracertContext();
     context->MaximumHops = PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS);
 
     RtlCopyMemory(
@@ -1116,7 +1166,7 @@ VOID ShowTracertWindow(
         RtlIpv6AddressToString(&NetworkItem->RemoteEndpoint.Address.In6Addr, context->IpAddressString);
     }
 
-    PhCreateThread2(TracertDialogThreadStart, (PVOID)context);
+    PhCreateThread2(TracertDialogThreadStart, context);
 }
 
 VOID ShowTracertWindowFromAddress(
@@ -1125,9 +1175,7 @@ VOID ShowTracertWindowFromAddress(
 {
     PNETWORK_TRACERT_CONTEXT context;
 
-    context = (PNETWORK_TRACERT_CONTEXT)PhCreateAlloc(sizeof(NETWORK_TRACERT_CONTEXT));
-    memset(context, 0, sizeof(NETWORK_TRACERT_CONTEXT));
-
+    context = CreateTracertContext();
     context->MaximumHops = PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS);
 
     RtlCopyMemory(
@@ -1145,5 +1193,5 @@ VOID ShowTracertWindowFromAddress(
         RtlIpv6AddressToString(&RemoteEndpoint.Address.In6Addr, context->IpAddressString);
     }
 
-    PhCreateThread2(TracertDialogThreadStart, (PVOID)context);
+    PhCreateThread2(TracertDialogThreadStart, context);
 }

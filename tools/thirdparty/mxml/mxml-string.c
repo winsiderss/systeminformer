@@ -114,7 +114,7 @@ _mxml_strdupf(const char *format,	/* I - Printf-style format string */
 size_t					/* O - Number of bytes copied */
 _mxml_strlcat(char       *dst,		/* I - Destination buffer */
               const char *src,		/* I - Source string */
-              size_t     dstsize)	/* I - Size of destinatipon buffer */
+              size_t     dstsize)	/* I - Size of destination buffer */
 {
   size_t	srclen;			/* Length of source string */
   size_t	dstlen;			/* Length of destination string */
@@ -160,7 +160,7 @@ _mxml_strlcat(char       *dst,		/* I - Destination buffer */
 size_t					/* O - Number of bytes copied */
 _mxml_strlcpy(char       *dst,		/* I - Destination buffer */
               const char *src,		/* I - Source string */
-              size_t     dstsize)	/* I - Size of destinatipon buffer */
+              size_t     dstsize)	/* I - Size of destination buffer */
 {
   size_t        srclen;                 /* Length of source string */
 
@@ -374,11 +374,11 @@ _mxml_vsnprintf(char       *buffer,	/* O - Output buffer */
         if ((width + 2) > sizeof(temp))
           break;
 
-#ifdef HAVE_LONG_LONG
+#ifdef HAVE_LONG_LONG_INT
         if (size == 'L')
           sprintf(temp, tformat, va_arg(ap, long long));
         else
-#endif /* HAVE_LONG_LONG */
+#endif /* HAVE_LONG_LONG_INT */
         sprintf(temp, tformat, va_arg(ap, int));
 
             bytes += strlen(temp);
@@ -517,7 +517,10 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
 
 #else
   int		bytes;			/* Number of bytes required */
-  char      *buffer;		/* String buffer */
+  char		*buffer;		/* String buffer */
+#  ifndef _WIN32
+  char		temp[256];		/* Small buffer for first vsnprintf */
+#  endif /* !_WIN32 */
 
 
  /*
@@ -530,7 +533,6 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
 
 #  else
   va_list	apcopy;			/* Copy of argument list */
-  char* temp[256];		/* Small buffer for first vsnprintf */
 
   va_copy(apcopy, ap);
   if ((bytes = vsnprintf(temp, sizeof(temp), format, apcopy)) < sizeof(temp))

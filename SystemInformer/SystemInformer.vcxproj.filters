@@ -1,0 +1,527 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="System Informer">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="phsvc">
+      <UniqueIdentifier>{84a3be0b-42cf-42ae-bcd3-16f165caa0db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Module">
+      <UniqueIdentifier>{67c40321-0b28-4c16-8c48-dc0b64c148d7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="about.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="actions.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="affinity.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="anawait.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="appsup.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="chcol.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="chdlg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="chproc.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="dbgcon.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="findobj.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="gdihndl.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hidnproc.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hndlprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hndlprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hndlstat.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="infodlg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="itemtips.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="jobprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="log.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="logwnd.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="mainwnd.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="mdump.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memedit.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memprot.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memrslt.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memsrch.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="modprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="netprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="netstk.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="notifico.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="ntobjprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="options.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="pagfiles.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="plugman.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="procprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="procprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="procrec.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="proctree.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="runas.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="sessprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="srvcr.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="srvprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="srvprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="sysinfo.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="thrdprv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="thrdstk.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="tokprp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="srvctl.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="srvlist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="modlist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\svcmain.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\svcclient.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\svcapiport.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\svcapi.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\clapi.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="sessmsg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="sessshad.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="colmgr.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="netlist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="extmgr.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="thrdlist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hndllist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memlists.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="memlist.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="miniinfo.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="procgrp.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="procmtgn.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="mtgndlg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hndlmenu.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="syssccpu.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="sysscmem.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="sysscio.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpggen.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgstat.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgperf.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgthrd.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgtok.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgmod.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgmem.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgenv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpghndl.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgjob.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgsrv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="mwpgproc.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="mwpgsrv.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="mwpgnet.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="searchbox.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="settings.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgwmi.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="colsetmgr.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="kdump.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="heapinfo.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="notiftoast.cpp">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="prpgvdm.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\hidnproc.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memsrch.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phapp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\phdk.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phplug.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procprpp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsvcapi.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsvc.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsvccl.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phappres.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\colmgr.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mainwndp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\extmgr.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\extmgri.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sysinfop.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\notifico.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\heapstruct.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\miniinfop.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\miniinfo.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procgrp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\sysinfo.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\notificop.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procmtgn.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phfwddef.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\srvprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\netprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\modprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\thrdprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndlprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memprv.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phuisup.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\proctree.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\srvlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\netlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\thrdlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\modlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndllist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memlist.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hndlmenu.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\actions.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\appsup.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mainwnd.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procprp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsettings.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\colsetmgr.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\notiftoast.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\cross.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="SystemInformer.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\SystemInformer.png">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\tick.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\application.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\cog.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="SystemInformer.def">
+      <Filter>Module</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SystemInformer.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="version.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="SystemInformer.manifest">
+      <Filter>Resources</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\pin.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\pencil.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\folder.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\magnifier.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\active_search.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\active_search.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\inactive_search.bmp">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\inactive_search.png">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="resources\shield.ico">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

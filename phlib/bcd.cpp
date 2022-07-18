@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   Boot Configuration Data (BCD) wrappers
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2021-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <ph.h>
@@ -200,9 +189,6 @@ NTSTATUS PhBcdEnumerateObjects(
     if (!PhpBcdApiInitialized())
         return STATUS_UNSUCCESSFUL;
 
-    if (!BcdDllBaseAddress)
-        return STATUS_UNSUCCESSFUL;
-
     if (!BcdEnumerateObjects_I)
     {
         BcdEnumerateObjects_I = reinterpret_cast<decltype(&BcdEnumerateObjects)>(
@@ -237,7 +223,7 @@ NTSTATUS PhBcdGetElementString(
         return STATUS_UNSUCCESSFUL;
 
     stringLength = 0x80;
-    string = PhCreateStringEx(NULL, stringLength);
+    string = PhCreateStringEx(nullptr, stringLength);
     status = PhBcdGetElementData(
         ObjectHandle,
         ElementType,
@@ -248,7 +234,7 @@ NTSTATUS PhBcdGetElementString(
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
         PhDereferenceObject(string);
-        string = PhCreateStringEx(NULL, stringLength);
+        string = PhCreateStringEx(nullptr, stringLength);
 
         status = PhBcdGetElementData(
             ObjectHandle,
@@ -342,8 +328,8 @@ NTSTATUS PhBcdGetElementData2(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
 
     if (!PhpBcdApiInitialized())
         return STATUS_UNSUCCESSFUL;
@@ -387,8 +373,8 @@ NTSTATUS PhBcdSetElementData2(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
 
     if (!PhpBcdApiInitialized())
         return STATUS_UNSUCCESSFUL;
@@ -430,8 +416,8 @@ NTSTATUS PhBcdSetAdvancedOptionsOneTime(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
 
     status = PhBcdOpenSystemStore(&storeHandle);
 
@@ -469,8 +455,8 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
     BCD_ELEMENT_OBJECT_LIST objectElementList[1];
 
     status = PhBcdOpenSystemStore(&storeHandle);
@@ -560,8 +546,8 @@ NTSTATUS PhBcdSetFirmwareBootApplicationOneTime(
     )
 {
     NTSTATUS status;
-    HANDLE storeHandle = NULL;
-    HANDLE objectHandle = NULL;
+    HANDLE storeHandle = nullptr;
+    HANDLE objectHandle = nullptr;
     BCD_ELEMENT_OBJECT_LIST objectElementList[1];
 
     status = PhBcdOpenSystemStore(&storeHandle);
@@ -604,7 +590,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
     NTSTATUS status;
     ULONG objectCount = 0;
     ULONG objectSize = 0;
-    PBCD_OBJECT object = NULL;
+    PBCD_OBJECT object = nullptr;
     BCD_OBJECT_DESCRIPTION description;
 
     description.Version = BCD_OBJECT_DESCRIPTION_VERSION;
@@ -620,7 +606,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
 
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        object = (PBCD_OBJECT)PhAllocate(objectSize);
+        object = static_cast<PBCD_OBJECT>(PhAllocate(objectSize));
         memset(object, 0, objectSize);
 
         status = PhBcdEnumerateObjects(
@@ -661,8 +647,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
         {
             PPH_BCD_OBJECT_LIST entry;
 
-            entry = (PPH_BCD_OBJECT_LIST)PhAllocate(sizeof(PH_BCD_OBJECT_LIST));
-            memset(entry, 0, sizeof(PH_BCD_OBJECT_LIST));
+            entry = static_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
             memcpy(&entry->ObjectGuid, &object[i].Identifer, sizeof(GUID));
             entry->ObjectName = objectDescription;
 
@@ -676,7 +661,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
         HANDLE objectHandle;
         PPH_STRING objectDescription;
 
-        // Manually add the memory test application since it's a seperate guid. (dmex)
+        // Manually add the memory test application since it's a separate guid. (dmex)
 
         if (NT_SUCCESS(PhBcdOpenObject(StoreHandle, &GUID_WINDOWS_MEMORY_TESTER, &objectHandle)))
         {
@@ -684,8 +669,7 @@ static VOID PhpBcdEnumerateOsLoaderList(
             {
                 PPH_BCD_OBJECT_LIST entry;
 
-                entry = (PPH_BCD_OBJECT_LIST)PhAllocate(sizeof(PH_BCD_OBJECT_LIST));
-                memset(entry, 0, sizeof(PH_BCD_OBJECT_LIST));
+                entry = static_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
                 memcpy(&entry->ObjectGuid, &GUID_WINDOWS_MEMORY_TESTER, sizeof(GUID));
                 entry->ObjectName = objectDescription;
 
@@ -707,8 +691,8 @@ static VOID PhpBcdEnumerateBootMgrList(
     )
 {
     NTSTATUS status;
-    HANDLE objectHandle = NULL;
-    BCD_ELEMENT_OBJECT_LIST objectElementList[32] = { 0 }; // dynamic?
+    HANDLE objectHandle = nullptr;
+    BCD_ELEMENT_OBJECT_LIST objectElementList[32] = { }; // dynamic?
     ULONG objectListLength = sizeof(objectElementList);
 
     status = PhBcdOpenObject(
@@ -752,7 +736,7 @@ static VOID PhpBcdEnumerateBootMgrList(
         {
             PPH_BCD_OBJECT_LIST entry;
 
-            entry = (PPH_BCD_OBJECT_LIST)PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST));
+            entry = static_cast<PPH_BCD_OBJECT_LIST>(PhAllocateZero(sizeof(PH_BCD_OBJECT_LIST)));
             memcpy(&entry->ObjectGuid, &objectElementList->ObjectList[i], sizeof(GUID));
             entry->ObjectName = objectEntryDescription;
 
@@ -778,7 +762,7 @@ PPH_LIST PhBcdQueryBootApplicationList(
     status = PhBcdOpenSystemStore(&storeHandle);
 
     if (!NT_SUCCESS(status))
-        return NULL;
+        return nullptr;
 
     objectApplicationList = PhCreateList(5);
 
@@ -822,7 +806,7 @@ PPH_LIST PhBcdQueryFirmwareBootApplicationList(
     status = PhBcdOpenSystemStore(&storeHandle);
 
     if (!NT_SUCCESS(status))
-        return NULL;
+        return nullptr;
 
     objectApplicationList = PhCreateList(5);
 
@@ -850,7 +834,7 @@ VOID PhBcdDestroyBootApplicationList(
 {
     for (ULONG i = 0; i < ObjectApplicationList->Count; i++)
     {
-        PPH_BCD_OBJECT_LIST entry = (PPH_BCD_OBJECT_LIST)ObjectApplicationList->Items[i];
+        PPH_BCD_OBJECT_LIST entry = static_cast<PPH_BCD_OBJECT_LIST>(ObjectApplicationList->Items[i]);
 
         PhDereferenceObject(entry->ObjectName);
         PhFree(entry);

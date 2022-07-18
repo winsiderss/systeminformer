@@ -1,24 +1,13 @@
 /*
- * Process Hacker Plugins -
- *   Hardware Devices Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2016
+ *     dmex    2015-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "devices.h"
@@ -364,12 +353,25 @@ VOID FindNetworkAdapters(
 
                 if (description = PhCreateString(i->Description))
                 {
+                    PPH_STRING deviceGuid = PhConvertMultiByteToUtf16(i->AdapterName);
+                    PPH_STRING deviceName;
+
+                    if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(deviceGuid))
+                    {
+                        PhMoveReference(&description, PhFormatString(
+                            L"%s [Alias: %s]",
+                            PhGetString(description),
+                            PhGetString(deviceName)
+                            ));
+                        PhDereferenceObject(deviceName);
+                    }
+
                     AddNetworkAdapterToListView(
                         Context,
                         TRUE,
                         i->IfIndex,
                         i->Luid,
-                        PhConvertMultiByteToUtf16(i->AdapterName),
+                        deviceGuid,
                         description
                         );
 
@@ -462,7 +464,7 @@ VOID FindNetworkAdapters(
                         adapterEntry->DeviceName = adapterName;
 
                     if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
-                        adapterEntry->DeviceName = NetworkAdapterQueryNameFromGuid(adapterEntry->DeviceGuid);
+                        adapterEntry->DeviceName = NetworkAdapterQueryNameFromInterfaceGuid(adapterEntry->DeviceGuid);
 
                     adapterEntry->DevicePresent = TRUE;
 
@@ -471,6 +473,22 @@ VOID FindNetworkAdapters(
 
                 if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
                     adapterEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
+
+                if (!PhIsNullOrEmptyString(adapterEntry->DeviceName))
+                {
+                    PPH_STRING deviceName;
+
+                    if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(adapterEntry->DeviceGuid))
+                    {
+                        PhMoveReference(&adapterEntry->DeviceName, PhFormatString(
+                            L"%s [Alias: %s]",
+                            PhGetString(adapterEntry->DeviceName),
+                            PhGetString(deviceName)
+                            ));
+
+                        PhDereferenceObject(deviceName);
+                    }
+                }
 
                 PhAddItemList(deviceList, adapterEntry);
 
@@ -734,7 +752,7 @@ VOID LoadNetworkAdapterImages(
             {
                 if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL))
                 {
-                    Context->ImageList = PhImageListCreate(
+                    HIMAGELIST imageList = PhImageListCreate(
                         24, // GetSystemMetrics(SM_CXSMICON)
                         24, // GetSystemMetrics(SM_CYSMICON)
                         ILC_MASK | ILC_COLOR32,
@@ -742,8 +760,8 @@ VOID LoadNetworkAdapterImages(
                         1
                         );
 
-                    PhImageListAddIcon(Context->ImageList, smallIcon);                 
-                    ListView_SetImageList(Context->ListViewHandle, Context->ImageList, LVSIL_SMALL);
+                    PhImageListAddIcon(imageList, smallIcon);
+                    ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
                     DestroyIcon(smallIcon);
                 }
 
@@ -801,6 +819,9 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
             FindNetworkAdapters(context);
 
+            if (ListView_GetItemCount(context->ListViewHandle) == 0)
+                PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
+
             context->OptionsChanged = FALSE;
         }
         break;
@@ -812,7 +833,6 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 NetAdaptersSaveList();
 
             FreeListViewAdapterEntries(context);
-            if (context->ImageList) PhImageListDestroy(context->ImageList);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
@@ -844,7 +864,6 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
                     FreeListViewAdapterEntries(context);
                     ListView_DeleteAllItems(context->ListViewHandle);
-
                     FindNetworkAdapters(context);
 
                     ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
@@ -906,6 +925,10 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                     {
                         ShowDeviceMenu(hwndDlg, deviceInstance);
                         PhDereferenceObject(deviceInstance);
+
+                        FreeListViewAdapterEntries(context);
+                        ListView_DeleteAllItems(context->ListViewHandle);
+                        FindNetworkAdapters(context);
                     }
                 }
             }

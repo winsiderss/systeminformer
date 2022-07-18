@@ -7,7 +7,7 @@ and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
      Original API code Copyright (c) 1997-2012 University of Cambridge
-          New API code Copyright (c) 2016-2019 University of Cambridge
+          New API code Copyright (c) 2016-2021 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -148,6 +148,7 @@ static const int eint2[] = {
   37, REG_EESCAPE, /* PCRE2 does not support \L, \l, \N{name}, \U, or \u */
   56, REG_INVARG,  /* internal error: unknown newline setting */
   92, REG_INVARG,  /* invalid option bits with PCRE2_LITERAL */
+  99, REG_EESCAPE  /* \K in lookaround */
 };
 
 /* Table of texts corresponding to POSIX error codes */
@@ -173,6 +174,20 @@ static const char *const pstring[] = {
   "match failed"                     /* NOMATCH    */
 };
 
+
+
+#if 0  /* REMOVE THIS CODE */
+
+The code below was created for 10.33 (see ChangeLog 10.33 #4) when the
+POSIX functions were given pcre2_... names instead of the traditional POSIX
+names. However, it has proved to be more troublesome than useful. There have
+been at least two cases where a program links with two others, one of which
+uses the POSIX library and the other uses the PCRE2 POSIX functions, thus
+causing two instances of the POSIX runctions to exist, leading to trouble. For
+10.37 this code is commented out. In due course it can be removed if there are
+no issues. The only small worry is the comment below about languages that do
+not include pcre2posix.h. If there are any such cases, they will have to use
+the PCRE2 names.
 
 
 /*************************************************
@@ -218,7 +233,7 @@ regexec(const regex_t *preg, const char *string, size_t nmatch,
 {
 return pcre2_regexec(preg, string, nmatch, pmatch, eflags);
 }
-
+#endif
 
 
 /*************************************************
@@ -352,6 +367,8 @@ pcre2_regexec(const regex_t *preg, const char *string, size_t nmatch,
 int rc, so, eo;
 int options = 0;
 pcre2_match_data *md = (pcre2_match_data *)preg->re_match_data;
+
+if (string == NULL) return REG_INVARG;
 
 if ((eflags & REG_NOTBOL) != 0) options |= PCRE2_NOTBOL;
 if ((eflags & REG_NOTEOL) != 0) options |= PCRE2_NOTEOL;

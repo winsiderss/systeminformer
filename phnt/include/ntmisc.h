@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Trace Control support functions
+ * Trace Control support functions
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _NTMISC_H
@@ -70,29 +56,30 @@ NtTraceEvent(
 
 typedef enum _TRACE_CONTROL_INFORMATION_CLASS
 {
-    TraceControlStartLogger = 1,
-    TraceControlStopLogger = 2,
-    TraceControlQueryLogger = 3,
-    TraceControlUpdateLogger = 4,
-    TraceControlFlushLogger = 5,
-    TraceControlIncrementLoggerFile = 6,
-
+    TraceControlStartLogger = 1, // inout WMI_LOGGER_INFORMATION
+    TraceControlStopLogger = 2, // inout WMI_LOGGER_INFORMATION
+    TraceControlQueryLogger = 3, // inout WMI_LOGGER_INFORMATION
+    TraceControlUpdateLogger = 4, // inout WMI_LOGGER_INFORMATION
+    TraceControlFlushLogger = 5, // inout WMI_LOGGER_INFORMATION
+    TraceControlIncrementLoggerFile = 6, // inout WMI_LOGGER_INFORMATION
+    TraceControlUnknown = 7,
+    // unused
     TraceControlRealtimeConnect = 11,
     TraceControlActivityIdCreate = 12,
     TraceControlWdiDispatchControl = 13,
-    TraceControlRealtimeDisconnectConsumerByHandle = 14,
+    TraceControlRealtimeDisconnectConsumerByHandle = 14, // in HANDLE
     TraceControlRegisterGuidsCode = 15,
     TraceControlReceiveNotification = 16,
-    TraceControlSendDataBlock = 17, // EnableGuid
+    TraceControlSendDataBlock = 17, // ETW_ENABLE_NOTIFICATION_PACKET
     TraceControlSendReplyDataBlock = 18,
     TraceControlReceiveReplyDataBlock = 19,
     TraceControlWdiUpdateSem = 20,
-    TraceControlEnumTraceGuidList = 21,
-    TraceControlGetTraceGuidInfo = 22,
+    TraceControlEnumTraceGuidList = 21, // out GUID[]
+    TraceControlGetTraceGuidInfo = 22, // in GUID, out TRACE_GUID_INFO
     TraceControlEnumerateTraceGuids = 23,
     TraceControlRegisterSecurityProv = 24,
     TraceControlQueryReferenceTime = 25,
-    TraceControlTrackProviderBinary = 26,
+    TraceControlTrackProviderBinary = 26, // in HANDLE
     TraceControlAddNotificationEvent = 27,
     TraceControlUpdateDisallowList = 28,
     TraceControlSetEnableAllKeywordsCode = 29,
@@ -100,16 +87,18 @@ typedef enum _TRACE_CONTROL_INFORMATION_CLASS
     TraceControlUseDescriptorTypeCode = 31,
     TraceControlEnumTraceGroupList = 32,
     TraceControlGetTraceGroupInfo = 33,
-    TraceControlTraceSetDisallowList= 34,
+    TraceControlTraceSetDisallowList = 34,
     TraceControlSetCompressionSettings = 35,
-    TraceControlGetCompressionSettings= 36,
+    TraceControlGetCompressionSettings = 36,
     TraceControlUpdatePeriodicCaptureState = 37,
     TraceControlGetPrivateSessionTraceHandle = 38,
     TraceControlRegisterPrivateSession = 39,
     TraceControlQuerySessionDemuxObject = 40,
     TraceControlSetProviderBinaryTracking = 41,
-    TraceControlMaxLoggers = 42,
-    TraceControlMaxPmcCounter = 43
+    TraceControlMaxLoggers = 42, // out ULONG
+    TraceControlMaxPmcCounter = 43, // out ULONG
+    TraceControlQueryUsedProcessorCount = 44, // ULONG // since WIN11
+    TraceControlGetPmcOwnership = 45,
 } TRACE_CONTROL_INFORMATION_CLASS;
 
 #if (PHNT_VERSION >= PHNT_VISTA)

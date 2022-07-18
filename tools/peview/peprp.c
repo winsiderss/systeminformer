@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2011
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -77,7 +66,6 @@ typedef struct _PVP_PE_GENERAL_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
-    HIMAGELIST ListViewImageList;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
     ULONG ListViewRowCache[PVP_IMAGE_GENERAL_INDEX_MAXIMUM];
@@ -1121,21 +1109,77 @@ VOID PvpSetPeImageEntropy(
     PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntropyImageThreadStart, WindowHandle);
 }
 
-VOID PvpSetPeImageEntryPoint(
-    _In_ HWND ListViewHandle
+static NTSTATUS PvpEntryPointImageThreadStart(
+    _In_ PVOID Parameter
     )
 {
     ULONG addressOfEntryPoint;
     PPH_STRING string;
+    PPH_STRING symbol = NULL;
+    PPH_STRING symbolName = NULL;
+    PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
 
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         addressOfEntryPoint = PvMappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
     else
         addressOfEntryPoint = PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
 
-    string = PhFormatString(L"0x%I32x", addressOfEntryPoint);
-    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
-    PhDereferenceObject(string);
+    if (addressOfEntryPoint)
+    {
+        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, addressOfEntryPoint),
+                &symbolResolveLevel,
+                NULL,
+                &symbolName,
+                NULL
+                );
+        }
+        else
+        {
+            symbol = PhGetSymbolFromAddress(
+                PvSymbolProvider,
+                (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, addressOfEntryPoint),
+                &symbolResolveLevel,
+                NULL,
+                &symbolName,
+                NULL
+                );
+        }
+    }
+
+    if (
+        !PhIsNullOrEmptyString(symbolName) && (
+        symbolResolveLevel == PhsrlFunction ||
+        symbolResolveLevel == PhsrlModule ||
+        symbolResolveLevel == PhsrlAddress
+        ))
+    {
+        string = PhFormatString(L"0x%I32x (%s)", addressOfEntryPoint, PhGetStringOrEmpty(symbolName));
+        PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
+        PhDereferenceObject(string);
+    }
+    else
+    {
+        string = PhFormatString(L"0x%I32x", addressOfEntryPoint);
+        PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
+        PhDereferenceObject(string);
+    }
+
+    PhClearReference(&symbolName);
+    PhClearReference(&symbol);
+    return STATUS_SUCCESS;
+}
+
+VOID PvpSetPeImageEntryPoint(
+    _In_ HWND ListViewHandle
+    )
+{
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, L"Resolving...");
+
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntryPointImageThreadStart, ListViewHandle);
 }
 
 VOID PvpSetPeImageCheckSum(
@@ -1944,6 +1988,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HIMAGELIST listViewImageList;
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -1957,8 +2003,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PvPeAddImagePropertiesGroups(context);
             PhLoadListViewGroupStatesFromSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
 
-            if (context->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, context->ListViewImageList, LVSIL_SMALL);
+            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
+                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1984,12 +2030,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PhSaveListViewGroupStatesToSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             //PhSaveListViewColumnsToSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
-
-            if (context->ListViewImageList)
-                PhImageListDestroy(context->ListViewImageList);
-
             PhDeleteLayoutManager(&context->LayoutManager);
-
             PhFree(context);
         }
         break;

@@ -3,7 +3,7 @@
     <OutputType>Exe</OutputType>
     <Platforms>x64;x86</Platforms>
     <TargetFramework>net6.0</TargetFramework>
-    <RuntimeIdentifiers>win-x86;win-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win7-x86;win7-x64</RuntimeIdentifiers>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <OldToolsVersion>Current</OldToolsVersion>
@@ -13,13 +13,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <PlatformTarget>x86</PlatformTarget>
-    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier>win7-x86</RuntimeIdentifier>
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <PlatformTarget>x64</PlatformTarget>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
     <IntDir>$(ProjectDir)obj\$(Configuration)\\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\\$(TargetFramework)-$(PlatformTarget)\</OutDir>
   </PropertyGroup>
@@ -27,19 +27,23 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <Optimize>True</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.manifest" />

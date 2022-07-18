@@ -1,24 +1,13 @@
 /*
- * Process Hacker Plugins -
- *   Hardware Devices Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2016 wj32
- * Copyright (C) 2015-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2016
+ *     dmex    2015-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _DEVICES_H_
@@ -182,7 +171,6 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 typedef struct _DV_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
-    HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     BOOLEAN UseAlternateMethod;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -319,8 +307,12 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     _Out_opt_ PUINT MinorVersion
     );
 
-PPH_STRING NetworkAdapterQueryNameFromGuid(
+PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
     _In_ PPH_STRING InterfaceGuid
+    );
+
+PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
+    _In_ PPH_STRING DeviceGuid
     );
 
 PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
@@ -462,7 +454,6 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
 typedef struct _DV_DISK_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
-    HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_DISK_OPTIONS_CONTEXT, *PDV_DISK_OPTIONS_CONTEXT;
@@ -987,7 +978,6 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
 typedef struct _DV_RAPL_OPTIONS_CONTEXT
 {
     HWND ListViewHandle;
-    HIMAGELIST ImageList;
     BOOLEAN OptionsChanged;
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_RAPL_OPTIONS_CONTEXT, *PDV_RAPL_OPTIONS_CONTEXT;

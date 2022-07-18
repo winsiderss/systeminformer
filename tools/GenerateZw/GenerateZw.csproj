@@ -8,7 +8,7 @@
         <PublishReadyToRun>true</PublishReadyToRun>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
-        <TargetFramework>net5.0</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <RuntimeIdentifier>win-x86</RuntimeIdentifier>
         <TrimUnusedDependencies>true</TrimUnusedDependencies>
         <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>

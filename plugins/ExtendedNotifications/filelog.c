@@ -1,24 +1,13 @@
 /*
- * Process Hacker Extended Notifications -
- *   file logging
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010 wj32
- * Copyright (C) 2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010
+ *     dmex    2021-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <phdk.h>
@@ -39,7 +28,6 @@ VOID FileLogInitialization(
 {
     NTSTATUS status;
     PPH_STRING fileName;
-    PPH_STRING directory;
 
     fileName = PhaGetStringSetting(SETTING_NAME_LOG_FILENAME);
 
@@ -47,10 +35,9 @@ VOID FileLogInitialization(
     {
         fileName = PH_AUTO(PhExpandEnvironmentStrings(&fileName->sr));
 
-        if (PhDetermineDosPathNameType(fileName->Buffer) == RtlPathTypeRelative)
+        if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
         {
-            directory = PH_AUTO(PhGetApplicationDirectory());
-            fileName = PH_AUTO(PhConcatStringRef2(&directory->sr, &fileName->sr));
+            fileName = PH_AUTO(PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
         }
 
         status = PhCreateFileStream(

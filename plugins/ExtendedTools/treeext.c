@@ -1,24 +1,13 @@
 /*
- * Process Hacker Extended Tools -
- *   process and network tree support
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011 wj32
- * Copyright (C) 2011-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011
+ *     dmex    2011-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -554,6 +543,12 @@ VOID EtProcessTreeNewMessage(
         {
             PET_PROCESS_BLOCK block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
+            if (block->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
+            {
+                listEntry = listEntry->Flink;
+                continue; // Skip terminated.
+            }
+
             if (block->ProcessNode)
             {
                 if (!block->ProcessNode->Node.Visible)
@@ -693,7 +688,7 @@ VOID EtProcessTreeNewMessage(
                 if (number == 0)
                     break;
 
-                PhInitFormatI64U(&format[0], number);
+                PhInitFormatI64UGroupDigits(&format[0], number);
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
                 {
@@ -1194,16 +1189,16 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
             &restricted
             )))
         {
-            if (allowed.boolVal)
+            if (V_BOOL(&allowed))
             {
-                if (restricted.boolVal)
+                if (V_BOOL(&restricted))
                     result = FirewallAllowedRestricted;
                 else
                     result = FirewallAllowedNotRestricted;
             }
             else
             {
-                if (restricted.boolVal)
+                if (V_BOOL(&restricted))
                     result = FirewallNotAllowedRestricted;
                 else
                     result = FirewallNotAllowedNotRestricted;

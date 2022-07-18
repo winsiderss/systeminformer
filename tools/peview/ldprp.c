@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2011
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -63,9 +52,9 @@ PPH_STRING PvpGetPeGuardFlagsText(
     if (GuardFlags & IMAGE_GUARD_DELAYLOAD_IAT_IN_ITS_OWN_SECTION)
         PhAppendStringBuilder2(&stringBuilder, L"Delay-load private section, ");
     if (GuardFlags & IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION)
-        PhAppendStringBuilder2(&stringBuilder, L"Export supression, ");
+        PhAppendStringBuilder2(&stringBuilder, L"Export suppression, ");
     if (GuardFlags & IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT)
-        PhAppendStringBuilder2(&stringBuilder, L"Export information supression, ");
+        PhAppendStringBuilder2(&stringBuilder, L"Export information suppression, ");
     if (GuardFlags & IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT)
         PhAppendStringBuilder2(&stringBuilder, L"Longjump table, ");
     if (GuardFlags & IMAGE_GUARD_RETPOLINE_PRESENT)
@@ -408,11 +397,39 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 } \
             }
 
+            #define ADD_VALUES2(Type, Config) \
+            { \
+                if (RTL_CONTAINS_FIELD((Config), (Config)->Size, GuardXFGCheckFunctionPointer)) \
+                { \
+                    ADD_VALUE(L"XFG check-function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardXFGCheckFunctionPointer)->Buffer); \
+                    ADD_VALUE(L"XFG dispatch-function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardXFGDispatchFunctionPointer)->Buffer); \
+                    ADD_VALUE(L"XFG table dispatch-function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardXFGTableDispatchFunctionPointer)->Buffer); \
+                } \
+                if (RTL_CONTAINS_FIELD((Config), (Config)->Size, CastGuardOsDeterminedFailureMode)) \
+                { \
+                    ADD_VALUE(L"Cast guard failure mode", PhaFormatString(L"0x%Ix", (Config)->CastGuardOsDeterminedFailureMode)->Buffer); \
+                } \
+            }
+
+            #define ADD_VALUES3(Type, Config) \
+            { \
+                if (RTL_CONTAINS_FIELD((Config), (Config)->Size, GuardMemcpyFunctionPointer)) \
+                { \
+                    ADD_VALUE(L"Guard memcpy function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardMemcpyFunctionPointer)->Buffer); \
+                } \
+            }
+
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)))
                 {
                     ADD_VALUES(IMAGE_LOAD_CONFIG_DIRECTORY32, config32);
+                #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
+                    ADD_VALUES2(IMAGE_LOAD_CONFIG_DIRECTORY32, config32);
+                #endif
+                #if defined(NTDDI_WIN10_NI) && (NTDDI_VERSION >= NTDDI_WIN10_NI)
+                    ADD_VALUES3(IMAGE_LOAD_CONFIG_DIRECTORY32, config32);
+                #endif
                     PvpAddPeEnclaveConfig(config32, context->ListViewHandle);
                 }
             }
@@ -421,6 +438,12 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
                 {
                     ADD_VALUES(IMAGE_LOAD_CONFIG_DIRECTORY64, config64);
+                #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)
+                    ADD_VALUES2(IMAGE_LOAD_CONFIG_DIRECTORY64, config64);
+                #endif
+                #if defined(NTDDI_WIN10_NI) && (NTDDI_VERSION >= NTDDI_WIN10_NI)
+                    ADD_VALUES3(IMAGE_LOAD_CONFIG_DIRECTORY64, config64);
+                #endif
                     PvpAddPeEnclaveConfig(config64, context->ListViewHandle);
                 }
             }
@@ -457,6 +480,17 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
     case WM_CONTEXTMENU:
         {
             PvHandleListViewCommandCopy(hwndDlg, lParam, wParam, context->ListViewHandle);
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

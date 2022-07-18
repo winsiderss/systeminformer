@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Loader support functions
+ * Loader support functions
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _NTLDR_H
@@ -102,39 +88,54 @@ typedef enum _LDR_DLL_LOAD_REASON
     LoadReasonDynamicLoad,
     LoadReasonAsImageLoad,
     LoadReasonAsDataLoad,
-    LoadReasonEnclavePrimary, // REDSTONE3
+    LoadReasonEnclavePrimary, // since REDSTONE3
     LoadReasonEnclaveDependency,
+    LoadReasonPatchImage, // since WIN11
     LoadReasonUnknown = -1
 } LDR_DLL_LOAD_REASON, *PLDR_DLL_LOAD_REASON;
 
+typedef enum _LDR_HOT_PATCH_STATE
+{
+    LdrHotPatchBaseImage,
+    LdrHotPatchNotApplied,
+    LdrHotPatchAppliedReverse,
+    LdrHotPatchAppliedForward,
+    LdrHotPatchFailedToPatch,
+    LdrHotPatchStateMax,
+} LDR_HOT_PATCH_STATE, *PLDR_HOT_PATCH_STATE;
+
+// LDR_DATA_TABLE_ENTRY->Flags
 #define LDRP_PACKAGED_BINARY 0x00000001
-#define LDRP_STATIC_LINK 0x00000002
+#define LDRP_MARKED_FOR_REMOVAL 0x00000002
 #define LDRP_IMAGE_DLL 0x00000004
+#define LDRP_LOAD_NOTIFICATIONS_SENT 0x00000008
+#define LDRP_TELEMETRY_ENTRY_PROCESSED 0x00000010
+#define LDRP_PROCESS_STATIC_IMPORT 0x00000020
+#define LDRP_IN_LEGACY_LISTS 0x00000040
+#define LDRP_IN_INDEXES 0x00000080
+#define LDRP_SHIM_DLL 0x00000100
+#define LDRP_IN_EXCEPTION_TABLE 0x00000200
 #define LDRP_LOAD_IN_PROGRESS 0x00001000
-#define LDRP_UNLOAD_IN_PROGRESS 0x00002000
+#define LDRP_LOAD_CONFIG_PROCESSED 0x00002000
 #define LDRP_ENTRY_PROCESSED 0x00004000
-#define LDRP_ENTRY_INSERTED 0x00008000
-#define LDRP_CURRENT_LOAD 0x00010000
-#define LDRP_FAILED_BUILTIN_LOAD 0x00020000
+#define LDRP_PROTECT_DELAY_LOAD 0x00008000
 #define LDRP_DONT_CALL_FOR_THREADS 0x00040000
 #define LDRP_PROCESS_ATTACH_CALLED 0x00080000
-#define LDRP_DEBUG_SYMBOLS_LOADED 0x00100000
-#define LDRP_IMAGE_NOT_AT_BASE 0x00200000 // Vista and below
+#define LDRP_PROCESS_ATTACH_FAILED 0x00100000
+#define LDRP_COR_DEFERRED_VALIDATE 0x00200000
 #define LDRP_COR_IMAGE 0x00400000
-#define LDRP_DONT_RELOCATE 0x00800000 // LDR_COR_OWNS_UNMAP
-#define LDRP_SYSTEM_MAPPED 0x01000000
-#define LDRP_IMAGE_VERIFYING 0x02000000
-#define LDRP_DRIVER_DEPENDENT_DLL 0x04000000
-#define LDRP_ENTRY_NATIVE 0x08000000
+#define LDRP_DONT_RELOCATE 0x00800000
+#define LDRP_COR_IL_ONLY 0x01000000
+#define LDRP_CHPE_IMAGE 0x02000000
+#define LDRP_CHPE_EMULATOR_IMAGE 0x04000000
 #define LDRP_REDIRECTED 0x10000000
-#define LDRP_NON_PAGED_DEBUG_INFO 0x20000000
-#define LDRP_MM_LOADED 0x40000000
 #define LDRP_COMPAT_DATABASE_PROCESSED 0x80000000
 
 #define LDR_DATA_TABLE_ENTRY_SIZE_WINXP FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, DdagNode)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN7 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, BaseNameHashValue)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN8 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ImplicitPathOptions)
-#define LDR_DATA_TABLE_ENTRY_SIZE_WIN10 sizeof(LDR_DATA_TABLE_ENTRY)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN10 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, SigningLevel)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WIN11 sizeof(LDR_DATA_TABLE_ENTRY)
 
 // symbols
 typedef struct _LDR_DATA_TABLE_ENTRY
@@ -181,7 +182,8 @@ typedef struct _LDR_DATA_TABLE_ENTRY
             ULONG DontRelocate : 1;
             ULONG CorILOnly : 1;
             ULONG ChpeImage : 1;
-            ULONG ReservedFlags5 : 2;
+            ULONG ChpeEmulatorImage : 1;
+            ULONG ReservedFlags5 : 1;
             ULONG Redirected : 1;
             ULONG ReservedFlags6 : 2;
             ULONG CompatDatabaseProcessed : 1;
@@ -203,11 +205,14 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     ULONG_PTR OriginalBase;
     LARGE_INTEGER LoadTime;
     ULONG BaseNameHashValue;
-    LDR_DLL_LOAD_REASON LoadReason;
+    LDR_DLL_LOAD_REASON LoadReason; // since WIN8
     ULONG ImplicitPathOptions;
-    ULONG ReferenceCount;
+    ULONG ReferenceCount; // since WIN10
     ULONG DependentLoadFlags;
     UCHAR SigningLevel; // since REDSTONE2
+    ULONG CheckSum; // since 22H1
+    PVOID ActivePatchImageBase;
+    LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 #define LDR_IS_DATAFILE(DllHandle) (((ULONG_PTR)(DllHandle)) & (ULONG_PTR)1)
@@ -603,7 +608,7 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
     ULONG Size;
     ULONG_PTR SystemDllWowRelocation;
     ULONG_PTR SystemDllNativeRelocation;
-    ULONG_PTR Wow64SharedInformation[16];
+    ULONG_PTR Wow64SharedInformation[16]; // use WOW64_SHARED_INFORMATION as index
     ULONG RngData;
     union
     {
@@ -640,7 +645,7 @@ LdrAddLoadAsDataTable(
     _In_ PWSTR FilePath,
     _In_ SIZE_T Size,
     _In_ HANDLE Handle,
-    _In_ HANDLE ActCtx // param added on Win10
+    _In_opt_ HANDLE ActCtx
     );
 
 // private

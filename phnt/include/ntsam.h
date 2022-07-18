@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Security Account Manager support functions
+ * Security Account Manager support functions
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _NTSAM_H
@@ -208,19 +194,19 @@ SamShutdownSamServer(
 
 typedef enum _DOMAIN_INFORMATION_CLASS
 {
-    DomainPasswordInformation = 1,
-    DomainGeneralInformation,
-    DomainLogoffInformation,
-    DomainOemInformation,
-    DomainNameInformation,
-    DomainReplicationInformation,
-    DomainServerRoleInformation,
-    DomainModifiedInformation,
-    DomainStateInformation,
-    DomainUasInformation,
-    DomainGeneralInformation2,
-    DomainLockoutInformation,
-    DomainModifiedInformation2
+    DomainPasswordInformation = 1, // q; s: DOMAIN_PASSWORD_INFORMATION
+    DomainGeneralInformation, // q: DOMAIN_GENERAL_INFORMATION
+    DomainLogoffInformation, // q; s: DOMAIN_LOGOFF_INFORMATION
+    DomainOemInformation, // q; s: DOMAIN_OEM_INFORMATION
+    DomainNameInformation, // q: DOMAIN_NAME_INFORMATION
+    DomainReplicationInformation, // q; s: DOMAIN_REPLICATION_INFORMATION
+    DomainServerRoleInformation, // q; s: DOMAIN_SERVER_ROLE_INFORMATION
+    DomainModifiedInformation, // q: DOMAIN_MODIFIED_INFORMATION
+    DomainStateInformation, // q; s: DOMAIN_STATE_INFORMATION
+    DomainUasInformation, // q; s: DOMAIN_UAS_INFORMATION
+    DomainGeneralInformation2, // q: DOMAIN_GENERAL_INFORMATION2
+    DomainLockoutInformation, // q; s: DOMAIN_LOCKOUT_INFORMATION
+    DomainModifiedInformation2 // q: DOMAIN_MODIFIED_INFORMATION2
 } DOMAIN_INFORMATION_CLASS;
 
 typedef enum _DOMAIN_SERVER_ENABLE_STATE
@@ -351,11 +337,11 @@ typedef struct _DOMAIN_LOCKOUT_INFORMATION
 
 typedef enum _DOMAIN_DISPLAY_INFORMATION
 {
-    DomainDisplayUser = 1,
-    DomainDisplayMachine,
-    DomainDisplayGroup,
-    DomainDisplayOemUser,
-    DomainDisplayOemGroup,
+    DomainDisplayUser = 1, // DOMAIN_DISPLAY_USER
+    DomainDisplayMachine, // DOMAIN_DISPLAY_MACHINE
+    DomainDisplayGroup, // DOMAIN_DISPLAY_GROUP
+    DomainDisplayOemUser, // DOMAIN_DISPLAY_OEM_USER
+    DomainDisplayOemGroup, // DOMAIN_DISPLAY_OEM_GROUP
     DomainDisplayServer
 } DOMAIN_DISPLAY_INFORMATION, *PDOMAIN_DISPLAY_INFORMATION;
 
@@ -563,10 +549,10 @@ typedef struct _GROUP_MEMBERSHIP
 
 typedef enum _GROUP_INFORMATION_CLASS
 {
-    GroupGeneralInformation = 1,
-    GroupNameInformation,
-    GroupAttributeInformation,
-    GroupAdminCommentInformation,
+    GroupGeneralInformation = 1, // q: GROUP_GENERAL_INFORMATION
+    GroupNameInformation, // q; s: GROUP_NAME_INFORMATION
+    GroupAttributeInformation, // q; s: GROUP_ATTRIBUTE_INFORMATION
+    GroupAdminCommentInformation, // q; s: GROUP_ADM_COMMENT_INFORMATION
     GroupReplicationInformation
 } GROUP_INFORMATION_CLASS;
 
@@ -718,9 +704,9 @@ SamSetMemberAttributesOfGroup(
 
 typedef enum _ALIAS_INFORMATION_CLASS
 {
-    AliasGeneralInformation = 1,
-    AliasNameInformation,
-    AliasAdminCommentInformation,
+    AliasGeneralInformation = 1, // q: ALIAS_GENERAL_INFORMATION
+    AliasNameInformation, // q; s: ALIAS_NAME_INFORMATION
+    AliasAdminCommentInformation, // q; s: ALIAS_ADM_COMMENT_INFORMATION
     AliasReplicationInformation,
     AliasExtendedInformation,
 } ALIAS_INFORMATION_CLASS;
@@ -1001,26 +987,26 @@ typedef struct _SR_SECURITY_DESCRIPTOR
 
 typedef enum _USER_INFORMATION_CLASS
 {
-    UserGeneralInformation = 1, // USER_GENERAL_INFORMATION
-    UserPreferencesInformation, // USER_PREFERENCES_INFORMATION
-    UserLogonInformation, // USER_LOGON_INFORMATION
-    UserLogonHoursInformation, // USER_LOGON_HOURS_INFORMATION
-    UserAccountInformation, // USER_ACCOUNT_INFORMATION
-    UserNameInformation, // USER_NAME_INFORMATION
-    UserAccountNameInformation, // USER_ACCOUNT_NAME_INFORMATION
-    UserFullNameInformation, // USER_FULL_NAME_INFORMATION
-    UserPrimaryGroupInformation, // USER_PRIMARY_GROUP_INFORMATION
-    UserHomeInformation, // USER_HOME_INFORMATION // 10
-    UserScriptInformation, // USER_SCRIPT_INFORMATION
-    UserProfileInformation, // USER_PROFILE_INFORMATION
-    UserAdminCommentInformation, // USER_ADMIN_COMMENT_INFORMATION
-    UserWorkStationsInformation, // USER_WORKSTATIONS_INFORMATION
-    UserSetPasswordInformation, // USER_SET_PASSWORD_INFORMATION
-    UserControlInformation, // USER_CONTROL_INFORMATION
-    UserExpiresInformation, // USER_EXPIRES_INFORMATION
+    UserGeneralInformation = 1, // q: USER_GENERAL_INFORMATION
+    UserPreferencesInformation, // q; s: USER_PREFERENCES_INFORMATION
+    UserLogonInformation, // q: USER_LOGON_INFORMATION
+    UserLogonHoursInformation, // q; s: USER_LOGON_HOURS_INFORMATION
+    UserAccountInformation, // q: USER_ACCOUNT_INFORMATION
+    UserNameInformation, // q; s: USER_NAME_INFORMATION
+    UserAccountNameInformation, // q; s: USER_ACCOUNT_NAME_INFORMATION
+    UserFullNameInformation, // q; s: USER_FULL_NAME_INFORMATION
+    UserPrimaryGroupInformation, // q; s: USER_PRIMARY_GROUP_INFORMATION
+    UserHomeInformation, // q; s: USER_HOME_INFORMATION // 10
+    UserScriptInformation, // q; s: USER_SCRIPT_INFORMATION
+    UserProfileInformation, // q; s: USER_PROFILE_INFORMATION
+    UserAdminCommentInformation, // q; s: USER_ADMIN_COMMENT_INFORMATION
+    UserWorkStationsInformation, // q; s: USER_WORKSTATIONS_INFORMATION
+    UserSetPasswordInformation, // s: USER_SET_PASSWORD_INFORMATION
+    UserControlInformation, // q; s: USER_CONTROL_INFORMATION
+    UserExpiresInformation, // q; s: USER_EXPIRES_INFORMATION
     UserInternal1Information, // USER_INTERNAL1_INFORMATION
     UserInternal2Information, // USER_INTERNAL2_INFORMATION
-    UserParametersInformation, // USER_PARAMETERS_INFORMATION // 20
+    UserParametersInformation, // q; s: USER_PARAMETERS_INFORMATION // 20
     UserAllInformation, // USER_ALL_INFORMATION
     UserInternal3Information, // USER_INTERNAL3_INFORMATION
     UserInternal4Information, // USER_INTERNAL4_INFORMATION
@@ -1647,7 +1633,7 @@ SamQueryDisplayInformation(
     _In_ ULONG Index,
     _In_ ULONG EntryCount,
     _In_ ULONG PreferredMaximumLength,
-    _In_ PULONG TotalAvailable,
+    _Out_ PULONG TotalAvailable,
     _Out_ PULONG TotalReturned,
     _Out_ PULONG ReturnedEntryCount,
     _Outptr_ PVOID *SortedBuffer

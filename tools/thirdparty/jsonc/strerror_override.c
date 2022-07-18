@@ -1,9 +1,6 @@
 #define STRERROR_OVERRIDE_IMPL 1
 #include "strerror_override.h"
 
-#pragma warning(push)
-#pragma warning(disable: 4996)
-
 /*
  * Override strerror() to get consistent output across platforms.
  */
@@ -74,9 +71,9 @@ char *_json_c_strerror(int errno_in)
     int ii, jj;
 
     //if (!_json_c_strerror_enable)
-    //	_json_c_strerror_enable = (getenv("_JSON_C_STRERROR_ENABLE") == NULL) ? -1 : 1;
+    //    _json_c_strerror_enable = (getenv("_JSON_C_STRERROR_ENABLE") == NULL) ? -1 : 1;
     //if (_json_c_strerror_enable == -1)
-    //	return strerror(errno_in);
+    //    return strerror(errno_in);
 
     // Avoid standard functions, so we don't need to include any
     // headers, or guess at signatures.
@@ -97,7 +94,7 @@ char *_json_c_strerror(int errno_in)
     }
 
     // It's not one of the known errno values, return the numeric value.
-    for (ii = 0; errno_in > 10; errno_in /= 10, ii++)
+    for (ii = 0; errno_in >= 10; errno_in /= 10, ii++)
     {
         digbuf[ii] = "0123456789"[(errno_in % 10)];
     }
@@ -108,7 +105,6 @@ char *_json_c_strerror(int errno_in)
     {
         errno_buf[start_idx] = digbuf[ii];
     }
+    errno_buf[start_idx] = '\0';
     return errno_buf;
 }
-
-#pragma warning(pop)

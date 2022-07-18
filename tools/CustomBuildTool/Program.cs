@@ -1,23 +1,12 @@
 ﻿/*
- * Process Hacker Toolchain - 
- *   Build script
- * 
- * Copyright (C) dmex
- * 
- * This file is part of Process Hacker.
- * 
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This file is part of System Informer.
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * Authors:
+ *
+ *     dmex
+ *
  */
 
 using System;
@@ -45,13 +34,13 @@ namespace CustomBuildTool
             //{
             //    Build.SetupBuildEnvironment(true);
             //
-            //    if (!Build.BuildSolution("ProcessHacker.sln",
+            //    if (!Build.BuildSolution("SystemInformer.sln",
             //        BuildFlags.Build32bit | BuildFlags.Build64bit |
             //        BuildFlags.BuildVerbose | BuildFlags.BuildApi
             //        ))
             //        return;
             //
-            //    if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+            //    if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
             //        return;
             //    if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
             //        return;
@@ -92,7 +81,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-sdk"))
             {
-                Build.CopyKProcessHacker(
+                Build.CopyKernelDriver(
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug
                     );
@@ -104,7 +93,7 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
@@ -124,13 +113,13 @@ namespace CustomBuildTool
             {
                 Build.SetupBuildEnvironment(false);
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
 
-                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
                 if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
@@ -163,14 +152,14 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
                     );
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose |
                     BuildFlags.BuildApi
                     ))
                     return;
 
-                if (!Build.CopyKProcessHacker(
+                if (!Build.CopyKernelDriver(
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildDebug | BuildFlags.BuildVerbose))
                     return;
@@ -213,13 +202,13 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
                     );
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     Environment.Exit(1);
 
-                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     Environment.Exit(1);
 
                 if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
@@ -265,13 +254,13 @@ namespace CustomBuildTool
                     BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose
                     );
 
-                if (!Build.BuildSolution("ProcessHacker.sln",
+                if (!Build.BuildSolution("SystemInformer.sln",
                     BuildFlags.Build32bit | BuildFlags.Build64bit |
                     BuildFlags.BuildVerbose | BuildFlags.BuildApi
                     ))
                     return;
 
-                if (!Build.CopyKProcessHacker(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
+                if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
                 if (!Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                     return;
@@ -296,7 +285,7 @@ namespace CustomBuildTool
                 if (!Build.BuildSetupExe())
                     return;
                 Build.BuildPdbZip();
-                Build.BuildSdkZip();
+                //Build.BuildSdkZip();
                 //Build.BuildSrcZip();
                 Build.BuildChecksumsFile();
                 Build.ShowBuildStats();

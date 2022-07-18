@@ -108,7 +108,7 @@ int main(void)
 	pcre2_config_32(PCRE2_CONFIG_JIT, &jit);
 #endif
 	if (!jit) {
-		printf("JIT must be enabled to run pcre_jit_test\n");
+		printf("JIT must be enabled to run pcre2_jit_test\n");
 		return 1;
 	}
 	return regression_tests()
@@ -291,6 +291,7 @@ static struct regression_test_case regression_test_cases[] = {
 	{ MU, A, 0, 0, "(a(?:bc|cb|b|c)+?|ss)+e", "accssabccbcacbccbbXaccssabccbcacbccbbe" },
 	{ MU, A, 0, 0, "(a(?:bc|cb|b|c)+|ss)+?e", "accssabccbcacbccbbXaccssabccbcacbccbbe" },
 	{ MU, A, 0, 0, "(?:(b(c)+?)+)?\?(?:(bc)+|(cb)+)+(?:m)+", "bccbcccbcbccbcbPbccbcccbcbccbcbmmn" },
+	{ MU, A, 0, 0, "(aa|bb){8,1000}", "abaabbaabbaabbaab_aabbaabbaabbaabbaabbaabb_" },
 
 	/* Greedy and non-greedy * operators */
 	{ CMU, A, 0, 0, "(?:AA)*AB", "aaaaaaamaaaaaaab" },
@@ -350,6 +351,9 @@ static struct regression_test_case regression_test_cases[] = {
 	{ MU, A, 0, 0, ".[ab]*.", "xx" },
 	{ MU, A, 0, 0, ".[ab]*a", "xxa" },
 	{ MU, A, 0, 0, ".[ab]?.", "xx" },
+	{ MU, A, 0, 0, "_[ab]+_*a", "_aa" },
+	{ MU, A, 0, 0, "#(A+)#\\d+", "#A#A#0" },
+	{ MU, A, 0, 0, "(?P<size>\\d+)m|M", "4M" },
 
 	/* Bracket repeats with limit. */
 	{ MU, A, 0, 0, "(?:(ab){2}){5}M", "abababababababababababM" },
@@ -408,6 +412,10 @@ static struct regression_test_case regression_test_cases[] = {
 	{ MUP, A, 0, 0 | F_PROPERTY, "[\xc3\xa2-\xc3\xa6\xc3\x81-\xc3\x84\xe2\x80\xa8-\xe2\x80\xa9\xe6\x92\xad\\p{Zs}]{2,}", "\xe2\x80\xa7\xe2\x80\xa9\xe6\x92\xad \xe6\x92\xae" },
 	{ MUP, A, 0, 0 | F_PROPERTY, "[\\P{L&}]{2}[^\xc2\x85-\xc2\x89\\p{Ll}\\p{Lu}]{2}", "\xc3\xa9\xe6\x92\xad.a\xe6\x92\xad|\xc2\x8a#" },
 	{ PCRE2_UCP, 0, 0, 0 | F_PROPERTY, "[a-b\\s]{2,5}[^a]", "AB  baaa" },
+	{ MUP, 0, 0, 0 | F_NOMATCH, "[^\\p{Hangul}\\p{Z}]", " " },
+	{ MUP, 0, 0, 0, "[\\p{Lu}\\P{Latin}]+", "c\xEA\xA4\xAE,A,b" },
+	{ MUP, 0, 0, 0, "[\\x{a92e}\\p{Lu}\\P{Latin}]+", "c\xEA\xA4\xAE,A,b" },
+	{ CMUP, 0, 0, 0, "[^S]\\B", "\xe2\x80\x8a" },
 
 	/* Possible empty brackets. */
 	{ MU, A, 0, 0, "(?:|ab||bc|a)+d", "abcxabcabd" },
@@ -743,6 +751,7 @@ static struct regression_test_case regression_test_cases[] = {
 	{ MU, A, 0, 0, "((?(R)a|(?1)){1,3}?)M", "aaaM" },
 	{ MU, A, 0, 0, "((.)(?:.|\\2(?1))){0}#(?1)#", "#aabbccdde# #aabbccddee#" },
 	{ MU, A, 0, 0, "((.)(?:\\2|\\2{4}b)){0}#(?:(?1))+#", "#aaaab# #aaaaab#" },
+	{ MU, A, 0, 0 | F_NOMATCH, "(?1)$((.|\\2xx){1,2})", "abc" },
 
 	/* 16 bit specific tests. */
 	{ CM, A, 0, 0 | F_FORCECONV, "\xc3\xa1", "\xc3\x81\xc3\xa1" },
@@ -1195,8 +1204,8 @@ static int regression_tests(void)
 #endif
 
 	/* This test compares the behaviour of interpreter and JIT. Although disabling
-	utf or ucp may make tests fail, if the pcre_exec result is the SAME, it is
-	still considered successful from pcre_jit_test point of view. */
+	utf or ucp may make tests fail, if the pcre2_match result is the SAME, it is
+	still considered successful from pcre2_jit_test point of view. */
 
 #if defined SUPPORT_PCRE2_8
 	pcre2_config_8(PCRE2_CONFIG_JITTARGET, &cpu_info);
@@ -1831,7 +1840,9 @@ struct invalid_utf8_regression_test_case {
 	const char *input;
 };
 
-static struct invalid_utf8_regression_test_case invalid_utf8_regression_test_cases[] = {
+static const char invalid_utf8_newline_cr;
+
+static const struct invalid_utf8_regression_test_case invalid_utf8_regression_test_cases[] = {
 	{ UDA, CI, 0, 0, 0, 0, 4, { ".", NULL }, "\xf4\x8f\xbf\xbf" },
 	{ UDA, CI, 0, 0, 0, 0, 4, { ".", NULL }, "\xf0\x90\x80\x80" },
 	{ UDA, CI, 0, 0, 0, -1, -1, { ".", NULL }, "\xf4\x90\x80\x80" },
@@ -1974,6 +1985,8 @@ static struct invalid_utf8_regression_test_case invalid_utf8_regression_test_cas
 	{ 0, PCRE2_JIT_COMPLETE, 0, 0, 1, -1, -1, { "\\X{2}", NULL }, "\r\n\n" },
 	{ 0, PCRE2_JIT_COMPLETE, 0, 0, 1, -1, -1, { "\\R{2}", NULL }, "\r\n\n" },
 
+	{ PCRE2_UTF | PCRE2_MULTILINE, CI, 0, 0, 0, -1, -1, { "^.a", &invalid_utf8_newline_cr }, "\xc3\xa7#a" },
+
 	{ 0, 0, 0, 0, 0, 0, 0, { NULL, NULL }, NULL }
 };
 
@@ -1981,7 +1994,7 @@ static struct invalid_utf8_regression_test_case invalid_utf8_regression_test_cas
 #undef CI
 #undef CPI
 
-static int run_invalid_utf8_test(struct invalid_utf8_regression_test_case *current,
+static int run_invalid_utf8_test(const struct invalid_utf8_regression_test_case *current,
 	int pattern_index, int i, pcre2_compile_context_8 *ccontext, pcre2_match_data_8 *mdata)
 {
 	pcre2_code_8 *code;
@@ -2034,7 +2047,7 @@ static int run_invalid_utf8_test(struct invalid_utf8_regression_test_case *curre
 
 static int invalid_utf8_regression_tests(void)
 {
-	struct invalid_utf8_regression_test_case *current;
+	const struct invalid_utf8_regression_test_case *current;
 	pcre2_compile_context_8 *ccontext;
 	pcre2_match_data_8 *mdata;
 	int total = 0, successful = 0;
@@ -2051,10 +2064,18 @@ static int invalid_utf8_regression_tests(void)
 		total++;
 
 		result = 1;
-		if (!run_invalid_utf8_test(current, total - 1, 0, ccontext, mdata))
-			result = 0;
-		if (!run_invalid_utf8_test(current, total - 1, 1, ccontext, mdata))
-			result = 0;
+		if (current->pattern[1] != &invalid_utf8_newline_cr)
+		{
+			if (!run_invalid_utf8_test(current, total - 1, 0, ccontext, mdata))
+				result = 0;
+			if (!run_invalid_utf8_test(current, total - 1, 1, ccontext, mdata))
+				result = 0;
+		} else {
+			pcre2_set_newline_8(ccontext, PCRE2_NEWLINE_CR);
+			if (!run_invalid_utf8_test(current, total - 1, 0, ccontext, mdata))
+				result = 0;
+			pcre2_set_newline_8(ccontext, PCRE2_NEWLINE_ANY);
+		}
 
 		if (result) {
 			successful++;
@@ -2128,7 +2149,7 @@ static PCRE2_UCHAR16 test16_10[] = { ' ', 0xdc00, 0xd800, 0x2028, '#', 0 };
 static PCRE2_UCHAR16 test16_11[] = { 0xdc00, 0xdc00, 0xd800, 0xdc00, 0xdc00, '#', 0xd800, 0xdc00, '#', 0 };
 static PCRE2_UCHAR16 test16_12[] = { '#', 0xd800, 0xdc00, 0xd800, '#', 0xd800, 0xdc00, 0xdc00, 0xdc00, '#', 0xd800, 0xdc00, '#', 0 };
 
-static struct invalid_utf16_regression_test_case invalid_utf16_regression_test_cases[] = {
+static const struct invalid_utf16_regression_test_case invalid_utf16_regression_test_cases[] = {
 	{ UDA, CI, 0, 0, 0, 0, 1, { allany16, NULL }, test16_1 },
 	{ UDA, CI, 1, 0, 0, 1, 2, { allany16, NULL }, test16_1 },
 	{ UDA, CI, 2, 0, 0, 2, 3, { allany16, NULL }, test16_1 },
@@ -2182,7 +2203,7 @@ static struct invalid_utf16_regression_test_case invalid_utf16_regression_test_c
 #undef CI
 #undef CPI
 
-static int run_invalid_utf16_test(struct invalid_utf16_regression_test_case *current,
+static int run_invalid_utf16_test(const struct invalid_utf16_regression_test_case *current,
 	int pattern_index, int i, pcre2_compile_context_16 *ccontext, pcre2_match_data_16 *mdata)
 {
 	pcre2_code_16 *code;
@@ -2242,7 +2263,7 @@ static int run_invalid_utf16_test(struct invalid_utf16_regression_test_case *cur
 
 static int invalid_utf16_regression_tests(void)
 {
-	struct invalid_utf16_regression_test_case *current;
+	const struct invalid_utf16_regression_test_case *current;
 	pcre2_compile_context_16 *ccontext;
 	pcre2_match_data_16 *mdata;
 	int total = 0, successful = 0;
@@ -2329,7 +2350,7 @@ static PCRE2_UCHAR32 test32_4[] = { '#', 0x10ffff, 0x110000, 0 };
 static PCRE2_UCHAR32 test32_5[] = { ' ', 0x2028, '#', 0 };
 static PCRE2_UCHAR32 test32_6[] = { ' ', 0x110000, 0x2028, '#', 0 };
 
-static struct invalid_utf32_regression_test_case invalid_utf32_regression_test_cases[] = {
+static const struct invalid_utf32_regression_test_case invalid_utf32_regression_test_cases[] = {
 	{ UDA, CI, 0, 0, 0, 0, 1, { allany32, NULL }, test32_1 },
 	{ UDA, CI, 2, 0, 0, -1, -1, { allany32, NULL }, test32_1 },
 	{ UDA, CI, 0, 0, 0, 0, 1, { allany32, NULL }, test32_2 },
@@ -2369,7 +2390,7 @@ static struct invalid_utf32_regression_test_case invalid_utf32_regression_test_c
 #undef CI
 #undef CPI
 
-static int run_invalid_utf32_test(struct invalid_utf32_regression_test_case *current,
+static int run_invalid_utf32_test(const struct invalid_utf32_regression_test_case *current,
 	int pattern_index, int i, pcre2_compile_context_32 *ccontext, pcre2_match_data_32 *mdata)
 {
 	pcre2_code_32 *code;
@@ -2429,7 +2450,7 @@ static int run_invalid_utf32_test(struct invalid_utf32_regression_test_case *cur
 
 static int invalid_utf32_regression_tests(void)
 {
-	struct invalid_utf32_regression_test_case *current;
+	const struct invalid_utf32_regression_test_case *current;
 	pcre2_compile_context_32 *ccontext;
 	pcre2_match_data_32 *mdata;
 	int total = 0, successful = 0;

@@ -1,23 +1,12 @@
 /*
- * Process Hacker ToolStatus -
- *   main toolbar
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2019 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2011-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "toolstatus.h"
@@ -104,7 +93,7 @@ BOOLEAN RebarBandExists(
     return FALSE;
 }
 
-VOID RebarLoadSettings(
+VOID RebarCreateOrUpdateWindow(
     VOID
     )
 {
@@ -149,15 +138,12 @@ VOID RebarLoadSettings(
         SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
         // Set the toolbar extended toolbar styles.
         SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-
-        // Add the buttons to the toolbar.
-        ToolbarLoadButtonSettings();
         // Configure the toolbar imagelist.
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
         // Configure the toolbar font.
         SetWindowFont(ToolBarHandle, ToolbarWindowFont, FALSE);
-        // Resize the toolbar.
-        SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+        // Add the buttons to the toolbar.
+        ToolbarLoadButtonSettings();
 
         // Inset the toolbar into the rebar control, also
         // determine the font size and adjust the toolbar height.
@@ -277,7 +263,7 @@ VOID RebarLoadSettings(
         {
             // Clear search text and reset search filters.
             SetFocus(SearchboxHandle);
-            Static_SetText(SearchboxHandle, L"");
+            PhSetWindowText(SearchboxHandle, L"");
 
             if (IsWindowVisible(SearchboxHandle))
                 ShowWindow(SearchboxHandle, SW_HIDE);
@@ -300,7 +286,7 @@ VOID ToolbarLoadSettings(
     VOID
     )
 {
-    RebarLoadSettings();
+    RebarCreateOrUpdateWindow();
 
     if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle)
     {
@@ -431,7 +417,7 @@ VOID ToolbarResetSettings(
         SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 
     // Add the default buttons.
-    SendMessage(ToolBarHandle, TB_ADDBUTTONS, MAX_DEFAULT_TOOLBAR_ITEMS, (LPARAM)ToolbarButtons);
+    ToolbarLoadDefaultButtonSettings();
 }
 
 PWSTR ToolbarGetText(
@@ -632,7 +618,26 @@ HBITMAP ToolbarGetImage(
             HICON shieldIcon;
             HBITMAP toolbarBitmap = NULL;
 
-            if (shieldIcon = PhLoadIcon(NULL, IDI_SHIELD, PH_LOAD_ICON_SIZE_SMALL, 0, 0))
+            shieldIcon = PhLoadIcon(
+                NtCurrentPeb()->ImageBaseAddress,
+                MAKEINTRESOURCE(PHAPP_IDI_UACSHIELD),
+                PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                0,
+                0
+                );
+
+            if (!shieldIcon)
+            {
+                shieldIcon = PhLoadIcon(
+                    NULL,
+                    IDI_SHIELD,
+                    PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                    0,
+                    0
+                    );
+            }
+
+            if (shieldIcon)
             {
                 toolbarBitmap = PhIconToBitmap(shieldIcon, ToolBarImageSize.cx, ToolBarImageSize.cy);
                 DestroyIcon(shieldIcon);
@@ -646,7 +651,7 @@ HBITMAP ToolbarGetImage(
     return NULL;
 }
 
-VOID ToolbarLoadDefaultToolbarButtons(
+VOID ToolbarLoadDefaultButtonSettings(
     VOID
     )
 {
@@ -669,6 +674,10 @@ VOID ToolbarLoadDefaultToolbarButtons(
 
             DeleteBitmap(bitmap);
         }
+
+        // Note: We have to set the string here because TBIF_TEXT doesn't update
+        // the button text length when the button is disabled. (dmex)
+        ToolbarButtons[i].iString = (INT_PTR)ToolbarGetText(i);
     }
 
     // Load default settings
@@ -691,20 +700,20 @@ VOID ToolbarLoadButtonSettings(
 
     if (remaining.Length == 0)
     {
-        ToolbarLoadDefaultToolbarButtons();
+        ToolbarLoadDefaultButtonSettings();
         return;
     }
 
     // Query the number of buttons to insert
     if (!PhSplitStringRefAtChar(&remaining, L'|', &part, &remaining))
     {
-        ToolbarLoadDefaultToolbarButtons();
+        ToolbarLoadDefaultButtonSettings();
         return;
     }
 
     if (!PhStringToInteger64(&part, 10, &countInteger))
     {
-        ToolbarLoadDefaultToolbarButtons();
+        ToolbarLoadDefaultButtonSettings();
         return;
     }
 
@@ -732,6 +741,9 @@ VOID ToolbarLoadButtonSettings(
         if (commandInteger)
         {
             buttonArray[index].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+            // Note: We have to set the string here because TBIF_TEXT doesn't update
+            // the button text length when the button is disabled. (dmex)
+            buttonArray[index].iString = (INT_PTR)ToolbarGetText((INT)commandInteger);
         }
         else
         {

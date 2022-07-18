@@ -1,24 +1,13 @@
 /*
- * Process Hacker .NET Tools -
- *   .NET Assemblies property page
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011-2015 wj32
- * Copyright (C) 2016-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011-2015
+ *     dmex    2016-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "dn.h"
@@ -983,8 +972,8 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
@@ -1137,6 +1126,7 @@ static ULONG StartDotNetTrace(
     properties->Wnode.ClientContext = 2; // System time clock resolution
     properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     properties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_USE_PAGED_MEMORY;
+    properties->EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
     properties->LogFileNameOffset = 0;
     properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
@@ -1849,42 +1839,6 @@ VOID DotNetAsmRefreshTraceQuery(
     //}
 }
 
-BOOLEAN WordMatchStringRef(
-    _Inout_ PASMPAGE_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchBoxText);
-
-    while (remainingPart.Length != 0)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length != 0)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != SIZE_MAX)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN WordMatchStringZ(
-    _Inout_ PASMPAGE_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-
-    return WordMatchStringRef(Context, &text);
-}
-
 BOOLEAN DotNetAsmTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -1907,25 +1861,25 @@ BOOLEAN DotNetAsmTreeFilterCallback(
 
     if (!PhIsNullOrEmptyString(node->IdText))
     {
-        if (WordMatchStringRef(context, &node->IdText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->IdText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->FlagsText))
     {
-        if (WordMatchStringRef(context, &node->FlagsText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->FlagsText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->PathText))
     {
-        if (WordMatchStringRef(context, &node->PathText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->PathText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(node->NativePathText))
     {
-        if (WordMatchStringRef(context, &node->NativePathText->sr))
+        if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->NativePathText->sr))
             return TRUE;
     }
 

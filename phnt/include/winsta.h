@@ -1,21 +1,7 @@
 /*
- * Process Hacker -
- *   Window Station Support functions
+ * Window Station Support functions
  *
- * This file is part of Process Hacker.
- *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of System Informer.
  */
 
 #ifndef _WINSTA_H
@@ -630,13 +616,17 @@ typedef enum _SHADOWSTATECLASS
     State_Shadowed // The session is being shadowed by a different session. The current session is referred to as a shadow target.
 } SHADOWSTATECLASS;
 
+#define PROTOCOL_CONSOLE 0
+#define PROTOCOL_OTHERS 1
+#define PROTOCOL_RDP 2
+
 // Retrieves the current shadow state of a session.
 typedef struct _WINSTATIONSHADOW
 {
     SHADOWSTATECLASS ShadowState; // Specifies the current state of shadowing.
     SHADOWCLASS ShadowClass; // Specifies the type of shadowing.
     ULONG SessionId; // Specifies the session ID of the session.
-    ULONG ProtocolType; // Specifies the type of protocol on the session. Can be one of the following values.
+    ULONG ProtocolType; // Specifies the type of protocol on the session. Can be one of PROTOCOL_* values.
 } WINSTATIONSHADOW, *PWINSTATIONSHADOW;
 
 // Retrieves the client product ID and current product ID of the session.
@@ -748,7 +738,7 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
     UNICODE_STRING ImageName;
-    LONG BasePriority;
+    KPRIORITY BasePriority;
     ULONG UniqueProcessId;
     ULONG InheritedFromUniqueProcessId;
     ULONG HandleCount;
@@ -836,7 +826,7 @@ WinStationFreeMemory(
 HANDLE
 WINAPI
 WinStationOpenServerW(
-    _In_ PWSTR ServerName
+    _In_opt_ PWSTR ServerName
     );
 
 // rev

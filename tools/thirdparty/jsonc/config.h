@@ -56,6 +56,9 @@
 /* Define to 1 if you have the <sys/param.h> header file. */
 /* #undef HAVE_SYS_PARAM_H */
 
+/* Define to 1 if you have the <sys/random.h> header file. */
+/* #undef HAVE_SYS_RANDOM_H */
+
 /* Define to 1 if you have the <sys/resource.h> header file. */
 /* #undef HAVE_SYS_RESOURCE_H */
 
@@ -71,19 +74,28 @@
 /* Define to 1 if you have the <xlocale.h> header file. */
 /* #undef HAVE_XLOCALE_H */
 
+/* Define to 1 if you have the <bsd/stdlib.h> header file. */
+/* #undef HAVE_BSD_STDLIB_H */
+
+/* Define to 1 if you have `arc4random' */
+/* #undef HAVE_ARC4RANDOM */
+
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 /* #undef HAVE_DOPRNT */
 
 /* Has atomic builtins */
 /* #undef HAVE_ATOMIC_BUILTINS */
 
-/* Define to 1 if you have the declaration of `INFINITY', and to 0 if you don't. */
+/* Define to 1 if you have the declaration of `INFINITY', and to 0 if you
+   don't. */
 #define HAVE_DECL_INFINITY 1
 
-/* Define to 1 if you have the declaration of `isinf', and to 0 if you don't. */
+/* Define to 1 if you have the declaration of `isinf', and to 0 if you don't.
+   */
 #define HAVE_DECL_ISINF 1
 
-/* Define to 1 if you have the declaration of `isnan', and to 0 if you don't. */
+/* Define to 1 if you have the declaration of `isnan', and to 0 if you don't.
+   */
 #define HAVE_DECL_ISNAN 1
 
 /* Define to 1 if you have the declaration of `nan', and to 0 if you don't. */
@@ -93,8 +105,8 @@
    don't. */
 #define HAVE_DECL__FINITE 1
 
-   /* Define to 1 if you have the declaration of `_isnan', and to 0 if you don't.
-      */
+/* Define to 1 if you have the declaration of `_isnan', and to 0 if you don't.
+   */
 #define HAVE_DECL__ISNAN 1
 
 /* Define to 1 if you have the `open' function. */
@@ -137,6 +149,9 @@
 /* Define to 1 if you have the `vsyslog' function. */
 /* #undef HAVE_VSYSLOG */
 
+/* Define if you have the `getrandom' function. */
+/* #undef HAVE_GETRANDOM */
+
 /* Define if you have the `getrusage' function. */
 /* #undef HAVE_GETRUSAGE */
 
@@ -168,7 +183,7 @@
 #define PACKAGE_NAME "json-c"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "json-c 0.15"
+#define PACKAGE_STRING "json-c 0.16"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "json-c"
@@ -204,7 +219,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.15"
+#define VERSION "0.16"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */

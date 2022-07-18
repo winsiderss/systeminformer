@@ -1,21 +1,12 @@
 /*
- * Process Hacker Toolchain -
- *   project setup
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * This file is part of Process Hacker.
+ * This file is part of System Informer.
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Authors:
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *     dmex
  *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <setup.h>
@@ -174,7 +165,7 @@ VOID ShowUninstallCompletedPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Process Hacker has been uninstalled.";
+    config.pszMainInstruction = L"System Informer has been uninstalled.";
     config.pszContent = L"Click close to exit setup.";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
@@ -196,7 +187,7 @@ VOID ShowUninstallingPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Uninstalling Process Hacker...";
+    config.pszMainInstruction = L"Uninstalling System Informer...";
     
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
@@ -217,7 +208,7 @@ VOID ShowUninstallErrorPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
-    config.pszMainInstruction = L"Process Hacker could not be uninstalled.";
+    config.pszMainInstruction = L"System Informer could not be uninstalled.";
     config.pszContent = L"Click retry to try again or close to exit setup.";
     
     TaskDialogNavigatePage(Context->DialogHandle, &config);
@@ -245,7 +236,7 @@ VOID ShowUninstallPageDialog(
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = PhApplicationName;
-    config.pszContent = L"Are you sure you want to uninstall Process Hacker?";
+    config.pszContent = L"Are you sure you want to uninstall System Informer?";
     config.pszVerificationText = L"Remove application settings";
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.nDefaultButton = IDCANCEL;

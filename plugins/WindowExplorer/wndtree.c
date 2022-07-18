@@ -1,24 +1,13 @@
 /*
- * Process Hacker Window Explorer -
- *   window treelist
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2011 wj32
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2011
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "wndexp.h"
@@ -47,42 +36,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
 BOOLEAN WepEnableWindowIcons = FALSE;
 
-BOOLEAN WordMatchStringRef(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ PPH_STRINGREF Text
-    )
-{
-    PH_STRINGREF part;
-    PH_STRINGREF remainingPart;
-
-    remainingPart = PhGetStringRef(Context->SearchboxText);
-
-    while (remainingPart.Length != 0)
-    {
-        PhSplitStringRefAtChar(&remainingPart, L'|', &part, &remainingPart);
-
-        if (part.Length != 0)
-        {
-            if (PhFindStringInStringRef(Text, &part, TRUE) != -1)
-                return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-BOOLEAN WordMatchStringZ(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ PWSTR Text
-    )
-{
-    PH_STRINGREF text;
-
-    PhInitializeStringRef(&text, Text);
-
-    return WordMatchStringRef(Context, &text);
-}
-
 BOOLEAN WeWindowTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -99,31 +52,31 @@ BOOLEAN WeWindowTreeFilterCallback(
 
     if (windowNode->WindowClass[0])
     {
-        if (WordMatchStringZ(context, windowNode->WindowClass))
+        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowClass))
             return TRUE;
     }
 
     if (windowNode->WindowHandleString[0])
     {
-        if (WordMatchStringZ(context, windowNode->WindowHandleString))
+        if (PhWordMatchStringZ(context->SearchboxText, windowNode->WindowHandleString))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->WindowText))
     {
-        if (WordMatchStringRef(context, &windowNode->WindowText->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->WindowText->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->ThreadString))
     {
-        if (WordMatchStringRef(context, &windowNode->ThreadString->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->ThreadString->sr))
             return TRUE;
     }
 
     if (!PhIsNullOrEmptyString(windowNode->ModuleString))
     {
-        if (WordMatchStringRef(context, &windowNode->ModuleString->sr))
+        if (PhWordMatchStringRef(&context->SearchboxText->sr, &windowNode->ModuleString->sr))
             return TRUE;
     }
 
@@ -496,10 +449,10 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
             switch (getCellText->Id)
             {
             case WEWNTLC_CLASS:
-                PhInitializeStringRef(&getCellText->Text, node->WindowClass);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->WindowClass);
                 break;
             case WEWNTLC_HANDLE:
-                PhInitializeStringRef(&getCellText->Text, node->WindowHandleString);
+                PhInitializeStringRefLongHint(&getCellText->Text, node->WindowHandleString);
                 break;
             case WEWNTLC_TEXT:
                 getCellText->Text = PhGetStringRef(node->WindowText);
@@ -587,9 +540,9 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
             data.TreeNewHandle = hwnd;
             data.MouseEvent = Parameter1;
-            data.DefaultSortColumn = 0;
-            data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            data.DefaultSortColumn = WEWNTLC_CLASS;
+            data.DefaultSortOrder = NoSortOrder;
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);

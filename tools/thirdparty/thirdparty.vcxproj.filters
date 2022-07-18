@@ -40,6 +40,15 @@
     <Filter Include="miniz">
       <UniqueIdentifier>{71dc3ef6-3e43-4dae-80a0-13b067da4a05}</UniqueIdentifier>
     </Filter>
+    <Filter Include="md5">
+      <UniqueIdentifier>{c88eda02-1264-4e2c-96cb-e918bb02d79c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sha">
+      <UniqueIdentifier>{238faafd-7552-44a1-8fee-e5765b0300b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="sha256">
+      <UniqueIdentifier>{164d4efe-d2ce-4920-a31f-d76cad99228b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -417,6 +426,15 @@
     <ClCompile Include="miniz\miniz.c">
       <Filter>miniz</Filter>
     </ClCompile>
+    <ClCompile Include="md5\md5.c">
+      <Filter>md5</Filter>
+    </ClCompile>
+    <ClCompile Include="sha\sha.c">
+      <Filter>sha</Filter>
+    </ClCompile>
+    <ClCompile Include="sha256\sha256.c">
+      <Filter>sha256</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -752,9 +770,6 @@
     <ClInclude Include="tlsh\win_version.h">
       <Filter>tlsh</Filter>
     </ClInclude>
-    <ClInclude Include="tlsh\WinFunctions.h">
-      <Filter>tlsh</Filter>
-    </ClInclude>
     <ClInclude Include="gzip\crc32.h">
       <Filter>gzip\Headers</Filter>
     </ClInclude>
@@ -820,6 +835,18 @@
     </ClInclude>
     <ClInclude Include="miniz\miniz.h">
       <Filter>miniz</Filter>
+    </ClInclude>
+    <ClInclude Include="tlsh\tlsh_win_version.h">
+      <Filter>tlsh</Filter>
+    </ClInclude>
+    <ClInclude Include="md5\md5.h">
+      <Filter>md5</Filter>
+    </ClInclude>
+    <ClInclude Include="sha\sha.h">
+      <Filter>sha</Filter>
+    </ClInclude>
+    <ClInclude Include="sha256\sha256.h">
+      <Filter>sha256</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

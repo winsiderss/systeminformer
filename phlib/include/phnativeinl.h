@@ -583,6 +583,34 @@ PhSetProcessQuotaLimits(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetProcessAffinityMask(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PKAFFINITY AffinityMask
+    )
+{
+    //NTSTATUS status;
+    //PROCESS_BASIC_INFORMATION basicInfo;
+    //
+    //status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+    //
+    //if (NT_SUCCESS(status))
+    //{
+    //    *AffinityMask = basicInfo.AffinityMask;
+    //}
+    //
+    //return status;
+
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        AffinityMask,
+        sizeof(KAFFINITY),
+        NULL
+        );
+}
+
 /**
  * Sets a process' affinity mask.
  *
@@ -593,14 +621,74 @@ FORCEINLINE
 NTSTATUS
 PhSetProcessAffinityMask(
     _In_ HANDLE ProcessHandle,
-    _In_ ULONG_PTR AffinityMask
+    _In_ KAFFINITY AffinityMask
     )
 {
     return NtSetInformationProcess(
         ProcessHandle,
         ProcessAffinityMask,
         &AffinityMask,
-        sizeof(ULONG_PTR)
+        sizeof(KAFFINITY)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetProcessGroupInformation(
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PUSHORT GroupCount,
+    _Out_ PUSHORT GroupArray
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+
+    // rev from GetProcessGroupAffinity (dmex)
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessGroupInformation,
+        GroupArray,
+        sizeof(USHORT) * *GroupCount,
+        &returnLength
+        );
+
+    // (int)(status + 0x80000000) < 0 || status == STATUS_BUFFER_TOO_SMALL
+    if (NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL)
+    {
+        *GroupCount = (USHORT)returnLength >> 1;
+    }
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PGROUP_AFFINITY GroupAffinity
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        GroupAffinity,
+        sizeof(GROUP_AFFINITY),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _In_ GROUP_AFFINITY GroupAffinity
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &GroupAffinity,
+        sizeof(GROUP_AFFINITY)
         );
 }
 
@@ -636,8 +724,9 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessIsXFGuardEnabled(
     _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN IsXFGuardEnabled
-)
+    _Out_ PBOOLEAN IsXFGuardEnabled,
+    _Out_ PBOOLEAN IsXFGuardAuditEnabled
+    )
 {
     NTSTATUS status;
     PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
@@ -650,11 +739,17 @@ PhGetProcessIsXFGuardEnabled(
         &policyInfo,
         sizeof(PROCESS_MITIGATION_POLICY_INFORMATION),
         NULL
-    );
+        );
 
     if (NT_SUCCESS(status))
     {
+#if !defined(NTDDI_WIN10_CO) || (NTDDI_VERSION < NTDDI_WIN10_CO)
+        *IsXFGuardEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 3);
+        *IsXFGuardAuditEnabled = _bittest((const PLONG)&policyInfo.ControlFlowGuardPolicy.Flags, 4);
+#else
         *IsXFGuardEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableXfg;
+        *IsXFGuardAuditEnabled = !!policyInfo.ControlFlowGuardPolicy.EnableXfgAuditMode;
+#endif
     }
 
     return status;
@@ -827,7 +922,7 @@ FORCEINLINE
 NTSTATUS
 PhGetThreadBasePriority(
     _In_ HANDLE ThreadHandle,
-    _Out_ PLONG Increment
+    _Out_ PKPRIORITY Increment
     )
 {
     NTSTATUS status;
@@ -871,14 +966,14 @@ FORCEINLINE
 NTSTATUS
 PhSetThreadBasePriority(
     _In_ HANDLE ThreadHandle,
-    _In_ LONG Increment
+    _In_ KPRIORITY Increment
     )
 {
     return NtSetInformationThread(
         ThreadHandle,
         ThreadBasePriority,
         &Increment,
-        sizeof(LONG)
+        sizeof(KPRIORITY)
         );
 }
 
@@ -1075,6 +1170,31 @@ PhGetThreadIdealProcessor(
 
 FORCEINLINE
 NTSTATUS
+PhSetThreadIdealProcessor(
+    _In_ HANDLE ThreadHandle,
+    _In_ PPROCESSOR_NUMBER ProcessorNumber,
+    _Out_opt_ PPROCESSOR_NUMBER PreviousIdealProcessor
+    )
+{
+    NTSTATUS status;
+    PROCESSOR_NUMBER processorNumber;
+
+    processorNumber = *ProcessorNumber;
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadIdealProcessorEx,
+        &processorNumber,
+        sizeof(PROCESSOR_NUMBER)
+        );
+
+    if (PreviousIdealProcessor)
+        *PreviousIdealProcessor = processorNumber;
+
+    return status;
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetThreadSuspendCount(
     _In_ HANDLE ThreadHandle,
     _Out_ PULONG SuspendCount
@@ -1241,6 +1361,34 @@ PhGetThreadIsTerminated(
     return status;
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetThreadAffinityMask(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PKAFFINITY AffinityMask
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+
+    status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        *AffinityMask = basicInfo.AffinityMask;
+    }
+
+    return status;
+
+    //return NtQueryInformationThread(
+    //    ThreadHandle,
+    //    ThreadAffinityMask,
+    //    &AffinityMask,
+    //    sizeof(KAFFINITY),
+    //    NULL
+    //    );
+}
+
 /**
  * Sets a thread's affinity mask.
  *
@@ -1252,14 +1400,45 @@ FORCEINLINE
 NTSTATUS
 PhSetThreadAffinityMask(
     _In_ HANDLE ThreadHandle,
-    _In_ ULONG_PTR AffinityMask
+    _In_ KAFFINITY AffinityMask
     )
 {
     return NtSetInformationThread(
         ThreadHandle,
         ThreadAffinityMask,
         &AffinityMask,
-        sizeof(ULONG_PTR)
+        sizeof(KAFFINITY)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhGetThreadGroupAffinity(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PGROUP_AFFINITY GroupAffinity
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadGroupInformation,
+        GroupAffinity,
+        sizeof(GROUP_AFFINITY),
+        NULL
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+PhSetThreadGroupAffinity(
+    _In_ HANDLE ThreadHandle,
+    _In_ GROUP_AFFINITY GroupAffinity
+    )
+{
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadGroupInformation,
+        &GroupAffinity,
+        sizeof(GROUP_AFFINITY)
         );
 }
 
@@ -1863,72 +2042,6 @@ PhGetSystemShadowStackInformation(
         SystemShadowStackInformation,
         ShadowStackInformation,
         sizeof(SYSTEM_SHADOW_STACK_INFORMATION),
-        NULL
-        );
-}
-
-FORCEINLINE
-NTSTATUS
-PhGetSystemProcessorIdleCycleTime(
-    _Out_ PLARGE_INTEGER Buffer,
-    _In_ ULONG BufferLength
-    )
-{
-    return NtQuerySystemInformation(
-        SystemProcessorIdleCycleTimeInformation,
-        Buffer,
-        BufferLength,
-        NULL
-        );
-}
-
-FORCEINLINE
-NTSTATUS
-PhGetSystemProcessorIdleCycleTimeEx(
-    _In_ USHORT Group,
-    _Out_ PLARGE_INTEGER Buffer,
-    _In_ ULONG BufferLength
-    )
-{
-    return NtQuerySystemInformationEx(
-        SystemProcessorIdleCycleTimeInformation,
-        &Group,
-        sizeof(Group),
-        Buffer,
-        BufferLength,
-        NULL
-        );
-}
-
-FORCEINLINE
-NTSTATUS
-PhGetSystemProcessorCycleTime(
-    _Out_ PLARGE_INTEGER Buffer,
-    _In_ ULONG BufferLength
-    )
-{
-    return NtQuerySystemInformation(
-        SystemProcessorCycleTimeInformation,
-        Buffer,
-        BufferLength,
-        NULL
-        );
-}
-
-FORCEINLINE
-NTSTATUS
-PhGetSystemProcessorCycleTimeEx(
-    _In_ USHORT Group,
-    _Out_ PLARGE_INTEGER Buffer,
-    _In_ ULONG BufferLength
-    )
-{
-    return NtQuerySystemInformationEx(
-        SystemProcessorCycleTimeInformation,
-        &Group,
-        sizeof(Group),
-        Buffer,
-        BufferLength,
         NULL
         );
 }

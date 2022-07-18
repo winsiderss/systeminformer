@@ -20,12 +20,10 @@ static ProcessInfo* GetProcessInfo(
 
     if (newProcess)
     {
-        HANDLE processHandle;
-
-        if (NT_SUCCESS(PhOpenProcess(&processHandle, SYNCHRONIZE, UlongToHandle(ProcessId))))
-        {
-            processInfo->ProcessHandle = processHandle;
-        }
+        PhMoveReference(
+            reinterpret_cast<PVOID*>(&processInfo->ProcessItem),
+            PhReferenceProcessItem(UlongToHandle(ProcessId))
+            );
     }
 
     return processInfo;
@@ -44,21 +42,16 @@ static void CheckForTerminatedRealtimeProcesses(
         ULONG processId = pair.first;
         ProcessInfo* processInfo = &pair.second;
 
-        if (processInfo->ProcessHandle)
+        if (
+            processInfo->ProcessItem &&
+            processInfo->ProcessItem->State & PH_PROCESS_ITEM_REMOVED
+            )
         {
-            LARGE_INTEGER timeout = { 0 };
             LARGE_INTEGER performanceCounter;
+            PhQueryPerformanceCounter(&performanceCounter, nullptr);
+            terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
 
-            // Waiting with zero timeout checks for termination
-            if (NtWaitForSingleObject(processInfo->ProcessHandle, FALSE, &timeout) == STATUS_WAIT_0)
-            {
-                // Process has terminated.
-                NtClose(processInfo->ProcessHandle);
-                processInfo->ProcessHandle = NULL;
-
-                PhQueryPerformanceCounter(&performanceCounter, NULL);
-                terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
-            }
+            PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
         }
     }
 }
@@ -172,11 +165,11 @@ static void PruneHistory(
 
 static void ProcessEvents(
     std::vector<std::shared_ptr<PresentEvent>>* presentEvents,
-    std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents,
+    //std::vector<std::shared_ptr<PresentEvent>>* lostPresentEvents,
     std::vector<std::pair<ULONG, ULONGLONG>>* terminatedProcesses)
 {
     // Copy any analyzed information from ConsumerThread and early-out if there isn't any.
-    DequeueAnalyzedInfo(presentEvents, lostPresentEvents);
+    DequeueAnalyzedInfo(presentEvents); // lostPresentEvents
 
     if (presentEvents->empty())
     {
@@ -238,7 +231,7 @@ done:
 
     // Clear events processed.
     presentEvents->clear();
-    lostPresentEvents->clear();
+    //lostPresentEvents->clear();
 
     if (terminatedProcessIndex > 0)
     {
@@ -268,6 +261,8 @@ VOID PresentMonUpdateProcessStats(
         auto const& present0 = *chain.mPresentHistory[(chain.mNextPresentIndex - chain.mPresentHistoryCount) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
         auto const& presentN = *chain.mPresentHistory[(chain.mNextPresentIndex - 1) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
         auto const& lastPresented = *chain.mPresentHistory[(chain.mNextPresentIndex - 2) % SwapChainData::PRESENT_HISTORY_MAX_COUNT];
+        USHORT runtime = static_cast<USHORT>(presentN.Runtime);
+        USHORT presentMode = static_cast<USHORT>(presentN.PresentMode);
         DOUBLE cpuAvg;
         DOUBLE dspAvg = 0.0;
         DOUBLE latAvg = 0.0;
@@ -352,14 +347,16 @@ VOID PresentMonUpdateProcessStats(
 
         EtAddGpuFrameToHashTable(
             ProcessId,
-            frameLatency,
-            framesPerSecond,
-            displayLatency,
-            displayFramesPerSecond,
-            msBetweenPresents,
-            msInPresentApi,
-            msUntilRenderComplete,
-            msUntilDisplayed
+            static_cast<FLOAT>(frameLatency),
+            static_cast<FLOAT>(framesPerSecond),
+            static_cast<FLOAT>(displayLatency),
+            static_cast<FLOAT>(displayFramesPerSecond),
+            static_cast<FLOAT>(msBetweenPresents),
+            static_cast<FLOAT>(msInPresentApi),
+            static_cast<FLOAT>(msUntilRenderComplete),
+            static_cast<FLOAT>(msUntilDisplayed),
+            runtime,
+            presentMode
             );
     }
 }
@@ -369,7 +366,7 @@ NTSTATUS PresentMonOutputThread(
     )
 {
     std::vector<std::shared_ptr<PresentEvent>> presentEvents;
-    std::vector<std::shared_ptr<PresentEvent>> lostPresentEvents;
+    //std::vector<std::shared_ptr<PresentEvent>> lostPresentEvents;
     std::vector<std::pair<ULONG, ULONGLONG>> terminatedProcesses;
     presentEvents.reserve(4096);
     terminatedProcesses.reserve(16);
@@ -380,7 +377,7 @@ NTSTATUS PresentMonOutputThread(
             break;
 
         // Copy and process all the collected events, and update the various tracking and statistics data structures.
-        ProcessEvents(&presentEvents, &lostPresentEvents, &terminatedProcesses);
+        ProcessEvents(&presentEvents, &terminatedProcesses); // lostPresentEvents
 
         EtLockGpuFrameHashTable();
         EtClearGpuFrameHashTable();
@@ -403,19 +400,18 @@ NTSTATUS PresentMonOutputThread(
             break;
 
         // Sleep to reduce overhead.
-        PhDelayExecution(500);
+        PhDelayExecution(1000);
     }
 
     // Close all handles
     for (auto& pair : ProcessesHashTable)
     {
-        auto processInfo = &pair.second;
-
-        if (processInfo->ProcessHandle)
-        {
-            NtClose(processInfo->ProcessHandle);
-            processInfo->ProcessHandle = NULL;
-        }
+       auto processInfo = &pair.second;
+    
+       if (processInfo->ProcessItem)
+       {
+           PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));
+       }
     }
 
     ProcessesHashTable.clear();
@@ -431,7 +427,7 @@ VOID StartOutputThread(
     {
         HANDLE threadHandle;
 
-        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonOutputThread, NULL)))
+        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonOutputThread, nullptr)))
         {
             PhSetThreadName(threadHandle, L"FpsEtwOutputThread");
             NtClose(threadHandle);
@@ -446,19 +442,19 @@ VOID StopOutputThread(
     )
 {
     InterlockedExchange(&QuitOutputThread, 1);
-    //NtWaitForSingleObject(OutputThreadHandle, FALSE, NULL);
+    //NtWaitForSingleObject(OutputThreadHandle, FALSE, nullptr);
 }
 
 static NTSTATUS PresentMonTraceThread(
-    _In_ PVOID ThreadParamater
+    _In_ PVOID ThreadParameter
     )
 {
     ULONG result;
-    TRACEHANDLE traceHandle = (TRACEHANDLE)ThreadParamater;
+    TRACEHANDLE traceHandle = reinterpret_cast<TRACEHANDLE>(ThreadParameter);
 
     while (TRUE)
     {
-        while (!QuitOutputThread && (result = ProcessTrace(&traceHandle, 1, NULL, NULL)) == ERROR_SUCCESS)
+        while (!QuitOutputThread && (result = ProcessTrace(&traceHandle, 1, nullptr, nullptr)) == ERROR_SUCCESS)
             NOTHING;
 
         if (QuitOutputThread)
@@ -470,21 +466,21 @@ static NTSTATUS PresentMonTraceThread(
         }
 
         if (!QuitOutputThread)
-            PhDelayExecution(250);
+            PhDelayExecution(1000);
     }
 
     return STATUS_SUCCESS;
 }
 
 VOID StartConsumerThread(
-    _In_ TRACEHANDLE traceHandle
+    _In_ TRACEHANDLE TraceHandle
     )
 {
     if (!ConsumeThreadCreated)
     {
         HANDLE threadHandle;
 
-        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, (PVOID)traceHandle)))
+        if (NT_SUCCESS(PhCreateThreadEx(&threadHandle, PresentMonTraceThread, reinterpret_cast<PVOID>(TraceHandle))))
         {
             PhSetThreadName(threadHandle, L"FpsEtwConsumerThread");
             NtClose(threadHandle);
@@ -499,5 +495,5 @@ VOID WaitForConsumerThreadToExit(
     )
 {
     InterlockedExchange(&QuitOutputThread, 1);
-    //NtWaitForSingleObject(ConsumerThreadHandle, FALSE, NULL);
+    //NtWaitForSingleObject(ConsumerThreadHandle, FALSE, nullptr);
 }

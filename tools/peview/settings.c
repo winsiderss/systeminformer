@@ -1,23 +1,12 @@
 /*
- * PE viewer -
- *   program settings
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -57,12 +46,12 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ImageImportsTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageSectionsTreeListColumns", L"");
     PhpAddStringSetting(L"ImageSectionsTreeListSort", L"0,1"); // 0, AscendingSortOrder
-    PhpAddIntegerSetting(L"ImageSectionsTreeListFlags", L"1e0");
+    PhpAddIntegerSetting(L"ImageSectionsTreeListFlags", L"0");
     PhpAddStringSetting(L"ImageResourcesTreeListColumns", L"");
     PhpAddStringSetting(L"ImageResourcesTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddStringSetting(L"ImageLoadCfgListViewColumns", L"");
-    PhpAddStringSetting(L"ImageExceptions32ListViewColumns", L"");
-    PhpAddStringSetting(L"ImageExceptions64ListViewColumns", L"");
+    PhpAddStringSetting(L"ImageExceptionsIa32ListViewColumns", L"");
+    PhpAddStringSetting(L"ImageExceptionsAmd64ListViewColumns", L"");
     PhpAddStringSetting(L"ImageHeadersListViewColumns", L"");
     PhpAddStringSetting(L"ImageHeadersListViewGroupStates", L"");
     PhpAddStringSetting(L"ImageLayoutTreeColumns", L"");
@@ -110,7 +99,7 @@ VOID PeInitializeSettings(
     VOID
     )
 {
-    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\peview.xml");
+    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\peview.xml");
     static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     NTSTATUS status;
     PPH_STRING appFileName;

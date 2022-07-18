@@ -15,8 +15,8 @@
  *        Although this is exposed by the json_object_get_array() method,
  *        it is not recommended for direct use.
  */
-#ifndef _arraylist_h_
-#define _arraylist_h_
+#ifndef _json_c_arraylist_h_
+#define _json_c_arraylist_h_
 
 #ifdef __cplusplus
 extern "C" {

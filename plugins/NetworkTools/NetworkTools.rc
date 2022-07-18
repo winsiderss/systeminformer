@@ -71,7 +71,7 @@ BEGIN
     LTEXT           "GeoIP database location:",IDC_STATIC,7,60,82,8
     EDITTEXT        IDC_DATABASE,7,73,180,12,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse...",IDC_BROWSE,193,72,50,14
-    LTEXT           "If a relative path is specified, it is relative to Process Hacker's directory. Environment variables can be used. Changes will take place after Process Hacker is restarted.",IDC_STATIC,7,92,235,26
+    LTEXT           "If a relative path is specified, it is relative to System Informer's directory. Environment variables can be used. Changes will take place after System Informer is restarted.",IDC_STATIC,7,92,235,26
 END
 
 IDD_PING DIALOGEX 0, 0, 329, 151
@@ -83,13 +83,13 @@ BEGIN
     LTEXT           "Pinging X with X bytes of data:",IDC_MAINTEXT,7,7,315,16
     LTEXT           "PingGraphLayout",IDC_PING_LAYOUT,7,26,315,64,NOT WS_VISIBLE | WS_BORDER
     GROUPBOX        "Ping statistics",IDC_ICMP_PANEL,7,92,315,52,0,WS_EX_TRANSPARENT
-    LTEXT           "Average: 0 ms",IDC_ICMP_AVG,13,104,73,8
+    LTEXT           "Average: 0.00 ms",IDC_ICMP_AVG,13,104,73,8
     LTEXT           "Pings sent: 0",IDC_PINGS_SENT,91,104,88,8
     LTEXT           "Bad replies: 0",IDC_BAD_HASH,188,104,90,8
-    LTEXT           "Minimum: 0 ms",IDC_ICMP_MIN,13,116,73,8
+    LTEXT           "Minimum: 0.00 ms",IDC_ICMP_MIN,13,116,73,8
     LTEXT           "Pings lost: 0 (0%)",IDC_PINGS_LOST,91,116,88,8
     LTEXT           "Anon replies: 0",IDC_ANON_ADDR,188,116,87,8
-    LTEXT           "Maximum: 0 ms",IDC_ICMP_MAX,13,129,73,8
+    LTEXT           "Maximum: 0.00 ms",IDC_ICMP_MAX,13,129,73,8
     LTEXT           "Deviation: 0.00 ms",IDC_ICMP_STDEV,91,129,73,8
 END
 

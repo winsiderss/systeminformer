@@ -1,24 +1,13 @@
 /*
- * Process Hacker -
- *   KProcessHacker API
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2009-2016 wj32
- * Copyright (C) 2018-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2009-2016
+ *     dmex    2018-2020
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <ph.h>
@@ -365,6 +354,55 @@ SetValuesEnd:
     NtClose(parametersKeyHandle);
 
     return status;
+}
+
+BOOLEAN KphParametersExists(
+    _In_opt_ PWSTR ServiceName
+    )
+{
+    NTSTATUS status;
+    HANDLE parametersKeyHandle = NULL;
+    PH_STRINGREF parametersKeyNameSr;
+    PH_FORMAT format[3];
+    SIZE_T returnLength;
+    WCHAR parametersKeyName[MAX_PATH];
+
+    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+    PhInitFormatS(&format[1], ServiceName ? ServiceName : KPH_DEVICE_SHORT_NAME);
+    PhInitFormatS(&format[2], L"\\Parameters");
+
+    if (!PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        parametersKeyName,
+        sizeof(parametersKeyName),
+        &returnLength
+        ))
+    {
+        return FALSE;
+    }
+
+    parametersKeyNameSr.Buffer = parametersKeyName;
+    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+    status = PhOpenKey(
+        &parametersKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &parametersKeyNameSr,
+        0
+        );
+
+    if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
+    {
+        if (parametersKeyHandle)
+            NtClose(parametersKeyHandle);
+        return TRUE;
+    }
+
+    if (parametersKeyHandle)
+        NtClose(parametersKeyHandle);
+    return FALSE;
 }
 
 NTSTATUS KphResetParameters(

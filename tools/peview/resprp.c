@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2017-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2017-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -69,7 +58,6 @@ typedef struct _PV_RESOURCES_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
-    HANDLE UpdateTimerHandle;
 
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
@@ -162,19 +150,6 @@ VOID PvAddPendingResourcesNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
-VOID CALLBACK PvResourcesTreeUpdateCallback(
-    _In_ PPV_RESOURCES_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->UpdateTimerHandle)
-        return;
-
-    PvAddPendingResourcesNodes(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
-}
-
 PPH_STRING PvpGetResourceTypeString(
     _In_ ULONG_PTR Type
     )
@@ -224,7 +199,7 @@ PPH_STRING PvpPeResourceDumpFileName(
 {
     static PH_FILETYPE_FILTER filters[] =
     {
-        { L"Resouce data (*.data)", L"*.data" },
+        { L"Resource data (*.data)", L"*.data" },
         { L"All files (*.*)", L"*.*" }
     };
     PPH_STRING fileName = NULL;
@@ -430,7 +405,7 @@ NTSTATUS PvpPeResourcesEnumerateThread(
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
                     //resourceNode->HashString = PhGetNtMessage(GetExceptionCode());
-                    resourceNode->HashString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                    resourceNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
                 }
             }
 
@@ -452,7 +427,7 @@ NTSTATUS PvpPeResourcesEnumerateThread(
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
                     //resourceNode->EntropyString = PhGetNtMessage(GetExceptionCode());
-                    resourceNode->EntropyString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                    resourceNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
                 }
             }
 
@@ -521,27 +496,11 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
 
             PhCreateThread2(PvpPeResourcesEnumerateThread, context);
 
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PvResourcesTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
-
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PhSaveSettingsResourcesList(context);
             PvDeleteResourcesTree(context);
         }
@@ -603,12 +562,6 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PvAddPendingResourcesNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyResourcesText, 0);
@@ -668,6 +621,17 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
 
                 PhDestroyEMenu(menu);
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

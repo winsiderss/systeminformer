@@ -1,23 +1,12 @@
 /*
- * Process Hacker Extended Tools -
- *   Firewall monitoring
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2020-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -538,7 +527,7 @@ PPH_STRING EtFwGetDnsReverseNameFromAddress(
             {
                 PH_FORMAT format[4];
                 SIZE_T returnLength;
-                WCHAR reverseNameBuffer[PH_INT32_STR_LEN_1];
+                WCHAR reverseNameBuffer[IP6_REVERSE_DOMAIN_STRING_LENGTH];
 
                 PhInitFormatX(&format[0], Address->In6Addr.s6_addr[i] & 0xF);
                 PhInitFormatC(&format[1], L'.');
@@ -584,8 +573,10 @@ PPH_STRING EtFwGetNameFromAddress(
     _In_ PPH_IP_ADDRESS Address
     )
 {
+    BOOLEAN dnsLocalQuery = FALSE;
     PPH_STRING addressEndpointString = NULL;
     PPH_STRING addressReverseString;
+    PDNS_RECORD dnsRecordList;
 
     switch (Address->Type)
     {
@@ -593,86 +584,82 @@ PPH_STRING EtFwGetNameFromAddress(
         {
             if (IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr))
                 return NULL;
+
+            if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+                IN4_IS_ADDR_BROADCAST(&Address->InAddr) ||
+                IN4_IS_ADDR_MULTICAST(&Address->InAddr) ||
+                IN4_IS_ADDR_LINKLOCAL(&Address->InAddr) ||
+                IN4_IS_ADDR_MC_LINKLOCAL(&Address->InAddr) ||
+                IN4_IS_ADDR_RFC1918(&Address->InAddr))
+            {
+                dnsLocalQuery = TRUE;
+            }
         }
         break;
     case PH_IPV6_NETWORK_TYPE:
         {
             if (IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr))
                 return NULL;
+
+            if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
+                IN6_IS_ADDR_MULTICAST(&Address->In6Addr) ||
+                IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr) ||
+                IN6_IS_ADDR_MC_LINKLOCAL(&Address->In6Addr))
+            {
+                dnsLocalQuery = TRUE;
+            }
         }
         break;
     }
 
-    if (EtFwEnableResolveCache && (addressReverseString = EtFwGetDnsReverseNameFromAddress(Address)))
+    if (!(addressReverseString = EtFwGetDnsReverseNameFromAddress(Address)))
     {
-        BOOLEAN dnsLocalQuery = FALSE;
-        PDNS_RECORD dnsRecordList = NULL;
-
-        switch (Address->Type)
-        {
-        case PH_IPV4_NETWORK_TYPE:
-            {
-                if (IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
-                    IN4_IS_ADDR_BROADCAST(&Address->InAddr) ||
-                    IN4_IS_ADDR_MULTICAST(&Address->InAddr) ||
-                    IN4_IS_ADDR_LINKLOCAL(&Address->InAddr) ||
-                    IN4_IS_ADDR_MC_LINKLOCAL(&Address->InAddr) ||
-                    IN4_IS_ADDR_RFC1918(&Address->InAddr))
-                {
-                    dnsLocalQuery = TRUE;
-                }
-            }
-            break;
-        case PH_IPV6_NETWORK_TYPE:
-            {
-                if (IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
-                    IN6_IS_ADDR_MULTICAST(&Address->In6Addr) ||
-                    IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr) ||
-                    IN6_IS_ADDR_MC_LINKLOCAL(&Address->In6Addr))
-                {
-                    dnsLocalQuery = TRUE;
-                }
-            }
-            break;
-        }
-
-        if (EtFwEnableResolveDoH && !dnsLocalQuery)
-        {
-            dnsRecordList = PhDnsQuery(
-                NULL,
-                addressReverseString->Buffer,
-                DNS_TYPE_PTR
-                );
-        }
-        else
-        {
-            dnsRecordList = PhDnsQuery2(
-                NULL,
-                addressReverseString->Buffer,
-                DNS_TYPE_PTR,
-                DNS_QUERY_STANDARD
-                );
-        }
-
-        if (dnsRecordList)
-        {
-            for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
-            {
-                if (dnsRecord->wType == DNS_TYPE_PTR)
-                {
-                    addressEndpointString = PhCreateString(dnsRecord->Data.PTR.pNameHost);
-                    break;
-                }
-            }
-
-            PhDnsFree(dnsRecordList);
-        }
-
-        PhDereferenceObject(addressReverseString);
+        if (dnsLocalQuery) // See note below (dmex)
+            return PhReferenceEmptyString();
+        return NULL;
     }
 
-    if (!addressEndpointString)
-        addressEndpointString = PhReferenceEmptyString();
+    if (EtFwEnableResolveDoH && !dnsLocalQuery)
+    {
+        dnsRecordList = PhDnsQuery(
+            NULL,
+            addressReverseString->Buffer,
+            DNS_TYPE_PTR
+            );
+    }
+    else
+    {
+        dnsRecordList = PhDnsQuery2(
+            NULL,
+            addressReverseString->Buffer,
+            DNS_TYPE_PTR,
+            DNS_QUERY_NO_HOSTS_FILE // DNS_QUERY_BYPASS_CACHE
+            );
+    }
+
+    PhDereferenceObject(addressReverseString);
+
+    if (dnsRecordList)
+    {
+        for (PDNS_RECORD dnsRecord = dnsRecordList; dnsRecord; dnsRecord = dnsRecord->pNext)
+        {
+            if (dnsRecord->wType == DNS_TYPE_PTR)
+            {
+                addressEndpointString = PhCreateString(dnsRecord->Data.PTR.pNameHost); // Return the first result (dmex)
+                break;
+            }
+        }
+
+        PhDnsFree(dnsRecordList);
+    }
+
+    if (dnsLocalQuery && PhIsNullOrEmptyString(addressEndpointString))
+    {
+        // If the local hostname query failed then we'll cache an empty string.
+        // The hostname lookup generates a firewall event, caching the null string for 
+        // these requests prevents hostname lookups generating infinite firewall events. (dmex)
+        PhMoveReference(&addressEndpointString, PhReferenceEmptyString());
+    }
 
     return addressEndpointString;
 }
@@ -738,10 +725,10 @@ VOID EtFwQueueNetworkItemQuery(
 
     if (!EtFwEnableResolveCache)
     {
-        if (Remote) // HACK != null used as status (dmex) 
-            EventItem->RemoteHostnameString = PhReferenceEmptyString();
+        if (Remote)
+            EventItem->RemoteHostnameResolved = TRUE;
         else
-            EventItem->LocalHostnameString = PhReferenceEmptyString();
+            EventItem->LocalHostnameResolved = TRUE;
         return;
     }
 
@@ -781,9 +768,15 @@ VOID EtFwFlushHostNameData(
         entry = entry->Next;
 
         if (data->Remote)
+        {
             PhMoveReference(&data->EventItem->RemoteHostnameString, data->HostString);
+            data->EventItem->RemoteHostnameResolved = TRUE;
+        }
         else
+        {
             PhMoveReference(&data->EventItem->LocalHostnameString, data->HostString);
+            data->EventItem->LocalHostnameResolved = TRUE;
+        }
 
         data->EventItem->JustResolved = TRUE;
 
@@ -809,6 +802,7 @@ VOID PhpQueryHostnameForEntry(
         {
             PhReferenceObject(cacheItem->HostString);
             Entry->LocalHostnameString = cacheItem->HostString;
+            Entry->LocalHostnameResolved = TRUE;
         }
         else
         {
@@ -817,7 +811,7 @@ VOID PhpQueryHostnameForEntry(
     }
     else
     {
-        Entry->LocalHostnameString = PhReferenceEmptyString();
+        Entry->LocalHostnameResolved = TRUE;
     }
 
     // Remote
@@ -831,6 +825,7 @@ VOID PhpQueryHostnameForEntry(
         {
             PhReferenceObject(cacheItem->HostString);
             Entry->RemoteHostnameString = cacheItem->HostString;
+            Entry->RemoteHostnameResolved = TRUE;
         }
         else
         {
@@ -839,56 +834,43 @@ VOID PhpQueryHostnameForEntry(
     }
     else
     {
-        Entry->RemoteHostnameString = PhReferenceEmptyString();
+        Entry->RemoteHostnameResolved = TRUE;
     }
 }
 
 PPH_PROCESS_ITEM EtFwFileNameToProcess(
-    _In_ PPH_STRING ProcessBaseString
+    _In_ PPH_STRING ProcessFileName
     )
 {
-    static PVOID processInfo = NULL;
-    static ULONG64 lastTickTotal = 0;
-    PSYSTEM_PROCESS_INFORMATION process;
-    ULONG64 tickCount = NtGetTickCount64();
+    PPH_PROCESS_ITEM* processItems;
+    ULONG numberOfProcessItems;
 
-    if (tickCount - lastTickTotal >= 120 * CLOCKS_PER_SEC)
+    if (
+        ProcessFileName->Length == 12 &&
+        PhEqualString2(ProcessFileName, L"System", TRUE)
+        )
     {
-        lastTickTotal = tickCount;
+        return PhReferenceProcessItem(SYSTEM_PROCESS_ID);
+    }
 
-        if (processInfo)
+    PhEnumProcessItems(&processItems, &numberOfProcessItems);
+
+    for (ULONG i = 0; i < numberOfProcessItems; i++)
+    {
+        if (
+            processItems[i]->FileName &&
+            PhEqualString(processItems[i]->FileName, ProcessFileName, TRUE)
+            )
         {
-            PhFree(processInfo);
-            processInfo = NULL;
+            PVOID object = PhReferenceObject(processItems[i]);
+            PhDereferenceObjects(processItems, numberOfProcessItems);
+            PhFree(processItems);
+            return object;
         }
-
-        PhEnumProcesses(&processInfo);
     }
 
-    if (!processInfo)
-    {
-        PhEnumProcesses(&processInfo);
-    }
-
-    if (process = PhFindProcessInformationByImageName(processInfo, &ProcessBaseString->sr))
-    {
-        return PhReferenceProcessItem(process->UniqueProcessId);
-    }
-
-    lastTickTotal = tickCount;
-
-    if (processInfo)
-    {
-        PhFree(processInfo);
-        processInfo = NULL;
-    }
-
-    PhEnumProcesses(&processInfo);
-
-    if (process = PhFindProcessInformationByImageName(processInfo, &ProcessBaseString->sr))
-    {
-        return PhReferenceProcessItem(process->UniqueProcessId);
-    }
+    PhDereferenceObjects(processItems, numberOfProcessItems);
+    PhFree(processItems);
 
     return NULL;
 }
@@ -1040,6 +1022,9 @@ BOOLEAN EtFwGetFilterDisplayData(
     )
 {
     PETFW_FILTER_DISPLAY_CONTEXT entry;
+    PPH_STRING filterName = NULL;
+    PPH_STRING filterDescription = NULL;
+    FWPM_FILTER* filter;
 
     if (!EtFwFilterDisplayDataHashTable)
         return FALSE;
@@ -1062,11 +1047,7 @@ BOOLEAN EtFwGetFilterDisplayData(
 
     PhReleaseQueuedLockShared(&EtFwFilterDisplayDataHashTableLock);
 
-    PPH_STRING filterName = NULL;
-    PPH_STRING filterDescription = NULL;
-    FWPM_FILTER* filter;
-
-    if (FilterId && FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
+    if (FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
     {
         if (filter->displayData.name)
             filterName = PhCreateString(filter->displayData.name);
@@ -1508,7 +1489,7 @@ VOID EtFwFlushCache(
     static ULONG64 lastTickCount = 0;
     ULONG64 tickCount = NtGetTickCount64();
 
-    if (tickCount - lastTickCount >= 120 * CLOCKS_PER_SEC)
+    if (tickCount - lastTickCount >= 120 * 1000)
     {
         // Hostname cache
         if (EtFwResolveCacheHashtable)
@@ -1688,29 +1669,29 @@ VOID CALLBACK EtFwEventCallback(
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_APP_ID_SET)
     {
-        if (FwEvent->header.appId.data && FwEvent->header.appId.size)
+        if (FwEvent->header.appId.data && FwEvent->header.appId.size > sizeof(UNICODE_NULL))
         {
             PPH_STRING fileName;
 
-            fileName = PhCreateStringEx((PWSTR)FwEvent->header.appId.data, (SIZE_T)FwEvent->header.appId.size);
+            fileName = PhCreateStringEx(
+                (PWSTR)FwEvent->header.appId.data,
+                (SIZE_T)FwEvent->header.appId.size - sizeof(UNICODE_NULL)
+                );
+
             entry.ProcessFileName = PhGetFileName(fileName);
-
-            PhDereferenceObject(fileName);
-        }
-
-        if (entry.ProcessFileName)
-        {
             entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
 
-            if (entry.ProcessItem = EtFwFileNameToProcess(entry.ProcessBaseString))
+            if (entry.ProcessItem = EtFwFileNameToProcess(fileName))
             {
                 // We get a lower case filename from the firewall netevent which is inconsistent
                 // with the file_object paths we get elsewhere. Switch the filename here
                 // to the same filename as the process. (dmex)
                 PhSwapReference(&entry.ProcessFileName, entry.ProcessItem->FileName);
                 PhSwapReference(&entry.ProcessFileNameWin32, entry.ProcessItem->FileNameWin32);
-                PhMoveReference(&entry.ProcessBaseString, PhGetBaseName(entry.ProcessFileName));
+                PhSwapReference(&entry.ProcessBaseString, entry.ProcessItem->ProcessName);
             }
+
+            PhDereferenceObject(fileName);
         }
     }
 
@@ -1866,7 +1847,7 @@ ULONG EtFwMonitorInitialize(
     // Create a non-dynamic BFE session
 
     session.flags = 0;
-    session.displayData.name  = L"ProcessHackerFirewallSession";
+    session.displayData.name  = L"SiEtwFirewallSession";
     session.displayData.description = L"";
 
     status = FwpmEngineOpen(

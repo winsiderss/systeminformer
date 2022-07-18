@@ -1,23 +1,12 @@
 /*
- * Process Hacker -
- *   PE viewer
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2019-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2019-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <peview.h>
@@ -86,7 +75,6 @@ typedef struct _PV_SECTION_CONTEXT
     HWND SearchHandle;
     HWND TreeNewHandle;
     HWND ParentWindowHandle;
-    HANDLE UpdateTimerHandle;
 
     PPH_STRING SearchboxText;
     PPH_STRING TreeText;
@@ -215,19 +203,6 @@ VOID PvAddPendingSectionNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
-VOID CALLBACK PvSectionTreeUpdateCallback(
-    _In_ PPV_SECTION_CONTEXT Context,
-    _In_ BOOLEAN TimerOrWaitFired
-    )
-{
-    if (!Context->UpdateTimerHandle)
-        return;
-
-    PvAddPendingSectionNodes(Context);
-
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
-}
-
 PPH_STRING PvGetSectionCharacteristics(
     _In_ ULONG Characteristics
     )
@@ -302,7 +277,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         WCHAR value[PH_INT64_STR_LEN_1];
 
         sectionNode = PhAllocateZero(sizeof(PV_SECTION_NODE));
-        sectionNode->UniqueId = i + 1;
+        sectionNode->UniqueId = UInt32Add32To64(i, 1);
         sectionNode->UniqueIdString = PhFormatUInt64(sectionNode->UniqueId, FALSE);
         sectionNode->SectionHeader = &PvMappedImage.Sections[i];
 
@@ -360,7 +335,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->HashString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->HashString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->HashString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
 
             __try
@@ -383,7 +358,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->EntropyString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->EntropyString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->EntropyString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
 
             __try
@@ -408,7 +383,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->SsdeepString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->SsdeepString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->SsdeepString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
 
             __try
@@ -437,7 +412,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 //sectionNode->TlshString = PhGetNtMessage(GetExceptionCode());
-                sectionNode->TlshString = PhGetWin32Message(RtlNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+                sectionNode->TlshString = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
             }
         }
 
@@ -503,27 +478,11 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
 
             PhCreateThread2(PvpPeSectionsEnumerateThread, context);
 
-            RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
-                &context->UpdateTimerHandle,
-                PvSectionTreeUpdateCallback,
-                context,
-                0,
-                1000,
-                0
-                );
-
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PhSaveSettingsSectionList(context);
             PvDeleteSectionTree(context);
         }
@@ -661,12 +620,6 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
-            if (context->UpdateTimerHandle)
-            {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
-                context->UpdateTimerHandle = NULL;
-            }
-
             PvAddPendingSectionNodes(context);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptySectionsText, 0);
@@ -718,6 +671,17 @@ INT_PTR CALLBACK PvPeSectionsDlgProc(
 
                 PhDestroyEMenu(menu);
             }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+        {
+            SetBkMode((HDC)wParam, TRANSPARENT);
+            SetTextColor((HDC)wParam, RGB(0, 0, 0));
+            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
+            return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
     }

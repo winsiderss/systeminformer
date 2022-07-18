@@ -1,24 +1,13 @@
 /*
- * Process Hacker Extended Tools -
- *   ETW monitoring
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2010-2015 wj32
- * Copyright (C) 2019-2021 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2010-2015
+ *     dmex    2019-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "exttools.h"
@@ -52,7 +41,7 @@ NTSTATUS EtpRundownEtwMonitorThreadStart(
     _In_ PVOID Parameter
     );
 
-static GUID ProcessHackerGuid = { 0x1288c53b, 0xaf35, 0x481b, { 0xb6, 0xb5, 0xa0, 0x5c, 0x39, 0x87, 0x2e, 0xd } };
+static GUID SystemInformerGuid = { 0x3875f5e7, 0x8f79, 0x406c, { 0x8c, 0xb9, 0xee, 0x8f, 0xd8, 0xbf, 0xcf, 0xbd } };
 static GUID SystemTraceControlGuid_I = { 0x9e814aad, 0x3204, 0x11d2, { 0x9a, 0x82, 0x00, 0x60, 0x08, 0xa8, 0x69, 0x39 } };
 static GUID KernelRundownGuid_I = { 0x3b9c9951, 0x3480, 0x4220, { 0x93, 0x77, 0x9c, 0x8e, 0x51, 0x84, 0xf5, 0xcd } };
 static GUID DiskIoGuid_I = { 0x3d6fa8d4, 0xfe05, 0x11d0, { 0x9d, 0xda, 0x00, 0xc0, 0x4f, 0xd7, 0xba, 0x7c } };
@@ -65,7 +54,7 @@ static GUID UdpIpGuid_I = { 0xbf3a50c5, 0xa9c9, 0x4988, { 0xa0, 0x05, 0x2d, 0xf0
 BOOLEAN EtEtwEnabled = FALSE;
 ULONG EtEtwStatus = ERROR_SUCCESS;
 static UNICODE_STRING EtpSharedKernelLoggerName = RTL_CONSTANT_STRING(KERNEL_LOGGER_NAME);
-static UNICODE_STRING EtpPrivateKernelLoggerName = RTL_CONSTANT_STRING(L"PhEtKernelLogger");
+static UNICODE_STRING EtpPrivateKernelLoggerName = RTL_CONSTANT_STRING(L"SiEtwKernelSession");
 static TRACEHANDLE EtpSessionHandle = INVALID_PROCESSTRACE_HANDLE;
 static PUNICODE_STRING EtpActualKernelLoggerName = NULL;
 static PGUID EtpActualSessionGuid = NULL;
@@ -76,7 +65,7 @@ static BOOLEAN EtpEtwExiting = FALSE;
 
 // ETW rundown layer
 
-static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"PhEtRundownLogger");
+static UNICODE_STRING EtpRundownLoggerName = RTL_CONSTANT_STRING(L"SiEtwRundownSession");
 static TRACEHANDLE EtpRundownSessionHandle = INVALID_PROCESSTRACE_HANDLE;
 static PEVENT_TRACE_PROPERTIES EtpRundownTraceProperties = NULL;
 static BOOLEAN EtpRundownActive = FALSE;
@@ -122,7 +111,7 @@ VOID EtStartEtwSession(
     if (PhWindowsVersion >= WINDOWS_8)
     {
         EtpActualKernelLoggerName = &EtpPrivateKernelLoggerName;
-        EtpActualSessionGuid = &ProcessHackerGuid;
+        EtpActualSessionGuid = &SystemInformerGuid;
     }
     else
     {
@@ -141,10 +130,9 @@ VOID EtStartEtwSession(
     EtpTraceProperties->Wnode.ClientContext = 1;
     EtpTraceProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     EtpTraceProperties->MinimumBuffers = 1;
-    EtpTraceProperties->BufferSize = 64;
     EtpTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
     EtpTraceProperties->FlushTimer = 1;
-    EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_DISK_FILE_IO | EVENT_TRACE_FLAG_NETWORK_TCPIP;
+    EtpTraceProperties->EnableFlags = EVENT_TRACE_FLAG_DISK_IO | EVENT_TRACE_FLAG_DISK_FILE_IO | EVENT_TRACE_FLAG_NETWORK_TCPIP | EVENT_TRACE_FLAG_NO_SYSCONFIG;
     EtpTraceProperties->LogFileNameOffset = 0;
     EtpTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
@@ -276,8 +264,16 @@ VOID NTAPI EtpEtwEventCallback(
 
             if (PhWindowsVersion >= WINDOWS_8)
             {
-                diskEvent.ClientId.UniqueThread = UlongToHandle(data->IssuingThreadId);
-                diskEvent.ClientId.UniqueProcess = EtThreadIdToProcessId(diskEvent.ClientId.UniqueThread);
+                if (data->IssuingThreadId != ULONG_MAX)
+                {
+                    diskEvent.ClientId.UniqueThread = UlongToHandle(data->IssuingThreadId);
+                    diskEvent.ClientId.UniqueProcess = EtThreadIdToProcessId(diskEvent.ClientId.UniqueThread);
+                }
+                else
+                {
+                    diskEvent.ClientId.UniqueThread = 0;
+                    diskEvent.ClientId.UniqueProcess = SYSTEM_PROCESS_ID;
+                }
             }
             else
             {
@@ -285,6 +281,11 @@ VOID NTAPI EtpEtwEventCallback(
                 {
                     diskEvent.ClientId.UniqueProcess = UlongToHandle(EventRecord->EventHeader.ProcessId);
                     diskEvent.ClientId.UniqueThread = UlongToHandle(EventRecord->EventHeader.ThreadId);
+                }
+                else
+                {
+                    diskEvent.ClientId.UniqueThread = 0;
+                    diskEvent.ClientId.UniqueProcess = SYSTEM_PROCESS_ID;
                 }
             }
 
@@ -317,8 +318,6 @@ VOID NTAPI EtpEtwEventCallback(
         case 35: // FileDelete
             fileEvent.Type = EtEtwFileDeleteType;
             break;
-        default:
-            break;
         }
 
         if (fileEvent.Type != ULONG_MAX)
@@ -328,14 +327,14 @@ VOID NTAPI EtpEtwEventCallback(
                 FileIo_Name_Wow64 *dataWow64 = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)dataWow64->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, dataWow64->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, dataWow64->FileName);
             }
             else
             {
                 FileIo_Name *data = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)data->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, data->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, data->FileName);
             }
 
             EtDiskProcessFileEvent(&fileEvent);
@@ -440,6 +439,8 @@ NTSTATUS EtpEtwMonitorThreadStart(
     EVENT_TRACE_LOGFILE logFile;
     TRACEHANDLE traceHandle;
 
+    PhSetThreadName(NtCurrentThread(), L"SiEtwMonitorThread");
+
     memset(&logFile, 0, sizeof(EVENT_TRACE_LOGFILE));
     logFile.LoggerName = EtpActualKernelLoggerName->Buffer;
     logFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD;
@@ -495,8 +496,8 @@ ULONG EtStartEtwRundown(
     EtpRundownTraceProperties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     EtpRundownTraceProperties->MinimumBuffers = 1;
     EtpRundownTraceProperties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-    EtpRundownTraceProperties->BufferSize = 1024; // 1MB session buffer (dmex)
     EtpRundownTraceProperties->FlushTimer = 1;
+    EtpRundownTraceProperties->EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
     EtpRundownTraceProperties->LogFileNameOffset = 0;
     EtpRundownTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
@@ -576,8 +577,6 @@ VOID NTAPI EtpRundownEtwEventCallback(
         case 36: // FileRundown
             fileEvent.Type = EtEtwFileRundownType;
             break;
-        default:
-            break;
         }
 
         if (fileEvent.Type != ULONG_MAX)
@@ -587,14 +586,14 @@ VOID NTAPI EtpRundownEtwEventCallback(
                 FileIo_Name_Wow64 *dataWow64 = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)dataWow64->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, dataWow64->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, dataWow64->FileName);
             }
             else
             {
                 FileIo_Name *data = EventRecord->UserData;
 
                 fileEvent.FileObject = (PVOID)data->FileObject;
-                PhInitializeStringRef(&fileEvent.FileName, data->FileName);
+                PhInitializeStringRefLongHint(&fileEvent.FileName, data->FileName);
             }
 
             EtDiskProcessFileEvent(&fileEvent);
@@ -626,7 +625,22 @@ NTSTATUS EtpRundownEtwMonitorThreadStart(
         // into EtpEtwEventCallback and enable after the first IO_READ/IO_WRITE event. (dmex)
         if (!EtpRundownEnabled && EtpRundownSessionHandle != INVALID_PROCESSTRACE_HANDLE)
         {
-            EnableTraceEx(&KernelRundownGuid_I, NULL, EtpRundownSessionHandle, 1, 0, 0x10, 0, 0, NULL);
+            ENABLE_TRACE_PARAMETERS enableParameters;
+
+            memset(&enableParameters, 0, sizeof(ENABLE_TRACE_PARAMETERS));
+            enableParameters.Version = ENABLE_TRACE_PARAMETERS_VERSION_2;
+
+            EnableTraceEx2(
+                EtpRundownSessionHandle,
+                &KernelRundownGuid_I,
+                EVENT_CONTROL_CODE_ENABLE_PROVIDER,
+                TRACE_LEVEL_NONE,
+                0x10,
+                0,
+                0,
+                &enableParameters
+                );
+
             EtpRundownEnabled = TRUE;
         }
 

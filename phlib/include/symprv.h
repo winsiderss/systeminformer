@@ -54,12 +54,18 @@ typedef struct _PH_SYMBOL_LINE_INFORMATION
     ULONG64 Address;
 } PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_INFORMATION;
 
+typedef enum _PH_SYMBOL_EVENT_TYPE
+{
+    PH_SYMBOL_EVENT_TYPE_LOAD_START,
+    PH_SYMBOL_EVENT_TYPE_LOAD_END,
+    PH_SYMBOL_EVENT_TYPE_PROGRESS,
+} PH_SYMBOL_EVENT_TYPE;
+
 typedef struct _PH_SYMBOL_EVENT_DATA
 {
-    ULONG ActionCode;
-    HANDLE ProcessHandle;
-    PPH_SYMBOL_PROVIDER SymbolProvider;
-    PVOID EventData;
+    PH_SYMBOL_EVENT_TYPE EventType;
+    PVOID EventMessage;
+    ULONG64 EventProgress;
 } PH_SYMBOL_EVENT_DATA, *PPH_SYMBOL_EVENT_DATA;
 
 PHLIBAPI
@@ -118,6 +124,16 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhLoadModuleSymbolProvider(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG64 BaseAddress,
+    _In_ ULONG Size
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhLoadFileNameSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_STRING FileName,
     _In_ ULONG64 BaseAddress,
@@ -307,7 +323,7 @@ typedef struct _PH_SYMBOL_INFO
     ULONG TypeIndex;   // Type Index of symbol
     ULONG Index;
     ULONG Size;
-    ULONG64 ModBase;   // Base Address of module comtaining this symbol
+    ULONG64 ModBase;   // Base Address of module containing this symbol
     ULONG Flags;
     ULONG64 Value;     // Value of symbol, ValuePresent should be 1
     ULONG64 Address;   // Address of symbol including base address of module
@@ -362,7 +378,7 @@ typedef union _INLINE_FRAME_CONTEXT
         UCHAR FrameType;
         USHORT FrameSignature;
     };
-} INLINE_FRAME_CONTEXT;
+} INLINE_FRAME_CONTEXT, *PINLINE_FRAME_CONTEXT;
 
 #define STACK_FRAME_TYPE_INIT 0x00
 #define STACK_FRAME_TYPE_STACK 0x01
@@ -410,7 +426,7 @@ PhGetSymbolFromInlineContext(
     _Out_opt_ PPH_STRING* FileName,
     _Out_opt_ PPH_STRING* SymbolName,
     _Out_opt_ PULONG64 Displacement,
-    _Out_opt_ PULONG64 ModuleBaseAddress
+    _Out_opt_ PULONG64 BaseAddress
     );
 
 _Success_(return)
@@ -420,7 +436,7 @@ NTAPI
 PhGetLineFromInlineContext(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ ULONG64 ModuleBaseAddress,
+    _In_opt_ ULONG64 BaseAddress,
     _Out_ PPH_STRING* FileName,
     _Out_opt_ PULONG Displacement,
     _Out_opt_ PPH_SYMBOL_LINE_INFORMATION Information

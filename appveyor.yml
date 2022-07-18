@@ -1,6 +1,6 @@
 # Build image.
 image: Visual Studio 2022
-#cache: C:\projects\processhacker
+#cache: C:\projects\systeminformer
 
 # Version format.
 version: "#{build}"
@@ -18,7 +18,7 @@ pull_requests:
 skip_tags: true
 
 # Set the clone directory on the buildbot.
-clone_folder: C:\projects\processhacker
+clone_folder: C:\projects\systeminformer
 
 # Immediately finish build if something fails.
 matrix:

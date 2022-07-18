@@ -1,23 +1,12 @@
 ﻿/*
- * Process Hacker Plugins -
- *   Hardware Devices Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2015-2020 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     wj32    2015-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "devices.h"
@@ -27,7 +16,7 @@ VOID DiskDriveUpdateGraphs(
     )
 {
     Context->GraphState.Valid = FALSE;
-    Context->GraphState.TooltipIndex = -1;
+    Context->GraphState.TooltipIndex = ULONG_MAX;
     Graph_MoveGrid(Context->GraphHandle, 1);
     Graph_Draw(Context->GraphHandle);
     Graph_UpdateTooltip(Context->GraphHandle);
@@ -85,6 +74,20 @@ VOID DiskDriveUpdatePanel(
         PhSetWindowText(Context->DiskDrivePanelBytesLabel, formatBuffer);
     else
         PhSetWindowText(Context->DiskDrivePanelBytesLabel, PhaFormatString(L"%s/s", PhaFormatSize(Context->DiskEntry->BytesReadDelta.Delta + Context->DiskEntry->BytesWrittenDelta.Delta, ULONG_MAX)->Buffer)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], Context->DiskEntry->QueueDepth);
+
+    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH), formatBuffer);
+    else
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH), PhaFormatString(L"%lu", Context->DiskEntry->QueueDepth)->Buffer);
+
+    PhInitFormatI64UGroupDigits(&format[0], Context->DiskEntry->SplitCount);
+
+    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_SPLITCOUNT), formatBuffer);
+    else
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_SPLITCOUNT), PhaFormatString(L"%lu", Context->DiskEntry->SplitCount)->Buffer);
 }
 
 VOID DiskDriveUpdateTitle(
@@ -298,7 +301,12 @@ INT_PTR CALLBACK DiskDriveDialogProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
+        {
+            context->GraphState.Valid = FALSE;
+            context->GraphState.TooltipIndex = ULONG_MAX;
+
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
         break;
     case WM_NOTIFY:
         {
@@ -444,6 +452,22 @@ BOOLEAN DiskDriveSectionCallback(
             if (context->WindowHandle)
             {
                 DiskDriveTickDialog(context);
+            }
+        }
+        return TRUE;
+    case SysInfoViewChanging:
+        {
+            PH_SYSINFO_VIEW_TYPE view = (PH_SYSINFO_VIEW_TYPE)Parameter1;
+            PPH_SYSINFO_SECTION section = (PPH_SYSINFO_SECTION)Parameter2;
+
+            if (view == SysInfoSummaryView || section != Section)
+                return TRUE;
+
+            if (context->GraphHandle)
+            {
+                context->GraphState.Valid = FALSE;
+                context->GraphState.TooltipIndex = ULONG_MAX;
+                Graph_Draw(context->GraphHandle);
             }
         }
         return TRUE;
