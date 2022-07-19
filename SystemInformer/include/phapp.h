@@ -119,6 +119,10 @@ VOID PhInitializeFont(
     VOID
     );
 
+VOID PhInitializeMonospaceFont(
+    VOID
+    );
+
 // plugin
 
 extern PH_AVL_TREE PhPluginsByName;
@@ -711,7 +715,8 @@ HFONT
 PhCreateFont(
     _In_ PWSTR Name,
     _In_ ULONG Size,
-    _In_ ULONG Weight
+    _In_ ULONG Weight,
+    _In_ ULONG PitchAndFamily
     )
 {
     return CreateFont(
@@ -727,7 +732,7 @@ PhCreateFont(
         OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS,
         DEFAULT_QUALITY,
-        DEFAULT_PITCH,
+        PitchAndFamily,
         Name
         );
 }

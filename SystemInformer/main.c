@@ -551,14 +551,33 @@ VOID PhInitializeFont(
     HFONT oldFont = PhApplicationFont;
 
     if (
-        !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
-        !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL))
+        !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH)) &&
+        !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH))
         )
     {
         if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
             PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
         else
             PhApplicationFont = NULL;
+    }
+
+    if (oldFont) DeleteFont(oldFont);
+}
+
+VOID PhInitializeMonospaceFont(
+    VOID
+)
+{
+    NONCLIENTMETRICS metrics = { sizeof(metrics) };
+    HFONT oldFont = PhMonospaceFont;
+
+    if (
+        !(PhMonospaceFont = PhCreateFont(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN)) &&
+        !(PhMonospaceFont = PhCreateFont(L"Courier New", 9, FW_DONTCARE, FF_MODERN)) &&
+        !(PhMonospaceFont = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN))
+        )
+    {
+        PhMonospaceFont = GetStockObject(SYSTEM_FIXED_FONT);
     }
 
     if (oldFont) DeleteFont(oldFont);

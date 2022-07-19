@@ -5576,34 +5576,13 @@ VOID PhTnpDrawCell(
     RECT textRect; // working rectangle, modified as needed
     ULONG textFlags; // DT_* flags
     LONG iconVerticalMargin; // top/bottom margin for icons (determined using height of small icon)
-    static HFONT fixedWidthFont = NULL;
 
     font = Node->Font;
     textFlags = Column->TextFlags;
 
     if (Column->Alignment & PH_ALIGN_MONOSPACE_FONT)
     {
-        if (fixedWidthFont == NULL)
-        {
-            fixedWidthFont = CreateFontA(
-                0, // cHeight -- use default
-                0, // cWidth -- use default
-                0, // cEscapement
-                0, // cOrientation
-                FW_DONTCARE, // cWeight
-                FALSE, // bItalic
-                FALSE, // bUnderline
-                FALSE, // bStrikeOut
-                ANSI_CHARSET, // iCharSet
-                OUT_DEFAULT_PRECIS, // iOutPrecision
-                CLIP_DEFAULT_PRECIS, // iClipPrecision
-                DEFAULT_QUALITY, // iQuality
-                FF_MODERN, // iPitchAndFamily -- Mono space
-                NULL // pszFaceName -- NULL to use first font that matches attributes
-            );
-        }
-
-        font = fixedWidthFont;
+        font = PhMonospaceFont;
     }
 
     textRect = *CellRect;
