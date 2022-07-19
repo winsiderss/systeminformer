@@ -2091,7 +2091,7 @@ BOOLEAN PhShellOpenKey2(
     BOOLEAN result = FALSE;
     HWND regeditWindow;
     HANDLE favoritesKeyHandle;
-    WCHAR favoriteName[32];
+    WCHAR favoriteName[33];
     PH_STRINGREF valueName;
     PPH_STRING expandedKeyName;
 
@@ -2122,8 +2122,8 @@ BOOLEAN PhShellOpenKey2(
         )))
         goto CleanupExit;
 
-    memcpy(favoriteName, L"A_SystemInformer", 15 * sizeof(WCHAR));
-    PhGenerateRandomAlphaString(&favoriteName[15], 16);
+    memcpy(favoriteName, L"A_SystemInformer", 16 * sizeof(WCHAR));
+    PhGenerateRandomAlphaString(&favoriteName[16], 16);
     PhInitializeStringRefLongHint(&valueName, favoriteName);
 
     expandedKeyName = PhExpandKeyName(KeyName, FALSE);
