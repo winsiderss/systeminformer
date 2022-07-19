@@ -3637,7 +3637,7 @@ VOID PhMwpInvokeUpdateWindowFont(
 
 VOID PhMwpInvokeUpdateWindowFontMonospace(
     _In_opt_ PVOID Parameter
-)
+    )
 {
     HFONT oldFont = PhMonospaceFont;
     HFONT newFont;

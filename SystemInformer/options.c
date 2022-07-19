@@ -719,7 +719,7 @@ static BOOLEAN GetCurrentFont(
 _Success_(return)
 static BOOLEAN GetCurrentFontMonospace(
     _Out_ PLOGFONT Font
-)
+    )
 {
     BOOLEAN result;
     PPH_STRING fontHexString;

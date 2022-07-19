@@ -566,7 +566,7 @@ VOID PhInitializeFont(
 
 VOID PhInitializeMonospaceFont(
     VOID
-)
+    )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
     HFONT oldFont = PhMonospaceFont;
