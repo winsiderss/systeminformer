@@ -5576,9 +5576,15 @@ VOID PhTnpDrawCell(
     RECT textRect; // working rectangle, modified as needed
     ULONG textFlags; // DT_* flags
     LONG iconVerticalMargin; // top/bottom margin for icons (determined using height of small icon)
+    static HFONT systemFixedFont = NULL;
 
-    font = Node->Font;
-    textFlags = Column->TextFlags;
+    if (systemFixedFont == NULL)
+    {
+        systemFixedFont = GetStockObject(SYSTEM_FIXED_FONT);
+    }
+
+    font = !!(Column->TextFlags & PH_TREENEW_FIXED_WIDTH_FONT) ? systemFixedFont : Node->Font;
+    textFlags = Column->TextFlags & ~PH_TREENEW_CUSTOM_FLAGS;
 
     textRect = *CellRect;
 
