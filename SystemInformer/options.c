@@ -221,7 +221,7 @@ static VOID PhpOptionsShowHideTreeViewItem(
         generalSection = PhOptionsFindSection(&generalName);
         advancedSection = PhOptionsFindSection(&advancedName);
 
-        if (generalSection && advancedSection)
+        if (generalSection && advancedSection && !advancedSection->TreeItemHandle)
         {
             advancedSection->TreeItemHandle = PhpTreeViewInsertItem(
                 generalSection->TreeItemHandle,
