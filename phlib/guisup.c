@@ -49,6 +49,7 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
 
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
+HFONT PhMonospaceFont = NULL;
 PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 

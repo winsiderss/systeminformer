@@ -130,7 +130,9 @@ static BOOLEAN RestartRequired = FALSE;
 static PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 static BOOLEAN CurrentUserRunPresent = FALSE;
 static HFONT CurrentFontInstance = NULL;
+static HFONT CurrentFontMonospaceInstance = NULL;
 static PPH_STRING NewFontSelection = NULL;
+static PPH_STRING NewFontMonospaceSelection = NULL;
 static HIMAGELIST GeneralListviewImageList = NULL;
 
 // Advanced
@@ -705,6 +707,27 @@ static BOOLEAN GetCurrentFont(
         fontHexString = NewFontSelection;
     else
         fontHexString = PhaGetStringSetting(L"Font");
+
+    if (fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
+        result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
+    else
+        result = FALSE;
+
+    return result;
+}
+
+_Success_(return)
+static BOOLEAN GetCurrentFontMonospace(
+    _Out_ PLOGFONT Font
+)
+{
+    BOOLEAN result;
+    PPH_STRING fontHexString;
+
+    if (NewFontMonospaceSelection)
+        fontHexString = NewFontMonospaceSelection;
+    else
+        fontHexString = PhaGetStringSetting(L"FontMonospace");
 
     if (fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT))
         result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
@@ -1645,6 +1668,16 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 }
             }
 
+            if (GetCurrentFontMonospace(&font))
+            {
+                CurrentFontMonospaceInstance = CreateFontIndirect(&font);
+
+                if (CurrentFontMonospaceInstance)
+                {
+                    SetWindowFont(GetDlgItem(hwndDlg, IDC_FONTMONOSPACE), CurrentFontMonospaceInstance, TRUE);
+                }
+            }
+
             GeneralListViewStateInitializing = TRUE;
             PhpAdvancedPageLoad(hwndDlg);
             PhpRefreshTaskManagerState(hwndDlg);
@@ -1659,12 +1692,22 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 ProcessHacker_UpdateFont();
             }
 
+            if (NewFontMonospaceSelection)
+            {
+                PhSetStringSetting2(L"FontMonospace", &NewFontMonospaceSelection->sr);
+                //ProcessHacker_UpdateFont();
+            }
+
             PhpAdvancedPageSave(hwndDlg);
 
             if (CurrentFontInstance)
                 DeleteFont(CurrentFontInstance);
 
+            if (CurrentFontMonospaceInstance)
+                DeleteFont(CurrentFontMonospaceInstance);
+
             PhClearReference(&NewFontSelection);
+            PhClearReference(&NewFontMonospaceSelection);
             PhClearReference(&OldTaskMgrDebugger);
 
             PhDeleteLayoutManager(&LayoutManager);
@@ -1705,6 +1748,50 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                         SetWindowFont(OptionsTreeControl, CurrentFontInstance, TRUE); // HACK
                         SetWindowFont(GetDlgItem(hwndDlg, IDC_SETTINGS), CurrentFontInstance, TRUE);
                         SetWindowFont(GetDlgItem(hwndDlg, IDC_FONT), CurrentFontInstance, TRUE);
+
+                        // Re-add the listview items for the new font (dmex)
+                        GeneralListViewStateInitializing = TRUE;
+                        HWND listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+                        ExtendedListView_SetRedraw(listviewHandle, FALSE);
+                        ListView_DeleteAllItems(listviewHandle);
+                        PhpAdvancedPageLoad(hwndDlg);
+                        ExtendedListView_SetRedraw(listviewHandle, TRUE);
+                        GeneralListViewStateInitializing = FALSE;
+
+                        RestartRequired = TRUE; // HACK: Fix ToolStatus plugin toolbar resize on font change
+                    }
+                }
+                break;
+            case IDC_FONTMONOSPACE:
+                {
+                    LOGFONT font;
+                    CHOOSEFONT chooseFont;
+
+                    if (!GetCurrentFontMonospace(&font))
+                    {
+                        // Can't get LOGFONT from the existing setting, probably
+                        // because the user hasn't ever chosen a font before.
+                        // Set the font to something familiar.
+                        //GetObject(ProcessHacker_GetFont(), sizeof(LOGFONT), &font);
+                        GetObject(PhMonospaceFont, sizeof(LOGFONT), &font);
+                    }
+
+                    memset(&chooseFont, 0, sizeof(CHOOSEFONT));
+                    chooseFont.lStructSize = sizeof(CHOOSEFONT);
+                    chooseFont.hwndOwner = hwndDlg;
+                    chooseFont.lpfnHook = PhpChooseFontDlgHookProc;
+                    chooseFont.lpLogFont = &font;
+                    chooseFont.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT | CF_ENABLEHOOK | CF_SCREENFONTS | CF_FIXEDPITCHONLY;
+
+                    if (ChooseFont(&chooseFont))
+                    {
+                        PhMoveReference(&NewFontMonospaceSelection, PhBufferToHexString((PUCHAR)&font, sizeof(LOGFONT)));
+
+                        // Update the button's font.
+                        if (CurrentFontMonospaceInstance) DeleteFont(CurrentFontMonospaceInstance);
+                        CurrentFontMonospaceInstance = CreateFontIndirect(&font);
+
+                        SetWindowFont(GetDlgItem(hwndDlg, IDC_FONTMONOSPACE), CurrentFontMonospaceInstance, TRUE);
 
                         // Re-add the listview items for the new font (dmex)
                         GeneralListViewStateInitializing = TRUE;

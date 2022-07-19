@@ -86,7 +86,7 @@ VOID PhInitializeModuleList(
 
     // Default columns
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, -2, 0);
-    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_BASEADDRESS, TRUE, L"Base address", 80, PH_ALIGN_RIGHT, 0, DT_RIGHT);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_BASEADDRESS, TRUE, L"Base address", 80, PH_ALIGN_RIGHT | PH_ALIGN_MONOSPACE_FONT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 2, 0);
 

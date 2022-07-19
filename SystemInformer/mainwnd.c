@@ -571,6 +571,7 @@ VOID PhMwpOnSettingChange(
     )
 {
     PhInitializeFont();
+    PhInitializeMonospaceFont();
 
     //if (TabControlHandle)
     //{
@@ -2045,6 +2046,7 @@ VOID PhMwpLoadSettings(
         PhSetWindowOpacity(WindowHandle, opacity);
 
     PhMwpInvokeUpdateWindowFont(NULL);
+    PhMwpInvokeUpdateWindowFontMonospace(NULL);
 
     PhNfLoadStage1();
 
@@ -3629,6 +3631,36 @@ VOID PhMwpInvokeUpdateWindowFont(
     SetWindowFont(TabControlHandle, PhTreeWindowFont, TRUE);
     PhMwpNotifyAllPages(MainTabPageFontChanged, newFont, NULL);
     SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0); // notify plugins of font change. (dmex)
+
+    if (oldFont) DeleteFont(oldFont);
+}
+
+VOID PhMwpInvokeUpdateWindowFontMonospace(
+    _In_opt_ PVOID Parameter
+)
+{
+    HFONT oldFont = PhMonospaceFont;
+    HFONT newFont;
+    PPH_STRING fontHexString;
+    LOGFONT font;
+
+    fontHexString = PhaGetStringSetting(L"FontMonospace");
+
+    if (
+        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
+        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+        )
+    {
+        if (!(newFont = CreateFontIndirect(&font)))
+            return;
+    }
+    else
+    {
+        PhInitializeMonospaceFont();
+        return;
+    }
+
+    PhMonospaceFont = newFont;
 
     if (oldFont) DeleteFont(oldFont);
 }
