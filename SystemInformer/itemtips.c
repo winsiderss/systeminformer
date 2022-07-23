@@ -353,19 +353,19 @@ PPH_STRING PhGetProcessTooltipText(
     case WmiProviderHostType:
         {
             PH_STRING_BUILDER provider;
-    
+
             PhInitializeStringBuilder(&provider, 40);
-    
+
             PhpFillWmiProviderHost(Process, &provider);
-    
+
             if (provider.String->Length != 0)
             {
                 PhAppendStringBuilder2(&stringBuilder, L"WMI Providers:\n");
                 PhAppendStringBuilder(&stringBuilder, &provider.String->sr);
             }
-    
+
             PhDeleteStringBuilder(&provider);
-    
+
             validForMs = 10 * 1000; // 10 seconds
         }
         break;
@@ -454,7 +454,12 @@ PPH_STRING PhGetProcessTooltipText(
         if (Process->IsDotNet)
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
-            PhAppendStringBuilder2(&notes, L"    Process is elevated.\n");
+            if (Process->ElevationType == TokenElevationTypeFull)
+                PhAppendStringBuilder2(&notes, L"    Process is full elevated.\n");
+            else if (Process->ElevationType == TokenElevationTypeLimited) // OrbbQ3 - should never be the case
+                PhAppendStringBuilder2(&notes, L"    Process is limited elevated.\n");
+            else
+                PhAppendStringBuilder2(&notes, L"    Process is per default elevated.\n");
         if (Process->IsImmersive)
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
@@ -739,7 +744,7 @@ VOID PhpFillMicrosoftEdge(
             PhAppendStringBuilder2(Containers, L"    Adobe Flash Player\n");
         }
         else if (
-            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool1Sid, FALSE) || 
+            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool1Sid, FALSE) ||
             PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool2Sid, FALSE) ||
             PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool3Sid, FALSE)
             )
