@@ -713,19 +713,25 @@ VOID PhpProcessQueryStage1(
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
 
-    if (!PhIsNullOrEmptyString(processItem->FileName) && !processItem->IsSubsystemProcess)
+    // Version info
+    if (!processItem->IsSubsystemProcess)
     {
-        if (PhDoesFileExists(processItem->FileName))
+        if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExists(processItem->FileName))
         {
             Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE);
 
-            // Version info.
             PhInitializeImageVersionInfoCached(
                 &Data->VersionInfo,
                 processItem->FileName,
                 FALSE,
                 PhEnableVersionShortText
                 );
+        }
+
+        if (PhEnableCycleCpuUsage && processId == INTERRUPTS_PROCESS_ID)
+        {
+            static PH_STRINGREF descriptionText = PH_STRINGREF_INIT(L"Interrupts and DPCs");
+            PhMoveReference(&Data->VersionInfo.FileDescription, PhCreateString2(&descriptionText));
         }
     }
 

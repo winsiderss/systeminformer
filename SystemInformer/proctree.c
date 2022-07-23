@@ -438,9 +438,6 @@ PPH_PROCESS_NODE PhAddProcessNode(
         );
     PhAddItemList(ProcessNodeList, processNode);
 
-    if (PhEnableCycleCpuUsage && ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID)
-        PhInitializeStringRef(&processNode->DescriptionText, L"Interrupts and DPCs");
-
     if (FilterSupport.FilterList)
         processNode->Node.Visible = PhApplyTreeNewFiltersToNode(&FilterSupport, &processNode->Node);
 
@@ -1520,27 +1517,32 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(UserName)
 {
-    sortResult = PhCompareStringWithNull(processItem1->UserName, processItem2->UserName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(
+        processItem1->UserName,
+        processItem2->UserName,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Description)
 {
-    PH_STRINGREF sr1;
-    PH_STRINGREF sr2;
-
-    sr1 = processItem1->VersionInfo.FileDescription ? processItem1->VersionInfo.FileDescription->sr : node1->DescriptionText;
-    sr2 = processItem2->VersionInfo.FileDescription ? processItem2->VersionInfo.FileDescription->sr : node2->DescriptionText;
-
-    sortResult = PhCompareStringRef(&sr1, &sr2, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(
+        processItem1->VersionInfo.FileDescription,
+        processItem2->VersionInfo.FileDescription,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CompanyName)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->VersionInfo.CompanyName,
         processItem2->VersionInfo.CompanyName,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -1548,9 +1550,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Version)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->VersionInfo.FileVersion,
         processItem2->VersionInfo.FileVersion,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -1558,9 +1561,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->FileName,
         processItem2->FileName,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -1568,9 +1572,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CommandLine)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->CommandLine,
         processItem2->CommandLine,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -2475,10 +2480,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRef(processItem->UserName);
                 break;
             case PHPRTLC_DESCRIPTION:
-                if (processItem->VersionInfo.FileDescription)
-                    getCellText->Text = processItem->VersionInfo.FileDescription->sr;
-                else
-                    getCellText->Text = node->DescriptionText;
+                getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileDescription);
                 break;
             case PHPRTLC_COMPANYNAME:
                 getCellText->Text = PhGetStringRef(processItem->VersionInfo.CompanyName);
