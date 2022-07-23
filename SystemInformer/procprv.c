@@ -1138,7 +1138,7 @@ VOID PhpFillProcessItemStage1(
     else if (Data->UserName)
         PhDereferenceObject(Data->UserName);
 
-    // Note: Queue stage 2 processing after filling stage1 process data. 
+    // Note: Queue stage 2 processing after filling stage1 process data.
     PhpQueueProcessQueryStage2(processItem);
 }
 
@@ -1179,7 +1179,7 @@ VOID PhpFillProcessItemExtension(
 
     if (!PhEnableProcessExtension)
         return;
-    
+
     processExtension = PH_PROCESS_EXTENSION(Process);
 
     ProcessItem->DiskCounters = processExtension->DiskCounters;
@@ -1302,6 +1302,7 @@ VOID PhpFillProcessItem(
         {
             PTOKEN_USER tokenUser;
             TOKEN_ELEVATION_TYPE elevationType;
+            BOOLEAN isElevated;
             MANDATORY_LEVEL integrityLevel;
             PWSTR integrityString;
 
@@ -1318,7 +1319,11 @@ VOID PhpFillProcessItem(
             if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
             {
                 ProcessItem->ElevationType = elevationType;
-                ProcessItem->IsElevated = elevationType == TokenElevationTypeFull;
+            }
+
+            if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+            {
+                ProcessItem->IsElevated = isElevated;
             }
 
             // Integrity
@@ -1425,7 +1430,7 @@ VOID PhpFillProcessItem(
         }
     }
 
-    // On Windows 8.1 and above, processes without threads are reflected processes 
+    // On Windows 8.1 and above, processes without threads are reflected processes
     // which will not terminate if we have a handle open. (wj32)
     if (Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
     {
@@ -2498,6 +2503,7 @@ VOID PhProcessProviderUpdate(
                     )))
                 {
                     PTOKEN_USER tokenUser;
+                    BOOLEAN isElevated;
                     TOKEN_ELEVATION_TYPE elevationType;
                     MANDATORY_LEVEL integrityLevel;
                     PWSTR integrityString;
@@ -2523,12 +2529,21 @@ VOID PhProcessProviderUpdate(
                     }
 
                     // Elevation
+
+                    if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    {
+                        if (processItem->IsElevated != isElevated)
+                        {
+                            processItem->IsElevated = isElevated;
+                            modified = TRUE;
+                        }
+                    }
+
                     if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                     {
                         if (processItem->ElevationType != elevationType)
                         {
                             processItem->ElevationType = elevationType;
-                            processItem->IsElevated = elevationType == TokenElevationTypeFull;
                             modified = TRUE;
                         }
                     }

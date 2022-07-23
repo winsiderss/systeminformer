@@ -953,7 +953,7 @@ static VOID PhpUpdateProcessNodeDepStatus(
         if (
             PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) &&
             ProcessNode->ProcessItem->IsWow64 &&
-            ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION 
+            ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION
             )
 #else
         if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) && ProcessNode->ProcessItem->QueryHandle)
@@ -1188,7 +1188,7 @@ static VOID PhpUpdateProcessNodeAppId(
                 //                        attributeValue2 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[2]));
                 //
                 //                        ProcessNode->AppIdText = PhConcatStrings(
-                //                            3, 
+                //                            3,
                 //                            attributeValue2->Buffer,
                 //                            L"!",
                 //                            attributeValue1->Buffer
@@ -1440,7 +1440,7 @@ static VOID PhpUpdateProcessNodePriorityBoost(
 
             if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessNode->ProcessItem->QueryHandle, &priorityBoost)))
             {
-                ProcessNode->PriorityBoost = priorityBoost; 
+                ProcessNode->PriorityBoost = priorityBoost;
             }
         }
 
@@ -2101,7 +2101,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Protection)
 {
-    // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX) 
+    // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX)
     // are placed below processes we are able to query (e.g. 0 and above).
     sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
 }
@@ -3467,7 +3467,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorProtectedProcess;
             else if (PhCsUseColorHandleFiltered && processItem->IsProtectedHandle)
                 getNodeColor->BackColor = PhCsColorHandleFiltered;
-            else if (PhCsUseColorElevatedProcesses && processItem->IsElevated)
+            else if (PhCsUseColorElevatedProcesses && processItem->IsElevated && processItem->ElevationType == TokenElevationTypeFull)
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
             else if (PhCsUseColorPicoProcesses && processItem->IsSubsystemProcess)
                 getNodeColor->BackColor = PhCsColorPicoProcesses;
@@ -3500,7 +3500,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
                 PhCsUseColorOwnProcesses &&
-                processItem->Sid && 
+                processItem->Sid &&
                 RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid)
                 )
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
