@@ -364,7 +364,6 @@
     <ClInclude Include="include\filestreamp.h" />
     <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\wslsup.h" />
-    <ClInclude Include="md5.h" />
     <ClInclude Include="include\ph.h" />
     <ClInclude Include="include\phbase.h" />
     <ClInclude Include="include\guisup.h" />
@@ -374,13 +373,11 @@
     <ClInclude Include="include\ref.h" />
     <ClInclude Include="include\refp.h" />
     <ClInclude Include="include\seceditp.h" />
-    <ClInclude Include="sha.h" />
     <ClInclude Include="include\symprv.h" />
     <ClInclude Include="include\templ.h" />
     <ClInclude Include="include\verifyp.h" />
     <ClInclude Include="include\workqueue.h" />
     <ClInclude Include="include\workqueuep.h" />
-    <ClInclude Include="sha256.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

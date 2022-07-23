@@ -322,19 +322,10 @@
     <ClInclude Include="include\phutil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="md5.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sha.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\guisup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphuserp.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sha256.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\settings.h">
