@@ -99,7 +99,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
     PhpAddIntegerSetting(L"HideWaitingConnections", L"0");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
-    PhpAddStringSetting(L"IconGuids", L"");
+    PhpAddStringSetting(L"IconTrayGuids", L"");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
     PhpAddStringSetting(L"IconSettings", L"1|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
