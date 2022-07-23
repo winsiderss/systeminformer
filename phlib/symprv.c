@@ -215,15 +215,29 @@ static VOID PhpSymbolProviderEventCallback(
 
             if (fileName)
             {
+                PH_FORMAT format[3];
+
                 PhMoveReference(&fileName, PhGetBaseName(fileName));
-                PhMoveReference(&PhSymbolProviderEventMessageText, PhFormatString(L"Loading symbols for %s...", PhGetStringOrDefault(fileName, L"image")));
+
+                // Loading symbols for %s...
+                PhInitFormatS(&format[0], L"Loading symbols for ");
+                PhInitFormatS(&format[1], PhGetStringOrDefault(fileName, L"image"));
+                PhInitFormatS(&format[2], L"...");
+                PhMoveReference(&PhSymbolProviderEventMessageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 PhDereferenceObject(fileName);
 
                 PhpSymbolProviderInvokeCallback(PH_SYMBOL_EVENT_TYPE_LOAD_START, PhSymbolProviderEventMessageText, 0);
             }
             else
             {
-                PhMoveReference(&PhSymbolProviderEventMessageText, PhFormatString(L"Loading symbols for %s...", PhGetStringOrDefault(fileName, L"image")));
+                PH_FORMAT format[3];
+
+                // Loading symbols for %s...
+                PhInitFormatS(&format[0], L"Loading symbols for ");
+                PhInitFormatS(&format[1], L"image");
+                PhInitFormatS(&format[2], L"...");
+
+                PhMoveReference(&PhSymbolProviderEventMessageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 PhpSymbolProviderInvokeCallback(PH_SYMBOL_EVENT_TYPE_LOAD_START, PhSymbolProviderEventMessageText, 0);
             }
         }
@@ -269,8 +283,15 @@ static VOID PhpSymbolProviderEventCallback(
                     if (PhStringToInteger64(&valueString->sr, 10, &integer))
                     {
                         PPH_STRING status;
+                        PH_FORMAT format[4];
 
-                        status = PhFormatString(L"%s %I64u%%", PhGetStringOrEmpty(PhSymbolProviderEventMessageText), integer);
+                        // %s %I64u%%
+                        PhInitFormatS(&format[0], PhGetStringOrEmpty(PhSymbolProviderEventMessageText));
+                        PhInitFormatS(&format[1], L" ");
+                        PhInitFormatSR(&format[2], valueString->sr);
+                        PhInitFormatC(&format[3], L'%');
+
+                        status = PhFormat(format, RTL_NUMBER_OF(format), 0);
                         PhpSymbolProviderInvokeCallback(PH_SYMBOL_EVENT_TYPE_PROGRESS, status, integer);
                         PhDereferenceObject(status);
                     }
