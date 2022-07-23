@@ -148,11 +148,11 @@ VOID PhNfLoadGuids(
     VOID
     )
 {
-    PPH_STRING settingsString = NULL;
+    PPH_STRING settingsString;
     PH_STRINGREF remaining;
     ULONG i;
 
-    settingsString = PhGetStringSetting(L"IconGuids");
+    settingsString = PhGetStringSetting(L"IconTrayGuids");
 
     if (PhIsNullOrEmptyString(settingsString))
     {
@@ -180,7 +180,7 @@ VOID PhNfLoadGuids(
             PhRemoveEndStringBuilder(&iconListBuilder, 1);
 
         PhMoveReference(&settingsString, PhFinalStringBuilderString(&iconListBuilder));
-        PhSetStringSetting2(L"IconGuids", &settingsString->sr);
+        PhSetStringSetting2(L"IconTrayGuids", &settingsString->sr);
         PhDereferenceObject(settingsString);
     }
     else
