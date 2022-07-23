@@ -878,24 +878,51 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessAppMemoryInformation(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPROCESS_JOB_MEMORY_INFO JobMemoryInfo
+    _Out_ PAPP_MEMORY_INFORMATION AppMemoryInfo
     )
 {
     NTSTATUS status;
-    PROCESS_JOB_MEMORY_INFO jobMemoryInfo;
+    APP_MEMORY_INFORMATION appMemoryInfo = {0};
+    VM_COUNTERS_EX2 vmCounters;
 
-    // Win32 called this ProcessAppMemoryInfo with APP_MEMORY_INFORMATION struct (dmex)
     status = NtQueryInformationProcess(
         ProcessHandle,
-        ProcessJobMemoryInformation,
-        &jobMemoryInfo,
-        sizeof(PROCESS_JOB_MEMORY_INFO),
+        ProcessVmCounters,
+        &vmCounters,
+        sizeof(vmCounters),
         NULL
-        );
+    );
 
     if (NT_SUCCESS(status))
     {
-        *JobMemoryInfo = jobMemoryInfo;
+        appMemoryInfo.PrivateCommitUsage = vmCounters.CountersEx.PagefileUsage;
+        appMemoryInfo.TotalCommitUsage = appMemoryInfo.PrivateCommitUsage + vmCounters.SharedCommitUsage;
+        appMemoryInfo.PeakPrivateCommitUsage = vmCounters.CountersEx.PeakPagefileUsage;
+    }
+    else
+    {
+        // fall-back to Job memory info on older systems
+        PROCESS_JOB_MEMORY_INFO jobMemoryInfo;
+
+        status = NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessJobMemoryInformation,
+            &jobMemoryInfo,
+            sizeof(jobMemoryInfo),
+            NULL
+        );
+
+        if (NT_SUCCESS(status))
+        {
+            appMemoryInfo.PeakPrivateCommitUsage = jobMemoryInfo.PeakPrivateCommitUsage;
+            appMemoryInfo.PrivateCommitUsage = jobMemoryInfo.PrivateCommitUsage;
+            appMemoryInfo.TotalCommitUsage = jobMemoryInfo.PrivateCommitUsage + jobMemoryInfo.SharedCommitUsage;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *AppMemoryInfo = appMemoryInfo;
     }
 
     return status;

@@ -311,7 +311,7 @@ VOID PhpUpdateProcessStatistics(
         if (Context->ProcessHandle)
         {
             PH_PROCESS_WS_COUNTERS wsCounters;
-            PROCESS_JOB_MEMORY_INFO appMemoryInfo;
+            APP_MEMORY_INFORMATION appMemoryInfo;
 
             if (NT_SUCCESS(PhGetProcessWsCounters(Context->ProcessHandle, &wsCounters)))
             {
@@ -320,17 +320,16 @@ VOID PhpUpdateProcessStatistics(
                 PhMoveReference(&Context->SharedWs, PhFormatSize((ULONG64)wsCounters.NumberOfSharedPages * PAGE_SIZE, ULONG_MAX));
                 Context->GotWsCounters = TRUE;
             }
-
             if (NT_SUCCESS(PhGetProcessAppMemoryInformation(Context->ProcessHandle, &appMemoryInfo)))
             {
-                PhMoveReference(&Context->SharedCommitUsage, PhFormatSize(appMemoryInfo.SharedCommitUsage, ULONG_MAX));
+                PhMoveReference(&Context->SharedCommitUsage, PhFormatSize(appMemoryInfo.TotalCommitUsage - appMemoryInfo.PrivateCommitUsage, ULONG_MAX));
                 PhMoveReference(&Context->PrivateCommitUsage, PhFormatSize(appMemoryInfo.PrivateCommitUsage, ULONG_MAX));
                 PhMoveReference(&Context->PeakPrivateCommitUsage, PhFormatSize(appMemoryInfo.PeakPrivateCommitUsage, ULONG_MAX));
                 //if (appMemoryInfo.PrivateCommitLimit)
                 //    PhMoveReference(&Context->PrivateCommitLimit, PhFormatSize(appMemoryInfo.PrivateCommitLimit, ULONG_MAX));
                 //if (appMemoryInfo.TotalCommitLimit)
                 //    PhMoveReference(&Context->TotalCommitLimit, PhFormatSize(appMemoryInfo.TotalCommitLimit, ULONG_MAX));
-            }          
+            }
         }
 
         if (!Context->GotCycles)
