@@ -438,15 +438,15 @@ PWSTR PhGetPrivilegeAttributesString(
 }
 
 PPH_STRING PhGetElevationTypeString(
-    _In_ BOOLEAN isElevated,
+    _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType
-)
+    )
 {
     PH_STRING_BUILDER sb;
 
     PhInitializeStringBuilder(&sb, 13);
 
-    PhAppendStringBuilder2(&sb, isElevated ? L"Yes" : L"No");
+    PhAppendStringBuilder2(&sb, IsElevated ? L"Yes" : L"No");
 
     if (ElevationType == TokenElevationTypeFull)
         PhAppendStringBuilder2(&sb, L" (Full)");
