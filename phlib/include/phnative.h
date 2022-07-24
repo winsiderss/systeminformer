@@ -240,6 +240,13 @@ PhGetProcessCommandLine(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessCommandLineStringRef(
+    _Out_ PPH_STRINGREF CommandLine
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessCurrentDirectory(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN IsWow64,

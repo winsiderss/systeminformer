@@ -421,19 +421,16 @@ _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairSetting(
     return value;
 }
 
-_May_raise_ PPH_STRING PhGetStringSetting(
-    _In_ PWSTR Name
+_May_raise_ PPH_STRING PhGetStringRefSetting(
+    _In_ PPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
     PPH_STRING value;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == StringSettingType)
     {

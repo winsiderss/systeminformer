@@ -54,18 +54,22 @@ NTSTATUS PhCommandModeStart(
     {
         { PH_COMMAND_OPTION_HWND, L"hwnd", MandatoryArgumentType }
     };
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     PH_STRINGREF commandLine;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
-    PhParseCommandLine(
-        &commandLine,
-        options,
-        RTL_NUMBER_OF(options),
-        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
-        PhpCommandModeOptionCallback,
-        NULL
-        );
+    status = PhGetProcessCommandLineStringRef(&commandLine);
+
+    if (NT_SUCCESS(status))
+    {
+        PhParseCommandLine(
+            &commandLine,
+            options,
+            RTL_NUMBER_OF(options),
+            PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
+            PhpCommandModeOptionCallback,
+            NULL
+            );
+    }
 
     if (PhEqualString2(CommandType, L"process", TRUE))
     {
