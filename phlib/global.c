@@ -22,8 +22,7 @@ VOID PhInitializeWindowsVersion(
     );
 
 BOOLEAN PhHeapInitialization(
-    _In_opt_ SIZE_T HeapReserveSize,
-    _In_opt_ SIZE_T HeapCommitSize
+    VOID
     );
 
 BOOLEAN PhInitializeProcessorInformation(
@@ -45,24 +44,8 @@ PHLIB_STATISTICS_BLOCK PhLibStatisticsBlock;
 #endif
 
 NTSTATUS PhInitializePhLib(
-    VOID
-    )
-{
-    return PhInitializePhLibEx(
-        L"Application",
-        ULONG_MAX, // all possible features
-        NtCurrentPeb()->ImageBaseAddress,
-        0,
-        0
-        );
-}
-
-NTSTATUS PhInitializePhLibEx(
     _In_ PWSTR ApplicationName,
-    _In_ ULONG Flags,
-    _In_ PVOID ImageBaseAddress,
-    _In_opt_ SIZE_T HeapReserveSize,
-    _In_opt_ SIZE_T HeapCommitSize
+    _In_ PVOID ImageBaseAddress
     )
 {
     PhApplicationName = ApplicationName;
@@ -71,7 +54,7 @@ NTSTATUS PhInitializePhLibEx(
     PhInitializeWindowsVersion();
     PhInitializeSystemInformation();
 
-    if (!PhHeapInitialization(HeapReserveSize, HeapCommitSize))
+    if (!PhHeapInitialization())
         return STATUS_UNSUCCESSFUL;
 
     if (!PhQueuedLockInitialization())
@@ -238,29 +221,30 @@ VOID PhInitializeWindowsVersion(
 }
 
 BOOLEAN PhHeapInitialization(
-    _In_opt_ SIZE_T HeapReserveSize,
-    _In_opt_ SIZE_T HeapCommitSize
+    VOID
     )
 {
-    //if (WindowsVersion >= WINDOWS_8)
-    //{
-    //    PhHeapHandle = RtlCreateHeap(
-    //        HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
-    //        NULL,
-    //        0,
-    //        0,
-    //        NULL,
-    //        NULL
-    //        );
-    //}
-    //
-    //if (!PhHeapHandle)
+#ifndef _DEBUG
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        PhHeapHandle = RtlCreateHeap(
+            HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
+            NULL,
+            0,
+            0,
+            NULL,
+            NULL
+            );
+    }
+#endif
+
+    if (!PhHeapHandle)
     {
         PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CLASS_1,
             NULL,
-            HeapReserveSize ? HeapReserveSize : 2 * 1024 * 1024, // 2 MB
-            HeapCommitSize ? HeapCommitSize : 1024 * 1024, // 1 MB
+            2 * 1024 * 1024, // 2 MB
+            1024 * 1024, // 1 MB
             NULL,
             NULL
             );

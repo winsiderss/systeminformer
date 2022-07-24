@@ -1037,13 +1037,11 @@ NTSTATUS PhGetProcessCommandLine(
     _Out_ PPH_STRING *CommandLine
     )
 {
-#ifdef _DEBUG
     if (ProcessHandle == NtCurrentProcess())
     {
         *CommandLine = PhCreateStringFromUnicodeString(&NtCurrentPeb()->ProcessParameters->CommandLine);
         return STATUS_SUCCESS;
     }
-#endif
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
@@ -1089,6 +1087,14 @@ NTSTATUS PhGetProcessCommandLine(
     }
 
     return PhGetProcessPebString(ProcessHandle, PhpoCommandLine, CommandLine);
+}
+
+NTSTATUS PhGetProcessCommandLineStringRef(
+    _Out_ PPH_STRINGREF CommandLine
+    )
+{
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, CommandLine);
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhGetProcessCurrentDirectory(

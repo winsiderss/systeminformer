@@ -275,20 +275,18 @@ VOID SetupParseCommandLine(
         { SETUP_COMMAND_UPDATE, L"silent", NoArgumentType },
         //{ SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
     };
-    PPH_STRING commandLine;
+    PH_STRINGREF commandLine;
 
-    if (NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+    if (NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
     {
         PhParseCommandLine(
-            &commandLine->sr,
+            &commandLine,
             options,
-            ARRAYSIZE(options),
+            RTL_NUMBER_OF(options),
             PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
             MainPropSheetCommandLineCallback,
             Context
             );
-
-        PhDereferenceObject(commandLine);
     }
 }
 
@@ -302,7 +300,7 @@ VOID SetupInitializeMutant(
     UNICODE_STRING objectNameUs;
     PH_FORMAT format[2];
 
-    PhInitFormatS(&format[0], L"PhSetupMutant_");
+    PhInitFormatS(&format[0], L"SiSetupMutant_");
     PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
     objectName = PhFormat(format, 2, 16);
@@ -333,10 +331,10 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
-    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer - Setup", Instance)))
         return EXIT_FAILURE;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"System Informer - Setup", ULONG_MAX, Instance, 0, 0)))
+    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return EXIT_FAILURE;
 
     SetupInitializeMutant();

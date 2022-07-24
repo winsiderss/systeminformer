@@ -638,7 +638,7 @@ EXPORTS
     PhGetIntegerSetting
     PhGetIntegerPairSetting
     PhGetScalableIntegerPairSetting
-    PhGetStringSetting
+    PhGetStringRefSetting
     PhLoadSettings
     PhLoadCustomColorList
     PhLoadListViewColumnSettings

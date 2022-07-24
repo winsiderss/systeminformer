@@ -115,9 +115,24 @@ _May_raise_
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetStringRefSetting(
+    _In_ PPH_STRINGREF Name
+    );
+
+FORCEINLINE
+PPH_STRING
 PhGetStringSetting(
     _In_ PWSTR Name
-    );
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetStringRefSetting(&name);
+}
+
+#define PhaGetStringSetting(Name) PH_AUTO_T(PH_STRING, PhGetStringSetting(Name)) // phapppub
 
 FORCEINLINE 
 PPH_STRING 
@@ -210,8 +225,6 @@ NTSTATUS PhSaveSettings(
 VOID PhResetSettings(
     VOID
     );
-
-#define PhaGetStringSetting(Name) PH_AUTO_T(PH_STRING, PhGetStringSetting(Name)) // phapppub
 
 // begin_phapppub
 // High-level settings creation

@@ -41,9 +41,9 @@ INT WINAPI wWinMain(
     {
         { 0, L"h", NoArgumentType }
     };
-    PPH_STRING commandLine;
+    PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"PE Viewer", ULONG_MAX, hInstance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"PE Viewer", hInstance)))
         return 1;
     if (!PvInitializeExceptionPolicy())
         return 1;
@@ -100,18 +100,17 @@ INT WINAPI wWinMain(
     PvPropInitialization();
     PhTreeNewInitialization();
 
-    if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
         return 1;
 
     PhParseCommandLine(
-        &commandLine->sr,
+        &commandLine,
         options,
         RTL_NUMBER_OF(options),
         PH_COMMAND_LINE_IGNORE_FIRST_PART,
         PvpCommandLineCallback,
         NULL
         );
-    PhDereferenceObject(commandLine);
 
     if (!PvFileName)
     {

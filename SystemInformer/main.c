@@ -111,7 +111,7 @@ INT WINAPI wWinMain(
     PHP_BASE_THREAD_DBG dbg;
 #endif
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"System Informer", ULONG_MAX, Instance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer", Instance)))
         return 1;
     if (!PhInitializeDirectoryPolicy())
         return 1;
@@ -867,8 +867,8 @@ BOOLEAN PhInitializeMitigationPolicy(
     static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
     BOOLEAN success = TRUE;
     //HANDLE jobObjectHandle = NULL;
-    PPH_STRING commandline = NULL;
     PH_STRINGREF commandlineSr;
+    PPH_STRING commandline = NULL;
     ULONG64 options[2] = { 0 };
     PS_SYSTEM_DLL_INIT_BLOCK(*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
@@ -879,15 +879,14 @@ BOOLEAN PhInitializeMitigationPolicy(
     if (!PhpIsExploitProtectionEnabled())
         return TRUE;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
-    //if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandline)))
-    //    goto CleanupExit;
-    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != -1)
+    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandlineSr)))
+        goto CleanupExit;
+    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != SIZE_MAX)
         goto CleanupExit;
     if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
         goto CleanupExit;
 
-    PhMoveReference(&commandline, PhConcatStringRef2(&commandlineSr, &nompCommandlinePart));
+    commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
 
     if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
         goto CleanupExit;
