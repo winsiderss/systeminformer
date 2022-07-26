@@ -2639,10 +2639,16 @@ BOOLEAN PhpAddTokenCapabilities(
 
                                 if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, TokenPageContext->Context)))
                                 {
+                                    static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
+
                                     if (name = PhGetProcessPackageFullName(processHandle))
                                     {
-                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Package: %s", PhGetString(name)));
+                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&packageNameStringRef, &name->sr));
                                         PhDereferenceObject(name);
+                                    }
+                                    else
+                                    {
+                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhCreateString2(&packageNameStringRef));
                                     }
 
                                     NtClose(processHandle);
@@ -2675,11 +2681,14 @@ BOOLEAN PhpAddTokenCapabilities(
 
                     if (name = PhFormatGuid(&capabilityGuid.Guid))
                     {
-                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Guid: %s", PhGetString(name)));
+                        static PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
+                        static PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
+
+                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&guidNameStringRef, &name->sr));
 
                         if (capabilityName = PhGetCapabilityGuidName(name))
                         {
-                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Capability: %s", PhGetString(capabilityName)));
+                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&capabilityNameStringRef, &capabilityName->sr));
                             PhDereferenceObject(capabilityName);
                         }
 
