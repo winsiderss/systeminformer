@@ -703,13 +703,36 @@ PhGetProcessGroupAffinity(
     _Out_ PGROUP_AFFINITY GroupAffinity
     )
 {
-    return NtQueryInformationProcess(
+    NTSTATUS status;
+    GROUP_AFFINITY groupAffinity;
+
+    memset(&groupAffinity, 0, sizeof(GROUP_AFFINITY));
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessAffinityMask,
-        GroupAffinity,
+        &groupAffinity,
         sizeof(GROUP_AFFINITY),
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(GroupAffinity, &groupAffinity, sizeof(GROUP_AFFINITY));
+    }
+    else // Windows 7 (dmex)
+    {
+        KAFFINITY affinityMask;
+
+        if (NT_SUCCESS(PhGetProcessAffinityMask(ProcessHandle, &affinityMask)))
+        {
+            groupAffinity.Mask = affinityMask;
+            memcpy(GroupAffinity, &groupAffinity, sizeof(GROUP_AFFINITY));
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return status;
 }
 
 FORCEINLINE
