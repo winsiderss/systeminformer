@@ -616,25 +616,35 @@ PhGetProcessAffinityMask(
     _Out_ PKAFFINITY AffinityMask
     )
 {
-    //NTSTATUS status;
-    //PROCESS_BASIC_INFORMATION basicInfo;
-    //
-    //status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
-    //
-    //if (NT_SUCCESS(status))
-    //{
-    //    *AffinityMask = basicInfo.AffinityMask;
-    //}
-    //
-    //return status;
+    NTSTATUS status;
+    KAFFINITY affinityMask;
 
-    return NtQueryInformationProcess(
+    memset(&affinityMask, 0, sizeof(KAFFINITY));
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessAffinityMask,
-        AffinityMask,
+        &affinityMask,
         sizeof(KAFFINITY),
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        *AffinityMask = affinityMask;
+    }
+    else // Windows 7 (dmex)
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        {
+            *AffinityMask = basicInfo.AffinityMask;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return status;
 }
 
 /**
