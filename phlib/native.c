@@ -12082,6 +12082,26 @@ NTSTATUS PhGetProcessorGroupActiveAffinityMask(
     return status;
 }
 
+NTSTATUS PhGetProcessorSystemAffinityMask(
+    _Out_ PKAFFINITY ActiveProcessorsAffinityMask
+    )
+{
+    if (PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        *ActiveProcessorsAffinityMask = PhSystemBasicInformation.ActiveProcessorsAffinityMask;
+        return STATUS_SUCCESS;
+    }
+    else
+    {
+        PROCESSOR_NUMBER processorNumber;
+
+        memset(&processorNumber, 0, sizeof(PROCESSOR_NUMBER));
+        //RtlGetCurrentProcessorNumberEx(&processorNumber);
+
+        return PhGetProcessorGroupActiveAffinityMask(processorNumber.Group, ActiveProcessorsAffinityMask);
+    }
+}
+
 // rev from GetNumaHighestNodeNumber (dmex)
 NTSTATUS PhGetNumaHighestNodeNumber(
     _Out_ PUSHORT NodeNumber
