@@ -126,6 +126,11 @@ NTSTATUS GetProcessAffinity(
         &groupAffinity
         );
 
+    if (status == STATUS_INVALID_PARAMETER || status == STATUS_INVALID_INFO_CLASS) // GH#1317: Required for Windows 7 (jxy-s)
+    {
+        status = PhGetProcessAffinityMask(ProcessHandle, &groupAffinity.Mask);
+    }
+
     if (NT_SUCCESS(status))
     {
         *Affinity = groupAffinity.Mask;
