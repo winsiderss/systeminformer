@@ -34,7 +34,7 @@ PWSTR PhApplicationName = NULL;
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;
 RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
-PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
+PHLIBAPI PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
 PHLIBAPI PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };
 ULONG WindowsVersion = WINDOWS_NEW;
 
@@ -96,12 +96,29 @@ VOID PhInitializeSystemInformation(
     VOID
     )
 {
-    NtQuerySystemInformation(
+    SYSTEM_BASIC_INFORMATION basicInfo;
+
+    memset(&basicInfo, 0, sizeof(SYSTEM_BASIC_INFORMATION));
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
         SystemBasicInformation,
-        &PhSystemBasicInformation,
+        &basicInfo,
         sizeof(SYSTEM_BASIC_INFORMATION),
         NULL
-        );
+        )))
+    {
+        basicInfo.NumberOfProcessors = 1;
+        basicInfo.NumberOfPhysicalPages = ULONG_MAX;
+        basicInfo.AllocationGranularity = 0x10000;
+        basicInfo.MaximumUserModeAddress = 0x10000;
+        basicInfo.ActiveProcessorsAffinityMask = USHRT_MAX;
+    }
+
+    PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;
+    PhSystemBasicInformation.NumberOfPhysicalPages = basicInfo.NumberOfPhysicalPages;
+    PhSystemBasicInformation.AllocationGranularity = basicInfo.AllocationGranularity;
+    PhSystemBasicInformation.MaximumUserModeAddress = basicInfo.MaximumUserModeAddress;
+    PhSystemBasicInformation.ActiveProcessorsAffinityMask = basicInfo.ActiveProcessorsAffinityMask;
 }
 
 VOID PhInitializeWindowsVersion(

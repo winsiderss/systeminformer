@@ -12,7 +12,6 @@ extern _User_set_ PWSTR PhApplicationName;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 extern PVOID PhHeapHandle;
 extern RTL_OSVERSIONINFOEXW PhOsVersion;
-PHLIBAPI extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 extern ULONG WindowsVersion;
 
 #define WINDOWS_ANCIENT 0
@@ -75,6 +74,17 @@ PhExitApplication(
 }
 
 // Processor group support (dmex)
+
+typedef struct _PH_SYSTEM_BASIC_INFORMATION
+{
+    USHORT NumberOfProcessors;
+    ULONG NumberOfPhysicalPages;
+    ULONG AllocationGranularity;
+    ULONG_PTR MaximumUserModeAddress;
+    KAFFINITY ActiveProcessorsAffinityMask;
+} PH_SYSTEM_BASIC_INFORMATION, *PPH_SYSTEM_BASIC_INFORMATION;
+
+PHLIBAPI extern PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 
 typedef struct _PH_SYSTEM_PROCESSOR_INFORMATION
 {
