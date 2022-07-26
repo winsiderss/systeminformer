@@ -88,7 +88,7 @@ LRESULT CALLBACK SetupTaskDialogSubclassProc(
         {
             //ShowUpdateCompletedPageDialog(context);
 
-            SetupExecuteProcessHacker(context);
+            SetupExecuteApplication(context);
             PostMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
         }
         break;
@@ -181,6 +181,16 @@ VOID SetupShowDialog(
         context->SetupInstallPath = SetupFindInstallDirectory();
     }
 
+    if (context->SetupIsLegacyUpdate)
+    {
+        PhShowInformation2(
+            NULL,
+            L"Process Hacker.",
+            L"%s",
+            L"Process Hacker was renamed System Informer."
+            );
+    }
+
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
@@ -191,9 +201,9 @@ VOID SetupShowDialog(
 
     TaskDialogIndirect(&config, NULL, NULL, &value);
 
-    if (context && value)
+    if (value)
     {
-        SetupExecuteProcessHacker(context);
+        SetupExecuteApplication(context);
     }
 
     PhDeleteAutoPool(&autoPool);
@@ -214,7 +224,7 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     {
         context->SetupMode = Option->Id;
 
-        if (context->SetupMode == SETUP_COMMAND_UPDATE)
+        if (context->SetupMode == SETUP_COMMAND_UPDATE && Value)
         {
             PPH_STRING directory;
             PWSTR string;
@@ -223,7 +233,7 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
             stringLength = (ULONG)Value->Length / sizeof(WCHAR) / 2;
             string = PhAllocateZero(stringLength + sizeof(UNICODE_NULL));
 
-            if (Value && PhHexStringToBufferEx(&Value->sr, stringLength, string))
+            if (PhHexStringToBufferEx(&Value->sr, stringLength, string))
             {
                 if (directory = PhGetFullPath(string, NULL))
                 {
@@ -232,6 +242,14 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
                     if (!PhEndsWithString2(directory, L"\\", FALSE)) // HACK
                     {
                         PhMoveReference(&context->SetupInstallPath, PhConcatStringRefZ(&directory->sr, L"\\"));
+                    }
+
+                    // Check the path for the legacy directory name.
+                    if (CheckApplicationInstallPathLegacy(context->SetupInstallPath))
+                    {
+                        // Update the directory path to the new directory.
+                        PhMoveReference(&context->SetupInstallPath, SetupFindInstallDirectory());
+                        context->SetupIsLegacyUpdate = TRUE;
                     }
 
                     PhDereferenceObject(directory);

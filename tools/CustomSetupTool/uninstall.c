@@ -15,12 +15,12 @@ NTSTATUS SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    // Stop Process Hacker.
-    if (!ShutdownProcessHacker())
+    // Stop the application.
+    if (!ShutdownApplication())
         goto CleanupExit;
 
     // Stop the kernel driver(s).
-    if (!SetupUninstallKph(Context))
+    if (!SetupUninstallDriver(Context))
         goto CleanupExit;
 
     // Remove autorun and shortcuts.

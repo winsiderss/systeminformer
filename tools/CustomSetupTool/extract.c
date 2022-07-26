@@ -92,7 +92,7 @@ BOOLEAN SetupExtractBuild(
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
-        if (PhFindStringInString(fileName, 0, L"ProcessHacker.exe.settings.xml") != -1)
+        if (PhFindStringInString(fileName, 0, L"SystemInformer.exe.settings.xml") != -1)
             continue;
         if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
             continue;
@@ -135,7 +135,7 @@ BOOLEAN SetupExtractBuild(
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
-        if (PhFindStringInString(fileName, 0, L"ProcessHacker.exe.settings.xml") != -1)
+        if (PhFindStringInString(fileName, 0, L"SystemInformer.exe.settings.xml") != -1)
             continue;
         if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
             continue;

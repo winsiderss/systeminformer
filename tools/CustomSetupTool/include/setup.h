@@ -71,8 +71,9 @@ typedef struct _PH_SETUP_CONTEXT
         struct
         {
             ULONG SetupRemoveAppData: 1;
-            ULONG SetupKphInstallRequired : 1;
-            ULONG Spare : 30;
+            ULONG SetupDriverInstallRequired : 1;
+            ULONG SetupIsLegacyUpdate : 1;
+            ULONG Spare : 29;
         };
     };
 
@@ -175,12 +176,12 @@ VOID SetupDeleteAppdataDirectory(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-VOID SetupStartKph(
+VOID SetupInstallDriver(
     _In_ PPH_SETUP_CONTEXT Context,
     _In_ BOOLEAN ForceInstall
     );
 
-BOOLEAN SetupUninstallKph(
+BOOLEAN SetupUninstallDriver(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
@@ -212,7 +213,7 @@ VOID SetupDeleteUninstallFile(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN SetupExecuteProcessHacker(
+BOOLEAN SetupExecuteApplication(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
@@ -236,19 +237,22 @@ typedef struct _SETUP_REMOVE_FILE
 VOID SetupCreateLink(
     _In_ PWSTR LinkFilePath,
     _In_ PWSTR FilePath,
-    _In_ PWSTR FileParentDir,
-    _In_ PWSTR AppId
+    _In_ PWSTR FileParentDir
     );
 
-BOOLEAN CheckProcessHackerInstalled(
+BOOLEAN CheckApplicationInstalled(
     VOID
     );
 
-PPH_STRING GetProcessHackerInstallPath(
+BOOLEAN CheckApplicationInstallPathLegacy(
+    _In_ PPH_STRING Directory
+    );
+
+PPH_STRING GetApplicationInstallPath(
     VOID
     );
 
-BOOLEAN ShutdownProcessHacker(
+BOOLEAN ShutdownApplication(
     VOID
     );
 
