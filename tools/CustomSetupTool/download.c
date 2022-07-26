@@ -32,12 +32,12 @@ PPH_STRING UpdateVersionString(
     VOID
     )
 {
-    PPH_STRING currentVersion = 0;
+    PPH_STRING currentVersion = NULL;
     PPH_STRING versionHeader = NULL;
 
     if (currentVersion = SetupGetVersion())
     {
-        versionHeader = PhConcatStrings2(L"PH-SETUP-BUILD: ", currentVersion->Buffer);
+        versionHeader = PhConcatStrings2(L"SI-SETUP-BUILD: ", currentVersion->Buffer);
         PhDereferenceObject(currentVersion);
     }
 
@@ -49,7 +49,6 @@ PPH_STRING UpdateWindowsString(
     )
 {
     static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
-
     HANDLE keyHandle;
     PPH_STRING buildLabHeader = NULL;
 
@@ -65,12 +64,12 @@ PPH_STRING UpdateWindowsString(
 
         if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
         {
-            buildLabHeader = PhConcatStrings2(L"PH-OsBuild: ", buildLabString->Buffer);
+            buildLabHeader = PhConcatStrings2(L"SI-OsBuild: ", buildLabString->Buffer);
             PhDereferenceObject(buildLabString);
         }
         else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
         {
-            buildLabHeader = PhConcatStrings2(L"PH-OsBuild: ", buildLabString->Buffer);
+            buildLabHeader = PhConcatStrings2(L"SI-OsBuild: ", buildLabString->Buffer);
             PhDereferenceObject(buildLabString);
         }
 
@@ -86,7 +85,7 @@ ULONG64 ParseVersionString(
 {
     PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
     ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
-    
+
     PhInitializeStringRef(&remaining, PhGetStringOrEmpty(VersionString));
     PhSplitStringRefAtChar(&remaining, '.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, '.', &minorPart, &remaining);
@@ -191,7 +190,7 @@ BOOLEAN SetupQueryUpdateData(
 
     if (!(httpConnectionHandle = WinHttpConnect(
         httpSessionHandle,
-        L"wj32.org",
+        L"systeminformer.sourceforge.io",
         INTERNET_DEFAULT_HTTPS_PORT,
         0
         )))
@@ -203,7 +202,7 @@ BOOLEAN SetupQueryUpdateData(
     if (!(httpRequestHandle = WinHttpOpenRequest(
         httpConnectionHandle,
         NULL,
-        L"/processhacker/nightly.php?phsetup",
+        L"/update.php?setup",
         NULL,
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
