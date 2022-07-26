@@ -58,8 +58,20 @@ typedef struct _PROCESS_EXTENSION
 {
     LIST_ENTRY ListEntry;
     PPH_PROCESS_ITEM ProcessItem;
-    BOOLEAN Valid;
     PPH_STRING Comment;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN SkipAffinity : 1;
+            BOOLEAN SkipPriority : 1;
+            BOOLEAN SkipPagePriority : 1;
+            BOOLEAN SkipIoPriority : 1;
+            BOOLEAN SkipBoostPriority : 1;
+            BOOLEAN Spare : 2;
+        };
+    };
 } PROCESS_EXTENSION, *PPROCESS_EXTENSION;
 
 typedef struct _PROCESS_COMMENT_PAGE_CONTEXT

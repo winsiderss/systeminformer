@@ -2267,20 +2267,23 @@ VOID ProcessesUpdatedCallback(
 
         if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_PRIORITY_CLASS))
         {
-            if (processItem->PriorityClass != object->PriorityClass)
+            if (processItem->PriorityClass != object->PriorityClass && !extension->SkipPriority)
             {
                 PROCESS_PRIORITY_CLASS priorityClass;
 
                 priorityClass.Foreground = FALSE;
                 priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
 
-                PhSetProcessItemPriority(processItem, priorityClass);
+                if (!NT_SUCCESS(PhSetProcessItemPriority(processItem, priorityClass)))
+                {
+                    extension->SkipPriority = TRUE;
+                }
             }
         }
 
         if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_IO_PRIORITY))
         {
-            if (object->IoPriorityPlusOne != 0)
+            if (object->IoPriorityPlusOne != 0 && !extension->SkipIoPriority)
             {
                 IO_PRIORITY_HINT ioPriority;
 
@@ -2288,7 +2291,10 @@ VOID ProcessesUpdatedCallback(
                 {
                     if (ioPriority != object->IoPriorityPlusOne - 1)
                     {
-                        PhSetProcessItemIoPriority(processItem, object->IoPriorityPlusOne - 1);
+                        if (!NT_SUCCESS(PhSetProcessItemIoPriority(processItem, object->IoPriorityPlusOne - 1)))
+                        {
+                            extension->SkipIoPriority = TRUE;
+                        }
                     }
                 }
             }
@@ -2296,7 +2302,7 @@ VOID ProcessesUpdatedCallback(
 
         if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
         {
-            if (object->AffinityMask != 0)
+            if (object->AffinityMask != 0 && !extension->SkipAffinity)
             {
                 KAFFINITY affinityMask;
 
@@ -2304,7 +2310,10 @@ VOID ProcessesUpdatedCallback(
                 {
                     if (affinityMask != object->AffinityMask)
                     {
-                        PhSetProcessItemAffinityMask(processItem, object->AffinityMask);
+                        if (!NT_SUCCESS(PhSetProcessItemAffinityMask(processItem, object->AffinityMask)))
+                        {
+                            extension->SkipAffinity = TRUE;
+                        }
                     }
                 }
             }
@@ -2312,7 +2321,7 @@ VOID ProcessesUpdatedCallback(
 
         if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_PAGEPRIORITY))
         {
-            if (object->PagePriorityPlusOne != 0)
+            if (object->PagePriorityPlusOne != 0 && !extension->SkipPagePriority)
             {
                 ULONG pagePriority;
 
@@ -2320,7 +2329,10 @@ VOID ProcessesUpdatedCallback(
                 {
                     if (pagePriority != object->PagePriorityPlusOne - 1)
                     {
-                        PhSetProcessItemPagePriority(processItem, object->PagePriorityPlusOne - 1);
+                        if (!NT_SUCCESS(PhSetProcessItemPagePriority(processItem, object->PagePriorityPlusOne - 1)))
+                        {
+                            extension->SkipPagePriority = TRUE;
+                        }
                     }
                 }
             }
@@ -2328,7 +2340,7 @@ VOID ProcessesUpdatedCallback(
 
         if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_BOOST))
         {
-            if (object->Boost)
+            if (object->Boost && !extension->SkipBoostPriority)
             {
                 BOOLEAN priorityBoost = FALSE;
 
@@ -2336,7 +2348,10 @@ VOID ProcessesUpdatedCallback(
                 {
                     if (priorityBoost != object->Boost)
                     {
-                        PhSetProcessItemPriorityBoost(processItem, object->Boost);
+                        if (!NT_SUCCESS(PhSetProcessItemPriorityBoost(processItem, object->Boost)))
+                        {
+                            extension->SkipBoostPriority = TRUE;
+                        }
                     }
                 }
             }
