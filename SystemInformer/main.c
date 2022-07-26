@@ -1401,7 +1401,7 @@ VOID PhpInitializeSettings(
         }
 
         // 2. File in program directory
-        if (!PhSettingsFileName)
+        if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
             PPH_STRING applicationFileName;
 
@@ -1423,14 +1423,14 @@ VOID PhpInitializeSettings(
         }
 
         // 3. Default location
-        if (!PhSettingsFileName)
+        if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
             PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
         }
 
-        if (PhSettingsFileName)
+        if (!PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            status = PhLoadSettings(PhSettingsFileName->Buffer);
+            status = PhLoadSettings(&PhSettingsFileName->sr);
 
             // If we didn't find the file, it will be created. Otherwise,
             // there was probably a parsing error and we don't want to

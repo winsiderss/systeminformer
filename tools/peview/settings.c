@@ -126,14 +126,14 @@ VOID PeInitializeSettings(
     }
 
     // 2. Default location
-    if (!PeSettingsFileName)
+    if (PhIsNullOrEmptyString(PeSettingsFileName))
     {
         PeSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
     }
 
-    if (PeSettingsFileName)
+    if (!PhIsNullOrEmptyString(PeSettingsFileName))
     {
-        status = PhLoadSettings(PeSettingsFileName->Buffer);
+        status = PhLoadSettings(&PeSettingsFileName->sr);
 
         // If we didn't find the file, it will be created. Otherwise,
         // there was probably a parsing error and we don't want to
@@ -185,6 +185,6 @@ VOID PeSaveSettings(
     VOID
     )
 {
-    if (PeSettingsFileName)
-        PhSaveSettings(PeSettingsFileName->Buffer);
+    if (!PhIsNullOrEmptyString(PeSettingsFileName))
+        PhSaveSettings(&PeSettingsFileName->sr);
 }
