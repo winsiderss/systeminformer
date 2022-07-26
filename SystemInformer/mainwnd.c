@@ -2064,8 +2064,8 @@ VOID PhMwpSaveSettings(
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", WindowHandle);
     PhMwpSaveWindowState(WindowHandle);
 
-    if (PhSettingsFileName)
-        PhSaveSettings(PhSettingsFileName->Buffer);
+    if (!PhIsNullOrEmptyString(PhSettingsFileName))
+        PhSaveSettings(&PhSettingsFileName->sr);
 }
 
 VOID PhMwpSaveWindowState(
@@ -3869,7 +3869,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:
         {
-            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_REFRESH:
