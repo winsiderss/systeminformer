@@ -2058,6 +2058,13 @@ PhGetProcessorGroupActiveAffinityMask(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessorSystemAffinityMask(
+    _Out_ PKAFFINITY ActiveProcessorsAffinityMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetNumaHighestNodeNumber(
     _Out_ PUSHORT NodeNumber
     );

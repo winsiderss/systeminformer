@@ -311,23 +311,6 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                 {
                     status = PhGetProcessGroupAffinity(processHandle, &processGroupAffinity);
 
-                    if (status == STATUS_INVALID_PARAMETER || status == STATUS_INVALID_INFO_CLASS) // GH#1299: Required for Windows 7 (dmex)
-                    {
-                        status = PhGetProcessAffinityMask(processHandle, &processGroupAffinity.Mask);
-                    }
-
-                    if (status == STATUS_INVALID_PARAMETER || status == STATUS_INVALID_INFO_CLASS) // Required for multi-group processes (dmex)
-                    {
-                        PROCESS_BASIC_INFORMATION basicInfo;
-
-                        status = PhGetProcessBasicInformation(processHandle, &basicInfo);
-
-                        if (NT_SUCCESS(status))
-                        {
-                            processGroupAffinity.Mask = basicInfo.AffinityMask;
-                        }
-                    }
-
                     if (NT_SUCCESS(status))
                     {
                         context->AffinityMask = processGroupAffinity.Mask;
@@ -449,35 +432,20 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
             if (NT_SUCCESS(status) && context->SystemAffinityMask == 0)
             {
+                KAFFINITY systemAffinityMask;
+
                 if (PhSystemProcessorInformation.SingleProcessorGroup)
                 {
-                    SYSTEM_BASIC_INFORMATION systemBasicInfo;
-
-                    status = NtQuerySystemInformation(
-                        SystemBasicInformation,
-                        &systemBasicInfo,
-                        sizeof(SYSTEM_BASIC_INFORMATION),
-                        NULL
-                        );
-
-                    if (NT_SUCCESS(status))
-                    {
-                        context->SystemAffinityMask = systemBasicInfo.ActiveProcessorsAffinityMask;
-                    }
+                    status = PhGetProcessorSystemAffinityMask(&systemAffinityMask);
                 }
                 else
                 {
-                    KAFFINITY activeProcessorsAffinityMask;
+                    status = PhGetProcessorGroupActiveAffinityMask(context->AffinityGroup, &systemAffinityMask);
+                }
 
-                    status = PhGetProcessorGroupActiveAffinityMask(
-                        context->AffinityGroup,
-                        &activeProcessorsAffinityMask
-                        );
-
-                    if (NT_SUCCESS(status))
-                    {
-                        context->SystemAffinityMask = activeProcessorsAffinityMask;
-                    }
+                if (NT_SUCCESS(status))
+                {
+                    context->SystemAffinityMask = systemAffinityMask;
                 }
             }
 
