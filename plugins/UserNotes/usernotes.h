@@ -64,6 +64,7 @@ typedef struct _PROCESS_EXTENSION
         BOOLEAN Flags;
         struct
         {
+            BOOLEAN Valid : 1;
             BOOLEAN SkipAffinity : 1;
             BOOLEAN SkipPriority : 1;
             BOOLEAN SkipPagePriority : 1;
