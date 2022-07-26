@@ -2639,9 +2639,11 @@ BOOLEAN PhpAddTokenCapabilities(
 
                                 if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, TokenPageContext->Context)))
                                 {
-                                    name = PhGetProcessPackageFullName(processHandle);
-                                    PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Package: %s", PhGetString(name)));
-                                    PhDereferenceObject(name);
+                                    if (name = PhGetProcessPackageFullName(processHandle))
+                                    {
+                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Package: %s", PhGetString(name)));
+                                        PhDereferenceObject(name);
+                                    }
 
                                     NtClose(processHandle);
                                 }
