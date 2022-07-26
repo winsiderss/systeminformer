@@ -2769,20 +2769,15 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
         NTSTATUS status;
         HANDLE processHandle;
 
-        if (NT_SUCCESS(status = PhOpenProcess(
+        status = PhOpenProcess(
             &processHandle,
             PROCESS_SET_QUOTA,
             Processes[i]->ProcessId
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
-            QUOTA_LIMITS quotaLimits;
-
-            memset(&quotaLimits, 0, sizeof(QUOTA_LIMITS));
-            quotaLimits.MinimumWorkingSetSize = -1;
-            quotaLimits.MaximumWorkingSetSize = -1;
-
-            status = PhSetProcessQuotaLimits(processHandle, quotaLimits);
-
+            status = PhSetProcessEmptyWorkingSet(processHandle);
             NtClose(processHandle);
         }
 
