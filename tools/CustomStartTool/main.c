@@ -34,12 +34,12 @@ NTSTATUS InitializeAttributeList(
 
     SIZE_T attributeListLength = 0;
 
-    if (!InitializeProcThreadAttributeList(NULL, 2, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         return PhGetLastWin32ErrorAsNtStatus();
 
     StartupInfo->lpAttributeList = PhAllocate(attributeListLength);
 
-    if (!InitializeProcThreadAttributeList(StartupInfo->lpAttributeList, 2, 0, &attributeListLength))
+    if (!InitializeProcThreadAttributeList(StartupInfo->lpAttributeList, 1, 0, &attributeListLength))
         return PhGetLastWin32ErrorAsNtStatus();
 
     if (!UpdateProcThreadAttribute(
@@ -140,6 +140,7 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
+    HANDLE processHandle;
     HANDLE jobObjectHandle;
     PPH_STRING fileName;
     PROCESS_INFORMATION processInfo = { 0 };
@@ -154,29 +155,27 @@ INT WINAPI wWinMain(
     if (!NT_SUCCESS(InitializeFileName(&fileName)))
         return EXIT_FAILURE;
 
-    CreateProcess(
+    if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
-        fileName->Buffer,
-        NULL,
-        NULL,
-        FALSE,
-        CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT | CREATE_BREAKAWAY_FROM_JOB,
+        PhGetString(fileName),
         NULL,
         NULL,
         &info.StartupInfo,
-        &processInfo
-        );
-
-    if (jobObjectHandle)
+        PH_CREATE_PROCESS_SUSPENDED | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB,
+        NULL,
+        NULL,
+        &processHandle,
+        NULL
+        )))
     {
-        NtAssignProcessToJobObject(jobObjectHandle, processInfo.hProcess);
-        NtClose(jobObjectHandle);
-    }
+        if (jobObjectHandle)
+        {
+            NtAssignProcessToJobObject(jobObjectHandle, processHandle);
+            NtClose(jobObjectHandle);
+        }
 
-    if (processInfo.hProcess)
-    {
-        NtResumeProcess(processInfo.hProcess);
-        NtClose(processInfo.hProcess);
+        NtResumeProcess(processHandle);
+        NtClose(processHandle);
     }
 
     if (processInfo.hThread)
