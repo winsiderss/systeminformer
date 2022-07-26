@@ -635,9 +635,9 @@ EXPORTS
     PhAddSettings
     PhClearIgnoredSettings
     PhConvertIgnoredSettings    
-    PhGetIntegerSetting
-    PhGetIntegerPairSetting
-    PhGetScalableIntegerPairSetting
+    PhGetIntegerStringRefSetting
+    PhGetIntegerPairStringRefSetting
+    PhGetScalableIntegerPairStringRefSetting
     PhGetStringRefSetting
     PhLoadSettings
     PhLoadCustomColorList
@@ -654,12 +654,10 @@ EXPORTS
     PhSaveListViewGroupStatesToSetting
     PhSaveWindowPlacementToSetting
     PhSettingsInitialization
-    PhSetIntegerSetting
-    PhSetIntegerPairSetting
-    PhSetScalableIntegerPairSetting
-    PhSetScalableIntegerPairSetting2
-    PhSetStringSetting
-    PhSetStringSetting2
+    PhSetIntegerStringRefSetting
+    PhSetIntegerPairStringRefSetting
+    PhSetScalableIntegerPairStringRefSetting
+    PhSetStringRefSetting
     PhSaveSettings
     PhUpdateCachedSettings
 

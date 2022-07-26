@@ -86,28 +86,29 @@ VOID PhEnumSettings(
     );
 
 // begin_phapppub
+
 _May_raise_
 PHLIBAPI
 ULONG
 NTAPI
-PhGetIntegerSetting(
-    _In_ PWSTR Name
+PhGetIntegerStringRefSetting(
+    _In_ PPH_STRINGREF Name
     );
 
 _May_raise_
 PHLIBAPI
 PH_INTEGER_PAIR
 NTAPI
-PhGetIntegerPairSetting(
-    _In_ PWSTR Name
+PhGetIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name
     );
 
 _May_raise_
 PHLIBAPI
 PH_SCALABLE_INTEGER_PAIR
 NTAPI
-PhGetScalableIntegerPairSetting(
-    _In_ PWSTR Name,
+PhGetScalableIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToCurrent
     );
 
@@ -119,8 +120,97 @@ PhGetStringRefSetting(
     _In_ PPH_STRINGREF Name
     );
 
+_May_raise_
+PHLIBAPI
+VOID
+NTAPI
+PhSetIntegerStringRefSetting(
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG Value
+    );
+
+_May_raise_
+PHLIBAPI
+VOID
+NTAPI
+PhSetIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name,
+    _In_ PH_INTEGER_PAIR Value
+    );
+
+_May_raise_
+PHLIBAPI
+VOID
+NTAPI
+PhSetScalableIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name,
+    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    );
+
+_May_raise_
+PHLIBAPI
+VOID
+NTAPI
+PhSetScalableIntegerPairStringRefSetting2(
+    _In_ PPH_STRINGREF Name,
+    _In_ PH_INTEGER_PAIR Value
+    );
+
+_May_raise_
+PHLIBAPI
+VOID
+NTAPI
+PhSetStringRefSetting(
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF Value
+    );
+
+FORCEINLINE
+ULONG
+NTAPI
+PhGetIntegerSetting(
+    _In_ PWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetIntegerStringRefSetting(&name);
+}
+
+FORCEINLINE
+PH_INTEGER_PAIR
+NTAPI
+PhGetIntegerPairSetting(
+    _In_ PWSTR Name
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetIntegerPairStringRefSetting(&name);
+}
+
+FORCEINLINE
+PH_SCALABLE_INTEGER_PAIR
+NTAPI
+PhGetScalableIntegerPairSetting(
+    _In_ PWSTR Name,
+    _In_ BOOLEAN ScaleToCurrent
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhGetScalableIntegerPairStringRefSetting(&name, ScaleToCurrent);
+}
+
 FORCEINLINE
 PPH_STRING
+NTAPI
 PhGetStringSetting(
     _In_ PWSTR Name
     )
@@ -135,7 +225,8 @@ PhGetStringSetting(
 #define PhaGetStringSetting(Name) PH_AUTO_T(PH_STRING, PhGetStringSetting(Name)) // phapppub
 
 FORCEINLINE 
-PPH_STRING 
+PPH_STRING
+NTAPI
 PhGetExpandStringSetting(
     _In_ PWSTR Name
     )
@@ -151,59 +242,98 @@ PhGetExpandStringSetting(
     return setting;
 }
 
-_May_raise_
-PHLIBAPI
+FORCEINLINE
 VOID
 NTAPI
 PhSetIntegerSetting(
     _In_ PWSTR Name,
     _In_ ULONG Value
-    );
+    )
+{
+    PH_STRINGREF name;
 
-_May_raise_
-PHLIBAPI
-VOID
-NTAPI
-PhSetIntegerPairSetting(
-    _In_ PWSTR Name,
-    _In_ PH_INTEGER_PAIR Value
-    );
+    PhInitializeStringRef(&name, Name);
 
-_May_raise_
-PHLIBAPI
-VOID
-NTAPI
-PhSetScalableIntegerPairSetting(
-    _In_ PWSTR Name,
-    _In_ PH_SCALABLE_INTEGER_PAIR Value
-    );
+    PhSetIntegerStringRefSetting(&name, Value);
+}
 
-_May_raise_
-PHLIBAPI
-VOID
-NTAPI
-PhSetScalableIntegerPairSetting2(
-    _In_ PWSTR Name,
-    _In_ PH_INTEGER_PAIR Value
-    );
-
-_May_raise_
-PHLIBAPI
+FORCEINLINE
 VOID
 NTAPI
 PhSetStringSetting(
     _In_ PWSTR Name,
     _In_ PWSTR Value
-    );
+    )
+{
+    PH_STRINGREF name;
+    PH_STRINGREF value;
 
-_May_raise_
-PHLIBAPI
+    PhInitializeStringRef(&name, Name);
+    PhInitializeStringRef(&value, Value);
+
+    PhSetStringRefSetting(&name, &value);
+}
+
+FORCEINLINE
 VOID
 NTAPI
 PhSetStringSetting2(
     _In_ PWSTR Name,
     _In_ PPH_STRINGREF Value
-    );
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    PhSetStringRefSetting(&name, Value);
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhSetIntegerPairSetting(
+    _In_ PWSTR Name,
+    _In_ PH_INTEGER_PAIR Value
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    PhSetIntegerPairStringRefSetting(&name, Value);
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhSetScalableIntegerPairSetting(
+    _In_ PWSTR Name,
+    _In_ PH_SCALABLE_INTEGER_PAIR Value
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    PhSetScalableIntegerPairStringRefSetting(&name, Value);
+}
+
+FORCEINLINE
+VOID
+NTAPI
+PhSetScalableIntegerPairSetting2(
+    _In_ PWSTR Name,
+    _In_ PH_INTEGER_PAIR Value
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    PhSetScalableIntegerPairStringRefSetting2(&name, Value);
+}
+
 // end_phapppub
 
 VOID PhClearIgnoredSettings(
@@ -215,11 +345,11 @@ VOID PhConvertIgnoredSettings(
     );
 
 NTSTATUS PhLoadSettings(
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 NTSTATUS PhSaveSettings(
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 VOID PhResetSettings(

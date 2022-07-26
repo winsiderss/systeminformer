@@ -656,7 +656,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PvSaveWindowState(hwndDlg);
 
             if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
-                PhSetStringSetting(L"MainWindowPage", PvTabCurrentSection->Name.Buffer);
+                PhSetStringSetting2(L"MainWindowPage", &PvTabCurrentSection->Name);
 
             PhDeleteLayoutManager(&PvTabWindowLayoutManager);
 
