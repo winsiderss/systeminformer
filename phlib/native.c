@@ -12196,3 +12196,40 @@ NTSTATUS PhGetNumaProximityNode(
 
     return status;
 }
+
+NTSTATUS PhGetSystemCompressionStoreInformation(
+    _Out_ PPH_SYSTEM_STORE_COMPRESSION_INFORMATION SystemCompressionStoreInformation
+    )
+{
+    NTSTATUS status;
+    SYSTEM_STORE_INFORMATION storeInfo;
+    SM_MEM_COMPRESSION_INFO_REQUEST compressionInfo;
+
+    memset(&compressionInfo, 0, sizeof(SM_MEM_COMPRESSION_INFO_REQUEST));
+    compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION;
+
+    memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
+    storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
+    storeInfo.StoreInformationClass = MemCompressionInfoRequest;
+    storeInfo.Data = &compressionInfo;
+    storeInfo.Length = sizeof(compressionInfo);
+
+    status = NtQuerySystemInformation(
+        SystemStoreInformation,
+        &storeInfo,
+        sizeof(SYSTEM_STORE_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        memset(SystemCompressionStoreInformation, 0, sizeof(PH_SYSTEM_STORE_COMPRESSION_INFORMATION));
+        SystemCompressionStoreInformation->CompressionPid = UlongToHandle(compressionInfo.CompressionPid);
+        SystemCompressionStoreInformation->WorkingSetSize = compressionInfo.WorkingSetSize;
+        SystemCompressionStoreInformation->TotalDataCompressed = compressionInfo.TotalDataCompressed;
+        SystemCompressionStoreInformation->TotalCompressedSize = compressionInfo.TotalCompressedSize;
+        SystemCompressionStoreInformation->TotalUniqueDataCompressed = compressionInfo.TotalUniqueDataCompressed;
+    }
+
+    return status;
+}
