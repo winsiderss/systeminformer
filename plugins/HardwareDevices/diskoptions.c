@@ -231,6 +231,7 @@ VOID FreeListViewDiskDriveEntries(
     }
 }
 
+_Success_(return)
 BOOLEAN QueryDiskDeviceInterfaceDescription(
     _In_ PWSTR DeviceInterface,
     _Out_ DEVINST *DeviceInstanceHandle,

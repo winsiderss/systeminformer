@@ -561,13 +561,13 @@ VOID DotNetAsmShowContextMenu(
     PhInsertCopyCellEMenuItem(menu, ID_CLR_COPY, Context->TreeNewHandle, ContextMenuEvent->Column);
     PhSetFlagsEMenuItem(menu, ID_CLR_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-    if (PhIsNullOrEmptyString(node->PathText) || !PhDoesFileExistsWin32(PhGetString(node->PathText)))
+    if (PhIsNullOrEmptyString(node->PathText) || !PhDoesFileExistWin32(PhGetString(node->PathText)))
     {
         PhSetFlagsEMenuItem(menu, ID_CLR_INSPECT, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         PhSetFlagsEMenuItem(menu, ID_CLR_OPENFILELOCATION, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
 
-    if (PhIsNullOrEmptyString(node->NativePathText) || !PhDoesFileExistsWin32(PhGetString(node->NativePathText)))
+    if (PhIsNullOrEmptyString(node->NativePathText) || !PhDoesFileExistWin32(PhGetString(node->NativePathText)))
     {
         PhSetFlagsEMenuItem(menu, ID_CLR_INSPECTNATIVE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         PhSetFlagsEMenuItem(menu, ID_CLR_OPENNATIVELOCATION, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
@@ -594,7 +594,7 @@ VOID DotNetAsmShowContextMenu(
             {
             case ID_CLR_INSPECT:
                 {
-                    if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistsWin32(PhGetString(node->PathText)))
+                    if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistWin32(PhGetString(node->PathText)))
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
@@ -608,7 +608,7 @@ VOID DotNetAsmShowContextMenu(
                 break;
             case ID_CLR_INSPECTNATIVE:
                 {
-                    if (!PhIsNullOrEmptyString(node->NativePathText) && PhDoesFileExistsWin32(PhGetString(node->NativePathText)))
+                    if (!PhIsNullOrEmptyString(node->NativePathText) && PhDoesFileExistWin32(PhGetString(node->NativePathText)))
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
@@ -622,7 +622,7 @@ VOID DotNetAsmShowContextMenu(
                 break;
             case ID_CLR_OPENFILELOCATION:
                 {
-                    if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistsWin32(PhGetString(node->PathText)))
+                    if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistWin32(PhGetString(node->PathText)))
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
@@ -636,7 +636,7 @@ VOID DotNetAsmShowContextMenu(
                 break;
             case ID_CLR_OPENNATIVELOCATION:
                 {
-                    if (!PhIsNullOrEmptyString(node->NativePathText) && PhDoesFileExistsWin32(PhGetString(node->NativePathText)))
+                    if (!PhIsNullOrEmptyString(node->NativePathText) && PhDoesFileExistWin32(PhGetString(node->NativePathText)))
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
@@ -953,7 +953,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
             if (!(node = DotNetAsmGetSelectedTreeNode(Context)))
                 break;
 
-            if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistsWin32(PhGetString(node->PathText)))
+            if (!PhIsNullOrEmptyString(node->PathText) && PhDoesFileExistWin32(PhGetString(node->PathText)))
             {
                 PhShellExecuteUserString(
                     context->WindowHandle,

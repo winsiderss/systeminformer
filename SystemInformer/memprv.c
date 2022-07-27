@@ -784,40 +784,20 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
 #ifdef _WIN64
 
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-    PS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock = { 0 };
-    PVOID ldrInitBlockBaseAddress = NULL;
+    PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
     PPH_MEMORY_ITEM cfgBitmapMemoryItem;
 
-    status = PhGetProcedureAddressRemote(
-        ProcessHandle,
-        &ntdllFileName,
-        "LdrSystemDllInitBlock",
-        0,
-        &ldrInitBlockBaseAddress,
-        NULL
-        );
+    status = PhGetProcessSystemDllInitBlock(ProcessHandle, &ldrInitBlock);
 
     if (NT_SUCCESS(status))
-    {
-        status = NtReadVirtualMemory(
-            ProcessHandle,
-            ldrInitBlockBaseAddress,
-            &ldrInitBlock,
-            sizeof(PS_SYSTEM_DLL_INIT_BLOCK),
-            NULL
-            );
-    }
-
-    if (NT_SUCCESS(status) && ldrInitBlock.Size != 0)
     {
         PVOID cfgBitmapAddress = NULL;
         PVOID cfgBitmapWow64Address = NULL;
 
-        if (RTL_CONTAINS_FIELD(&ldrInitBlock, ldrInitBlock.Size, Wow64CfgBitMap))
+        if (RTL_CONTAINS_FIELD(ldrInitBlock, ldrInitBlock->Size, Wow64CfgBitMap))
         {
-            cfgBitmapAddress = (PVOID)ldrInitBlock.CfgBitMap;
-            cfgBitmapWow64Address = (PVOID)ldrInitBlock.Wow64CfgBitMap;
+            cfgBitmapAddress = (PVOID)ldrInitBlock->CfgBitMap;
+            cfgBitmapWow64Address = (PVOID)ldrInitBlock->Wow64CfgBitMap;
         }
 
         if (cfgBitmapAddress && (cfgBitmapMemoryItem = PhLookupMemoryItemList(List, cfgBitmapAddress)))
@@ -851,6 +831,8 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
                 memoryItem = CONTAINING_RECORD(listEntry, PH_MEMORY_ITEM, ListEntry);
             }
         }
+
+        PhFree(ldrInitBlock);
     }
 #endif
 

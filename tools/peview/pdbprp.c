@@ -860,7 +860,7 @@ VOID PvPdbProperties(
 {
     PPV_PROPCONTEXT propContext;
 
-    if (!PhDoesFileExistsWin32(PvFileName->Buffer))
+    if (!PhDoesFileExistWin32(PhGetString(PvFileName)))
     {
         PhShowStatus(NULL, L"Unable to load the pdb file", STATUS_FILE_NOT_AVAILABLE, 0);
         return;

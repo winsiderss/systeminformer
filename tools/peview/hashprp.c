@@ -362,7 +362,7 @@ PPH_HASHTABLE PvGenerateOrdinalHashtable(
     PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
     PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
 
-    if (NT_SUCCESS(PhLoadMappedImageEx(FileName, NULL, &mappedImage)))
+    if (NT_SUCCESS(PhLoadMappedImageEx(&FileName->sr, NULL, &mappedImage)))
     {
         if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
         {

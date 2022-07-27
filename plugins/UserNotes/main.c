@@ -248,12 +248,12 @@ VOID InitializeDbPath(
     VOID
     )
 {
-    static PH_STRINGREF databaseFileNameSr = PH_STRINGREF_INIT(L"usernotesdb.xml");
+    static PH_STRINGREF databaseFileName = PH_STRINGREF_INIT(L"usernotesdb.xml");
     PPH_STRING fileName;
 
-    fileName = PhGetApplicationDirectoryFileNameWin32(&databaseFileNameSr);
+    fileName = PhGetApplicationDirectoryFileNameWin32(&databaseFileName);
 
-    if (fileName && PhDoesFileExistsWin32(PhGetString(fileName)))
+    if (fileName && PhDoesFileExistWin32(PhGetString(fileName)))
     {
         SetDbPath(fileName);
     }

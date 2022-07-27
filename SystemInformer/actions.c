@@ -364,7 +364,7 @@ BOOLEAN PhpStartPhSvcProcess(
                 if (fileFullPath = PhGetFullPath(fileName->Buffer, NULL))
                     PhMoveReference(&fileName, fileFullPath);
 
-                if (PhDoesFileExistsWin32(fileName->Buffer))
+                if (PhDoesFileExistWin32(fileName->Buffer))
                 {
                     if (PhShellProcessHackerEx(
                         hWnd,

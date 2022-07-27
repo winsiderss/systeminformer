@@ -2155,7 +2155,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     {
         PPH_STRING fileName = PhCreateString(cmdlineArgList[0]);
 
-        if (fileName && !PhDoesFileExistsWin32(fileName->Buffer))
+        if (fileName && !PhDoesFileExistWin32(fileName->Buffer))
         {
             PPH_STRING filePathString;
 
@@ -2261,7 +2261,7 @@ NTSTATUS PhpRunFileProgram(
     }
 
     // If the file doesn't exist its probably a URL with http, https, www (dmex)
-    if (isDirectory || !PhDoesFileExistsWin32(fullFileName->Buffer))
+    if (isDirectory || !PhDoesFileExistWin32(fullFileName->Buffer))
     {
         status = PhpRunAsShellExecute(
             Context->WindowHandle,

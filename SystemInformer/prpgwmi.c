@@ -1030,7 +1030,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
                 break;
             case 4:
                 {
-                    if (!PhIsNullOrEmptyString(nodes[0]->Provider->FileName) && PhDoesFileExistsWin32(PhGetString(nodes[0]->Provider->FileName)))
+                    if (!PhIsNullOrEmptyString(nodes[0]->Provider->FileName) && PhDoesFileExistWin32(PhGetString(nodes[0]->Provider->FileName)))
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,
@@ -1055,7 +1055,7 @@ VOID PhpShowWmiProviderNodeContextMenu(
                 break;
             case 6:
                 {
-                    if (!PhIsNullOrEmptyString(nodes[0]->Provider->FileName) && PhDoesFileExistsWin32(PhGetString(nodes[0]->Provider->FileName)))
+                    if (!PhIsNullOrEmptyString(nodes[0]->Provider->FileName) && PhDoesFileExistWin32(PhGetString(nodes[0]->Provider->FileName)))
                     {
                         PhShellExecuteUserString(
                             Context->WindowHandle,

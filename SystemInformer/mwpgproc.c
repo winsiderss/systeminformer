@@ -559,7 +559,7 @@ VOID PhMwpInitializeProcessMenu(
 
         if (
             PhIsNullOrEmptyString(Processes[0]->FileName) ||
-            !PhDoesFileExists(Processes[0]->FileName)
+            !PhDoesFileExist(Processes[0]->FileName)
             )
         {
             PhEnableEMenuItem(Menu, ID_PROCESS_OPENFILELOCATION, FALSE);  
