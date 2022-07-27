@@ -519,7 +519,7 @@ NTSTATUS PhTerminateProcessAlternative(
             goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = RtlCreateUserThread(
+    status = RtlCreateUserThread(
         ProcessHandle,
         NULL,
         FALSE,
@@ -530,10 +530,10 @@ NTSTATUS PhTerminateProcessAlternative(
         LongToPtr(ExitStatus),
         &threadHandle,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
 
@@ -1893,127 +1893,115 @@ NTSTATUS PhTraceControl(
  */
 NTSTATUS PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ PLARGE_INTEGER Timeout
     ) 
 {
+    static PH_STRINGREF kernel32FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll");
 #ifdef _WIN64
-    static PVOID loadLibraryW32 = NULL;
+    static PH_STRINGREF kernel32Wow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\kernel32.dll");
+    BOOLEAN isWow64 = FALSE;
 #endif
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64 = FALSE;
-    BOOLEAN isModule32 = FALSE;
-    PH_MAPPED_IMAGE mappedImage;
-#endif
-    PVOID threadStart;
-    PH_STRINGREF fileName;
-    PVOID baseAddress = NULL;
-    SIZE_T allocSize;
-    HANDLE threadHandle;
+    SIZE_T fileNameAllocationSize = 0;
+    PVOID fileNameBaseAddress = NULL;
+    PVOID loadLibraryW = NULL;
+    HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
 
 #ifdef _WIN64
-    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
-    if (isWow64)
-    {
-        if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, &mappedImage)))
-            return status;
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
-        isModule32 = mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC;
-        PhUnloadMappedImage(&mappedImage);
-    }
-
-    if (!isModule32)
-    {
-#endif
-        threadStart = PhGetDllProcedureAddress(L"kernel32.dll", "LoadLibraryW", 0);
-#ifdef _WIN64
-    }
-    else
-    {
-        threadStart = loadLibraryW32;
-
-        if (!threadStart)
-        {
-            static PH_STRINGREF kernel32StringRef = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\kernel32.dll");
-
-            status = PhGetProcedureAddressRemote(
-                ProcessHandle,
-                &kernel32StringRef,
-                "LoadLibraryW",
-                0,
-                &loadLibraryW32,
-                NULL
-                );
-
-            if (!NT_SUCCESS(status))
-                return status;
-
-            threadStart = loadLibraryW32;
-        }
-    }
-#endif
-
-    PhInitializeStringRefLongHint(&fileName, FileName);
-    allocSize = fileName.Length + sizeof(UNICODE_NULL);
-
-    if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &baseAddress,
+        isWow64 ? &kernel32Wow64FileName : &kernel32FileName,
+        "LoadLibraryW",
         0,
-        &allocSize,
+        &loadLibraryW,
+        NULL
+        );
+#else
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &kernel32FileName,
+        "LoadLibraryW",
+        0,
+        &loadLibraryW,
+        NULL
+        );
+#endif
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    fileNameAllocationSize = FileName->Length + sizeof(UNICODE_NULL);
+    status = NtAllocateVirtualMemory(
+        ProcessHandle,
+        &fileNameBaseAddress,
+        0,
+        &fileNameAllocationSize,
         MEM_COMMIT,
         PAGE_READWRITE
-        )))
-        return status;
+        );
 
-    if (!NT_SUCCESS(status = NtWriteVirtualMemory(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWriteVirtualMemory(
         ProcessHandle,
-        baseAddress,
-        fileName.Buffer,
-        fileName.Length + sizeof(UNICODE_NULL),
+        fileNameBaseAddress,
+        FileName->Buffer,
+        FileName->Length + sizeof(UNICODE_NULL),
         NULL
-        )))
-        goto FreeExit;
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     if (WindowsVersion >= WINDOWS_8)
     {
         status = PhCreateExecutionRequiredRequest(ProcessHandle, &powerRequestHandle);
 
         if (!NT_SUCCESS(status))
-            goto FreeExit;
+            goto CleanupExit;
     }
 
-    if (!NT_SUCCESS(status = RtlCreateUserThread(
+    status = RtlCreateUserThread(
         ProcessHandle,
         NULL,
         FALSE,
         0,
         0,
         0,
-        threadStart,
-        baseAddress,
+        loadLibraryW,
+        fileNameBaseAddress,
         &threadHandle,
         NULL
-        )))
-        goto FreeExit;
+        );
 
-    // Wait for the thread to finish.   
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
-    NtClose(threadHandle);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+CleanupExit:
+    if (threadHandle)
+        NtClose(threadHandle);
 
     if (powerRequestHandle)
         PhDestroyExecutionRequiredRequest(powerRequestHandle);
 
-FreeExit:
-    // Size needs to be zero if we're freeing.  
-    allocSize = 0;
+    fileNameAllocationSize = 0;
     NtFreeVirtualMemory(
         ProcessHandle,
-        &baseAddress,
-        &allocSize,
+        &fileNameBaseAddress,
+        &fileNameAllocationSize,
         MEM_RELEASE
         );
 
@@ -2035,10 +2023,10 @@ NTSTATUS PhUnloadDllProcess(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
+    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
 #ifdef _WIN64
-    static PVOID ldrUnloadDll32 = NULL;
+    static PH_STRINGREF ntdllWow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\ntdll.dll");
 #endif
-
     NTSTATUS status;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
@@ -2083,36 +2071,27 @@ NTSTATUS PhUnloadDllProcess(
     }
 
 #ifdef _WIN64
-    if (!isModule32)
-    {
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        isWow64 ? &ntdllWow64FileName : &ntdllFileName,
+        "LdrUnloadDll",
+        0,
+        &threadStart,
+        NULL
+        );
+#else
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        &ntdllFileName,
+        "LdrUnloadDll",
+        0,
+        &threadStart,
+        NULL
+        );
 #endif
-        threadStart = PhGetDllProcedureAddress(L"ntdll.dll", "LdrUnloadDll", 0);
-#ifdef _WIN64
-    }
-    else
-    {
-        threadStart = ldrUnloadDll32;
 
-        if (!threadStart)
-        {
-            static PH_STRINGREF ntdllStringRef = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\ntdll.dll");
-
-            status = PhGetProcedureAddressRemote(
-                ProcessHandle,
-                &ntdllStringRef,
-                "LdrUnloadDll",
-                0,
-                &ldrUnloadDll32,
-                NULL
-                );
-
-            if (!NT_SUCCESS(status))
-                return status;
-
-            threadStart = ldrUnloadDll32;
-        }
-    }
-#endif
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (WindowsVersion >= WINDOWS_8)
     {
@@ -2200,105 +2179,107 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         valueAllocationSize = Value->Length + sizeof(UNICODE_NULL);
 
 #ifdef _WIN64
-    if (!NT_SUCCESS(status = PhGetProcessIsWow64(ProcessHandle, &isWow64)))
+    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
         isWow64 ? &ntdllWow64FileName : &ntdllFileName,
         "RtlExitUserThread",
         0,
         &rtlExitUserThread,
         NULL
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
         isWow64 ? &kernel32Wow64FileName : &kernel32FileName,
         "SetEnvironmentVariableW",
         0,
         &setEnvironmentVariableW,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 #else
-    if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
         &ntdllFileName,
         "RtlExitUserThread",
         0,
         &rtlExitUserThread,
         NULL
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(status = PhGetProcedureAddressRemote(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
         &kernel32FileName,
         "SetEnvironmentVariableW",
         0,
         &setEnvironmentVariableW,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 #endif
 
-    if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
+    status = NtAllocateVirtualMemory(
         ProcessHandle,
         &nameBaseAddress,
         0,
         &nameAllocationSize,
         MEM_COMMIT,
         PAGE_READWRITE
-        )))
-    {
-        goto CleanupExit;
-    }
+        );
 
-    if (!NT_SUCCESS(status = NtWriteVirtualMemory(
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = NtWriteVirtualMemory(
         ProcessHandle,
         nameBaseAddress,
         Name->Buffer,
         Name->Length,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     if (Value)
     {
-        if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
+        status = NtAllocateVirtualMemory(
             ProcessHandle,
             &valueBaseAddress,
             0,
             &valueAllocationSize,
             MEM_COMMIT,
             PAGE_READWRITE
-            )))
-        {
-            goto CleanupExit;
-        }
+            );
 
-        if (!NT_SUCCESS(status = NtWriteVirtualMemory(
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = NtWriteVirtualMemory(
             ProcessHandle,
             valueBaseAddress,
             Value->Buffer,
             Value->Length,
             NULL
-            )))
-        {
+            );
+
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
     }
 
     if (WindowsVersion >= WINDOWS_8)
@@ -2317,7 +2298,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         0,
         0,
         rtlExitUserThread,
-        NULL,
+        LongToPtr(STATUS_SUCCESS),
         &threadHandle,
         NULL
         );
@@ -4721,9 +4702,6 @@ NTSTATUS PhpEnumProcessModules32(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!peb)
-        return STATUS_NOT_SUPPORTED; // not a WOW64 process
-
     // Read the address of the loader data.
     status = NtReadVirtualMemory(
         ProcessHandle,
@@ -5212,7 +5190,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName;
+    PPH_STRING fileName = NULL;
     PH_MAPPED_IMAGE mappedImage;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;
@@ -5229,7 +5207,6 @@ NTSTATUS PhGetProcedureAddressRemote(
         goto CleanupExit;
 
     memset(&context, 0, sizeof(PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT));
-    context.DllBase = NULL;
     context.FileName = fileName;
 
     memset(&parameters, 0, sizeof(PH_ENUM_PROCESS_MODULES_PARAMETERS));
@@ -5246,8 +5223,6 @@ NTSTATUS PhGetProcedureAddressRemote(
         status = PhEnumProcessModulesEx(ProcessHandle, &parameters);
         break;
     }
-
-    PhDereferenceObject(fileName);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -5279,6 +5254,7 @@ NTSTATUS PhGetProcedureAddressRemote(
 
 CleanupExit:
     PhUnloadMappedImage(&mappedImage);
+    PhClearReference(&fileName);
 
     return status;
 }

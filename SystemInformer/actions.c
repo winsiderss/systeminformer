@@ -3102,11 +3102,7 @@ BOOLEAN PhUiLoadDllProcess(
         LARGE_INTEGER timeout;
 
         timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-        status = PhLoadDllProcess(
-            processHandle,
-            fileName->Buffer,
-            &timeout
-            );
+        status = PhLoadDllProcess(processHandle, &fileName->sr, &timeout);
 
         NtClose(processHandle);
     }
