@@ -959,6 +959,22 @@ PhQueryRegistryStringRef(
     _In_ PPH_STRINGREF ValueName
     );
 
+PHLIBAPI
+ULONG
+NTAPI
+PhQueryRegistryUlongStringRef(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+PHLIBAPI
+ULONG64
+NTAPI
+PhQueryRegistryUlong64StringRef(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
 FORCEINLINE
 PPH_STRING
 NTAPI
@@ -977,29 +993,41 @@ PhQueryRegistryString(
     return PhQueryRegistryStringRef(KeyHandle, &valueName);
 }
 
-PHLIBAPI
+FORCEINLINE
 ULONG
 NTAPI
 PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
     _In_opt_ PWSTR ValueName
-    );
+    )
+{
+    PH_STRINGREF valueName;
 
-PHLIBAPI
-ULONG
-NTAPI
-PhQueryRegistryUlongEx(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
-    );
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
 
-PHLIBAPI
+    return PhQueryRegistryUlongStringRef(KeyHandle, &valueName);
+}
+
+FORCEINLINE
 ULONG64
 NTAPI
 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
     _In_opt_ PWSTR ValueName
-    );
+    )
+{
+    PH_STRINGREF valueName;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    return PhQueryRegistryUlong64StringRef(KeyHandle, &valueName);
+}
 
 typedef struct _PH_FLAG_MAPPING
 {
