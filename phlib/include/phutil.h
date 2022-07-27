@@ -954,10 +954,28 @@ PhShellOpenKey(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhQueryRegistryStringRef(
+    _In_ HANDLE KeyHandle,
+    _In_ PPH_STRINGREF ValueName
+    );
+
+FORCEINLINE
+PPH_STRING
+NTAPI
 PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
     _In_opt_ PWSTR ValueName
-    );
+    )
+{
+    PH_STRINGREF valueName;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    return PhQueryRegistryStringRef(KeyHandle, &valueName);
+}
 
 PHLIBAPI
 ULONG
