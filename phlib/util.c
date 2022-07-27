@@ -3281,17 +3281,25 @@ NTSTATUS PhCreateProcessWin32Ex(
         fileName = PhCreateString(FileName);
     else
     {
-        INT cmdlineArgCount;
-        PWSTR* cmdlineArgList;
+        PH_STRINGREF commandLineFileName;
+        PH_STRINGREF commandLineArguments;
 
-        // Try extract the filename or CreateProcess might execute the wrong executable. (dmex)
-        if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
-        {
-            PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
-            LocalFree(cmdlineArgList);
-        }
+        PhParseCommandLineFuzzy(&commandLine->sr, &commandLineFileName, &commandLineArguments, &fileName);
 
-        if (fileName && !PhDoesFileExistsWin32(fileName->Buffer))
+        if (PhIsNullOrEmptyString(fileName))
+            PhMoveReference(&fileName, PhCreateString2(&commandLineFileName));
+
+        //INT cmdlineArgCount;
+        //PWSTR* cmdlineArgList;
+        //
+        //// Try extract the filename or CreateProcess might execute the wrong executable. (dmex)
+        //if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
+        //{
+        //    PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
+        //    LocalFree(cmdlineArgList);
+        //}
+
+        if (fileName && !PhDoesFileExistWin32(fileName->Buffer))
         {
             PPH_STRING filePathSr;
 
@@ -5903,7 +5911,7 @@ PPH_STRING PhCreateCacheFile(
     fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistsWin32(settingsFileName->Buffer))
+    if (PhDoesFileExistWin32(settingsFileName->Buffer))
     {
         HANDLE fileHandle;
         PPH_STRING directory;
@@ -5993,7 +6001,7 @@ VOID PhClearCacheDirectory(
     fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistsWin32(settingsFileName->Buffer))
+    if (PhDoesFileExistWin32(settingsFileName->Buffer))
     {
         HANDLE fileHandle;
         PPH_STRING directory;
@@ -6050,7 +6058,7 @@ VOID PhDeleteCacheFile(
     PPH_STRING cacheFullFilePath;
     ULONG indexOfFileName = ULONG_MAX;
 
-    if (PhDoesFileExistsWin32(PhGetString(FileName)))
+    if (PhDoesFileExistWin32(PhGetString(FileName)))
     {
         PhDeleteFileWin32(PhGetString(FileName));
     }

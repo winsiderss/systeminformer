@@ -1584,7 +1584,7 @@ PhDoesFileExist(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhDoesDirectoryExistsWin32(
+PhDoesDirectoryExistWin32(
     _In_ PWSTR FileName
     );
 

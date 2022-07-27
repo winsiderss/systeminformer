@@ -201,7 +201,7 @@ BOOLEAN SetupCreateUninstallFile(
     backupFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\systeminformer-setup.bak");
     uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\systeminformer-setup.exe");
 
-    if (PhDoesFileExistsWin32(backupFilePath->Buffer))
+    if (PhDoesFileExistWin32(PhGetString(backupFilePath)))
     {    
         PPH_STRING tempFileName;
         PPH_STRING tempFilePath;
@@ -210,9 +210,9 @@ BOOLEAN SetupCreateUninstallFile(
         tempFilePath = PhCreateCacheFile(tempFileName);
 
         //if (!NT_SUCCESS(PhDeleteFileWin32(backupFilePath->Buffer)))
-        if (!MoveFile(backupFilePath->Buffer, tempFilePath->Buffer))
+        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(backupFilePath), PhGetString(tempFilePath))))
         {
-            Context->ErrorCode = GetLastError();
+            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
             return FALSE;
         }
 
@@ -220,18 +220,18 @@ BOOLEAN SetupCreateUninstallFile(
         PhDereferenceObject(tempFileName);
     }
 
-    if (PhDoesFileExistsWin32(uninstallFilePath->Buffer))
+    if (PhDoesFileExistWin32(PhGetString(uninstallFilePath)))
     {
         PPH_STRING tempFileName;
         PPH_STRING tempFilePath;
 
-        //if (!NT_SUCCESS(PhDeleteFileWin32(uninstallFilePath->Buffer)))
+        //if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(uninstallFilePath))))
         tempFileName = PhCreateString(L"systeminformer-setup.exe");
         tempFilePath = PhCreateCacheFile(tempFileName);
 
-        if (!MoveFile(uninstallFilePath->Buffer, tempFilePath->Buffer))
+        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath))))
         {
-            Context->ErrorCode = GetLastError();
+            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
             return FALSE;
         }
 
@@ -239,15 +239,14 @@ BOOLEAN SetupCreateUninstallFile(
         PhDereferenceObject(tempFileName);
     }
 
-    if (!CopyFile(currentFilePath->Buffer, uninstallFilePath->Buffer, TRUE))
+    if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), TRUE)))
     {
-        Context->ErrorCode = GetLastError();
+        Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
         return FALSE;
     }
 
     PhDereferenceObject(uninstallFilePath);
     PhDereferenceObject(currentFilePath);
-
     return TRUE;
 }
 
@@ -259,7 +258,7 @@ VOID SetupDeleteUninstallFile(
 
     uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\systeminformer-setup.exe");
 
-    if (PhDoesFileExistsWin32(uninstallFilePath->Buffer))
+    if (PhDoesFileExistWin32(PhGetString(uninstallFilePath)))
     {
         PPH_STRING tempFileName;
         PPH_STRING tempFilePath;
@@ -272,8 +271,8 @@ VOID SetupDeleteUninstallFile(
             PhDereferenceObject(tempFileName);
             goto CleanupExit;
         }
-    
-        MoveFile(uninstallFilePath->Buffer, tempFilePath->Buffer);
+
+        PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath));
 
         PhDereferenceObject(tempFilePath);
         PhDereferenceObject(tempFileName);
@@ -454,7 +453,7 @@ VOID SetupInstallDriver(
 
         clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
-        if (PhDoesFileExistsWin32(PhGetString(clientPath)))
+        if (PhDoesFileExistWin32(PhGetString(clientPath)))
         {
             HANDLE processHandle;
 
@@ -491,7 +490,7 @@ BOOLEAN SetupUninstallDriver(
     // Stop and uninstall the current installation.
     clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
-    if (PhDoesFileExistsWin32(PhGetString(clientPath)))
+    if (PhDoesFileExistWin32(PhGetString(clientPath)))
     {
         HANDLE processHandle;
 
@@ -581,7 +580,7 @@ VOID SetupSetWindowsOptions(
     //
     //    if (settingsFilePath = PhExpandEnvironmentStrings(&settingsPath))
     //    {
-    //        if (PhDoesFileExistsWin32(settingsFilePath->Buffer))
+    //        if (PhDoesFileExistWin32(settingsFilePath->Buffer))
     //        {
     //            PhDeleteFileWin32(settingsFilePath->Buffer);
     //        }
@@ -744,7 +743,7 @@ VOID SetupChangeNotifyShortcuts(
 
     if (string = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
     {
-        if (PhDoesFileExistsWin32(PhGetString(string)))
+        if (PhDoesFileExistWin32(PhGetString(string)))
         {
             SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
         }
@@ -754,7 +753,7 @@ VOID SetupChangeNotifyShortcuts(
 
     if (string = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
     {
-        if (PhDoesFileExistsWin32(PhGetString(string)))
+        if (PhDoesFileExistWin32(PhGetString(string)))
         {
             SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
         }
@@ -764,7 +763,7 @@ VOID SetupChangeNotifyShortcuts(
 
     if (string = PhExpandEnvironmentStrings(&peviewerShortcutPathSr))
     {
-        if (PhDoesFileExistsWin32(PhGetString(string)))
+        if (PhDoesFileExistWin32(PhGetString(string)))
         {
             SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, PhGetString(string), NULL);
         }
@@ -790,7 +789,7 @@ BOOLEAN SetupExecuteApplication(
 
     clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
-    if (PhDoesFileExistsWin32(clientPath->Buffer))
+    if (PhDoesFileExistWin32(clientPath->Buffer))
     {
         success = PhShellExecuteEx(
             Context->DialogHandle,
@@ -825,7 +824,7 @@ VOID SetupUpgradeSettingsFile(
 
     if (settingsFilePath && oldSettingsNightlyFileName)
     {
-        if (!PhDoesFileExistsWin32(PhGetString(settingsFilePath)))
+        if (!PhDoesFileExistWin32(PhGetString(settingsFilePath)))
         {
             if (NT_SUCCESS(PhCopyFileWin32(PhGetString(oldSettingsNightlyFileName), PhGetString(settingsFilePath), TRUE)))
             {
@@ -836,7 +835,7 @@ VOID SetupUpgradeSettingsFile(
 
     if (!migratedNightly && settingsFilePath && oldSettingsFileName)
     {
-        if (!PhDoesFileExistsWin32(PhGetString(settingsFilePath)))
+        if (!PhDoesFileExistWin32(PhGetString(settingsFilePath)))
         {
             PhCopyFileWin32(PhGetString(oldSettingsFileName), PhGetString(settingsFilePath), TRUE);
         }
@@ -1071,7 +1070,7 @@ VOID SetupCreateLink(
     if (FAILED(IShellLinkW_SetPath(shellLinkPtr, FilePath)))
         goto CleanupExit;
 
-    if (PhDoesFileExistsWin32(LinkFilePath))
+    if (PhDoesFileExistWin32(LinkFilePath))
         PhDeleteFileWin32(LinkFilePath);
 
     // Save the shortcut to the file system...
@@ -1101,7 +1100,7 @@ BOOLEAN CheckApplicationInstalled(
         exePath = SetupCreateFullPath(installPath, L"\\SystemInformer.exe");
 
         // Check if the value has a valid file path.
-        installed = PhDoesFileExistsWin32(PhGetString(exePath));
+        installed = PhDoesFileExistWin32(PhGetString(exePath));
 
         PhDereferenceObject(exePath);
     }
@@ -1121,7 +1120,7 @@ BOOLEAN CheckApplicationInstallPathLegacy(
 
     // Check the directory for the legacy 'ProcessHacker.exe' executable.
     exePath = SetupCreateFullPath(Directory, L"\\ProcessHacker.exe");
-    installed = PhDoesFileExistsWin32(PhGetString(exePath));
+    installed = PhDoesFileExistWin32(PhGetString(exePath));
     PhDereferenceObject(exePath);
 
     return installed;

@@ -2164,6 +2164,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
+    THREAD_BASIC_INFORMATION basicInformation;
     PVOID nameBaseAddress = NULL;
     PVOID valueBaseAddress = NULL;
     SIZE_T nameAllocationSize = 0;
@@ -2339,6 +2340,16 @@ NTSTATUS PhSetEnvironmentVariableRemote(
         goto CleanupExit;
 
     status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetThreadBasicInformation(threadHandle, &basicInformation);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = basicInformation.ExitStatus;
 
 CleanupExit:
 
@@ -8849,7 +8860,7 @@ BOOLEAN PhDoesFileExist(
     return FALSE;
 }
 
-BOOLEAN PhDoesDirectoryExistsWin32(
+BOOLEAN PhDoesDirectoryExistWin32(
     _In_ PWSTR FileName
     )
 {
