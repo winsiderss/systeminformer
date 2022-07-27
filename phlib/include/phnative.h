@@ -367,7 +367,7 @@ NTSTATUS
 NTAPI
 PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
