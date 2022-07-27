@@ -1491,12 +1491,24 @@ RtlCreateUnicodeStringFromAsciiz(
     _In_ PCSTR SourceString
     );
 
+#ifdef PHNT_INLINE_FREE_UNICODE_STRING
+FORCEINLINE
+VOID
+NTAPI
+RtlFreeUnicodeString(
+    _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
+    )
+{
+    HeapFree(NtCurrentPeb()->ProcessHeap, 0, UnicodeString->Buffer);
+}
+#else
 NTSYSAPI
 VOID
 NTAPI
 RtlFreeUnicodeString(
     _Inout_ _At_(UnicodeString->Buffer, _Frees_ptr_opt_) PUNICODE_STRING UnicodeString
     );
+#endif
 
 #define RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE (0x00000001)
 #define RTL_DUPLICATE_UNICODE_STRING_ALLOCATE_NULL_STRING (0x00000002)
