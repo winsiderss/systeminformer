@@ -62,7 +62,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadMappedImageEx(
-    _In_opt_ PPH_STRING FileName,
+    _In_opt_ PPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -88,7 +88,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhMapViewOfEntireFileEx(
-    _In_opt_ PPH_STRING FileName,
+    _In_opt_ PPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
     _Out_ PVOID* ViewBase,
     _Out_ PSIZE_T Size
@@ -116,6 +116,7 @@ PhMappedImageRvaToVa(
 PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
+_Success_(return != NULL)
 PVOID
 NTAPI
 PhMappedImageVaToVa(

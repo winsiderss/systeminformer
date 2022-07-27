@@ -97,7 +97,7 @@ VOID DiskDriveQuerySmart(
 
     if (NT_SUCCESS(PhCreateFile(
         &deviceHandle,
-        Context->PageContext->DiskId.DevicePath,
+        &Context->PageContext->DiskId.DevicePath->sr,
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,

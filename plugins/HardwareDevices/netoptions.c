@@ -448,7 +448,7 @@ VOID FindNetworkAdapters(
 
                 if (NT_SUCCESS(PhCreateFile(
                     &deviceHandle,
-                    adapterEntry->DevicePath,
+                    &adapterEntry->DevicePath->sr,
                     FILE_GENERIC_READ,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,

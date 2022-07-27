@@ -200,7 +200,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     // Map the on-disk image
     //
     context->MappedImageStatus = PhLoadMappedImageEx(
-        FileName,
+        &FileName->sr,
         NULL,
         &context->MappedImage
         );

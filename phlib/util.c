@@ -5091,7 +5091,7 @@ NTSTATUS PhIsExecutablePacked(
     BOOLEAN isPacked;
 
     status = PhLoadMappedImageEx(
-        FileName,
+        &FileName->sr,
         NULL,
         &mappedImage
         );
@@ -8179,7 +8179,7 @@ NTSTATUS PhLoadLibraryAsImageResource(
 
     status = PhCreateFile(
         &fileHandle,
-        FileName,
+        &FileName->sr,
         FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
