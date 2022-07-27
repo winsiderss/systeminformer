@@ -372,12 +372,6 @@ VOID PhSipGetPoolLimits(
     );
 
 _Success_(return)
-BOOLEAN PhSipGetMemoryLimits(
-    _Out_ PULONGLONG TotalMemory,
-    _Out_ PULONGLONG ReservedMemory
-    );
-
-_Success_(return)
 BOOLEAN PhSipGetMemoryCompressionLimits(
     _Out_ DOUBLE *CurrentCompressedMemory,
     _Out_ DOUBLE *TotalCompressedMemory,
