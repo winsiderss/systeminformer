@@ -278,11 +278,11 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"UseColorUnknown", L"1");
     PhpAddIntegerSetting(L"ColorUnknown", L"8080ff"); // Light Red
 
-    PhpAddIntegerSetting(L"UseColorSystemThreadStack", L"0");
+    PhpAddIntegerSetting(L"UseColorSystemThreadStack", L"1");
     PhpAddIntegerSetting(L"ColorSystemThreadStack", L"ffccaa");
-    PhpAddIntegerSetting(L"UseColorUserThreadStack", L"0");
+    PhpAddIntegerSetting(L"UseColorUserThreadStack", L"1");
     PhpAddIntegerSetting(L"ColorUserThreadStack", L"aaffff");
-    PhpAddIntegerSetting(L"UseColorInlineThreadStack", L"0");
+    PhpAddIntegerSetting(L"UseColorInlineThreadStack", L"1");
     PhpAddIntegerSetting(L"ColorInlineThreadStack", L"00ffde");
 
     PhpAddIntegerSetting(L"GraphShowText", L"1");
