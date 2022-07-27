@@ -6342,12 +6342,12 @@ HMENU PhLoadMenu(
  * \param SourceString The indirect string from which the resource will be retrieved.
  */
 PPH_STRING PhLoadIndirectString(
-    _In_ PWSTR SourceString
+    _In_ PPH_STRINGREF SourceString
     )
 {
     PPH_STRING indirectString = NULL;
 
-    if (SourceString[0] == L'@')
+    if (SourceString->Buffer[0] == L'@')
     {
         PPH_STRING libraryString;
         PVOID libraryModule;
@@ -6357,7 +6357,8 @@ PPH_STRING PhLoadIndirectString(
         LONG64 index64;
         LONG index;
 
-        PhInitializeStringRefLongHint(&sourceRef, SourceString);
+        sourceRef.Length = SourceString->Length;
+        sourceRef.Buffer = SourceString->Buffer;
         PhSkipStringRef(&sourceRef, sizeof(WCHAR)); // Skip the @ character.
 
         if (!PhSplitStringRefAtChar(&sourceRef, L',', &dllNameRef, &dllIndexRef))
@@ -6387,10 +6388,10 @@ PPH_STRING PhLoadIndirectString(
                 PhMoveReference(&libraryString, expandedString);
         }
 
-        if (libraryModule = LoadLibraryEx(libraryString->Buffer, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE))
-        { 
+        if (NT_SUCCESS(PhLoadLibraryAsImageResourceWin32(&libraryString->sr, &libraryModule)))
+        {
             indirectString = PhLoadString(libraryModule, -index);
-            FreeLibrary(libraryModule);
+            PhFreeLibraryAsImageResource(libraryModule);
         }
 
         PhDereferenceObject(libraryString);
