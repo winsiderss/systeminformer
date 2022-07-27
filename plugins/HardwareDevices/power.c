@@ -75,7 +75,7 @@ VOID RaplDevicesUpdate(
 
             if (NT_SUCCESS(PhCreateFile(
                 &deviceHandle,
-                entry->Id.DevicePath,
+                &entry->Id.DevicePath->sr,
                 FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,

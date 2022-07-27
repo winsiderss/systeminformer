@@ -387,7 +387,7 @@ NTSTATUS PhpModuleQueryWorker(
     {
         // Note: .NET Core and Mono don't set the LDRP_COR_IMAGE flag in the loader required for 
         // highlighting .NET images so check images for a CLR section and set the flag. (dmex)
-        if (NT_SUCCESS(PhLoadMappedImageEx(data->ModuleItem->FileName, NULL, &mappedImage)))
+        if (NT_SUCCESS(PhLoadMappedImageEx(&data->ModuleItem->FileName->sr, NULL, &mappedImage)))
         {
             PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 

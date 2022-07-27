@@ -71,7 +71,7 @@ VOID NetAdapterUpdatePanel(
     {
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            Context->AdapterEntry->AdapterId.InterfacePath,
+            &Context->AdapterEntry->AdapterId.InterfacePath->sr,
             FILE_GENERIC_READ,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,

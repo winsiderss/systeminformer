@@ -1275,16 +1275,14 @@ NTSTATUS PhpEnumNtdllHandles(
     _In_opt_ PVOID Context
     )
 {
+    static PH_STRINGREF ntdllPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
     static PH_STRINGREF ntfsPath = PH_STRINGREF_INIT(L"\\ntfs");
-    static PH_STRINGREF systemRootPath = PH_STRINGREF_INIT(L"\\SystemRoot");
     NTSTATUS status;
     HANDLE fileHandle;
-    PPH_STRING fileName;
 
-    fileName = PhCreateString2(&ntfsPath);
     status = PhCreateFile(
         &fileHandle,
-        fileName,
+        &ntfsPath,
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -1294,10 +1292,9 @@ NTSTATUS PhpEnumNtdllHandles(
 
     if (!NT_SUCCESS(status))
     {
-        PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"\\System32\\ntdll.dll"));
         status = PhCreateFile(
             &fileHandle,
-            fileName,
+            &ntdllPath,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ,

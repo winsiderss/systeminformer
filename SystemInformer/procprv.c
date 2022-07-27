@@ -986,7 +986,7 @@ VOID PhpProcessQueryStage2(
             // If we fail to access the file we could go read from the remote
             // process memory, but for now we only read from the file. (jxy-s)
 
-            if (NT_SUCCESS(PhLoadMappedImageEx(processItem->FileName, NULL, &mappedImage)))
+            if (NT_SUCCESS(PhLoadMappedImageEx(&processItem->FileName->sr, NULL, &mappedImage)))
             {
                 Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
                 PhUnloadMappedImage(&mappedImage);

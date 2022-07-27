@@ -2034,7 +2034,9 @@ VOID PhpGenerateSyscallLists(
     _Out_ PPH_LIST* Win32kSystemCallList
     )
 {
-    static PH_STRINGREF systemRootPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\");
+    static PH_STRINGREF ntdllPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
+    static PH_STRINGREF win32kPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32k.sys");
+    static PH_STRINGREF win32uPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.sys");
     PPH_LIST ntdllSystemCallList = NULL;
     PPH_LIST win32kSystemCallList = NULL;
     PPH_STRING fileName = NULL;
@@ -2043,9 +2045,7 @@ VOID PhpGenerateSyscallLists(
     PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
     PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
 
-    PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"ntdll.dll"));
-
-    if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
+    if (NT_SUCCESS(PhLoadMappedImageEx(&ntdllPath, NULL, &mappedImage)))
     {
         if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
         {
@@ -2100,9 +2100,7 @@ VOID PhpGenerateSyscallLists(
         // function enumerates the exports from win32k.sys starting with __win32kstub_ for building the syscall table and
         // more reliable than win32u.dll since syscalls are deleted instead of being replaced with RaiseFailFastException. (dmex)
 
-        PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"win32k.sys"));
-
-        if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
+        if (NT_SUCCESS(PhLoadMappedImageEx(&win32kPath, NULL, &mappedImage)))
         {
             if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
             {
@@ -2151,9 +2149,7 @@ VOID PhpGenerateSyscallLists(
     }
     else
     {
-        PhMoveReference(&fileName, PhConcatStringRefZ(&systemRootPath, L"win32u.dll"));
-
-        if (NT_SUCCESS(PhLoadMappedImageEx(fileName, NULL, &mappedImage)))
+        if (NT_SUCCESS(PhLoadMappedImageEx(&win32uPath, NULL, &mappedImage)))
         {
             if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
             {

@@ -1060,7 +1060,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
 
     status = PhCreateFile(
         &volumeHandle,
-        volumeName,
+        &volumeName->sr,
         FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE, // magic value
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,

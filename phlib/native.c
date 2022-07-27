@@ -8462,7 +8462,7 @@ NTSTATUS PhCreateFileWin32Ex(
     HANDLE fileHandle;
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK ioStatusBlock;
 
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
@@ -8492,7 +8492,7 @@ NTSTATUS PhCreateFileWin32Ex(
         &fileHandle,
         DesiredAccess,
         &objectAttributes,
-        &isb,
+        &ioStatusBlock,
         AllocationSize,
         FileAttributes,
         ShareAccess,
@@ -8510,14 +8510,14 @@ NTSTATUS PhCreateFileWin32Ex(
     }
 
     if (CreateStatus)
-        *CreateStatus = (ULONG)isb.Information;
+        *CreateStatus = (ULONG)ioStatusBlock.Information;
 
     return status;
 }
 
 NTSTATUS PhCreateFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -8529,9 +8529,9 @@ NTSTATUS PhCreateFile(
     HANDLE fileHandle;
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK ioStatusBlock;
 
-    if (!PhStringRefToUnicodeString(&FileName->sr, &fileName))
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
         return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
@@ -8546,7 +8546,7 @@ NTSTATUS PhCreateFile(
         &fileHandle,
         DesiredAccess,
         &objectAttributes,
-        &isb,
+        &ioStatusBlock,
         NULL,
         FileAttributes,
         ShareAccess,
