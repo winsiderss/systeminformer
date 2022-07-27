@@ -784,25 +784,21 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
 
 #ifdef _WIN64
 
+    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
     PS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock = { 0 };
     PVOID ldrInitBlockBaseAddress = NULL;
     PPH_MEMORY_ITEM cfgBitmapMemoryItem;
-    PH_STRINGREF systemRootString;
-    PPH_STRING ntdllFileName;
-
-    PhGetSystemRoot(&systemRootString);
-    ntdllFileName = PhConcatStringRefZ(&systemRootString, L"\\System32\\ntdll.dll");
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        ntdllFileName->Buffer,
+        &ntdllFileName,
         "LdrSystemDllInitBlock",
         0,
         &ldrInitBlockBaseAddress,
         NULL
         );
 
-    if (NT_SUCCESS(status) && ldrInitBlockBaseAddress)
+    if (NT_SUCCESS(status))
     {
         status = NtReadVirtualMemory(
             ProcessHandle,
@@ -812,8 +808,6 @@ NTSTATUS PhpUpdateMemoryRegionTypes(
             NULL
             );
     }
-
-    PhDereferenceObject(ntdllFileName);
 
     if (NT_SUCCESS(status) && ldrInitBlock.Size != 0)
     {
