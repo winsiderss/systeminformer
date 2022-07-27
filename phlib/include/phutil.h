@@ -1350,7 +1350,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhLoadIndirectString(
-    _In_ PWSTR SourceString
+    _In_ PPH_STRINGREF SourceString
     );
 
 PHLIBAPI
