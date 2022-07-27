@@ -4308,21 +4308,15 @@ VOID PhShellOpenKey(
  * \return A pointer to a string containing the value, or NULL if the function failed. You must free
  * the string using PhDereferenceObject() when you no longer need it.
  */
-PPH_STRING PhQueryRegistryString(
+PPH_STRING PhQueryRegistryStringRef(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_ PPH_STRINGREF ValueName
     )
 {
     PPH_STRING string = NULL;
-    PH_STRINGREF valueName;
     PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
-
-    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, ValueName, KeyValuePartialInformation, &buffer)))
     {
         if (buffer->Type == REG_SZ ||
             buffer->Type == REG_MULTI_SZ ||

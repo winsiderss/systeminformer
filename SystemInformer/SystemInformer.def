@@ -411,7 +411,7 @@ EXPORTS
     PhParseCommandLine
     PhParseCommandLineFuzzy
     PhParseCommandLinePart
-    PhQueryRegistryString
+    PhQueryRegistryStringRef
     PhQueryRegistryUlong
     PhQueryRegistryUlongEx
     PhQueryRegistryUlong64
