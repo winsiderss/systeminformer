@@ -346,7 +346,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
             SetWindowFont(totalPhysicalLabel, MemorySection->Parameters->MediumFont, FALSE);
 
-            if (PhSipGetMemoryLimits(&InstalledMemory, &ReservedMemory))
+            if (PhGetPhysicallyInstalledSystemMemory(&InstalledMemory, &ReservedMemory))
             {
                 PhSetWindowText(totalPhysicalLabel, PhaConcatStrings2(
                     PhaFormatSize(InstalledMemory, ULONG_MAX)->Buffer, L" installed")->Buffer);
@@ -1015,28 +1015,6 @@ VOID PhSipGetPoolLimits(
 
     *Paged = paged;
     *NonPaged = nonPaged;
-}
-
-_Success_(return)
-BOOLEAN PhSipGetMemoryLimits(
-    _Out_ PULONGLONG TotalMemory,
-    _Out_ PULONGLONG ReservedMemory
-    )
-{
-    static BOOL (WINAPI *getPhysicallyInstalledSystemMemory)(PULONGLONG TotalMemoryInKilobytes) = NULL;
-    ULONGLONG physicallyInstalledSystemMemory = 0;
-
-    if (!getPhysicallyInstalledSystemMemory)
-        getPhysicallyInstalledSystemMemory = PhGetDllProcedureAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory", 0);
-
-    if (getPhysicallyInstalledSystemMemory && getPhysicallyInstalledSystemMemory(&physicallyInstalledSystemMemory))
-    {
-        *TotalMemory = physicallyInstalledSystemMemory * 1024ULL;
-        *ReservedMemory = physicallyInstalledSystemMemory * 1024ULL - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
-        return TRUE;
-    }
-
-    return FALSE;
 }
 
 _Success_(return)

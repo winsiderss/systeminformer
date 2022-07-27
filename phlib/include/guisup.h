@@ -980,6 +980,15 @@ _Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhGetPhysicallyInstalledSystemMemory(
+    _Out_ PULONGLONG TotalMemory,
+    _Out_ PULONGLONG ReservedMemory
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
     _Out_ HWND *WindowHandle
