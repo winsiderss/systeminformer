@@ -8179,6 +8179,9 @@ NTSTATUS PhLoadLibraryAsResource(
 
     if (NT_SUCCESS(status))
     {
+        if (status == STATUS_IMAGE_NOT_AT_BASE)
+            status = STATUS_SUCCESS;
+
         // Windows returns the address with bitwise OR|2 for use with LDR_IS_IMAGEMAPPING (dmex)
         if (BaseAddress)
         {
