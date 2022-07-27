@@ -274,21 +274,17 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                 HANDLE processHandle;
                                 PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
 
+                                if (!KphIsVerified()) // required for PROCESS_SET_QUOTA (dmex)
+                                {
+                                    PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+                                    break;
+                                }
+
                                 status = PhGetSystemCompressionStoreInformation(&compressionInfo);
 
                                 if (NT_SUCCESS(status))
                                 {
-                                    if (!KphIsVerified()) // required for PROCESS_SET_QUOTA (dmex)
-                                    {
-                                        PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
-                                        break;
-                                    }
-
-                                    status = PhOpenProcess(
-                                        &processHandle,
-                                        PROCESS_SET_QUOTA,
-                                        compressionInfo.CompressionPid
-                                        );
+                                    status = PhOpenProcess(&processHandle, PROCESS_SET_QUOTA, compressionInfo.CompressionPid);
 
                                     if (NT_SUCCESS(status))
                                     {
