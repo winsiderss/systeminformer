@@ -5151,17 +5151,16 @@ typedef struct _PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT
 
 static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
-    _In_ PVOID Context
+    _In_ PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT Context
     )
 {
-    PPH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context = Context;
     PH_STRINGREF fullDllName;
 
     PhUnicodeStringToStringRef(&Module->FullDllName, &fullDllName);
 
-    if (PhEqualStringRef(&fullDllName, &context->FileName->sr, TRUE))
+    if (PhEqualStringRef(&fullDllName, &Context->FileName->sr, TRUE))
     {
-        context->DllBase = Module->DllBase;
+        Context->DllBase = Module->DllBase;
         return FALSE;
     }
 
@@ -5190,7 +5189,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName = NULL;
+    PPH_STRING fileName;
     PH_MAPPED_IMAGE mappedImage;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;
@@ -5224,6 +5223,8 @@ NTSTATUS PhGetProcedureAddressRemote(
         break;
     }
 
+    PhDereferenceObject(fileName);
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
@@ -5254,7 +5255,6 @@ NTSTATUS PhGetProcedureAddressRemote(
 
 CleanupExit:
     PhUnloadMappedImage(&mappedImage);
-    PhClearReference(&fileName);
 
     return status;
 }
@@ -8567,26 +8567,26 @@ NTSTATUS PhOpenFileWin32Ex(
 {
     NTSTATUS status;
     HANDLE fileHandle;
-    UNICODE_STRING fileNameUs;
+    UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK ioStatusBlock;
 
 #if (PHNT_VERSION >= PHNT_WIN7)
     if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
-        &fileNameUs,
+        &fileName,
         NULL,
         NULL
         )))
         return status;
 #else
-    if (!RtlDosPathNameToNtPathName_U(FileName, &fileNameUs, NULL, NULL))
+    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
         return STATUS_UNSUCCESSFUL;
 #endif
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &fileNameUs,
+        &fileName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
@@ -8596,12 +8596,12 @@ NTSTATUS PhOpenFileWin32Ex(
         &fileHandle,
         DesiredAccess,
         &objectAttributes,
-        &isb,
+        &ioStatusBlock,
         ShareAccess,
         OpenOptions
         );
 
-    RtlFreeUnicodeString(&fileNameUs);
+    RtlFreeUnicodeString(&fileName);
 
     if (NT_SUCCESS(status))
     {
@@ -8609,7 +8609,7 @@ NTSTATUS PhOpenFileWin32Ex(
     }
 
     if (OpenStatus)
-        *OpenStatus = (ULONG)isb.Information;
+        *OpenStatus = (ULONG)ioStatusBlock.Information;
 
     return status;
 }
@@ -8628,7 +8628,7 @@ NTSTATUS PhOpenFileById(
     HANDLE fileHandle;
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK ioStatusBlock;
 
     switch (FileId->Type)
     {
@@ -8669,7 +8669,7 @@ NTSTATUS PhOpenFileById(
         &fileHandle,
         DesiredAccess,
         &objectAttributes,
-        &isb,
+        &ioStatusBlock,
         ShareAccess,
         OpenOptions | FILE_OPEN_BY_FILE_ID
         );
@@ -8807,7 +8807,7 @@ NTSTATUS PhQueryAttributesFile(
 }
 
 // rev from RtlDoesFileExists_U (dmex)
-BOOLEAN PhDoesFileExistsWin32(
+BOOLEAN PhDoesFileExistWin32(
     _In_ PWSTR FileName
     )
 {
@@ -8828,7 +8828,7 @@ BOOLEAN PhDoesFileExistsWin32(
     return FALSE;
 }
 
-BOOLEAN PhDoesFileExists(
+BOOLEAN PhDoesFileExist(
     _In_ PPH_STRING FileName
     )
 {
@@ -8945,7 +8945,7 @@ NTSTATUS PhCreateDirectory(
     if (PhIsNullOrEmptyString(DirectoryPath))
         return STATUS_INVALID_PARAMETER;
 
-    if (PhDoesFileExistsWin32(PhGetString(DirectoryPath)))
+    if (PhDoesFileExistWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
 
     remainingPart = PhGetStringRef(DirectoryPath);
@@ -8969,7 +8969,7 @@ NTSTATUS PhCreateDirectory(
                     );
 
                 // Check if the directory already exists.
-                if (!PhDoesFileExistsWin32(PhGetString(tempPathString)))
+                if (!PhDoesFileExistWin32(PhGetString(tempPathString)))
                 {
                     HANDLE directoryHandle;
 
@@ -8996,7 +8996,7 @@ NTSTATUS PhCreateDirectory(
     if (directoryPath)
         PhDereferenceObject(directoryPath);
 
-    if (PhDoesFileExistsWin32(PhGetString(DirectoryPath)))
+    if (PhDoesFileExistWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
     else
         return STATUS_NOT_FOUND;
@@ -9139,7 +9139,7 @@ NTSTATUS PhDeleteDirectory(
         NtClose(directoryHandle);
     }
 
-    if (!PhDoesFileExistsWin32(PhGetString(DirectoryPath)))
+    if (!PhDoesFileExistWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
 
     return status;

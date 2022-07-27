@@ -1078,7 +1078,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                             {
                             case PH_THREAD_STACK_MENUITEM_INSPECT:
                                 {
-                                    if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameString)))
+                                    if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistWin32(PhGetString(selectedNode->FileNameString)))
                                     {
                                         PhShellExecuteUserString(
                                             hwndDlg,
@@ -1092,7 +1092,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
                                 break;
                             case PH_THREAD_STACK_MENUITEM_OPENFILELOCATION:
                                 {
-                                    if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameString)))
+                                    if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistWin32(PhGetString(selectedNode->FileNameString)))
                                     {
                                         PhShellExecuteUserString(
                                             hwndDlg,
@@ -1126,7 +1126,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
 
                     if (selectedNode = GetSelectedThreadStackNode(context))
                     {
-                        if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameString)))
+                        if (!PhIsNullOrEmptyString(selectedNode->FileNameString) && PhDoesFileExistWin32(PhGetString(selectedNode->FileNameString)))
                         {
                             PhShellExecuteUserString(
                                 hwndDlg,

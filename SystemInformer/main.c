@@ -1295,7 +1295,7 @@ VOID PhInitializeKph(
         }
     }
 
-    if (PhDoesFileExistsWin32(kphFileName->Buffer))
+    if (PhDoesFileExistWin32(kphFileName->Buffer))
     {
         KPH_PARAMETERS parameters;
 
@@ -1409,7 +1409,7 @@ VOID PhpInitializeSettings(
             {
                 settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
 
-                if (PhDoesFileExistsWin32(settingsFileName->Buffer))
+                if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
                 {
                     PhSettingsFileName = settingsFileName;
                 }

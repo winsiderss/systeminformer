@@ -635,7 +635,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
                             if (
                                 !PhIsNullOrEmptyString(fileNameWin32) &&
-                                PhDoesFileExistsWin32(PhGetString(fileNameWin32))
+                                PhDoesFileExistWin32(PhGetString(fileNameWin32))
                                 )
                             {
                                 PhShellExecuteUserString(
@@ -701,7 +701,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             PhInsertCopyListViewEMenuItem(menu, 3, context->ListViewHandle);
             PhSetFlagsEMenuItem(menu, 1, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-            if (PhIsNullOrEmptyString(fileNameWin32) || !PhDoesFileExistsWin32(PhGetString(fileNameWin32)))
+            if (PhIsNullOrEmptyString(fileNameWin32) || !PhDoesFileExistWin32(PhGetString(fileNameWin32)))
             {
                 PhSetFlagsEMenuItem(menu, 1, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                 PhSetFlagsEMenuItem(menu, 2, PH_EMENU_DISABLED, PH_EMENU_DISABLED);

@@ -115,7 +115,7 @@ PPH_STRING PvResolveReparsePointTarget(
 
             for (ULONG i = 0; i < appexeclink->StringCount; i++)
             {
-                if (i == 2 && PhDoesFileExistsWin32(string))
+                if (i == 2 && PhDoesFileExistWin32(string))
                 {
                     targetFileName = PhCreateString(string);
                     break;

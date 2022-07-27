@@ -1278,7 +1278,7 @@ PVOID DnLoadMscordaccore(
             &mscordaccoreNameSr
             );
 
-        if (PhDoesFileExistsWin32(PhGetString(fileName)))
+        if (PhDoesFileExistWin32(PhGetString(fileName)))
         {
             PH_MAPPED_IMAGE mappedImage;
 

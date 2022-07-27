@@ -1570,14 +1570,14 @@ PhQueryAttributesFileWin32(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhDoesFileExistsWin32(
+PhDoesFileExistWin32(
     _In_ PWSTR FileName
     );
 
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhDoesFileExists(
+PhDoesFileExist(
     _In_ PPH_STRING FileName
     );
 

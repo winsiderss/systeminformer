@@ -167,7 +167,7 @@ INT WINAPI wWinMain(
         return 1;
 
 #ifdef DEBUG
-    if (!PhDoesFileExistsWin32(PhGetString(PvFileName)))
+    if (!PhDoesFileExistWin32(PhGetString(PvFileName)))
     {
         PPH_STRING fileName;
 
