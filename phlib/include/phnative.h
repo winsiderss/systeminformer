@@ -918,9 +918,9 @@ NTSTATUS
 NTAPI
 PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ PSTR ProcedureName,
-    _In_opt_ ULONG ProcedureNumber,
+    _In_opt_ USHORT ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
     );
@@ -1882,6 +1882,14 @@ PhGetProcessConsoleCodePage(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN ConsoleOutputCP,
     _Out_ PUSHORT ConsoleCodePage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessSystemDllInitBlock(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK* SystemDllInitBlock
     );
 
 PHLIBAPI
