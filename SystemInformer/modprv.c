@@ -646,7 +646,7 @@ VOID PhModuleProviderUpdate(
 
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
 
-            PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, moduleItem->FileName, PhEnableVersionShortText);
+            PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, PhEnableVersionShortText);
 
             if (moduleProvider->IsSubsystemProcess)
             {

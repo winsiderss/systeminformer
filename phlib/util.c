@@ -1773,7 +1773,7 @@ PVOID PhGetFileVersionInfo(
 }
 
 PVOID PhGetFileVersionInfoEx(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
     PVOID imageBaseAddress;
@@ -2179,7 +2179,7 @@ BOOLEAN PhInitializeImageVersionInfo(
 _Success_(return)
 BOOLEAN PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN ExtendedVersionInfo
     )
 {
@@ -2398,7 +2398,7 @@ BOOLEAN PhInitializeImageVersionInfoCached(
     }
     else
     {
-        if (!PhInitializeImageVersionInfoEx(&versionInfo, FileName, ExtendedVersion))
+        if (!PhInitializeImageVersionInfoEx(&versionInfo, &FileName->sr, ExtendedVersion))
             return FALSE;
     }
 
@@ -8170,7 +8170,7 @@ NTSTATUS PhLoadLibraryAsResource(
 }
 
 NTSTATUS PhLoadLibraryAsImageResource(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     )
 {
@@ -8179,7 +8179,7 @@ NTSTATUS PhLoadLibraryAsImageResource(
 
     status = PhCreateFile(
         &fileHandle,
-        &FileName->sr,
+        FileName,
         FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,

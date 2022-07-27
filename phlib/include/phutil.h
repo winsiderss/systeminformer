@@ -555,7 +555,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetFileVersionInfoEx(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 PHLIBAPI
@@ -618,7 +618,7 @@ BOOLEAN
 NTAPI
 PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN ExtendedVersionInfo
     );
 
@@ -1616,7 +1616,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadLibraryAsImageResource(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     );
 

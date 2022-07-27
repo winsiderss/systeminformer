@@ -2228,7 +2228,7 @@ BOOLEAN PhExtractIconEx(
     if (NativeFileName)
     {
         status = PhLoadMappedImageEx(
-            fileName,
+            &fileName->sr,
             NULL,
             &mappedImage
             );

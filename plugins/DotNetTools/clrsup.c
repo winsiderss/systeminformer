@@ -1220,7 +1220,7 @@ PVOID DnLoadMscordaccore(
     {
         PVOID imageBaseAddress;
 
-        if (NT_SUCCESS(PhLoadLibraryAsImageResource(dataTargetFileName, &imageBaseAddress)))
+        if (NT_SUCCESS(PhLoadLibraryAsImageResource(&dataTargetFileName->sr, &imageBaseAddress)))
         {
             PCLR_DEBUG_RESOURCE debugVersionInfo;
 
@@ -1383,7 +1383,7 @@ TryAppLocal:
         PVOID mscordacResourceBuffer;
         ULONG mscordacResourceLength;
 
-        if (NT_SUCCESS(PhLoadLibraryAsImageResource(dataTargetFileName, &imageBaseAddress)))
+        if (NT_SUCCESS(PhLoadLibraryAsImageResource(&dataTargetFileName->sr, &imageBaseAddress)))
         {
             if (PhLoadResource(
                 imageBaseAddress,
@@ -1830,7 +1830,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_ReadVirtual(
     {
         ULONG result;
 
-        result = RtlNtStatusToDosError(status);
+        result = PhNtStatusToDosError(status);
 
         return HRESULT_FROM_WIN32(result);
     }
@@ -1912,7 +1912,7 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetThreadContext(
     {
         ULONG result;
 
-        result = RtlNtStatusToDosError(status);
+        result = PhNtStatusToDosError(status);
 
         return HRESULT_FROM_WIN32(result);
     }

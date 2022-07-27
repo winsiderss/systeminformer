@@ -41,7 +41,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            deviceName,
+            &deviceName->sr,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -108,7 +108,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            deviceName,
+            &deviceName->sr,
             PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
