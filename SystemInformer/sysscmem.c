@@ -1046,30 +1046,12 @@ BOOLEAN PhSipGetMemoryCompressionLimits(
     _Out_ DOUBLE *TotalSavedMemory
     )
 {
-    NTSTATUS status;
-    SYSTEM_STORE_INFORMATION storeInfo;
-    SM_MEM_COMPRESSION_INFO_REQUEST compressionInfo;
+    PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
     DOUBLE current;
     DOUBLE total;
     DOUBLE saved;
 
-    memset(&compressionInfo, 0, sizeof(SM_MEM_COMPRESSION_INFO_REQUEST));
-    compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION;
-
-    memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
-    storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
-    storeInfo.StoreInformationClass = MemCompressionInfoRequest;
-    storeInfo.Data = &compressionInfo;
-    storeInfo.Length = sizeof(compressionInfo);
-
-    status = NtQuerySystemInformation(
-        SystemStoreInformation,
-        &storeInfo,
-        sizeof(SYSTEM_STORE_INFORMATION),
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(PhGetSystemCompressionStoreInformation(&compressionInfo)))
         return FALSE;
     if (!(compressionInfo.TotalDataCompressed && compressionInfo.TotalCompressedSize))
         return FALSE;

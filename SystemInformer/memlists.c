@@ -272,37 +272,22 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                             {
                                 NTSTATUS status;
                                 HANDLE processHandle;
-                                SYSTEM_STORE_INFORMATION storeInfo;
-                                SM_MEM_COMPRESSION_INFO_REQUEST compressionInfo;
+                                PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
 
-                                if (!KphIsVerified()) // required for CompressionPid (dmex)
-                                {
-                                    PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
-                                    break;
-                                }
-
-                                memset(&compressionInfo, 0, sizeof(SM_MEM_COMPRESSION_INFO_REQUEST));
-                                compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION;
-
-                                memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
-                                storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
-                                storeInfo.StoreInformationClass = MemCompressionInfoRequest;
-                                storeInfo.Data = &compressionInfo;
-                                storeInfo.Length = sizeof(compressionInfo);
-
-                                status = NtQuerySystemInformation(
-                                    SystemStoreInformation,
-                                    &storeInfo,
-                                    sizeof(SYSTEM_STORE_INFORMATION),
-                                    NULL
-                                    );
+                                status = PhGetSystemCompressionStoreInformation(&compressionInfo);
 
                                 if (NT_SUCCESS(status))
                                 {
+                                    if (!KphIsVerified()) // required for PROCESS_SET_QUOTA (dmex)
+                                    {
+                                        PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+                                        break;
+                                    }
+
                                     status = PhOpenProcess(
                                         &processHandle,
                                         PROCESS_SET_QUOTA,
-                                        UlongToHandle(compressionInfo.CompressionPid)
+                                        compressionInfo.CompressionPid
                                         );
 
                                     if (NT_SUCCESS(status))

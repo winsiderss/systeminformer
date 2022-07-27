@@ -2077,6 +2077,22 @@ PhGetNumaProcessorNode(
     _Out_ PUSHORT NodeNumber
     );
 
+typedef struct _PH_SYSTEM_STORE_COMPRESSION_INFORMATION
+{
+    HANDLE CompressionPid;
+    ULONG WorkingSetSize;
+    SIZE_T TotalDataCompressed;
+    SIZE_T TotalCompressedSize;
+    SIZE_T TotalUniqueDataCompressed;
+} PH_SYSTEM_STORE_COMPRESSION_INFORMATION, *PPH_SYSTEM_STORE_COMPRESSION_INFORMATION;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemCompressionStoreInformation(
+    _Out_ PPH_SYSTEM_STORE_COMPRESSION_INFORMATION SystemCompressionStoreInformation
+    );
+
 #ifdef __cplusplus
 }
 #endif
