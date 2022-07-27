@@ -1577,6 +1577,14 @@ PhLoadLibraryAsImageResource(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhLoadLibraryAsImageResourceWin32(
+    _In_ PPH_STRINGREF FileName,
+    _Out_opt_ PVOID *BaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhFreeLibraryAsImageResource(
     _In_ PVOID BaseAddress
     );

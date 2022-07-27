@@ -6388,6 +6388,16 @@ PPH_STRING PhLoadIndirectString(
                 PhMoveReference(&libraryString, expandedString);
         }
 
+        if (PhDetermineDosPathNameType(libraryString->Buffer) == RtlPathTypeRelative)
+        {
+            PPH_STRING librarySearchPathString;
+
+            if (librarySearchPathString = PhSearchFilePath(libraryString->Buffer, L".dll"))
+            {
+                PhMoveReference(&libraryString, librarySearchPathString);
+            }
+        }
+
         if (NT_SUCCESS(PhLoadLibraryAsImageResourceWin32(&libraryString->sr, &libraryModule)))
         {
             indirectString = PhLoadString(libraryModule, -index);
@@ -8122,29 +8132,15 @@ PVOID PhLoadLibrary(
 
 // rev from LoadLibraryEx with LOAD_LIBRARY_AS_IMAGE_RESOURCE
 // with some changes for using a read-only page/section. (dmex)
-NTSTATUS PhLoadLibraryAsImageResource(
-    _In_ PPH_STRING FileName,
+NTSTATUS PhLoadLibraryAsResource(
+    _In_ HANDLE FileHandle,
     _Out_opt_ PVOID *BaseAddress
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
     HANDLE sectionHandle;
     PVOID imageBaseAddress;
     SIZE_T imageBaseSize;
-
-    status = PhCreateFile(
-        &fileHandle,
-        FileName,
-        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
 
     status = NtCreateSection(
         &sectionHandle,
@@ -8153,10 +8149,8 @@ NTSTATUS PhLoadLibraryAsImageResource(
         NULL,
         PAGE_READONLY,
         WindowsVersion < WINDOWS_8 ? SEC_IMAGE : SEC_IMAGE_NO_EXECUTE,
-        fileHandle
+        FileHandle
         );
-
-    NtClose(fileHandle);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -8197,6 +8191,60 @@ NTSTATUS PhLoadLibraryAsImageResource(
             *BaseAddress = LDR_MAPPEDVIEW_TO_IMAGEMAPPING(imageBaseAddress);
         }
     }
+
+    return status;
+}
+
+NTSTATUS PhLoadLibraryAsImageResource(
+    _In_ PPH_STRING FileName,
+    _Out_opt_ PVOID *BaseAddress
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhLoadLibraryAsResource(fileHandle, BaseAddress);
+    NtClose(fileHandle);
+
+    return status;
+}
+
+NTSTATUS PhLoadLibraryAsImageResourceWin32(
+    _In_ PPH_STRINGREF FileName,
+    _Out_opt_ PVOID *BaseAddress
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName->Buffer,
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhLoadLibraryAsResource(fileHandle, BaseAddress);
+    NtClose(fileHandle);
 
     return status;
 }
