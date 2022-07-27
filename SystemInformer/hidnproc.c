@@ -641,7 +641,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
         }
 
         // Version info.
-        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, processItem->FileName, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoEx(&processItem->VersionInfo, &processItem->FileName->sr, PhEnableVersionShortText);
     }
 
     // Command line

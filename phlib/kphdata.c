@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -23,7 +23,7 @@ ULONG KphpGetKernelRevisionNumber(
 
     if (kernelFileName = PhGetKernelFileName())
     {
-        if (versionInfo = PhGetFileVersionInfoEx(kernelFileName))
+        if (versionInfo = PhGetFileVersionInfoEx(&kernelFileName->sr))
         {
             VS_FIXEDFILEINFO* rootBlock;
 
