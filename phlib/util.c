@@ -4334,24 +4334,7 @@ PPH_STRING PhQueryRegistryStringRef(
     return string;
 }
 
-ULONG PhQueryRegistryUlong(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
-    )
-{
-    if (ValueName)
-    {
-        PH_STRINGREF valueName;
-
-        PhInitializeStringRef(&valueName, ValueName);
-
-        return PhQueryRegistryUlongEx(KeyHandle, &valueName);
-    }
-
-    return PhQueryRegistryUlongEx(KeyHandle, NULL);
-}
-
-ULONG PhQueryRegistryUlongEx(
+ULONG PhQueryRegistryUlongStringRef(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName
     )
@@ -4373,21 +4356,15 @@ ULONG PhQueryRegistryUlongEx(
     return ulong;
 }
 
-ULONG64 PhQueryRegistryUlong64(
+ULONG64 PhQueryRegistryUlong64StringRef(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_opt_ PPH_STRINGREF ValueName
     )
 {
     ULONG64 ulong64 = ULLONG_MAX;
-    PH_STRINGREF valueName;
     PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
-
-    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, ValueName, KeyValuePartialInformation, &buffer)))
     {
         if (buffer->Type == REG_DWORD)
         {
