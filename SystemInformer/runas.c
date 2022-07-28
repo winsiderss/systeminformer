@@ -343,7 +343,6 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     VOID
     )
 {
-    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\\"); // OBJ_NAME_PATH_SEPARATOR
     PPH_STRING desktopInfo = NULL;
     PPH_STRING winstationName = NULL;
     PPH_STRING desktopName = NULL;
@@ -353,7 +352,7 @@ PPH_STRING PhpGetCurrentDesktopInfo(
 
     if (winstationName && desktopName)
     {
-        desktopInfo = PhConcatStringRef3(&winstationName->sr, &seperator, &desktopName->sr);
+        desktopInfo = PhConcatStringRef3(&winstationName->sr, &PhNtPathSeperatorString, &desktopName->sr);
     }
 
     if (PhIsNullOrEmptyString(desktopInfo))

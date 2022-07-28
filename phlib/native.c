@@ -1463,7 +1463,7 @@ NTSTATUS PhQueryEnvironmentVariable(
     {
         variableValueUs.Length = 0x100 * sizeof(WCHAR);
         variableValueUs.MaximumLength = variableValueUs.Length + sizeof(UNICODE_NULL);
-        variableValueUs.Buffer = PhAllocateZero(variableValueUs.MaximumLength);
+        variableValueUs.Buffer = PhAllocate(variableValueUs.MaximumLength);
     }
     else
     {
@@ -1484,7 +1484,7 @@ NTSTATUS PhQueryEnvironmentVariable(
             variableValueUs.MaximumLength = variableValueUs.Length + sizeof(UNICODE_NULL);
 
         PhFree(variableValueUs.Buffer);
-        variableValueUs.Buffer = PhAllocateZero(variableValueUs.MaximumLength);
+        variableValueUs.Buffer = PhAllocate(variableValueUs.MaximumLength);
 
         status = RtlQueryEnvironmentVariable_U(
             Environment,
@@ -5897,14 +5897,14 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 0x100;
+    USHORT bufferSize = 0x100;
     SYSTEM_PROCESS_ID_INFORMATION processIdInfo;
 
     buffer = PhAllocate(bufferSize);
 
     processIdInfo.ProcessId = ProcessId;
     processIdInfo.ImageName.Length = 0;
-    processIdInfo.ImageName.MaximumLength = (USHORT)bufferSize;
+    processIdInfo.ImageName.MaximumLength = bufferSize;
     processIdInfo.ImageName.Buffer = buffer;
 
     status = NtQuerySystemInformation(
@@ -8129,7 +8129,7 @@ NTSTATUS PhQueryValueKey(
     ULONG bufferSize;
     ULONG attempts = 16;
 
-    if (ValueName && ValueName->Length) // Length check for PhQueryRegistryString backwards compat (dmex)
+    if (ValueName && ValueName->Length)
     {
         if (!PhStringRefToUnicodeString(ValueName, &valueName))
             return STATUS_NAME_TOO_LONG;
@@ -8182,21 +8182,21 @@ NTSTATUS PhSetValueKey(
     )
 {
     NTSTATUS status;
-    UNICODE_STRING valueNameUs;
+    UNICODE_STRING valueName;
 
     if (ValueName)
     {
-        if (!PhStringRefToUnicodeString(ValueName, &valueNameUs))
+        if (!PhStringRefToUnicodeString(ValueName, &valueName))
             return STATUS_NAME_TOO_LONG;
     }
     else
     {
-        RtlInitEmptyUnicodeString(&valueNameUs, NULL, 0);
+        RtlInitEmptyUnicodeString(&valueName, NULL, 0);
     }
 
     status = NtSetValueKey(
         KeyHandle,
-        &valueNameUs,
+        &valueName,
         0,
         ValueType,
         Buffer,
@@ -8211,25 +8211,19 @@ NTSTATUS PhDeleteValueKey(
     _In_opt_ PPH_STRINGREF ValueName
     )
 {
-    NTSTATUS status;
-    UNICODE_STRING valueNameUs;
+    UNICODE_STRING valueName;
 
     if (ValueName)
     {
-        if (!PhStringRefToUnicodeString(ValueName, &valueNameUs))
+        if (!PhStringRefToUnicodeString(ValueName, &valueName))
             return STATUS_NAME_TOO_LONG;
     }
     else
     {
-        RtlInitEmptyUnicodeString(&valueNameUs, NULL, 0);
+        RtlInitEmptyUnicodeString(&valueName, NULL, 0);
     }
 
-    status = NtDeleteValueKey(
-        KeyHandle,
-        &valueNameUs
-        );
-
-    return status;
+    return NtDeleteValueKey(KeyHandle, &valueName);
 }
 
 NTSTATUS PhEnumerateKey(
@@ -8737,14 +8731,14 @@ NTSTATUS PhQueryFullAttributesFileWin32(
 }
 
 NTSTATUS PhQueryFullAttributesFile(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     )
 {
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    if (!PhStringRefToUnicodeString(&FileName->sr, &fileName))
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
         return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
@@ -8796,14 +8790,14 @@ NTSTATUS PhQueryAttributesFileWin32(
 }
 
 NTSTATUS PhQueryAttributesFile(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_ PFILE_BASIC_INFORMATION FileInformation
     )
 {
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-    if (!PhStringRefToUnicodeString(&FileName->sr, &fileName))
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
         return STATUS_NAME_TOO_LONG;
 
     InitializeObjectAttributes(
@@ -8846,7 +8840,7 @@ BOOLEAN PhDoesFileExist(
     NTSTATUS status;
     FILE_BASIC_INFORMATION basicInfo;
 
-    status = PhQueryAttributesFile(FileName, &basicInfo);
+    status = PhQueryAttributesFile(&FileName->sr, &basicInfo);
 
     if (
         NT_SUCCESS(status) ||
@@ -8897,45 +8891,20 @@ NTSTATUS PhDeleteFileWin32(
     NTSTATUS status;
     HANDLE fileHandle;
 
-    // Disabled due to an error deleting files with mapped references
-    // such as the mapped geoip database. See GH #794 (dmex)
-    //if (WindowsVersion >= WINDOWS_10_RS5)
-    //{
-    //    status = PhCreateFileWin32(
-    //        &fileHandle,
-    //        FileName,
-    //        DELETE,
-    //        FILE_ATTRIBUTE_NORMAL,
-    //        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-    //        FILE_OPEN,
-    //        FILE_NON_DIRECTORY_FILE
-    //        );
-    //
-    //    if (!NT_SUCCESS(status))
-    //        return status;
-    //
-    //    status = PhDeleteFile(fileHandle);
-    //
-    //    NtClose(fileHandle);
-    //}
-    //else
-    {
-        status = PhCreateFileWin32(
-            &fileHandle,
-            FileName,
-            DELETE,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_DELETE_ON_CLOSE
-            );
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        DELETE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DELETE_ON_CLOSE // required for mapped references GH#794 (dmex)
+        );
 
-        if (!NT_SUCCESS(status))
-            return status;
+    if (!NT_SUCCESS(status))
+        return status;
 
-        NtClose(fileHandle);
-    }
-
+    NtClose(fileHandle);
     return status;
 }
 
@@ -8948,13 +8917,10 @@ NTSTATUS PhCreateDirectory(
     _In_ PPH_STRING DirectoryPath
     )
 {
-    static PH_STRINGREF directorySeparator = PH_STRINGREF_INIT(L"\\");
     PPH_STRING directoryPath = NULL;
-    PH_STRINGREF part;
+    PPH_STRING fileName;
+    PH_STRINGREF fileNamePart;
     PH_STRINGREF remainingPart;
-
-    if (PhIsNullOrEmptyString(DirectoryPath))
-        return STATUS_INVALID_PARAMETER;
 
     if (PhDoesFileExistWin32(PhGetString(DirectoryPath)))
         return STATUS_SUCCESS;
@@ -8963,31 +8929,29 @@ NTSTATUS PhCreateDirectory(
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &part, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &fileNamePart, &remainingPart);
 
-        if (part.Length != 0)
+        if (fileNamePart.Length != 0)
         {
-            if (!directoryPath) // PhIsNullOrEmptyString(directoryPath)
-                directoryPath = PhCreateString2(&part);
+            if (PhIsNullOrEmptyString(directoryPath))
+            {
+                PhMoveReference(&directoryPath, PhCreateString2(&fileNamePart));
+            }
             else
             {
-                PPH_STRING tempPathString;
+                fileName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &fileNamePart);
 
-                tempPathString = PhConcatStringRef3(
-                    &directoryPath->sr,
-                    &directorySeparator,
-                    &part
-                    );
+                // Check if the directory already exists. (dmex)
 
-                // Check if the directory already exists.
-                if (!PhDoesFileExistWin32(PhGetString(tempPathString)))
+                if (!PhDoesFileExistWin32(PhGetString(fileName)))
                 {
                     HANDLE directoryHandle;
 
-                    // Create the directory.
+                    // Create the directory. (dmex)
+
                     if (NT_SUCCESS(PhCreateFileWin32(
                         &directoryHandle,
-                        PhGetString(tempPathString),
+                        PhGetString(fileName),
                         FILE_GENERIC_READ,
                         FILE_ATTRIBUTE_DIRECTORY,
                         FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -8999,18 +8963,17 @@ NTSTATUS PhCreateDirectory(
                     }
                 }
 
-                PhMoveReference(&directoryPath, tempPathString);
+                PhMoveReference(&directoryPath, fileName);
             }
         }
     }
 
-    if (directoryPath)
-        PhDereferenceObject(directoryPath);
+    PhClearReference(&directoryPath);
 
-    if (PhDoesFileExistWin32(PhGetString(DirectoryPath)))
-        return STATUS_SUCCESS;
-    else
+    if (!PhDoesFileExistWin32(PhGetString(DirectoryPath)))
         return STATUS_NOT_FOUND;
+
+    return STATUS_SUCCESS;
 }
 
 static BOOLEAN PhpDeleteDirectoryCallback(
@@ -9018,7 +8981,6 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     _In_opt_ PVOID Context
     )
 {
-    static PH_STRINGREF separator = PH_STRINGREF_INIT(L"\\");
     PPH_STRING parentDirectory = Context;
     PPH_STRING fullName;
     PH_STRINGREF baseName;
@@ -9034,7 +8996,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
 
     fullName = PhConcatStringRef3(
         &parentDirectory->sr,
-        &separator,
+        &PhNtPathSeperatorString,
         &baseName
         );
 
@@ -9075,20 +9037,17 @@ static BOOLEAN PhpDeleteDirectoryCallback(
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 )))
             {
-                if (WindowsVersion < WINDOWS_10_RS5) // We can ignore readonly attributes starting with RS5 (dmex)
+                if (WindowsVersion < WINDOWS_10_RS5)
                 {
-                    IO_STATUS_BLOCK isb;
-                    FILE_BASIC_INFORMATION fileInfo;
+                    IO_STATUS_BLOCK ioStatusBlock;
+                    FILE_BASIC_INFORMATION fileBasicInfo = { 0 };
 
-                    memset(&fileInfo, 0, sizeof(FILE_BASIC_INFORMATION));
-
-                    // Clear the read-only flag.
-                    fileInfo.FileAttributes = Information->FileAttributes &= ~FILE_ATTRIBUTE_READONLY;
+                    fileBasicInfo.FileAttributes = ClearFlag(Information->FileAttributes, FILE_ATTRIBUTE_READONLY);
 
                     NtSetInformationFile(
                         fileHandle,
-                        &isb,
-                        &fileInfo,
+                        &ioStatusBlock,
+                        &fileBasicInfo,
                         sizeof(FILE_BASIC_INFORMATION),
                         FileBasicInformation
                         );
