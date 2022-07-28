@@ -713,7 +713,7 @@ PhGetSystemRoot(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetApplicationFileName(
+PhGetApplicationFileNameWin32(
     VOID
     );
 
@@ -721,6 +721,13 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetApplicationDirectory(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetApplicationDirectoryWin32(
     VOID
     );
 

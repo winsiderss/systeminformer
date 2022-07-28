@@ -571,7 +571,7 @@ BOOLEAN PhInitializeDirectoryPolicy(
     PPH_STRING applicationDirectory;
     UNICODE_STRING applicationDirectoryUs;
 
-    if (!(applicationDirectory = PhGetApplicationDirectory()))
+    if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
         return FALSE;
 
     if (!PhStringRefToUnicodeString(&applicationDirectory->sr, &applicationDirectoryUs))
@@ -1231,7 +1231,7 @@ VOID PhInitializeKph(
     if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
         PhClearReference(&kphServiceName);
 
-    if (!(fileName = PhGetApplicationFileName()))
+    if (!(fileName = PhGetApplicationFileNameWin32()))
         goto CleanupExit;
 
     indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
@@ -1405,7 +1405,7 @@ VOID PhpInitializeSettings(
         {
             PPH_STRING applicationFileName;
 
-            if (applicationFileName = PhGetApplicationFileName())
+            if (applicationFileName = PhGetApplicationFileNameWin32())
             {
                 settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
 
@@ -1737,7 +1737,7 @@ VOID PhpProcessStartupParameters(
         ULONG_PTR indexOfBackslash;
         ULONG_PTR indexOfLastDot;
 
-        if (fileName = PhGetApplicationFileName())
+        if (fileName = PhGetApplicationFileNameWin32())
         {
             indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
             indexOfLastDot = PhFindLastCharInString(fileName, 0, L'.');

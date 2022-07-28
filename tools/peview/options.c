@@ -99,7 +99,7 @@ BOOLEAN PvShellExecuteRestart(
     PPH_STRING filename;
     PPH_STRING parameters;
 
-    if (!(filename = PhGetApplicationFileName()))
+    if (!(filename = PhGetApplicationFileNameWin32()))
         return FALSE;
 
     parameters = PhConcatStringRef3(

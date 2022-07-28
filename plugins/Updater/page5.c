@@ -87,7 +87,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 if (PhIsNullOrEmptyString(context->SetupFilePath))
                     break;
 
-                parameters = PH_AUTO(PhGetApplicationDirectory());
+                parameters = PH_AUTO(PhGetApplicationDirectoryWin32());
                 parameters = PH_AUTO(PhBufferToHexString((PUCHAR)parameters->Buffer, (ULONG)parameters->Length));
                 parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
 

@@ -820,7 +820,7 @@ VOID PhShellExecuteUserString(
     PH_STRINGREF stringAfter;
     PPH_STRING ntMessage;
 
-    if (!(applicationDirectory = PhGetApplicationDirectory()))
+    if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
     {
         PhShowStatus(WindowHandle, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
         return;
@@ -1238,7 +1238,7 @@ BOOLEAN PhShellProcessHackerEx(
     PH_STRING_BUILDER sb;
     PWSTR parameters;
 
-    if (!(applicationFileName = PhGetApplicationFileName()))
+    if (!(applicationFileName = PhGetApplicationFileNameWin32()))
         return FALSE;
 
     if (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS)

@@ -344,9 +344,9 @@ BOOLEAN PhpStartPhSvcProcess(
             PPH_STRING applicationDirectory;
             PPH_STRING applicationFileName;
 
-            if (!(applicationDirectory = PhGetApplicationDirectory()))
+            if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
                 return FALSE;
-            if (!(applicationFileName = PhGetApplicationFileName()))
+            if (!(applicationFileName = PhGetApplicationFileNameWin32()))
                 return FALSE;
 
             PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));

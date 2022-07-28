@@ -731,7 +731,7 @@ VOID PhInitializeCapabilitySidCache(
     if (!RtlDeriveCapabilitySidsFromName_Import())
         return;
 
-    if (applicationDirectory = PhGetApplicationDirectory())
+    if (applicationDirectory = PhGetApplicationDirectoryWin32())
     {
         PPH_STRING capabilityListFileName;
 

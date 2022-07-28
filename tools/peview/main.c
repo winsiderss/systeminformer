@@ -135,7 +135,7 @@ INT WINAPI wWinMain(
 #ifndef DEBUG
                 PPH_STRING applicationFileName;
 
-                if (applicationFileName = PhGetApplicationFileName())
+                if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
                     PhMoveReference(&PvFileName, PhConcatStrings(3, L"\"", PvFileName->Buffer, L"\""));
 

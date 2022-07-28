@@ -199,7 +199,7 @@ PPH_STRING PhpGetPluginDirectoryPath(
         return PhReferenceObject(pluginsDirectory);
     }
 
-    if (applicationDirectory = PhGetApplicationDirectory())
+    if (applicationDirectory = PhGetApplicationDirectoryWin32())
     {
         SIZE_T returnLength;
         PH_FORMAT format[3];
@@ -269,7 +269,7 @@ PPH_STRING PhpGetPluginDirectoryPath(
 //    {
 //        PPH_STRING applicationDirectory;
 //
-//        if (applicationDirectory = PhGetApplicationDirectory())
+//        if (applicationDirectory = PhGetApplicationDirectoryWin32())
 //        {
 //            PH_STRINGREF pluginsDirectoryNameSr;
 //
