@@ -1900,8 +1900,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                 ));
 
                                             status = PhCreateAdminTask(
-                                                SI_RUNAS_ADMIN_TASK_NAME,
-                                                quotedFileName->Buffer
+                                                &SI_RUNAS_ADMIN_TASK_NAME,
+                                                &quotedFileName->sr
                                                 );
                                             
                                             if (FAILED(status))
@@ -2025,7 +2025,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                     {
                                         if (!!PhGetIntegerSetting(L"EnableStartAsAdmin"))
                                         {
-                                            PhDeleteAdminTask(SI_RUNAS_ADMIN_TASK_NAME);
+                                            PhDeleteAdminTask(&SI_RUNAS_ADMIN_TASK_NAME);
                                         }
                                     }
                                     break;
