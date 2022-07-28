@@ -1664,7 +1664,7 @@ NTSTATUS PhExecuteRunAsCommand(
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
         return PhGetLastWin32ErrorAsNtStatus();
 
-    if (!(applicationFileName = PhGetApplicationFileName()))
+    if (!(applicationFileName = PhGetApplicationFileNameWin32()))
         return STATUS_FAIL_CHECK;
 
     commandLine = PhFormatString(L"\"%s\" -ras \"%s\"", applicationFileName->Buffer, Parameters->ServiceName);

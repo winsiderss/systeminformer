@@ -112,17 +112,20 @@ VOID PeInitializeSettings(
 
     // 1. File in program directory
 
-    appFileName = PhGetApplicationFileName();
-    tempFileName = PhConcatStringRef2(&appFileName->sr, &settingsSuffix);
-    PhDereferenceObject(appFileName);
+    if (appFileName = PhGetApplicationFileNameWin32())
+    {
+        tempFileName = PhConcatStringRef2(&appFileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistWin32(tempFileName->Buffer))
-    {
-        PeSettingsFileName = tempFileName;
-    }
-    else
-    {
-        PhDereferenceObject(tempFileName);
+        if (PhDoesFileExistWin32(PhGetString(tempFileName)))
+        {
+            PeSettingsFileName = tempFileName;
+        }
+        else
+        {
+            PhDereferenceObject(tempFileName);
+        }
+
+        PhDereferenceObject(appFileName);
     }
 
     // 2. Default location

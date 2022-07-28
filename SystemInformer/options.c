@@ -774,7 +774,7 @@ static VOID ReadCurrentUserRun(
 
             if (PhParseCommandLineFuzzy(&entry->Value->sr, &fileName, &arguments, &fullFileName))
             {
-                if (applicationFileName = PhGetApplicationFileName())
+                if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
                     PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
 
@@ -817,18 +817,19 @@ static VOID WriteCurrentUserRun(
         )))
     {
         static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
+        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
 
         if (Present)
         {
             PPH_STRING value;
             PPH_STRING fileName;
 
-            if (fileName = PhGetApplicationFileName())
+            if (fileName = PhGetApplicationFileNameWin32())
             {
-                value = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(fileName), L"\""));
+                value = PH_AUTO(PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
 
                 if (StartHidden)
-                    value = PhaConcatStrings2(value->Buffer, L" -hide");
+                    value = PH_AUTO(PhConcatStringRefZ(&value->sr, L" -hide"));
 
                 PhSetValueKey(
                     keyHandle,
@@ -857,7 +858,7 @@ static BOOLEAN PathMatchesPh(
     BOOLEAN match = FALSE;
     PPH_STRING fileName;
 
-    if (!(fileName = PhGetApplicationFileName()))
+    if (!(fileName = PhGetApplicationFileNameWin32()))
         return FALSE;
 
     if (PhEqualString(OldTaskMgrDebugger, fileName, TRUE))
@@ -948,6 +949,7 @@ VOID PhpSetDefaultTaskManager(
         if (NT_SUCCESS(status))
         {
             static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Debugger");
+            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
 
             if (PhpIsDefaultTaskManager())
             {
@@ -958,9 +960,9 @@ VOID PhpSetDefaultTaskManager(
                 PPH_STRING quotedFileName;
                 PPH_STRING applicationFileName;
 
-                if (applicationFileName = PhGetApplicationFileName())
+                if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
-                    quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
+                    quotedFileName = PH_AUTO(PhConcatStringRef3(&seperator, &applicationFileName->sr, &seperator));
 
                     status = PhSetValueKey(
                         taskmgrKeyHandle, 
@@ -996,7 +998,7 @@ BOOLEAN PhpIsExploitProtectionEnabled(
     PPH_STRING keypath;
 
     path = PhCreateString2(&TaskMgrImageOptionsKeyName);
-    apppath = PhGetApplicationFileName();
+    apppath = PhGetApplicationFileNameWin32();
 
     PhMoveReference(&path, PhGetBaseDirectory(path));
     PhMoveReference(&apppath, PhGetBaseName(apppath));
@@ -1049,7 +1051,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     PPH_STRING keypath;
 
     path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-    apppath = PH_AUTO(PhGetApplicationFileName());
+    apppath = PH_AUTO(PhGetApplicationFileNameWin32());
     path = PH_AUTO(PhGetBaseDirectory(path));
     apppath = PH_AUTO(PhGetBaseName(apppath));
     keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
@@ -1152,7 +1154,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
     PPH_STRING filename;
     PPH_STRING baseName;
 
-    filename = PH_AUTO(PhGetApplicationFileName());
+    filename = PH_AUTO(PhGetApplicationFileNameWin32());
     baseName = PH_AUTO(PhGetBaseName(filename));
 
     if (Enabled)
@@ -1202,7 +1204,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             PPH_STRING keypath;
 
             path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-            apppath = PH_AUTO(PhGetApplicationFileName());
+            apppath = PH_AUTO(PhGetApplicationFileNameWin32());
             path = PH_AUTO(PhGetBaseDirectory(path));
             apppath = PH_AUTO(PhGetBaseName(apppath));
             keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
@@ -1258,7 +1260,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             PPH_STRING keypath;
 
             path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-            apppath = PH_AUTO(PhGetApplicationFileName());
+            apppath = PH_AUTO(PhGetApplicationFileNameWin32());
             path = PH_AUTO(PhGetBaseDirectory(path));
             apppath = PH_AUTO(PhGetBaseName(apppath));
             keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
@@ -1861,7 +1863,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             return TRUE;
                                         }
 
-                                        if (applicationFileName = PhGetApplicationFileName())
+                                        if (applicationFileName = PhGetApplicationFileNameWin32())
                                         {
                                             static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
                                             HRESULT status;

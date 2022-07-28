@@ -2792,7 +2792,7 @@ VOID PhGetSystemRoot(
 /**
  * Retrieves the file name of the current process image.
  */
-PPH_STRING PhGetApplicationFileName(
+PPH_STRING PhGetApplicationFileNameWin32(
     VOID
     )
 {
@@ -2824,10 +2824,63 @@ PPH_STRING PhGetApplicationFileName(
     return fileName;
 }
 
+PPH_STRING PhGetApplicationDirectory(
+    VOID
+    )
+{
+    static PPH_STRING cachedDirectoryPath = NULL;
+    PPH_STRING directoryPath;
+    PPH_STRING fileName = NULL;
+
+    if (directoryPath = InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        NULL,
+        NULL
+        ))
+    {
+        return PhReferenceObject(directoryPath);
+    }
+
+    if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
+    {
+        PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
+    }
+
+    if (fileName)
+    {
+        ULONG_PTR indexOfFileName;
+
+        indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
+
+        if (indexOfFileName != SIZE_MAX)
+            indexOfFileName++;
+        else
+            indexOfFileName = 0;
+
+        if (indexOfFileName != 0)
+        {
+            directoryPath = PhSubstring(fileName, 0, indexOfFileName);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    if (InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        directoryPath,
+        NULL
+        ) == NULL)
+    {
+        PhReferenceObject(directoryPath);
+    }
+
+    return directoryPath;
+}
+
 /**
  * Retrieves the directory of the current process image.
  */
-PPH_STRING PhGetApplicationDirectory(
+PPH_STRING PhGetApplicationDirectoryWin32(
     VOID
     )
 {
@@ -2844,7 +2897,7 @@ PPH_STRING PhGetApplicationDirectory(
         return PhReferenceObject(directoryPath);
     }
 
-    if (fileName = PhGetApplicationFileName())
+    if (fileName = PhGetApplicationFileNameWin32())
     {
         ULONG_PTR indexOfFileName;
 
@@ -2882,7 +2935,7 @@ PPH_STRING PhGetApplicationDirectoryFileNameWin32(
     PPH_STRING applicationFileName = NULL;
     PPH_STRING applicationDirectory;
 
-    if (applicationDirectory = PhGetApplicationDirectory())
+    if (applicationDirectory = PhGetApplicationDirectoryWin32())
     {
         applicationFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
         PhReferenceObject(applicationDirectory);
@@ -5936,7 +5989,7 @@ PPH_STRING PhCreateCacheFile(
     PH_STRINGREF randomAlphaStringRef;
     WCHAR randomAlphaString[32] = L"";
 
-    fileName = PhGetApplicationFileName();
+    fileName = PhGetApplicationFileNameWin32();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
     if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
@@ -5951,7 +6004,7 @@ PPH_STRING PhCreateCacheFile(
         randomAlphaStringRef.Buffer = randomAlphaString;
         randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
 
-        applicationDirectory = PhGetApplicationDirectory();
+        applicationDirectory = PhGetApplicationDirectoryWin32();
         applicationFileName = PhConcatStringRef3(
             &applicationDirectory->sr,
             &PhNtPathSeperatorString,
@@ -6041,7 +6094,7 @@ VOID PhClearCacheDirectory(
     PPH_STRING cacheDirectory;
     WCHAR alphastring[16] = L"";
 
-    fileName = PhGetApplicationFileName();
+    fileName = PhGetApplicationFileNameWin32();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
     if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
@@ -6052,7 +6105,7 @@ VOID PhClearCacheDirectory(
         PH_STRINGREF randomAlphaStringRef;
         WCHAR randomAlphaString[32] = L"";
 
-        applicationDirectory = PhGetApplicationDirectory();
+        applicationDirectory = PhGetApplicationDirectoryWin32();
 
         PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
         randomAlphaStringRef.Buffer = randomAlphaString;

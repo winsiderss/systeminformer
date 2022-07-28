@@ -934,7 +934,15 @@ VOID PhMwpOnCommand(
 
             if (PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
-                PhShellExecute(WindowHandle, PhGetString(taskmgrFileName), NULL);
+                PhShellExecuteEx(
+                    WindowHandle,
+                    PhGetString(taskmgrFileName),
+                    NULL,
+                    SW_SHOW,
+                    0,
+                    0,
+                    NULL
+                    );
             }
             else
             {
@@ -963,7 +971,15 @@ VOID PhMwpOnCommand(
 
             if (PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
-                PhShellExecute(WindowHandle, PhGetString(perfmonFileName), L" /res");
+                PhShellExecuteEx(
+                    WindowHandle,
+                    PhGetString(perfmonFileName),
+                    L" /res",
+                    SW_SHOW,
+                    0,
+                    0,
+                    NULL
+                    );
             }
             else
             {
@@ -1067,7 +1083,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HELP_DONATE:
         {
-            PhShellExecute(WindowHandle, L"https://sourceforge.net/project/project_donations.php?group_id=242527", NULL);
+            //PhShellExecute(WindowHandle, L"https://sourceforge.net/project/project_donations.php?group_id=242527", NULL);
         }
         break;
     case ID_HELP_DEBUGCONSOLE:

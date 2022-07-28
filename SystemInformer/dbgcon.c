@@ -673,7 +673,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
         if (NT_SUCCESS(PhQueryEnvironmentVariable(NULL, &variableNameSr, &variableValue)))
         {
-            PPH_STRING currentDirectory = PhGetApplicationDirectory();
+            PPH_STRING currentDirectory = PhGetApplicationDirectoryWin32();
             PPH_STRING currentSearchPath = PhGetStringSetting(L"DbgHelpSearchPath");
 
             if (currentSearchPath->Length != 0)
