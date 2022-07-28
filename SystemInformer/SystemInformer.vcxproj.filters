@@ -315,6 +315,9 @@
     <ClCompile Include="delayload.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="admintask.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

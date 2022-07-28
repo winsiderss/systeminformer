@@ -373,6 +373,7 @@
   <ItemGroup>
     <ClCompile Include="about.c" />
     <ClCompile Include="actions.c" />
+    <ClCompile Include="admintask.c" />
     <ClCompile Include="affinity.c" />
     <ClCompile Include="anawait.c" />
     <ClCompile Include="appsup.c" />
