@@ -874,15 +874,23 @@ PhSetProcessBreakOnTermination(
         );
 }
 
+typedef struct _PH_APP_MEMORY_INFORMATION
+{
+    ULONG64 AvailableCommit;
+    ULONG64 PrivateCommitUsage;
+    ULONG64 PeakPrivateCommitUsage;
+    ULONG64 TotalCommitUsage;
+} PH_APP_MEMORY_INFORMATION, * PPH_APP_MEMORY_INFORMATION;
+
 FORCEINLINE
 NTSTATUS
 PhGetProcessAppMemoryInformation(
     _In_ HANDLE ProcessHandle,
-    _Out_ PAPP_MEMORY_INFORMATION AppMemoryInfo
+    _Out_ PPH_APP_MEMORY_INFORMATION AppMemoryInfo
     )
 {
     NTSTATUS status;
-    APP_MEMORY_INFORMATION appMemoryInfo = {0};
+    PH_APP_MEMORY_INFORMATION appMemoryInfo = {0};
     VM_COUNTERS_EX2 vmCounters;
 
     status = NtQueryInformationProcess(

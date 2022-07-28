@@ -311,7 +311,7 @@ VOID PhpUpdateProcessStatistics(
         if (Context->ProcessHandle)
         {
             PH_PROCESS_WS_COUNTERS wsCounters;
-            APP_MEMORY_INFORMATION appMemoryInfo;
+            PH_APP_MEMORY_INFORMATION appMemoryInfo;
 
             if (NT_SUCCESS(PhGetProcessWsCounters(Context->ProcessHandle, &wsCounters)))
             {
