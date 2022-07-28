@@ -171,6 +171,8 @@ HRESULT PhpWmiProviderExecMethod(
     _In_ PPH_WMI_ENTRY Entry
     )
 {
+    static PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
+    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PVOID imageBaseAddress;
     PPH_STRING querySelectString = NULL;
@@ -195,7 +197,7 @@ HRESULT PhpWmiProviderExecMethod(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root\\CIMV2");
+    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -215,8 +217,9 @@ HRESULT PhpWmiProviderExecMethod(
         L"SELECT Namespace,Provider,User,__PATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
         ProcessIdString
         );
-    wbemLanguageString = SysAllocString(L"WQL");
-    wbemQueryString = SysAllocString(PhGetString(querySelectString));
+
+    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length);
+    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length);
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
@@ -256,7 +259,7 @@ HRESULT PhpWmiProviderExecMethod(
                 PhEqualString(Entry->UserName, userName, FALSE)
                 )
             {
-                BSTR wbemPathString = SysAllocString(PhGetString(instancePath));
+                BSTR wbemPathString = SysAllocStringLen(PhGetString(instancePath), (UINT32)instancePath->Length);
                 BSTR wbemMethodString = SysAllocString(Method);
 
                 status = IWbemServices_ExecMethod(
@@ -312,6 +315,7 @@ HRESULT PhpQueryWmiProviderFileName(
     _Out_ PPH_STRING *FileName
     )
 {
+    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PVOID imageBaseAddress;
     PPH_STRING fileName = NULL;
@@ -339,7 +343,7 @@ HRESULT PhpQueryWmiProviderFileName(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(PhGetString(ProviderNameSpace));
+    wbemResourceString = SysAllocStringLen(PhGetString(ProviderNameSpace), (UINT32)ProviderNameSpace->Length);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -359,8 +363,9 @@ HRESULT PhpQueryWmiProviderFileName(
         L"SELECT clsid FROM __Win32Provider WHERE Name = '%s'",
         PhGetString(ProviderName)
         );
-    wbemLanguageString = SysAllocString(L"WQL");
-    wbemQueryString = SysAllocString(PhGetString(querySelectString));
+
+    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length);
+    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length);
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
@@ -457,6 +462,8 @@ HRESULT PhpQueryWmiProviderHostProcess(
     _Out_ PPH_LIST* ProviderList
     )
 {
+    static PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
+    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PVOID imageBaseAddress;
     PPH_LIST providerList = NULL;
@@ -482,7 +489,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root\\CIMV2");
+    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -502,8 +509,9 @@ HRESULT PhpQueryWmiProviderHostProcess(
         L"SELECT Namespace,Provider,User,__RELPATH,__PATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
         ProcessItem->ProcessIdString
         );
-    wbemLanguageString = SysAllocString(L"WQL");
-    wbemQueryString = SysAllocString(PhGetString(querySelectString));
+
+    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length);
+    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length);
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
@@ -578,6 +586,8 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     _In_ PPH_WMI_ENTRY Entry
     )
 {
+    static PH_STRINGREF wbemResource = PH_STRINGREF_INIT(L"Root\\CIMV2");
+    static PH_STRINGREF wbemLanguage = PH_STRINGREF_INIT(L"WQL");
     HRESULT status;
     PVOID imageBaseAddress;
     PPH_STRING wbemProviderString = NULL;
@@ -602,7 +612,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root\\CIMV2");
+    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,

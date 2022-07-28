@@ -312,11 +312,9 @@ BOOLEAN PhCreateProcessLxss(
 
     if (systemDirectory = PhGetSystemDirectory())
     {
-        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\\"); // OBJ_NAME_PATH_SEPARATOR
-
         PhMoveReference(&lxssCommandLine, PhConcatStringRef3(
             &systemDirectory->sr,
-            &seperator,
+            &PhNtPathSeperatorString,
             &lxssCommandLine->sr
             ));
         PhDereferenceObject(systemDirectory);

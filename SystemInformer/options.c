@@ -1000,7 +1000,7 @@ BOOLEAN PhpIsExploitProtectionEnabled(
 
     PhMoveReference(&path, PhGetBaseDirectory(path));
     PhMoveReference(&apppath, PhGetBaseName(apppath));
-    keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
+    keypath = PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr);
     PhDereferenceObject(apppath);
     PhDereferenceObject(path);
 
@@ -1052,7 +1052,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     apppath = PH_AUTO(PhGetApplicationFileName());
     path = PH_AUTO(PhGetBaseDirectory(path));
     apppath = PH_AUTO(PhGetBaseName(apppath));
-    keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+    keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
 
     if (Enabled)
     {
@@ -1205,7 +1205,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             apppath = PH_AUTO(PhGetApplicationFileName());
             path = PH_AUTO(PhGetBaseDirectory(path));
             apppath = PH_AUTO(PhGetBaseName(apppath));
-            keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+            keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
 
             status = PhCreateKey(
                 &keyHandle,
@@ -1261,7 +1261,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             apppath = PH_AUTO(PhGetApplicationFileName());
             path = PH_AUTO(PhGetBaseDirectory(path));
             apppath = PH_AUTO(PhGetBaseName(apppath));
-            keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+            keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
 
             status = PhOpenKey(
                 &keyHandle,
@@ -1863,6 +1863,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                                         if (applicationFileName = PhGetApplicationFileName())
                                         {
+                                            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -1870,7 +1871,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                                             if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
                                             {
-                                                PH_STRINGREF programFilesPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\");
+                                                static PH_STRINGREF programFilesPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\");
                                                 PPH_STRING programFilesPath;
 
                                                 if (programFilesPath = PhExpandEnvironmentStrings(&programFilesPathSr))
@@ -1892,7 +1893,11 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                 }
                                             }
 #endif
-                                            quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
+                                            quotedFileName = PH_AUTO(PhConcatStringRef3(
+                                                &seperator,
+                                                &applicationFileName->sr,
+                                                &seperator
+                                                ));
 
                                             status = PhCreateAdminTask(
                                                 SI_RUNAS_ADMIN_TASK_NAME,

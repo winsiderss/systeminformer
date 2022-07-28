@@ -1201,7 +1201,7 @@ VOID PhpFillProcessItem(
     if (ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
         ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&Process->ImageName);
     else
-        ProcessItem->ProcessName = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
+        ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&SYSTEM_IDLE_PROCESS_NAME);
 
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {

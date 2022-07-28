@@ -549,14 +549,20 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // If the DLL name isn't an absolute path, assume it's in system32.
             // TODO: Use a proper search function.
 
-            if (PhDetermineDosPathNameType(dllName->Buffer) == RtlPathTypeRelative)
+            if (PhDetermineDosPathNameType(PhGetString(dllName)) == RtlPathTypeRelative)
             {
-                dllName = PhaConcatStrings(
-                    3,
-                    PH_AUTO_T(PH_STRING, PhGetSystemDirectory())->Buffer,
-                    L"\\",
-                    dllName->Buffer
-                    );
+                PPH_STRING systemDirectory;
+
+                if (systemDirectory = PhGetSystemDirectory())
+                {
+                    dllName = PhConcatStringRef3(
+                        &systemDirectory->sr,
+                        &PhNtPathSeperatorString,
+                        &dllName->sr
+                        );
+
+                    PhDereferenceObject(systemDirectory);
+                }
             }
 
             KnownCommandLine->RunDllAsApp.FileName = dllName;
@@ -2124,7 +2130,8 @@ BOOLEAN PhShellOpenKey2(
 
     memcpy(favoriteName, L"A_SystemInformer", 16 * sizeof(WCHAR));
     PhGenerateRandomAlphaString(&favoriteName[16], 16);
-    PhInitializeStringRefLongHint(&valueName, favoriteName);
+    valueName.Buffer = favoriteName;
+    valueName.Length = sizeof(favoriteName) - sizeof(UNICODE_NULL);
 
     expandedKeyName = PhExpandKeyName(KeyName, FALSE);
     PhSetValueKey(favoritesKeyHandle, &valueName, REG_SZ, expandedKeyName->Buffer, (ULONG)expandedKeyName->Length + sizeof(UNICODE_NULL));

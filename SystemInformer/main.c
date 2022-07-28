@@ -152,7 +152,7 @@ INT WINAPI wWinMain(
         {
             AllowSetForegroundWindow(ASFW_ANY);
 
-            if (SUCCEEDED(PhRunAsAdminTask(SI_RUNAS_ADMIN_TASK_NAME)))
+            if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
             {
                 PhActivatePreviousInstance();
                 PhExitApplication(STATUS_SUCCESS);
@@ -908,39 +908,39 @@ BOOLEAN PhInitializeMitigationPolicy(
     //        );
     //}
 
-    if (!InitializeProcThreadAttributeList(NULL, 2, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         goto CleanupExit;
 
     startupInfo.lpAttributeList = PhAllocate(attributeListLength);
 
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 2, 0, &attributeListLength))
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
         goto CleanupExit;
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
         goto CleanupExit;
     //if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &jobObjectHandle, sizeof(HANDLE), NULL, NULL))
     //    goto CleanupExit;
-
-    {
-        PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoIsolation;
-        WCHAR alphastring[16] = L"";
-
-        bnoIsolation.IsolationEnabled = TRUE;
-        PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-        wcscpy_s(bnoIsolation.IsolationPrefix, RTL_NUMBER_OF(bnoIsolation.IsolationPrefix), alphastring);
-
-        if (!UpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
-            0,
-            PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
-            &bnoIsolation,
-            sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE),
-            NULL,
-            NULL
-            ))
-        {
-            goto CleanupExit;
-        }
-    }
+    //
+    //{
+    //    PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoIsolation;
+    //    WCHAR alphastring[16] = L"";
+    //
+    //    bnoIsolation.IsolationEnabled = TRUE;
+    //    PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
+    //    wcscpy_s(bnoIsolation.IsolationPrefix, RTL_NUMBER_OF(bnoIsolation.IsolationPrefix), alphastring);
+    //
+    //    if (!UpdateProcThreadAttribute(
+    //        startupInfo.lpAttributeList,
+    //        0,
+    //        PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
+    //        &bnoIsolation,
+    //        sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE),
+    //        NULL,
+    //        NULL
+    //        ))
+    //    {
+    //        goto CleanupExit;
+    //    }
+    //}
 
     if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,

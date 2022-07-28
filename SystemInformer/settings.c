@@ -30,6 +30,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
+    PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");

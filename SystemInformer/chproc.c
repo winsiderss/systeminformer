@@ -98,7 +98,7 @@ static VOID PhpRefreshProcessList(
         if (process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
             name = PhCreateStringFromUnicodeString(&process->ImageName);
         else
-            name = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
+            name = PhCreateStringFromUnicodeString(&SYSTEM_IDLE_PROCESS_NAME);
 
         lvItemIndex = PhAddListViewItem(Context->ListViewHandle, MAXINT, name->Buffer, process->UniqueProcessId);
         PhDereferenceObject(name);

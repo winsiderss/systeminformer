@@ -10,7 +10,9 @@ extern "C" {
 /** The PID of the system process. */
 #define SYSTEM_PROCESS_ID ((HANDLE)4)
 
-#define SYSTEM_IDLE_PROCESS_NAME (L"System Idle Process")
+#define SYSTEM_IDLE_PROCESS_NAME ((UNICODE_STRING)RTL_CONSTANT_STRING(L"System Idle Process"))
+
+#define PhNtPathSeperatorString ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\")) // OBJ_NAME_PATH_SEPARATOR // RtlNtPathSeperatorString
 
 // General object-related function types
 
@@ -1555,7 +1557,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryFullAttributesFile(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
