@@ -8913,7 +8913,7 @@ NTSTATUS PhDeleteFileWin32(
 *
 * \param DirectoryPath The Win32 directory path.
 */
-NTSTATUS PhCreateDirectory(
+NTSTATUS PhCreateDirectoryWin32(
     _In_ PPH_STRING DirectoryPath
     )
 {
@@ -8978,15 +8978,12 @@ NTSTATUS PhCreateDirectory(
 
 static BOOLEAN PhpDeleteDirectoryCallback(
     _In_ PFILE_DIRECTORY_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_STRING parentDirectory = Context;
     PPH_STRING fullName;
     PH_STRINGREF baseName;
-
-    if (!parentDirectory)
-        return TRUE;
 
     baseName.Buffer = Information->FileName;
     baseName.Length = Information->FileNameLength;
@@ -9073,7 +9070,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
 *
 * \param DirectoryPath The Win32 directory path.
 */
-NTSTATUS PhDeleteDirectory(
+NTSTATUS PhDeleteDirectoryWin32(
     _In_ PPH_STRING DirectoryPath
     )
 {

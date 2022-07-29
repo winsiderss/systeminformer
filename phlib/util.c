@@ -2789,6 +2789,39 @@ VOID PhGetSystemRoot(
     systemRoot.Buffer = localSystemRoot.Buffer;
 }
 
+PPH_STRING PhGetApplicationFileName(
+    VOID
+    )
+{
+    static PPH_STRING cachedFileName = NULL;
+    PPH_STRING fileName;
+
+    if (fileName = InterlockedCompareExchangePointer(
+        &cachedFileName,
+        NULL,
+        NULL
+        ))
+    {
+        return PhReferenceObject(fileName);
+    }
+
+    if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
+    {
+        PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
+    }
+
+    if (!InterlockedCompareExchangePointer(
+        &cachedFileName,
+        fileName,
+        NULL
+        ))
+    {
+        PhReferenceObject(fileName);
+    }
+
+    return fileName;
+}
+
 /**
  * Retrieves the file name of the current process image.
  */
@@ -2966,7 +2999,7 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 
     if (randomAlphaFileName)
     {
-        if (!NT_SUCCESS(PhCreateDirectory(randomAlphaFileName)))
+        if (!NT_SUCCESS(PhCreateDirectoryWin32(randomAlphaFileName)))
         {
             PhReferenceObject(randomAlphaFileName);
             return NULL;
@@ -5989,10 +6022,10 @@ PPH_STRING PhCreateCacheFile(
     PH_STRINGREF randomAlphaStringRef;
     WCHAR randomAlphaString[32] = L"";
 
-    fileName = PhGetApplicationFileNameWin32();
+    fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
+    if (PhDoesFileExist(settingsFileName))
     {
         HANDLE fileHandle;
         PPH_STRING applicationDirectory;
@@ -6068,7 +6101,7 @@ PPH_STRING PhCreateCacheFile(
 
         if (indexOfFileName != ULONG_MAX && (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
-            PhCreateDirectory(directoryPath);
+            PhCreateDirectoryWin32(directoryPath);
 
             PhDereferenceObject(directoryPath);
         }
@@ -6094,10 +6127,10 @@ VOID PhClearCacheDirectory(
     PPH_STRING cacheDirectory;
     WCHAR alphastring[16] = L"";
 
-    fileName = PhGetApplicationFileNameWin32();
+    fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
+    if (PhDoesFileExist(settingsFileName))
     {
         HANDLE fileHandle;
         PPH_STRING applicationDirectory;
@@ -6147,7 +6180,7 @@ VOID PhClearCacheDirectory(
 
     if (cacheDirectory)
     {
-        PhDeleteDirectory(cacheDirectory);
+        PhDeleteDirectoryWin32(cacheDirectory);
 
         PhDereferenceObject(cacheDirectory);
     }
@@ -6173,7 +6206,7 @@ VOID PhDeleteCacheFile(
     {
         if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
-            PhDeleteDirectory(cacheDirectory);
+            PhDeleteDirectoryWin32(cacheDirectory);
             PhDereferenceObject(cacheDirectory);
         }
 

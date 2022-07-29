@@ -753,7 +753,7 @@ NTSTATUS PhHttpSocketDownloadToFile(
             {
                 if (directoryName = PhSubstring(fullPath, 0, indexOfFileName))
                 {
-                    status = PhCreateDirectory(directoryName);
+                    status = PhCreateDirectoryWin32(directoryName);
                     PhDereferenceObject(directoryName);
                 }
             }
