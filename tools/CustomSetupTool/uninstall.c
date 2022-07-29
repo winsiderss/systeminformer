@@ -33,7 +33,7 @@ NTSTATUS SetupUninstallBuild(
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    PhDeleteDirectory(Context->SetupInstallPath);
+    PhDeleteDirectoryWin32(Context->SetupInstallPath);
 
     // Remove the application data.
     if (Context->SetupRemoveAppData)

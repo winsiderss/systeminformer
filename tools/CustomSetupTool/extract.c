@@ -180,11 +180,10 @@ BOOLEAN SetupExtractBuild(
             goto CleanupExit;
         }
 
-        extractPath = PhConcatStrings(
-            3, 
-            PhGetString(Context->SetupInstallPath),
-            L"\\", 
-            PhGetString(fileName)
+        extractPath = PhConcatStringRef3(
+            &Context->SetupInstallPath->sr,
+            &PhNtPathSeperatorString,
+            &fileName->sr
             );
 
         if (fullSetupPath = PhGetFullPath(extractPath->Buffer, &indexOfFileName))
@@ -199,7 +198,7 @@ BOOLEAN SetupExtractBuild(
 
             if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
             {
-                if (!NT_SUCCESS(PhCreateDirectory(directoryPath)))
+                if (!NT_SUCCESS(PhCreateDirectoryWin32(directoryPath)))
                 {
                     Context->ErrorCode = ERROR_DIRECTORY_NOT_SUPPORTED;
                     PhDereferenceObject(directoryPath);

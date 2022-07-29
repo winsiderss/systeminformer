@@ -37,7 +37,7 @@ NTSTATUS SetupProgressThread(
     //    PhDeleteDirectory(Context->SetupInstallPath);
 
     // Create the install folder path.
-    if (!NT_SUCCESS(PhCreateDirectory(Context->SetupInstallPath)))
+    if (!NT_SUCCESS(PhCreateDirectoryWin32(Context->SetupInstallPath)))
     {
         Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;

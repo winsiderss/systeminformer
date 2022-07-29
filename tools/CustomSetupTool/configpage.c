@@ -38,13 +38,15 @@ VOID SetupShowBrowseDialog(
     }
 
     if (PhIsNullOrEmptyString(Context->SetupInstallPath))
+    {
         Context->SetupInstallPath = SetupFindInstallDirectory();
+    }
 
     if (!PhIsNullOrEmptyString(Context->SetupInstallPath))
     {
-        if (!PhEndsWithString2(Context->SetupInstallPath, L"\\", TRUE))
+        if (!PhEndsWithStringRef(&Context->SetupInstallPath->sr, &PhNtPathSeperatorString, TRUE))
         {
-            PhSwapReference(&Context->SetupInstallPath, PhConcatStringRefZ(&Context->SetupInstallPath->sr, L"\\"));
+            PhSwapReference(&Context->SetupInstallPath, PhConcatStringRef2(&Context->SetupInstallPath->sr, &PhNtPathSeperatorString));
         }
     }
 }

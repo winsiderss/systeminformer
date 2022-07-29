@@ -137,9 +137,9 @@ PPH_STRING SetupFindInstallDirectory(
 
     if (!PhIsNullOrEmptyString(setupInstallPath))
     {
-        if (!PhEndsWithString2(setupInstallPath, L"\\", TRUE))
+        if (!PhEndsWithStringRef(&setupInstallPath->sr, &PhNtPathSeperatorString, TRUE))
         {
-            PhSwapReference(&setupInstallPath, PhConcatStringRefZ(&setupInstallPath->sr, L"\\"));
+            PhSwapReference(&setupInstallPath, PhConcatStringRef2(&setupInstallPath->sr, &PhNtPathSeperatorString));
         }
     }
 
@@ -170,8 +170,7 @@ VOID SetupDeleteAppdataDirectory(
 
     if (uninstallFilePath = SetupFindAppdataDirectory())
     {
-        PhDeleteDirectory(uninstallFilePath);
-
+        PhDeleteDirectoryWin32(uninstallFilePath);
         PhDereferenceObject(uninstallFilePath);
     }
 }
