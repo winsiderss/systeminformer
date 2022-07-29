@@ -67,10 +67,12 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     };
     PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"PhCmdTool", ULONG_MAX, __ImageBase, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"PhCmdTool", __ImageBase)))
         return EXIT_FAILURE;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
+    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
+        return EXIT_FAILURE;
+
     PhParseCommandLine(
         &commandLine,
         options,
@@ -91,7 +93,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
             L"-caction command-action\n"
             L"-cvalue command-value\n"
             );
-        return 1;
+        return EXIT_FAILURE;
     }
 
     return PhCommandModeStart();

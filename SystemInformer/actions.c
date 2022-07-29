@@ -38,10 +38,11 @@
 #include <srvprv.h>
 #include <thrdprv.h>
 
-static PWSTR DangerousProcesses[] =
+static PH_STRINGREF DangerousProcesses[] =
 {
-    L"csrss.exe", L"dwm.exe", L"logonui.exe", L"lsass.exe", L"lsm.exe",
-    L"services.exe", L"smss.exe", L"wininit.exe", L"winlogon.exe"
+    PH_STRINGREF_INIT(L"csrss.exe"), PH_STRINGREF_INIT(L"dwm.exe"), PH_STRINGREF_INIT(L"logonui.exe"),
+    PH_STRINGREF_INIT(L"lsass.exe"), PH_STRINGREF_INIT(L"lsm.exe"), PH_STRINGREF_INIT(L"services.exe"),
+    PH_STRINGREF_INIT(L"smss.exe"), PH_STRINGREF_INIT(L"wininit.exe"), PH_STRINGREF_INIT(L"winlogon.exe")
 };
 
 static PPH_STRING DebuggerCommand = NULL;
@@ -343,9 +344,9 @@ BOOLEAN PhpStartPhSvcProcess(
             PPH_STRING applicationDirectory;
             PPH_STRING applicationFileName;
 
-            if (!(applicationDirectory = PhGetApplicationDirectory()))
+            if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
                 return FALSE;
-            if (!(applicationFileName = PhGetApplicationFileName()))
+            if (!(applicationFileName = PhGetApplicationFileNameWin32()))
                 return FALSE;
 
             PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
@@ -364,7 +365,7 @@ BOOLEAN PhpStartPhSvcProcess(
                 if (fileFullPath = PhGetFullPath(fileName->Buffer, NULL))
                     PhMoveReference(&fileName, fileFullPath);
 
-                if (PhDoesFileExistsWin32(fileName->Buffer))
+                if (PhDoesFileExistWin32(fileName->Buffer))
                 {
                     if (PhShellProcessHackerEx(
                         hWnd,
@@ -1508,9 +1509,9 @@ static BOOLEAN PhpIsDangerousProcess(
     )
 {
     NTSTATUS status;
-    PPH_STRING fileName;
     PPH_STRING systemDirectory;
-    ULONG i;
+    PPH_STRING fileName;
+    PPH_STRING fullName;
 
     if (ProcessId == SYSTEM_PROCESS_ID)
         return TRUE;
@@ -1518,19 +1519,22 @@ static BOOLEAN PhpIsDangerousProcess(
     if (!NT_SUCCESS(status = PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
         return FALSE;
 
+    systemDirectory = PH_AUTO(PhGetSystemDirectory());
     PhMoveReference(&fileName, PhGetFileName(fileName));
     PH_AUTO(fileName);
 
-    systemDirectory = PH_AUTO(PhGetSystemDirectory());
-
-    for (i = 0; i < sizeof(DangerousProcesses) / sizeof(PWSTR); i++)
+    for (ULONG i = 0; i < RTL_NUMBER_OF(DangerousProcesses); i++)
     {
-        PPH_STRING fullName;
-
-        fullName = PhaConcatStrings(3, systemDirectory->Buffer, L"\\", DangerousProcesses[i]);
+        fullName = PH_AUTO(PhConcatStringRef3(
+            &systemDirectory->sr,
+            &PhNtPathSeperatorString,
+            &DangerousProcesses[i]
+            ));
 
         if (PhEqualString(fileName, fullName, TRUE))
+        {
             return TRUE;
+        }
     }
 
     return FALSE;
@@ -2769,20 +2773,15 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
         NTSTATUS status;
         HANDLE processHandle;
 
-        if (NT_SUCCESS(status = PhOpenProcess(
+        status = PhOpenProcess(
             &processHandle,
             PROCESS_SET_QUOTA,
             Processes[i]->ProcessId
-            )))
+            );
+
+        if (NT_SUCCESS(status))
         {
-            QUOTA_LIMITS quotaLimits;
-
-            memset(&quotaLimits, 0, sizeof(QUOTA_LIMITS));
-            quotaLimits.MinimumWorkingSetSize = -1;
-            quotaLimits.MaximumWorkingSetSize = -1;
-
-            status = PhSetProcessQuotaLimits(processHandle, quotaLimits);
-
+            status = PhSetProcessEmptyWorkingSet(processHandle);
             NtClose(processHandle);
         }
 
@@ -3107,11 +3106,7 @@ BOOLEAN PhUiLoadDllProcess(
         LARGE_INTEGER timeout;
 
         timeout.QuadPart = -(LONGLONG)UInt32x32To64(5, PH_TIMEOUT_SEC);
-        status = PhLoadDllProcess(
-            processHandle,
-            fileName->Buffer,
-            &timeout
-            );
+        status = PhLoadDllProcess(processHandle, &fileName->sr, &timeout);
 
         NtClose(processHandle);
     }

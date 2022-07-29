@@ -170,6 +170,9 @@ PhGetProcessPeb32(
 
     if (NT_SUCCESS(status))
     {
+        if (!wow64)
+            return STATUS_UNSUCCESSFUL;
+
         *Peb32 = (PVOID)wow64;
     }
 
@@ -193,6 +196,9 @@ PhGetProcessPeb(
 
     if (NT_SUCCESS(status))
     {
+        if (!basicInfo.PebBaseAddress)
+            return STATUS_UNSUCCESSFUL;
+
         *PebBaseAddress = (PVOID)basicInfo.PebBaseAddress;
     }
 
@@ -585,30 +591,60 @@ PhSetProcessQuotaLimits(
 
 FORCEINLINE
 NTSTATUS
+PhSetProcessEmptyWorkingSet(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    QUOTA_LIMITS_EX quotaLimits;
+
+    memset(&quotaLimits, 0, sizeof(QUOTA_LIMITS_EX));
+    quotaLimits.MinimumWorkingSetSize = SIZE_MAX;
+    quotaLimits.MaximumWorkingSetSize = SIZE_MAX;
+
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessQuotaLimits,
+        &quotaLimits,
+        sizeof(QUOTA_LIMITS_EX)
+        );
+}
+
+FORCEINLINE
+NTSTATUS
 PhGetProcessAffinityMask(
     _In_ HANDLE ProcessHandle,
     _Out_ PKAFFINITY AffinityMask
     )
 {
-    //NTSTATUS status;
-    //PROCESS_BASIC_INFORMATION basicInfo;
-    //
-    //status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
-    //
-    //if (NT_SUCCESS(status))
-    //{
-    //    *AffinityMask = basicInfo.AffinityMask;
-    //}
-    //
-    //return status;
+    NTSTATUS status;
+    KAFFINITY affinityMask;
 
-    return NtQueryInformationProcess(
+    memset(&affinityMask, 0, sizeof(KAFFINITY));
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessAffinityMask,
-        AffinityMask,
+        &affinityMask,
         sizeof(KAFFINITY),
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        *AffinityMask = affinityMask;
+    }
+    else // Windows 7 (dmex)
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        {
+            *AffinityMask = basicInfo.AffinityMask;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return status;
 }
 
 /**
@@ -652,10 +688,9 @@ PhGetProcessGroupInformation(
         &returnLength
         );
 
-    // (int)(status + 0x80000000) < 0 || status == STATUS_BUFFER_TOO_SMALL
     if (NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL)
     {
-        *GroupCount = (USHORT)returnLength >> 1;
+        *GroupCount = (USHORT)returnLength / sizeof(USHORT); // (USHORT)returnLength >> 1
     }
 
     return status;
@@ -668,13 +703,36 @@ PhGetProcessGroupAffinity(
     _Out_ PGROUP_AFFINITY GroupAffinity
     )
 {
-    return NtQueryInformationProcess(
+    NTSTATUS status;
+    GROUP_AFFINITY groupAffinity;
+
+    memset(&groupAffinity, 0, sizeof(GROUP_AFFINITY));
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessAffinityMask,
-        GroupAffinity,
+        &groupAffinity,
         sizeof(GROUP_AFFINITY),
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(GroupAffinity, &groupAffinity, sizeof(GROUP_AFFINITY));
+    }
+    else // Windows 7 (dmex)
+    {
+        KAFFINITY affinityMask;
+
+        if (NT_SUCCESS(PhGetProcessAffinityMask(ProcessHandle, &affinityMask)))
+        {
+            groupAffinity.Mask = affinityMask;
+            memcpy(GroupAffinity, &groupAffinity, sizeof(GROUP_AFFINITY));
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return status;
 }
 
 FORCEINLINE
@@ -1808,18 +1866,15 @@ PhGetTokenMandatoryPolicy(
     _Out_ PTOKEN_MANDATORY_POLICY MandatoryPolicy
     )
 {
-    NTSTATUS status;
     ULONG returnLength;
 
-    status = NtQueryInformationToken(
+    return NtQueryInformationToken(
         TokenHandle,
         TokenMandatoryPolicy,
         MandatoryPolicy,
         sizeof(TOKEN_MANDATORY_POLICY),
         &returnLength
         );
-    
-    return status;
 }
 
 FORCEINLINE
@@ -1884,7 +1939,6 @@ PhGetTokenAppContainerNumber(
         &returnLength
         );
 }
-
 
 FORCEINLINE
 NTSTATUS

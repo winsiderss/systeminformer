@@ -438,9 +438,6 @@ PPH_PROCESS_NODE PhAddProcessNode(
         );
     PhAddItemList(ProcessNodeList, processNode);
 
-    if (PhEnableCycleCpuUsage && ProcessItem->ProcessId == INTERRUPTS_PROCESS_ID)
-        PhInitializeStringRef(&processNode->DescriptionText, L"Interrupts and DPCs");
-
     if (FilterSupport.FilterList)
         processNode->Node.Visible = PhApplyTreeNewFiltersToNode(&FilterSupport, &processNode->Node);
 
@@ -956,7 +953,7 @@ static VOID PhpUpdateProcessNodeDepStatus(
         if (
             PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) &&
             ProcessNode->ProcessItem->IsWow64 &&
-            ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION 
+            ProcessNode->ProcessItem->IsHandleValid // PROCESS_QUERY_INFORMATION
             )
 #else
         if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId) && ProcessNode->ProcessItem->QueryHandle)
@@ -1191,7 +1188,7 @@ static VOID PhpUpdateProcessNodeAppId(
                 //                        attributeValue2 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[2]));
                 //
                 //                        ProcessNode->AppIdText = PhConcatStrings(
-                //                            3, 
+                //                            3,
                 //                            attributeValue2->Buffer,
                 //                            L"!",
                 //                            attributeValue1->Buffer
@@ -1242,7 +1239,7 @@ static VOID PhpUpdateProcessNodeFileAttributes(
         FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
         if (ProcessNode->ProcessItem->FileName && NT_SUCCESS(PhQueryFullAttributesFile(
-            ProcessNode->ProcessItem->FileName,
+            &ProcessNode->ProcessItem->FileName->sr,
             &networkOpenInfo
             )))
         {
@@ -1443,7 +1440,7 @@ static VOID PhpUpdateProcessNodePriorityBoost(
 
             if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessNode->ProcessItem->QueryHandle, &priorityBoost)))
             {
-                ProcessNode->PriorityBoost = priorityBoost; 
+                ProcessNode->PriorityBoost = priorityBoost;
             }
         }
 
@@ -1520,27 +1517,32 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(UserName)
 {
-    sortResult = PhCompareStringWithNull(processItem1->UserName, processItem2->UserName, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(
+        processItem1->UserName,
+        processItem2->UserName,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Description)
 {
-    PH_STRINGREF sr1;
-    PH_STRINGREF sr2;
-
-    sr1 = processItem1->VersionInfo.FileDescription ? processItem1->VersionInfo.FileDescription->sr : node1->DescriptionText;
-    sr2 = processItem2->VersionInfo.FileDescription ? processItem2->VersionInfo.FileDescription->sr : node2->DescriptionText;
-
-    sortResult = PhCompareStringRef(&sr1, &sr2, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(
+        processItem1->VersionInfo.FileDescription,
+        processItem2->VersionInfo.FileDescription,
+        ProcessTreeListSortOrder,
+        TRUE
+        );
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CompanyName)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->VersionInfo.CompanyName,
         processItem2->VersionInfo.CompanyName,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -1548,9 +1550,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Version)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->VersionInfo.FileVersion,
         processItem2->VersionInfo.FileVersion,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -1558,9 +1561,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->FileName,
         processItem2->FileName,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -1568,9 +1572,10 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CommandLine)
 {
-    sortResult = PhCompareStringWithNull(
+    sortResult = PhCompareStringWithNullSortOrder(
         processItem1->CommandLine,
         processItem2->CommandLine,
+        ProcessTreeListSortOrder,
         TRUE
         );
 }
@@ -2096,7 +2101,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Protection)
 {
-    // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX) 
+    // Use signed char so processes that we were unable to query (e.g. indicated by UCHAR_MAX)
     // are placed below processes we are able to query (e.g. 0 and above).
     sortResult = charcmp((CHAR)processItem1->Protection.Level, (CHAR)processItem2->Protection.Level);
 }
@@ -2475,10 +2480,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRef(processItem->UserName);
                 break;
             case PHPRTLC_DESCRIPTION:
-                if (processItem->VersionInfo.FileDescription)
-                    getCellText->Text = processItem->VersionInfo.FileDescription->sr;
-                else
-                    getCellText->Text = node->DescriptionText;
+                getCellText->Text = PhGetStringRef(processItem->VersionInfo.FileDescription);
                 break;
             case PHPRTLC_COMPANYNAME:
                 getCellText->Text = PhGetStringRef(processItem->VersionInfo.CompanyName);
@@ -3465,7 +3467,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorProtectedProcess;
             else if (PhCsUseColorHandleFiltered && processItem->IsProtectedHandle)
                 getNodeColor->BackColor = PhCsColorHandleFiltered;
-            else if (PhCsUseColorElevatedProcesses && processItem->IsElevated)
+            else if (PhCsUseColorElevatedProcesses && processItem->IsElevated && processItem->ElevationType == TokenElevationTypeFull)
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
             else if (PhCsUseColorPicoProcesses && processItem->IsSubsystemProcess)
                 getNodeColor->BackColor = PhCsColorPicoProcesses;
@@ -3498,7 +3500,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
                 PhCsUseColorOwnProcesses &&
-                processItem->Sid && 
+                processItem->Sid &&
                 RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid)
                 )
                 getNodeColor->BackColor = PhCsColorOwnProcesses;

@@ -232,7 +232,7 @@ EXPORTS
     PhZeroExtendToUtf16Ex
 
 ; phnative
-    PhCreateDirectory
+    PhCreateDirectoryWin32
     PhCreateFile
     PhCreateFileWin32
     PhCreateFileWin32Ex
@@ -240,12 +240,12 @@ EXPORTS
     PhCreateNamedPipe
     PhCreatePipe
     PhConnectPipe
-    PhDeleteDirectory
+    PhDeleteDirectoryWin32
     PhDeleteFileWin32
     PhDeleteValueKey
     PhDetermineDosPathNameType
-    PhDoesFileExistsWin32
-    PhDoesFileExists
+    PhDoesFileExistWin32
+    PhDoesFileExist
     PhDisconnectNamedPipe
     PhEnumerateKey
     PhEnumerateValueKey
@@ -376,8 +376,9 @@ EXPORTS
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
     PhGetApplicationDirectory
+    PhGetApplicationDirectoryWin32
     PhGetApplicationDirectoryFileNameWin32
-    PhGetApplicationFileName
+    PhGetApplicationFileNameWin32
     PhGetBaseDirectory
     PhGetBaseName
     PhGetClassObject
@@ -411,10 +412,9 @@ EXPORTS
     PhParseCommandLine
     PhParseCommandLineFuzzy
     PhParseCommandLinePart
-    PhQueryRegistryString
-    PhQueryRegistryUlong
-    PhQueryRegistryUlongEx
-    PhQueryRegistryUlong64
+    PhQueryRegistryStringRef
+    PhQueryRegistryUlongStringRef
+    PhQueryRegistryUlong64StringRef
     PhReferenceObjects
     PhSetFileDialogFileName
     PhSetFileDialogFilter
@@ -635,10 +635,10 @@ EXPORTS
     PhAddSettings
     PhClearIgnoredSettings
     PhConvertIgnoredSettings    
-    PhGetIntegerSetting
-    PhGetIntegerPairSetting
-    PhGetScalableIntegerPairSetting
-    PhGetStringSetting
+    PhGetIntegerStringRefSetting
+    PhGetIntegerPairStringRefSetting
+    PhGetScalableIntegerPairStringRefSetting
+    PhGetStringRefSetting
     PhLoadSettings
     PhLoadCustomColorList
     PhLoadListViewColumnSettings
@@ -654,12 +654,10 @@ EXPORTS
     PhSaveListViewGroupStatesToSetting
     PhSaveWindowPlacementToSetting
     PhSettingsInitialization
-    PhSetIntegerSetting
-    PhSetIntegerPairSetting
-    PhSetScalableIntegerPairSetting
-    PhSetScalableIntegerPairSetting2
-    PhSetStringSetting
-    PhSetStringSetting2
+    PhSetIntegerStringRefSetting
+    PhSetIntegerPairStringRefSetting
+    PhSetScalableIntegerPairStringRefSetting
+    PhSetStringRefSetting
     PhSaveSettings
     PhUpdateCachedSettings
 

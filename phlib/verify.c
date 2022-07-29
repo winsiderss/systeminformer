@@ -863,7 +863,7 @@ VERIFY_RESULT PhVerifyFileCached(
     {
         if (!NT_SUCCESS(PhCreateFile(
             &fileHandle,
-            FileName,
+            &FileName->sr,
             FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,

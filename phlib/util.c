@@ -1773,7 +1773,7 @@ PVOID PhGetFileVersionInfo(
 }
 
 PVOID PhGetFileVersionInfoEx(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
     PVOID imageBaseAddress;
@@ -2179,7 +2179,7 @@ BOOLEAN PhInitializeImageVersionInfo(
 _Success_(return)
 BOOLEAN PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN ExtendedVersionInfo
     )
 {
@@ -2398,7 +2398,7 @@ BOOLEAN PhInitializeImageVersionInfoCached(
     }
     else
     {
-        if (!PhInitializeImageVersionInfoEx(&versionInfo, FileName, ExtendedVersion))
+        if (!PhInitializeImageVersionInfoEx(&versionInfo, &FileName->sr, ExtendedVersion))
             return FALSE;
     }
 
@@ -2567,7 +2567,7 @@ NTSTATUS PhGetFullPathEx(
         return status;
     }
 
-    fullPath->Length = returnLength; // HACK (dmex)
+    fullPath->Length = returnLength;
     //PhTrimToNullTerminatorString(fullPath);
 
     if (IndexOfFileName)
@@ -2677,6 +2677,34 @@ PPH_STRING PhGetBaseName(
     return PhCreateString2(&baseNamePart);
 }
 
+_Success_(return)
+BOOLEAN PhGetBaseNameComponents(
+    _In_ PPH_STRINGREF FileName,
+    _Out_opt_ PPH_STRINGREF BasePathName,
+    _Out_opt_ PPH_STRINGREF BaseFileName
+    )
+{
+    PH_STRINGREF basePathPart;
+    PH_STRINGREF baseNamePart;
+
+    if (!PhSplitStringRefAtLastChar(FileName, OBJ_NAME_PATH_SEPARATOR, &basePathPart, &baseNamePart))
+        return FALSE;
+
+    if (BasePathName)
+    {
+        BasePathName->Length = basePathPart.Length;
+        BasePathName->Buffer = basePathPart.Buffer;
+    }
+
+    if (BaseFileName)
+    {
+        BaseFileName->Length = baseNamePart.Length;
+        BaseFileName->Buffer = baseNamePart.Buffer;
+    }
+
+    return TRUE;
+}
+
 /**
  * Gets the parent directory from a file name.
  *
@@ -2761,10 +2789,43 @@ VOID PhGetSystemRoot(
     systemRoot.Buffer = localSystemRoot.Buffer;
 }
 
+PPH_STRING PhGetApplicationFileName(
+    VOID
+    )
+{
+    static PPH_STRING cachedFileName = NULL;
+    PPH_STRING fileName;
+
+    if (fileName = InterlockedCompareExchangePointer(
+        &cachedFileName,
+        NULL,
+        NULL
+        ))
+    {
+        return PhReferenceObject(fileName);
+    }
+
+    if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
+    {
+        PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
+    }
+
+    if (!InterlockedCompareExchangePointer(
+        &cachedFileName,
+        fileName,
+        NULL
+        ))
+    {
+        PhReferenceObject(fileName);
+    }
+
+    return fileName;
+}
+
 /**
  * Retrieves the file name of the current process image.
  */
-PPH_STRING PhGetApplicationFileName(
+PPH_STRING PhGetApplicationFileNameWin32(
     VOID
     )
 {
@@ -2796,10 +2857,63 @@ PPH_STRING PhGetApplicationFileName(
     return fileName;
 }
 
+PPH_STRING PhGetApplicationDirectory(
+    VOID
+    )
+{
+    static PPH_STRING cachedDirectoryPath = NULL;
+    PPH_STRING directoryPath;
+    PPH_STRING fileName = NULL;
+
+    if (directoryPath = InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        NULL,
+        NULL
+        ))
+    {
+        return PhReferenceObject(directoryPath);
+    }
+
+    if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
+    {
+        PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
+    }
+
+    if (fileName)
+    {
+        ULONG_PTR indexOfFileName;
+
+        indexOfFileName = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
+
+        if (indexOfFileName != SIZE_MAX)
+            indexOfFileName++;
+        else
+            indexOfFileName = 0;
+
+        if (indexOfFileName != 0)
+        {
+            directoryPath = PhSubstring(fileName, 0, indexOfFileName);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    if (InterlockedCompareExchangePointer(
+        &cachedDirectoryPath,
+        directoryPath,
+        NULL
+        ) == NULL)
+    {
+        PhReferenceObject(directoryPath);
+    }
+
+    return directoryPath;
+}
+
 /**
  * Retrieves the directory of the current process image.
  */
-PPH_STRING PhGetApplicationDirectory(
+PPH_STRING PhGetApplicationDirectoryWin32(
     VOID
     )
 {
@@ -2816,7 +2930,7 @@ PPH_STRING PhGetApplicationDirectory(
         return PhReferenceObject(directoryPath);
     }
 
-    if (fileName = PhGetApplicationFileName())
+    if (fileName = PhGetApplicationFileNameWin32())
     {
         ULONG_PTR indexOfFileName;
 
@@ -2854,7 +2968,7 @@ PPH_STRING PhGetApplicationDirectoryFileNameWin32(
     PPH_STRING applicationFileName = NULL;
     PPH_STRING applicationDirectory;
 
-    if (applicationDirectory = PhGetApplicationDirectory())
+    if (applicationDirectory = PhGetApplicationDirectoryWin32())
     {
         applicationFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
         PhReferenceObject(applicationDirectory);
@@ -2868,7 +2982,6 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     )
 {
     static PH_STRINGREF randomAlphaDirectoryStringRef = PH_STRINGREF_INIT(L"%TEMP%\\");
-    static PH_STRINGREF directorySeparator = PH_STRINGREF_INIT(L"\\");
     PPH_STRING randomAlphaFileName = NULL;
     PPH_STRING randomAlphaDirectory;
     PH_STRINGREF randomAlphaStringRef;
@@ -2886,13 +2999,13 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 
     if (randomAlphaFileName)
     {
-        if (!NT_SUCCESS(PhCreateDirectory(randomAlphaFileName)))
+        if (!NT_SUCCESS(PhCreateDirectoryWin32(randomAlphaFileName)))
         {
             PhReferenceObject(randomAlphaFileName);
             return NULL;
         }
 
-        PhMoveReference(&randomAlphaFileName, PhConcatStringRef2(&randomAlphaFileName->sr, &directorySeparator));
+        PhMoveReference(&randomAlphaFileName, PhConcatStringRef2(&randomAlphaFileName->sr, &PhNtPathSeperatorString));
     }
 
     return randomAlphaFileName;
@@ -3281,17 +3394,25 @@ NTSTATUS PhCreateProcessWin32Ex(
         fileName = PhCreateString(FileName);
     else
     {
-        INT cmdlineArgCount;
-        PWSTR* cmdlineArgList;
+        PH_STRINGREF commandLineFileName;
+        PH_STRINGREF commandLineArguments;
 
-        // Try extract the filename or CreateProcess might execute the wrong executable. (dmex)
-        if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
-        {
-            PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
-            LocalFree(cmdlineArgList);
-        }
+        PhParseCommandLineFuzzy(&commandLine->sr, &commandLineFileName, &commandLineArguments, &fileName);
 
-        if (fileName && !PhDoesFileExistsWin32(fileName->Buffer))
+        if (PhIsNullOrEmptyString(fileName))
+            PhMoveReference(&fileName, PhCreateString2(&commandLineFileName));
+
+        //INT cmdlineArgCount;
+        //PWSTR* cmdlineArgList;
+        //
+        //// Try extract the filename or CreateProcess might execute the wrong executable. (dmex)
+        //if (commandLine && (cmdlineArgList = CommandLineToArgvW(commandLine->Buffer, &cmdlineArgCount)))
+        //{
+        //    PhMoveReference(&fileName, PhCreateString(cmdlineArgList[0]));
+        //    LocalFree(cmdlineArgList);
+        //}
+
+        if (fileName && !PhDoesFileExistWin32(fileName->Buffer))
         {
             PPH_STRING filePathSr;
 
@@ -4308,21 +4429,15 @@ VOID PhShellOpenKey(
  * \return A pointer to a string containing the value, or NULL if the function failed. You must free
  * the string using PhDereferenceObject() when you no longer need it.
  */
-PPH_STRING PhQueryRegistryString(
+PPH_STRING PhQueryRegistryStringRef(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_ PPH_STRINGREF ValueName
     )
 {
     PPH_STRING string = NULL;
-    PH_STRINGREF valueName;
     PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
-
-    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, ValueName, KeyValuePartialInformation, &buffer)))
     {
         if (buffer->Type == REG_SZ ||
             buffer->Type == REG_MULTI_SZ ||
@@ -4340,24 +4455,7 @@ PPH_STRING PhQueryRegistryString(
     return string;
 }
 
-ULONG PhQueryRegistryUlong(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
-    )
-{
-    if (ValueName)
-    {
-        PH_STRINGREF valueName;
-
-        PhInitializeStringRef(&valueName, ValueName);
-
-        return PhQueryRegistryUlongEx(KeyHandle, &valueName);
-    }
-
-    return PhQueryRegistryUlongEx(KeyHandle, NULL);
-}
-
-ULONG PhQueryRegistryUlongEx(
+ULONG PhQueryRegistryUlongStringRef(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName
     )
@@ -4379,21 +4477,15 @@ ULONG PhQueryRegistryUlongEx(
     return ulong;
 }
 
-ULONG64 PhQueryRegistryUlong64(
+ULONG64 PhQueryRegistryUlong64StringRef(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_opt_ PPH_STRINGREF ValueName
     )
 {
     ULONG64 ulong64 = ULLONG_MAX;
-    PH_STRINGREF valueName;
     PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
-
-    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+    if (NT_SUCCESS(PhQueryValueKey(KeyHandle, ValueName, KeyValuePartialInformation, &buffer)))
     {
         if (buffer->Type == REG_DWORD)
         {
@@ -5120,7 +5212,7 @@ NTSTATUS PhIsExecutablePacked(
     BOOLEAN isPacked;
 
     status = PhLoadMappedImageEx(
-        FileName,
+        &FileName->sr,
         NULL,
         &mappedImage
         );
@@ -5927,24 +6019,34 @@ PPH_STRING PhCreateCacheFile(
     PPH_STRING cacheFilePath;
     PPH_STRING cacheFullFilePath;
     ULONG indexOfFileName = ULONG_MAX;
-    WCHAR alphastring[16] = L"";
+    PH_STRINGREF randomAlphaStringRef;
+    WCHAR randomAlphaString[32] = L"";
 
     fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistsWin32(settingsFileName->Buffer))
+    if (PhDoesFileExist(settingsFileName))
     {
         HANDLE fileHandle;
-        PPH_STRING directory;
-        PPH_STRING file;
+        PPH_STRING applicationDirectory;
+        PPH_STRING applicationFileName;
+        PH_STRINGREF randomAlphaStringRef;
+        WCHAR randomAlphaString[32] = L"";
 
-        directory = PhGetApplicationDirectory();
-        PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-        file = PhConcatStrings(3, PhGetStringOrEmpty(directory), L"\\", alphastring);
+        PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
+        randomAlphaStringRef.Buffer = randomAlphaString;
+        randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
+
+        applicationDirectory = PhGetApplicationDirectoryWin32();
+        applicationFileName = PhConcatStringRef3(
+            &applicationDirectory->sr,
+            &PhNtPathSeperatorString,
+            &randomAlphaStringRef
+            );
 
         if (NT_SUCCESS(PhCreateFileWin32(
             &fileHandle,
-            PhGetString(file),
+            PhGetString(applicationFileName),
             FILE_GENERIC_WRITE | DELETE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -5952,7 +6054,7 @@ PPH_STRING PhCreateCacheFile(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
             )))
         {
-            cacheDirectory = PhConcatStringRef2(&directory->sr, &settingsDir);
+            cacheDirectory = PhConcatStringRef2(&applicationDirectory->sr, &settingsDir);
             NtClose(fileHandle);
         }
         else
@@ -5961,8 +6063,8 @@ PPH_STRING PhCreateCacheFile(
             PhMoveReference(&cacheDirectory, PhExpandEnvironmentStrings(&cacheDirectory->sr));
         }
 
-        PhDereferenceObject(file);
-        PhDereferenceObject(directory);
+        PhDereferenceObject(applicationFileName);
+        PhDereferenceObject(applicationDirectory);
     }
     else
     {
@@ -5977,15 +6079,21 @@ PPH_STRING PhCreateCacheFile(
         }
     }
 
-    PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-    cacheFilePath = PhConcatStrings(
-        5,
-        PhGetStringOrEmpty(cacheDirectory),
-        L"\\",
-        alphastring,
-        L"\\",
-        PhGetStringOrEmpty(FileName)
+    PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
+    randomAlphaStringRef.Buffer = randomAlphaString;
+    randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
+
+    cacheFilePath = PhConcatStringRef3(
+        &cacheDirectory->sr,
+        &PhNtPathSeperatorString,
+        &randomAlphaStringRef
         );
+
+    PhMoveReference(&cacheFilePath, PhConcatStringRef3(
+        &cacheFilePath->sr,
+        &PhNtPathSeperatorString,
+        &FileName->sr
+        ));
 
     if (cacheFullFilePath = PhGetFullPath(PhGetString(cacheFilePath), &indexOfFileName))
     {
@@ -5993,7 +6101,7 @@ PPH_STRING PhCreateCacheFile(
 
         if (indexOfFileName != ULONG_MAX && (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
-            PhCreateDirectory(directoryPath);
+            PhCreateDirectoryWin32(directoryPath);
 
             PhDereferenceObject(directoryPath);
         }
@@ -6022,19 +6130,29 @@ VOID PhClearCacheDirectory(
     fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistsWin32(settingsFileName->Buffer))
+    if (PhDoesFileExist(settingsFileName))
     {
         HANDLE fileHandle;
-        PPH_STRING directory;
-        PPH_STRING file;
+        PPH_STRING applicationDirectory;
+        PPH_STRING applicationFileName;
+        PH_STRINGREF randomAlphaStringRef;
+        WCHAR randomAlphaString[32] = L"";
 
-        directory = PhGetApplicationDirectory();
-        PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-        file = PhConcatStrings(3, PhGetStringOrEmpty(directory), L"\\", alphastring);
+        applicationDirectory = PhGetApplicationDirectoryWin32();
+
+        PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
+        randomAlphaStringRef.Buffer = randomAlphaString;
+        randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
+
+        applicationFileName = PhConcatStringRef3(
+            &applicationDirectory->sr,
+            &PhNtPathSeperatorString,
+            &randomAlphaStringRef
+            );
 
         if (NT_SUCCESS(PhCreateFileWin32(
             &fileHandle,
-            PhGetString(file),
+            PhGetString(applicationFileName),
             FILE_GENERIC_WRITE | DELETE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -6042,7 +6160,7 @@ VOID PhClearCacheDirectory(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
             )))
         {
-            cacheDirectory = PhConcatStringRef2(&directory->sr, &settingsDir);
+            cacheDirectory = PhConcatStringRef2(&applicationDirectory->sr, &settingsDir);
             NtClose(fileHandle);
         }
         else
@@ -6051,8 +6169,8 @@ VOID PhClearCacheDirectory(
             PhMoveReference(&cacheDirectory, PhExpandEnvironmentStrings(&cacheDirectory->sr));
         }
 
-        PhDereferenceObject(file);
-        PhDereferenceObject(directory);
+        PhDereferenceObject(applicationFileName);
+        PhDereferenceObject(applicationDirectory);
     }
     else
     {
@@ -6062,7 +6180,7 @@ VOID PhClearCacheDirectory(
 
     if (cacheDirectory)
     {
-        PhDeleteDirectory(cacheDirectory);
+        PhDeleteDirectoryWin32(cacheDirectory);
 
         PhDereferenceObject(cacheDirectory);
     }
@@ -6079,7 +6197,7 @@ VOID PhDeleteCacheFile(
     PPH_STRING cacheFullFilePath;
     ULONG indexOfFileName = ULONG_MAX;
 
-    if (PhDoesFileExistsWin32(PhGetString(FileName)))
+    if (PhDoesFileExistWin32(PhGetString(FileName)))
     {
         PhDeleteFileWin32(PhGetString(FileName));
     }
@@ -6088,7 +6206,7 @@ VOID PhDeleteCacheFile(
     {
         if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
-            PhDeleteDirectory(cacheDirectory);
+            PhDeleteDirectoryWin32(cacheDirectory);
             PhDereferenceObject(cacheDirectory);
         }
 
@@ -6342,12 +6460,12 @@ HMENU PhLoadMenu(
  * \param SourceString The indirect string from which the resource will be retrieved.
  */
 PPH_STRING PhLoadIndirectString(
-    _In_ PWSTR SourceString
+    _In_ PPH_STRINGREF SourceString
     )
 {
     PPH_STRING indirectString = NULL;
 
-    if (SourceString[0] == L'@')
+    if (SourceString->Buffer[0] == L'@')
     {
         PPH_STRING libraryString;
         PVOID libraryModule;
@@ -6357,7 +6475,8 @@ PPH_STRING PhLoadIndirectString(
         LONG64 index64;
         LONG index;
 
-        PhInitializeStringRefLongHint(&sourceRef, SourceString);
+        sourceRef.Length = SourceString->Length;
+        sourceRef.Buffer = SourceString->Buffer;
         PhSkipStringRef(&sourceRef, sizeof(WCHAR)); // Skip the @ character.
 
         if (!PhSplitStringRefAtChar(&sourceRef, L',', &dllNameRef, &dllIndexRef))
@@ -6387,10 +6506,20 @@ PPH_STRING PhLoadIndirectString(
                 PhMoveReference(&libraryString, expandedString);
         }
 
-        if (libraryModule = LoadLibraryEx(libraryString->Buffer, NULL, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE))
-        { 
+        if (PhDetermineDosPathNameType(libraryString->Buffer) == RtlPathTypeRelative)
+        {
+            PPH_STRING librarySearchPathString;
+
+            if (librarySearchPathString = PhSearchFilePath(libraryString->Buffer, L".dll"))
+            {
+                PhMoveReference(&libraryString, librarySearchPathString);
+            }
+        }
+
+        if (NT_SUCCESS(PhLoadLibraryAsImageResourceWin32(&libraryString->sr, &libraryModule)))
+        {
             indirectString = PhLoadString(libraryModule, -index);
-            FreeLibrary(libraryModule);
+            PhFreeLibraryAsImageResource(libraryModule);
         }
 
         PhDereferenceObject(libraryString);
@@ -8121,29 +8250,15 @@ PVOID PhLoadLibrary(
 
 // rev from LoadLibraryEx with LOAD_LIBRARY_AS_IMAGE_RESOURCE
 // with some changes for using a read-only page/section. (dmex)
-NTSTATUS PhLoadLibraryAsImageResource(
-    _In_ PPH_STRING FileName,
+NTSTATUS PhLoadLibraryAsResource(
+    _In_ HANDLE FileHandle,
     _Out_opt_ PVOID *BaseAddress
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
     HANDLE sectionHandle;
     PVOID imageBaseAddress;
     SIZE_T imageBaseSize;
-
-    status = PhCreateFile(
-        &fileHandle,
-        FileName,
-        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
 
     status = NtCreateSection(
         &sectionHandle,
@@ -8152,10 +8267,8 @@ NTSTATUS PhLoadLibraryAsImageResource(
         NULL,
         PAGE_READONLY,
         WindowsVersion < WINDOWS_8 ? SEC_IMAGE : SEC_IMAGE_NO_EXECUTE,
-        fileHandle
+        FileHandle
         );
-
-    NtClose(fileHandle);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -8190,12 +8303,69 @@ NTSTATUS PhLoadLibraryAsImageResource(
 
     if (NT_SUCCESS(status))
     {
+        if (status == STATUS_IMAGE_NOT_AT_BASE)
+            status = STATUS_SUCCESS;
+
         // Windows returns the address with bitwise OR|2 for use with LDR_IS_IMAGEMAPPING (dmex)
         if (BaseAddress)
         {
             *BaseAddress = LDR_MAPPEDVIEW_TO_IMAGEMAPPING(imageBaseAddress);
         }
     }
+
+    return status;
+}
+
+NTSTATUS PhLoadLibraryAsImageResource(
+    _In_ PPH_STRINGREF FileName,
+    _Out_opt_ PVOID *BaseAddress
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhLoadLibraryAsResource(fileHandle, BaseAddress);
+    NtClose(fileHandle);
+
+    return status;
+}
+
+NTSTATUS PhLoadLibraryAsImageResourceWin32(
+    _In_ PPH_STRINGREF FileName,
+    _Out_opt_ PVOID *BaseAddress
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName->Buffer,
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhLoadLibraryAsResource(fileHandle, BaseAddress);
+    NtClose(fileHandle);
 
     return status;
 }

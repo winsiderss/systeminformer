@@ -458,7 +458,7 @@ BOOLEAN FindIfeoObject(
     {
         if (CpuPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongEx(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
             {
                 *CpuPriorityClass = value;
             }
@@ -466,7 +466,7 @@ BOOLEAN FindIfeoObject(
 
         if (IoPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongEx(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
             {
                 *IoPriorityClass = value;
             }
@@ -474,7 +474,7 @@ BOOLEAN FindIfeoObject(
 
         if (PagePriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongEx(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
             {
                 *PagePriorityClass = value;
             }
@@ -645,9 +645,9 @@ NTSTATUS DeleteIfeoObject(
             status = PhDeleteValueKey(keyHandle, &IfeoPagePriorityClassKeyName);
         }
 
-        priorityClass = PhQueryRegistryUlongEx(keyHandle, &IfeoCpuPriorityClassKeyName);
-        ioPriorityClass = PhQueryRegistryUlongEx(keyHandle, &IfeoIoPriorityClassKeyName);
-        pagePriorityClass = PhQueryRegistryUlongEx(keyHandle, &IfeoPagePriorityClassKeyName);
+        priorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName);
+        ioPriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName);
+        pagePriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName);
 
         if (
             priorityClass == ULONG_MAX &&

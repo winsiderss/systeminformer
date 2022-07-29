@@ -16,12 +16,11 @@ PPH_STRING DiskDriveQueryDosMountPoints(
     _In_ ULONG DeviceNumber
     )
 {
-    static PH_STRINGREF deviceNameSr = PH_STRINGREF_INIT(L"\\??\\?:");
     ULONG deviceMap = 0;
-    PPH_STRING deviceName;
+    WCHAR deviceNameBuffer[7] = L"\\??\\?:";
+    PH_STRINGREF deviceName;
     PH_STRING_BUILDER stringBuilder;
 
-    deviceName = PhCreateString2(&deviceNameSr);
     PhInitializeStringBuilder(&stringBuilder, DOS_MAX_PATH_LENGTH);
 
     PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
@@ -37,11 +36,13 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 continue;
         }
 
-        deviceName->Buffer[4] = (WCHAR)('A' + i);
+        deviceNameBuffer[4] = (WCHAR)('A' + i);
+        deviceName.Buffer = deviceNameBuffer;
+        deviceName.Length = 6 * sizeof(WCHAR);
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            deviceName,
+            &deviceName,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -64,7 +65,7 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
                 if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                 {
-                    PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceName->Buffer[4]);
+                    PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceName.Buffer[4]);
                 }
             }
 
@@ -74,8 +75,6 @@ PPH_STRING DiskDriveQueryDosMountPoints(
 
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
-
-    PhDereferenceObject(deviceName);
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
@@ -108,7 +107,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            deviceName,
+            &deviceName->sr,
             PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,

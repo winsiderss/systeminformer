@@ -218,7 +218,6 @@ NTSTATUS PhCreateUserThread(
     _Out_opt_ PHANDLE ThreadHandle,
     _In_ HANDLE ProcessHandle,
     _In_ ULONG CreateFlags,
-    _In_opt_ SIZE_T StackSize,
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
     _In_opt_ PVOID Parameter
     )
@@ -251,9 +250,9 @@ NTSTATUS PhCreateUserThread(
         Parameter,
         CreateFlags,
         0,
-        StackSize,
-        StackSize,
-        NULL // attributeList
+        0,
+        0,
+        attributeList
         );
 
     if (NT_SUCCESS(status))

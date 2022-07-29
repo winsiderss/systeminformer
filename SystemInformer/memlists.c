@@ -6,6 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
+ *     dmex    2017-2022
  *
  */
 
@@ -16,6 +17,7 @@
 #include <settings.h>
 #include <actions.h>
 #include <phsvccl.h>
+#include <kphuser.h>
 
 #define MSG_UPDATE (WM_APP + 1)
 
@@ -210,6 +212,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMBINEMEMORYLISTS, L"&Combine memory lists", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYWORKINGSETS, L"Empty &working sets", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMPRESSIONSTORE, L"Empty &compression working sets", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYMODIFIEDPAGELIST, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYSTANDBYLIST, L"Empty &standby list", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYPRIORITY0STANDBYLIST, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
@@ -255,13 +258,44 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                         hwndDlg,
                                         L"Memory pages combined",
                                         L"%s (%llu pages)",
-                                        PhaFormatSize(combineInfo.PagesCombined * PAGE_SIZE, -1)->Buffer,
+                                        PhaFormatSize(combineInfo.PagesCombined * PAGE_SIZE, ULONG_MAX)->Buffer,
                                         combineInfo.PagesCombined
                                         );
                                 }
                                 else
                                 {
                                     PhShowStatus(hwndDlg, L"Unable to combine memory pages", status, 0);
+                                }
+                            }
+                            break;
+                        case ID_EMPTY_COMPRESSIONSTORE:
+                            {
+                                NTSTATUS status;
+                                HANDLE processHandle;
+                                PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
+
+                                if (!KphIsVerified()) // required for PROCESS_SET_QUOTA (dmex)
+                                {
+                                    PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+                                    break;
+                                }
+
+                                status = PhGetSystemCompressionStoreInformation(&compressionInfo);
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    status = PhOpenProcess(&processHandle, PROCESS_SET_QUOTA, compressionInfo.CompressionPid);
+
+                                    if (NT_SUCCESS(status))
+                                    {
+                                        status = PhSetProcessEmptyWorkingSet(processHandle);
+                                        NtClose(processHandle);
+                                    }
+                                }
+
+                                if (!NT_SUCCESS(status))
+                                {
+                                    PhShowStatus(hwndDlg, L"Unable to empty compression stores", status, 0);
                                 }
                             }
                             break;

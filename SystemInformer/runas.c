@@ -343,7 +343,6 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     VOID
     )
 {
-    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\\"); // OBJ_NAME_PATH_SEPARATOR
     PPH_STRING desktopInfo = NULL;
     PPH_STRING winstationName = NULL;
     PPH_STRING desktopName = NULL;
@@ -353,7 +352,7 @@ PPH_STRING PhpGetCurrentDesktopInfo(
 
     if (winstationName && desktopName)
     {
-        desktopInfo = PhConcatStringRef3(&winstationName->sr, &seperator, &desktopName->sr);
+        desktopInfo = PhConcatStringRef3(&winstationName->sr, &PhNtPathSeperatorString, &desktopName->sr);
     }
 
     if (PhIsNullOrEmptyString(desktopInfo))
@@ -1665,7 +1664,7 @@ NTSTATUS PhExecuteRunAsCommand(
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
         return PhGetLastWin32ErrorAsNtStatus();
 
-    if (!(applicationFileName = PhGetApplicationFileName()))
+    if (!(applicationFileName = PhGetApplicationFileNameWin32()))
         return STATUS_FAIL_CHECK;
 
     commandLine = PhFormatString(L"\"%s\" -ras \"%s\"", applicationFileName->Buffer, Parameters->ServiceName);
@@ -2155,7 +2154,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     {
         PPH_STRING fileName = PhCreateString(cmdlineArgList[0]);
 
-        if (fileName && !PhDoesFileExistsWin32(fileName->Buffer))
+        if (fileName && !PhDoesFileExistWin32(fileName->Buffer))
         {
             PPH_STRING filePathString;
 
@@ -2261,7 +2260,7 @@ NTSTATUS PhpRunFileProgram(
     }
 
     // If the file doesn't exist its probably a URL with http, https, www (dmex)
-    if (isDirectory || !PhDoesFileExistsWin32(fullFileName->Buffer))
+    if (isDirectory || !PhDoesFileExistWin32(fullFileName->Buffer))
     {
         status = PhpRunAsShellExecute(
             Context->WindowHandle,

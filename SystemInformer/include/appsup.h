@@ -464,19 +464,19 @@ PhSetApplicationWindowIcon(
     );
 // end_phapppub
 
-#define SI_RUNAS_ADMIN_TASK_NAME L"SystemInformerTaskAdmin"
+#define SI_RUNAS_ADMIN_TASK_NAME ((PH_STRINGREF)PH_STRINGREF_INIT(L"SystemInformerTaskAdmin"))
 
 HRESULT PhRunAsAdminTask(
-    _In_ PWSTR TaskName
+    _In_ PPH_STRINGREF TaskName
     );
 
 HRESULT PhDeleteAdminTask(
-    _In_ PWSTR TaskName
+    _In_ PPH_STRINGREF TaskName
     );
 
 HRESULT PhCreateAdminTask(
-    _In_ PWSTR TaskName,
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF TaskName,
+    _In_ PPH_STRINGREF FileName
     );
 
 // begin_phapppub

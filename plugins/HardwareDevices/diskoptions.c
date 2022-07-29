@@ -231,6 +231,7 @@ VOID FreeListViewDiskDriveEntries(
     }
 }
 
+_Success_(return)
 BOOLEAN QueryDiskDeviceInterfaceDescription(
     _In_ PWSTR DeviceInterface,
     _Out_ DEVINST *DeviceInstanceHandle,
@@ -383,7 +384,7 @@ VOID FindDiskDrives(
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            diskEntry->DevicePath,
+            &diskEntry->DevicePath->sr,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,

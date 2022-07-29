@@ -1839,6 +1839,35 @@ BOOLEAN PhGetProcessDpiAwareness(
 }
 
 _Success_(return)
+BOOLEAN PhGetPhysicallyInstalledSystemMemory(
+    _Out_ PULONGLONG TotalMemory,
+    _Out_ PULONGLONG ReservedMemory
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *GetPhysicallyInstalledSystemMemory_I)(_Out_ PULONGLONG TotalMemoryInKilobytes);
+    ULONGLONG physicallyInstalledSystemMemory = 0;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        GetPhysicallyInstalledSystemMemory_I = PhGetDllProcedureAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!GetPhysicallyInstalledSystemMemory_I)
+        return FALSE;
+
+    if (GetPhysicallyInstalledSystemMemory_I(&physicallyInstalledSystemMemory))
+    {
+        *TotalMemory = physicallyInstalledSystemMemory * 1024ULL;
+        *ReservedMemory = physicallyInstalledSystemMemory * 1024ULL - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
 BOOLEAN PhGetSendMessageReceiver(
     _In_ HANDLE ThreadId,
     _Out_ HWND *WindowHandle
@@ -2144,14 +2173,14 @@ PPH_STRING PhpGetImageMunResourcePath(
 
         if (NativeFileName)
         {
-            if (PhDoesFileExists(fileName))
+            if (PhDoesFileExist(fileName))
                 PhMoveReference(&filePath, fileName);
             else
                 PhDereferenceObject(fileName);
         }
         else
         {
-            if (PhDoesFileExistsWin32(PhGetString(fileName)))
+            if (PhDoesFileExistWin32(PhGetString(fileName)))
                 PhMoveReference(&filePath, fileName);
             else
                 PhDereferenceObject(fileName);
@@ -2200,7 +2229,7 @@ BOOLEAN PhExtractIconEx(
     if (NativeFileName)
     {
         status = PhLoadMappedImageEx(
-            fileName,
+            &fileName->sr,
             NULL,
             &mappedImage
             );

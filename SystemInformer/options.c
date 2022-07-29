@@ -376,8 +376,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
                         PhResetSettings();
 
-                        if (PhSettingsFileName)
-                            PhSaveSettings(PhSettingsFileName->Buffer);
+                        if (!PhIsNullOrEmptyString(PhSettingsFileName))
+                            PhSaveSettings(&PhSettingsFileName->sr);
 
                         PhShellProcessHacker(
                             PhMainWndHandle,
@@ -797,7 +797,7 @@ static VOID ReadCurrentUserRun(
 
             if (PhParseCommandLineFuzzy(&entry->Value->sr, &fileName, &arguments, &fullFileName))
             {
-                if (applicationFileName = PhGetApplicationFileName())
+                if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
                     PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
 
@@ -840,18 +840,19 @@ static VOID WriteCurrentUserRun(
         )))
     {
         static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
+        static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
 
         if (Present)
         {
             PPH_STRING value;
             PPH_STRING fileName;
 
-            if (fileName = PhGetApplicationFileName())
+            if (fileName = PhGetApplicationFileNameWin32())
             {
-                value = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(fileName), L"\""));
+                value = PH_AUTO(PhConcatStringRef3(&seperator, &fileName->sr, &seperator));
 
                 if (StartHidden)
-                    value = PhaConcatStrings2(value->Buffer, L" -hide");
+                    value = PH_AUTO(PhConcatStringRefZ(&value->sr, L" -hide"));
 
                 PhSetValueKey(
                     keyHandle,
@@ -880,7 +881,7 @@ static BOOLEAN PathMatchesPh(
     BOOLEAN match = FALSE;
     PPH_STRING fileName;
 
-    if (!(fileName = PhGetApplicationFileName()))
+    if (!(fileName = PhGetApplicationFileNameWin32()))
         return FALSE;
 
     if (PhEqualString(OldTaskMgrDebugger, fileName, TRUE))
@@ -971,6 +972,7 @@ VOID PhpSetDefaultTaskManager(
         if (NT_SUCCESS(status))
         {
             static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"Debugger");
+            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
 
             if (PhpIsDefaultTaskManager())
             {
@@ -981,9 +983,9 @@ VOID PhpSetDefaultTaskManager(
                 PPH_STRING quotedFileName;
                 PPH_STRING applicationFileName;
 
-                if (applicationFileName = PhGetApplicationFileName())
+                if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
-                    quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
+                    quotedFileName = PH_AUTO(PhConcatStringRef3(&seperator, &applicationFileName->sr, &seperator));
 
                     status = PhSetValueKey(
                         taskmgrKeyHandle, 
@@ -1003,8 +1005,8 @@ VOID PhpSetDefaultTaskManager(
         if (!NT_SUCCESS(status))
             PhShowStatus(ParentWindowHandle, L"Unable to replace Task Manager", status, 0);
 
-        if (PhSettingsFileName)
-            PhSaveSettings(PhSettingsFileName->Buffer);
+        if (!PhIsNullOrEmptyString(PhSettingsFileName))
+            PhSaveSettings(&PhSettingsFileName->sr);
     }
 }
 
@@ -1019,11 +1021,11 @@ BOOLEAN PhpIsExploitProtectionEnabled(
     PPH_STRING keypath;
 
     path = PhCreateString2(&TaskMgrImageOptionsKeyName);
-    apppath = PhGetApplicationFileName();
+    apppath = PhGetApplicationFileNameWin32();
 
     PhMoveReference(&path, PhGetBaseDirectory(path));
     PhMoveReference(&apppath, PhGetBaseName(apppath));
-    keypath = PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer);
+    keypath = PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr);
     PhDereferenceObject(apppath);
     PhDereferenceObject(path);
 
@@ -1072,10 +1074,10 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     PPH_STRING keypath;
 
     path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-    apppath = PH_AUTO(PhGetApplicationFileName());
+    apppath = PH_AUTO(PhGetApplicationFileNameWin32());
     path = PH_AUTO(PhGetBaseDirectory(path));
     apppath = PH_AUTO(PhGetBaseName(apppath));
-    keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+    keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
 
     if (Enabled)
     {
@@ -1175,7 +1177,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
     PPH_STRING filename;
     PPH_STRING baseName;
 
-    filename = PH_AUTO(PhGetApplicationFileName());
+    filename = PH_AUTO(PhGetApplicationFileNameWin32());
     baseName = PH_AUTO(PhGetBaseName(filename));
 
     if (Enabled)
@@ -1225,10 +1227,10 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             PPH_STRING keypath;
 
             path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-            apppath = PH_AUTO(PhGetApplicationFileName());
+            apppath = PH_AUTO(PhGetApplicationFileNameWin32());
             path = PH_AUTO(PhGetBaseDirectory(path));
             apppath = PH_AUTO(PhGetBaseName(apppath));
-            keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+            keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
 
             status = PhCreateKey(
                 &keyHandle,
@@ -1281,10 +1283,10 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
             PPH_STRING keypath;
 
             path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-            apppath = PH_AUTO(PhGetApplicationFileName());
+            apppath = PH_AUTO(PhGetApplicationFileNameWin32());
             path = PH_AUTO(PhGetBaseDirectory(path));
             apppath = PH_AUTO(PhGetBaseName(apppath));
-            keypath = PH_AUTO(PhConcatStrings(3, path->Buffer, L"\\", apppath->Buffer));
+            keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
 
             status = PhOpenKey(
                 &keyHandle,
@@ -1507,11 +1509,11 @@ static VOID PhpAdvancedPageSave(
     PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
     PhSetIntegerSetting(L"IconProcesses", PhGetDialogItemValue(hwndDlg, IDC_ICONPROCESSES));
 
-    if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
-    {
-        PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
-        RestartRequired = TRUE;
-    }
+    //if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
+    //{
+    //    PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
+    //    RestartRequired = TRUE;
+    //}
 
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
@@ -1948,8 +1950,9 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             return TRUE;
                                         }
 
-                                        if (applicationFileName = PhGetApplicationFileName())
+                                        if (applicationFileName = PhGetApplicationFileNameWin32())
                                         {
+                                            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
 #if (PHNT_VERSION >= PHNT_WIN7)
@@ -1957,7 +1960,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
                                             if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
                                             {
-                                                PH_STRINGREF programFilesPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\");
+                                                static PH_STRINGREF programFilesPathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\");
                                                 PPH_STRING programFilesPath;
 
                                                 if (programFilesPath = PhExpandEnvironmentStrings(&programFilesPathSr))
@@ -1979,11 +1982,15 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                 }
                                             }
 #endif
-                                            quotedFileName = PH_AUTO(PhConcatStrings(3, L"\"", PhGetStringOrEmpty(applicationFileName), L"\""));
+                                            quotedFileName = PH_AUTO(PhConcatStringRef3(
+                                                &seperator,
+                                                &applicationFileName->sr,
+                                                &seperator
+                                                ));
 
                                             status = PhCreateAdminTask(
-                                                SI_RUNAS_ADMIN_TASK_NAME,
-                                                quotedFileName->Buffer
+                                                &SI_RUNAS_ADMIN_TASK_NAME,
+                                                &quotedFileName->sr
                                                 );
                                             
                                             if (FAILED(status))
@@ -2107,7 +2114,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                     {
                                         if (!!PhGetIntegerSetting(L"EnableStartAsAdmin"))
                                         {
-                                            PhDeleteAdminTask(SI_RUNAS_ADMIN_TASK_NAME);
+                                            PhDeleteAdminTask(&SI_RUNAS_ADMIN_TASK_NAME);
                                         }
                                     }
                                     break;

@@ -111,7 +111,7 @@ INT WINAPI wWinMain(
     PHP_BASE_THREAD_DBG dbg;
 #endif
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"System Informer", ULONG_MAX, Instance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer", Instance)))
         return 1;
     if (!PhInitializeDirectoryPolicy())
         return 1;
@@ -152,7 +152,7 @@ INT WINAPI wWinMain(
         {
             AllowSetForegroundWindow(ASFW_ANY);
 
-            if (SUCCEEDED(PhRunAsAdminTask(SI_RUNAS_ADMIN_TASK_NAME)))
+            if (SUCCEEDED(PhRunAsAdminTask(&SI_RUNAS_ADMIN_TASK_NAME)))
             {
                 PhActivatePreviousInstance();
                 PhExitApplication(STATUS_SUCCESS);
@@ -590,7 +590,7 @@ BOOLEAN PhInitializeDirectoryPolicy(
     PPH_STRING applicationDirectory;
     UNICODE_STRING applicationDirectoryUs;
 
-    if (!(applicationDirectory = PhGetApplicationDirectory()))
+    if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
         return FALSE;
 
     if (!PhStringRefToUnicodeString(&applicationDirectory->sr, &applicationDirectoryUs))
@@ -886,8 +886,8 @@ BOOLEAN PhInitializeMitigationPolicy(
     static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
     BOOLEAN success = TRUE;
     //HANDLE jobObjectHandle = NULL;
-    PPH_STRING commandline = NULL;
     PH_STRINGREF commandlineSr;
+    PPH_STRING commandline = NULL;
     ULONG64 options[2] = { 0 };
     PS_SYSTEM_DLL_INIT_BLOCK(*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
@@ -898,15 +898,14 @@ BOOLEAN PhInitializeMitigationPolicy(
     if (!PhpIsExploitProtectionEnabled())
         return TRUE;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandlineSr);
-    //if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandline)))
-    //    goto CleanupExit;
-    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != -1)
+    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandlineSr)))
+        goto CleanupExit;
+    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != SIZE_MAX)
         goto CleanupExit;
     if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
         goto CleanupExit;
 
-    PhMoveReference(&commandline, PhConcatStringRef2(&commandlineSr, &nompCommandlinePart));
+    commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
 
     if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
         goto CleanupExit;
@@ -928,39 +927,39 @@ BOOLEAN PhInitializeMitigationPolicy(
     //        );
     //}
 
-    if (!InitializeProcThreadAttributeList(NULL, 2, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         goto CleanupExit;
 
     startupInfo.lpAttributeList = PhAllocate(attributeListLength);
 
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 2, 0, &attributeListLength))
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
         goto CleanupExit;
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
         goto CleanupExit;
     //if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &jobObjectHandle, sizeof(HANDLE), NULL, NULL))
     //    goto CleanupExit;
-
-    {
-        PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoIsolation;
-        WCHAR alphastring[16] = L"";
-
-        bnoIsolation.IsolationEnabled = TRUE;
-        PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-        wcscpy_s(bnoIsolation.IsolationPrefix, RTL_NUMBER_OF(bnoIsolation.IsolationPrefix), alphastring);
-
-        if (!UpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
-            0,
-            PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
-            &bnoIsolation,
-            sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE),
-            NULL,
-            NULL
-            ))
-        {
-            goto CleanupExit;
-        }
-    }
+    //
+    //{
+    //    PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoIsolation;
+    //    WCHAR alphastring[16] = L"";
+    //
+    //    bnoIsolation.IsolationEnabled = TRUE;
+    //    PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
+    //    wcscpy_s(bnoIsolation.IsolationPrefix, RTL_NUMBER_OF(bnoIsolation.IsolationPrefix), alphastring);
+    //
+    //    if (!UpdateProcThreadAttribute(
+    //        startupInfo.lpAttributeList,
+    //        0,
+    //        PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
+    //        &bnoIsolation,
+    //        sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE),
+    //        NULL,
+    //        NULL
+    //        ))
+    //    {
+    //        goto CleanupExit;
+    //    }
+    //}
 
     if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
@@ -1251,7 +1250,7 @@ VOID PhInitializeKph(
     if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
         PhClearReference(&kphServiceName);
 
-    if (!(fileName = PhGetApplicationFileName()))
+    if (!(fileName = PhGetApplicationFileNameWin32()))
         goto CleanupExit;
 
     indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
@@ -1315,7 +1314,7 @@ VOID PhInitializeKph(
         }
     }
 
-    if (PhDoesFileExistsWin32(kphFileName->Buffer))
+    if (PhDoesFileExistWin32(kphFileName->Buffer))
     {
         KPH_PARAMETERS parameters;
 
@@ -1421,15 +1420,15 @@ VOID PhpInitializeSettings(
         }
 
         // 2. File in program directory
-        if (!PhSettingsFileName)
+        if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
             PPH_STRING applicationFileName;
 
-            if (applicationFileName = PhGetApplicationFileName())
+            if (applicationFileName = PhGetApplicationFileNameWin32())
             {
                 settingsFileName = PhConcatStringRef2(&applicationFileName->sr, &settingsSuffix);
 
-                if (PhDoesFileExistsWin32(settingsFileName->Buffer))
+                if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
                 {
                     PhSettingsFileName = settingsFileName;
                 }
@@ -1443,14 +1442,14 @@ VOID PhpInitializeSettings(
         }
 
         // 3. Default location
-        if (!PhSettingsFileName)
+        if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
             PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
         }
 
-        if (PhSettingsFileName)
+        if (!PhIsNullOrEmptyString(PhSettingsFileName))
         {
-            status = PhLoadSettings(PhSettingsFileName->Buffer);
+            status = PhLoadSettings(&PhSettingsFileName->sr);
 
             // If we didn't find the file, it will be created. Otherwise,
             // there was probably a parsing error and we don't want to
@@ -1757,7 +1756,7 @@ VOID PhpProcessStartupParameters(
         ULONG_PTR indexOfBackslash;
         ULONG_PTR indexOfLastDot;
 
-        if (fileName = PhGetApplicationFileName())
+        if (fileName = PhGetApplicationFileNameWin32())
         {
             indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
             indexOfLastDot = PhFindLastCharInString(fileName, 0, L'.');
@@ -1886,148 +1885,3 @@ VOID PhpEnablePrivileges(
         NtClose(tokenHandle);
     }
 }
-
-// CRT delayload support
-// NOTE: The default delayload handler throws exceptions
-// when imports are unavailable instead of returning NULL
-// breaking backwards compatibility. (dmex)
-// TODO: Move to a better location. (dmex)
-
-//PH_QUEUED_LOCK PhDelayLoadImportLock = PH_QUEUED_LOCK_INIT;
-//ULONG PhDelayLoadOldProtection = PAGE_WRITECOPY;
-//ULONG PhDelayLoadLockCount = 0;
-//
-//// based on \MSVC\14.31.31103\include\dloadsup.h (dmex)
-//VOID PhDelayLoadImportAcquire(
-//    _In_ PVOID ImportDirectorySectionAddress,
-//    _In_ SIZE_T ImportDirectorySectionSize
-//    )
-//{
-//    PhAcquireQueuedLockExclusive(&PhDelayLoadImportLock);
-//    PhDelayLoadLockCount += 1;
-//
-//    if (PhDelayLoadLockCount == 1)
-//    {
-//        NTSTATUS status;
-//
-//        if (!NT_SUCCESS(status = NtProtectVirtualMemory(
-//            NtCurrentProcess(),
-//            &ImportDirectorySectionAddress,
-//            &ImportDirectorySectionSize,
-//            PAGE_READWRITE,
-//            &PhDelayLoadOldProtection
-//            )))
-//        {
-//            PhRaiseStatus(status);
-//        }
-//    }
-//
-//    PhReleaseQueuedLockExclusive(&PhDelayLoadImportLock);
-//}
-//
-//VOID PhDelayLoadImportRelease(
-//    _In_ PVOID ImportDirectorySectionAddress,
-//    _In_ SIZE_T ImportDirectorySectionSize
-//    )
-//{
-//    PhAcquireQueuedLockExclusive(&PhDelayLoadImportLock);
-//    PhDelayLoadLockCount -= 1;
-//
-//    if (PhDelayLoadLockCount == 0)
-//    {
-//        ULONG importSectionOldProtection;
-//        NtProtectVirtualMemory(
-//            NtCurrentProcess(),
-//            &ImportDirectorySectionAddress,
-//            &ImportDirectorySectionSize,
-//            PhDelayLoadOldProtection,
-//            &importSectionOldProtection
-//            );
-//    }
-//
-//    PhReleaseQueuedLockExclusive(&PhDelayLoadImportLock);
-//}
-//
-//_Success_(return != NULL)
-//PVOID WINAPI __delayLoadHelper2(
-//    _In_ PIMAGE_DELAYLOAD_DESCRIPTOR Entry,
-//    _Inout_ PVOID* ImportAddress
-//    )
-//{
-//    BOOLEAN importNeedsFree = FALSE;
-//    PSTR importDllName;
-//    PVOID procedureAddress;
-//    PVOID moduleHandle;
-//    PVOID* importHandle;
-//    PIMAGE_THUNK_DATA importEntry;
-//    PIMAGE_THUNK_DATA importTable;
-//    PIMAGE_THUNK_DATA importNameTable;
-//    PIMAGE_NT_HEADERS imageNtHeaders;
-//    SIZE_T importDirectorySectionSize;
-//    PVOID importDirectorySectionAddress;
-//
-//    importDllName = PTR_ADD_OFFSET(PhInstanceHandle, Entry->DllNameRVA);
-//    importHandle = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ModuleHandleRVA);
-//    importTable = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ImportAddressTableRVA);
-//    importNameTable = PTR_ADD_OFFSET(PhInstanceHandle, Entry->ImportNameTableRVA);
-//
-//    if (!(moduleHandle = *importHandle))
-//    {
-//        PPH_STRING importDllNameSr = PhZeroExtendToUtf16(importDllName);
-//
-//        if (!(moduleHandle = PhLoadLibrary(importDllNameSr->Buffer)))
-//        {
-//            PhDereferenceObject(importDllNameSr);
-//            return NULL;
-//        }
-//
-//        PhDereferenceObject(importDllNameSr);
-//        importNeedsFree = TRUE;
-//    }
-//
-//    importEntry = PTR_ADD_OFFSET(importNameTable, PTR_SUB_OFFSET(ImportAddress, importTable));
-//
-//    if (IMAGE_SNAP_BY_ORDINAL(importEntry->u1.Ordinal))
-//    {
-//        USHORT procedureOrdinal = IMAGE_ORDINAL(importEntry->u1.Ordinal);
-//        procedureAddress = PhGetDllBaseProcedureAddress(moduleHandle, NULL, procedureOrdinal);
-//    }
-//    else
-//    {
-//        PIMAGE_IMPORT_BY_NAME importByName = PTR_ADD_OFFSET(PhInstanceHandle, importEntry->u1.AddressOfData);
-//        procedureAddress = PhGetDllBaseProcedureAddressWithHint(moduleHandle, importByName->Name, importByName->Hint);
-//    }
-//
-//    if (!procedureAddress)
-//        return NULL;
-//
-//    if (!NT_SUCCESS(PhGetLoaderEntryImageNtHeaders(
-//        PhInstanceHandle,
-//        &imageNtHeaders
-//        )))
-//    {
-//        return NULL;
-//    }
-//
-//    if (!NT_SUCCESS(PhGetLoaderEntryImageVaToSection(
-//        PhInstanceHandle,
-//        imageNtHeaders,
-//        importTable,
-//        &importDirectorySectionAddress,
-//        &importDirectorySectionSize
-//        )))
-//    {
-//        return NULL;
-//    }
-//
-//    PhDelayLoadImportAcquire(importDirectorySectionAddress, importDirectorySectionSize);
-//    InterlockedExchangePointer(ImportAddress, procedureAddress);
-//    PhDelayLoadImportRelease(importDirectorySectionAddress, importDirectorySectionSize);
-//
-//    if ((InterlockedExchangePointer(importHandle, moduleHandle) == moduleHandle) && importNeedsFree)
-//    {
-//        FreeLibrary(moduleHandle); // A different thread has already updated the cache. (dmex)
-//    }
-//
-//    return procedureAddress;
-//}

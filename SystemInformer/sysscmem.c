@@ -346,7 +346,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
             SetWindowFont(totalPhysicalLabel, MemorySection->Parameters->MediumFont, FALSE);
 
-            if (PhSipGetMemoryLimits(&InstalledMemory, &ReservedMemory))
+            if (PhGetPhysicallyInstalledSystemMemory(&InstalledMemory, &ReservedMemory))
             {
                 PhSetWindowText(totalPhysicalLabel, PhaConcatStrings2(
                     PhaFormatSize(InstalledMemory, ULONG_MAX)->Buffer, L" installed")->Buffer);
@@ -1018,58 +1018,18 @@ VOID PhSipGetPoolLimits(
 }
 
 _Success_(return)
-BOOLEAN PhSipGetMemoryLimits(
-    _Out_ PULONGLONG TotalMemory,
-    _Out_ PULONGLONG ReservedMemory
-    )
-{
-    static BOOL (WINAPI *getPhysicallyInstalledSystemMemory)(PULONGLONG TotalMemoryInKilobytes) = NULL;
-    ULONGLONG physicallyInstalledSystemMemory = 0;
-
-    if (!getPhysicallyInstalledSystemMemory)
-        getPhysicallyInstalledSystemMemory = PhGetDllProcedureAddress(L"kernel32.dll", "GetPhysicallyInstalledSystemMemory", 0);
-
-    if (getPhysicallyInstalledSystemMemory && getPhysicallyInstalledSystemMemory(&physicallyInstalledSystemMemory))
-    {
-        *TotalMemory = physicallyInstalledSystemMemory * 1024ULL;
-        *ReservedMemory = physicallyInstalledSystemMemory * 1024ULL - UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-_Success_(return)
 BOOLEAN PhSipGetMemoryCompressionLimits(
     _Out_ DOUBLE *CurrentCompressedMemory,
     _Out_ DOUBLE *TotalCompressedMemory,
     _Out_ DOUBLE *TotalSavedMemory
     )
 {
-    NTSTATUS status;
-    SYSTEM_STORE_INFORMATION storeInfo;
-    SM_MEM_COMPRESSION_INFO_REQUEST compressionInfo;
+    PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
     DOUBLE current;
     DOUBLE total;
     DOUBLE saved;
 
-    memset(&compressionInfo, 0, sizeof(SM_MEM_COMPRESSION_INFO_REQUEST));
-    compressionInfo.Version = SYSTEM_STORE_COMPRESSION_INFORMATION_VERSION;
-
-    memset(&storeInfo, 0, sizeof(SYSTEM_STORE_INFORMATION));
-    storeInfo.Version = SYSTEM_STORE_INFORMATION_VERSION;
-    storeInfo.StoreInformationClass = MemCompressionInfoRequest;
-    storeInfo.Data = &compressionInfo;
-    storeInfo.Length = sizeof(compressionInfo);
-
-    status = NtQuerySystemInformation(
-        SystemStoreInformation,
-        &storeInfo,
-        sizeof(SYSTEM_STORE_INFORMATION),
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(PhGetSystemCompressionStoreInformation(&compressionInfo)))
         return FALSE;
     if (!(compressionInfo.TotalDataCompressed && compressionInfo.TotalCompressedSize))
         return FALSE;

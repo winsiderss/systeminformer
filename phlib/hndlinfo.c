@@ -422,7 +422,7 @@ VOID PhInitializeEtwTraceGuidCache(
     PVOID jsonObject;
     ULONG arrayLength;
 
-    if (applicationDirectory = PhGetApplicationDirectory())
+    if (applicationDirectory = PhGetApplicationDirectoryWin32())
     {
         PPH_STRING capabilityListFileName;
 

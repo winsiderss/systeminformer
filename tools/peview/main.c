@@ -41,9 +41,9 @@ INT WINAPI wWinMain(
     {
         { 0, L"h", NoArgumentType }
     };
-    PPH_STRING commandLine;
+    PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"PE Viewer", ULONG_MAX, hInstance, 0, 0)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"PE Viewer", hInstance)))
         return 1;
     if (!PvInitializeExceptionPolicy())
         return 1;
@@ -51,20 +51,36 @@ INT WINAPI wWinMain(
     // Create a mutant for the installer.
     {
         HANDLE mutantHandle;
-        PPH_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
-        UNICODE_STRING objectNameUs;
+        UNICODE_STRING objectName;
+        PH_STRINGREF objectNameSr;
+        SIZE_T returnLength;
+        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
         PH_FORMAT format[2];
 
-        PhInitFormatS(&format[0], L"PeViewerMutant_");
+        PhInitFormatS(&format[0], L"SiViewerMutant_");
         PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
-        objectName = PhFormat(format, 2, 0x40);
-        PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
+        if (!PhFormatToBuffer(
+            format,
+            RTL_NUMBER_OF(format),
+            formatBuffer,
+            sizeof(formatBuffer),
+            &returnLength
+            ))
+        {
+            return FALSE;
+        }
+
+        objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+        objectNameSr.Buffer = formatBuffer;
+
+        if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
+            return FALSE;
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &objectNameUs,
+            &objectName,
             OBJ_CASE_INSENSITIVE,
             PhGetNamespaceHandle(),
             NULL
@@ -76,8 +92,6 @@ INT WINAPI wWinMain(
             &objectAttributes,
             TRUE
             );
-
-        PhDereferenceObject(objectName);
     }
 
 #ifndef DEBUG
@@ -100,18 +114,17 @@ INT WINAPI wWinMain(
     PvPropInitialization();
     PhTreeNewInitialization();
 
-    if (!NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
         return 1;
 
     PhParseCommandLine(
-        &commandLine->sr,
+        &commandLine,
         options,
         RTL_NUMBER_OF(options),
         PH_COMMAND_LINE_IGNORE_FIRST_PART,
         PvpCommandLineCallback,
         NULL
         );
-    PhDereferenceObject(commandLine);
 
     if (!PvFileName)
     {
@@ -136,7 +149,7 @@ INT WINAPI wWinMain(
 #ifndef DEBUG
                 PPH_STRING applicationFileName;
 
-                if (applicationFileName = PhGetApplicationFileName())
+                if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
                     PhMoveReference(&PvFileName, PhConcatStrings(3, L"\"", PvFileName->Buffer, L"\""));
 
@@ -168,7 +181,7 @@ INT WINAPI wWinMain(
         return 1;
 
 #ifdef DEBUG
-    if (!PhDoesFileExistsWin32(PhGetString(PvFileName)))
+    if (!PhDoesFileExistWin32(PhGetString(PvFileName)))
     {
         PPH_STRING fileName;
 

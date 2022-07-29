@@ -401,7 +401,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                             break;
                         case 4:
                             {
-                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistsWin32(PhGetString(entry->FileName)))
+                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistWin32(PhGetString(entry->FileName)))
                                 {
                                     PhShellExecuteUserString(
                                         hwndDlg,
@@ -415,7 +415,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
                             break;
                         case 5:
                             {
-                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistsWin32(PhGetString(entry->FileName)))
+                                if (!PhIsNullOrEmptyString(entry->FileName) && PhDoesFileExistWin32(PhGetString(entry->FileName)))
                                 {
                                     PhShellExecuteUserString(
                                         hwndDlg,

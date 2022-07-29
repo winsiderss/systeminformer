@@ -1061,7 +1061,7 @@ VOID EtHandleDiskCommand(
                     PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
                 }
 
-                if (PhDoesFileExistsWin32(PhGetString(fileName)))
+                if (PhDoesFileExistWin32(PhGetString(fileName)))
                 {
                     PhShellExecuteUserString(
                         WindowHandle,

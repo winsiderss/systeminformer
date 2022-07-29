@@ -380,7 +380,7 @@ NTSTATUS GeoIPUpdateThread(
             if (PhIsNullOrEmptyString(dbpath))
                 goto CleanupExit;
 
-            if (PhDoesFileExistsWin32(PhGetString(dbpath)))
+            if (PhDoesFileExistWin32(PhGetString(dbpath)))
             {
                 if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(dbpath))))
                     goto CleanupExit;
@@ -394,7 +394,7 @@ NTSTATUS GeoIPUpdateThread(
                 if (fullPath = PhGetFullPath(dbpath->Buffer, &indexOfFileName))
                 {
                     if (indexOfFileName != ULONG_MAX)
-                        PhCreateDirectory(PhaSubstring(fullPath, 0, indexOfFileName));
+                        PhCreateDirectoryWin32(PhaSubstring(fullPath, 0, indexOfFileName));
 
                     PhDereferenceObject(fullPath);
                 }

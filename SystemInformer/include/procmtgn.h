@@ -27,11 +27,6 @@ NTSTATUS PhGetProcessMitigationPolicy(
     _Out_ PPH_PROCESS_MITIGATION_POLICY_ALL_INFORMATION Information
     );
 
-NTSTATUS PhGetProcessSystemDllInitBlock(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK *SystemDllInitBlock
-    );
-
 BOOLEAN PhDescribeProcessMitigationPolicy(
     _In_ PROCESS_MITIGATION_POLICY Policy,
     _In_ PVOID Data,

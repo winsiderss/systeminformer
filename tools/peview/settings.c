@@ -112,28 +112,31 @@ VOID PeInitializeSettings(
 
     // 1. File in program directory
 
-    appFileName = PhGetApplicationFileName();
-    tempFileName = PhConcatStringRef2(&appFileName->sr, &settingsSuffix);
-    PhDereferenceObject(appFileName);
+    if (appFileName = PhGetApplicationFileNameWin32())
+    {
+        tempFileName = PhConcatStringRef2(&appFileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExistsWin32(tempFileName->Buffer))
-    {
-        PeSettingsFileName = tempFileName;
-    }
-    else
-    {
-        PhDereferenceObject(tempFileName);
+        if (PhDoesFileExistWin32(PhGetString(tempFileName)))
+        {
+            PeSettingsFileName = tempFileName;
+        }
+        else
+        {
+            PhDereferenceObject(tempFileName);
+        }
+
+        PhDereferenceObject(appFileName);
     }
 
     // 2. Default location
-    if (!PeSettingsFileName)
+    if (PhIsNullOrEmptyString(PeSettingsFileName))
     {
         PeSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
     }
 
-    if (PeSettingsFileName)
+    if (!PhIsNullOrEmptyString(PeSettingsFileName))
     {
-        status = PhLoadSettings(PeSettingsFileName->Buffer);
+        status = PhLoadSettings(&PeSettingsFileName->sr);
 
         // If we didn't find the file, it will be created. Otherwise,
         // there was probably a parsing error and we don't want to
@@ -185,6 +188,6 @@ VOID PeSaveSettings(
     VOID
     )
 {
-    if (PeSettingsFileName)
-        PhSaveSettings(PeSettingsFileName->Buffer);
+    if (!PhIsNullOrEmptyString(PeSettingsFileName))
+        PhSaveSettings(&PeSettingsFileName->sr);
 }

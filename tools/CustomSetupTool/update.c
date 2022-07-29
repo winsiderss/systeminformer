@@ -15,29 +15,56 @@ NTSTATUS SetupUpdateBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    if (!ShutdownProcessHacker())
+    // Stop System Informer.
+    if (!ShutdownApplication())
     {
-        Context->ErrorCode = ERROR_INVALID_FUNCTION;
+        Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
     }
 
+    // Stop the kernel driver(s).
+    if (!SetupUninstallDriver(Context))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    // Upgrade the legacy settings file.
+    SetupUpgradeSettingsFile();
+
+    // Remove the previous installation.
+    //if (Context->SetupResetSettings)
+    //    PhDeleteDirectory(Context->SetupInstallPath);
+
+    // Create the install folder path.
+    if (!NT_SUCCESS(PhCreateDirectoryWin32(Context->SetupInstallPath)))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    // Create the uninstaller.
     if (!SetupCreateUninstallFile(Context))
         goto CleanupExit;
 
-    if (!SetupUninstallKph(Context))
-        goto CleanupExit;
+    // Create the ARP uninstall entries.
+    SetupCreateUninstallKey(Context);
 
-    if (!SetupExtractBuild(Context))
-        goto CleanupExit;
+    // Create autorun.
+    SetupSetWindowsOptions(Context);
+
+    // Create shortcuts.
+    SetupChangeNotifyShortcuts(Context);
 
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();
 
-    // Refresh shortcuts if they've changed.
-    SetupChangeNotifyShortcuts(Context);
+    // Setup new installation.
+    if (!SetupExtractBuild(Context))
+        goto CleanupExit;
 
     // Set the default KPH configuration.
-    SetupStartKph(Context, FALSE);
+    SetupInstallDriver(Context, FALSE);
 
     PostMessage(Context->DialogHandle, SETUP_SHOWUPDATEFINAL, 0, 0);
     return STATUS_SUCCESS;
@@ -89,7 +116,7 @@ HRESULT CALLBACK SetupCompletedTaskDialogCallbackProc(
         {
             if ((INT)wParam == IDCLOSE)
             {
-                SetupExecuteProcessHacker(context);
+                SetupExecuteApplication(context);
             }
         }
         break;

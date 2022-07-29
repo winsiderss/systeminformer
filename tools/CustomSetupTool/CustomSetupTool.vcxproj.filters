@@ -79,9 +79,4 @@
       <Filter>Resource Files\Content</Filter>
     </Manifest>
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="SystemInformer.ico">
-      <Filter>Resource Files\Content</Filter>
-    </Image>
-  </ItemGroup>
 </Project>

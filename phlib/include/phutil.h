@@ -325,6 +325,9 @@ PhFindIntegerSiKeyValuePairsStringRef(
 #define GUID_VERSION_MD5 3
 #define GUID_VERSION_RANDOM 4
 #define GUID_VERSION_SHA1 5
+#define GUID_VERSION_TIME 6
+#define GUID_VERSION_EPOCH 7
+#define GUID_VERSION_VENDOR 8
 
 #define GUID_VARIANT_NCS_MASK 0x80
 #define GUID_VARIANT_NCS 0x00
@@ -552,7 +555,7 @@ PHLIBAPI
 PVOID
 NTAPI
 PhGetFileVersionInfoEx(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 PHLIBAPI
@@ -615,7 +618,7 @@ BOOLEAN
 NTAPI
 PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN ExtendedVersionInfo
     );
 
@@ -717,7 +720,21 @@ PhGetApplicationFileName(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetApplicationFileNameWin32(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetApplicationDirectory(
+    VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetApplicationDirectoryWin32(
     VOID
     );
 
@@ -951,23 +968,15 @@ PhShellOpenKey(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhQueryRegistryString(
+PhQueryRegistryStringRef(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_ PPH_STRINGREF ValueName
     );
 
 PHLIBAPI
 ULONG
 NTAPI
-PhQueryRegistryUlong(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
-    );
-
-PHLIBAPI
-ULONG
-NTAPI
-PhQueryRegistryUlongEx(
+PhQueryRegistryUlongStringRef(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName
     );
@@ -975,10 +984,64 @@ PhQueryRegistryUlongEx(
 PHLIBAPI
 ULONG64
 NTAPI
+PhQueryRegistryUlong64StringRef(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+FORCEINLINE
+PPH_STRING
+NTAPI
+PhQueryRegistryString(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    )
+{
+    PH_STRINGREF valueName;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    return PhQueryRegistryStringRef(KeyHandle, &valueName);
+}
+
+FORCEINLINE
+ULONG
+NTAPI
+PhQueryRegistryUlong(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName
+    )
+{
+    PH_STRINGREF valueName;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    return PhQueryRegistryUlongStringRef(KeyHandle, &valueName);
+}
+
+FORCEINLINE
+ULONG64
+NTAPI
 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
     _In_opt_ PWSTR ValueName
-    );
+    )
+{
+    PH_STRINGREF valueName;
+
+    if (ValueName)
+        PhInitializeStringRef(&valueName, ValueName);
+    else
+        PhInitializeEmptyStringRef(&valueName);
+
+    return PhQueryRegistryUlong64StringRef(KeyHandle, &valueName);
+}
 
 typedef struct _PH_FLAG_MAPPING
 {
@@ -1347,7 +1410,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhLoadIndirectString(
-    _In_ PWSTR SourceString
+    _In_ PPH_STRINGREF SourceString
     );
 
 PHLIBAPI
@@ -1567,7 +1630,15 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadLibraryAsImageResource(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
+    _Out_opt_ PVOID *BaseAddress
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhLoadLibraryAsImageResourceWin32(
+    _In_ PPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     );
 

@@ -536,9 +536,9 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
     )
 {
     if (Milliseconds == INFINITE)
-        return NULL;
-
-    Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
+        Timeout->QuadPart = MINLONGLONG;
+    else
+        Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
 
     return Timeout;
 }

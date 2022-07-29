@@ -63,7 +63,7 @@ VOID NetAdaptersUpdate(
         {
             if (NT_SUCCESS(PhCreateFile(
                 &deviceHandle,
-                entry->AdapterId.InterfacePath,
+                &entry->AdapterId.InterfacePath->sr,
                 FILE_GENERIC_READ,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -219,7 +219,7 @@ VOID NetAdapterUpdateDeviceInfo(
             {
                 if (NT_SUCCESS(PhCreateFile(
                     &deviceHandle,
-                    AdapterEntry->AdapterId.InterfacePath,
+                    &AdapterEntry->AdapterId.InterfacePath->sr,
                     FILE_GENERIC_READ,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,

@@ -30,6 +30,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"DisabledPlugins", L"");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableAdvancedOptions", L"0");
+    PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
@@ -48,6 +49,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableScaleCpuGraph", L"0");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
+    PhpAddIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger", L"1");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
     PhpAddIntegerSetting(L"EnableServiceStage2", L"0");
     PhpAddIntegerSetting(L"EnableStartAsAdmin", L"0");
@@ -100,7 +102,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
     PhpAddIntegerSetting(L"HideWaitingConnections", L"0");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
-    PhpAddStringSetting(L"IconGuids", L"");
+    PhpAddStringSetting(L"IconTrayGuids", L"");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
     PhpAddStringSetting(L"IconSettings", L"1|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
@@ -279,11 +281,11 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"UseColorUnknown", L"1");
     PhpAddIntegerSetting(L"ColorUnknown", L"8080ff"); // Light Red
 
-    PhpAddIntegerSetting(L"UseColorSystemThreadStack", L"0");
+    PhpAddIntegerSetting(L"UseColorSystemThreadStack", L"1");
     PhpAddIntegerSetting(L"ColorSystemThreadStack", L"ffccaa");
-    PhpAddIntegerSetting(L"UseColorUserThreadStack", L"0");
+    PhpAddIntegerSetting(L"UseColorUserThreadStack", L"1");
     PhpAddIntegerSetting(L"ColorUserThreadStack", L"aaffff");
-    PhpAddIntegerSetting(L"UseColorInlineThreadStack", L"0");
+    PhpAddIntegerSetting(L"UseColorInlineThreadStack", L"1");
     PhpAddIntegerSetting(L"ColorInlineThreadStack", L"00ffde");
 
     PhpAddIntegerSetting(L"GraphShowText", L"1");

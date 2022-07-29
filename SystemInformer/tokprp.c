@@ -437,19 +437,25 @@ PWSTR PhGetPrivilegeAttributesString(
     }
 }
 
-PWSTR PhGetElevationTypeString(
+PPH_STRING PhGetElevationTypeString(
+    _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType
     )
 {
-    switch (ElevationType)
-    {
-    case TokenElevationTypeFull:
-        return L"Yes";
-    case TokenElevationTypeLimited:
-        return L"No";
-    default:
-        return L"N/A";
-    }
+    PH_STRING_BUILDER sb;
+
+    PhInitializeStringBuilder(&sb, 13);
+
+    PhAppendStringBuilder2(&sb, IsElevated ? L"Yes" : L"No");
+
+    if (ElevationType == TokenElevationTypeFull)
+        PhAppendStringBuilder2(&sb, L" (Full)");
+    else if (ElevationType == TokenElevationTypeLimited)
+        PhAppendStringBuilder2(&sb, L" (Limited)");
+    else
+        PhAppendStringBuilder2(&sb, L" (Default)");
+
+    return PhFinalStringBuilderString(&sb);
 }
 
 VOID PhpTokenPageFreeListViewEntries(
@@ -800,7 +806,7 @@ static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     _In_ PVOID ThreadParameter
     )
 {
-    PPHP_TOKEN_USER_RESOLVE_CONTEXT context = ThreadParameter; 
+    PPHP_TOKEN_USER_RESOLVE_CONTEXT context = ThreadParameter;
     PPH_STRING fullUserName;
 
     if (fullUserName = PhGetSidFullName(context->TokenUserSid, TRUE, NULL))
@@ -875,13 +881,15 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PTOKEN_USER tokenUser;
                 PPH_STRING stringUserSid;
                 ULONG sessionId;
+                BOOLEAN isElevated;
                 TOKEN_ELEVATION_TYPE elevationType;
+                PPH_STRING tokenElevated = NULL;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
                 PPH_STRING appContainerName;
                 PPH_STRING appContainerSid;
-  
+
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
                     BOOLEAN tokenIsAppContainer = FALSE;
@@ -913,8 +921,12 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
                     PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
-                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                    PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetElevationTypeString(elevationType));
+                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
+                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                {
+                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
+                }
+                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"N/A"));
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -1586,7 +1598,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             PPH_STRING packageName = PhGetProcessPackageFullName(processHandle);
 
                             tokenIsAppContainer = !PhIsNullOrEmptyString(packageName);
-                 
+
                             PhClearReference(&packageName);
                             NtClose(processHandle);
                         }
@@ -1861,7 +1873,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PPH_STRING tokenOwnerName = NULL;
             PPH_STRING tokenPrimaryGroupName = NULL;
             ULONG tokenSessionId = ULONG_MAX;
-            PWSTR tokenElevated = L"N/A";
+            PPH_STRING tokenElevated = NULL;
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
             PWSTR tokenUIAccess = L"Unknown";
@@ -1881,6 +1893,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 PTOKEN_OWNER tokenOwner;
                 PTOKEN_PRIMARY_GROUP tokenPrimaryGroup;
                 TOKEN_ELEVATION_TYPE elevationType;
+                BOOLEAN isElevated;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 BOOLEAN isUIAccessEnabled;
@@ -1908,9 +1921,10 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 PhGetTokenSessionId(tokenHandle, &tokenSessionId);
 
-                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
+                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                 {
-                    tokenElevated = PhGetElevationTypeString(elevationType);
+                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
                     hasLinkedToken = elevationType != TokenElevationTypeDefault;
                 }
 
@@ -1971,7 +1985,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             else
                 PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
+            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"N/A"));
             PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
             PhSetDialogItemText(hwndDlg, IDC_UIACCESS, tokenUIAccess);
             PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
@@ -2625,9 +2639,17 @@ BOOLEAN PhpAddTokenCapabilities(
 
                                 if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, TokenPageContext->Context)))
                                 {
-                                    name = PhGetProcessPackageFullName(processHandle);
-                                    PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Package: %s", PhGetString(name)));
-                                    PhDereferenceObject(name);
+                                    static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
+
+                                    if (name = PhGetProcessPackageFullName(processHandle))
+                                    {
+                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&packageNameStringRef, &name->sr));
+                                        PhDereferenceObject(name);
+                                    }
+                                    else
+                                    {
+                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhCreateString2(&packageNameStringRef));
+                                    }
 
                                     NtClose(processHandle);
                                 }
@@ -2659,11 +2681,14 @@ BOOLEAN PhpAddTokenCapabilities(
 
                     if (name = PhFormatGuid(&capabilityGuid.Guid))
                     {
-                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Guid: %s", PhGetString(name)));
+                        static PH_STRINGREF guidNameStringRef = PH_STRINGREF_INIT(L"Guid: ");
+                        static PH_STRINGREF capabilityNameStringRef = PH_STRINGREF_INIT(L"Capability: ");
+
+                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&guidNameStringRef, &name->sr));
 
                         if (capabilityName = PhGetCapabilityGuidName(name))
                         {
-                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhFormatString(L"Capability: %s", PhGetString(capabilityName)));
+                            PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&capabilityNameStringRef, &capabilityName->sr));
                             PhDereferenceObject(capabilityName);
                         }
 
@@ -3664,7 +3689,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                     PhSetListViewSubItem(context->ListViewHandle, 4, 1, isLessPrivilegedAppContainer ? L"True" : L"False");
                 }
-       
+
                 if (NT_SUCCESS(PhGetAppContainerNamedObjectPath(tokenHandle, NULL, FALSE, &tokenNamedObjectPathString)))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, 5, 1, PhGetStringOrDefault(tokenNamedObjectPathString, L"Unknown"));

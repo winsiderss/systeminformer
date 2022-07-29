@@ -387,7 +387,7 @@ NTSTATUS PhpModuleQueryWorker(
     {
         // Note: .NET Core and Mono don't set the LDRP_COR_IMAGE flag in the loader required for 
         // highlighting .NET images so check images for a CLR section and set the flag. (dmex)
-        if (NT_SUCCESS(PhLoadMappedImageEx(data->ModuleItem->FileName, NULL, &mappedImage)))
+        if (NT_SUCCESS(PhLoadMappedImageEx(&data->ModuleItem->FileName->sr, NULL, &mappedImage)))
         {
             PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 
@@ -646,7 +646,7 @@ VOID PhModuleProviderUpdate(
 
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
 
-            PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, moduleItem->FileName, PhEnableVersionShortText);
+            PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, PhEnableVersionShortText);
 
             if (moduleProvider->IsSubsystemProcess)
             {
@@ -783,7 +783,7 @@ VOID PhModuleProviderUpdate(
             if (!moduleProvider->CetEnabled)
                 moduleItem->ImageDllCharacteristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
 
-            if (NT_SUCCESS(PhQueryFullAttributesFile(moduleItem->FileName, &networkOpenInfo)))
+            if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
             {
                 moduleItem->FileLastWriteTime = networkOpenInfo.LastWriteTime;
                 moduleItem->FileEndOfFile = networkOpenInfo.EndOfFile;

@@ -87,13 +87,6 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
     return PhHashStringRefEx(&setting->Name, FALSE, PH_STRING_HASH_X65599);
 }
 
-static ULONG PhpGetCurrentScale(
-    VOID
-    )
-{
-    return PhGlobalDpi;
-}
-
 PPH_STRING PhSettingToString(
     _In_ PH_SETTING_TYPE Type,
     _In_ PPH_SETTING Setting
@@ -234,7 +227,7 @@ BOOLEAN PhSettingFromString(
             }
             else
             {
-                scale = PhpGetCurrentScale();
+                scale = PhGlobalDpi;
             }
 
             if (!PhSplitStringRefAtChar(&stringRef, L',', &firstPart, &secondPart))
@@ -313,19 +306,16 @@ VOID PhEnumSettings(
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
-_May_raise_ ULONG PhGetIntegerSetting(
-    _In_ PWSTR Name
+_May_raise_ ULONG PhGetIntegerStringRefSetting(
+    _In_ PPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
     ULONG value;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -344,19 +334,16 @@ _May_raise_ ULONG PhGetIntegerSetting(
     return value;
 }
 
-_May_raise_ PH_INTEGER_PAIR PhGetIntegerPairSetting(
-    _In_ PWSTR Name
+_May_raise_ PH_INTEGER_PAIR PhGetIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
     PH_INTEGER_PAIR value;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -375,20 +362,17 @@ _May_raise_ PH_INTEGER_PAIR PhGetIntegerPairSetting(
     return value;
 }
 
-_May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairSetting(
-    _In_ PWSTR Name,
+_May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToCurrent
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
     PH_SCALABLE_INTEGER_PAIR value;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
@@ -408,7 +392,7 @@ _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairSetting(
     {
         ULONG currentScale;
 
-        currentScale = PhpGetCurrentScale();
+        currentScale = PhGlobalDpi;
 
         if (value.Scale != currentScale && value.Scale != 0)
         {
@@ -421,19 +405,16 @@ _May_raise_ PH_SCALABLE_INTEGER_PAIR PhGetScalableIntegerPairSetting(
     return value;
 }
 
-_May_raise_ PPH_STRING PhGetStringSetting(
-    _In_ PWSTR Name
+_May_raise_ PPH_STRING PhGetStringRefSetting(
+    _In_ PPH_STRINGREF Name
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
     PPH_STRING value;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -479,19 +460,16 @@ _May_raise_ BOOLEAN PhGetBinarySetting(
     return result;
 }
 
-_May_raise_ VOID PhSetIntegerSetting(
-    _In_ PWSTR Name,
+_May_raise_ VOID PhSetIntegerStringRefSetting(
+    _In_ PPH_STRINGREF Name,
     _In_ ULONG Value
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -504,19 +482,15 @@ _May_raise_ VOID PhSetIntegerSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-_May_raise_ VOID PhSetIntegerPairSetting(
-    _In_ PWSTR Name,
+_May_raise_ VOID PhSetIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
-
-    PhInitializeStringRefLongHint(&name, Name);
-
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -529,19 +503,16 @@ _May_raise_ VOID PhSetIntegerPairSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-_May_raise_ VOID PhSetScalableIntegerPairSetting(
-    _In_ PWSTR Name,
+_May_raise_ VOID PhSetScalableIntegerPairStringRefSetting(
+    _In_ PPH_STRINGREF Name,
     _In_ PH_SCALABLE_INTEGER_PAIR Value
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == ScalableIntegerPairSettingType)
     {
@@ -555,57 +526,28 @@ _May_raise_ VOID PhSetScalableIntegerPairSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-_May_raise_ VOID PhSetScalableIntegerPairSetting2(
-    _In_ PWSTR Name,
+_May_raise_ VOID PhSetScalableIntegerPairStringRefSetting2(
+    _In_ PPH_STRINGREF Name,
     _In_ PH_INTEGER_PAIR Value
     )
 {
     PH_SCALABLE_INTEGER_PAIR scalableIntegerPair;
 
     scalableIntegerPair.Pair = Value;
-    scalableIntegerPair.Scale = PhpGetCurrentScale();
-    PhSetScalableIntegerPairSetting(Name, scalableIntegerPair);
+    scalableIntegerPair.Scale = PhGlobalDpi;
+    PhSetScalableIntegerPairStringRefSetting(Name, scalableIntegerPair);
 }
 
-_May_raise_ VOID PhSetStringSetting(
-    _In_ PWSTR Name,
-    _In_ PWSTR Value
-    )
-{
-    PPH_SETTING setting;
-    PH_STRINGREF name;
-
-    PhInitializeStringRefLongHint(&name, Name);
-
-    PhAcquireQueuedLockExclusive(&PhSettingsLock);
-
-    setting = PhpLookupSetting(&name);
-
-    if (setting && setting->Type == StringSettingType)
-    {
-        PhpFreeSettingValue(StringSettingType, setting);
-        setting->u.Pointer = PhCreateString(Value);
-    }
-
-    PhReleaseQueuedLockExclusive(&PhSettingsLock);
-
-    if (!setting)
-        PhRaiseStatus(STATUS_NOT_FOUND);
-}
-
-_May_raise_ VOID PhSetStringSetting2(
-    _In_ PWSTR Name,
+_May_raise_ VOID PhSetStringRefSetting(
+    _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF Value
     )
 {
     PPH_SETTING setting;
-    PH_STRINGREF name;
-
-    PhInitializeStringRefLongHint(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(&name);
+    setting = PhpLookupSetting(Name);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -712,7 +654,7 @@ VOID PhConvertIgnoredSettings(
 }
 
 NTSTATUS PhLoadSettings(
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -721,7 +663,7 @@ NTSTATUS PhLoadSettings(
 
     PhpClearIgnoredSettings();
 
-    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName, &topNode)))
+    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName->Buffer, &topNode)))
         return status;
     if (!topNode) // Return corrupt status and reset the settings.
         return STATUS_FILE_CORRUPT_ERROR;
@@ -845,7 +787,7 @@ PVOID PhpCreateSettingElement(
 }
 
 NTSTATUS PhSaveSettings(
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
@@ -882,7 +824,7 @@ NTSTATUS PhSaveSettings(
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
     status = PhSaveXmlObjectToFile(
-        FileName,
+        FileName->Buffer,
         topNode,
         PhpSettingsSaveCallback
         );

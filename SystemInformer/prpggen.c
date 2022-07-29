@@ -312,7 +312,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 }
                 else
                 {
-                    if (!PhDoesFileExists(processItem->FileName))
+                    if (!PhDoesFileExist(processItem->FileName))
                     {
                         EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
                         EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECT), FALSE);
@@ -679,7 +679,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
                                 status = PhCreateFile(
                                     &fileHandle,
-                                    processItem->FileName,
+                                    &processItem->FileName->sr,
                                     FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
                                     FILE_ATTRIBUTE_NORMAL,
                                     FILE_SHARE_READ | FILE_SHARE_DELETE,

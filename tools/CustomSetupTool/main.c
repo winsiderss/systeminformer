@@ -88,7 +88,7 @@ LRESULT CALLBACK SetupTaskDialogSubclassProc(
         {
             //ShowUpdateCompletedPageDialog(context);
 
-            SetupExecuteProcessHacker(context);
+            SetupExecuteApplication(context);
             PostMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
         }
         break;
@@ -181,6 +181,16 @@ VOID SetupShowDialog(
         context->SetupInstallPath = SetupFindInstallDirectory();
     }
 
+    if (context->SetupIsLegacyUpdate)
+    {
+        PhShowInformation2(
+            NULL,
+            L"Process Hacker.",
+            L"%s",
+            L"Process Hacker was renamed System Informer."
+            );
+    }
+
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
@@ -191,9 +201,9 @@ VOID SetupShowDialog(
 
     TaskDialogIndirect(&config, NULL, NULL, &value);
 
-    if (context && value)
+    if (value)
     {
-        SetupExecuteProcessHacker(context);
+        SetupExecuteApplication(context);
     }
 
     PhDeleteAutoPool(&autoPool);
@@ -214,7 +224,7 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     {
         context->SetupMode = Option->Id;
 
-        if (context->SetupMode == SETUP_COMMAND_UPDATE)
+        if (context->SetupMode == SETUP_COMMAND_UPDATE && Value)
         {
             PPH_STRING directory;
             PWSTR string;
@@ -223,15 +233,23 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
             stringLength = (ULONG)Value->Length / sizeof(WCHAR) / 2;
             string = PhAllocateZero(stringLength + sizeof(UNICODE_NULL));
 
-            if (Value && PhHexStringToBufferEx(&Value->sr, stringLength, string))
+            if (PhHexStringToBufferEx(&Value->sr, stringLength, string))
             {
                 if (directory = PhGetFullPath(string, NULL))
                 {
                     PhSwapReference(&context->SetupInstallPath, directory);
 
-                    if (!PhEndsWithString2(directory, L"\\", FALSE)) // HACK
+                    if (!PhEndsWithStringRef(&directory->sr, &PhNtPathSeperatorString, FALSE))
                     {
-                        PhMoveReference(&context->SetupInstallPath, PhConcatStringRefZ(&directory->sr, L"\\"));
+                        PhMoveReference(&context->SetupInstallPath, PhConcatStringRef2(&directory->sr, &PhNtPathSeperatorString));
+                    }
+
+                    // Check the path for the legacy directory name.
+                    if (CheckApplicationInstallPathLegacy(context->SetupInstallPath))
+                    {
+                        // Update the directory path to the new directory.
+                        PhMoveReference(&context->SetupInstallPath, SetupFindInstallDirectory());
+                        context->SetupIsLegacyUpdate = TRUE;
                     }
 
                     PhDereferenceObject(directory);
@@ -275,20 +293,18 @@ VOID SetupParseCommandLine(
         { SETUP_COMMAND_UPDATE, L"silent", NoArgumentType },
         //{ SETUP_COMMAND_REPAIR, L"repair", NoArgumentType },
     };
-    PPH_STRING commandLine;
+    PH_STRINGREF commandLine;
 
-    if (NT_SUCCESS(PhGetProcessCommandLine(NtCurrentProcess(), &commandLine)))
+    if (NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
     {
         PhParseCommandLine(
-            &commandLine->sr,
+            &commandLine,
             options,
-            ARRAYSIZE(options),
+            RTL_NUMBER_OF(options),
             PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
             MainPropSheetCommandLineCallback,
             Context
             );
-
-        PhDereferenceObject(commandLine);
     }
 }
 
@@ -302,7 +318,7 @@ VOID SetupInitializeMutant(
     UNICODE_STRING objectNameUs;
     PH_FORMAT format[2];
 
-    PhInitFormatS(&format[0], L"PhSetupMutant_");
+    PhInitFormatS(&format[0], L"SiSetupMutant_");
     PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
     objectName = PhFormat(format, 2, 16);
@@ -333,10 +349,10 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
-    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+    if (!NT_SUCCESS(PhInitializePhLib(L"System Informer - Setup", Instance)))
         return EXIT_FAILURE;
 
-    if (!NT_SUCCESS(PhInitializePhLibEx(L"System Informer - Setup", ULONG_MAX, Instance, 0, 0)))
+    if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         return EXIT_FAILURE;
 
     SetupInitializeMutant();

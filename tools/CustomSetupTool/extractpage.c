@@ -15,15 +15,21 @@ NTSTATUS SetupProgressThread(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    // Stop Process Hacker.
-    if (!ShutdownProcessHacker())
+    // Stop System Informer.
+    if (!ShutdownApplication())
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
+    }
 
     // Stop the kernel driver(s).
-    if (!SetupUninstallKph(Context))
+    if (!SetupUninstallDriver(Context))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
+    }
 
-    // Upgrade the 2.x settings file.
+    // Upgrade the legacy settings file.
     SetupUpgradeSettingsFile();
 
     // Remove the previous installation.
@@ -31,8 +37,11 @@ NTSTATUS SetupProgressThread(
     //    PhDeleteDirectory(Context->SetupInstallPath);
 
     // Create the install folder path.
-    if (!NT_SUCCESS(PhCreateDirectory(Context->SetupInstallPath)))
+    if (!NT_SUCCESS(PhCreateDirectoryWin32(Context->SetupInstallPath)))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
+    }
 
     // Create the uninstaller.
     if (!SetupCreateUninstallFile(Context))
@@ -41,8 +50,11 @@ NTSTATUS SetupProgressThread(
     // Create the ARP uninstall entries.
     SetupCreateUninstallKey(Context);
 
-    // Create autorun and shortcuts.
+    // Create autorun.
     SetupSetWindowsOptions(Context);
+
+    // Create shortcuts.
+    SetupChangeNotifyShortcuts(Context);
 
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();
@@ -53,7 +65,7 @@ NTSTATUS SetupProgressThread(
 
     // Setup kernel driver.
     //if (Context->SetupInstallKphService)
-    //    SetupStartKph(Context, TRUE);
+    //    SetupInstallDriver(Context, TRUE);
 
     PostMessage(Context->DialogHandle, SETUP_SHOWFINAL, 0, 0);
     return STATUS_SUCCESS;

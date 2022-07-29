@@ -10,7 +10,9 @@ extern "C" {
 /** The PID of the system process. */
 #define SYSTEM_PROCESS_ID ((HANDLE)4)
 
-#define SYSTEM_IDLE_PROCESS_NAME (L"System Idle Process")
+#define SYSTEM_IDLE_PROCESS_NAME ((UNICODE_STRING)RTL_CONSTANT_STRING(L"System Idle Process"))
+
+#define PhNtPathSeperatorString ((PH_STRINGREF)PH_STRINGREF_INIT(L"\\")) // OBJ_NAME_PATH_SEPARATOR // RtlNtPathSeperatorString
 
 // General object-related function types
 
@@ -240,6 +242,13 @@ PhGetProcessCommandLine(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessCommandLineStringRef(
+    _Out_ PPH_STRINGREF CommandLine
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessCurrentDirectory(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN IsWow64,
@@ -360,7 +369,7 @@ NTSTATUS
 NTAPI
 PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
@@ -911,9 +920,9 @@ NTSTATUS
 NTAPI
 PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_opt_ PSTR ProcedureName,
-    _In_opt_ ULONG ProcedureNumber,
+    _In_opt_ USHORT ProcedureNumber,
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
     );
@@ -1482,7 +1491,7 @@ NTSTATUS
 NTAPI
 PhCreateFile(
     _Out_ PHANDLE FileHandle,
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
@@ -1548,7 +1557,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhQueryFullAttributesFile(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation
     );
 
@@ -1563,21 +1572,21 @@ PhQueryAttributesFileWin32(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhDoesFileExistsWin32(
+PhDoesFileExistWin32(
     _In_ PWSTR FileName
     );
 
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhDoesFileExists(
+PhDoesFileExist(
     _In_ PPH_STRING FileName
     );
 
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhDoesDirectoryExistsWin32(
+PhDoesDirectoryExistWin32(
     _In_ PWSTR FileName
     );
 
@@ -1615,14 +1624,14 @@ PhMoveFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhCreateDirectory(
+PhCreateDirectoryWin32(
     _In_ PPH_STRING DirectoryPath
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhDeleteDirectory(
+PhDeleteDirectoryWin32(
     _In_ PPH_STRING DirectoryPath
     );
 
@@ -1880,6 +1889,14 @@ PhGetProcessConsoleCodePage(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessSystemDllInitBlock(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPS_SYSTEM_DLL_INIT_BLOCK* SystemDllInitBlock
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetThreadLastStatusValue(
     _In_ HANDLE ThreadHandle,
     _In_opt_ HANDLE ProcessHandle,
@@ -2051,6 +2068,13 @@ PhGetProcessorGroupActiveAffinityMask(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessorSystemAffinityMask(
+    _Out_ PKAFFINITY ActiveProcessorsAffinityMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetNumaHighestNodeNumber(
     _Out_ PUSHORT NodeNumber
     );
@@ -2061,6 +2085,22 @@ NTAPI
 PhGetNumaProcessorNode(
     _In_ PPH_PROCESSOR_NUMBER ProcessorNumber,
     _Out_ PUSHORT NodeNumber
+    );
+
+typedef struct _PH_SYSTEM_STORE_COMPRESSION_INFORMATION
+{
+    HANDLE CompressionPid;
+    ULONG WorkingSetSize;
+    SIZE_T TotalDataCompressed;
+    SIZE_T TotalCompressedSize;
+    SIZE_T TotalUniqueDataCompressed;
+} PH_SYSTEM_STORE_COMPRESSION_INFORMATION, *PPH_SYSTEM_STORE_COMPRESSION_INFORMATION;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemCompressionStoreInformation(
+    _Out_ PPH_SYSTEM_STORE_COMPRESSION_INFORMATION SystemCompressionStoreInformation
     );
 
 #ifdef __cplusplus

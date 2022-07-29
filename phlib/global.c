@@ -22,8 +22,7 @@ VOID PhInitializeWindowsVersion(
     );
 
 BOOLEAN PhHeapInitialization(
-    _In_opt_ SIZE_T HeapReserveSize,
-    _In_opt_ SIZE_T HeapCommitSize
+    VOID
     );
 
 BOOLEAN PhInitializeProcessorInformation(
@@ -35,7 +34,7 @@ PWSTR PhApplicationName = NULL;
 PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;
 RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
-PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
+PHLIBAPI PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
 PHLIBAPI PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };
 ULONG WindowsVersion = WINDOWS_NEW;
 
@@ -45,24 +44,8 @@ PHLIB_STATISTICS_BLOCK PhLibStatisticsBlock;
 #endif
 
 NTSTATUS PhInitializePhLib(
-    VOID
-    )
-{
-    return PhInitializePhLibEx(
-        L"Application",
-        ULONG_MAX, // all possible features
-        NtCurrentPeb()->ImageBaseAddress,
-        0,
-        0
-        );
-}
-
-NTSTATUS PhInitializePhLibEx(
     _In_ PWSTR ApplicationName,
-    _In_ ULONG Flags,
-    _In_ PVOID ImageBaseAddress,
-    _In_opt_ SIZE_T HeapReserveSize,
-    _In_opt_ SIZE_T HeapCommitSize
+    _In_ PVOID ImageBaseAddress
     )
 {
     PhApplicationName = ApplicationName;
@@ -71,7 +54,7 @@ NTSTATUS PhInitializePhLibEx(
     PhInitializeWindowsVersion();
     PhInitializeSystemInformation();
 
-    if (!PhHeapInitialization(HeapReserveSize, HeapCommitSize))
+    if (!PhHeapInitialization())
         return STATUS_UNSUCCESSFUL;
 
     if (!PhQueuedLockInitialization())
@@ -113,12 +96,29 @@ VOID PhInitializeSystemInformation(
     VOID
     )
 {
-    NtQuerySystemInformation(
+    SYSTEM_BASIC_INFORMATION basicInfo;
+
+    memset(&basicInfo, 0, sizeof(SYSTEM_BASIC_INFORMATION));
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
         SystemBasicInformation,
-        &PhSystemBasicInformation,
+        &basicInfo,
         sizeof(SYSTEM_BASIC_INFORMATION),
         NULL
-        );
+        )))
+    {
+        basicInfo.NumberOfProcessors = 1;
+        basicInfo.NumberOfPhysicalPages = ULONG_MAX;
+        basicInfo.AllocationGranularity = 0x10000;
+        basicInfo.MaximumUserModeAddress = 0x10000;
+        basicInfo.ActiveProcessorsAffinityMask = USHRT_MAX;
+    }
+
+    PhSystemBasicInformation.NumberOfProcessors = (USHORT)basicInfo.NumberOfProcessors;
+    PhSystemBasicInformation.NumberOfPhysicalPages = basicInfo.NumberOfPhysicalPages;
+    PhSystemBasicInformation.AllocationGranularity = basicInfo.AllocationGranularity;
+    PhSystemBasicInformation.MaximumUserModeAddress = basicInfo.MaximumUserModeAddress;
+    PhSystemBasicInformation.ActiveProcessorsAffinityMask = basicInfo.ActiveProcessorsAffinityMask;
 }
 
 VOID PhInitializeWindowsVersion(
@@ -238,29 +238,30 @@ VOID PhInitializeWindowsVersion(
 }
 
 BOOLEAN PhHeapInitialization(
-    _In_opt_ SIZE_T HeapReserveSize,
-    _In_opt_ SIZE_T HeapCommitSize
+    VOID
     )
 {
-    //if (WindowsVersion >= WINDOWS_8)
-    //{
-    //    PhHeapHandle = RtlCreateHeap(
-    //        HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
-    //        NULL,
-    //        0,
-    //        0,
-    //        NULL,
-    //        NULL
-    //        );
-    //}
-    //
-    //if (!PhHeapHandle)
+#ifndef _DEBUG
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        PhHeapHandle = RtlCreateHeap(
+            HEAP_GROWABLE | HEAP_CREATE_SEGMENT_HEAP | HEAP_CLASS_1,
+            NULL,
+            0,
+            0,
+            NULL,
+            NULL
+            );
+    }
+#endif
+
+    if (!PhHeapHandle)
     {
         PhHeapHandle = RtlCreateHeap(
             HEAP_GROWABLE | HEAP_CLASS_1,
             NULL,
-            HeapReserveSize ? HeapReserveSize : 2 * 1024 * 1024, // 2 MB
-            HeapCommitSize ? HeapCommitSize : 1024 * 1024, // 1 MB
+            2 * 1024 * 1024, // 2 MB
+            1024 * 1024, // 1 MB
             NULL,
             NULL
             );

@@ -463,7 +463,7 @@ NTSTATUS PhSaveXmlObjectToFile(
             PPH_STRING directoryName;
 
             directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-            status = PhCreateDirectory(directoryName);
+            status = PhCreateDirectoryWin32(directoryName);
 
             if (!NT_SUCCESS(status))
             {

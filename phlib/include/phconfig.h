@@ -12,7 +12,6 @@ extern _User_set_ PWSTR PhApplicationName;
 PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 extern PVOID PhHeapHandle;
 extern RTL_OSVERSIONINFOEXW PhOsVersion;
-PHLIBAPI extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 extern ULONG WindowsVersion;
 
 #define WINDOWS_ANCIENT 0
@@ -39,46 +38,18 @@ extern ULONG WindowsVersion;
 #define WINDOWS_11_22H1 114 // February, 2022
 #define WINDOWS_NEW ULONG_MAX
 
-// Debugging
-
 #ifdef DEBUG
 #define dprintf(format, ...) DbgPrint(format, ##__VA_ARGS__)
 #else
 #define dprintf(format, ...)
 #endif
 
-// global
-
-// Initialization flags
-
-// Features
-
-// Imports
-
-#define PHLIB_INIT_MODULE_RESERVED1 0x1
-#define PHLIB_INIT_MODULE_RESERVED2 0x2
-#define PHLIB_INIT_MODULE_RESERVED3 0x4
-#define PHLIB_INIT_MODULE_RESERVED4 0x8
-#define PHLIB_INIT_MODULE_RESERVED5 0x10
-#define PHLIB_INIT_MODULE_RESERVED6 0x20
-#define PHLIB_INIT_MODULE_RESERVED7 0x40
-
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhInitializePhLib(
-    VOID
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhInitializePhLibEx(
-    _In_ PWSTR Name,
-    _In_ ULONG Flags,
-    _In_ PVOID ImageBaseAddress,
-    _In_opt_ SIZE_T HeapReserveSize,
-    _In_opt_ SIZE_T HeapCommitSize
+    _In_ PWSTR ApplicationName,
+    _In_ PVOID ImageBaseAddress
     );
 
 PHLIBAPI
@@ -88,7 +59,6 @@ PhIsExecutingInWow64(
     VOID
     );
 
-// 
 DECLSPEC_NORETURN
 FORCEINLINE
 VOID
@@ -104,6 +74,17 @@ PhExitApplication(
 }
 
 // Processor group support (dmex)
+
+typedef struct _PH_SYSTEM_BASIC_INFORMATION
+{
+    USHORT NumberOfProcessors;
+    ULONG NumberOfPhysicalPages;
+    ULONG AllocationGranularity;
+    ULONG_PTR MaximumUserModeAddress;
+    KAFFINITY ActiveProcessorsAffinityMask;
+} PH_SYSTEM_BASIC_INFORMATION, *PPH_SYSTEM_BASIC_INFORMATION;
+
+PHLIBAPI extern PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 
 typedef struct _PH_SYSTEM_PROCESSOR_INFORMATION
 {

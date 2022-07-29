@@ -931,19 +931,34 @@ VOID PhMwpOnCommand(
             PPH_STRING taskmgrFileName;
 
             systemDirectory = PH_AUTO(PhGetSystemDirectory());
-            taskmgrFileName = PH_AUTO(PhConcatStrings2(systemDirectory->Buffer, L"\\taskmgr.exe"));
+            taskmgrFileName = PH_AUTO(PhConcatStringRefZ(&systemDirectory->sr, L"\\taskmgr.exe"));
 
-            if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
+            if (PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
-                if (PhUiConnectToPhSvc(WindowHandle, FALSE))
-                {
-                    PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
-                    PhUiDisconnectFromPhSvc();
-                }
+                PhShellExecuteEx(
+                    WindowHandle,
+                    PhGetString(taskmgrFileName),
+                    NULL,
+                    SW_SHOW,
+                    0,
+                    0,
+                    NULL
+                    );
             }
             else
             {
-                PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                if (WindowsVersion >= WINDOWS_8 && !PhGetOwnTokenAttributes().Elevated)
+                {
+                    if (PhUiConnectToPhSvc(WindowHandle, FALSE))
+                    {
+                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                        PhUiDisconnectFromPhSvc();
+                    }
+                }
+                else
+                {
+                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(taskmgrFileName), NULL);
+                }
             }
         }
         break;
@@ -951,23 +966,36 @@ VOID PhMwpOnCommand(
         {
             PPH_STRING systemDirectory;
             PPH_STRING perfmonFileName;
-            PPH_STRING perfmonCommandLine;
 
             systemDirectory = PH_AUTO(PhGetSystemDirectory());
-            perfmonFileName = PH_AUTO(PhConcatStrings2(systemDirectory->Buffer, L"\\perfmon.exe"));
-            perfmonCommandLine = PH_AUTO(PhConcatStrings2(perfmonFileName->Buffer, L" /res"));
+            perfmonFileName = PH_AUTO(PhConcatStringRefZ(&systemDirectory->sr, L"\\perfmon.exe"));
 
-            if (!PhGetOwnTokenAttributes().Elevated)
+            if (PhGetIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger"))
             {
-                if (PhUiConnectToPhSvc(WindowHandle, FALSE))
-                {
-                    PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), PhGetString(perfmonCommandLine));
-                    PhUiDisconnectFromPhSvc();
-                }
+                PhShellExecuteEx(
+                    WindowHandle,
+                    PhGetString(perfmonFileName),
+                    L" /res",
+                    SW_SHOW,
+                    0,
+                    0,
+                    NULL
+                    );
             }
             else
             {
-                PhCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), PhGetString(perfmonCommandLine));
+                if (!PhGetOwnTokenAttributes().Elevated)
+                {
+                    if (PhUiConnectToPhSvc(WindowHandle, FALSE))
+                    {
+                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), L" /res");
+                        PhUiDisconnectFromPhSvc();
+                    }
+                }
+                else
+                {
+                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), L" /res");
+                }
             }
         }
         break;
@@ -1056,7 +1084,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HELP_DONATE:
         {
-            PhShellExecute(WindowHandle, L"https://sourceforge.net/project/project_donations.php?group_id=242527", NULL);
+            //PhShellExecute(WindowHandle, L"https://sourceforge.net/project/project_donations.php?group_id=242527", NULL);
         }
         break;
     case ID_HELP_DEBUGCONSOLE:
@@ -1503,7 +1531,7 @@ VOID PhMwpOnCommand(
 
             if (processItem && 
                 !PhIsNullOrEmptyString(processItem->FileNameWin32) &&
-                PhDoesFileExistsWin32(PhGetString(processItem->FileNameWin32)
+                PhDoesFileExistWin32(PhGetString(processItem->FileNameWin32)
                 ))
             {
                 PhReferenceObject(processItem);
@@ -2066,8 +2094,8 @@ VOID PhMwpSaveSettings(
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", WindowHandle);
     PhMwpSaveWindowState(WindowHandle);
 
-    if (PhSettingsFileName)
-        PhSaveSettings(PhSettingsFileName->Buffer);
+    if (!PhIsNullOrEmptyString(PhSettingsFileName))
+        PhSaveSettings(&PhSettingsFileName->sr);
 }
 
 VOID PhMwpSaveWindowState(
@@ -2418,7 +2446,7 @@ PPH_EMENU PhpCreateHelpMenu(
     )
 {
     PhInsertEMenuItem(HelpMenu, PhCreateEMenuItem(0, ID_HELP_LOG, L"&Log\bCtrl+L", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(HelpMenu, PhCreateEMenuItem(0, ID_HELP_DONATE, L"&Donate", NULL, NULL), ULONG_MAX);
+    //PhInsertEMenuItem(HelpMenu, PhCreateEMenuItem(0, ID_HELP_DONATE, L"&Donate", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HelpMenu, PhCreateEMenuItem(0, ID_HELP_DEBUGCONSOLE, L"Debu&g console", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(HelpMenu, PhCreateEMenuItem(0, ID_HELP_ABOUT, L"&About", NULL, NULL), ULONG_MAX);
 
@@ -2888,14 +2916,13 @@ VOID PhMwpInitializeSubMenu(
                 PhDestroyEMenuItem(menuItem);
         }
 
-        // Windows 8 Task Manager requires elevation.
-        if (!PhGetOwnTokenAttributes().Elevated)
+        if (PhGetIntegerSetting(L"EnableBitmapSupport"))
         {
             HBITMAP shieldBitmap;
 
             if (shieldBitmap = PhGetShieldBitmap())
             {
-                if (WindowsVersion >= WINDOWS_8 && (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER)))
+                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTRESOURCEMONITOR))
                     menuItem->Bitmap = shieldBitmap;
@@ -3901,7 +3928,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:
         {
-            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
+            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_REFRESH:

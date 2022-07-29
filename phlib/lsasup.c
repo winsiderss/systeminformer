@@ -332,11 +332,10 @@ VOID PhLookupSids(
             {
                 if (domainName && userName)
                 {
-                    translatedNames[i] = PhConcatStrings(
-                        3,
-                        domainName->Buffer,
-                        L"\\",
-                        userName->Buffer
+                    translatedNames[i] = PhConcatStringRef3(
+                        &domainName->sr,
+                        &PhNtPathSeperatorString,
+                        &userName->sr
                         );
                 }
                 else if (domainName)
@@ -732,7 +731,7 @@ VOID PhInitializeCapabilitySidCache(
     if (!RtlDeriveCapabilitySidsFromName_Import())
         return;
 
-    if (applicationDirectory = PhGetApplicationDirectory())
+    if (applicationDirectory = PhGetApplicationDirectoryWin32())
     {
         PPH_STRING capabilityListFileName;
 

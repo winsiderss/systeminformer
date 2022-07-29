@@ -1031,7 +1031,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         if (
                             !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
-                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            PhDoesFileExistWin32(PhGetString(selectedNode->FileNameWin32))
                             )
                         {
                             PhShellExecuteUserString(
@@ -1053,7 +1053,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         if (
                             !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
-                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            PhDoesFileExistWin32(PhGetString(selectedNode->FileNameWin32))
                             )
                         {
                             PhShellExecuteUserString(
@@ -1680,7 +1680,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                         if (
                             !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
-                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            PhDoesFileExistWin32(PhGetString(selectedNode->FileNameWin32))
                             )
                         {
                             PhShellExecuteUserString(
@@ -1702,7 +1702,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     {
                         if (
                             !PhIsNullOrEmptyString(selectedNode->FileNameWin32) &&
-                            PhDoesFileExistsWin32(PhGetString(selectedNode->FileNameWin32))
+                            PhDoesFileExistWin32(PhGetString(selectedNode->FileNameWin32))
                             )
                         {
                             PhShellExecuteUserString(

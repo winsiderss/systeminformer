@@ -109,6 +109,7 @@
 #define IDD_LIVEDUMP                    254
 #define IDD_HEAPS                       255
 #define IDD_PROCVDMHOST                 257
+#define IDD_OPTSYMBOLS                  258
 #define IDI_UACSHIELD                   261
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
@@ -154,7 +155,6 @@
 #define IDC_REFERENCES                  1045
 #define IDC_INTERNALNAME                1045
 #define IDC_HANDLES                     1046
-//#define IDC_PROCESSTYPELABEL            1046
 #define IDC_AUTHOR                      1046
 #define IDC_PAGED                       1047
 #define IDC_PROCESSTYPETEXT             1047
@@ -752,8 +752,8 @@
 #define ID_COMPUTER_RESTARTBOOTOPTIONS  40280
 #define ID_COMPUTER_RESTARTFWOPTIONS    40281
 #define ID_COMPUTER_RESTARTFWDEVICE     40282
-#define ID_COMPUTER_RESTARTBOOTDEVICE   40283
 #define ID_HANDLE_OBJECTPROPERTIES1     40282
+#define ID_COMPUTER_RESTARTBOOTDEVICE   40283
 #define ID_HANDLE_OBJECTPROPERTIES2     40283
 #define ID_OBJECT_GOTOOWNINGPROCESS     40284
 #define ID_NETWORK_GOTOSERVICE          40285
@@ -763,6 +763,7 @@
 #define ID_MINIINFO_REFRESHAUTOMATICALLY 40289
 #define ID_TOOLS_STARTRESOURCEMONITOR   40290
 #define IDC_MAXSCREEN                   40293
+#define ID_EMPTY_COMPRESSIONSTORE       40294
 #define ID_EMPTY_COMBINEMEMORYLISTS     40295
 #define ID_PRIVILEGE_RESET              40296
 #define ID_GROUP_ENABLE                 40297
@@ -782,9 +783,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        258
+#define _APS_NEXT_RESOURCE_VALUE        262
 #define _APS_NEXT_COMMAND_VALUE         40298
-#define _APS_NEXT_CONTROL_VALUE         1411
+#define _APS_NEXT_CONTROL_VALUE         1413
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif

@@ -713,19 +713,25 @@ VOID PhpProcessQueryStage1(
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
 
-    if (!PhIsNullOrEmptyString(processItem->FileName) && !processItem->IsSubsystemProcess)
+    // Version info
+    if (!processItem->IsSubsystemProcess)
     {
-        if (PhDoesFileExists(processItem->FileName))
+        if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(processItem->FileName))
         {
             Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE);
 
-            // Version info.
             PhInitializeImageVersionInfoCached(
                 &Data->VersionInfo,
                 processItem->FileName,
                 FALSE,
                 PhEnableVersionShortText
                 );
+        }
+
+        if (PhEnableCycleCpuUsage && processId == INTERRUPTS_PROCESS_ID)
+        {
+            static PH_STRINGREF descriptionText = PH_STRINGREF_INIT(L"Interrupts and DPCs");
+            PhMoveReference(&Data->VersionInfo.FileDescription, PhCreateString2(&descriptionText));
         }
     }
 
@@ -980,7 +986,7 @@ VOID PhpProcessQueryStage2(
             // If we fail to access the file we could go read from the remote
             // process memory, but for now we only read from the file. (jxy-s)
 
-            if (NT_SUCCESS(PhLoadMappedImageEx(processItem->FileName, NULL, &mappedImage)))
+            if (NT_SUCCESS(PhLoadMappedImageEx(&processItem->FileName->sr, NULL, &mappedImage)))
             {
                 Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
                 PhUnloadMappedImage(&mappedImage);
@@ -1132,7 +1138,7 @@ VOID PhpFillProcessItemStage1(
     else if (Data->UserName)
         PhDereferenceObject(Data->UserName);
 
-    // Note: Queue stage 2 processing after filling stage1 process data. 
+    // Note: Queue stage 2 processing after filling stage1 process data.
     PhpQueueProcessQueryStage2(processItem);
 }
 
@@ -1173,7 +1179,7 @@ VOID PhpFillProcessItemExtension(
 
     if (!PhEnableProcessExtension)
         return;
-    
+
     processExtension = PH_PROCESS_EXTENSION(Process);
 
     ProcessItem->DiskCounters = processExtension->DiskCounters;
@@ -1195,7 +1201,7 @@ VOID PhpFillProcessItem(
     if (ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
         ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&Process->ImageName);
     else
-        ProcessItem->ProcessName = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
+        ProcessItem->ProcessName = PhCreateStringFromUnicodeString(&SYSTEM_IDLE_PROCESS_NAME);
 
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
@@ -1296,6 +1302,7 @@ VOID PhpFillProcessItem(
         {
             PTOKEN_USER tokenUser;
             TOKEN_ELEVATION_TYPE elevationType;
+            BOOLEAN isElevated;
             MANDATORY_LEVEL integrityLevel;
             PWSTR integrityString;
 
@@ -1312,7 +1319,11 @@ VOID PhpFillProcessItem(
             if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
             {
                 ProcessItem->ElevationType = elevationType;
-                ProcessItem->IsElevated = elevationType == TokenElevationTypeFull;
+            }
+
+            if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+            {
+                ProcessItem->IsElevated = isElevated;
             }
 
             // Integrity
@@ -1419,7 +1430,7 @@ VOID PhpFillProcessItem(
         }
     }
 
-    // On Windows 8.1 and above, processes without threads are reflected processes 
+    // On Windows 8.1 and above, processes without threads are reflected processes
     // which will not terminate if we have a handle open. (wj32)
     if (Process->NumberOfThreads == 0 && ProcessItem->QueryHandle)
     {
@@ -2492,6 +2503,7 @@ VOID PhProcessProviderUpdate(
                     )))
                 {
                     PTOKEN_USER tokenUser;
+                    BOOLEAN isElevated;
                     TOKEN_ELEVATION_TYPE elevationType;
                     MANDATORY_LEVEL integrityLevel;
                     PWSTR integrityString;
@@ -2517,12 +2529,21 @@ VOID PhProcessProviderUpdate(
                     }
 
                     // Elevation
+
+                    if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    {
+                        if (processItem->IsElevated != isElevated)
+                        {
+                            processItem->IsElevated = isElevated;
+                            modified = TRUE;
+                        }
+                    }
+
                     if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                     {
                         if (processItem->ElevationType != elevationType)
                         {
                             processItem->ElevationType = elevationType;
-                            processItem->IsElevated = elevationType == TokenElevationTypeFull;
                             modified = TRUE;
                         }
                     }
