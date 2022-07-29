@@ -51,20 +51,36 @@ INT WINAPI wWinMain(
     // Create a mutant for the installer.
     {
         HANDLE mutantHandle;
-        PPH_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
-        UNICODE_STRING objectNameUs;
+        UNICODE_STRING objectName;
+        PH_STRINGREF objectNameSr;
+        SIZE_T returnLength;
+        WCHAR formatBuffer[PH_INT64_STR_LEN_1];
         PH_FORMAT format[2];
 
-        PhInitFormatS(&format[0], L"PeViewerMutant_");
+        PhInitFormatS(&format[0], L"SiViewerMutant_");
         PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
-        objectName = PhFormat(format, 2, 0x40);
-        PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
+        if (!PhFormatToBuffer(
+            format,
+            RTL_NUMBER_OF(format),
+            formatBuffer,
+            sizeof(formatBuffer),
+            &returnLength
+            ))
+        {
+            return FALSE;
+        }
+
+        objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+        objectNameSr.Buffer = formatBuffer;
+
+        if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
+            return FALSE;
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &objectNameUs,
+            &objectName,
             OBJ_CASE_INSENSITIVE,
             PhGetNamespaceHandle(),
             NULL
@@ -76,8 +92,6 @@ INT WINAPI wWinMain(
             &objectAttributes,
             TRUE
             );
-
-        PhDereferenceObject(objectName);
     }
 
 #ifndef DEBUG
