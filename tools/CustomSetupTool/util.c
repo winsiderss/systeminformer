@@ -1161,7 +1161,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 
     if (!PhStartsWithStringRef2(Name, L"SiMutant_", TRUE) &&
         !PhStartsWithStringRef2(Name, L"SiSetupMutant_", TRUE) &&
-        !PhStartsWithStringRef2(Name, L"PeViewerMutant_", TRUE))
+        !PhStartsWithStringRef2(Name, L"SiViewerMutant_", TRUE))
     {
         return TRUE;
     }
