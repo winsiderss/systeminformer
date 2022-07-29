@@ -239,9 +239,9 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
                 {
                     PhSwapReference(&context->SetupInstallPath, directory);
 
-                    if (!PhEndsWithString2(directory, L"\\", FALSE)) // HACK
+                    if (!PhEndsWithStringRef(&directory->sr, &PhNtPathSeperatorString, FALSE))
                     {
-                        PhMoveReference(&context->SetupInstallPath, PhConcatStringRefZ(&directory->sr, L"\\"));
+                        PhMoveReference(&context->SetupInstallPath, PhConcatStringRef2(&directory->sr, &PhNtPathSeperatorString));
                     }
 
                     // Check the path for the legacy directory name.
