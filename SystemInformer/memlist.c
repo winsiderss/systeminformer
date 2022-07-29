@@ -761,8 +761,18 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHMMTLC_BASEADDRESS:
-                PhPrintPointer(node->BaseAddressText, memoryItem->BaseAddress);
-                PhInitializeStringRefLongHint(&getCellText->Text, node->BaseAddressText);
+                PH_FORMAT format[2];
+                SIZE_T returnLength;
+
+                PhInitFormatS(&format[0], L"0x");
+                PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)memoryItem->BaseAddress);
+
+                if (PhFormatToBuffer(format, 2, node->BaseAddressText, sizeof(node->BaseAddressText), &returnLength))
+                {
+                    getCellText->Text.Buffer = node->BaseAddressText;
+                    getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
+
                 break;
             case PHMMTLC_TYPE:
                 if (memoryItem->State & MEM_FREE)
