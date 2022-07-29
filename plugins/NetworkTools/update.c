@@ -394,7 +394,7 @@ NTSTATUS GeoIPUpdateThread(
                 if (fullPath = PhGetFullPath(dbpath->Buffer, &indexOfFileName))
                 {
                     if (indexOfFileName != ULONG_MAX)
-                        PhCreateDirectory(PhaSubstring(fullPath, 0, indexOfFileName));
+                        PhCreateDirectoryWin32(PhaSubstring(fullPath, 0, indexOfFileName));
 
                     PhDereferenceObject(fullPath);
                 }

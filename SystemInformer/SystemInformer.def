@@ -232,7 +232,7 @@ EXPORTS
     PhZeroExtendToUtf16Ex
 
 ; phnative
-    PhCreateDirectory
+    PhCreateDirectoryWin32
     PhCreateFile
     PhCreateFileWin32
     PhCreateFileWin32Ex
@@ -240,7 +240,7 @@ EXPORTS
     PhCreateNamedPipe
     PhCreatePipe
     PhConnectPipe
-    PhDeleteDirectory
+    PhDeleteDirectoryWin32
     PhDeleteFileWin32
     PhDeleteValueKey
     PhDetermineDosPathNameType

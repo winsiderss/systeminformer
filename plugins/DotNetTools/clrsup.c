@@ -1165,7 +1165,7 @@ static VOID DnCleanupDacAuxiliaryProvider(
 
         if (directoryPath = PhGetBaseDirectory(dataTarget->DaccorePath))
         {
-            PhDeleteDirectory(directoryPath);
+            PhDeleteDirectoryWin32(directoryPath);
             PhDereferenceObject(directoryPath);
         }
         else

@@ -1624,14 +1624,14 @@ PhMoveFileWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhCreateDirectory(
+PhCreateDirectoryWin32(
     _In_ PPH_STRING DirectoryPath
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhDeleteDirectory(
+PhDeleteDirectoryWin32(
     _In_ PPH_STRING DirectoryPath
     );
 
