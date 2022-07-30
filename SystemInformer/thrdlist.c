@@ -2039,7 +2039,6 @@ VOID PhpGenerateSyscallLists(
     static PH_STRINGREF win32uPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.sys");
     PPH_LIST ntdllSystemCallList = NULL;
     PPH_LIST win32kSystemCallList = NULL;
-    PPH_STRING fileName = NULL;
     PH_MAPPED_IMAGE mappedImage;
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
@@ -2235,8 +2234,6 @@ VOID PhpGenerateSyscallLists(
 
     *NtdllSystemCallList = ntdllSystemCallList;
     *Win32kSystemCallList = win32kSystemCallList;
-
-    PhDereferenceObject(fileName);
 }
 
 PPH_STRING PhGetSystemCallNumberName(

@@ -142,7 +142,7 @@ VOID PhSetPluginDisabled(
             memcpy(newDisabled->Buffer, disabled->Buffer, disabled->Length);
             newDisabled->Buffer[disabled->Length / sizeof(WCHAR)] = L'|';
             memcpy(&newDisabled->Buffer[disabled->Length / sizeof(WCHAR) + 1], BaseName->Buffer, BaseName->Length);
-            PhSetStringSettingRef(L"DisabledPlugins", newDisabled);
+            PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
             PhDereferenceObject(newDisabled);
         }
         else
@@ -175,7 +175,7 @@ VOID PhSetPluginDisabled(
         memcpy(newDisabled->Buffer, disabled->Buffer, foundIndex * sizeof(WCHAR));
         memcpy(&newDisabled->Buffer[foundIndex], &disabled->Buffer[foundIndex + removeCount],
             disabled->Length - removeCount * sizeof(WCHAR) - foundIndex * sizeof(WCHAR));
-        PhSetStringSettingRef(L"DisabledPlugins", newDisabled);
+        PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
         PhDereferenceObject(newDisabled);
     }
 

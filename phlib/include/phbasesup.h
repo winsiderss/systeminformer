@@ -1003,7 +1003,7 @@ PhEndsWithStringRef(
     if (Suffix->Length > String->Length)
         return FALSE;
 
-    sr.Buffer = (PWCHAR)PTR_ADD_OFFSET(String->Buffer, String->Length - Suffix->Length);
+    sr.Buffer = (PWCH)PTR_ADD_OFFSET(String->Buffer, String->Length - Suffix->Length);
     sr.Length = Suffix->Length;
 
     return PhEqualStringRef(&sr, Suffix, IgnoreCase);
@@ -2367,7 +2367,6 @@ typedef struct _PH_LIST
     /** The array of list items. */
     PVOID *Items;
 } PH_LIST, *PPH_LIST;
-
 
 FORCEINLINE
 PVOID
