@@ -330,7 +330,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
                 return STATUS_INVALID_PARAMETER;
 
             // TODO: Probe the name.
-            Member->Name = (PSTR)PTR_ADD_OFFSET(MappedArchive->LongnamesMember.Data, offset);
+            Member->Name = PTR_ADD_OFFSET(MappedArchive->LongnamesMember.Data, offset);
         }
         else
         {
@@ -373,8 +373,8 @@ NTSTATUS PhGetMappedArchiveImportEntry(
     Entry->Machine = importHeader->Machine;
 
     // TODO: Probe the name.
-    Entry->Name = (PSTR)PTR_ADD_OFFSET(importHeader, sizeof(IMPORT_OBJECT_HEADER));
-    Entry->DllName = (PSTR)PTR_ADD_OFFSET(Entry->Name, strlen(Entry->Name) + 1);
+    Entry->Name = PTR_ADD_OFFSET(importHeader, sizeof(IMPORT_OBJECT_HEADER));
+    Entry->DllName = PTR_ADD_OFFSET(Entry->Name, strlen(Entry->Name) + 1);
 
     // Ordinal/NameHint are union'ed, so these statements are exactly the same.
     // It's there in case this changes in the future.
