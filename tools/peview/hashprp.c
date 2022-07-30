@@ -352,8 +352,8 @@ PPH_STRING PvpGetMappedImageAuthentihash(
     return hashString;
 }
 
-PPH_HASHTABLE PvGenerateOrdinalHashtable(
-    _In_ PPH_STRING FileName
+PPH_HASHTABLE PvGenerateOrdinalHashtableStringRef(
+    _In_ PPH_STRINGREF FileName
     )
 {
     PPH_HASHTABLE ordinalHashtable = NULL;
@@ -362,7 +362,7 @@ PPH_HASHTABLE PvGenerateOrdinalHashtable(
     PH_MAPPED_IMAGE_EXPORT_ENTRY exportEntry;
     PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
 
-    if (NT_SUCCESS(PhLoadMappedImageEx(&FileName->sr, NULL, &mappedImage)))
+    if (NT_SUCCESS(PhLoadMappedImageEx(FileName, NULL, &mappedImage)))
     {
         if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
         {
@@ -393,6 +393,20 @@ PPH_HASHTABLE PvGenerateOrdinalHashtable(
     return ordinalHashtable;
 }
 
+FORCEINLINE
+PPH_HASHTABLE
+NTAPI
+PvGenerateOrdinalHashtable(
+    _In_ PWSTR FileName
+    )
+{
+    PH_STRINGREF fileName;
+
+    PhInitializeStringRef(&fileName, FileName);
+
+    return PvGenerateOrdinalHashtableStringRef(&fileName);
+}
+
 typedef struct _PV_IMPHASH_ORDINAL_CACHE
 {
     PPH_HASHTABLE Oleaut32Hashtable;
@@ -404,26 +418,13 @@ PPV_IMPHASH_ORDINAL_CACHE PvImpHashCreateOrdinalCache(
     VOID
     )
 {
-    static PH_STRINGREF filenameOleAut32Sr = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\oleaut32.dll");
-    static PH_STRINGREF filenameWs232Sr = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ws2_32.dll");
-    static PH_STRINGREF filenameWsock32Sr = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\wsock32.dll");
     PPV_IMPHASH_ORDINAL_CACHE ordinalCache;
     PPH_STRING fileName;
 
-    ordinalCache = PhAllocate(sizeof(PV_IMPHASH_ORDINAL_CACHE));
-    memset(ordinalCache, 0, sizeof(PV_IMPHASH_ORDINAL_CACHE));
-
-    fileName = PhCreateString2(&filenameOleAut32Sr);
-    ordinalCache->Oleaut32Hashtable = PvGenerateOrdinalHashtable(fileName);
-    PhDereferenceObject(fileName);
-
-    fileName = PhCreateString2(&filenameWs232Sr);
-    ordinalCache->Ws232Hashtable = PvGenerateOrdinalHashtable(fileName);
-    PhDereferenceObject(fileName);
-
-    fileName = PhCreateString2(&filenameWsock32Sr);
-    ordinalCache->WinsockHashtable = PvGenerateOrdinalHashtable(fileName);
-    PhDereferenceObject(fileName);
+    ordinalCache = PhAllocateZero(sizeof(PV_IMPHASH_ORDINAL_CACHE));
+    ordinalCache->Oleaut32Hashtable = PvGenerateOrdinalHashtable(L"\\SystemRoot\\System32\\oleaut32.dll");
+    ordinalCache->Ws232Hashtable = PvGenerateOrdinalHashtable(L"\\SystemRoot\\System32\\ws2_32.dll");
+    ordinalCache->WinsockHashtable = PvGenerateOrdinalHashtable(L"\\SystemRoot\\System32\\wsock32.dll");
 
     return ordinalCache;
 }
@@ -567,9 +568,6 @@ BOOLEAN PvpGetMappedImageImphash(
 
                         importDllString = PhZeroExtendToUtf16(importDll.Name);
 
-                        // I dont know why but online implementations only trim the import extensions for dll, sys and ocx
-                        // ignoring everything else which is dumb because lots of things import from exe and other formats
-                        // like our plugin dlls. Sigh. Do the same so the imphash matches theirs. (dmex)
                         if (
                             PhEndsWithString2(importDllString, L".dll", TRUE) ||
                             PhEndsWithString2(importDllString, L".sys", TRUE) ||
@@ -602,11 +600,9 @@ BOOLEAN PvpGetMappedImageImphash(
                             &importFuncName->sr);
                         _wcslwr(importImphashName->Buffer);
 
-                        PhAppendFormatStringBuilder(
-                            &stringBuilder,
-                            L"%s,",
-                            importImphashName->Buffer
-                            );
+                        // "%s,"
+                        PhAppendStringBuilder(&stringBuilder, &importImphashName->sr);
+                        PhAppendStringBuilder2(&stringBuilder,L",");
 
                         PhDereferenceObject(importDllString);
                         PhDereferenceObject(importDllName);
