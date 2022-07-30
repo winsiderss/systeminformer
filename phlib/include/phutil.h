@@ -1446,12 +1446,19 @@ PhGetLoaderEntryStringRefDllBase(
     _In_opt_ PPH_STRINGREF BaseDllName
     );
 
-PHLIBAPI
+FORCEINLINE
 PVOID
 NTAPI
 PhGetLoaderEntryDllBase(
     _In_ PWSTR DllName
-    );
+    )
+{
+    PH_STRINGREF baseDllName;
+
+    PhInitializeStringRefLongHint(&baseDllName, DllName);
+
+    return PhGetLoaderEntryStringRefDllBase(NULL, &baseDllName);
+}
 
 PHLIBAPI
 PVOID
@@ -1545,7 +1552,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoadPluginImage(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     );
 
@@ -1561,7 +1568,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhLoaderEntryLoadDll(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_ PVOID* BaseAddress
     );
 

@@ -918,7 +918,7 @@ PhGetProcedureAddress(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetProcedureAddressRemote(
+PhGetProcedureAddressRemoteStringRef(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PSTR ProcedureName,
@@ -926,6 +926,32 @@ PhGetProcedureAddressRemote(
     _Out_ PVOID *ProcedureAddress,
     _Out_opt_ PVOID *DllBase
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhGetProcedureAddressRemote(
+    _In_ HANDLE ProcessHandle,
+    _In_ PWSTR FileName,
+    _In_opt_ PSTR ProcedureName,
+    _In_opt_ USHORT ProcedureNumber,
+    _Out_ PVOID *ProcedureAddress,
+    _Out_opt_ PVOID *DllBase
+    )
+{
+    PH_STRINGREF fileName;
+
+    PhInitializeStringRef(&fileName, FileName);
+
+    return PhGetProcedureAddressRemoteStringRef(
+        ProcessHandle,
+        &fileName,
+        ProcedureName,
+        ProcedureNumber,
+        ProcedureAddress,
+        DllBase
+        );
+}
 
 PHLIBAPI
 NTSTATUS
@@ -2089,7 +2115,7 @@ PhGetNumaProcessorNode(
 
 typedef struct _PH_SYSTEM_STORE_COMPRESSION_INFORMATION
 {
-    HANDLE CompressionPid;
+    ULONG CompressionPid;
     ULONG WorkingSetSize;
     SIZE_T TotalDataCompressed;
     SIZE_T TotalCompressedSize;
