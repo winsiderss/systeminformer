@@ -515,12 +515,17 @@ VOID PhModuleProviderUpdate(
     PPH_MODULE_PROVIDER moduleProvider = (PPH_MODULE_PROVIDER)Object;
     PPH_LIST modules;
     ULONG i;
+    PH_FORMAT format[2];
+    SIZE_T returnLength;
 
     // If we didn't get a handle when we created the provider,
     // abort (unless this is the System process - in that case
     // we don't need a handle).
     if (!moduleProvider->ProcessHandle && moduleProvider->ProcessId != SYSTEM_PROCESS_ID)
         goto UpdateExit;
+
+    PhInitFormatS(&format[0], L"0x");
+    PhInitFormatIXPadZeros(&format[1], 0);
 
     modules = PhCreateList(100);
 
@@ -644,7 +649,8 @@ VOID PhModuleProviderUpdate(
             if (module->OriginalBaseAddress && module->OriginalBaseAddress != module->BaseAddress)
                 moduleItem->ImageNotAtBase = TRUE;
 
-            PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
+            format[1].u.UIntPtr = (ULONG_PTR)moduleItem->BaseAddress;
+            PhFormatToBuffer(format, 2, moduleItem->BaseAddressString, sizeof(moduleItem->BaseAddressString), &returnLength);
 
             PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, PhEnableVersionShortText);
 

@@ -105,8 +105,8 @@ VOID PhInitializeModuleList(
     PhAddTreeNewColumn(Context->TreeNewHandle, PHMOTLC_LOADREASON, FALSE, L"Load reason", 80, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_FILEMODIFIEDTIME, FALSE, L"File modified time", 140, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_FILESIZE, FALSE, L"File size", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_ENTRYPOINT, FALSE, L"Entry point", 70, PH_ALIGN_RIGHT | PH_ALIGN_MONOSPACE_FONT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_PARENTBASEADDRESS, FALSE, L"Parent base address", 70, PH_ALIGN_RIGHT | PH_ALIGN_MONOSPACE_FONT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_CET, FALSE, L"CET", 50, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PHMOTLC_COHERENCY, FALSE, L"Image coherency", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PHMOTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
@@ -1034,15 +1034,33 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             case PHMOTLC_ENTRYPOINT:
                 if (moduleItem->EntryPoint != 0)
                 {
-                    PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
-                    PhInitializeStringRef(&getCellText->Text, moduleItem->EntryPointAddressString);
+                    PH_FORMAT format[2];
+                    SIZE_T returnLength;
+
+                    PhInitFormatS(&format[0], L"0x");
+                    PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)moduleItem->EntryPoint);
+
+                    if (PhFormatToBuffer(format, 2, moduleItem->EntryPointAddressString, sizeof(moduleItem->EntryPointAddressString), &returnLength))
+                    {
+                        getCellText->Text.Buffer = moduleItem->EntryPointAddressString;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
                 }
                 break;
             case PHMOTLC_PARENTBASEADDRESS:
                 if (moduleItem->ParentBaseAddress != 0)
                 {
-                    PhPrintPointer(moduleItem->ParentBaseAddressString, moduleItem->ParentBaseAddress);
-                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->ParentBaseAddressString);
+                    PH_FORMAT format[2];
+                    SIZE_T returnLength;
+
+                    PhInitFormatS(&format[0], L"0x");
+                    PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)moduleItem->ParentBaseAddress);
+
+                    if (PhFormatToBuffer(format, 2, moduleItem->ParentBaseAddressString, sizeof(moduleItem->ParentBaseAddressString), &returnLength))
+                    {
+                        getCellText->Text.Buffer = moduleItem->ParentBaseAddressString;
+                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                    }
                 }
                 break;
             case PHMOTLC_CET:
