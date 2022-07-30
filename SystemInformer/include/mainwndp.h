@@ -57,6 +57,10 @@ VOID PhMwpInvokeUpdateWindowFont(
     _In_opt_ PVOID Parameter
     );
 
+VOID PhMwpInvokeUpdateWindowFontMonospace(
+    _In_opt_ PVOID Parameter
+    );
+
 // Event handlers
 
 VOID PhMwpOnDestroy(

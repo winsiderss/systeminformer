@@ -622,6 +622,8 @@ VOID PhModuleProviderUpdate(
         if (!moduleItem)
         {
             FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
+            PH_FORMAT format[2];
+            SIZE_T returnLength;
 
             PhReferenceObject(module->Name);
             PhReferenceObject(module->FileNameWin32);
@@ -644,7 +646,9 @@ VOID PhModuleProviderUpdate(
             if (module->OriginalBaseAddress && module->OriginalBaseAddress != module->BaseAddress)
                 moduleItem->ImageNotAtBase = TRUE;
 
-            PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
+            PhInitFormatS(&format[0], L"0x");
+            PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)moduleItem->BaseAddress);
+            PhFormatToBuffer(format, 2, moduleItem->BaseAddressString, sizeof(moduleItem->BaseAddressString), &returnLength);
 
             PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, PhEnableVersionShortText);
 

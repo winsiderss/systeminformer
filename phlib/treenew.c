@@ -5580,6 +5580,11 @@ VOID PhTnpDrawCell(
     font = Node->Font;
     textFlags = Column->TextFlags;
 
+    if (Column->Alignment & PH_ALIGN_MONOSPACE_FONT)
+    {
+        font = PhMonospaceFont;
+    }
+
     textRect = *CellRect;
 
     // Initial margins used by default list view

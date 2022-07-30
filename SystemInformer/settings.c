@@ -77,6 +77,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"FileBrowseExecutable", L"%SystemRoot%\\explorer.exe /select,\"%s\"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"Font", L""); // null
+    PhpAddStringSetting(L"FontMonospace", L""); // null
     PhpAddIntegerSetting(L"ForceNoParent", L"1");
     PhpAddIntegerSetting(L"KphBuildNumber", L"0");
     PhpAddStringSetting(L"KphServiceName", L"");
