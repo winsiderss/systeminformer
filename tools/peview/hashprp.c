@@ -419,7 +419,6 @@ PPV_IMPHASH_ORDINAL_CACHE PvImpHashCreateOrdinalCache(
     )
 {
     PPV_IMPHASH_ORDINAL_CACHE ordinalCache;
-    PPH_STRING fileName;
 
     ordinalCache = PhAllocateZero(sizeof(PV_IMPHASH_ORDINAL_CACHE));
     ordinalCache->Oleaut32Hashtable = PvGenerateOrdinalHashtable(L"\\SystemRoot\\System32\\oleaut32.dll");
