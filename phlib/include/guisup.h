@@ -707,6 +707,8 @@ PhIconToBitmap(
 #define PH_ALIGN_TOP 0x4
 #define PH_ALIGN_BOTTOM 0x8
 
+#define PH_ALIGN_MONOSPACE_FONT 0x80000000
+
 typedef enum _PH_ITEM_STATE
 {
     // The item is normal. Use the ItemColorFunction to determine the color of the item.
@@ -1147,6 +1149,7 @@ PhCustomDrawTreeTimeLine(
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
+PHLIBAPI extern HFONT PhMonospaceFont; // phapppub
 PHLIBAPI extern HBRUSH PhMenuBackgroundBrush;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;

@@ -542,6 +542,7 @@
 #define IDC_USERMODE                    1413
 #define IDC_HYPERVISOR                  1414
 #define IDC_SIZESINBYTES                1415
+#define IDC_FONTMONOSPACE               1416
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
 #define ID_PROCESS_TERMINATE            40007

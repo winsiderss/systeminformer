@@ -63,7 +63,7 @@ VOID PhInitializeMemoryList(
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
     // Default columns
-    PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_BASEADDRESS, TRUE, L"Base address", 120, PH_ALIGN_LEFT, -2, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_BASEADDRESS, TRUE, L"Base address", 120, PH_ALIGN_LEFT | PH_ALIGN_MONOSPACE_FONT, -2, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_TYPE, TRUE, L"Type", 90, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_SIZE, TRUE, L"Size", 80, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_PROTECTION, TRUE, L"Protection", 60, PH_ALIGN_LEFT, 2, 0);
@@ -761,8 +761,18 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHMMTLC_BASEADDRESS:
-                PhPrintPointer(node->BaseAddressText, memoryItem->BaseAddress);
-                PhInitializeStringRefLongHint(&getCellText->Text, node->BaseAddressText);
+                PH_FORMAT format[2];
+                SIZE_T returnLength;
+
+                PhInitFormatS(&format[0], L"0x");
+                PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)memoryItem->BaseAddress);
+
+                if (PhFormatToBuffer(format, 2, node->BaseAddressText, sizeof(node->BaseAddressText), &returnLength))
+                {
+                    getCellText->Text.Buffer = node->BaseAddressText;
+                    getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
+
                 break;
             case PHMMTLC_TYPE:
                 if (memoryItem->State & MEM_FREE)
