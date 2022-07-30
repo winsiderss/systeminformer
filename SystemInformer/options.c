@@ -1511,7 +1511,7 @@ static VOID PhpAdvancedPageSave(
 
     //if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
     //{
-    //    PhSetStringSetting2(L"DbgHelpSearchPath", &(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
+    //    PhSetStringSetting2(L"DbgHelpSearchPath", &PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH))->sr);
     //    RestartRequired = TRUE;
     //}
 

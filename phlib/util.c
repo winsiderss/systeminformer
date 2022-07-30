@@ -2841,9 +2841,23 @@ PPH_STRING PhGetApplicationFileNameWin32(
         return PhReferenceObject(fileName);
     }
 
-    fileName = PhGetDllFileName(PhInstanceHandle, NULL);
-    //if (NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
-    //    PhMoveReference(&fileName, PhGetFileName(fileName));
+    //if (fileName = PhGetDllFileName(PhInstanceHandle, NULL))
+    //{
+    //    PPH_STRING fullPath;
+    //
+    //    if (fullPath = PhGetFullPath(PhGetString(fileName), NULL))
+    //    {
+    //        PhMoveReference(&fileName, fullPath);
+    //    }
+    //}
+
+    if (!NT_SUCCESS(PhGetProcessImageFileNameWin32(NtCurrentProcess(), &fileName)))
+    {
+        if (NT_SUCCESS(PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName)))
+        {
+            PhMoveReference(&fileName, PhGetFileName(fileName));
+        }
+    }
 
     if (!InterlockedCompareExchangePointer(
         &cachedFileName,
@@ -2863,7 +2877,7 @@ PPH_STRING PhGetApplicationDirectory(
 {
     static PPH_STRING cachedDirectoryPath = NULL;
     PPH_STRING directoryPath;
-    PPH_STRING fileName = NULL;
+    PPH_STRING fileName;
 
     if (directoryPath = InterlockedCompareExchangePointer(
         &cachedDirectoryPath,
@@ -2874,12 +2888,7 @@ PPH_STRING PhGetApplicationDirectory(
         return PhReferenceObject(directoryPath);
     }
 
-    if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
-    {
-        PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
-    }
-
-    if (fileName)
+    if (fileName = PhGetApplicationFileName())
     {
         ULONG_PTR indexOfFileName;
 
@@ -6641,7 +6650,6 @@ PPH_STRING PhGetDllFileName(
 {
     PLDR_DATA_TABLE_ENTRY entry;
     PPH_STRING fileName;
-    PPH_STRING newFileName;
     ULONG_PTR indexOfFileName;
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
@@ -6658,13 +6666,7 @@ PPH_STRING PhGetDllFileName(
     if (!fileName)
         return NULL;
 
-    newFileName = PhGetFileName(fileName);
-    PhMoveReference(&fileName, newFileName);
-
-    if (newFileName = PhGetFullPath(fileName->Buffer, NULL)) // HACK PhGetApplicationDirectory (dmex)
-    {
-        PhMoveReference(&fileName, newFileName);
-    }
+    PhMoveReference(&fileName, PhGetFileName(fileName));
 
     if (IndexOfFileName)
     {
@@ -6690,25 +6692,6 @@ PVOID PhGetLoaderEntryStringRefDllBase(
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
     ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
-    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
-
-    if (ldrEntry)
-        return ldrEntry->DllBase;
-    else
-        return NULL;
-}
-
-PVOID PhGetLoaderEntryDllBase(
-    _In_ PWSTR BaseDllName
-    )
-{
-    PH_STRINGREF entryNameSr;
-    PLDR_DATA_TABLE_ENTRY ldrEntry;
-
-    PhInitializeStringRefLongHint(&entryNameSr, BaseDllName);
-
-    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
-    ldrEntry = PhFindLoaderEntry(NULL, NULL, &entryNameSr);
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 
     if (ldrEntry)
@@ -7749,7 +7732,7 @@ NTSTATUS PhLoaderEntryRelocateImage(
 }
 
 NTSTATUS PhLoaderEntryLoadDll(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_ PVOID* BaseAddress
     )
 {
@@ -7915,7 +7898,7 @@ NTSTATUS PhLoadAllImportsForDll(
 }
 
 NTSTATUS PhLoadPluginImage(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_opt_ PVOID *BaseAddress
     )
 {
@@ -7924,15 +7907,15 @@ NTSTATUS PhLoadPluginImage(
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageNtHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
-    UNICODE_STRING imageFileNameUs;
+    UNICODE_STRING imageFileName;
 
     imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
-    PhStringRefToUnicodeString(&FileName->sr, &imageFileNameUs);
+    PhStringRefToUnicodeString(FileName, &imageFileName);
 
     status = LdrLoadDll(
         NULL,
         &imageType,
-        &imageFileNameUs,
+        &imageFileName,
         &imageBaseAddress
         );
 
@@ -8299,13 +8282,15 @@ NTSTATUS PhLoadLibraryAsResource(
         NtCurrentTeb()->SuppressDebugMsg = FALSE;
 #endif
 
+    if (status == STATUS_IMAGE_NOT_AT_BASE)
+    {
+        status = STATUS_SUCCESS;
+    }
+
     NtClose(sectionHandle);
 
     if (NT_SUCCESS(status))
     {
-        if (status == STATUS_IMAGE_NOT_AT_BASE)
-            status = STATUS_SUCCESS;
-
         // Windows returns the address with bitwise OR|2 for use with LDR_IS_IMAGEMAPPING (dmex)
         if (BaseAddress)
         {
