@@ -462,6 +462,10 @@ BOOLEAN FindIfeoObject(
             {
                 *CpuPriorityClass = value;
             }
+            else
+            {
+                *CpuPriorityClass = ULONG_MAX;
+            }
         }
 
         if (IoPriorityClass)
@@ -470,6 +474,10 @@ BOOLEAN FindIfeoObject(
             {
                 *IoPriorityClass = value;
             }
+            else
+            {
+                *IoPriorityClass = ULONG_MAX;
+            }
         }
 
         if (PagePriorityClass)
@@ -477,6 +485,10 @@ BOOLEAN FindIfeoObject(
             if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
             {
                 *PagePriorityClass = value;
+            }
+            else
+            {
+                *PagePriorityClass = ULONG_MAX;
             }
         }
 
