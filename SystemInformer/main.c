@@ -856,21 +856,13 @@ BOOLEAN PhInitializeMitigationPolicy(
      PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
      PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
-//#define DEFAULT_MITIGATION_POLICY_FLAGS2 \
-//    (PROCESS_CREATION_MITIGATION_POLICY2_LOADER_INTEGRITY_CONTINUITY_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY2_STRICT_CONTROL_FLOW_GUARD_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY2_MODULE_TAMPERING_PROTECTION_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY2_SPECULATIVE_STORE_BYPASS_DISABLE_ALWAYS_ON | \
-//     PROCESS_CREATION_MITIGATION_POLICY2_CET_USER_SHADOW_STACKS_ALWAYS_ON)
     static PH_STRINGREF nompCommandlinePart = PH_STRINGREF_INIT(L" -nomp");
     static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
     BOOLEAN success = TRUE;
-    //HANDLE jobObjectHandle = NULL;
     PH_STRINGREF commandlineSr;
     PPH_STRING commandline = NULL;
     ULONG64 options[2] = { 0 };
-    PS_SYSTEM_DLL_INIT_BLOCK(*LdrSystemDllInitBlock_I) = NULL;
+    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
     SIZE_T attributeListLength;
 
@@ -888,25 +880,14 @@ BOOLEAN PhInitializeMitigationPolicy(
 
     commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
 
-    if (!(LdrSystemDllInitBlock_I = PhGetDllProcedureAddress(L"ntdll.dll", "LdrSystemDllInitBlock", 0)))
-        goto CleanupExit;
-    if (!RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
-        goto CleanupExit;
-    if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
-        goto CleanupExit;
-
-    //if (NT_SUCCESS(NtCreateJobObject(&jobObjectHandle, JOB_OBJECT_ALL_ACCESS, NULL)))
-    //{
-    //    JOBOBJECT_BASIC_UI_RESTRICTIONS basicJobRestrictions;
-    //
-    //    basicJobRestrictions.UIRestrictionsClass = JOB_OBJECT_UILIMIT_GLOBALATOMS | JOB_OBJECT_UILIMIT_HANDLES;
-    //    NtSetInformationJobObject(
-    //        jobObjectHandle,
-    //        JobObjectBasicUIRestrictions,
-    //        &basicJobRestrictions,
-    //        sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS)
-    //        );
-    //}
+    if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(NtCurrentProcess(), &LdrSystemDllInitBlock_I)))
+    {
+        if (RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
+        {
+            if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
+                goto CleanupExit;
+        }
+    }
 
     if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         goto CleanupExit;
@@ -917,9 +898,7 @@ BOOLEAN PhInitializeMitigationPolicy(
         goto CleanupExit;
     if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
         goto CleanupExit;
-    //if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &jobObjectHandle, sizeof(HANDLE), NULL, NULL))
-    //    goto CleanupExit;
-    //
+
     //{
     //    PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoIsolation;
     //    WCHAR alphastring[16] = L"";
@@ -968,9 +947,6 @@ CleanupExit:
         DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
         PhFree(startupInfo.lpAttributeList);
     }
-
-    //if (jobObjectHandle)
-    //    NtClose(jobObjectHandle);
 
     return success;
 #else

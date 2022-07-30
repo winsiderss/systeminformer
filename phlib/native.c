@@ -470,10 +470,6 @@ NTSTATUS PhTerminateProcessAlternative(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-#ifdef _WIN64
-    static PH_STRINGREF ntdllWow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\ntdll.dll");
-#endif
 #if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
 #ifdef _WIN64
@@ -491,25 +487,28 @@ NTSTATUS PhTerminateProcessAlternative(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? &ntdllWow64FileName : &ntdllFileName,
+        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "RtlExitUserProcess",
         0,
         &rtlExitUserProcess,
         NULL
         );
-#else
-    status = PhGetProcedureAddressRemote(
-        ProcessHandle,
-        &ntdllFileName,
-        "RtlExitUserProcess",
-        0,
-        &rtlExitUserProcess,
-        NULL
-        );
-#endif
 
     if (!NT_SUCCESS(status))
         return status;
+#else
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        L"\\SystemRoot\\System32\\ntdll.dll",
+        "RtlExitUserProcess",
+        0,
+        &rtlExitUserProcess,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+#endif
 
     if (WindowsVersion >= WINDOWS_8)
     {
@@ -1897,9 +1896,7 @@ NTSTATUS PhLoadDllProcess(
     _In_opt_ PLARGE_INTEGER Timeout
     ) 
 {
-    static PH_STRINGREF kernel32FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll");
 #ifdef _WIN64
-    static PH_STRINGREF kernel32Wow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\kernel32.dll");
     BOOLEAN isWow64 = FALSE;
 #endif
     NTSTATUS status;
@@ -1917,7 +1914,7 @@ NTSTATUS PhLoadDllProcess(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? &kernel32Wow64FileName : &kernel32FileName,
+        isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
         "LoadLibraryW",
         0,
         &loadLibraryW,
@@ -1926,7 +1923,7 @@ NTSTATUS PhLoadDllProcess(
 #else
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &kernel32FileName,
+        L"\\SystemRoot\\System32\\kernel32.dll",
         "LoadLibraryW",
         0,
         &loadLibraryW,
@@ -2023,10 +2020,6 @@ NTSTATUS PhUnloadDllProcess(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-#ifdef _WIN64
-    static PH_STRINGREF ntdllWow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\ntdll.dll");
-#endif
     NTSTATUS status;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
@@ -2065,7 +2058,6 @@ NTSTATUS PhUnloadDllProcess(
                 isModule32 = TRUE;
         }
 #endif
-
         if (!NT_SUCCESS(status))
             return status;
     }
@@ -2073,7 +2065,7 @@ NTSTATUS PhUnloadDllProcess(
 #ifdef _WIN64
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? &ntdllWow64FileName : &ntdllFileName,
+        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "LdrUnloadDll",
         0,
         &threadStart,
@@ -2082,7 +2074,7 @@ NTSTATUS PhUnloadDllProcess(
 #else
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &ntdllFileName,
+        L"\\SystemRoot\\System32\\ntdll.dll",
         "LdrUnloadDll",
         0,
         &threadStart,
@@ -2153,12 +2145,6 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-    static PH_STRINGREF kernel32FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll");
-#ifdef _WIN64
-    static PH_STRINGREF ntdllWow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\ntdll.dll");
-    static PH_STRINGREF kernel32Wow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\kernel32.dll");
-#endif
 #if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
 #ifdef _WIN64
@@ -2187,7 +2173,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? &ntdllWow64FileName : &ntdllFileName,
+        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "RtlExitUserThread",
         0,
         &rtlExitUserThread,
@@ -2199,7 +2185,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? &kernel32Wow64FileName : &kernel32FileName,
+        isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
         "SetEnvironmentVariableW",
         0,
         &setEnvironmentVariableW,
@@ -2211,7 +2197,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 #else
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &ntdllFileName,
+        L"\\SystemRoot\\System32\\ntdll.dll",
         "RtlExitUserThread",
         0,
         &rtlExitUserThread,
@@ -2223,7 +2209,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &kernel32FileName,
+        L"\\SystemRoot\\System32\\kernel32.dll",
         "SetEnvironmentVariableW",
         0,
         &setEnvironmentVariableW,
@@ -5190,7 +5176,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
  * space of the process.
  * \param DllBase A variable which receives the base address of the DLL containing the procedure.
  */
-NTSTATUS PhGetProcedureAddressRemote(
+NTSTATUS PhGetProcedureAddressRemoteStringRef(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PSTR ProcedureName,
@@ -10696,10 +10682,6 @@ NTSTATUS PhGetProcessCodePage(
     _Out_ PUSHORT ProcessCodePage
     )
 {
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-#ifdef _WIN64
-    static PH_STRINGREF ntdllWow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\ntdll.dll");
-#endif
     NTSTATUS status;
 #ifdef _WIN64
     BOOLEAN isWow64;
@@ -10715,25 +10697,28 @@ NTSTATUS PhGetProcessCodePage(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? &ntdllWow64FileName : &ntdllFileName,
+        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "NlsAnsiCodePage",
         0,
         &nlsAnsiCodePage,
         NULL
         );
-#else
-    status = PhGetProcedureAddressRemote(
-        ProcessHandle,
-        &ntdllFileName,
-        "NlsAnsiCodePage",
-        0,
-        &nlsAnsiCodePage,
-        NULL
-        );
-#endif
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+#else
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        L"\\SystemRoot\\System32\\ntdll.dll",
+        "NlsAnsiCodePage",
+        0,
+        &nlsAnsiCodePage,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+#endif
 
     status = NtReadVirtualMemory(
         ProcessHandle,
@@ -10805,15 +10790,10 @@ NTSTATUS PhGetProcessConsoleCodePage(
     _Out_ PUSHORT ConsoleCodePage
     )
 {
-    static PH_STRINGREF kernel32FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll");
-#ifdef _WIN64
-    static PH_STRINGREF kernelWow64FileName = PH_STRINGREF_INIT(L"\\SystemRoot\\SysWow64\\kernel32.dll");
-#endif
     NTSTATUS status;
 #ifdef _WIN64
     BOOLEAN isWow64;
 #endif
-    USHORT codePage = 0;
     THREAD_BASIC_INFORMATION basicInformation;
     HANDLE threadHandle = NULL;
     PVOID getConsoleCP = NULL;
@@ -10826,25 +10806,28 @@ NTSTATUS PhGetProcessConsoleCodePage(
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? &kernelWow64FileName : &kernel32FileName,
+        isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
         ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
         0,
         &getConsoleCP,
         NULL
         );
-#else
-    status = PhGetProcedureAddressRemote(
-        ProcessHandle,
-        &kernel32FileName,
-        ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
-        0,
-        &getConsoleCP,
-        NULL
-        );
-#endif
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+#else
+    status = PhGetProcedureAddressRemote(
+        ProcessHandle,
+        L"\\SystemRoot\\System32\\kernel32.dll",
+        ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
+        0,
+        &getConsoleCP,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+#endif
 
     status = RtlCreateUserThread(
         ProcessHandle,
@@ -10888,14 +10871,13 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     _Out_ PPS_SYSTEM_DLL_INIT_BLOCK* SystemDllInitBlock
     )
 {
-    static PH_STRINGREF ntdllFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
-    NTSTATUS status;
-    PVOID ldrInitBlockAddress;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
+    PVOID ldrInitBlockAddress;
 
     status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        &ntdllFileName,
+        L"\\SystemRoot\\System32\\ntdll.dll",
         "LdrSystemDllInitBlock",
         0,
         &ldrInitBlockAddress,
@@ -12198,7 +12180,7 @@ NTSTATUS PhGetSystemCompressionStoreInformation(
     if (NT_SUCCESS(status))
     {
         memset(SystemCompressionStoreInformation, 0, sizeof(PH_SYSTEM_STORE_COMPRESSION_INFORMATION));
-        SystemCompressionStoreInformation->CompressionPid = UlongToHandle(compressionInfo.CompressionPid);
+        SystemCompressionStoreInformation->CompressionPid = compressionInfo.CompressionPid;
         SystemCompressionStoreInformation->WorkingSetSize = compressionInfo.WorkingSetSize;
         SystemCompressionStoreInformation->TotalDataCompressed = compressionInfo.TotalDataCompressed;
         SystemCompressionStoreInformation->TotalCompressedSize = compressionInfo.TotalCompressedSize;

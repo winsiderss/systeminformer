@@ -284,7 +284,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
 
                                 if (NT_SUCCESS(status))
                                 {
-                                    status = PhOpenProcess(&processHandle, PROCESS_SET_QUOTA, compressionInfo.CompressionPid);
+                                    status = PhOpenProcess(&processHandle, PROCESS_SET_QUOTA, UlongToHandle(compressionInfo.CompressionPid));
 
                                     if (NT_SUCCESS(status))
                                     {
