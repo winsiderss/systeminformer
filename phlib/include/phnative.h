@@ -1657,6 +1657,13 @@ PhCreateDirectoryWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateDirectoryFullPathWin32(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhDeleteDirectoryWin32(
     _In_ PPH_STRING DirectoryPath
     );

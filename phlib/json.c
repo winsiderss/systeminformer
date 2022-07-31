@@ -452,31 +452,13 @@ NTSTATUS PhSaveXmlObjectToFile(
 {
     NTSTATUS status;
     HANDLE fileHandle;
-    PPH_STRING fullPath;
-    ULONG indexOfFileName;
 
-    // Create the directory if it does not exist.  
-    if (fullPath = PhGetFullPath(FileName, &indexOfFileName))
-    {
-        if (indexOfFileName != ULONG_MAX)
-        {
-            PPH_STRING directoryName;
+    // Create the directory if it does not exist.
 
-            directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-            status = PhCreateDirectoryWin32(directoryName);
+    status = PhCreateDirectoryFullPathWin32(FileName);
 
-            if (!NT_SUCCESS(status))
-            {
-                PhDereferenceObject(directoryName);
-                PhDereferenceObject(fullPath);
-                return status;
-            }
-
-            PhDereferenceObject(directoryName);
-        }
-
-        PhDereferenceObject(fullPath);
-    }  
+    if (!NT_SUCCESS(status))
+        return status;
 
     status = PhCreateFileWin32(
         &fileHandle,

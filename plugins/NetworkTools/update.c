@@ -387,17 +387,8 @@ NTSTATUS GeoIPUpdateThread(
             }
             else
             {
-                PPH_STRING fullPath;
-                ULONG indexOfFileName;
-
-                // Create the directory if it does not exist.
-                if (fullPath = PhGetFullPath(dbpath->Buffer, &indexOfFileName))
-                {
-                    if (indexOfFileName != ULONG_MAX)
-                        PhCreateDirectoryWin32(PhaSubstring(fullPath, 0, indexOfFileName));
-
-                    PhDereferenceObject(fullPath);
-                }
+                if (!NT_SUCCESS(PhCreateDirectoryFullPathWin32(&dbpath->sr)))
+                    goto CleanupExit;
             }
 
             mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(zipFilePath));

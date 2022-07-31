@@ -6025,8 +6025,7 @@ PPH_STRING PhCreateCacheFile(
     PPH_STRING fileName;
     PPH_STRING settingsFileName;
     PPH_STRING cacheDirectory;
-    PPH_STRING cacheFilePath;
-    PPH_STRING cacheFullFilePath;
+    PPH_STRING cacheFilePath = NULL;
     ULONG indexOfFileName = ULONG_MAX;
     PH_STRINGREF randomAlphaStringRef;
     WCHAR randomAlphaString[32] = L"";
@@ -6104,24 +6103,16 @@ PPH_STRING PhCreateCacheFile(
         &FileName->sr
         ));
 
-    if (cacheFullFilePath = PhGetFullPath(PhGetString(cacheFilePath), &indexOfFileName))
+    if (!NT_SUCCESS(PhCreateDirectoryFullPathWin32(&cacheFilePath->sr)))
     {
-        PPH_STRING directoryPath;
-
-        if (indexOfFileName != ULONG_MAX && (directoryPath = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
-        {
-            PhCreateDirectoryWin32(directoryPath);
-
-            PhDereferenceObject(directoryPath);
-        }
+        PhClearReference(&cacheFilePath);
     }
 
-    PhDereferenceObject(cacheFilePath);
     PhDereferenceObject(cacheDirectory);
     PhDereferenceObject(settingsFileName);
     PhDereferenceObject(fileName);
 
-    return cacheFullFilePath;
+    return cacheFilePath;
 }
 
 VOID PhClearCacheDirectory(
