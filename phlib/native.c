@@ -8962,6 +8962,33 @@ NTSTATUS PhCreateDirectoryWin32(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS PhCreateDirectoryFullPathWin32(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    ULONG indexOfFileName;
+    PPH_STRING directory;
+    PPH_STRING path;
+
+    if (path = PhGetFullPath(PhGetStringRefZ(FileName), &indexOfFileName))
+    {
+        if (indexOfFileName != ULONG_MAX)
+        {
+            if (directory = PhSubstring(path, 0, indexOfFileName))
+            {
+                status = PhCreateDirectoryWin32(directory);
+
+                PhDereferenceObject(directory);
+            }
+        }
+
+        PhDereferenceObject(path);
+    }
+
+    return status;
+}
+
 static BOOLEAN PhpDeleteDirectoryCallback(
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
