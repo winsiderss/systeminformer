@@ -663,7 +663,7 @@ NTSTATUS PhLoadSettings(
 
     PhpClearIgnoredSettings();
 
-    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName->Buffer, &topNode)))
+    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName, &topNode)))
         return status;
     if (!topNode) // Return corrupt status and reset the settings.
         return STATUS_FILE_CORRUPT_ERROR;
@@ -824,7 +824,7 @@ NTSTATUS PhSaveSettings(
     PhReleaseQueuedLockShared(&PhSettingsLock);
 
     status = PhSaveXmlObjectToFile(
-        FileName->Buffer,
+        FileName,
         topNode,
         PhpSettingsSaveCallback
         );

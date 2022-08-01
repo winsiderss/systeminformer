@@ -343,7 +343,7 @@ NTSTATUS
 NTAPI
 PhHttpSocketDownloadToFile(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
     _In_opt_ PVOID Context
     );

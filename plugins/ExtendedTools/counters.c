@@ -528,7 +528,7 @@ PET_GPU_ENGINE_PERFCOUNTER EtPerfCounterAddOrUpdateGpuEngineCounters(
             if (entry->CounterValue < 0.0)
                 entry->CounterValue = 0.0;
             if (entry->CounterValue > 100.0)
-                entry->CounterValue = 0.0; // Taskmgr zeros values above 100 (dmex) 
+                entry->CounterValue = 100.0;
         }
         else
         {
