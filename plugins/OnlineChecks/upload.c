@@ -147,7 +147,7 @@ NTSTATUS HashFileAndResetPosition(
     PPH_STRING hashString = NULL;
     ULONG64 bytesRemaining;
     LARGE_INTEGER position;
-    LONG priority;
+    KPRIORITY priority;
     IO_PRIORITY_HINT ioPriority;
     BYTE buffer[PAGE_SIZE];
     
@@ -349,7 +349,7 @@ NTSTATUS UploadFileThreadStart(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
-        RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
+        RaiseUploadError(context, L"Unable to open the file", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
@@ -421,7 +421,7 @@ NTSTATUS UploadFileThreadStart(
 
         if (!NT_SUCCESS(status = PhLoadMappedImageEx(NULL, fileHandle, &mappedImage)))
         {
-            RaiseUploadError(context, L"Unable to load the image.", RtlNtStatusToDosError(status));
+            RaiseUploadError(context, L"Unable to load the image.", PhNtStatusToDosError(status));
             goto CleanupExit;
         }
 
@@ -796,7 +796,7 @@ NTSTATUS UploadFileThreadStart(
                 }
                 else
                 {
-                    RaiseUploadError(context, L"Unable to complete the request.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                    RaiseUploadError(context, L"Unable to complete the request.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
                     goto CleanupExit;
                 }
 
@@ -861,7 +861,7 @@ NTSTATUS UploadFileThreadStart(
                 
                 if (PhIsNullOrEmptyString(context->LaunchCommand))
                 {
-                    RaiseUploadError(context, L"Unable to complete the request.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                    RaiseUploadError(context, L"Unable to complete the request.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
                     PhDereferenceObject(jsonString);
                     goto CleanupExit;
                 }
@@ -984,7 +984,7 @@ NTSTATUS UploadCheckThreadStart(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
-        RaiseUploadError(context, L"Unable to open the file", RtlNtStatusToDosError(status));
+        RaiseUploadError(context, L"Unable to open the file", PhNtStatusToDosError(status));
         goto CleanupExit;
     }
 
@@ -1047,7 +1047,7 @@ NTSTATUS UploadCheckThreadStart(
 
             if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, &tempHashString)))
             {
-                RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+                RaiseUploadError(context, L"Unable to hash the file", PhNtStatusToDosError(status));
                 goto CleanupExit;
             }
 
@@ -1086,7 +1086,7 @@ NTSTATUS UploadCheckThreadStart(
             }
             else
             {
-                RaiseUploadError(context, L"Unable to parse the response.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                RaiseUploadError(context, L"Unable to parse the response.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
             }
         }
         break;
@@ -1100,7 +1100,7 @@ NTSTATUS UploadCheckThreadStart(
 
             if (!NT_SUCCESS(status = HashFileAndResetPosition(fileHandle, &fileSize64, Sha256HashAlgorithm, &tempHashString)))
             {
-                RaiseUploadError(context, L"Unable to hash the file", RtlNtStatusToDosError(status));
+                RaiseUploadError(context, L"Unable to hash the file", PhNtStatusToDosError(status));
                 goto CleanupExit;
             }
 
@@ -1177,7 +1177,7 @@ NTSTATUS UploadCheckThreadStart(
                     }
                     else
                     {
-                        RaiseUploadError(context, L"Unable to parse the UploadUrl.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                        RaiseUploadError(context, L"Unable to parse the UploadUrl.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
                     }
                 }
                 else
@@ -1230,7 +1230,7 @@ NTSTATUS UploadCheckThreadStart(
                     }
                     else
                     {
-                        RaiseUploadError(context, L"Received invalid VT3 response.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                        RaiseUploadError(context, L"Received invalid VT3 response.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
                     }
                 }
  
@@ -1238,7 +1238,7 @@ NTSTATUS UploadCheckThreadStart(
             }
             else
             {
-                RaiseUploadError(context, L"Unable to parse the response.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+                RaiseUploadError(context, L"Unable to parse the response.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
             }
         }
         break;
@@ -1293,7 +1293,7 @@ NTSTATUS UploadRecheckThreadStart(
     }
     else
     {
-        RaiseUploadError(context, L"VirusTotal ReScan API error.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+        RaiseUploadError(context, L"VirusTotal ReScan API error.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
     }
 
     PhDereferenceObject(context);
@@ -1327,7 +1327,7 @@ NTSTATUS ViewReportThreadStart(
     }
     else
     {
-        RaiseUploadError(context, L"VirusTotal ViewReport API error.", RtlNtStatusToDosError(STATUS_FAIL_CHECK));
+        RaiseUploadError(context, L"VirusTotal ViewReport API error.", PhNtStatusToDosError(STATUS_FAIL_CHECK));
     }
 
     PhDereferenceObject(context);

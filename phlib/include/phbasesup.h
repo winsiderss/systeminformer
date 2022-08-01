@@ -1245,6 +1245,18 @@ PhGetStringRef(
     return sr;
 }
 
+FORCEINLINE
+PWSTR
+PhGetStringRefZ(
+    _In_opt_ PPH_STRINGREF String
+    )
+{
+    if (String)
+        return String->Buffer;
+    else
+        return (PWSTR)TEXT("");
+}
+
 /**
  * Retrieves a pointer to a string object's buffer or returns an empty string.
  *
@@ -1262,7 +1274,7 @@ PhGetStringOrEmpty(
     if (String)
         return String->Buffer;
     else
-        return (PWSTR)TEXT(""); // HACK fixes VS2019 conformance mode warning (dmex)
+        return (PWSTR)TEXT("");
 }
 
 /**

@@ -351,18 +351,18 @@ PVOID PhGetJsonObjectAsArrayList(
 }
 
 PVOID PhLoadJsonObjectFromFile(
-    _In_ PWSTR FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
-    return json_object_from_file(FileName);
+    return json_object_from_file(FileName->Buffer);
 }
 
 VOID PhSaveJsonObjectToFile(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ PVOID Object
     )
 {
-    json_object_to_file(FileName, Object);
+    json_object_to_file(FileName->Buffer, Object);
 }
 
 // XML support
@@ -391,7 +391,7 @@ PVOID PhLoadXmlObjectFromString(
 }
 
 NTSTATUS PhLoadXmlObjectFromFile(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_opt_ PVOID* XmlRootObject
     )
 {
@@ -402,7 +402,7 @@ NTSTATUS PhLoadXmlObjectFromFile(
 
     status = PhCreateFileWin32(
         &fileHandle,
-        FileName,
+        PhGetStringRefZ(FileName),
         FILE_GENERIC_READ,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -445,7 +445,7 @@ NTSTATUS PhLoadXmlObjectFromFile(
 }
 
 NTSTATUS PhSaveXmlObjectToFile(
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ PVOID XmlRootObject,
     _In_opt_ PVOID XmlSaveCallback
     )
@@ -462,7 +462,7 @@ NTSTATUS PhSaveXmlObjectToFile(
 
     status = PhCreateFileWin32(
         &fileHandle,
-        FileName,
+        PhGetStringRefZ(FileName),
         FILE_GENERIC_WRITE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,

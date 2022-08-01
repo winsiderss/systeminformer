@@ -176,7 +176,7 @@ NTSTATUS LoadDb(
     PVOID topNode;
     PVOID currentNode;
 
-    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(ObjectDbPath->Buffer, &topNode)))
+    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(&ObjectDbPath->sr, &topNode)))
         return status;
     if (!topNode)
         return STATUS_FILE_CORRUPT_ERROR;
@@ -420,7 +420,7 @@ NTSTATUS SaveDb(
     UnlockDb();
 
     status = PhSaveXmlObjectToFile(
-        ObjectDbPath->Buffer,
+        &ObjectDbPath->sr,
         topNode,
         NULL
         );

@@ -634,7 +634,7 @@ PVOID PhHttpSocketDownloadString(
 
 NTSTATUS PhHttpSocketDownloadToFile(
     _In_ PPH_HTTP_CONTEXT HttpContext,
-    _In_ PWSTR FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ PPH_HTTPDOWNLOAD_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -743,27 +743,11 @@ NTSTATUS PhHttpSocketDownloadToFile(
 
     if (NT_SUCCESS(status))
     {
-        ULONG indexOfFileName;
-        PPH_STRING fullPath;
-        PPH_STRING directoryName;
-
-        if (fullPath = PhGetFullPath(FileName, &indexOfFileName))
-        {
-            if (indexOfFileName != ULONG_MAX)
-            {
-                if (directoryName = PhSubstring(fullPath, 0, indexOfFileName))
-                {
-                    status = PhCreateDirectoryWin32(directoryName);
-                    PhDereferenceObject(directoryName);
-                }
-            }
-
-            PhDereferenceObject(fullPath);
-        }
+        status = PhCreateDirectoryFullPathWin32(FileName);
 
         if (NT_SUCCESS(status))
         {
-            status = PhMoveFileWin32(PhGetString(fileName), FileName);
+            status = PhMoveFileWin32(PhGetString(fileName), PhGetStringRefZ(FileName));
         }
     }
 

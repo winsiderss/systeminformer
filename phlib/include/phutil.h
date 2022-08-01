@@ -1455,7 +1455,7 @@ PhGetLoaderEntryDllBase(
 {
     PH_STRINGREF baseDllName;
 
-    PhInitializeStringRefLongHint(&baseDllName, DllName);
+    PhInitializeStringRef(&baseDllName, DllName);
 
     return PhGetLoaderEntryStringRefDllBase(NULL, &baseDllName);
 }
