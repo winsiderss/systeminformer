@@ -278,10 +278,15 @@ namespace CustomBuildTool
 
                         Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\Debug64\\x86\\SystemInformer.exe");
                         Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\Debug64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.sig", "bin\\Debug64\\x86\\SystemInformer.sig");
+
                         Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll");
                         Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.sig", "bin\\Debug64\\x86\\plugins\\DotNetTools.sig");
+
                         Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\Debug64\\x86\\plugins\\ExtendedTools.dll");
                         Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\Debug64\\x86\\plugins\\ExtendedTools.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.sig", "bin\\Debug64\\x86\\plugins\\ExtendedTools.sig");
                     }
                 }
 
@@ -294,10 +299,15 @@ namespace CustomBuildTool
 
                         Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\Release64\\x86\\SystemInformer.exe");
                         Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\Release64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.sig", "bin\\Release64\\x86\\SystemInformer.sig");
+
                         Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\Release64\\x86\\plugins\\DotNetTools.dll");
                         Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\Release64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.sig", "bin\\Release64\\x86\\plugins\\DotNetTools.sig");
+
                         Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\Release64\\x86\\plugins\\ExtendedTools.dll");
                         Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.sig", "bin\\Release64\\x86\\plugins\\ExtendedTools.sig");
                     }
                 }
             }
