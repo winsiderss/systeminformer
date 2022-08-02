@@ -23,6 +23,12 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
 msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
+msbuild tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+if %ERRORLEVEL% neq 0 goto end
+
+msbuild tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -verbosity:minimal
+if %ERRORLEVEL% neq 0 goto end
+
 msbuild SystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
