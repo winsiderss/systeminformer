@@ -15,16 +15,12 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-    - name: Git checkout
+    - uses: actions/checkout@v3
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+    - name: Build Solution
       working-directory: ${{github.workspace}}
-      shell: cmd
-      run: |
-        git.exe init ${{github.workspace}}
-        git.exe remote add origin ${{github.server_url}}/${{github.repository}}/
-        git fetch origin
-        git checkout master
-
-    - name: Build release
+      run: msbuild /m /nologo /verbosity:quiet /p:Configuration=Debug SystemInformer.sln
+    - name: Build Plugins
       working-directory: ${{github.workspace}}
-      shell: cmd
-      run: build\build_debug.cmd
+      run: msbuild /m /nologo /verbosity:quiet /p:Configuration=Debug Plugins\Plugins.sln
