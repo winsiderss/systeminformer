@@ -617,14 +617,33 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                     &lineInfo
                     ))
                 {
+                    PH_FORMAT format[5];
+                    SIZE_T returnLength;
+                    WCHAR buffer[0x100];
+
                     PhMoveReference(&fileName, PhGetFileName(fileName));
 
-                    PhAppendFormatStringBuilder(
-                        &stringBuilder,
-                        L"File: %s: line %lu\n",
-                        fileName->Buffer,
-                        lineInfo.LineNumber
-                        );
+                    // File: %s: line %lu\n
+                    PhInitFormatS(&format[0], L"File: ");
+                    PhInitFormatSR(&format[1], fileName->sr);
+                    PhInitFormatS(&format[2], L": line ");
+                    PhInitFormatU(&format[3], lineInfo.LineNumber);
+                    PhInitFormatS(&format[4], L"\n");
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+                    {
+                        PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+                    }
+                    else
+                    {
+                        PhAppendFormatStringBuilder(
+                            &stringBuilder,
+                            L"File: %s: line %lu\n",
+                            fileName->Buffer,
+                            lineInfo.LineNumber
+                            );
+                    }
+
                     PhDereferenceObject(fileName);
                 }
 
@@ -1571,7 +1590,7 @@ VOID PhpSymbolProviderEventCallbackHandler(
         statusMessage = PhReferenceObject(event->EventMessage);
         break;
     case PH_SYMBOL_EVENT_TYPE_LOAD_END:
-        statusMessage = PhCreateString(L"Loading symbols from image...");
+        statusMessage = PhCreateString(L"Loading symbols...");
         break;
     case PH_SYMBOL_EVENT_TYPE_PROGRESS:
         {

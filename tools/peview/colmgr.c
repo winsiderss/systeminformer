@@ -470,7 +470,25 @@ PPH_STRING PhCmSaveSettingsEx(
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    PhAppendFormatStringBuilder(&stringBuilder, L"@%u|", PhGlobalDpi);
+    {
+        PH_FORMAT format[3];
+        SIZE_T returnLength;
+        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+        // @%u|
+        PhInitFormatC(&format[0], L'@');
+        PhInitFormatU(&format[1], PhGlobalDpi);
+        PhInitFormatC(&format[2], L'|');
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+        {
+            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"@%u|", PhGlobalDpi);
+        }
+    }
 
     while (count < total)
     {

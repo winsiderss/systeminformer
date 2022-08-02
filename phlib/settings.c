@@ -1093,18 +1093,53 @@ PPH_STRING PhSaveListViewColumnSettings(
 
     PhInitializeStringBuilder(&stringBuilder, 20);
 
-    PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", PhGlobalDpi);
+    {
+        PH_FORMAT format[3];
+        SIZE_T returnLength;
+        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+        // @%lu|
+        PhInitFormatC(&format[0], L'@');
+        PhInitFormatU(&format[1], PhGlobalDpi);
+        PhInitFormatC(&format[2], L'|');
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+        {
+            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", PhGlobalDpi);
+        }
+    }
 
     lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
 
     while (ListView_GetColumn(ListViewHandle, i, &lvColumn))
     {
-        PhAppendFormatStringBuilder(
-            &stringBuilder,
-            L"%u,%u|",
-            lvColumn.iOrder,
-            lvColumn.cx
-            );
+        PH_FORMAT format[4];
+        SIZE_T returnLength;
+        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+        // %u,%u|
+        PhInitFormatU(&format[0], lvColumn.iOrder);
+        PhInitFormatC(&format[1], L',');
+        PhInitFormatU(&format[2], lvColumn.cx);
+        PhInitFormatC(&format[3], L'|');
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+        {
+            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(
+                &stringBuilder,
+                L"%u,%u|",
+                lvColumn.iOrder,
+                lvColumn.cx
+                );
+        }
         i++;
     }
 
@@ -1381,12 +1416,7 @@ VOID PhSaveCustomColorList(
             &returnLength
             ))
         {
-            PH_STRINGREF string;
-
-            string.Buffer = formatBuffer;
-            string.Length = returnLength - sizeof(UNICODE_NULL);
-
-            PhAppendStringBuilder(&stringBuilder, &string);
+            PhAppendStringBuilderEx(&stringBuilder, formatBuffer, returnLength - sizeof(UNICODE_NULL));
         }
         else
         {

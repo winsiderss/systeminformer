@@ -99,13 +99,32 @@ VOID NetAdaptersSaveList(
 
         if (entry->UserReference)
         {
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%lu,%I64u,%s,",
-                entry->AdapterId.InterfaceIndex, // This value is UNSAFE and will change after reboot.
-                entry->AdapterId.InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
-                entry->AdapterId.InterfaceGuid->Buffer
-                );
+            PH_FORMAT format[6];
+            SIZE_T returnLength;
+            WCHAR buffer[PH_INT64_STR_LEN_1];
+
+            // %lu,%I64u,%s,
+            PhInitFormatU(&format[0], entry->AdapterId.InterfaceIndex);
+            PhInitFormatC(&format[1], L',');
+            PhInitFormatI64U(&format[2], entry->AdapterId.InterfaceLuid.Value);
+            PhInitFormatC(&format[3], L',');
+            PhInitFormatSR(&format[4], entry->AdapterId.InterfaceGuid->sr);
+            PhInitFormatC(&format[5], L',');
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+            {
+                PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+            }
+            else
+            {
+                PhAppendFormatStringBuilder(
+                    &stringBuilder,
+                    L"%lu,%I64u,%s,",
+                    entry->AdapterId.InterfaceIndex, // This value is UNSAFE and will change after reboot.
+                    entry->AdapterId.InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
+                    entry->AdapterId.InterfaceGuid->Buffer
+                    );
+            }
         }
 
         PhDereferenceObjectDeferDelete(entry);

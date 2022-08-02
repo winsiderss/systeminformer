@@ -89,11 +89,8 @@ VOID DiskDrivesSaveList(
 
         if (entry->UserReference)
         {
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%s,",
-                entry->Id.DevicePath->Buffer // This value is SAFE and does not change.
-                );
+            PhAppendStringBuilder(&stringBuilder, &entry->Id.DevicePath->sr);
+            PhAppendCharStringBuilder(&stringBuilder, L',');
         }
 
         PhDereferenceObjectDeferDelete(entry);
