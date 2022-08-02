@@ -20,7 +20,4 @@ jobs:
       uses: microsoft/setup-msbuild@v1.0.2
     - name: Build Solution
       working-directory: ${{github.workspace}}
-      run: msbuild /m /nologo /verbosity:quiet /p:Configuration=Debug SystemInformer.sln
-    - name: Build Plugins
-      working-directory: ${{github.workspace}}
-      run: msbuild /m /nologo /verbosity:quiet /p:Configuration=Debug Plugins\Plugins.sln
+      run: build\build_verbose.cmd
