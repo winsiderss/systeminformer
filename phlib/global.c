@@ -35,7 +35,7 @@ PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;
 RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
 PHLIBAPI PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
-PHLIBAPI PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };
+PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };
 ULONG WindowsVersion = WINDOWS_NEW;
 
 // Internal data
