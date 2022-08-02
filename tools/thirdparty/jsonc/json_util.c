@@ -205,9 +205,10 @@ int json_object_to_file_ext(wchar_t *filename, struct json_object *obj, int flag
     NTSTATUS status;
     HANDLE fileHandle;
     IO_STATUS_BLOCK isb;
-    PSTR json_str;
+    PSTR json_string;
+    size_t json_length;
 
-    if (!(json_str = (PSTR)json_object_to_json_string_ext(obj, flags)))
+    if (!(json_string = (PSTR)json_object_to_json_string_length(obj, flags, &json_length)))
         return -1;
 
     status = PhCreateFileWin32(
@@ -229,8 +230,8 @@ int json_object_to_file_ext(wchar_t *filename, struct json_object *obj, int flag
         NULL,
         NULL,
         &isb,
-        json_str,
-        (ULONG)strlen(json_str),
+        json_string,
+        (ULONG)json_length,
         NULL,
         NULL
         );
