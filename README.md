@@ -1,4 +1,4 @@
-[![Build status](https://img.shields.io/appveyor/ci/winsiderss/systeminformer.svg?style=for-the-badge)](https://ci.appveyor.com/project/winsiderss/systeminformer)
+[![Build status](https://img.shields.io/github/workflow/status/winsiderss/systeminformer/continuous-integration?style=for-the-badge)](https://ci.appveyor.com/project/winsiderss/systeminformer)
 [![Build contributors](https://img.shields.io/github/contributors/winsiderss/systeminformer.svg?style=for-the-badge&color=blue)](https://github.com/winsiderss/systeminformer/graphs/contributors)
 [![Licence](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&color=blue)](https://opensource.org/licenses/MIT)
 [![Github stats](https://img.shields.io/github/downloads/winsiderss/systeminformer/total.svg?style=for-the-badge&color=red)](https://somsubhra.github.io/github-release-stats/?username=systeminformer&repository=systeminformer)
@@ -31,7 +31,7 @@ Windows 7 or higher, 32-bit or 64-bit.
 
 ## Building the project
 
-Requires Visual Studio (2019 or later).
+Requires Visual Studio (2022 or later).
 
 Execute `build_release.cmd` located in the `build` directory to compile the project or load the `SystemInformer.sln` and `Plugins.sln` solutions if you prefer building the project using Visual Studio.
 
@@ -59,7 +59,7 @@ directory as SystemInformer.exe. You can do this using Windows Explorer:
 
 ## Plugins
 
-Plugins can be configured from Informer > Plugins.
+Plugins can be configured from Options > Plugins.
 
 If you experience any crashes involving plugins, make sure they
 are up to date.
