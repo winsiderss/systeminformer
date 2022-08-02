@@ -124,16 +124,38 @@ VOID PhNfSaveSettings(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
-            continue;
+        if (icon->Flags & PH_NF_ICON_ENABLED)
+        {
+            PH_FORMAT format[6];
+            SIZE_T returnLength;
+            WCHAR buffer[PH_INT64_STR_LEN_1];
 
-        PhAppendFormatStringBuilder(
-            &iconListBuilder,
-            L"%lu|%lu|%s|",
-            icon->SubId,
-            icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0,
-            icon->Plugin ? icon->Plugin->Name.Buffer : L""
-            );
+            // %lu|%lu|%s|
+            PhInitFormatU(&format[0], icon->SubId);
+            PhInitFormatC(&format[1], L'|');
+            PhInitFormatU(&format[2], icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0);
+            PhInitFormatC(&format[3], L'|');
+            if (icon->Plugin)
+                PhInitFormatSR(&format[4], icon->Plugin->Name);
+            else
+                PhInitFormatS(&format[4], L"");
+            PhInitFormatC(&format[5], L'|');
+
+            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+            {
+                PhAppendStringBuilderEx(&iconListBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+            }
+            else
+            {
+                PhAppendFormatStringBuilder(
+                    &iconListBuilder,
+                    L"%lu|%lu|%s|",
+                    icon->SubId,
+                    icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0,
+                    icon->Plugin ? icon->Plugin->Name.Buffer : L""
+                    );
+            }
+        }
     }
 
     if (iconListBuilder.String->Length != 0)

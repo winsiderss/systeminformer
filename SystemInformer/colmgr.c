@@ -600,7 +600,25 @@ PPH_STRING PhCmSaveSettingsEx(
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
-    PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", PhGlobalDpi);
+    {
+        PH_FORMAT format[3];
+        SIZE_T returnLength;
+        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+        // @%lu|
+        PhInitFormatC(&format[0], L'@');
+        PhInitFormatU(&format[1], PhGlobalDpi);
+        PhInitFormatC(&format[2], L'|');
+
+        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+        {
+            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", PhGlobalDpi);
+        }
+    }
 
     while (count < total)
     {
@@ -612,27 +630,66 @@ PPH_STRING PhCmSaveSettingsEx(
                 {
                     if (!Manager || i < Manager->MinId)
                     {
-                        PhAppendFormatStringBuilder(
-                            &stringBuilder,
-                            L"%lu,%lu,%ld|",
-                            i,
-                            column.Fixed ? 0 : column.DisplayIndex + increment,
-                            column.Width
-                            );
+                        PH_FORMAT format[6];
+                        SIZE_T returnLength;
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                        // %lu,%lu,%ld|
+                        PhInitFormatU(&format[0], i);
+                        PhInitFormatC(&format[1], L',');
+                        PhInitFormatU(&format[2], column.Fixed ? 0 : column.DisplayIndex + increment);
+                        PhInitFormatC(&format[3], L',');
+                        PhInitFormatU(&format[4], column.Width);
+                        PhInitFormatC(&format[5], L'|');
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+                        {
+                            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+                        }
+                        else
+                        {
+                            PhAppendFormatStringBuilder(
+                                &stringBuilder,
+                                L"%lu,%lu,%ld|",
+                                i,
+                                column.Fixed ? 0 : column.DisplayIndex + increment,
+                                column.Width
+                                );
+                        }
                     }
                     else
                     {
-                        PPH_CM_COLUMN cmColumn;
+                        PPH_CM_COLUMN cmColumn = column.Context;
+                        PH_FORMAT format[9];
+                        SIZE_T returnLength;
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
 
-                        cmColumn = column.Context;
-                        PhAppendFormatStringBuilder(
-                            &stringBuilder,
-                            L"+%s+%lu,%lu,%ld|",
-                            cmColumn->Plugin->Name.Buffer,
-                            cmColumn->SubId,
-                            column.DisplayIndex + increment,
-                            column.Width
-                            );
+                        // +%s+%lu,%lu,%ld|
+                        PhInitFormatC(&format[0], L'+');
+                        PhInitFormatSR(&format[1], cmColumn->Plugin->Name);
+                        PhInitFormatC(&format[2], L'+');
+                        PhInitFormatU(&format[3], cmColumn->SubId);
+                        PhInitFormatC(&format[4], L',');
+                        PhInitFormatU(&format[5], column.DisplayIndex + increment);
+                        PhInitFormatC(&format[6], L',');
+                        PhInitFormatD(&format[7], column.Width);
+                        PhInitFormatC(&format[8], L'|');
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
+                        {
+                            PhAppendStringBuilderEx(&stringBuilder, buffer, returnLength - sizeof(UNICODE_NULL));
+                        }
+                        else
+                        {
+                            PhAppendFormatStringBuilder(
+                                &stringBuilder,
+                                L"+%s+%lu,%lu,%ld|",
+                                cmColumn->Plugin->Name.Buffer,
+                                cmColumn->SubId,
+                                column.DisplayIndex + increment,
+                                column.Width
+                                );
+                        }
                     }
                 }
             }

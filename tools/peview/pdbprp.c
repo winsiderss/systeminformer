@@ -14,7 +14,7 @@
 #include "colmgr.h"
 
 static PH_STRINGREF EmptySymbolsText = PH_STRINGREF_INIT(L"There are no symbols to display.");
-static PH_STRINGREF LoadingSymbolsText = PH_STRINGREF_INIT(L"Loading symbols from image...");
+static PH_STRINGREF LoadingSymbolsText = PH_STRINGREF_INIT(L"Loading symbols...");
 
 BOOLEAN SymbolNodeHashtableCompareFunction(
     _In_ PVOID Entry1,
