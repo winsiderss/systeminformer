@@ -1,0 +1,30 @@
+name: continuous-integration
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - name: Git checkout
+      working-directory: ${{github.workspace}}
+      shell: cmd
+      run: |
+        git.exe init ${{github.workspace}}
+        git.exe remote add origin ${{github.server_url}}/${{github.repository}}/
+        git fetch origin
+        git checkout master
+
+    - name: Build release
+      working-directory: ${{github.workspace}}
+      shell: cmd
+      run: build\build_debug.cmd
