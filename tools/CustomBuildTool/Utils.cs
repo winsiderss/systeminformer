@@ -24,6 +24,14 @@ namespace CustomBuildTool
     [System.Security.SuppressUnmanagedCodeSecurity]
     public static class Win32
     {
+        public static void CreateDirectory(string FileName)
+        {
+            if (!Directory.Exists(FileName))
+            {
+                Directory.CreateDirectory(FileName);
+            }
+        }
+
         public static int CreateProcess(string FileName, string Arguments, out string outputstring)
         {
             int exitcode = int.MaxValue;
