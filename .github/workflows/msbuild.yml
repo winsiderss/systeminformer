@@ -20,4 +20,4 @@ jobs:
       uses: microsoft/setup-msbuild@v1.0.2
     - name: Build Solution
       working-directory: ${{github.workspace}}
-      run: build\build_verbose.cmd
+      run: build\build_debug.cmd
