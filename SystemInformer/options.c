@@ -1016,24 +1016,21 @@ BOOLEAN PhpIsExploitProtectionEnabled(
 {
     BOOLEAN enabled = FALSE;
     HANDLE keyHandle;
-    PPH_STRING path;
-    PPH_STRING apppath;
-    PPH_STRING keypath;
+    PPH_STRING directory;
+    PPH_STRING fileName;
+    PPH_STRING keyName;
 
-    path = PhCreateString2(&TaskMgrImageOptionsKeyName);
-    apppath = PhGetApplicationFileNameWin32();
-
-    PhMoveReference(&path, PhGetBaseDirectory(path));
-    PhMoveReference(&apppath, PhGetBaseName(apppath));
-    keypath = PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr);
-    PhDereferenceObject(apppath);
-    PhDereferenceObject(path);
+    directory = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
+    directory = PH_AUTO(PhGetBaseDirectory(directory));
+    fileName = PH_AUTO(PhGetApplicationFileNameWin32());
+    fileName = PH_AUTO(PhGetBaseName(fileName));
+    keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
         KEY_READ,
         PH_KEY_LOCAL_MACHINE,
-        &keypath->sr,
+        &keyName->sr,
         0
         )))
     {
@@ -1056,8 +1053,6 @@ BOOLEAN PhpIsExploitProtectionEnabled(
         NtClose(keyHandle);
     }
 
-    PhDereferenceObject(keypath);
-
     return enabled;
 }
 
@@ -1069,15 +1064,15 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE keyHandle;
-    PPH_STRING path;
-    PPH_STRING apppath;
-    PPH_STRING keypath;
+    PPH_STRING directory;
+    PPH_STRING fileName;
+    PPH_STRING keyName;
 
-    path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-    apppath = PH_AUTO(PhGetApplicationFileNameWin32());
-    path = PH_AUTO(PhGetBaseDirectory(path));
-    apppath = PH_AUTO(PhGetBaseName(apppath));
-    keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
+    directory = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
+    directory = PH_AUTO(PhGetBaseDirectory(directory));
+    fileName = PH_AUTO(PhGetApplicationFileNameWin32());
+    fileName = PH_AUTO(PhGetBaseName(fileName));
+    keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
 
     if (Enabled)
     {
@@ -1085,7 +1080,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
             &keyHandle,
             KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
-            &keypath->sr,
+            &keyName->sr,
             OBJ_OPENIF,
             0,
             NULL
@@ -1116,7 +1111,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
             &keyHandle,
             KEY_WRITE,
             PH_KEY_LOCAL_MACHINE,
-            &keypath->sr,
+            &keyName->sr,
             OBJ_OPENIF
             );
 
@@ -1135,15 +1130,15 @@ NTSTATUS PhpSetExploitProtectionEnabled(
             PH_STRINGREF stringBefore;
             PH_STRINGREF stringAfter;
 
-            if (PhSplitStringRefAtString(&keypath->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
+            if (PhSplitStringRefAtString(&keyName->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
             {
-                keypath = PH_AUTO(PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
+                keyName = PH_AUTO(PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
 
                 status = PhOpenKey(
                     &keyHandle,
                     DELETE,
                     PH_KEY_LOCAL_MACHINE,
-                    &keypath->sr,
+                    &keyName->sr,
                     OBJ_OPENIF
                     );
                 
@@ -1208,35 +1203,38 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        status = PhSetValueKey(keyFilenameHandle, &valueModeName, REG_DWORD, &(ULONG){ 4 }, sizeof(ULONG));
+        status = PhSetValueKey(
+            keyFilenameHandle,
+            &valueModeName,
+            REG_DWORD,
+            &(ULONG){ 4 },
+            sizeof(ULONG)
+            );
 
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        //status = PhSetValueKey(keyFilenameHandle, &valueSelfName, REG_DWORD, &(ULONG){ 1 }, sizeof(ULONG));
-        //
-        //if (!NT_SUCCESS(status))
-        //    goto CleanupExit;
-        //status = PhSetValueKey(keyFilenameHandle, &valueMonitorName, REG_SZ, filename->Buffer, (ULONG)filename->Length + sizeof(UNICODE_NULL));
+        //PhSetValueKey(keyFilenameHandle, &valueSelfName, REG_DWORD, &(ULONG){ 1 }, sizeof(ULONG));
+        //PhSetValueKey(keyFilenameHandle, &valueMonitorName, REG_SZ, filename->Buffer, (ULONG)filename->Length + sizeof(UNICODE_NULL));
 
         if (NT_SUCCESS(status))
         {
             HANDLE keyHandle;
-            PPH_STRING path;
-            PPH_STRING apppath;
-            PPH_STRING keypath;
+            PPH_STRING directory;
+            PPH_STRING fileName;
+            PPH_STRING keyName;
 
-            path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-            apppath = PH_AUTO(PhGetApplicationFileNameWin32());
-            path = PH_AUTO(PhGetBaseDirectory(path));
-            apppath = PH_AUTO(PhGetBaseName(apppath));
-            keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
+            directory = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
+            directory = PH_AUTO(PhGetBaseDirectory(directory));
+            fileName = PH_AUTO(PhGetApplicationFileNameWin32());
+            fileName = PH_AUTO(PhGetBaseName(fileName));
+            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
 
             status = PhCreateKey(
                 &keyHandle,
                 KEY_WRITE,
                 PH_KEY_LOCAL_MACHINE,
-                &keypath->sr,
+                &keyName->sr,
                 OBJ_OPENIF,
                 0,
                 NULL
@@ -1278,21 +1276,21 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
 
         {
             HANDLE keyHandle;
-            PPH_STRING path;
-            PPH_STRING apppath;
-            PPH_STRING keypath;
+            PPH_STRING directory;
+            PPH_STRING fileName;
+            PPH_STRING keyName;
 
-            path = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-            apppath = PH_AUTO(PhGetApplicationFileNameWin32());
-            path = PH_AUTO(PhGetBaseDirectory(path));
-            apppath = PH_AUTO(PhGetBaseName(apppath));
-            keypath = PH_AUTO(PhConcatStringRef3(&path->sr, &PhNtPathSeperatorString, &apppath->sr));
+            directory = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
+            directory = PH_AUTO(PhGetBaseDirectory(directory));
+            fileName = PH_AUTO(PhGetApplicationFileNameWin32());
+            fileName = PH_AUTO(PhGetBaseName(fileName));
+            keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
 
             status = PhOpenKey(
                 &keyHandle,
                 KEY_WRITE,
                 PH_KEY_LOCAL_MACHINE,
-                &keypath->sr,
+                &keyName->sr,
                 0
                 );
 
@@ -1344,6 +1342,7 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_ENABLE_WARNINGS,
     PHP_OPTIONS_INDEX_ENABLE_DRIVER,
     PHP_OPTIONS_INDEX_ENABLE_MITIGATION,
+    PHP_OPTIONS_INDEX_ENABLE_MONOSPACE,
     PHP_OPTIONS_INDEX_ENABLE_PLUGINS,
     PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS,
     PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS,
@@ -1388,6 +1387,7 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"Enable warnings", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"Enable kernel-mode driver", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MITIGATION, L"Enable mitigation policy", NULL);
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"Enable monospace fonts", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"Enable plugins", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"Enable undecorated symbols", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"Enable column header totals (experimental)", NULL);
@@ -1426,6 +1426,7 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
     //SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");
@@ -1531,6 +1532,7 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
+    SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"EnableMonospaceFont");
     //SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"EnableLinuxSubsystemSupport");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"EnableNetworkResolve");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"EnableNetworkResolveDoH");

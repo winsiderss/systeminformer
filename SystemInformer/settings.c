@@ -43,6 +43,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableLastProcessShutdown", L"0");
     PhpAddIntegerSetting(L"EnableLinuxSubsystemSupport", L"0");
     PhpAddIntegerSetting(L"EnableHandleSnapshot", L"1");
+    PhpAddIntegerSetting(L"EnableMonospaceFont", L"0");
     PhpAddIntegerSetting(L"EnableNetworkBoundConnections", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
