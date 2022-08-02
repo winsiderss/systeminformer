@@ -571,7 +571,11 @@ VOID PhMwpOnSettingChange(
     )
 {
     PhInitializeFont();
-    PhInitializeMonospaceFont();
+
+    if (PhGetIntegerSetting(L"EnableMonospaceFont"))
+    {
+        PhInitializeMonospaceFont();
+    }
 
     //if (TabControlHandle)
     //{
@@ -2074,7 +2078,11 @@ VOID PhMwpLoadSettings(
         PhSetWindowOpacity(WindowHandle, opacity);
 
     PhMwpInvokeUpdateWindowFont(NULL);
-    PhMwpInvokeUpdateWindowFontMonospace(NULL);
+
+    if (PhGetIntegerSetting(L"EnableMonospaceFont"))
+    {
+        PhMwpInvokeUpdateWindowFontMonospace(NULL);
+    }
 
     PhNfLoadStage1();
 
@@ -3928,7 +3936,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:
         {
-            SendMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
+            PostMessage(PhMainWndHandle, WM_PH_INVOKE, (WPARAM)wparam, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_REFRESH:

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2015
- *     dmex    2017-2018
+ *     dmex    2017-2022
  *
  */
 
@@ -49,6 +49,8 @@ VOID PhInitializeMemoryList(
     _Out_ PPH_MEMORY_LIST_CONTEXT Context
     )
 {
+    BOOLEAN enableMonospaceFont = !!PhGetIntegerSetting(L"EnableMonospaceFont");
+
     memset(Context, 0, sizeof(PH_MEMORY_LIST_CONTEXT));
 
     Context->AllocationBaseNodeList = PhCreateList(100);
@@ -56,6 +58,7 @@ VOID PhInitializeMemoryList(
 
     Context->ParentWindowHandle = ParentWindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
+
     PhSetControlTheme(TreeNewHandle, L"explorer");
 
     TreeNew_SetCallback(TreeNewHandle, PhpMemoryTreeNewCallback, Context);
@@ -63,7 +66,7 @@ VOID PhInitializeMemoryList(
     TreeNew_SetRedraw(TreeNewHandle, FALSE);
 
     // Default columns
-    PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_BASEADDRESS, TRUE, L"Base address", 120, PH_ALIGN_LEFT | PH_ALIGN_MONOSPACE_FONT, -2, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_BASEADDRESS, TRUE, L"Base address", 120, PH_ALIGN_LEFT | (enableMonospaceFont ? PH_ALIGN_MONOSPACE_FONT : 0), -2, 0);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_TYPE, TRUE, L"Type", 90, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_SIZE, TRUE, L"Size", 80, PH_ALIGN_RIGHT, 1, DT_RIGHT, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, PHMMTLC_PROTECTION, TRUE, L"Protection", 60, PH_ALIGN_LEFT, 2, 0);
@@ -73,7 +76,6 @@ VOID PhInitializeMemoryList(
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_SHAREABLEWS, TRUE, L"Shareable WS", 80, PH_ALIGN_RIGHT, 6, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_SHAREDWS, TRUE, L"Shared WS", 80, PH_ALIGN_RIGHT, 7, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_LOCKEDWS, TRUE, L"Locked WS", 80, PH_ALIGN_RIGHT, 8, DT_RIGHT, TRUE);
-
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_COMMITTED, FALSE, L"Committed", 80, PH_ALIGN_RIGHT, 9, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(TreeNewHandle, PHMMTLC_PRIVATE, FALSE, L"Private", 80, PH_ALIGN_RIGHT, 10, DT_RIGHT, TRUE);
 

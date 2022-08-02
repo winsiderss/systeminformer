@@ -35,6 +35,7 @@ NTAPI
 PhGetKernelDriverSystemStart(
     VOID
     );
+
 // plugin macros (dmex)
 #define PhWindowsVersion PhGetWindowsVersion()
 #define PhMainWindowHandle PhGetMainWindowHandle()
