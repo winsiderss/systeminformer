@@ -24,9 +24,6 @@ if defined VSINSTALLPATH2019 (
    msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=x64 -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
 
-   msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
-   if %ERRORLEVEL% neq 0 goto end
-
 ) else (
  
    if not defined VSINSTALLPATH (
@@ -40,9 +37,6 @@ if defined VSINSTALLPATH2019 (
    )
 
    msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=x64 /p:TargetVersion="Windows10" -verbosity:minimal
-   if %ERRORLEVEL% neq 0 goto end
-
-   msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 /p:TargetVersion="Windows10" -verbosity:minimal
    if %ERRORLEVEL% neq 0 goto end
 )
 
