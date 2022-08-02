@@ -65,7 +65,21 @@ PPH_STRING DiskDriveQueryDosMountPoints(
                 // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
                 if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                 {
-                    PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceName.Buffer[4]);
+                    PH_FORMAT format[2];
+                    SIZE_T returnLength;
+                    WCHAR formatBuffer[0x100];
+
+                    PhInitFormatC(&format[0], deviceNameBuffer[4]);
+                    PhInitFormatS(&format[1], L": ");
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
+                    {
+                        PhAppendStringBuilderEx(&stringBuilder, formatBuffer, returnLength - sizeof(UNICODE_NULL));
+                    }
+                    else
+                    {
+                        PhAppendFormatStringBuilder(&stringBuilder, L"%c: ", deviceName.Buffer[4]);
+                    }
                 }
             }
 
@@ -83,15 +97,14 @@ PPH_LIST DiskDriveQueryMountPointHandles(
     _In_ ULONG DeviceNumber
     )
 {
-    static PH_STRINGREF deviceNameSr = PH_STRINGREF_INIT(L"\\??\\?:");
+    PH_STRINGREF deviceName;
+    WCHAR deviceNameBuffer[7] = L"\\??\\?:";
     ULONG deviceMap = 0;
     PPH_LIST deviceList;
-    PPH_STRING deviceName;
 
     PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
 
     deviceList = PhCreateList(2);
-    deviceName = PhCreateString2(&deviceNameSr);
 
     for (INT i = 0; i < 26; i++)
     {
@@ -103,11 +116,13 @@ PPH_LIST DiskDriveQueryMountPointHandles(
                 continue;
         }
 
-        deviceName->Buffer[4] = (WCHAR)('A' + i);
+        deviceNameBuffer[4] = (WCHAR)('A' + i);
+        deviceName.Buffer = deviceNameBuffer;
+        deviceName.Length = 6 * sizeof(WCHAR);
 
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
-            &deviceName->sr,
+            &deviceName,
             PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES | FILE_TRAVERSE | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -133,7 +148,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
                     PDISK_HANDLE_ENTRY entry;
 
                     entry = PhAllocateZero(sizeof(DISK_HANDLE_ENTRY));
-                    entry->DeviceLetter = deviceName->Buffer[4];
+                    entry->DeviceLetter = deviceNameBuffer[4];
                     entry->DeviceHandle = deviceHandle;
 
                     PhAddItemList(deviceList, entry);
@@ -149,8 +164,6 @@ PPH_LIST DiskDriveQueryMountPointHandles(
             }
         }
     }
-
-    PhDereferenceObject(deviceName);
 
     return deviceList;
 }
@@ -890,21 +903,21 @@ BOOLEAN DiskDriveQueryFileSystemInfo(
     case FILESYSTEM_STATISTICS_TYPE_NTFS:
     case FILESYSTEM_STATISTICS_TYPE_REFS: // ReFS uses the same statistics as NTFS.
         {
-            bufferLength = sizeof(NTFS_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            bufferLength = sizeof(NTFS_FILESYSTEM_STATISTICS) * 64 * PhGetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
             buffer = PhReAllocate(buffer, bufferLength);
             memset(buffer, 0, bufferLength);
         }
         break;
     case FILESYSTEM_STATISTICS_TYPE_FAT:
         {
-            bufferLength = sizeof(FAT_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            bufferLength = sizeof(FAT_FILESYSTEM_STATISTICS) * 64 * PhGetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
             buffer = PhReAllocate(buffer, bufferLength);
             memset(buffer, 0, bufferLength);
         }
         break;
     case FILESYSTEM_STATISTICS_TYPE_EXFAT:
         {
-            bufferLength = sizeof(EXFAT_FILESYSTEM_STATISTICS) * 64 * (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            bufferLength = sizeof(EXFAT_FILESYSTEM_STATISTICS) * 64 * PhGetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
             buffer = PhReAllocate(buffer, bufferLength);
             memset(buffer, 0, bufferLength);
         }
