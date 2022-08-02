@@ -20,22 +20,22 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
-msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+msbuild /m KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -verbosity:minimal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild SystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+msbuild /m SystemInformer.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
 mkdir sdk\lib\arm64
 copy bin\DebugARM64\SystemInformer.lib sdk\lib\arm64
 
-msbuild plugins\Plugins.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
+msbuild /m plugins\Plugins.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:minimal
 
 :end
 pause

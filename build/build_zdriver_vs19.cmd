@@ -16,10 +16,10 @@ if exist "%VSINSTALLPATH2019%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
-msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=Win32 /p:TargetVersion="Windows7" -verbosity:minimal
+msbuild /m KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=Win32 /p:TargetVersion="Windows7" -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
-msbuild KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=x64 /p:TargetVersion="Windows7" -verbosity:minimal
+msbuild /m KSystemInformer\KSystemInformer.sln -property:Configuration=Debug -property:Platform=x64 /p:TargetVersion="Windows7" -verbosity:minimal
 if %ERRORLEVEL% neq 0 goto end
 
 :end
