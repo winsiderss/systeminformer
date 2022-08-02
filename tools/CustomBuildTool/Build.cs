@@ -271,49 +271,34 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    if (!Directory.Exists("bin\\Debug64\\x86"))
-                        Directory.CreateDirectory("bin\\Debug64\\x86");
-                    if (!Directory.Exists("bin\\Debug64\\x86\\plugins"))
-                        Directory.CreateDirectory("bin\\Debug64\\x86\\plugins");
+                    if (Directory.Exists("bin\\Debug64"))
+                    {
+                        Win32.CreateDirectory("bin\\Debug64\\x86");
+                        Win32.CreateDirectory("bin\\Debug64\\x86\\plugins");
 
-                    Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\Debug64\\x86\\SystemInformer.exe");
-                    Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\Debug64\\x86\\SystemInformer.pdb");
-                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll");
-                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb");
-                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\Debug64\\x86\\plugins\\ExtendedTools.dll");
-                    Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\Debug64\\x86\\plugins\\ExtendedTools.pdb");      
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\Debug64\\x86\\SystemInformer.exe");
+                        Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\Debug64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.dll", "bin\\Debug64\\x86\\plugins\\DotNetTools.dll");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\DotNetTools.pdb", "bin\\Debug64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.dll", "bin\\Debug64\\x86\\plugins\\ExtendedTools.dll");
+                        Win32.CopyIfNewer("bin\\Debug32\\plugins\\ExtendedTools.pdb", "bin\\Debug64\\x86\\plugins\\ExtendedTools.pdb");
+                    }
                 }
-                else
-                {
-                    if (!Directory.Exists("bin\\Release64\\x86"))
-                        Directory.CreateDirectory("bin\\Release64\\x86");
-                    if (!Directory.Exists("bin\\Release64\\x86\\plugins"))
-                        Directory.CreateDirectory("bin\\Release64\\x86\\plugins");
 
-                    Win32.CopyIfNewer(
-                        "bin\\Release32\\SystemInformer.exe",
-                        "bin\\Release64\\x86\\SystemInformer.exe"
-                        );
-                    Win32.CopyIfNewer(
-                        "bin\\Release32\\SystemInformer.pdb",
-                        "bin\\Release64\\x86\\SystemInformer.pdb"
-                        );
-                    Win32.CopyIfNewer(
-                        "bin\\Release32\\plugins\\DotNetTools.dll", 
-                        "bin\\Release64\\x86\\plugins\\DotNetTools.dll"
-                        );
-                    Win32.CopyIfNewer(
-                        "bin\\Release32\\plugins\\DotNetTools.pdb", 
-                        "bin\\Release64\\x86\\plugins\\DotNetTools.pdb"
-                        );
-                    Win32.CopyIfNewer(
-                        "bin\\Release32\\plugins\\ExtendedTools.dll",
-                        "bin\\Release64\\x86\\plugins\\ExtendedTools.dll"
-                        );
-                    Win32.CopyIfNewer(
-                        "bin\\Release32\\plugins\\ExtendedTools.pdb",
-                        "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb"
-                        );
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
+                {
+                    if (Directory.Exists("bin\\Release64"))
+                    {
+                        Win32.CreateDirectory("bin\\Release64\\x86");
+                        Win32.CreateDirectory("bin\\Release64\\x86\\plugins");
+
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\Release64\\x86\\SystemInformer.exe");
+                        Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\Release64\\x86\\SystemInformer.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.dll", "bin\\Release64\\x86\\plugins\\DotNetTools.dll");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\DotNetTools.pdb", "bin\\Release64\\x86\\plugins\\DotNetTools.pdb");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.dll", "bin\\Release64\\x86\\plugins\\ExtendedTools.dll");
+                        Win32.CopyIfNewer("bin\\Release32\\plugins\\ExtendedTools.pdb", "bin\\Release64\\x86\\plugins\\ExtendedTools.pdb");
+                    }
                 }
             }
             catch (Exception ex)
@@ -333,38 +318,17 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        Win32.CopyIfNewer(
-                            "SystemInformer\\resources\\capslist.txt",
-                            "bin\\Debug32\\capslist.txt"
-                            );
-                    }
-
+                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Debug32\\capslist.txt");
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        Win32.CopyIfNewer(
-                            "SystemInformer\\resources\\capslist.txt",
-                            "bin\\Debug64\\capslist.txt"
-                            );
-                    }
+                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Debug64\\capslist.txt");
                 }
-                else
+
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        Win32.CopyIfNewer(
-                            "SystemInformer\\resources\\capslist.txt",
-                            "bin\\Release32\\capslist.txt"
-                            );
-                    }
-
+                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Release32\\capslist.txt");
                     if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        Win32.CopyIfNewer(
-                            "SystemInformer\\resources\\capslist.txt",
-                            "bin\\Release64\\capslist.txt"
-                            );
-                    }
+                        Win32.CopyIfNewer("SystemInformer\\resources\\capslist.txt", "bin\\Release64\\capslist.txt");
                 }
             }
             catch (Exception ex)
@@ -388,7 +352,8 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.Build64bit))
                         Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Debug64\\etwguids.txt");
                 }
-                else
+
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
                         Win32.CopyIfNewer("SystemInformer\\resources\\etwguids.txt", "bin\\Release32\\etwguids.txt");
@@ -431,17 +396,32 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    if (Directory.Exists("bin\\Debug32"))
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Debug32\\SystemInformer.sys");
-                    if (Directory.Exists("bin\\Debug64"))
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Debug64\\SystemInformer.sys");
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    {
+                        if (Directory.Exists("bin\\Debug32"))
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Debug32\\SystemInformer.sys");
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        if (Directory.Exists("bin\\Debug64"))
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Debug64\\SystemInformer.sys");
+                    }
                 }
-                else
+
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
-                    if (Directory.Exists("bin\\Release32"))
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Release32\\SystemInformer.sys");
-                    if (Directory.Exists("bin\\Release64"))
-                        Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Release64\\SystemInformer.sys");
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
+                    {
+                        if (Directory.Exists("bin\\Release32"))
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Release32\\SystemInformer.sys");
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
+                    {
+                        if (Directory.Exists("bin\\Release64"))
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Release64\\SystemInformer.sys");
+                    }
                 }
             }
             catch (Exception ex)
@@ -467,39 +447,53 @@ namespace CustomBuildTool
 
             if (File.Exists(CustomSignToolPath))
             {
-                if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
+                if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
-                    if (File.Exists("bin\\Debug32\\SystemInformer.exe"))
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
                     {
-                        File.WriteAllText("bin\\Debug32\\SystemInformer.sig", string.Empty);
-                        Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Debug32\\SystemInformer.exe -s bin\\Debug32\\SystemInformer.sig");
+                        if (File.Exists("bin\\Debug32\\SystemInformer.exe"))
+                        {
+                            File.WriteAllText("bin\\Debug32\\SystemInformer.sig", string.Empty);
+                            Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Debug32\\SystemInformer.exe -s bin\\Debug32\\SystemInformer.sig");
+                        }
                     }
 
-                    if (File.Exists("bin\\Debug64\\SystemInformer.exe"))
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
-                        File.WriteAllText("bin\\Debug64\\SystemInformer.sig", string.Empty);
-                        Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Debug64\\SystemInformer.exe -s bin\\Debug64\\SystemInformer.sig");
+                        if (File.Exists("bin\\Debug64\\SystemInformer.exe"))
+                        {
+                            File.WriteAllText("bin\\Debug64\\SystemInformer.sig", string.Empty);
+                            Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Debug64\\SystemInformer.exe -s bin\\Debug64\\SystemInformer.sig");
+                        }
                     }
                 }
-
-                if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
+                else
                 {
-                    if (File.Exists("bin\\Release32\\SystemInformer.exe"))
+                    if (Flags.HasFlag(BuildFlags.Build32bit))
                     {
-                        File.WriteAllText("bin\\Release32\\SystemInformer.sig", string.Empty);
-                        Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Release32\\SystemInformer.exe -s bin\\Release32\\SystemInformer.sig");
+                        if (File.Exists("bin\\Release32\\SystemInformer.exe"))
+                        {
+                            File.WriteAllText("bin\\Release32\\SystemInformer.sig", string.Empty);
+                            Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Release32\\SystemInformer.exe -s bin\\Release32\\SystemInformer.sig");
+                        }
                     }
 
-                    if (File.Exists("bin\\Release64\\SystemInformer.exe"))
+                    if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
-                        File.WriteAllText("bin\\Release64\\SystemInformer.sig", string.Empty);
-                        Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Release64\\SystemInformer.exe -s bin\\Release64\\SystemInformer.sig");
+                        if (File.Exists("bin\\Release64\\SystemInformer.exe"))
+                        {
+                            File.WriteAllText("bin\\Release64\\SystemInformer.sig", string.Empty);
+                            Win32.ShellExecute(CustomSignToolPath, "sign -k " + Verify.GetPath("kph.key") + " bin\\Release64\\SystemInformer.exe -s bin\\Release64\\SystemInformer.sig");
+                        }
                     }
                 }
             }
 
-            if (BuildNightly && File.Exists(Verify.GetPath("kph.key")))
-                File.Delete(Verify.GetPath("kph.key"));
+            if (BuildNightly)
+            {
+                if (File.Exists(Verify.GetPath("kph.key")))
+                    File.Delete(Verify.GetPath("kph.key"));
+            }
 
             return true;
         }
@@ -539,10 +533,7 @@ namespace CustomBuildTool
             {
                 foreach (string folder in BuildConfig.Build_Sdk_Directories)
                 {
-                    if (!Directory.Exists(folder))
-                    {
-                        Directory.CreateDirectory(folder);
-                    }
+                    Win32.CreateDirectory(folder);
                 }
 
                 // Copy the plugin SDK headers
@@ -573,7 +564,8 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.Build64bit))
                         Win32.CopyIfNewer("bin\\Debug64\\SystemInformer.lib", "sdk\\lib\\amd64\\SystemInformer.lib");
                 }
-                else
+
+                if (Flags.HasFlag(BuildFlags.BuildRelease))
                 {
                     if (Flags.HasFlag(BuildFlags.Build32bit))
                         Win32.CopyIfNewer("bin\\Release32\\SystemInformer.lib", "sdk\\lib\\i386\\SystemInformer.lib");
@@ -818,7 +810,7 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if ((Flags & BuildFlags.Build32bit) == BuildFlags.Build32bit)
+            if (Flags.HasFlag(BuildFlags.Build32bit))
             {
                 StringBuilder compilerOptions = new StringBuilder();
                 StringBuilder commandLine = new StringBuilder();
@@ -858,7 +850,7 @@ namespace CustomBuildTool
                 }
             }
 
-            if ((Flags & BuildFlags.Build64bit) == BuildFlags.Build64bit)
+            if (Flags.HasFlag(BuildFlags.Build64bit))
             {
                 StringBuilder compilerOptions = new StringBuilder();
                 StringBuilder commandLine = new StringBuilder();
