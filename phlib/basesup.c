@@ -3751,24 +3751,6 @@ VOID PhAppendStringBuilder(
  * Appends a string to the end of a string builder string.
  *
  * \param StringBuilder A string builder object.
- * \param String The string to append.
- */
-VOID PhAppendStringBuilder2(
-    _Inout_ PPH_STRING_BUILDER StringBuilder,
-    _In_ PWSTR String
-    )
-{
-    PhAppendStringBuilderEx(
-        StringBuilder,
-        String,
-        PhCountStringZ(String) * sizeof(WCHAR)
-        );
-}
-
-/**
- * Appends a string to the end of a string builder string.
- *
- * \param StringBuilder A string builder object.
  * \param String The string to append. Specify NULL to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */

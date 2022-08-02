@@ -2088,13 +2088,25 @@ PhAppendStringBuilder(
     _In_ PPH_STRINGREF String
     );
 
-PHLIBAPI
+/**
+ * Appends a string to the end of a string builder string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param String The string to append.
+ */
+FORCEINLINE
 VOID
 NTAPI
 PhAppendStringBuilder2(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ PWSTR String
-    );
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+    PhAppendStringBuilder(StringBuilder, &string);
+}
 
 PHLIBAPI
 VOID

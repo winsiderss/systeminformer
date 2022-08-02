@@ -64,7 +64,6 @@ EXPORTS
     PhAppendFormatStringBuilder
     PhAppendFormatStringBuilder_V
     PhAppendStringBuilder
-    PhAppendStringBuilder2
     PhAppendStringBuilderEx
     PhBufferToHexString
     PhBufferToHexStringEx
