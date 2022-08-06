@@ -7,6 +7,8 @@ extern BOOLEAN PhMainWndExiting;
 // begin_phapppub
 #define WM_PH_FIRST (WM_APP + 99)
 #define WM_PH_ACTIVATE (WM_APP + 99)
+#define WM_PH_SHOW_DIALOG (WM_APP + 100) // unused (plugins only)
+#define WM_PH_UPDATE_DIALOG (WM_APP + 101) // unused (plugins only)
 #define PH_ACTIVATE_REPLY 0x1119
 #define WM_PH_NOTIFY_ICON_MESSAGE (WM_APP + 126)
 #define WM_PH_UPDATE_FONT (WM_APP + 136)

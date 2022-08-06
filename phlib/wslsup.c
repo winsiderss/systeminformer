@@ -113,7 +113,7 @@ BOOLEAN PhGetWslDistributionFromPath(
             for (i = 0; i < lxssFileName->Length / sizeof(WCHAR); i++)
             {
                 if (lxssFileName->Buffer[i] == OBJ_NAME_PATH_SEPARATOR) // RtlNtPathSeperatorString
-                    lxssFileName->Buffer[i] = L'/'; // RtlAlternateDosPathSeperatorString
+                    lxssFileName->Buffer[i] = OBJ_NAME_ALTPATH_SEPARATOR; // RtlAlternateDosPathSeperatorString
             }
         }
 

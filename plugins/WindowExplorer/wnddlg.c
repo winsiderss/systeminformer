@@ -68,7 +68,6 @@ HWND WepWindowsDialogHandle = NULL;
 HANDLE WepWindowsDialogThreadHandle = NULL;
 PH_EVENT WepWindowsInitializedEvent = PH_EVENT_INIT;
 PH_STRINGREF WepEmptyWindowsText = PH_STRINGREF_INIT(L"There are no windows to display.");
-#define PH_SHOWDIALOG (WM_APP + 501)
 #define WE_WM_FINDWINDOW (WM_APP + 502)
 
 NTSTATUS WepShowWindowsDialogThread(
@@ -137,7 +136,7 @@ VOID WeShowWindowsDialog(
         PhWaitForEvent(&WepWindowsInitializedEvent, NULL);
     }
 
-    PostMessage(WepWindowsDialogHandle, PH_SHOWDIALOG, 0, 0);
+    PostMessage(WepWindowsDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }
 
 VOID WeShowWindowsPropPage(
@@ -671,7 +670,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PostQuitMessage(0);
         }
         break;
-    case PH_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);

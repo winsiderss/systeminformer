@@ -387,7 +387,7 @@ static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage((HWND)Context, ET_WM_UPDATE, 0, 0);
+    PostMessage((HWND)Context, WM_PH_UPDATE_DIALOG, 0, 0);
 }
 
 typedef struct _ET_GPU_DETAILS_CONTEXT
@@ -417,7 +417,7 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-        if (uMsg == WM_DESTROY)
+        if (uMsg == WM_NCDESTROY)
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
@@ -485,12 +485,12 @@ INT_PTR CALLBACK EtpGpuDetailsDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
-    case ET_WM_UPDATE:
+    case WM_PH_UPDATE_DIALOG:
         {
             EtpGpuDetailsEnumAdapters(context->ListViewHandle);
         }
         break;
-    case ET_WM_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -631,5 +631,5 @@ VOID EtShowGpuDetailsDialog(
         PhWaitForEvent(&EtGpuDetailsInitializedEvent, NULL);
     }
 
-    PostMessage(EtGpuDetailsDialogHandle, ET_WM_SHOWDIALOG, 0, 0);
+    PostMessage(EtGpuDetailsDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }
