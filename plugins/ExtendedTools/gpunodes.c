@@ -95,7 +95,7 @@ VOID EtShowGpuNodesDialog(
         PhWaitForEvent(&EtGpuNodesInitializedEvent, NULL);
     }
 
-    PostMessage(EtGpuNodesWindowHandle, ET_WM_SHOWDIALOG, 0, 0);
+    PostMessage(EtGpuNodesWindowHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }
 
 static VOID ProcessesUpdatedCallback(
@@ -103,7 +103,7 @@ static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage((HWND)Context, ET_WM_UPDATE, 0, 0);
+    PostMessage((HWND)Context, WM_PH_UPDATE_FONT, 0, 0);
 }
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
@@ -487,7 +487,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             }
         }
         break;
-    case ET_WM_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {
@@ -504,7 +504,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case ET_WM_UPDATE:
+    case WM_PH_UPDATE_DIALOG:
         {
             for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
             {

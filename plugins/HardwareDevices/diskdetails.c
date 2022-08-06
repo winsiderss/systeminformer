@@ -478,7 +478,7 @@ INT_PTR CALLBACK DiskDriveFileSystemDetailsDlgProc(
             }
         }
         break;
-    case WM_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -630,7 +630,7 @@ INT_PTR CALLBACK DiskDriveSmartDetailsDlgProc(
             }
         }
         break;
-    case WM_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -788,5 +788,5 @@ VOID ShowDiskDriveDetailsDialog(
         Context->DetailsWindowThreadHandle = threadHandle;
     }
 
-    PostMessage(Context->DetailsWindowDialogHandle, WM_SHOWDIALOG, 0, 0);
+    PostMessage(Context->DetailsWindowDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }

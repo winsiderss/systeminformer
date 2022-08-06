@@ -2097,7 +2097,11 @@ VOID PhMwpSaveSettings(
 
     PhNfSaveSettings();
     PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
-    PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
+
+    if (PhGetIntegerSetting(L"MainWindowTabRestoreEnabled"))
+    {
+        PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
+    }
 
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", WindowHandle);
     PhMwpSaveWindowState(WindowHandle);

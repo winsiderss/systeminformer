@@ -404,7 +404,7 @@ VOID NTAPI FramesProcessesUpdatedHandler(
 
     if (context && context->WindowHandle && context->Enabled)
     {
-        PostMessage(context->WindowHandle, ET_WM_UPDATE, 0, 0);
+        PostMessage(context->WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
     }
 }
 
@@ -1098,7 +1098,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
             }
         }
         break;
-    case ET_WM_UPDATE:
+    case WM_PH_UPDATE_DIALOG:
         {
             if (!(processItem->State & PH_PROCESS_ITEM_REMOVED) && context->Enabled)
             {

@@ -152,8 +152,6 @@ typedef struct _PERFPAGE_CONTEXT
     Perf_Security DotNetPerfSecurity;
 } PERFPAGE_CONTEXT, *PPERFPAGE_CONTEXT;
 
-#define MSG_UPDATE (WM_APP + 1)
-
 VOID NTAPI DotNetPerfProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -163,7 +161,7 @@ VOID NTAPI DotNetPerfProcessesUpdatedCallback(
 
     if (context && context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, MSG_UPDATE, 0, 0);
+        PostMessage(context->WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
     }
 }
 
@@ -1763,7 +1761,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
             }
         }
         break;
-    case MSG_UPDATE:
+    case WM_PH_UPDATE_DIALOG:
         {
             if (context->Enabled && context->ControlBlockValid)
             {

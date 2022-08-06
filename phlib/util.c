@@ -1038,10 +1038,10 @@ PPH_STRING PhEllipsisStringPath(
 {
     ULONG_PTR secondPartIndex;
 
-    secondPartIndex = PhFindLastCharInString(String, 0, L'\\');
+    secondPartIndex = PhFindLastCharInString(String, 0, OBJ_NAME_PATH_SEPARATOR);
 
     if (secondPartIndex == SIZE_MAX)
-        secondPartIndex = PhFindLastCharInString(String, 0, L'/');
+        secondPartIndex = PhFindLastCharInString(String, 0, OBJ_NAME_ALTPATH_SEPARATOR);
     if (secondPartIndex == SIZE_MAX)
         return PhEllipsisString(String, DesiredCount);
 

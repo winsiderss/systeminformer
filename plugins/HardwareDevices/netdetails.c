@@ -21,7 +21,7 @@ VOID NTAPI NetAdapterProcessesUpdatedHandler(
 
     if (context && context->WindowHandle)
     {
-        PostMessage(context->WindowHandle, UPDATE_MSG, 0, 0);
+        PostMessage(context->WindowHandle, WM_PH_UPDATE_DIALOG, 0, 0);
     }
 }
 
@@ -596,7 +596,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
-    case WM_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -606,7 +606,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             SetForegroundWindow(hwndDlg);
         }
         break;
-    case UPDATE_MSG:
+    case WM_PH_UPDATE_DIALOG:
         NetAdapterUpdateDetails(context);
         break;
     case WM_NOTIFY:
@@ -766,5 +766,5 @@ VOID ShowNetAdapterDetailsDialog(
         Context->DetailsWindowThreadHandle = threadHandle;
     }
 
-    PostMessage(Context->DetailsWindowDialogHandle, WM_SHOWDIALOG, 0, 0);
+    PostMessage(Context->DetailsWindowDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }

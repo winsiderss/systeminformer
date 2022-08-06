@@ -81,10 +81,6 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
 
-// Window messages
-#define ET_WM_SHOWDIALOG (WM_APP + 1)
-#define ET_WM_UPDATE (WM_APP + 2)
-
 VOID EtLoadSettings(
     VOID
     );
