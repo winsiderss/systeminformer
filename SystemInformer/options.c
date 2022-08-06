@@ -1016,15 +1016,15 @@ BOOLEAN PhpIsExploitProtectionEnabled(
 {
     BOOLEAN enabled = FALSE;
     HANDLE keyHandle;
-    PPH_STRING directory;
-    PPH_STRING fileName;
+    PPH_STRING directory = NULL;
+    PPH_STRING fileName = NULL;
     PPH_STRING keyName;
 
-    directory = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-    directory = PH_AUTO(PhGetBaseDirectory(directory));
-    fileName = PH_AUTO(PhGetApplicationFileNameWin32());
-    fileName = PH_AUTO(PhGetBaseName(fileName));
-    keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
+    PhMoveReference(&directory, PhCreateString2(&TaskMgrImageOptionsKeyName));
+    PhMoveReference(&directory, PhGetBaseDirectory(directory));
+    PhMoveReference(&fileName, PhGetApplicationFileNameWin32());
+    PhMoveReference(&fileName, PhGetBaseName(fileName));
+    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -1052,6 +1052,10 @@ BOOLEAN PhpIsExploitProtectionEnabled(
 
         NtClose(keyHandle);
     }
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(fileName);
+    PhDereferenceObject(directory);
 
     return enabled;
 }
