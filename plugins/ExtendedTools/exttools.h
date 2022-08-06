@@ -53,6 +53,7 @@ extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern BOOLEAN EtGraphShowText;
 extern BOOLEAN EtEnableScaleGraph;
+extern BOOLEAN EtEnableScaleText;
 extern BOOLEAN EtPropagateCpuUsage;
 
 #define PLUGIN_NAME L"ProcessHacker.ExtendedTools"

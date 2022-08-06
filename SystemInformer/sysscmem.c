@@ -124,7 +124,7 @@ BOOLEAN PhSipMemorySectionCallback(
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
-                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
                 Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPrivate, 0);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCommitHistory.Count);
 
@@ -145,12 +145,18 @@ BOOLEAN PhSipMemorySectionCallback(
                             );
                     }
 
+                    if (PhCsEnableGraphMaxText)
+                    {
+                        drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = (FLOAT)PhPerfInformation.CommitLimit * PAGE_SIZE;
+                    }
+
                     Section->GraphState.Valid = TRUE;
                 }
             }
             else
             {
-                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
                 Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorPhysical, 0);
                 PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhPhysicalHistory.Count);
 
@@ -169,6 +175,12 @@ BOOLEAN PhSipMemorySectionCallback(
                             (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
                             drawInfo->LineDataCount
                             );
+                    }
+
+                    if (PhCsEnableGraphMaxText)
+                    {
+                        drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages * PAGE_SIZE;
                     }
 
                     Section->GraphState.Valid = TRUE;
@@ -560,7 +572,7 @@ VOID PhSipNotifyCommitGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
 
             PhGraphStateGetDrawInfo(
@@ -584,6 +596,12 @@ VOID PhSipNotifyCommitGraph(
                         (FLOAT)PhPerfInformation.CommitLimit,
                         drawInfo->LineDataCount
                         );
+                }
+
+                if (PhCsEnableGraphMaxText)
+                {
+                    drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)PhPerfInformation.CommitLimit * PAGE_SIZE;
                 }
 
                 CommitGraphState.Valid = TRUE;
@@ -631,7 +649,7 @@ VOID PhSipNotifyPhysicalGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPhysical, 0);
 
             PhGraphStateGetDrawInfo(
@@ -655,6 +673,12 @@ VOID PhSipNotifyPhysicalGraph(
                         (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages,
                         drawInfo->LineDataCount
                         );
+                }
+
+                if (PhCsEnableGraphMaxText)
+                {
+                    drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages * PAGE_SIZE;
                 }
 
                 PhysicalGraphState.Valid = TRUE;

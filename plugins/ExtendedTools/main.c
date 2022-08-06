@@ -45,6 +45,7 @@ static HANDLE ModuleProcessId = NULL;
 ULONG EtUpdateInterval = 0;
 BOOLEAN EtGraphShowText = FALSE;
 BOOLEAN EtEnableScaleGraph = FALSE;
+BOOLEAN EtEnableScaleText = FALSE;
 BOOLEAN EtPropagateCpuUsage = FALSE;
 
 VOID NTAPI LoadCallback(
@@ -775,7 +776,8 @@ VOID EtLoadSettings(
 {
     EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
     EtGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
-    EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableScaleCpuGraph");
+    EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
+    EtEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
 }
 

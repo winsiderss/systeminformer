@@ -575,7 +575,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
 
                     if (header->hwndFrom == context->FramesPerSecondGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
                         PhGraphStateGetDrawInfo(&context->FramesPerSecondGraphState, getDrawInfo, context->Block->FramesPerSecondHistory.Count);
 
@@ -630,7 +630,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                     }
                     else if (header->hwndFrom == context->FramesLatencyGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
                         PhGraphStateGetDrawInfo(&context->FramesLatencyGraphState, getDrawInfo, context->Block->FramesLatencyHistory.Count);
 
@@ -685,7 +685,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                     }
                     else if (header->hwndFrom == context->PresentIntervalGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0);
                         PhGraphStateGetDrawInfo(&context->PresentIntervalGraphState, getDrawInfo, context->Block->FramesMsBetweenPresentsHistory.Count);
 
@@ -740,7 +740,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                     }
                     else if (header->hwndFrom == context->PresentDurationGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
                         PhGraphStateGetDrawInfo(&context->PresentDurationGraphState, getDrawInfo, context->Block->FramesMsInPresentApiHistory.Count);
 
@@ -795,7 +795,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                     }
                     else if (header->hwndFrom == context->FramesRenderTimeGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
                         PhGraphStateGetDrawInfo(&context->FramesRenderTimeGraphState, getDrawInfo, context->Block->FramesMsUntilRenderCompleteHistory.Count);
 
@@ -850,7 +850,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                     }
                     else if (header->hwndFrom == context->FramesDisplayTimeGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
                         PhGraphStateGetDrawInfo(&context->FramesDisplayTimeGraphState, getDrawInfo, context->Block->FramesMsUntilDisplayedHistory.Count);
 
@@ -905,7 +905,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                     }
                     else if (header->hwndFrom == context->FramesDisplayLatencyGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
                         PhGraphStateGetDrawInfo(&context->FramesDisplayLatencyGraphState, getDrawInfo, context->Block->FramesDisplayLatencyHistory.Count);
 
