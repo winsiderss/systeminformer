@@ -279,6 +279,10 @@ VOID PhMwpInitializeServiceMenu(
     else
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        PhEnableEMenuItem(Menu, ID_SERVICE_START, TRUE);
+        PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE, TRUE);
+        PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE, TRUE);
+        PhEnableEMenuItem(Menu, ID_SERVICE_STOP, TRUE);
         PhEnableEMenuItem(Menu, ID_SERVICE_COPY, TRUE);
     }
 

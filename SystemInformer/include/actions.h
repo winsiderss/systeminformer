@@ -332,9 +332,27 @@ PhUiSetBoostPriorityProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiStartServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiStartService(
     _In_ HWND hWnd,
     _In_ PPH_SERVICE_ITEM Service
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiContinueServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
     );
 
 PHAPPAPI
@@ -348,9 +366,27 @@ PhUiContinueService(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiPauseServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiPauseService(
     _In_ HWND hWnd,
     _In_ PPH_SERVICE_ITEM Service
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiStopServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
     );
 
 PHAPPAPI
