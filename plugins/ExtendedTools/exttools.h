@@ -807,12 +807,24 @@ FLOAT EtLookupTotalGpuEngineUtilization(
     _In_ ULONG EngineId
     );
 
+FLOAT EtLookupTotalGpuAdapterUtilization(
+    _In_ LUID AdapterLuid
+    );
+
 ULONG64 EtLookupTotalGpuDedicated(
     VOID
     );
 
+ULONG64 EtLookupTotalGpuAdapterDedicated(
+    _In_ LUID AdapterLuid
+    );
+
 ULONG64 EtLookupTotalGpuShared(
     VOID
+    );
+
+ULONG64 EtLookupTotalGpuAdapterShared(
+    _In_ LUID AdapterLuid
     );
 
 // Firewall

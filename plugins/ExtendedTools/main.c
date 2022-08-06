@@ -11,6 +11,7 @@
  */
 
 #include "exttools.h"
+#include "extension\plugin.h"
 
 PPH_PLUGIN PluginInstance = NULL;
 HWND ProcessTreeNewHandle = NULL;
@@ -39,6 +40,14 @@ PH_CALLBACK_REGISTRATION ProcessItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkItemsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessStatsEventCallbackRegistration;
 PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
+
+EXTENDEDTOOLS_INTERFACE PluginInterface =
+{
+    EXTENDEDTOOLS_INTERFACE_VERSION,
+    EtLookupTotalGpuAdapterUtilization,
+    EtLookupTotalGpuAdapterDedicated,
+    EtLookupTotalGpuAdapterShared
+};
 
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
@@ -1002,6 +1011,7 @@ LOGICAL DllMain(
             info->DisplayName = L"Extended Tools";
             info->Author = L"dmex, wj32";
             info->Description = L"Extended functionality for Windows 7 and above, including ETW, GPU, Disk and Firewall monitoring tabs.";
+            info->Interface = &PluginInterface;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
