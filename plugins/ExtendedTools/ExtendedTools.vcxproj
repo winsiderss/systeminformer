@@ -145,6 +145,7 @@
     <ClInclude Include="etwmini.h" />
     <ClInclude Include="etwmon.h" />
     <ClInclude Include="etwsys.h" />
+    <ClInclude Include="extension\plugin.h" />
     <ClInclude Include="exttools.h" />
     <ClInclude Include="gpumini.h" />
     <ClInclude Include="gpumon.h" />

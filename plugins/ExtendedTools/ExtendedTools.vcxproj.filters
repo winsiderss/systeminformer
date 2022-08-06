@@ -182,6 +182,9 @@
     <ClInclude Include="PresentMon\TraceConsumer.hpp">
       <Filter>Header Files\PresentMon</Filter>
     </ClInclude>
+    <ClInclude Include="extension\plugin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
