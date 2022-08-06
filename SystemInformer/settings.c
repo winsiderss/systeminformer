@@ -380,8 +380,9 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(ColorFanRpm);
 
     PH_UPDATE_SETTING(ImageCoherencyScanLevel);
-    PH_UPDATE_SETTING(EnableScaleCpuGraph);
 
+    PhCsEnableGraphMaxScale = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
+    PhCsEnableGraphMaxText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
 }

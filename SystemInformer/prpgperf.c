@@ -154,7 +154,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                     if (header->hwndFrom == performanceContext->CpuGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableScaleCpuGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
                         PhGraphStateGetDrawInfo(
@@ -170,7 +170,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
                                 performanceContext->CpuGraphState.Data2, drawInfo->LineDataCount);
 
-                            if (PhCsEnableScaleCpuGraph)
+                            if (PhCsEnableGraphMaxScale)
                             {
                                 FLOAT max = 0;
 
@@ -199,6 +199,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                                 drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
                                 drawInfo->LabelYFunctionParameter = max;
+                            }
+                            else
+                            {
+                                drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                                drawInfo->LabelYFunctionParameter = 0.0f;
                             }
 
                             performanceContext->CpuGraphState.Valid = TRUE;
@@ -230,7 +235,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     }
                     else if (header->hwndFrom == performanceContext->PrivateGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
 
                         PhGraphStateGetDrawInfo(
@@ -256,6 +261,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                     drawInfo->LineDataCount
                                     );
                             }
+
+                            drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                            drawInfo->LabelYFunctionParameter = (FLOAT)processItem->VmCounters.PeakPagefileUsage;
 
                             performanceContext->PrivateGraphState.Valid = TRUE;
                         }

@@ -440,7 +440,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                     if (header->hwndFrom == context->GpuGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
                         PhGraphStateGetDrawInfo(&context->GpuGraphState, getDrawInfo, context->Block->GpuHistory.Count);
 
@@ -467,6 +467,14 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                                 drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
                                 drawInfo->LabelYFunctionParameter = max;
+                            }
+                            else
+                            {
+                                if (EtEnableScaleText)
+                                {
+                                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                                    drawInfo->LabelYFunctionParameter = 1.0f;
+                                }
                             }
 
                             context->GpuGraphState.Valid = TRUE;
@@ -500,7 +508,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     }
                     else if (header->hwndFrom == context->MemGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
                         PhGraphStateGetDrawInfo(&context->MemoryGraphState, getDrawInfo, context->Block->MemoryHistory.Count);
 
@@ -528,7 +536,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 PhDivideSinglesBySingle(context->MemoryGraphState.Data1, max, drawInfo->LineDataCount);
                             }
 
-                            if (EtEnableScaleGraph)
+                            if (EtEnableScaleText)
                             {
                                 drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                                 drawInfo->LabelYFunctionParameter = max * PAGE_SIZE;
@@ -561,7 +569,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     }
                     else if (header->hwndFrom == context->SharedGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0);
                         PhGraphStateGetDrawInfo(&context->MemorySharedGraphState, getDrawInfo, context->Block->MemorySharedHistory.Count);
 
@@ -589,7 +597,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 PhDivideSinglesBySingle(context->MemorySharedGraphState.Data1, max, drawInfo->LineDataCount);
                             }
 
-                            if (EtEnableScaleGraph)
+                            if (EtEnableScaleText)
                             {
                                 drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                                 drawInfo->LabelYFunctionParameter = max * PAGE_SIZE;
@@ -622,7 +630,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     }
                     else if (header->hwndFrom == context->CommittedGraphHandle)
                     {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                         PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
                         PhGraphStateGetDrawInfo(&context->GpuCommittedGraphState, getDrawInfo, context->Block->GpuCommittedHistory.Count);
 
@@ -651,7 +659,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                                 PhDivideSinglesBySingle(context->GpuCommittedGraphState.Data1, max, drawInfo->LineDataCount);
                             }
 
-                            if (EtEnableScaleGraph)
+                            if (EtEnableScaleText)
                             {
                                 drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                                 drawInfo->LabelYFunctionParameter = max * PAGE_SIZE;

@@ -137,7 +137,7 @@ BOOLEAN PhSipCpuSectionCallback(
             if (!drawInfo)
                 break;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableScaleCpuGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | PH_GRAPH_LABEL_MAX_Y;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
 
@@ -146,7 +146,7 @@ BOOLEAN PhSipCpuSectionCallback(
                 PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, Section->GraphState.Data1, drawInfo->LineDataCount);
                 PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, Section->GraphState.Data2, drawInfo->LineDataCount);
 
-                if (PhCsEnableScaleCpuGraph)
+                if (PhCsEnableGraphMaxScale)
                 {
                     FLOAT max = 0;
 
@@ -166,6 +166,11 @@ BOOLEAN PhSipCpuSectionCallback(
 
                     drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
                     drawInfo->LabelYFunctionParameter = max;
+                }
+                else
+                {
+                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = 1.0f;
                 }
 
                 Section->GraphState.Valid = TRUE;
@@ -768,7 +773,7 @@ VOID PhSipNotifyCpuGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableScaleCpuGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
 
             if (Index == ULONG_MAX)
@@ -784,7 +789,7 @@ VOID PhSipNotifyCpuGraph(
                     PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, CpuGraphState.Data1, drawInfo->LineDataCount);
                     PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, CpuGraphState.Data2, drawInfo->LineDataCount);
 
-                    if (PhCsEnableScaleCpuGraph)
+                    if (PhCsEnableGraphMaxScale)
                     {
                         FLOAT max = 0;
 
@@ -805,6 +810,11 @@ VOID PhSipNotifyCpuGraph(
                         drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
                         drawInfo->LabelYFunctionParameter = max;
                     }
+                    else
+                    {
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = 1.0f;
+                    }
 
                     CpuGraphState.Valid = TRUE;
                 }
@@ -822,7 +832,7 @@ VOID PhSipNotifyCpuGraph(
                     PhCopyCircularBuffer_FLOAT(&PhCpusKernelHistory[Index], CpusGraphState[Index].Data1, drawInfo->LineDataCount);
                     PhCopyCircularBuffer_FLOAT(&PhCpusUserHistory[Index], CpusGraphState[Index].Data2, drawInfo->LineDataCount);
 
-                    if (PhCsEnableScaleCpuGraph)
+                    if (PhCsEnableGraphMaxScale)
                     {
                         FLOAT max = 0;
 
@@ -842,6 +852,11 @@ VOID PhSipNotifyCpuGraph(
 
                         drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
                         drawInfo->LabelYFunctionParameter = max;
+                    }
+                    else
+                    {
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = 1.0f;
                     }
 
                     CpusGraphState[Index].Valid = TRUE;

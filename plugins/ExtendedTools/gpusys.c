@@ -148,7 +148,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             if (!drawInfo)
                 break;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, EtGpuNodeHistory.Count);
 
@@ -170,15 +170,14 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
 
                     if (max != 0)
                     {
-                        PhDivideSinglesBySingle(
-                            Section->GraphState.Data1,
-                            max,
-                            drawInfo->LineDataCount
-                            );
+                        PhDivideSinglesBySingle(Section->GraphState.Data1, max, drawInfo->LineDataCount);
                     }
+                }
 
+                if (EtEnableScaleText)
+                {
                     drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = max;
+                    drawInfo->LabelYFunctionParameter = 1.0f;
                 }
 
                 Section->GraphState.Valid = TRUE;
@@ -223,7 +222,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
                 PhInitFormatS(&format[3], L" / ");
@@ -232,7 +231,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
 
@@ -243,7 +242,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuSharedUsage);
                 PhInitFormatS(&format[3], L" / ");
@@ -252,7 +251,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuSharedUsage);
 
@@ -263,7 +262,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[2];
 
                 // %.2f%%\n
-                PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
                 PhInitFormatS(&format[1], L"%\n");
 
                 drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -747,6 +746,51 @@ VOID EtpLayoutGpuGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+PPH_STRING EtpPowerUsageGraphLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    PH_FORMAT format[2];
+
+    PhInitFormatF(&format[0], Value * Parameter, 1);
+    PhInitFormatC(&format[1], L'%');
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
+PPH_STRING EtpTemperatureGraphLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    PH_FORMAT format[2];
+
+    PhInitFormatF(&format[0], (ULONG)(Value * Parameter), 1);
+    PhInitFormatS(&format[1], L"\u00b0C\n");
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
+PPH_STRING EtpFanRpmGraphLabelYFunction(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG DataIndex,
+    _In_ FLOAT Value,
+    _In_ FLOAT Parameter
+    )
+{
+    PH_FORMAT format[2];
+
+    PhInitFormatU(&format[0], (ULONG)(Value * Parameter));
+    PhInitFormatS(&format[1], L" RPM\n");
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
+}
+
 VOID EtpNotifyGpuGraph(
     _In_ NMHDR *Header
     )
@@ -758,7 +802,7 @@ VOID EtpNotifyGpuGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -785,15 +829,14 @@ VOID EtpNotifyGpuGraph(
 
                     if (max != 0)
                     {
-                        PhDivideSinglesBySingle(
-                            GpuGraphState.Data1,
-                            max,
-                            drawInfo->LineDataCount
-                            );
+                        PhDivideSinglesBySingle(GpuGraphState.Data1, max, drawInfo->LineDataCount);
                     }
+                }
 
+                if (EtEnableScaleText)
+                {
                     drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = max;
+                    drawInfo->LabelYFunctionParameter = 1.0f;
                 }
 
                 GpuGraphState.Valid = TRUE;
@@ -814,7 +857,7 @@ VOID EtpNotifyGpuGraph(
                     gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
                     // %.2f%%%s\n%s
-                    PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+                    PhInitFormatF(&format[0], gpu * 100, 2);
                     PhInitFormatC(&format[1], L'%');
                     PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
                     PhInitFormatC(&format[3], L'\n');
@@ -861,7 +904,7 @@ VOID EtpNotifyDedicatedGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -892,7 +935,7 @@ VOID EtpNotifyDedicatedGraph(
                     PhDivideSinglesBySingle(DedicatedGraphState.Data1, max, drawInfo->LineDataCount);
                 }
 
-                if (EtEnableScaleGraph)
+                if (EtEnableScaleText)
                 {
                     drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                     drawInfo->LabelYFunctionParameter = max;
@@ -942,7 +985,7 @@ VOID EtpNotifySharedGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -955,10 +998,10 @@ VOID EtpNotifySharedGraph(
             {
                 FLOAT max = 0;
 
-                if (EtGpuSharedLimit != 0 && !EtEnableScaleGraph)
-                {
-                    max = (FLOAT)EtGpuSharedLimit;
-                }
+                //if (EtGpuSharedLimit != 0 && !EtEnableScaleGraph)
+                //{
+                //    max = (FLOAT)EtGpuSharedLimit;
+                //}
 
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
@@ -973,12 +1016,12 @@ VOID EtpNotifySharedGraph(
                     PhDivideSinglesBySingle(SharedGraphState.Data1, max, drawInfo->LineDataCount);
                 }
 
-                if (EtEnableScaleGraph)
+                if (EtEnableScaleText)
                 {
                     drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                     drawInfo->LabelYFunctionParameter = max;
                 }
-
+ 
                 SharedGraphState.Valid = TRUE;
             }
         }
@@ -1023,7 +1066,7 @@ VOID EtpNotifyPowerUsageGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPowerUsage"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -1039,12 +1082,17 @@ VOID EtpNotifyPowerUsageGraph(
                     PowerUsageGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, i);
                 }
 
-                // Scale the data.
                 PhDivideSinglesBySingle(
                     PowerUsageGraphState.Data1,
                     EtGpuPowerUsageLimit,
                     drawInfo->LineDataCount
                     );
+
+                if (EtEnableScaleText)
+                {
+                    drawInfo->LabelYFunction = EtpPowerUsageGraphLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = EtGpuPowerUsageLimit;
+                }
 
                 PowerUsageGraphState.Valid = TRUE;
             }
@@ -1090,7 +1138,7 @@ VOID EtpNotifyTemperatureGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorTemperature"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -1106,12 +1154,17 @@ VOID EtpNotifyTemperatureGraph(
                     TemperatureGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&EtGpuTemperatureHistory, i);
                 }
 
-                // Scale the data.
                 PhDivideSinglesBySingle(
                     TemperatureGraphState.Data1,
                     EtGpuTemperatureLimit,
                     drawInfo->LineDataCount
                     );
+
+                if (EtEnableScaleText)
+                {
+                    drawInfo->LabelYFunction = EtpTemperatureGraphLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = EtGpuTemperatureLimit;
+                }
 
                 TemperatureGraphState.Valid = TRUE;
             }
@@ -1165,7 +1218,7 @@ VOID EtpNotifyFanRpmGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
 
-            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             GpuSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorFanRpm"), 0);
 
             PhGraphStateGetDrawInfo(
@@ -1181,12 +1234,17 @@ VOID EtpNotifyFanRpmGraph(
                     FanRpmGraphState.Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG64(&EtGpuFanRpmHistory, i);
                 }
 
-                // Scale the data.
                 PhDivideSinglesBySingle(
                     FanRpmGraphState.Data1,
                     (FLOAT)EtGpuFanRpmLimit,
                     drawInfo->LineDataCount
                     );
+
+                if (EtEnableScaleText)
+                {
+                    drawInfo->LabelYFunction = EtpFanRpmGraphLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = (FLOAT)EtGpuFanRpmLimit;
+                }
 
                 FanRpmGraphState.Valid = TRUE;
             }
