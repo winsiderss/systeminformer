@@ -3396,6 +3396,44 @@ static VOID PhpShowErrorService(
         );
 }
 
+BOOLEAN PhUiStartServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    )
+{
+    BOOLEAN result = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfServices; i++)
+    {
+        SC_HANDLE serviceHandle;
+        BOOLEAN success = FALSE;
+
+        serviceHandle = PhOpenService(PhGetString(Services[i]->Name), SERVICE_START);
+
+        if (serviceHandle)
+        {
+            if (StartService(serviceHandle, 0, NULL))
+                success = TRUE;
+
+            CloseServiceHandle(serviceHandle);
+        }
+
+        if (!success)
+        {
+            NTSTATUS status;
+
+            status = PhGetLastWin32ErrorAsNtStatus();
+            result = FALSE;
+
+            PhpShowErrorService(WindowHandle, L"start", Services[i], status, 0);
+        }
+    }
+
+    return result;
+}
+
 BOOLEAN PhUiStartService(
     _In_ HWND hWnd,
     _In_ PPH_SERVICE_ITEM Service
@@ -3445,6 +3483,46 @@ BOOLEAN PhUiStartService(
     }
 
     return success;
+}
+
+BOOLEAN PhUiContinueServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    )
+{
+    BOOLEAN result = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfServices; i++)
+    {
+        SC_HANDLE serviceHandle;
+        BOOLEAN success = FALSE;
+
+        serviceHandle = PhOpenService(PhGetString(Services[i]->Name), SERVICE_PAUSE_CONTINUE);
+
+        if (serviceHandle)
+        {
+            SERVICE_STATUS serviceStatus;
+
+            if (ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
+                success = TRUE;
+
+            CloseServiceHandle(serviceHandle);
+        }
+
+        if (!success)
+        {
+            NTSTATUS status;
+
+            status = PhGetLastWin32ErrorAsNtStatus();
+            result = FALSE;
+
+            PhpShowErrorService(WindowHandle, L"continue", Services[i], status, 0);
+        }
+    }
+
+    return result;
 }
 
 BOOLEAN PhUiContinueService(
@@ -3500,6 +3578,46 @@ BOOLEAN PhUiContinueService(
     return success;
 }
 
+BOOLEAN PhUiPauseServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    )
+{
+    BOOLEAN result = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfServices; i++)
+    {
+        SC_HANDLE serviceHandle;
+        BOOLEAN success = FALSE;
+
+        serviceHandle = PhOpenService(PhGetString(Services[i]->Name), SERVICE_PAUSE_CONTINUE);
+
+        if (serviceHandle)
+        {
+            SERVICE_STATUS serviceStatus;
+
+            if (ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
+                success = TRUE;
+
+            CloseServiceHandle(serviceHandle);
+        }
+
+        if (!success)
+        {
+            NTSTATUS status;
+
+            status = PhGetLastWin32ErrorAsNtStatus();
+            result = FALSE;
+
+            PhpShowErrorService(WindowHandle, L"pause", Services[i], status, 0);
+        }
+    }
+
+    return result;
+}
+
 BOOLEAN PhUiPauseService(
     _In_ HWND hWnd,
     _In_ PPH_SERVICE_ITEM Service
@@ -3552,6 +3670,47 @@ BOOLEAN PhUiPauseService(
 
     return success;
 }
+
+BOOLEAN PhUiStopServices(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SERVICE_ITEM* Services,
+    _In_ ULONG NumberOfServices
+    )
+{
+    BOOLEAN result = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfServices; i++)
+    {
+        SC_HANDLE serviceHandle;
+        BOOLEAN success = FALSE;
+
+        serviceHandle = PhOpenService(PhGetString(Services[i]->Name), SERVICE_STOP);
+
+        if (serviceHandle)
+        {
+            SERVICE_STATUS serviceStatus;
+
+            if (ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
+                success = TRUE;
+
+            CloseServiceHandle(serviceHandle);
+        }
+
+        if (!success)
+        {
+            NTSTATUS status;
+
+            status = PhGetLastWin32ErrorAsNtStatus();
+            result = FALSE;
+
+            PhpShowErrorService(WindowHandle, L"stop", Services[i], status, 0);
+        }
+    }
+
+    return result;
+}
+
 
 BOOLEAN PhUiStopService(
     _In_ HWND hWnd,

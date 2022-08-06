@@ -1594,50 +1594,58 @@ VOID PhMwpOnCommand(
         break;
     case ID_SERVICE_START:
         {
-            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+            PPH_SERVICE_ITEM* serviceItems;
+            ULONG numberOfServiceItems;
 
-            if (serviceItem)
-            {
-                PhReferenceObject(serviceItem);
-                PhUiStartService(WindowHandle, serviceItem);
-                PhDereferenceObject(serviceItem);
-            }
+            PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
+            PhReferenceObjects(serviceItems, numberOfServiceItems);
+
+            PhUiStartServices(WindowHandle, serviceItems, numberOfServiceItems);
+
+            PhDereferenceObjects(serviceItems, numberOfServiceItems);
+            PhFree(serviceItems);
         }
         break;
     case ID_SERVICE_CONTINUE:
         {
-            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+            PPH_SERVICE_ITEM* serviceItems;
+            ULONG numberOfServiceItems;
 
-            if (serviceItem)
-            {
-                PhReferenceObject(serviceItem);
-                PhUiContinueService(WindowHandle, serviceItem);
-                PhDereferenceObject(serviceItem);
-            }
+            PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
+            PhReferenceObjects(serviceItems, numberOfServiceItems);
+
+            PhUiContinueServices(WindowHandle, serviceItems, numberOfServiceItems);
+
+            PhDereferenceObjects(serviceItems, numberOfServiceItems);
+            PhFree(serviceItems);
         }
         break;
     case ID_SERVICE_PAUSE:
         {
-            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+            PPH_SERVICE_ITEM* serviceItems;
+            ULONG numberOfServiceItems;
 
-            if (serviceItem)
-            {
-                PhReferenceObject(serviceItem);
-                PhUiPauseService(WindowHandle, serviceItem);
-                PhDereferenceObject(serviceItem);
-            }
+            PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
+            PhReferenceObjects(serviceItems, numberOfServiceItems);
+
+            PhUiPauseServices(WindowHandle, serviceItems, numberOfServiceItems);
+
+            PhDereferenceObjects(serviceItems, numberOfServiceItems);
+            PhFree(serviceItems);
         }
         break;
     case ID_SERVICE_STOP:
         {
-            PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
+            PPH_SERVICE_ITEM* serviceItems;
+            ULONG numberOfServiceItems;
 
-            if (serviceItem)
-            {
-                PhReferenceObject(serviceItem);
-                PhUiStopService(WindowHandle, serviceItem);
-                PhDereferenceObject(serviceItem);
-            }
+            PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
+            PhReferenceObjects(serviceItems, numberOfServiceItems);
+
+            PhUiStopServices(WindowHandle, serviceItems, numberOfServiceItems);
+
+            PhDereferenceObjects(serviceItems, numberOfServiceItems);
+            PhFree(serviceItems);
         }
         break;
     case ID_SERVICE_DELETE:
