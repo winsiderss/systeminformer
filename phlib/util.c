@@ -8093,6 +8093,31 @@ PVOID PhGetFileText(
 }
 
 PVOID PhFileReadAllText(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN Unicode
+    )
+{
+    PVOID string = NULL;
+    HANDLE fileHandle;
+
+    if (NT_SUCCESS(PhCreateFile(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        string = PhGetFileText(fileHandle, Unicode);
+        NtClose(fileHandle);
+    }
+
+    return string;
+}
+
+PVOID PhFileReadAllTextWin32(
     _In_ PWSTR FileName,
     _In_ BOOLEAN Unicode
     )

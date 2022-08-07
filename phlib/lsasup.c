@@ -723,23 +723,19 @@ VOID PhInitializeCapabilitySidCache(
     _Inout_ PPH_ARRAY CapabilitySidArrayList
     )
 {
-    PPH_STRING applicationDirectory;
     PPH_STRING capabilityListString = NULL;
+    PPH_STRING capabilityListFileName;
     PH_STRINGREF namePart;
     PH_STRINGREF remainingPart;
 
     if (!RtlDeriveCapabilitySidsFromName_Import())
         return;
 
-    if (applicationDirectory = PhGetApplicationDirectoryWin32())
+    if (capabilityListFileName = PhGetApplicationDirectory())
     {
-        PPH_STRING capabilityListFileName;
-
-        capabilityListFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"capslist.txt");
-        PhDereferenceObject(applicationDirectory);
-
-        capabilityListString = PhFileReadAllText(capabilityListFileName->Buffer, TRUE);
-        PhDereferenceObject(capabilityListFileName);      
+        PhMoveReference(&capabilityListFileName, PhConcatStringRefZ(&capabilityListFileName->sr, L"capslist.txt"));
+        capabilityListString = PhFileReadAllText(&capabilityListFileName->sr, TRUE);
+        PhDereferenceObject(capabilityListFileName);
     }
 
     if (!capabilityListString)
