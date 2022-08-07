@@ -156,6 +156,21 @@ PhGetServiceKeyName(
 );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetServiceHandleFileName(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ PPH_STRINGREF ServiceName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetServiceFileName(
+    _In_ PPH_STRINGREF ServiceName
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetServiceDllParameter(

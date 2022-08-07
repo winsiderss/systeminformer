@@ -612,6 +612,100 @@ PPH_STRING PhGetServiceKeyName(
     return PhConcatStringRef2(&servicesKeyName, ServiceName);
 }
 
+PPH_STRING PhGetServiceHandleFileName(
+    _In_ SC_HANDLE ServiceHandle,
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    PPH_STRING fileName = NULL;
+    LPQUERY_SERVICE_CONFIG config;
+
+    if (config = PhGetServiceConfig(ServiceHandle))
+    {
+        PhGetServiceDllParameter(config->dwServiceType, ServiceName, &fileName);
+
+        if (!fileName)
+        {
+            PPH_STRING commandLine;
+
+            if (config->lpBinaryPathName[0])
+            {
+                commandLine = PhCreateString(config->lpBinaryPathName);
+
+                if (config->dwServiceType & SERVICE_WIN32)
+                {
+                    PH_STRINGREF dummyFileName;
+                    PH_STRINGREF dummyArguments;
+
+                    PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
+
+                    if (!fileName)
+                        PhSwapReference(&fileName, commandLine);
+                }
+                else
+                {
+                    fileName = PhGetFileName(commandLine);
+                }
+
+                PhDereferenceObject(commandLine);
+            }
+        }
+
+        PhFree(config);
+    }
+
+    return fileName;
+}
+
+PPH_STRING PhGetServiceFileName(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    PPH_STRING fileName = NULL;
+    PPH_STRING serviceDllString = NULL;
+    NTSTATUS status;
+    HANDLE keyHandle;
+    PPH_STRING keyName;
+
+    keyName = PhGetServiceKeyName(ServiceName);
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &keyName->sr,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (serviceDllString = PhQueryRegistryString(keyHandle, L"ImagePath"))
+        {
+            PPH_STRING expandedString;
+
+            if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
+            {
+                PhMoveReference(&serviceDllString, expandedString);
+            }
+        }
+        else
+        {
+            status = STATUS_NOT_FOUND;
+        }
+
+        NtClose(keyHandle);
+    }
+
+    PhDereferenceObject(keyName);
+
+    if (NT_SUCCESS(status))
+    {
+        return serviceDllString;
+    }
+
+    return NULL;
+}
+
 NTSTATUS PhpGetServiceDllName(
     _In_ PPH_STRING ServiceKeyName,
     _Out_ PPH_STRING* ServiceDll
