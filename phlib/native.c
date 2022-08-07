@@ -8109,6 +8109,45 @@ NTSTATUS PhQueryKey(
 }
 
 /**
+ * Gets the last write time for a registry key without allocating memory. (dmex)
+ *
+ * \param KeyHandle A handle to the key.
+ * \param ValueName The name of the value.
+ * \param KeyValueInformationClass The information class to query.
+ * \param Buffer A variable which receives a pointer to a buffer containing information about the
+ * registry value. You must free the buffer with PhFree() when you no longer need it.
+ */
+NTSTATUS PhQueryKeyWriteTime(
+    _In_ HANDLE KeyHandle,
+    _Out_ PLARGE_INTEGER KeyLastWriteTime
+    )
+{
+    NTSTATUS status;
+    KEY_BASIC_INFORMATION basicInfo = { 0 };
+    ULONG bufferLength = 0;
+
+    status = NtQueryKey(
+        KeyHandle,
+        KeyBasicInformation,
+        &basicInfo,
+        UFIELD_OFFSET(KEY_BASIC_INFORMATION, Name),
+        &bufferLength
+        );
+
+    if (
+        status == STATUS_SUCCESS ||
+        status == STATUS_BUFFER_OVERFLOW
+        )
+    {
+        *KeyLastWriteTime = basicInfo.LastWriteTime;
+        return STATUS_SUCCESS;
+    }
+
+    memset(KeyLastWriteTime, 0, sizeof(LARGE_INTEGER));
+    return status;
+}
+
+/**
  * Gets a registry value of any type.
  *
  * \param KeyHandle A handle to the key.

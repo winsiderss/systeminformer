@@ -1432,6 +1432,14 @@ PhQueryKey(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhQueryKeyWriteTime(
+    _In_ HANDLE KeyHandle,
+    _Out_ PLARGE_INTEGER KeyLastWriteTime
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhQueryValueKey(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName,
