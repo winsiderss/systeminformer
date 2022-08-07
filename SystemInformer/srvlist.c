@@ -360,11 +360,10 @@ static VOID PhpUpdateServiceNodeDescription(
 {
     if (!(ServiceNode->ValidMask & PHSN_DESCRIPTION))
     {
-        static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
         HANDLE keyHandle;
         PPH_STRING keyName;
 
-        keyName = PhConcatStringRef2(&servicesKeyName, &ServiceNode->ServiceItem->Name->sr);
+        keyName = PhGetServiceKeyName(&ServiceNode->ServiceItem->Name->sr);
 
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,
@@ -411,11 +410,10 @@ static VOID PhpUpdateServiceNodeKey(
 {
     if (!(ServiceNode->ValidMask & PHSN_KEY))
     {
-        static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
         HANDLE keyHandle;
         PPH_STRING keyName;
 
-        keyName = PhConcatStringRef2(&servicesKeyName, &ServiceNode->ServiceItem->Name->sr);
+        keyName = PhGetServiceKeyName(&ServiceNode->ServiceItem->Name->sr);
 
         if (NT_SUCCESS(PhOpenKey(
             &keyHandle,

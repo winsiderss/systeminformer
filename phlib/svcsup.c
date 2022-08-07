@@ -603,6 +603,15 @@ NTSTATUS PhGetThreadServiceTag(
     return status;
 }
 
+PPH_STRING PhGetServiceKeyName(
+    _In_ PPH_STRINGREF ServiceName
+    )
+{
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+
+    return PhConcatStringRef2(&servicesKeyName, ServiceName);
+}
+
 NTSTATUS PhpGetServiceDllName(
     _In_ PPH_STRING ServiceKeyName,
     _Out_ PPH_STRING* ServiceDll
@@ -653,10 +662,10 @@ NTSTATUS PhGetServiceDllParameter(
     _Out_ PPH_STRING *ServiceDll
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
     static PH_STRINGREF parameters = PH_STRINGREF_INIT(L"\\Parameters");
     NTSTATUS status;
     PPH_STRING serviceDllString;
+    PPH_STRING serviceKeyName;
     PPH_STRING keyName;
 
     if (ServiceType & SERVICE_USERSERVICE_INSTANCE)
@@ -670,20 +679,29 @@ NTSTATUS PhGetServiceDllParameter(
         // and we need to parse the user service template and query the "host service instance" configuration. (hsebs)
 
         if (PhSplitStringRefAtLastChar(ServiceName, L'_', &hostServiceName, &userSessionLuid))
-            keyName = PhConcatStringRef3(&servicesKeyName, &hostServiceName, &parameters);
+        {
+            serviceKeyName = PhGetServiceKeyName(&hostServiceName);
+            keyName = PhConcatStringRef2(&serviceKeyName->sr, &parameters);
+        }
         else
-            keyName = PhConcatStringRef3(&servicesKeyName, ServiceName, &parameters);
+        {
+            serviceKeyName = PhGetServiceKeyName(ServiceName);
+            keyName = PhConcatStringRef2(&serviceKeyName->sr, &parameters);
+        }
     }
     else
     {
-        keyName = PhConcatStringRef3(&servicesKeyName, ServiceName, &parameters);
+        serviceKeyName = PhGetServiceKeyName(ServiceName);
+        keyName = PhConcatStringRef2(&serviceKeyName->sr, &parameters);
     }
 
     status = PhpGetServiceDllName(
         keyName,
         &serviceDllString
         );
+
     PhDereferenceObject(keyName);
+    PhDereferenceObject(serviceKeyName);
 
     if (NT_SUCCESS(status))
     {
@@ -696,16 +714,14 @@ NTSTATUS PhGetServiceDllParameter(
         (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_NOT_FOUND)
         )
     {
-        // Windows 8 places the ServiceDll for some services in the root key. (dmex)
-        keyName = PhConcatStringRef2(
-            &servicesKeyName,
-            ServiceName
-            );
+        keyName = PhGetServiceKeyName(ServiceName);
 
+        // Windows 8 places the ServiceDll for some services in the root key. (dmex)
         status = PhpGetServiceDllName(
             keyName,
             &serviceDllString
             );
+
         PhDereferenceObject(keyName);
 
         if (NT_SUCCESS(status))
