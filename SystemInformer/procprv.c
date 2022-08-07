@@ -256,31 +256,31 @@ BOOLEAN PhProcessProviderInitialization(
     PhInterruptsProcessInformation->UniqueProcessId = INTERRUPTS_PROCESS_ID;
     PhInterruptsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
 
-    PhCpuInformation = PhAllocate(
+    PhCpuInformation = PhAllocateZero(
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
         PhSystemProcessorInformation.NumberOfProcessors
         );
 
-    PhCpuIdleCycleTime = PhAllocate(
+    PhCpuIdleCycleTime = PhAllocateZero(
         sizeof(LARGE_INTEGER) *
         PhSystemProcessorInformation.NumberOfProcessors
         );
-    PhCpuSystemCycleTime = PhAllocate(
+    PhCpuSystemCycleTime = PhAllocateZero(
         sizeof(LARGE_INTEGER) *
         PhSystemProcessorInformation.NumberOfProcessors
         );
 
-    usageBuffer = PhAllocate(
+    usageBuffer = PhAllocateZero(
         sizeof(FLOAT) *
         PhSystemProcessorInformation.NumberOfProcessors *
         2
         );
-    deltaBuffer = PhAllocate(
+    deltaBuffer = PhAllocateZero(
         sizeof(PH_UINT64_DELTA) *
         PhSystemProcessorInformation.NumberOfProcessors *
         3 // 4 for PhCpusIdleCycleDelta
         );
-    historyBuffer = PhAllocate(
+    historyBuffer = PhAllocateZero(
         sizeof(PH_CIRCULAR_BUFFER_FLOAT) *
         PhSystemProcessorInformation.NumberOfProcessors *
         2
@@ -296,8 +296,6 @@ BOOLEAN PhProcessProviderInitialization(
 
     PhCpusKernelHistory = historyBuffer;
     PhCpusUserHistory = PhCpusKernelHistory + PhSystemProcessorInformation.NumberOfProcessors;
-
-    memset(deltaBuffer, 0, sizeof(PH_UINT64_DELTA) * PhSystemProcessorInformation.NumberOfProcessors);
 
     return TRUE;
 }
@@ -1452,7 +1450,7 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     }
     else
     {
-        ProcessItem->PriorityClass = 0;
+        ProcessItem->PriorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
     }
 
     ProcessItem->KernelTime = Process->KernelTime;
