@@ -7,8 +7,6 @@
 #ifndef _NTLDR_H
 #define _NTLDR_H
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 // DLLs
 
 typedef BOOLEAN (NTAPI *PLDR_INIT_ROUTINE)(
@@ -222,6 +220,8 @@ typedef struct _LDR_DATA_TABLE_ENTRY
 #define LDR_DATAFILE_TO_MAPPEDVIEW(DllHandle) ((PVOID)(((ULONG_PTR)(DllHandle)) & ~(ULONG_PTR)1))
 #define LDR_IMAGEMAPPING_TO_MAPPEDVIEW(DllHandle) ((PVOID)(((ULONG_PTR)(DllHandle)) & ~(ULONG_PTR)2))
 #define LDR_IS_RESOURCE(DllHandle) (LDR_IS_IMAGEMAPPING(DllHandle) || LDR_IS_DATAFILE(DllHandle))
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 NTSYSAPI
 NTSTATUS

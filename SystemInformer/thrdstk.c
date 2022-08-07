@@ -856,8 +856,8 @@ VOID PhShowThreadStackDialog(
     PPH_THREAD_STACK_CONTEXT context;
 
     // If the user is trying to view a system thread stack
-    // but KProcessHacker is not loaded, show an error message.
-    if (ProcessId == SYSTEM_PROCESS_ID && !KphIsConnected())
+    // but KSystemInformer is not loaded, show an error message.
+    if (ProcessId == SYSTEM_PROCESS_ID && (KphLevel() < KphLevelMed))
     {
         PhShowError2(ParentWindowHandle, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
         return;
@@ -877,7 +877,7 @@ VOID PhShowThreadStackDialog(
         ThreadId
         )))
     {
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             status = PhOpenThread(
                 &threadHandle,

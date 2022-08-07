@@ -288,7 +288,7 @@ VOID PhSipInitializeMemoryDialog(
 
     MemoryTicked = 0;
 
-    if (!MmAddressesInitialized && KphIsConnected())
+    if (!MmAddressesInitialized && (KphLevel() >= KphLevelMed))
     {
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhSipLoadMmAddresses, NULL);
         MmAddressesInitialized = TRUE;
@@ -848,7 +848,7 @@ VOID PhSipUpdateMemoryPanel(
     }
     else
     {
-        if (!KphIsConnected())
+        if (!KphLevel())
         {
             pagedLimit = nonPagedLimit = L"no driver";
         }

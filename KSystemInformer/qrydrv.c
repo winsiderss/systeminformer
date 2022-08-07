@@ -11,218 +11,283 @@
 
 #include <kph.h>
 
-VOID KphpCopyInfoUnicodeString(
-    _Out_ PVOID Information,
-    _In_opt_ PUNICODE_STRING UnicodeString
-    );
+#include <trace.h>
 
-#ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, KpiOpenDriver)
-#pragma alloc_text(PAGE, KpiQueryInformationDriver)
-#pragma alloc_text(PAGE, KphpCopyInfoUnicodeString)
-#endif
+PAGED_FILE();
 
-NTSTATUS KpiOpenDriver(
+/**
+ * \brief Opens a driver object.
+ * 
+ * \param[out] DriverHandle Set to the opened handle to the driver.
+ * \param[in] DesiredAccess Desired access to the driver object.
+ * \param[in] ObjectAttributes Object attributes for opening the driver object.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphOpenDriver(
     _Out_ PHANDLE DriverHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
-    PAGED_CODE();
+    PAGED_PASSIVE();
 
-    return KphOpenNamedObject(
-        DriverHandle,
-        DesiredAccess,
-        ObjectAttributes,
-        *IoDriverObjectType,
-        AccessMode
-        );
+    return KphOpenNamedObject(DriverHandle,
+                              DesiredAccess,
+                              ObjectAttributes,
+                              *IoDriverObjectType,
+                              AccessMode);
 }
 
-NTSTATUS KpiQueryInformationDriver(
+/**
+ * \brief Queries information about a driver.
+ * 
+ * \param[in] DriverHandle Handle to driver to query.
+ * \param[in] DriverInformationClass Information class to query.
+ * \param[out] DriverInformation Populated with driver information by class.
+ * \param[in] DriverInformationLength Length of the driver information buffer.
+ * \param[out] ReturnLength Number of bytes written or necessary for the
+ * information.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationDriver(
     _In_ HANDLE DriverHandle,
     _In_ DRIVER_INFORMATION_CLASS DriverInformationClass,
-    _Out_writes_bytes_(DriverInformationLength) PVOID DriverInformation,
+    _Out_writes_bytes_opt_(DriverInformationLength) PVOID DriverInformation,
     _In_ ULONG DriverInformationLength,
     _Out_opt_ PULONG ReturnLength,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
     PDRIVER_OBJECT driverObject;
+    ULONG returnLength;
 
-    PAGED_CODE();
+    PAGED_PASSIVE();
+
+    driverObject = NULL;
+    returnLength = 0;
 
     if (AccessMode != KernelMode)
     {
         __try
         {
-            ProbeForWrite(DriverInformation, DriverInformationLength, 1);
+            if (DriverInformation)
+            {
+                ProbeForWrite(DriverInformation, DriverInformationLength, 1);
+            }
 
             if (ReturnLength)
-                ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
+            {
+                ProbeOutputType(ReturnLength, ULONG);
+            }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
-            return GetExceptionCode();
+            status = GetExceptionCode();
+            goto Exit;
         }
     }
 
-    status = ObReferenceObjectByHandle(
-        DriverHandle,
-        0,
-        *IoDriverObjectType,
-        AccessMode,
-        &driverObject,
-        NULL
-        );
-
+    status = ObReferenceObjectByHandle(DriverHandle,
+                                       0,
+                                       *IoDriverObjectType,
+                                       KernelMode,
+                                       &driverObject,
+                                       NULL);
     if (!NT_SUCCESS(status))
-        return status;
-
-    __try
     {
-        switch (DriverInformationClass)
-        {
-        // Basic information such as flags, driver base and driver size.
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        driverObject = NULL;
+        goto Exit;
+    }
+
+        //
+        // We reach into the driver object on purpose
+        //
+#pragma prefast(push)
+#pragma prefast(disable : 28175)
+    switch (DriverInformationClass)
+    {
         case DriverBasicInformation:
+        {
+            //
+            // Basic information such as flags, driver base and driver size.
+            //
+
+            PDRIVER_BASIC_INFORMATION basicInfo;
+
+            if (!DriverInformation ||
+                (DriverInformationLength != sizeof(DRIVER_BASIC_INFORMATION)))
             {
-                if (DriverInformationLength == sizeof(DRIVER_BASIC_INFORMATION))
-                {
-                    PDRIVER_BASIC_INFORMATION basicInfo;
-
-                    basicInfo = (PDRIVER_BASIC_INFORMATION)DriverInformation;
-                    basicInfo->Flags = driverObject->Flags;
-                    basicInfo->DriverStart = driverObject->DriverStart;
-                    basicInfo->DriverSize = driverObject->DriverSize;
-                }
-                else
-                {
-                    status = STATUS_INFO_LENGTH_MISMATCH;
-                }
-
-                if (ReturnLength)
-                    *ReturnLength = sizeof(DRIVER_BASIC_INFORMATION);
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                goto Exit;
             }
-            break;
 
-        // The name of the driver - e.g. \Driver\Null.
+            basicInfo = (PDRIVER_BASIC_INFORMATION)DriverInformation;
+
+            __try
+            {
+                basicInfo->Flags = driverObject->Flags;
+                basicInfo->DriverStart = driverObject->DriverStart;
+                basicInfo->DriverSize = driverObject->DriverSize;
+                returnLength = sizeof(DRIVER_BASIC_INFORMATION);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
         case DriverNameInformation:
+        {
+            //
+            // The name of the driver - e.g. \Driver\Null.
+            //
+
+            if (!DriverInformation ||
+                (DriverInformationLength <
+                 (sizeof(UNICODE_STRING) + driverObject->DriverName.Length)))
             {
-                if (DriverInformation)
-                {
-                    /* Check buffer length. */
-                    if (sizeof(UNICODE_STRING) + driverObject->DriverName.Length <=
-                        DriverInformationLength)
-                    {
-                        KphpCopyInfoUnicodeString(
-                            DriverInformation,
-                            &driverObject->DriverName
-                            );
-                    }
-                    else
-                    {
-                        status = STATUS_BUFFER_TOO_SMALL;
-                    }
-                }
-
-                if (ReturnLength)
-                    *ReturnLength = sizeof(UNICODE_STRING) + driverObject->DriverName.Length;
+                status = STATUS_BUFFER_TOO_SMALL;
+                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverName.Length);
+                goto Exit;
             }
-            break;
 
-        // The name of the driver's service key - e.g. \REGISTRY\...
+            __try
+            {
+                PUNICODE_STRING string;
+
+                string = (PUNICODE_STRING)DriverInformation;
+                string->Length = 0;
+                string->MaximumLength = (USHORT)(DriverInformationLength - sizeof(UNICODE_STRING));
+                string->Buffer = (PWSTR)Add2Ptr(DriverInformation, sizeof(UNICODE_STRING));
+                RtlCopyUnicodeString(string, &driverObject->DriverName);
+
+                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverName.Length);
+                status = STATUS_SUCCESS;
+                goto Exit;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
         case DriverServiceKeyNameInformation:
+        {
+            //
+            // The name of the driver's service key - e.g. \REGISTRY\...
+            //
+
+            if (!driverObject->DriverExtension)
             {
-                if (driverObject->DriverExtension)
+                if (!DriverInformation ||
+                    (DriverInformationLength < sizeof(UNICODE_STRING)))
                 {
-                    if (DriverInformation)
-                    {
-                        if (sizeof(UNICODE_STRING) +
-                            driverObject->DriverExtension->ServiceKeyName.Length <=
-                            DriverInformationLength)
-                        {
-                            KphpCopyInfoUnicodeString(
-                                DriverInformation,
-                                &driverObject->DriverExtension->ServiceKeyName
-                                );
-                        }
-                        else
-                        {
-                            status = STATUS_BUFFER_TOO_SMALL;
-                        }
-                    }
-
-                    if (ReturnLength)
-                    {
-                        *ReturnLength = sizeof(UNICODE_STRING) +
-                            driverObject->DriverExtension->ServiceKeyName.Length;
-                    }
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    returnLength = sizeof(UNICODE_STRING);
+                    goto Exit;
                 }
-                else
+
+                __try
                 {
-                    if (DriverInformation)
-                    {
-                        if (sizeof(UNICODE_STRING) <= DriverInformationLength)
-                        {
-                            // Zero the information buffer.
-                            KphpCopyInfoUnicodeString(
-                                DriverInformation,
-                                NULL
-                                );
-                        }
-                        else
-                        {
-                            status = STATUS_BUFFER_TOO_SMALL;
-                        }
-                    }
-
-                    if (ReturnLength)
-                        *ReturnLength = sizeof(UNICODE_STRING);
+                    //
+                    // Zero the information buffer.
+                    //
+                    RtlZeroMemory(DriverInformation, sizeof(UNICODE_STRING));
+                    returnLength = sizeof(UNICODE_STRING);
+                    status = STATUS_SUCCESS;
                 }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                    goto Exit;
+                }
+
+                goto Exit;
             }
+
+            if (!DriverInformation ||
+                (DriverInformationLength <
+                 (sizeof(UNICODE_STRING) + driverObject->DriverExtension->ServiceKeyName.Length)))
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverExtension->ServiceKeyName.Length);
+                goto Exit;
+            }
+
+            __try
+            {
+                PUNICODE_STRING string;
+
+                string = (PUNICODE_STRING)DriverInformation;
+                string->Length = 0;
+                string->MaximumLength = (USHORT)(DriverInformationLength - sizeof(UNICODE_STRING));
+                string->Buffer = (PWSTR)Add2Ptr(DriverInformation, sizeof(UNICODE_STRING));
+                RtlCopyUnicodeString(string, &driverObject->DriverExtension->ServiceKeyName);
+
+                returnLength = (sizeof(UNICODE_STRING) + driverObject->DriverExtension->ServiceKeyName.Length);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
             break;
-
+        }
         default:
-            {
-                status = STATUS_INVALID_INFO_CLASS;
-            }
+        {
+            status = STATUS_INVALID_INFO_CLASS;
+            break;
         }
     }
-    __except (EXCEPTION_EXECUTE_HANDLER)
+#pragma prefast(pop)
+
+Exit:
+
+    if (driverObject)
     {
-        status = GetExceptionCode();
+        ObDereferenceObject(driverObject);
     }
 
-    ObDereferenceObject(driverObject);
+    if (ReturnLength)
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *ReturnLength = returnLength;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                NOTHING;
+            }
+        }
+        else
+        {
+            *ReturnLength = returnLength;
+        }
+    }
 
     return status;
-}
-
-VOID KphpCopyInfoUnicodeString(
-    _Out_ PVOID Information,
-    _In_opt_ PUNICODE_STRING UnicodeString
-    )
-{
-    PUNICODE_STRING targetUnicodeString = Information;
-    PWCHAR targetBuffer;
-
-    PAGED_CODE();
-
-    if (UnicodeString)
-    {
-        targetBuffer = PTR_ADD_OFFSET(Information, sizeof(UNICODE_STRING));
-
-        targetUnicodeString->Length = UnicodeString->Length;
-        targetUnicodeString->MaximumLength = UnicodeString->Length;
-        targetUnicodeString->Buffer = targetBuffer;
-        memcpy(targetBuffer, UnicodeString->Buffer, UnicodeString->Length);
-    }
-    else
-    {
-        targetUnicodeString->Length = 0;
-        targetUnicodeString->MaximumLength = 0;
-        targetUnicodeString->Buffer = NULL;
-    }
 }
