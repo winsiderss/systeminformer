@@ -1248,30 +1248,25 @@ VOID PhpFillProcessItem(
         {
             if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
             {
-                PPH_STRING fileName = NULL;
-                PPH_STRING fileNameWin32 = NULL;
+                PPH_STRING fileName;
 
                 if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName)))
                 {
                     ProcessItem->FileName = fileName;
                 }
 
-                if (ProcessItem->QueryHandle && !ProcessItem->IsSubsystemProcess)
+                if (ProcessItem->QueryHandle)
                 {
-                    PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileNameWin32); // PhGetProcessImageFileName (dmex)
+                    //if (NT_SUCCESS(PhGetProcessImageFileName(ProcessItem->QueryHandle, &fileName)))
+                    //    ProcessItem->FileName = fileName;
+                    if (NT_SUCCESS(PhGetProcessImageFileNameWin32(ProcessItem->QueryHandle, &fileName)))
+                        ProcessItem->FileNameWin32 = fileName;
                 }
 
-                // Note: Some minimal/pico process (SecureSystem) are using UNICODE_NULL as their filename. Make sure we
-                // clear the string and show N/A instead of the empty string. (dmex)
-                if (ProcessItem->FileName && ProcessItem->FileName->Length == 0)
-                    PhClearReference(&ProcessItem->FileName);
-                if (fileNameWin32 && fileNameWin32->Length == 0)
-                    PhClearReference(&fileNameWin32);
-
-                if (fileNameWin32)
-                    ProcessItem->FileNameWin32 = fileNameWin32;
-                else if (ProcessItem->FileName)
-                    ProcessItem->FileNameWin32 = PhGetFileName(ProcessItem->FileName);
+                if (ProcessItem->FileName && PhIsNullOrEmptyString(ProcessItem->FileNameWin32))
+                {
+                    PhMoveReference(&ProcessItem->FileNameWin32, PhGetFileName(ProcessItem->FileName));
+                }
             }
         }
         else

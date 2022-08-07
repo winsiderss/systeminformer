@@ -193,6 +193,14 @@ PhGetProcessImageFileNameById(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessImageFileNameByProcessId(
+    _In_opt_ HANDLE ProcessId,
+    _Out_ PPH_STRING* FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessIsBeingDebugged(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsBeingDebugged
@@ -1107,14 +1115,6 @@ NTSTATUS
 NTAPI
 PhEnumPagefilesEx(
     _Out_ PVOID *Pagefiles
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetProcessImageFileNameByProcessId(
-    _In_opt_ HANDLE ProcessId,
-    _Out_ PPH_STRING *FileName
     );
 
 PHLIBAPI
