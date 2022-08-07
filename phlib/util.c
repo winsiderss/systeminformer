@@ -2807,7 +2807,10 @@ PPH_STRING PhGetApplicationFileName(
 
     if (!NT_SUCCESS(PhGetProcessImageFileName(NtCurrentProcess(), &fileName)))
     {
-        PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
+        if (!NT_SUCCESS(PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &fileName)))
+        {
+            PhGetProcessMappedFileName(NtCurrentProcess(), PhInstanceHandle, &fileName);
+        }
     }
 
     if (!InterlockedCompareExchangePointer(

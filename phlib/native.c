@@ -648,6 +648,13 @@ NTSTATUS PhGetProcessImageFileName(
     if (!NT_SUCCESS(status))
         return status;
 
+    // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
+    if (fileName->Length == 0)
+    {
+        PhFree(fileName);
+        return STATUS_UNSUCCESSFUL;
+    }
+
     *FileName = PhCreateStringFromUnicodeString(fileName);
     PhFree(fileName);
 
@@ -670,31 +677,31 @@ NTSTATUS PhGetProcessImageFileNameWin32(
     )
 {
     NTSTATUS status;
-    PUNICODE_STRING buffer;
+    PUNICODE_STRING fileName;
     ULONG bufferLength;
     ULONG returnLength = 0;
 
     bufferLength = sizeof(UNICODE_STRING) + DOS_MAX_PATH_LENGTH;
-    buffer = PhAllocate(bufferLength);
+    fileName = PhAllocate(bufferLength);
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessImageFileNameWin32,
-        buffer,
+        fileName,
         bufferLength,
         &returnLength
         );
 
     if (status == STATUS_INFO_LENGTH_MISMATCH)
     {
-        PhFree(buffer);
+        PhFree(fileName);
         bufferLength = returnLength;
-        buffer = PhAllocate(bufferLength);
+        fileName = PhAllocate(bufferLength);
 
         status = NtQueryInformationProcess(
             ProcessHandle,
             ProcessImageFileNameWin32,
-            buffer,
+            fileName,
             bufferLength,
             &returnLength
             );
@@ -702,7 +709,14 @@ NTSTATUS PhGetProcessImageFileNameWin32(
 
     if (NT_SUCCESS(status))
     {
-        PPH_STRING fileName;
+        PPH_STRING fileNameWin32;
+
+        // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
+        if (fileName->Length == 0)
+        {
+            PhFree(fileName);
+            return STATUS_UNSUCCESSFUL;
+        }
 
         // Note: ProcessImageFileNameWin32 returns the NT device path
         // instead of the Win32 path in cases were the disk volume driver
@@ -710,13 +724,12 @@ NTSTATUS PhGetProcessImageFileNameWin32(
         // mount manager ioctls (e.g. ImDisk). We workaround this issue
         // by calling PhGetFileName and resolving the NT device prefix. (dmex)
 
-        fileName = PhCreateStringFromUnicodeString(buffer);
-        PhMoveReference(&fileName, PhGetFileName(fileName));
-
-        *FileName = fileName;
+        fileNameWin32 = PhCreateStringFromUnicodeString(fileName);
+        PhMoveReference(&fileNameWin32, PhGetFileName(fileNameWin32));
+        *FileName = fileNameWin32;
     }
 
-    PhFree(buffer);
+    PhFree(fileName);
 
     return status;
 }
@@ -797,6 +810,75 @@ NTSTATUS PhGetProcessImageFileNameById(
     }
     
     PhFree(data.ImageName.Buffer);
+
+    return status;
+}
+
+/**
+ * Gets the file name of a process' image.
+ *
+ * \param ProcessId The ID of the process.
+ * \param FileName A variable which receives a pointer to a string containing the file name. You
+ * must free the string using PhDereferenceObject() when you no longer need it.
+ *
+ * \remarks This function only works on Windows Vista and above. There does not appear to be any
+ * access checking performed by the kernel for this.
+ */
+NTSTATUS PhGetProcessImageFileNameByProcessId(
+    _In_opt_ HANDLE ProcessId,
+    _Out_ PPH_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    USHORT bufferSize = 0x100;
+    SYSTEM_PROCESS_ID_INFORMATION processIdInfo;
+
+    buffer = PhAllocate(bufferSize);
+
+    processIdInfo.ProcessId = ProcessId;
+    processIdInfo.ImageName.Length = 0;
+    processIdInfo.ImageName.MaximumLength = bufferSize;
+    processIdInfo.ImageName.Buffer = buffer;
+
+    status = NtQuerySystemInformation(
+        SystemProcessIdInformation,
+        &processIdInfo,
+        sizeof(SYSTEM_PROCESS_ID_INFORMATION),
+        NULL
+        );
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        // Required length is stored in MaximumLength.
+
+        PhFree(buffer);
+        buffer = PhAllocate(processIdInfo.ImageName.MaximumLength);
+        processIdInfo.ImageName.Buffer = buffer;
+
+        status = NtQuerySystemInformation(
+            SystemProcessIdInformation,
+            &processIdInfo,
+            sizeof(SYSTEM_PROCESS_ID_INFORMATION),
+            NULL
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    // Note: Some minimal/pico processes have UNICODE_NULL as their filename. (dmex)
+    if (processIdInfo.ImageName.Length == 0)
+    {
+        PhFree(buffer);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    *FileName = PhCreateStringFromUnicodeString(&processIdInfo.ImageName);
+    PhFree(buffer);
 
     return status;
 }
@@ -5882,68 +5964,6 @@ NTSTATUS PhEnumPagefilesEx(
 }
 
 /**
- * Gets the file name of a process' image.
- *
- * \param ProcessId The ID of the process.
- * \param FileName A variable which receives a pointer to a string containing the file name. You
- * must free the string using PhDereferenceObject() when you no longer need it.
- *
- * \remarks This function only works on Windows Vista and above. There does not appear to be any
- * access checking performed by the kernel for this.
- */
-NTSTATUS PhGetProcessImageFileNameByProcessId(
-    _In_opt_ HANDLE ProcessId,
-    _Out_ PPH_STRING *FileName
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    USHORT bufferSize = 0x100;
-    SYSTEM_PROCESS_ID_INFORMATION processIdInfo;
-
-    buffer = PhAllocate(bufferSize);
-
-    processIdInfo.ProcessId = ProcessId;
-    processIdInfo.ImageName.Length = 0;
-    processIdInfo.ImageName.MaximumLength = bufferSize;
-    processIdInfo.ImageName.Buffer = buffer;
-
-    status = NtQuerySystemInformation(
-        SystemProcessIdInformation,
-        &processIdInfo,
-        sizeof(SYSTEM_PROCESS_ID_INFORMATION),
-        NULL
-        );
-
-    if (status == STATUS_INFO_LENGTH_MISMATCH)
-    {
-        // Required length is stored in MaximumLength.
-
-        PhFree(buffer);
-        buffer = PhAllocate(processIdInfo.ImageName.MaximumLength);
-        processIdInfo.ImageName.Buffer = buffer;
-
-        status = NtQuerySystemInformation(
-            SystemProcessIdInformation,
-            &processIdInfo,
-            sizeof(SYSTEM_PROCESS_ID_INFORMATION),
-            NULL
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    *FileName = PhCreateStringFromUnicodeString(&processIdInfo.ImageName);
-    PhFree(buffer);
-
-    return status;
-}
-
-/**
  * Determines if a process is managed.
  *
  * \param ProcessId The ID of the process.
@@ -6105,7 +6125,7 @@ NTSTATUS PhGetProcessIsDotNetEx(
         HANDLE sectionHandle;
         SIZE_T returnLength;
         OBJECT_ATTRIBUTES objectAttributes;
-        UNICODE_STRING objectNameUs;
+        UNICODE_STRING objectName;
         PH_STRINGREF objectNameSr;
         PH_FORMAT format[2];
         WCHAR formatBuffer[0x80];
@@ -6127,16 +6147,16 @@ NTSTATUS PhGetProcessIsDotNetEx(
             objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameSr.Buffer = formatBuffer;
 
-            PhStringRefToUnicodeString(&objectNameSr, &objectNameUs);
+            PhStringRefToUnicodeString(&objectNameSr, &objectName);
         }
         else
         {
-            RtlInitEmptyUnicodeString(&objectNameUs, NULL, 0);
+            RtlInitEmptyUnicodeString(&objectName, NULL, 0);
         }
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &objectNameUs,
+            &objectName,
             OBJ_CASE_INSENSITIVE,
             NULL,
             NULL
@@ -6171,16 +6191,16 @@ NTSTATUS PhGetProcessIsDotNetEx(
             objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
             objectNameSr.Buffer = formatBuffer;
 
-            PhStringRefToUnicodeString(&objectNameSr, &objectNameUs);
+            PhStringRefToUnicodeString(&objectNameSr, &objectName);
         }
         else
         {
-            RtlInitEmptyUnicodeString(&objectNameUs, NULL, 0);
+            RtlInitEmptyUnicodeString(&objectName, NULL, 0);
         }
 
         InitializeObjectAttributes(
             &objectAttributes,
-            &objectNameUs,
+            &objectName,
             OBJ_CASE_INSENSITIVE,
             NULL,
             NULL
@@ -6221,10 +6241,10 @@ NTSTATUS PhGetProcessIsDotNetEx(
             objectNameSr.Buffer = formatBuffer;
             pipeNameHash = PhHashStringRefEx(&objectNameSr, TRUE, PH_STRING_HASH_X65599);
 
-            RtlInitUnicodeString(&objectNameUs, DEVICE_NAMED_PIPE);
+            RtlInitUnicodeString(&objectName, DEVICE_NAMED_PIPE);
             InitializeObjectAttributes(
                 &objectAttributes,
-                &objectNameUs,
+                &objectName,
                 OBJ_CASE_INSENSITIVE,
                 NULL,
                 NULL
@@ -6279,10 +6299,10 @@ NTSTATUS PhGetProcessIsDotNetEx(
             //objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
             //objectNameSr.Buffer = formatBuffer;
             //
-            //PhStringRefToUnicodeString(&objectNameSr, &objectNameUs);
+            //PhStringRefToUnicodeString(&objectNameSr, &objectName);
             //InitializeObjectAttributes(
             //    &objectAttributes,
-            //    &objectNameUs,
+            //    &objectName,
             //    OBJ_CASE_INSENSITIVE,
             //    NULL,
             //    NULL
@@ -9467,14 +9487,14 @@ NTSTATUS PhCreatePipeEx(
     HANDLE pipeReadHandle;
     HANDLE pipeWriteHandle;
     LARGE_INTEGER pipeTimeout;
-    UNICODE_STRING pipeNameUs;
+    UNICODE_STRING pipeName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
-    RtlInitUnicodeString(&pipeNameUs, DEVICE_NAMED_PIPE);
+    RtlInitUnicodeString(&pipeName, DEVICE_NAMED_PIPE);
     InitializeObjectAttributes(
         &objectAttributes,
-        &pipeNameUs,
+        &pipeName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
@@ -9492,10 +9512,10 @@ NTSTATUS PhCreatePipeEx(
     if (!NT_SUCCESS(status))
         return status;
 
-    RtlInitEmptyUnicodeString(&pipeNameUs, NULL, 0);
+    RtlInitEmptyUnicodeString(&pipeName, NULL, 0);
     InitializeObjectAttributes(
         &objectAttributes,
-        &pipeNameUs,
+        &pipeName,
         OBJ_CASE_INSENSITIVE | (InheritHandles ? OBJ_INHERIT : 0),
         pipeDirectoryHandle,
         NULL
@@ -9544,10 +9564,10 @@ NTSTATUS PhCreatePipeEx(
         return status;
     }
 
-    RtlInitEmptyUnicodeString(&pipeNameUs, NULL, 0);
+    RtlInitEmptyUnicodeString(&pipeName, NULL, 0);
     InitializeObjectAttributes(
         &objectAttributes,
-        &pipeNameUs,
+        &pipeName,
         OBJ_CASE_INSENSITIVE | (InheritHandles ? OBJ_INHERIT : 0),
         pipeReadHandle,
         NULL
@@ -11820,17 +11840,17 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
     NTSTATUS status;
     HANDLE sectionHandle;
     OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectNameUs;
+    UNICODE_STRING objectName;
     PVOID baseAddress = NULL;
     SIZE_T viewSize = PAGE_SIZE;
     PPH_STRING fileName;
 
-    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+    if (!PhStringRefToUnicodeString(Name, &objectName))
         return TRUE;
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &objectNameUs,
+        &objectName,
         OBJ_CASE_INSENSITIVE,
         Context,
         NULL
@@ -11853,7 +11873,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
         0,
         NULL,
         &viewSize,
-        ViewUnmap,
+        ViewShare,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );

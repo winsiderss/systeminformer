@@ -371,6 +371,13 @@ NTSTATUS PhpGetObjectName(
         }
     } while (--attempts);
 
+    // Note: Some handles have UNICODE_NULL as their filename. (dmex)
+    if (buffer->Name.Length == 0)
+    {
+        PhFree(buffer);
+        return STATUS_UNSUCCESSFUL;
+    }
+
     if (NT_SUCCESS(status))
     {
         *ObjectName = PhCreateStringFromUnicodeString(&buffer->Name);
