@@ -1432,9 +1432,9 @@ PhQueryKey(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhQueryKeyWriteTime(
+PhQueryKeyLastWriteTime(
     _In_ HANDLE KeyHandle,
-    _Out_ PLARGE_INTEGER KeyLastWriteTime
+    _Out_ PLARGE_INTEGER LastWriteTime
     );
 
 PHLIBAPI

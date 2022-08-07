@@ -425,7 +425,7 @@ static VOID PhpUpdateServiceNodeKey(
         {
             LARGE_INTEGER lastWriteTime;
 
-            if (NT_SUCCESS(PhQueryKeyWriteTime(keyHandle, &lastWriteTime)))
+            if (NT_SUCCESS(PhQueryKeyLastWriteTime(keyHandle, &lastWriteTime)))
             {
                 ServiceNode->KeyLastWriteTime = lastWriteTime;
             }
