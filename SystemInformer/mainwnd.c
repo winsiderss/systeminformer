@@ -1686,7 +1686,6 @@ VOID PhMwpOnCommand(
         break;
     case ID_SERVICE_OPENKEY:
         {
-            static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
             static PH_STRINGREF hklm = PH_STRINGREF_INIT(L"HKLM\\");
 
             PPH_SERVICE_ITEM serviceItem = PhGetSelectedServiceItem();
@@ -1694,7 +1693,7 @@ VOID PhMwpOnCommand(
             if (serviceItem)
             {
                 HANDLE keyHandle;
-                PPH_STRING serviceKeyName = PH_AUTO(PhConcatStringRef2(&servicesKeyName, &serviceItem->Name->sr));
+                PPH_STRING serviceKeyName = PH_AUTO(PhGetServiceKeyName(&serviceItem->Name->sr));
 
                 if (NT_SUCCESS(PhOpenKey(
                     &keyHandle,

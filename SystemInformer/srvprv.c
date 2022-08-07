@@ -441,7 +441,7 @@ VOID PhpUpdateServiceItemConfig(
 {
     SC_HANDLE serviceHandle;
 
-    serviceHandle = OpenService(ScManagerHandle, ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG);
+    serviceHandle = OpenService(ScManagerHandle, PhGetString(ServiceItem->Name), SERVICE_QUERY_CONFIG);
 
     if (serviceHandle)
     {
@@ -452,41 +452,13 @@ VOID PhpUpdateServiceItemConfig(
 
         if (config = PhGetServiceConfig(serviceHandle))
         {
-            PPH_STRING fileName = NULL;
-
             ServiceItem->StartType = config->dwStartType;
             ServiceItem->ErrorControl = config->dwErrorControl;
 
-            PhGetServiceDllParameter(config->dwServiceType, &ServiceItem->Name->sr, &fileName);
-
-            if (!fileName)
+            if (PhEnableServiceQueryStage2) // HACK
             {
-                PPH_STRING commandLine;
-
-                if (config->lpBinaryPathName[0])
-                {
-                    commandLine = PhCreateString(config->lpBinaryPathName);
-
-                    if (config->dwServiceType & SERVICE_WIN32)
-                    {
-                        PH_STRINGREF dummyFileName;
-                        PH_STRINGREF dummyArguments;
-
-                        PhParseCommandLineFuzzy(&commandLine->sr, &dummyFileName, &dummyArguments, &fileName);
-
-                        if (!fileName)
-                            PhSwapReference(&fileName, commandLine);
-                    }
-                    else
-                    {
-                        fileName = PhGetFileName(commandLine);
-                    }
-
-                    PhDereferenceObject(commandLine);
-                }
+                ServiceItem->FileName = PhGetServiceHandleFileName(serviceHandle, &ServiceItem->Name->sr);
             }
-
-            ServiceItem->FileName = fileName;
 
             PhFree(config);
         }

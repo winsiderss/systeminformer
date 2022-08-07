@@ -149,6 +149,13 @@ PhGetThreadServiceTag(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetServiceKeyName(
+    _In_ PPH_STRINGREF ServiceName
+);
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetServiceDllParameter(
