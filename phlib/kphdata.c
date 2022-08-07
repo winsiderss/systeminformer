@@ -43,8 +43,8 @@ ULONG KphpGetKernelRevisionNumber(
 
 #ifdef _WIN64
 
-NTSTATUS KphInitializeDynamicPackage(
-    _Out_ PKPH_DYN_PACKAGE Package
+NTSTATUS KphInitializeDynamicConfiguration(
+    _Out_ PKPH_DYN_CONFIGURATION Configuration 
     )
 {
     ULONG majorVersion = PhOsVersion.dwMajorVersion;
@@ -52,18 +52,19 @@ NTSTATUS KphInitializeDynamicPackage(
     ULONG servicePack = PhOsVersion.wServicePackMajor;
     ULONG buildNumber = PhOsVersion.dwBuildNumber;
 
-    memset(&Package->StructData, -1, sizeof(KPH_DYN_STRUCT_DATA));
-    Package->MajorVersion = (USHORT)majorVersion;
-    Package->MinorVersion = (USHORT)minorVersion;
-    Package->ServicePackMajor = (USHORT)servicePack;
-    Package->BuildNumber = USHRT_MAX;
+    memset(Configuration, -1, sizeof(KPH_DYN_CONFIGURATION));
+    Configuration->Version = KPH_DYN_CONFIGURATION_VERSION;
+    Configuration->MajorVersion = (USHORT)majorVersion;
+    Configuration->MinorVersion = (USHORT)minorVersion;
+    Configuration->ServicePackMajor = (USHORT)servicePack;
+    Configuration->BuildNumber = USHRT_MAX;
 
     // Windows 7, Windows Server 2008 R2
     if (majorVersion == 6 && minorVersion == 1)
     {
         ULONG revisionNumber = KphpGetKernelRevisionNumber();
 
-        Package->ResultingNtVersion = PHNT_WIN7;
+        Configuration->ResultingNtVersion = PHNT_WIN7;
 
         if (servicePack == 0)
         {
@@ -71,50 +72,57 @@ NTSTATUS KphInitializeDynamicPackage(
         }
         else if (servicePack == 1)
         {
-            NOTHING;
+            Configuration->CiVersion = KPH_DYN_CI_V1;
+            if ((revisionNumber == 18519) ||
+                (revisionNumber == 22730))
+            {
+                Configuration->CiVersion = KPH_DYN_CI_V2;
+            }
         }
         else
         {
             return STATUS_NOT_SUPPORTED;
         }
 
-        Package->StructData.EgeGuid = 0x14;
-        Package->StructData.EpObjectTable = 0x200;
-        Package->StructData.EreGuidEntry = revisionNumber >= 19160 ? 0x20 : 0x10;
-        Package->StructData.OtName = 0x10;
-        Package->StructData.OtIndex = 0x28; // now only a UCHAR, not a ULONG
+        Configuration->EgeGuid = 0x14;
+        Configuration->EpObjectTable = 0x200;
+        Configuration->EreGuidEntry = revisionNumber >= 19160 ? 0x20 : 0x10;
+        Configuration->OtName = 0x10;
+        Configuration->OtIndex = 0x28; // now only a UCHAR, not a ULONG
     }
     // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2 && buildNumber == 9200)
     {
-        Package->BuildNumber = 9200;
-        Package->ResultingNtVersion = PHNT_WIN8;
+        Configuration->BuildNumber = 9200;
+        Configuration->ResultingNtVersion = PHNT_WIN8;
 
-        Package->StructData.EgeGuid = 0x14;
-        Package->StructData.EpObjectTable = 0x408;
-        Package->StructData.EreGuidEntry = 0x10;
-        Package->StructData.HtHandleContentionEvent = 0x30;
-        Package->StructData.OtName = 0x10;
-        Package->StructData.OtIndex = 0x28;
-        Package->StructData.ObDecodeShift = 19;
-        Package->StructData.ObAttributesShift = 20;
+        Configuration->EgeGuid = 0x14;
+        Configuration->EpObjectTable = 0x408;
+        Configuration->EreGuidEntry = 0x10;
+        Configuration->HtHandleContentionEvent = 0x30;
+        Configuration->OtName = 0x10;
+        Configuration->OtIndex = 0x28;
+        Configuration->ObDecodeShift = 19;
+        Configuration->ObAttributesShift = 20;
+        Configuration->CiVersion = KPH_DYN_CI_V2;
     }
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3 && buildNumber == 9600)
     {
         ULONG revisionNumber = KphpGetKernelRevisionNumber();
 
-        Package->BuildNumber = 9600;
-        Package->ResultingNtVersion = PHNT_WINBLUE;
+        Configuration->BuildNumber = 9600;
+        Configuration->ResultingNtVersion = PHNT_WINBLUE;
 
-        Package->StructData.EgeGuid = 0x18;
-        Package->StructData.EpObjectTable = 0x408;
-        Package->StructData.EreGuidEntry = revisionNumber >= 17736 ? 0x20 : 0x10;
-        Package->StructData.HtHandleContentionEvent = 0x30;
-        Package->StructData.OtName = 0x10;
-        Package->StructData.OtIndex = 0x28;
-        Package->StructData.ObDecodeShift = 16;
-        Package->StructData.ObAttributesShift = 17;
+        Configuration->EgeGuid = 0x18;
+        Configuration->EpObjectTable = 0x408;
+        Configuration->EreGuidEntry = revisionNumber >= 17736 ? 0x20 : 0x10;
+        Configuration->HtHandleContentionEvent = 0x30;
+        Configuration->OtName = 0x10;
+        Configuration->OtIndex = 0x28;
+        Configuration->ObDecodeShift = 16;
+        Configuration->ObAttributesShift = 17;
+        Configuration->CiVersion = KPH_DYN_CI_V2;
     }
     // Windows 10, Windows Server 2016, Windows 11, Windows Server 2022
     else if (majorVersion == 10 && minorVersion == 0)
@@ -124,83 +132,84 @@ NTSTATUS KphInitializeDynamicPackage(
         switch (buildNumber)
         {
         case 10240:
-            Package->BuildNumber = 10240;
-            Package->ResultingNtVersion = PHNT_THRESHOLD;
+            Configuration->BuildNumber = 10240;
+            Configuration->ResultingNtVersion = PHNT_THRESHOLD;
             break;
         case 10586:
-            Package->BuildNumber = 10586;
-            Package->ResultingNtVersion = PHNT_THRESHOLD2;
+            Configuration->BuildNumber = 10586;
+            Configuration->ResultingNtVersion = PHNT_THRESHOLD2;
             break;
         case 14393:
-            Package->BuildNumber = 14393;
-            Package->ResultingNtVersion = PHNT_REDSTONE;
+            Configuration->BuildNumber = 14393;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE;
             break;
         case 15063:
-            Package->BuildNumber = 15063;
-            Package->ResultingNtVersion = PHNT_REDSTONE2;
+            Configuration->BuildNumber = 15063;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE2;
             break;
         case 16299:
-            Package->BuildNumber = 16299;
-            Package->ResultingNtVersion = PHNT_REDSTONE3;
+            Configuration->BuildNumber = 16299;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE3;
             break;
         case 17134:
-            Package->BuildNumber = 17134;
-            Package->ResultingNtVersion = PHNT_REDSTONE4;
+            Configuration->BuildNumber = 17134;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE4;
             break;
         case 17763:
-            Package->BuildNumber = 17763;
-            Package->ResultingNtVersion = PHNT_REDSTONE5;
+            Configuration->BuildNumber = 17763;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE5;
             break;
         case 18362:
-            Package->BuildNumber = 18362;
-            Package->ResultingNtVersion = PHNT_19H1;
+            Configuration->BuildNumber = 18362;
+            Configuration->ResultingNtVersion = PHNT_19H1;
             break;
         case 18363:
-            Package->BuildNumber = 18363;
-            Package->ResultingNtVersion = PHNT_19H2;
+            Configuration->BuildNumber = 18363;
+            Configuration->ResultingNtVersion = PHNT_19H2;
             break;
         case 19041:
-            Package->BuildNumber = 19041;
-            Package->ResultingNtVersion = PHNT_20H1;
+            Configuration->BuildNumber = 19041;
+            Configuration->ResultingNtVersion = PHNT_20H1;
             break;
         case 19042:
-            Package->BuildNumber = 19042;
-            Package->ResultingNtVersion = PHNT_20H2;
+            Configuration->BuildNumber = 19042;
+            Configuration->ResultingNtVersion = PHNT_20H2;
             break;
         case 19043:
-            Package->BuildNumber = 19043;
-            Package->ResultingNtVersion = PHNT_21H1;
+            Configuration->BuildNumber = 19043;
+            Configuration->ResultingNtVersion = PHNT_21H1;
             break;
         case 19044:
-            Package->BuildNumber = 19044;
-            Package->ResultingNtVersion = PHNT_21H2;
+            Configuration->BuildNumber = 19044;
+            Configuration->ResultingNtVersion = PHNT_21H2;
             break;
         case 22000:
-            Package->BuildNumber = 22000;
-            Package->ResultingNtVersion = PHNT_WIN11;
+            Configuration->BuildNumber = 22000;
+            Configuration->ResultingNtVersion = PHNT_WIN11;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
         }
 
         if (buildNumber >= 19041)
-            Package->StructData.EgeGuid = 0x28;
+            Configuration->EgeGuid = 0x28;
         else if (buildNumber >= 18363)
-            Package->StructData.EgeGuid = revisionNumber >= 693 ? 0x28 : 0x18;
+            Configuration->EgeGuid = revisionNumber >= 693 ? 0x28 : 0x18;
         else
-            Package->StructData.EgeGuid = 0x18;
+            Configuration->EgeGuid = 0x18;
 
         if (buildNumber >= 19042)
-            Package->StructData.EpObjectTable = 0x570;
+            Configuration->EpObjectTable = 0x570;
         else
-            Package->StructData.EpObjectTable = 0x418;
+            Configuration->EpObjectTable = 0x418;
 
-        Package->StructData.EreGuidEntry = 0x20;
-        Package->StructData.HtHandleContentionEvent = 0x30;
-        Package->StructData.OtName = 0x10;
-        Package->StructData.OtIndex = 0x28;
-        Package->StructData.ObDecodeShift = 16;
-        Package->StructData.ObAttributesShift = 17;
+        Configuration->EreGuidEntry = 0x20;
+        Configuration->HtHandleContentionEvent = 0x30;
+        Configuration->OtName = 0x10;
+        Configuration->OtIndex = 0x28;
+        Configuration->ObDecodeShift = 16;
+        Configuration->ObAttributesShift = 17;
+        Configuration->CiVersion = KPH_DYN_CI_V2;
     }
     else
     {
@@ -212,8 +221,8 @@ NTSTATUS KphInitializeDynamicPackage(
 
 #else
 
-NTSTATUS KphInitializeDynamicPackage(
-    _Out_ PKPH_DYN_PACKAGE Package
+NTSTATUS KphInitializeDynamicConfiguration(
+    _Out_ PKPH_DYN_CONFIGURATION Configuration 
     )
 {
     ULONG majorVersion, minorVersion, servicePack, buildNumber;
@@ -223,17 +232,19 @@ NTSTATUS KphInitializeDynamicPackage(
     servicePack = PhOsVersion.wServicePackMajor;
     buildNumber = PhOsVersion.dwBuildNumber;
 
-    memset(&Package->StructData, -1, sizeof(KPH_DYN_STRUCT_DATA));
-
-    Package->MajorVersion = (USHORT)majorVersion;
-    Package->MinorVersion = (USHORT)minorVersion;
-    Package->ServicePackMajor = (USHORT)servicePack;
-    Package->BuildNumber = -1;
+    memset(Configuration, -1, sizeof(KPH_DYN_CONFIGURATION));
+    Configuration->Version = KPH_DYN_CONFIGURATION_VERSION;
+    Configuration->MajorVersion = (USHORT)majorVersion;
+    Configuration->MinorVersion = (USHORT)minorVersion;
+    Configuration->ServicePackMajor = (USHORT)servicePack;
+    Configuration->BuildNumber = -1;
 
     // Windows 7, Windows Server 2008 R2
     if (majorVersion == 6 && minorVersion == 1)
     {
-        Package->ResultingNtVersion = PHNT_WIN7;
+        ULONG revisionNumber = KphpGetKernelRevisionNumber();
+
+        Configuration->ResultingNtVersion = PHNT_WIN7;
 
         if (servicePack == 0)
         {
@@ -241,23 +252,28 @@ NTSTATUS KphInitializeDynamicPackage(
         }
         else if (servicePack == 1)
         {
-            NOTHING;
+            Configuration->CiVersion = KPH_DYN_CI_V1;
+            if ((revisionNumber == 18519) ||
+                (revisionNumber == 22730))
+            {
+                Configuration->CiVersion = KPH_DYN_CI_V2;
+            }
         }
         else
         {
             return STATUS_NOT_SUPPORTED;
         }
 
-        Package->StructData.EgeGuid = 0xc;
-        Package->StructData.EpObjectTable = 0xf4;
-        Package->StructData.EreGuidEntry = 0x8;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14; // now only a UCHAR, not a ULONG
+        Configuration->EgeGuid = 0xc;
+        Configuration->EpObjectTable = 0xf4;
+        Configuration->EreGuidEntry = 0x8;
+        Configuration->OtName = 0x8;
+        Configuration->OtIndex = 0x14; // now only a UCHAR, not a ULONG
     }
     // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2)
     {
-        Package->ResultingNtVersion = PHNT_WIN8;
+        Configuration->ResultingNtVersion = PHNT_WIN8;
 
         if (servicePack == 0)
         {
@@ -268,16 +284,18 @@ NTSTATUS KphInitializeDynamicPackage(
             return STATUS_NOT_SUPPORTED;
         }
 
-        Package->StructData.EgeGuid = 0xc;
-        Package->StructData.EpObjectTable = 0x150;
-        Package->StructData.EreGuidEntry = 0x8;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14;
+        Configuration->EgeGuid = 0xc;
+        Configuration->EpObjectTable = 0x150;
+        Configuration->HtHandleContentionEvent = 0x20;
+        Configuration->EreGuidEntry = 0x8;
+        Configuration->OtName = 0x8;
+        Configuration->OtIndex = 0x14;
+        Configuration->CiVersion = KPH_DYN_CI_V2;
     }
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3)
     {
-        Package->ResultingNtVersion = PHNT_WINBLUE;
+        Configuration->ResultingNtVersion = PHNT_WINBLUE;
 
         if (servicePack == 0)
         {
@@ -288,11 +306,13 @@ NTSTATUS KphInitializeDynamicPackage(
             return STATUS_NOT_SUPPORTED;
         }
 
-        Package->StructData.EgeGuid = 0xc;
-        Package->StructData.EpObjectTable = 0x150;
-        Package->StructData.EreGuidEntry = 0x8;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14;
+        Configuration->EgeGuid = 0xc;
+        Configuration->EpObjectTable = 0x150;
+        Configuration->HtHandleContentionEvent = 0x20;
+        Configuration->EreGuidEntry = 0x8;
+        Configuration->OtName = 0x8;
+        Configuration->OtIndex = 0x14;
+        Configuration->CiVersion = KPH_DYN_CI_V2;
     }
     // Windows 10
     else if (majorVersion == 10 && minorVersion == 0)
@@ -302,78 +322,80 @@ NTSTATUS KphInitializeDynamicPackage(
         switch (buildNumber)
         {
         case 10240:
-            Package->BuildNumber = 10240;
-            Package->ResultingNtVersion = PHNT_THRESHOLD;
+            Configuration->BuildNumber = 10240;
+            Configuration->ResultingNtVersion = PHNT_THRESHOLD;
             break;
         case 10586:
-            Package->BuildNumber = 10586;
-            Package->ResultingNtVersion = PHNT_THRESHOLD2;
+            Configuration->BuildNumber = 10586;
+            Configuration->ResultingNtVersion = PHNT_THRESHOLD2;
             break;
         case 14393:
-            Package->BuildNumber = 14393;
-            Package->ResultingNtVersion = PHNT_REDSTONE;
+            Configuration->BuildNumber = 14393;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE;
             break;
         case 15063:
-            Package->BuildNumber = 15063;
-            Package->ResultingNtVersion = PHNT_REDSTONE2;
+            Configuration->BuildNumber = 15063;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE2;
             break;
         case 16299:
-            Package->BuildNumber = 16299;
-            Package->ResultingNtVersion = PHNT_REDSTONE3;
+            Configuration->BuildNumber = 16299;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE3;
             break;
         case 17134:
-            Package->BuildNumber = 17134;
-            Package->ResultingNtVersion = PHNT_REDSTONE4;
+            Configuration->BuildNumber = 17134;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE4;
             break;
         case 17763:
-            Package->BuildNumber = 17763;
-            Package->ResultingNtVersion = PHNT_REDSTONE5;
+            Configuration->BuildNumber = 17763;
+            Configuration->ResultingNtVersion = PHNT_REDSTONE5;
             break;
         case 18362:
-            Package->BuildNumber = 18362;
-            Package->ResultingNtVersion = PHNT_19H1;
+            Configuration->BuildNumber = 18362;
+            Configuration->ResultingNtVersion = PHNT_19H1;
             break;
         case 18363:
-            Package->BuildNumber = 18363;
-            Package->ResultingNtVersion = PHNT_19H2;
+            Configuration->BuildNumber = 18363;
+            Configuration->ResultingNtVersion = PHNT_19H2;
             break;
         case 19041:
-            Package->BuildNumber = 19041;
-            Package->ResultingNtVersion = PHNT_20H1;
+            Configuration->BuildNumber = 19041;
+            Configuration->ResultingNtVersion = PHNT_20H1;
             break;
         case 19042:
-            Package->BuildNumber = 19042;
-            Package->ResultingNtVersion = PHNT_20H2;
+            Configuration->BuildNumber = 19042;
+            Configuration->ResultingNtVersion = PHNT_20H2;
             break;
         case 19043:
-            Package->BuildNumber = 19043;
-            Package->ResultingNtVersion = PHNT_21H1;
+            Configuration->BuildNumber = 19043;
+            Configuration->ResultingNtVersion = PHNT_21H1;
             break;
         case 19044:
-            Package->BuildNumber = 19044;
-            Package->ResultingNtVersion = PHNT_21H2;
+            Configuration->BuildNumber = 19044;
+            Configuration->ResultingNtVersion = PHNT_21H2;
             break;
         default:
             return STATUS_NOT_SUPPORTED;
         }
 
         if (buildNumber >= 19041)
-            Package->StructData.EgeGuid = 0x14;
+            Configuration->EgeGuid = 0x14;
         else if (buildNumber >= 18363)
-            Package->StructData.EgeGuid = revisionNumber >= 693 ? 0x14 : 0xC;
+            Configuration->EgeGuid = revisionNumber >= 693 ? 0x14 : 0xC;
         else
-            Package->StructData.EgeGuid = 0xC;
+            Configuration->EgeGuid = 0xC;
 
         if (buildNumber >= 19041)
-            Package->StructData.EpObjectTable = 0x18c;
+            Configuration->EpObjectTable = 0x18c;
         else if (buildNumber >= 15063)
-            Package->StructData.EpObjectTable = 0x15c;
+            Configuration->EpObjectTable = 0x15c;
         else
-            Package->StructData.EpObjectTable = 0x154;
+            Configuration->EpObjectTable = 0x154;
 
-        Package->StructData.EreGuidEntry = 0x10;
-        Package->StructData.OtName = 0x8;
-        Package->StructData.OtIndex = 0x14;
+        Configuration->EreGuidEntry = 0x10;
+        Configuration->HtHandleContentionEvent = 0x20;
+        Configuration->OtName = 0x8;
+        Configuration->OtIndex = 0x14;
+        Configuration->CiVersion = KPH_DYN_CI_V2;
     }
     else
     {

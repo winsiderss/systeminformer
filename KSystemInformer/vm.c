@@ -6,21 +6,33 @@
  * Authors:
  *
  *     wj32    2010-2016
+ *     jxy-s   2022
  *
  */
 
 #include <kph.h>
 
-#ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, KphCopyVirtualMemory)
-#pragma alloc_text(PAGE, KpiReadVirtualMemoryUnsafe)
-#endif
+#include <trace.h>
+
+PAGED_FILE();
 
 #define KPH_STACK_COPY_BYTES 0x200
 #define KPH_POOL_COPY_BYTES 0x10000
 #define KPH_MAPPED_COPY_PAGES 14
 #define KPH_POOL_COPY_THRESHOLD 0x3ff
 
+/**
+ * \brief Copies out the bad address from a virtual memory flavored exception. 
+ * 
+ * \param[in] ExceptionInfo Exception information to copy from.
+ * \param[out] HaveBadAddress Set to true if the exception is flavored properly
+ * to retrieve the bad address.
+ * \param[out] BadAddress Set to the bad address if found.
+ *
+ * \return EXCEPTION_EXECUTE_HANDLER
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 ULONG KphpGetCopyExceptionInfo(
     _In_ PEXCEPTION_POINTERS ExceptionInfo,
     _Out_ PBOOLEAN HaveBadAddress,
@@ -28,6 +40,8 @@ ULONG KphpGetCopyExceptionInfo(
     )
 {
     PEXCEPTION_RECORD exceptionRecord;
+
+    PAGED_PASSIVE();
 
     *HaveBadAddress = FALSE;
     *BadAddress = 0;
@@ -49,21 +63,25 @@ ULONG KphpGetCopyExceptionInfo(
 }
 
 /**
- * Copies memory from one process to another.
+ * \brief Copies memory from one process to another.
  *
- * \param FromProcess The source process.
- * \param FromAddress The source address.
- * \param ToProcess The target process.
- * \param ToAddress The target address.
- * \param BufferLength The number of bytes to copy.
- * \param AccessMode The mode in which to perform access checks.
- * \param ReturnLength A variable which receives the number of bytes copied.
+ * \param[in] FromProcess The source process.
+ * \param[in] FromAddress The source address.
+ * \param[in] ToProcess The target process.
+ * \param[out] ToAddress The target address.
+ * \param[in] BufferLength The number of bytes to copy.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ * \param[out] ReturnLength A variable which receives the number of bytes copied.
+ *
+ * \return Successful or errant status.
  */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSTATUS KphCopyVirtualMemory(
     _In_ PEPROCESS FromProcess,
     _In_ PVOID FromAddress,
     _In_ PEPROCESS ToProcess,
-    _In_ PVOID ToAddress,
+    _Out_writes_bytes_(BufferLength) PVOID ToAddress,
     _In_ SIZE_T BufferLength,
     _In_ KPROCESSOR_MODE AccessMode,
     _Out_ PSIZE_T ReturnLength
@@ -88,31 +106,43 @@ NTSTATUS KphCopyVirtualMemory(
     BOOLEAN haveBadAddress;
     ULONG_PTR badAddress;
 
-    PAGED_CODE();
+    PAGED_PASSIVE();
 
     sourceAddress = FromAddress;
     targetAddress = ToAddress;
+    haveBadAddress = FALSE;
+    badAddress = 0;
 
-    // We don't check if buffer == NULL when freeing. If buffer doesn't need to be freed, set to
-    // stackBuffer, not NULL.
+    //
+    // We don't check if buffer == NULL when freeing. If buffer doesn't need to
+    // be freed, set to stackBuffer, not NULL.
+    //
     buffer = stackBuffer;
 
     mappedTotalSize = (KPH_MAPPED_COPY_PAGES - 2) * PAGE_SIZE;
 
     if (mappedTotalSize > BufferLength)
+    {
         mappedTotalSize = BufferLength;
+    }
 
     stillToCopy = BufferLength;
     blockSize = mappedTotalSize;
 
     while (stillToCopy)
     {
-        // If we're at the last copy block, copy the remaining bytes instead of the whole block
-        // size.
+        //
+        // If we're at the last copy block, copy the remaining bytes instead of
+        // the whole block size.
+        //
         if (blockSize > stillToCopy)
+        {
             blockSize = stillToCopy;
+        }
 
+        //
         // Choose the best method based on the number of bytes left to copy.
+        //
         if (blockSize > KPH_POOL_COPY_THRESHOLD)
         {
             doMappedCopy = TRUE;
@@ -124,29 +154,35 @@ NTSTATUS KphCopyVirtualMemory(
             if (blockSize <= KPH_STACK_COPY_BYTES)
             {
                 if (buffer != stackBuffer)
-                    ExFreePoolWithTag(buffer, 'ChpK');
+                {
+                    KphFree(buffer, KPH_TAG_COPY_VM);
+                }
 
                 buffer = stackBuffer;
             }
             else
             {
-                // Don't allocate the buffer if we've done so already. Note that the block size
-                // never increases, so this allocation will always be OK.
+                //
+                // Don't allocate the buffer if we've done so already. Note
+                // that the block size never increases, so this allocation will
+                // always be OK.
+                //
                 if (buffer == stackBuffer)
                 {
-                    // Keep trying to allocate a buffer.
-
                     while (TRUE)
                     {
-                        buffer = ExAllocatePoolZero(NonPagedPool, blockSize, 'ChpK');
+                        buffer = KphAllocateNPaged(blockSize, KPH_TAG_COPY_VM);
 
-                        // Stop trying if we got a buffer.
                         if (buffer)
+                        {
                             break;
+                        }
 
                         blockSize /= 2;
 
+                        //
                         // Use the stack buffer if we can.
+                        //
                         if (blockSize <= KPH_STACK_COPY_BYTES)
                         {
                             buffer = stackBuffer;
@@ -157,7 +193,9 @@ NTSTATUS KphCopyVirtualMemory(
             }
         }
 
+        //
         // Reset state.
+        //
         mappedAddress = NULL;
         pagesLocked = FALSE;
         copyingToTarget = FALSE;
@@ -166,92 +204,100 @@ NTSTATUS KphCopyVirtualMemory(
 
         __try
         {
+            //
             // Probe only if this is the first time.
-            if (sourceAddress == FromAddress && AccessMode != KernelMode)
+            //
+            if ((sourceAddress == FromAddress) && (AccessMode != KernelMode))
             {
                 probing = TRUE;
-                ProbeForRead(sourceAddress, BufferLength, sizeof(UCHAR));
+                ProbeForRead(sourceAddress,
+                             BufferLength,
+                             TYPE_ALIGNMENT(UCHAR));
                 probing = FALSE;
             }
 
             if (doMappedCopy)
             {
-                // Initialize the MDL.
                 MmInitializeMdl(mdl, sourceAddress, blockSize);
                 MmProbeAndLockPages(mdl, AccessMode, IoReadAccess);
                 pagesLocked = TRUE;
 
-                // Map the pages.
-                mappedAddress = MmMapLockedPagesSpecifyCache(
-                    mdl,
-                    KernelMode,
-                    MmCached,
-                    NULL,
-                    FALSE,
-                    HighPagePriority
-                    );
-
+                mappedAddress = MmMapLockedPagesSpecifyCache(mdl,
+                                                             KernelMode,
+                                                             MmCached,
+                                                             NULL,
+                                                             FALSE,
+                                                             HighPagePriority);
                 if (!mappedAddress)
                 {
-                    // Insufficient resources; exit.
                     mapping = TRUE;
                     ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
                 }
             }
             else
             {
-                memcpy(buffer, sourceAddress, blockSize);
+                RtlCopyMemory(buffer, sourceAddress, blockSize);
             }
 
             KeUnstackDetachProcess(&apcState);
 
-            // Attach to the target process and copy the contents out.
             KeStackAttachProcess(ToProcess, &apcState);
 
+            //
             // Probe only if this is the first time.
+            //
             if (targetAddress == ToAddress && AccessMode != KernelMode)
             {
                 probing = TRUE;
-                ProbeForWrite(targetAddress, BufferLength, sizeof(UCHAR));
+#pragma prefast(suppress : 6001)
+                ProbeForWrite(targetAddress,
+                              BufferLength,
+                              TYPE_ALIGNMENT(UCHAR));
                 probing = FALSE;
             }
 
-            // Copy the data.
             copyingToTarget = TRUE;
 
             if (doMappedCopy)
-                memcpy(targetAddress, mappedAddress, blockSize);
+            {
+                NT_ASSERT(mdl->ByteCount >= blockSize);
+                RtlCopyMemory(targetAddress, mappedAddress, blockSize);
+            }
             else
-                memcpy(targetAddress, buffer, blockSize);
+            {
+                RtlCopyMemory(targetAddress, buffer, blockSize);
+            }
         }
-        __except (KphpGetCopyExceptionInfo(
-            GetExceptionInformation(),
-            &haveBadAddress,
-            &badAddress
-            ))
+        __except (KphpGetCopyExceptionInfo(GetExceptionInformation(),
+                                           &haveBadAddress,
+                                           &badAddress))
         {
             KeUnstackDetachProcess(&apcState);
 
-            // If we mapped the pages, unmap them.
             if (mappedAddress)
+            {
                 MmUnmapLockedPages(mappedAddress, mdl);
+            }
 
-            // If we locked the pages, unlock them.
             if (pagesLocked)
+            {
                 MmUnlockPages(mdl);
+            }
 
-            // If we allocated pool storage, free it.
             if (buffer != stackBuffer)
-                ExFreePoolWithTag(buffer, 'ChpK');
+            {
+                KphFree(buffer, KPH_TAG_COPY_VM);
+            }
 
-            // If we failed when probing or mapping, return the error status.
             if (probing || mapping)
+            {
                 return GetExceptionCode();
+            }
 
             // Determine which copy failed.
             if (copyingToTarget && haveBadAddress)
             {
-                *ReturnLength = (SIZE_T)PTR_SUB_OFFSET(badAddress, sourceAddress);
+                *ReturnLength = (SIZE_T)(badAddress + (ULONG_PTR)sourceAddress);
             }
             else
             {
@@ -270,12 +316,14 @@ NTSTATUS KphCopyVirtualMemory(
         }
 
         stillToCopy -= blockSize;
-        sourceAddress = PTR_ADD_OFFSET(sourceAddress, blockSize);
-        targetAddress = PTR_ADD_OFFSET(targetAddress, blockSize);
+        sourceAddress = Add2Ptr(sourceAddress, blockSize);
+        targetAddress = Add2Ptr(targetAddress, blockSize);
     }
 
     if (buffer != stackBuffer)
-        ExFreePoolWithTag(buffer, 'ChpK');
+    {
+        KphFree(buffer, KPH_TAG_COPY_VM);
+    }
 
     *ReturnLength = BufferLength;
 
@@ -283,26 +331,26 @@ NTSTATUS KphCopyVirtualMemory(
 }
 
 /**
- * Copies process or kernel memory into the current process.
+ * \brief Copies process or kernel memory into the current process.
  *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_VM_READ access. This
- * parameter may be NULL if \a BaseAddress lies above the user-mode range.
- * \param BaseAddress The address from which memory is to be copied.
- * \param Buffer A buffer which receives the copied memory.
- * \param BufferSize The number of bytes to copy.
- * \param NumberOfBytesRead A variable which receives the number of bytes copied to the buffer.
- * \param Key An access key. If no valid L2 key is provided, the function fails.
- * \param Client The client that initiated the request.
- * \param AccessMode The mode in which to perform access checks.
+ * \param[in] ProcessHandle A handle to a process. The handle must have
+ * PROCESS_VM_READ access. This parameter may be NULL if \a BaseAddress lies
+ * above the user-mode range.
+ * \param[in] BaseAddress The address from which memory is to be copied.
+ * \param[out] Buffer A buffer which receives the copied memory.
+ * \param[in] BufferSize The number of bytes to copy.
+ * \param[out] NumberOfBytesRead A variable which receives the number of bytes
+ * copied to the buffer.
+ * \param[in] AccessMode The mode in which to perform access checks.
  */
-NTSTATUS KpiReadVirtualMemoryUnsafe(
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphReadVirtualMemoryUnsafe(
     _In_opt_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,
     _In_ SIZE_T BufferSize,
     _Out_opt_ PSIZE_T NumberOfBytesRead,
-    _In_opt_ KPH_KEY Key,
-    _In_ PKPH_CLIENT Client,
     _In_ KPROCESSOR_MODE AccessMode
     )
 {
@@ -310,18 +358,18 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
     PEPROCESS process;
     SIZE_T numberOfBytesRead = 0;
 
-    PAGED_CODE();
+    PAGED_PASSIVE();
 
-    if (!NT_SUCCESS(status = KphValidateKey(KphKeyLevel2, Key, Client, AccessMode)))
-        return status;
+    if (!Buffer)
+    {
+        return STATUS_INVALID_PARAMETER_3;
+    }
 
     if (AccessMode != KernelMode)
     {
-        if (
-            (ULONG_PTR)BaseAddress + BufferSize < (ULONG_PTR)BaseAddress ||
-            (ULONG_PTR)Buffer + BufferSize < (ULONG_PTR)Buffer ||
-            (ULONG_PTR)Buffer + BufferSize > (ULONG_PTR)MmHighestUserAddress
-            )
+        if ((Add2Ptr(BaseAddress, BufferSize) < BaseAddress) ||
+            (Add2Ptr(Buffer, BufferSize) < Buffer) ||
+            (Add2Ptr(Buffer, BufferSize) > MmHighestUserAddress))
         {
             return STATUS_ACCESS_VIOLATION;
         }
@@ -330,7 +378,7 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
         {
             __try
             {
-                ProbeForWrite(NumberOfBytesRead, sizeof(SIZE_T), sizeof(SIZE_T));
+                ProbeOutputType(NumberOfBytesRead, SIZE_T);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -341,32 +389,40 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
 
     if (BufferSize != 0)
     {
+        //
         // Select the appropriate copy method.
-        if ((ULONG_PTR)BaseAddress + BufferSize > (ULONG_PTR)MmHighestUserAddress)
+        //
+        if (Add2Ptr(BaseAddress, BufferSize) > MmHighestUserAddress)
         {
             ULONG_PTR page;
             ULONG_PTR pageEnd;
 
-            status = KphValidateAddressForSystemModules(BaseAddress, BufferSize);
+            status = KphValidateAddressForSystemModules(BaseAddress,
+                                                        BufferSize);
 
             if (!NT_SUCCESS(status))
+            {
                 return status;
+            }
 
+            //
             // Kernel memory copy (unsafe)
+            //
 
             page = (ULONG_PTR)BaseAddress & ~(PAGE_SIZE - 1);
             pageEnd = ((ULONG_PTR)BaseAddress + BufferSize - 1) & ~(PAGE_SIZE - 1);
 
             __try
             {
-                // This will obviously fail if any of the pages aren't resident.
                 for (; page <= pageEnd; page += PAGE_SIZE)
                 {
                     if (!MmIsAddressValid((PVOID)page))
+                    {
                         ExRaiseStatus(STATUS_ACCESS_VIOLATION);
+                    }
                 }
 
-                memcpy(Buffer, BaseAddress, BufferSize);
+                RtlCopyMemory(Buffer, BaseAddress, BufferSize);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -378,28 +434,30 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
         }
         else
         {
+            //
             // User memory copy (safe)
+            //
 
-            status = ObReferenceObjectByHandle(
-                ProcessHandle,
-                PROCESS_VM_READ,
-                *PsProcessType,
-                AccessMode,
-                &process,
-                NULL
-                );
+            if (!ProcessHandle)
+            {
+                return STATUS_INVALID_PARAMETER_1;
+            }
 
+            status = ObReferenceObjectByHandle(ProcessHandle,
+                                               PROCESS_VM_READ,
+                                               *PsProcessType,
+                                               AccessMode,
+                                               &process,
+                                               NULL);
             if (NT_SUCCESS(status))
             {
-                status = KphCopyVirtualMemory(
-                    process,
-                    BaseAddress,
-                    PsGetCurrentProcess(),
-                    Buffer,
-                    BufferSize,
-                    AccessMode,
-                    &numberOfBytesRead
-                    );
+                status = KphCopyVirtualMemory(process,
+                                              BaseAddress,
+                                              PsGetCurrentProcess(),
+                                              Buffer,
+                                              BufferSize,
+                                              AccessMode,
+                                              &numberOfBytesRead);
                 ObDereferenceObject(process);
             }
         }
@@ -420,7 +478,6 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                // Don't mess with the status.
                 NOTHING;
             }
         }

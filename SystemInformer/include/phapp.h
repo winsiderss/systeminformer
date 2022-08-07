@@ -44,7 +44,9 @@ typedef struct _PH_STARTUP_PARAMETERS
             ULONG Elevate : 1;
             ULONG Silent : 1;
             ULONG Help : 1;
-            ULONG Spare : 18;
+            ULONG KphStartupHigh : 1;
+            ULONG KphStartupMax : 1;
+            ULONG Spare : 16;
         };
         ULONG Flags;
     };

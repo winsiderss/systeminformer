@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="devctrl.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="dyndata.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,6 +45,51 @@
     <ClCompile Include="verify.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="informer_file.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="comms.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_image.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_process.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_thread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_debug.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="comms_handlers.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sign.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hash.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="informer_object.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="alloc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cid_table.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kphobject.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cid_tracking.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="protection.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
@@ -62,6 +104,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ntfill.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\comms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\informer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\trace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pooltags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cid_table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

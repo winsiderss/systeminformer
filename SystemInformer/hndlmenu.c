@@ -140,7 +140,7 @@ VOID PhShowHandleObjectProperties1(
 
         processId = NULL;
 
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -310,7 +310,7 @@ VOID PhShowHandleObjectProperties1(
         clientId.UniqueProcess = NULL;
         clientId.UniqueThread = NULL;
 
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,

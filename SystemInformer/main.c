@@ -15,6 +15,7 @@
 #include <hexedit.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
+#include <kphcomms.h>
 
 #include <extmgri.h>
 #include <mainwnd.h>
@@ -138,7 +139,9 @@ INT WINAPI wWinMain(
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
         !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.PhSvc)
+        !PhStartupParameters.PhSvc &&
+        !PhStartupParameters.KphStartupHigh &&
+        !PhStartupParameters.KphStartupMax)
     {
         PhActivatePreviousInstance();
     }
@@ -242,6 +245,59 @@ INT WINAPI wWinMain(
 
     PhEnableTerminationPolicy(TRUE);
 
+    if (PhGetIntegerSetting(L"EnableKphWarnings"))
+    {
+        KPH_PROCESS_STATE processState;
+
+        processState = KphGetCurrentProcessState();
+
+        if ((processState != 0) &&
+            (processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
+        {
+            PPH_STRING infoString;
+            PH_STRING_BUILDER stringBuilder;
+
+            PhInitializeStringBuilder(&stringBuilder, 100);
+
+            if (!BooleanFlagOn(processState, KPH_PROCESS_SECURELY_CREATED))
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"    - not securely created\r\n");
+            }
+            if (!BooleanFlagOn(processState, KPH_PROCESS_VERIFIED_PROCESS))
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"    - unverified primary image\r\n");
+            }
+            if (!BooleanFlagOn(processState, KPH_PROCESS_PROTECTED_PROCESS))
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"    - inactive protections\r\n");
+            }
+            if (!BooleanFlagOn(processState, KPH_PROCESS_NO_UNTRUSTED_IMAGES))
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"    - unsigned images (likely an unsigned plugin)\r\n");
+            }
+            if (!BooleanFlagOn(processState, KPH_PROCESS_NOT_BEING_DEBUGGED))
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"    - process is being debugged\r\n");
+            }
+            if ((processState & KPH_PROCESS_STATE_MINIMUM) != KPH_PROCESS_STATE_MINIMUM)
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"    - tampered primary image\r\n");
+            }
+
+            infoString = PhFinalStringBuilderString(&stringBuilder);
+
+            PhShowError(
+                NULL,
+                L"System Informer's access to the kernel driver is restricted.\r\n"
+                L"\r\n"
+                L"%s",
+                infoString->Buffer 
+                );
+
+            PhDereferenceObject(infoString);
+        }
+    }
+
     if (!PhMainWndInitialization(CmdShow))
     {
         PhShowError(NULL, L"%s", L"Unable to initialize the main window.");
@@ -251,6 +307,9 @@ INT WINAPI wWinMain(
     PhDrainAutoPool(&BaseAutoPool);
 
     result = PhMainMessageLoop();
+
+    KphCommsStop();
+
     PhEnableTerminationPolicy(FALSE);
     PhExitApplication(result);
 }
@@ -1208,23 +1267,81 @@ VOID PhpShowKphError(
     }
 }
 
+VOID NTAPI KphCommsCallback(
+    _In_ ULONG_PTR ReplyToken,
+    _In_ PCKPH_MESSAGE Message
+    )
+{
+    PKPH_MESSAGE msg;
+
+    if (Message->Header.MessageId != KphMsgProcessCreate)
+    {
+        return;
+    }
+
+    msg = PhAllocate(sizeof(KPH_MESSAGE));
+
+    KphMsgInit(msg, KphMsgProcessCreate);
+
+    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
+
+    KphCommsReplyMessage(ReplyToken, msg);
+
+    PhFree(msg);
+}
+
+NTSTATUS PhRestartSelf(
+    _In_z_ PWCHAR AdditionalCommandLine
+    )
+{
+    NTSTATUS status;
+    PPH_STRING commandLine;
+
+    commandLine = PhFormatString(
+        L"%wZ %s",
+        &NtCurrentPeb()->ProcessParameters->CommandLine,
+        AdditionalCommandLine
+        );
+
+    status = PhCreateProcessWin32(
+        NULL,
+        commandLine->Buffer,
+        NULL,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    PhDereferenceObject(commandLine);
+
+    if (NT_SUCCESS(status))
+    {
+        PhExitApplication(STATUS_SUCCESS);
+    }
+
+    return status;
+}
+
 VOID PhInitializeKph(
     VOID
     )
 {
     static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
-    static PH_STRINGREF driverSigExtension = PH_STRINGREF_INIT(L".sig");
     NTSTATUS status;
     PPH_STRING fileName = NULL;
     PPH_STRING kphFileName = NULL;
-    PPH_STRING kphSigFileName = NULL;
     PPH_STRING kphServiceName = NULL;
     ULONG_PTR indexOfBackslash;
     ULONG_PTR indexOfLastDot;
 
     kphServiceName = PhGetStringSetting(L"KphServiceName");
     if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
+    {
         PhClearReference(&kphServiceName);
+        kphServiceName = PhCreateString(L"KSystemInformer");
+    }
 
     if (!(fileName = PhGetApplicationFileNameWin32()))
         goto CleanupExit;
@@ -1245,12 +1362,9 @@ VOID PhInitializeKph(
         fileName->Length = (indexOfBackslash + 1) * sizeof(WCHAR);
 
         kphFileName = PhConcatStringRef3(&fileName->sr, &applicationNameSr, &driverExtension);
-        kphSigFileName = PhConcatStringRef3(&fileName->sr, &applicationNameSr, &driverSigExtension);
     }
 
     if (PhIsNullOrEmptyString(kphFileName))
-        goto CleanupExit;
-    if (PhIsNullOrEmptyString(kphSigFileName))
         goto CleanupExit;
 
     // Reset driver parameters after a Windows build update. (dmex)
@@ -1292,62 +1406,48 @@ VOID PhInitializeKph(
 
     if (PhDoesFileExistWin32(kphFileName->Buffer))
     {
-        KPH_PARAMETERS parameters;
-
-        parameters.SecurityLevel = KphSecuritySignatureAndPrivilegeCheck;
-        parameters.CreateDynamicConfiguration = TRUE;
-
-        if (NT_SUCCESS(status = KphConnect2Ex(
-            PhGetString(kphServiceName),
-            KPH_DEVICE_SHORT_NAME,
-            kphFileName->Buffer,
-            &parameters
+        if (!NT_SUCCESS(status = KphConnect(
+            &kphServiceName->sr,
+            &kphFileName->sr,
+            KphCommsCallback
             )))
-        {
-            PUCHAR signature;
-            ULONG signatureSize;
-
-            status = PhpReadSignature(
-                &kphSigFileName->sr,
-                &signature,
-                &signatureSize
-                );
-
-            if (NT_SUCCESS(status))
-            {
-                status = KphVerifyClient(signature, signatureSize);
-
-                if (!NT_SUCCESS(status))
-                {
-                    if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-                        PhpShowKphError(L"Unable to verify the kernel driver signature.", status);
-                }
-
-                PhFree(signature);
-            }
-            else
-            {
-                if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-                    PhpShowKphError(L"Unable to read the kernel driver signature.", status);
-            }
-        }
-        else
         {
             if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
                 PhpShowKphError(L"Unable to load the kernel driver service.", status);
+        }
+        else
+        {
+            KPH_LEVEL level;
+
+            level = KphLevel();
+
+            if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
+            {
+                if ((level == KphLevelHigh) &&
+                    !PhStartupParameters.KphStartupMax)
+                {
+                    PhRestartSelf(L"-kx");
+                }
+
+                if ((level < KphLevelHigh) &&
+                    !PhStartupParameters.KphStartupMax &&
+                    !PhStartupParameters.KphStartupHigh)
+                {
+                    PhRestartSelf(L"-kh");
+                }
+            }
         }
     }
     else
     {
         if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
+
             PhpShowKphError(L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
     }
 
 CleanupExit:
     if (kphServiceName)
         PhDereferenceObject(kphServiceName);
-    if (kphSigFileName)
-        PhDereferenceObject(kphSigFileName);
     if (kphFileName)
         PhDereferenceObject(kphFileName);
     if (fileName)
@@ -1514,7 +1614,9 @@ typedef enum _PH_COMMAND_ARG
     PH_ARG_PRIORITY,
     PH_ARG_PLUGIN,
     PH_ARG_SELECTTAB,
-    PH_ARG_SYSINFO
+    PH_ARG_SYSINFO,
+    PH_ARG_KPHSTARTUPHIGH,
+    PH_ARG_KPHSTARTUPMAX
 } PH_COMMAND_ARG;
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
@@ -1625,6 +1727,12 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_SYSINFO:
             PhSwapReference(&PhStartupParameters.SysInfo, Value ? Value : PhReferenceEmptyString());
             break;
+        case PH_ARG_KPHSTARTUPHIGH:
+            PhStartupParameters.KphStartupHigh = TRUE;
+            break;
+        case PH_ARG_KPHSTARTUPMAX:
+            PhStartupParameters.KphStartupMax = TRUE;
+            break;
         }
     }
     else
@@ -1678,7 +1786,9 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_PRIORITY, L"priority", MandatoryArgumentType },
         { PH_ARG_PLUGIN, L"plugin", MandatoryArgumentType },
         { PH_ARG_SELECTTAB, L"selecttab", MandatoryArgumentType },
-        { PH_ARG_SYSINFO, L"sysinfo", OptionalArgumentType }
+        { PH_ARG_SYSINFO, L"sysinfo", OptionalArgumentType },
+        { PH_ARG_KPHSTARTUPHIGH, L"kh", NoArgumentType },
+        { PH_ARG_KPHSTARTUPMAX, L"kx", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -1757,17 +1867,21 @@ VOID PhpProcessStartupParameters(
 
                 if (kphFileName)
                 {
-                    KPH_PARAMETERS parameters;
+                    PPH_STRING kphServiceName;
 
-                    parameters.SecurityLevel = KphSecuritySignatureCheck;
-                    parameters.CreateDynamicConfiguration = TRUE;
+                    kphServiceName = PhGetStringSetting(L"KphServiceName");
+                    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
+                    {
+                        PhClearReference(&kphServiceName);
+                        kphServiceName = PhCreateString(L"KSystemInformer");
+                    }
 
-                    status = KphInstallEx(
-                        KPH_DEVICE_SHORT_NAME,
-                        kphFileName->Buffer,
-                        &parameters
+                    status = KphInstall(
+                        &kphServiceName->sr,
+                        &kphFileName->sr
                         );
 
+                    PhDereferenceObject(kphServiceName);
                     PhDereferenceObject(kphFileName);
                 }
             }
@@ -1785,7 +1899,7 @@ VOID PhpProcessStartupParameters(
     {
         NTSTATUS status;
 
-        status = KphUninstall(KPH_DEVICE_SHORT_NAME);
+        status = KphUninstall(L"KSystemInformer");
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to uninstall KSystemInformer", status, 0);

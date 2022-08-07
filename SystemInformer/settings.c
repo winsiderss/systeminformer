@@ -301,6 +301,11 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorPowerUsage", L"77ff77");
     PhpAddIntegerSetting(L"ColorTemperature", L"7777ff");
     PhpAddIntegerSetting(L"ColorFanRpm", L"ff7777");
+
+    PhpAddStringSetting(L"KphObjectName", L"");
+    PhpAddStringSetting(L"KphPortName", L"");
+    PhpAddStringSetting(L"KphAltitude", L"385400");
+    PhpAddIntegerSetting(L"KphDisableImageLoadProtection", L"0")
 }
 
 VOID PhUpdateCachedSettings(

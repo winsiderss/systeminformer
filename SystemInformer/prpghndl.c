@@ -96,6 +96,7 @@ VOID PhpInitializeHandleMenu(
     )
 {
     PPH_EMENU_ITEM item;
+    KPH_LEVEL level;
 
     if (NumberOfHandles == 0)
     {
@@ -121,7 +122,9 @@ VOID PhpInitializeHandleMenu(
 
     // Remove irrelevant menu items.
 
-    if (!KphIsConnected())
+    level = KphLevel();
+
+    if (level >= KphLevelMed)
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_PROTECTED))
             PhDestroyEMenuItem(item);
@@ -130,7 +133,7 @@ VOID PhpInitializeHandleMenu(
     }
 
     // Protected, Inherit
-    if (NumberOfHandles == 1 && KphIsConnected())
+    if (NumberOfHandles == 1 && (level >= KphLevelMed))
     {
         HandlesContext->SelectedHandleProtected = FALSE;
         HandlesContext->SelectedHandleInherit = FALSE;

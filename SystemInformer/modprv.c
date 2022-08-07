@@ -433,7 +433,7 @@ NTSTATUS PhpModuleQueryWorker(
             data->ModuleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
             data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
         {
-            if (data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && !KphIsVerified())
+            if (data->ModuleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && (KphLevel() < KphLevelMax))
             {
                 // The driver wasn't available or we failed verification preventing
                 // us from checking driver coherency. Pass a special value so we
@@ -689,7 +689,8 @@ VOID PhModuleProviderUpdate(
             if (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
-                (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE && KphIsVerified()))
+                (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE &&
+                 (KphLevel() == KphLevelMax)))
             {
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
                 PPH_READ_VIRTUAL_MEMORY_CALLBACK readVirtualMemoryCallback;

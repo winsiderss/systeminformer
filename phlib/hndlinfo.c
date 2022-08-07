@@ -122,10 +122,7 @@ NTSTATUS PhpGetObjectBasicInformation(
 {
     NTSTATUS status;
 
-    // TODO: KphIsVerified() fixes a bug on Windows 10 but this should be removed
-    // since KphQueryInformationObject doesn't require verification. (dmex)
-
-    if (KphIsConnected() && KphIsVerified())
+    if (KphLevel() >= KphLevelMed)
     {
         status = KphQueryInformationObject(
             ProcessHandle,
@@ -138,7 +135,7 @@ NTSTATUS PhpGetObjectBasicInformation(
 
         if (NT_SUCCESS(status))
         {
-            // The object was referenced in KProcessHacker, so we need to subtract 1 from the
+            // The object was referenced in KSystemInformer, so we need to subtract 1 from the
             // pointer count.
             BasicInformation->PointerCount -= 1;
         }
@@ -222,9 +219,12 @@ NTSTATUS PhpGetObjectTypeName(
         POBJECT_TYPE_INFORMATION buffer;
         ULONG returnLength = 0;
         PPH_STRING oldTypeName;
+        KPH_LEVEL level;
+
+        level = KphLevel();
 
         // Get the needed buffer size.
-        if (KphIsConnected())
+        if (level >= KphLevelMed)
         {
             status = KphQueryInformationObject(
                 ProcessHandle,
@@ -251,7 +251,7 @@ NTSTATUS PhpGetObjectTypeName(
 
         buffer = PhAllocate(returnLength);
 
-        if (KphIsConnected())
+        if (level >= KphLevelMed)
         {
             status = KphQueryInformationObject(
                 ProcessHandle,
@@ -324,7 +324,7 @@ NTSTATUS PhpGetObjectName(
     // A loop is needed because the I/O subsystem likes to give us the wrong return lengths... (wj32)
     do
     {
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             status = KphQueryInformationObject(
                 ProcessHandle,
@@ -984,7 +984,7 @@ NTSTATUS PhpGetBestObjectName(
 
     if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             ETWREG_BASIC_INFORMATION basicInfo;
 
@@ -1023,7 +1023,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
 
-        if (PhIsNullOrEmptyString(bestObjectName) && KphIsConnected())
+        if (PhIsNullOrEmptyString(bestObjectName) && (KphLevel() >= KphLevelMed))
         {
             KPH_FILE_OBJECT_DRIVER fileObjectDriver;
             PPH_STRING driverName;
@@ -1119,7 +1119,7 @@ NTSTATUS PhpGetBestObjectName(
 
         clientId.UniqueThread = NULL;
 
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             PROCESS_BASIC_INFORMATION basicInfo;
 
@@ -1227,7 +1227,7 @@ NTSTATUS PhpGetBestObjectName(
     {
         CLIENT_ID clientId;
 
-        if (KphIsConnected())
+        if (KphLevel() >= KphLevelMed)
         {
             THREAD_BASIC_INFORMATION basicInfo;
 
@@ -1597,14 +1597,17 @@ NTSTATUS PhGetHandleInformationEx(
     PPH_STRING typeName = NULL;
     PPH_STRING objectName = NULL;
     PPH_STRING bestObjectName = NULL;
+    BOOLEAN useKph;
 
     if (ProcessHandle == NULL || Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
         return STATUS_INVALID_HANDLE;
     if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber >= MAX_OBJECT_TYPE_NUMBER)
         return STATUS_INVALID_PARAMETER_3;
 
+    useKph = (KphLevel() >= KphLevelMed);
+
     // Duplicate the handle if we're not using KPH.
-    if (!KphIsConnected())
+    if (!useKph)
     {
         // However, we obviously don't need to duplicate it
         // if the handle is in the current process.
@@ -1634,7 +1637,7 @@ NTSTATUS PhGetHandleInformationEx(
     {
         status = PhpGetObjectBasicInformation(
             ProcessHandle,
-            KphIsConnected() ? Handle : dupHandle,
+            useKph ? Handle : dupHandle,
             BasicInformation
             );
 
@@ -1649,7 +1652,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Get the type name.
     status = PhpGetObjectTypeName(
         ProcessHandle,
-        KphIsConnected() ? Handle : dupHandle,
+        useKph ? Handle : dupHandle,
         ObjectTypeNumber,
         &typeName
         );
@@ -1663,16 +1666,16 @@ NTSTATUS PhGetHandleInformationEx(
 
     // Get the object name.
     // If we're dealing with a file handle we must take special precautions so we don't hang.
-    if (PhEqualString2(typeName, L"File", TRUE) && !KphIsConnected())
+    if (PhEqualString2(typeName, L"File", TRUE) && !useKph)
     {
         status = PhpGetObjectName(
             ProcessHandle,
-            KphIsConnected() ? Handle : dupHandle,
+            useKph ? Handle : dupHandle,
             TRUE,
             &objectName
             );
     }
-    else if (PhEqualString2(typeName, L"EtwRegistration", TRUE) && KphIsConnected())
+    else if (PhEqualString2(typeName, L"EtwRegistration", TRUE) && useKph)
     {
         status = PhpGetEtwObjectName(
             ProcessHandle,
@@ -1685,7 +1688,7 @@ NTSTATUS PhGetHandleInformationEx(
         // Query the object normally.
         status = PhpGetObjectName(
             ProcessHandle,
-            KphIsConnected() ? Handle : dupHandle,
+            useKph ? Handle : dupHandle,
             FALSE,
             &objectName
             );
@@ -1693,7 +1696,7 @@ NTSTATUS PhGetHandleInformationEx(
 
     if (!NT_SUCCESS(status))
     {
-        if (PhEqualString2(typeName, L"File", TRUE) && KphIsConnected())
+        if (PhEqualString2(typeName, L"File", TRUE) && useKph)
         {
             // PhpGetBestObjectName can provide us with a name.
             objectName = PhReferenceEmptyString();
