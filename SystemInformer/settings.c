@@ -48,7 +48,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
-    PhpAddIntegerSetting(L"EnableScaleCpuGraph", L"0");
+    PhpAddIntegerSetting(L"EnableGraphMaxScale", L"0");
+    PhpAddIntegerSetting(L"EnableGraphMaxText", L"1");
     PhpAddIntegerSetting(L"EnableServiceNonPoll", L"0");
     PhpAddIntegerSetting(L"EnableShellExecuteSkipIfeoDebugger", L"1");
     PhpAddIntegerSetting(L"EnableStage2", L"1");
@@ -298,9 +299,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
     PhpAddIntegerSetting(L"ColorPhysical", L"ff8000"); // Blue
 
-    PhpAddIntegerSetting(L"ColorPowerUsage", L"77ff77");
-    PhpAddIntegerSetting(L"ColorTemperature", L"7777ff");
-    PhpAddIntegerSetting(L"ColorFanRpm", L"ff7777");
+    PhpAddIntegerSetting(L"ColorPowerUsage", L"00ff00");
+    PhpAddIntegerSetting(L"ColorTemperature", L"0000ff");
+    PhpAddIntegerSetting(L"ColorFanRpm", L"ff0077");
 
     PhpAddStringSetting(L"KphObjectName", L"");
     PhpAddStringSetting(L"KphPortName", L"");
