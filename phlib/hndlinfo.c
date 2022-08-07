@@ -417,28 +417,24 @@ VOID PhInitializeEtwTraceGuidCache(
     _Inout_ PPH_ARRAY EtwTraceGuidArrayList
     )
 {
-    PPH_STRING applicationDirectory;
-    PPH_BYTES capabilityListString = NULL;
+    PPH_BYTES guidListString = NULL;
+    PPH_STRING guidListFileName;
     PVOID jsonObject;
     ULONG arrayLength;
 
-    if (applicationDirectory = PhGetApplicationDirectoryWin32())
+    if (guidListFileName = PhGetApplicationDirectory())
     {
-        PPH_STRING capabilityListFileName;
-
-        capabilityListFileName = PhConcatStringRefZ(&applicationDirectory->sr, L"etwguids.txt");
-        PhDereferenceObject(applicationDirectory);
-
-        capabilityListString = PhFileReadAllText(capabilityListFileName->Buffer, FALSE);
-        PhDereferenceObject(capabilityListFileName);      
+        PhMoveReference(&guidListFileName, PhConcatStringRefZ(&guidListFileName->sr, L"etwguids.txt"));
+        guidListString = PhFileReadAllText(&guidListFileName->sr, TRUE);
+        PhDereferenceObject(guidListFileName);
     }
 
-    if (!capabilityListString)
+    if (!guidListString)
         return;
 
     PhInitializeArray(EtwTraceGuidArrayList, sizeof(PH_ETW_TRACEGUID_ENTRY), 2000);
 
-    if (!(jsonObject = PhCreateJsonParserEx(capabilityListString, FALSE)))
+    if (!(jsonObject = PhCreateJsonParserEx(guidListString, FALSE)))
         return;
 
     if (!(arrayLength = PhGetJsonArrayLength(jsonObject)))
@@ -478,7 +474,7 @@ VOID PhInitializeEtwTraceGuidCache(
     }
 
     PhFreeJsonObject(jsonObject);
-    PhDereferenceObject(capabilityListString);
+    PhDereferenceObject(guidListString);
 }
 
 PPH_STRING PhGetEtwTraceGuidName(

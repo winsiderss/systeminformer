@@ -1600,6 +1600,14 @@ PHLIBAPI
 PVOID
 NTAPI
 PhFileReadAllText(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN Unicode
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhFileReadAllTextWin32(
     _In_ PWSTR FileName,
     _In_ BOOLEAN Unicode
     );
