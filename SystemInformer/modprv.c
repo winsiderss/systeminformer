@@ -67,7 +67,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     NTSTATUS status;
     PPH_MODULE_PROVIDER moduleProvider;
-    PPH_STRING fileName;
+    PPH_PROCESS_ITEM processItem;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -128,9 +128,10 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         moduleProvider->RunStatus = status;
     }
 
-    if (NT_SUCCESS(PhGetProcessImageFileNameByProcessId(ProcessId, &fileName)))
+    if (processItem = PhReferenceProcessItem(ProcessId))
     {
-        PhMoveReference(&moduleProvider->ProcessFileName, fileName);
+        PhSetReference(&moduleProvider->ProcessFileName, processItem->FileName);
+        PhDereferenceObject(processItem);
     }
 
     if (WindowsVersion >= WINDOWS_8 && moduleProvider->ProcessHandle)
