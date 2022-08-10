@@ -714,7 +714,7 @@ VOID PhpProcessQueryStage1(
     // Version info
     if (!processItem->IsSubsystemProcess)
     {
-        if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(processItem->FileName))
+        if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(&processItem->FileName->sr))
         {
             Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE);
 

@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by ProcessHacker.rc
+// Used by SystemInformer.rc
 //
 #define IDI_PROCESSHACKER               101
 #define IDR_MAINWND_ACCEL               102
