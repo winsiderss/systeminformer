@@ -203,7 +203,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             else
                             {
                                 drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
-                                drawInfo->LabelYFunctionParameter = 0.0f;
+                                drawInfo->LabelYFunctionParameter = 1.0f;
                             }
 
                             performanceContext->CpuGraphState.Valid = TRUE;
@@ -262,7 +262,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                     );
                             }
 
-                            drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                            drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                             drawInfo->LabelYFunctionParameter = (FLOAT)processItem->VmCounters.PeakPagefileUsage;
 
                             performanceContext->PrivateGraphState.Valid = TRUE;
