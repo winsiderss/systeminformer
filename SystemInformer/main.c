@@ -486,18 +486,18 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
 {
     static PH_STRINGREF objectNameSr = PH_STRINGREF_INIT(L"SiMutant_");
     HANDLE objectHandle;
-    UNICODE_STRING objectNameUs;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     MUTANT_OWNER_INFORMATION objectInfo;
 
     if (!PhStartsWithStringRef(Name, &objectNameSr, FALSE))
         return TRUE;
-    if (!PhStringRefToUnicodeString(Name, &objectNameUs))
+    if (!PhStringRefToUnicodeString(Name, &objectName))
         return TRUE;
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &objectNameUs,
+        &objectName,
         OBJ_CASE_INSENSITIVE,
         PhGetNamespaceHandle(),
         NULL
@@ -1548,7 +1548,7 @@ VOID PhpInitializeSettings(
                     // and overwrite it with some valid XML, especially with case (2) above.
                     if (NT_SUCCESS(PhCreateFileWin32(
                         &fileHandle,
-                        PhSettingsFileName->Buffer,
+                        PhGetString(PhSettingsFileName),
                         FILE_GENERIC_WRITE,
                         FILE_ATTRIBUTE_NORMAL,
                         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -1744,7 +1744,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
 
         if (upperValue)
         {
-            if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != -1)
+            if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != SIZE_MAX)
             {
                 // User probably has Process Hacker replacing Task Manager. Force
                 // the main window to start visible.

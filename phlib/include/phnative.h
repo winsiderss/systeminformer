@@ -1614,7 +1614,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhDoesFileExist(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     );
 
 PHLIBAPI

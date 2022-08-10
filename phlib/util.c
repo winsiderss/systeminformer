@@ -6036,7 +6036,7 @@ PPH_STRING PhCreateCacheFile(
     fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExist(settingsFileName))
+    if (PhDoesFileExist(&settingsFileName->sr))
     {
         HANDLE fileHandle;
         PPH_STRING applicationDirectory;
@@ -6133,7 +6133,7 @@ VOID PhClearCacheDirectory(
     fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
 
-    if (PhDoesFileExist(settingsFileName))
+    if (PhDoesFileExist(&settingsFileName->sr))
     {
         HANDLE fileHandle;
         PPH_STRING applicationDirectory;

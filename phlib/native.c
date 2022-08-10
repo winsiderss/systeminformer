@@ -8887,13 +8887,13 @@ BOOLEAN PhDoesFileExistWin32(
 }
 
 BOOLEAN PhDoesFileExist(
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
     NTSTATUS status;
     FILE_BASIC_INFORMATION basicInfo;
 
-    status = PhQueryAttributesFile(&FileName->sr, &basicInfo);
+    status = PhQueryAttributesFile(FileName, &basicInfo);
 
     if (
         NT_SUCCESS(status) ||
