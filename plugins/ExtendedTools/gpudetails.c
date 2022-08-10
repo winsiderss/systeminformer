@@ -104,68 +104,22 @@ VOID EtpQueryAdapterDriverModel(
     _In_ D3DKMT_HANDLE AdapterHandle, 
     _In_ HWND ListViewHandle)
 {
-    D3DKMT_DRIVERVERSION wddmversion;
+    D3DKMT_DRIVERVERSION d3dkmtDriverVersion;
 
-    memset(&wddmversion, 0, sizeof(D3DKMT_DRIVERVERSION));
+    memset(&d3dkmtDriverVersion, 0, sizeof(D3DKMT_DRIVERVERSION));
 
     if (NT_SUCCESS(EtQueryAdapterInformation(
         AdapterHandle,
         KMTQAITYPE_DRIVERVERSION,
-        &wddmversion,
+        &d3dkmtDriverVersion,
         sizeof(D3DKMT_DRIVERVERSION)
         )))
     {
-        switch (wddmversion)
-        {
-        case KMT_DRIVERVERSION_WDDM_1_0:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 1.0");
-            break;
-        case KMT_DRIVERVERSION_WDDM_1_1_PRERELEASE:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 1.1 (pre-release)");
-            break;
-        case KMT_DRIVERVERSION_WDDM_1_1:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 1.1");
-            break;
-        case KMT_DRIVERVERSION_WDDM_1_2:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 1.2");
-            break;
-        case KMT_DRIVERVERSION_WDDM_1_3:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 1.3");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_0:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.0");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_1:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.1");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_2:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.2");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_3:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.3");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_4:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.4");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_5:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.5");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_6:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.6");
-            break;
-        case KMT_DRIVERVERSION_WDDM_2_7:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 2.7");
-            break;
-        case KMT_DRIVERVERSION_WDDM_3_0:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 3.0");
-            break;
-        case KMT_DRIVERVERSION_WDDM_3_1:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"WDDM 3.1");
-            break;
-        default:
-            PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1, L"ERROR");
-            break;
-        }
+        ULONG majorVersion = d3dkmtDriverVersion / 1000;
+        ULONG minorVersion = (d3dkmtDriverVersion - majorVersion * 1000) / 100;
+
+        PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_WDDMVERSION, 1,
+            PhaFormatString(L"WDDM %lu.%lu", majorVersion, minorVersion)->Buffer);
     }
 }
 
