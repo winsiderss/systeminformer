@@ -2173,7 +2173,7 @@ PPH_STRING PhpGetImageMunResourcePath(
 
         if (NativeFileName)
         {
-            if (PhDoesFileExist(fileName))
+            if (PhDoesFileExist(&fileName->sr))
                 PhMoveReference(&filePath, fileName);
             else
                 PhDereferenceObject(fileName);
