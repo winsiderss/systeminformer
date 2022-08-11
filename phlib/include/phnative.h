@@ -80,25 +80,7 @@ PhOpenProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhOpenProcessPublic(
-    _Out_ PHANDLE ProcessHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ProcessId
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
 PhOpenThread(
-    _Out_ PHANDLE ThreadHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ HANDLE ThreadId
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhOpenThreadPublic(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ HANDLE ThreadId
@@ -117,15 +99,6 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhOpenProcessToken(
-    _In_ HANDLE ProcessHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _Out_ PHANDLE TokenHandle
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhOpenProcessTokenPublic(
     _In_ HANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _Out_ PHANDLE TokenHandle
@@ -153,14 +126,6 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhTerminateProcess(
-    _In_ HANDLE ProcessHandle,
-    _In_ NTSTATUS ExitStatus
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhTerminateProcessPublic(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus
     );
