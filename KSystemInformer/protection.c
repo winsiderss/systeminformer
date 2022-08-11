@@ -54,9 +54,7 @@ typedef struct _KPH_IMAGE_LOAD_APC_INIT
  */
 _Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
 _Return_allocatesMem_size_(Size)
-PVOID
-KSIAPI
-KphpAllocateImageLoadApc(
+PVOID KSIAPI KphpAllocateImageLoadApc(
     _In_ SIZE_T Size
     )
 {
@@ -75,9 +73,7 @@ KphpAllocateImageLoadApc(
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _Must_inspect_result_
-NTSTATUS
-KSIAPI
-KphpInitializeImageLoadApc(
+NTSTATUS KSIAPI KphpInitializeImageLoadApc(
     _Inout_ PVOID Object,
     _In_opt_ PVOID Parameter
     )
@@ -103,6 +99,9 @@ KphpInitializeImageLoadApc(
         ObReferenceObject(apc->FileObject);
     }
 
+    KphReferenceHashingInfrastructure();
+    KphReferenceSigningInfrastructure();
+
     return STATUS_SUCCESS;
 }
 
@@ -112,9 +111,7 @@ KphpInitializeImageLoadApc(
  * \param[in,out] Object The image load APC object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
-VOID
-KSIAPI
-KphpDeleteImageLoadApc(
+VOID KSIAPI KphpDeleteImageLoadApc(
     _Inout_ PVOID Object
     )
 {
@@ -130,6 +127,9 @@ KphpDeleteImageLoadApc(
     {
         ObDereferenceObject(apc->FileObject);
     }
+
+    KphDereferenceSigningInfrastructure();
+    KphDereferenceHashingInfrastructure();
 }
 
 /**
@@ -138,9 +138,7 @@ KphpDeleteImageLoadApc(
  * \param[in] Object Image load APC object to free.
  */
 _Function_class_(KPH_TYPE_FREE_PROCEDURE)
-VOID
-KSIAPI
-KphpFreeImageLoadApc(
+VOID KSIAPI KphpFreeImageLoadApc(
     _In_freesMem_ PVOID Object
     )
 {
@@ -1151,6 +1149,20 @@ VOID KphpApplyImageProtections(
     PAGED_PASSIVE();
 
     NT_ASSERT(!KeAreAllApcsDisabled());
+
+    fileName = NULL;
+
+    if (!FileObject->SectionObjectPointer ||
+        MmDoesFileHaveUserWritableReferences(FileObject->SectionObjectPointer))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "%lu image has user writable references",
+                      HandleToULong(Process->ProcessId));
+
+        KphpHandleUntrustedImageLoad(Process, ImageBase);
+        goto Exit;
+    }
 
     status = KphGetNameFileObject(FileObject, &fileName);
     if (!NT_SUCCESS(status))

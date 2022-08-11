@@ -62,6 +62,11 @@
 
 #define KPH_TAG_HASHING_BUFFER                  '0HpK'
 #define KPH_TAG_AUTHENTICODE_SIG                '1HpK'
+#define KPH_TAG_HASHING_INFRA                   '2HpK'
+
+// sign 
+
+#define KPH_TAG_SIGNING_INFRA                   '0SpK'
 
 // informer
 

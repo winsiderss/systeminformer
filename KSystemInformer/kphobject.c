@@ -18,7 +18,7 @@
 //
 
 static volatile LONG KphpObjectTypeCount = 0;
-static KPH_OBJECT_TYPE KphpObjectTypes[7];
+static KPH_OBJECT_TYPE KphpObjectTypes[9];
 
 C_ASSERT(ARRAYSIZE(KphpObjectTypes) < MAXUCHAR);
 

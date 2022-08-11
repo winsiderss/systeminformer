@@ -14,11 +14,99 @@
 
 #include <trace.h>
 
+typedef struct _KPH_SIGNING_INFRASTRUCTURE
+{
+    KPH_AUTHENTICODE_INFO HalAuthenticode;
+    volatile SIZE_T CatalogsAreLoadedCalls;
+
+} KPH_SIGNING_INFRASTRUCTURE, *PKPH_SIGNING_INFRASTRUCTURE;
+
+static UNICODE_STRING KphpSigningInfraName = RTL_CONSTANT_STRING(L"KphSigningInfrastructure");
+static PKPH_OBJECT_TYPE KphpSigningInfraType = NULL;
+static PKPH_SIGNING_INFRASTRUCTURE KphpSigningInfra = NULL;
+
 PAGED_FILE();
 
 static UNICODE_STRING KphpHalFileName = RTL_CONSTANT_STRING(L"\\SystemRoot\\System32\\hal.dll");
-static KPH_AUTHENTICODE_INFO KphpHalAuthenticode = { 0 };
-static volatile SIZE_T KphpCatalogsAreLoadedCalls = 0;
+
+/**
+ * \brief Allocates signing infrastructure object.
+ *
+ * \param[in] Size The size to allocate.
+ *
+ * \return Allocated signing infrastructure object, null on failure.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Return_allocatesMem_size_(Size)
+PVOID KSIAPI KphpAllocateSigningInfra(
+    _In_ SIZE_T Size
+    )
+{
+    PAGED_CODE();
+
+    return KphAllocatePaged(Size, KPH_TAG_SIGNING_INFRA);
+}
+
+/**
+ * \brief Initializes signing infrastructure.
+ *
+ * \param[in,out] Object The signing infrastructure to initialize.
+ * \param[in] Parameter Unused
+ *
+ * \return Successful or errant status.
+ */
+_Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpInitSigningInfra(
+    _Inout_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    )
+{
+    PKPH_SIGNING_INFRASTRUCTURE infra;
+
+    PAGED_CODE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    infra = Object;
+
+    return KphGetAuthenticodeInfoByFileName(&KphpHalFileName,
+                                            &infra->HalAuthenticode);
+}
+
+/**
+ * \brief Deletes signing infrastructure.
+ *
+ * \param[in,out] Object The signing infrastructure to delete.
+ */
+_Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+VOID KSIAPI KphpDeleteSigningInfra(
+    _Inout_ PVOID Object
+    )
+{
+    PKPH_SIGNING_INFRASTRUCTURE infra;
+
+    PAGED_CODE();
+
+    infra = Object;
+
+    KphFreeAuthenticodeInfo(&infra->HalAuthenticode);
+}
+
+/**
+ * \brief Frees signing infrastructure object.
+ *
+ * \param[in] Object The object to free.
+ */
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
+VOID KSIAPI KphpFreeSigningInfra(
+    _In_freesMem_ PVOID Object
+    )
+{
+    PAGED_CODE();
+
+    KphFree(Object, KPH_TAG_SIGNING_INFRA);
+}
 
 /**
  * \brief Internal function resetting signing info between calls.
@@ -204,10 +292,30 @@ NTSTATUS KphInitializeSigning(
     VOID
     )
 {
+    NTSTATUS status;
+    KPH_OBJECT_TYPE_INFO typeInfo;
+
     PAGED_PASSIVE();
 
-    return KphGetAuthenticodeInfoByFileName(&KphpHalFileName,
-                                            &KphpHalAuthenticode);
+    typeInfo.Allocate = KphpAllocateSigningInfra;
+    typeInfo.Initialize = KphpInitSigningInfra;
+    typeInfo.Delete = KphpDeleteSigningInfra;
+    typeInfo.Free = KphpFreeSigningInfra;
+
+    KphCreateObjectType(&KphpSigningInfraName,
+                        &typeInfo,
+                        &KphpSigningInfraType);
+
+    status = KphCreateObject(KphpSigningInfraType,
+                             sizeof(KPH_SIGNING_INFRASTRUCTURE),
+                             &KphpSigningInfra,
+                             NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphpSigningInfra = NULL;
+    }
+
+    return status;
 }
 
 /**
@@ -220,7 +328,42 @@ VOID KphCleanupSigning(
 {
     PAGED_PASSIVE();
 
-    KphFreeAuthenticodeInfo(&KphpHalAuthenticode);
+    if (KphpSigningInfra)
+    {
+        KphDereferenceObject(KphpSigningInfra);
+    }
+}
+
+/**
+ * \brief References the signing infrastructure.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphReferenceSigningInfrastructure(
+    VOID
+    )
+{
+    PAGED_CODE();
+
+    NT_ASSERT(KphpSigningInfra);
+
+    KphReferenceHashingInfrastructure();
+    KphReferenceObject(KphpSigningInfra);
+}
+
+/**
+ * \brief Dereferences the signing infrastructure.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphDereferenceSigningInfrastructure(
+    VOID
+    )
+{
+    PAGED_CODE();
+
+    NT_ASSERT(KphpSigningInfra);
+
+    KphDereferenceObject(KphpSigningInfra);
+    KphDereferenceHashingInfrastructure();
 }
 
 /**
@@ -239,8 +382,9 @@ BOOLEAN KphpSigningCatalogsAreLoaded(
     PAGED_PASSIVE();
 
     NT_ASSERT(KphDynCiFreePolicyInfo);
+    NT_ASSERT(KphpSigningInfra);
 
-    if (InterlockedIncrementSizeT(&KphpCatalogsAreLoadedCalls) == 1)
+    if (InterlockedIncrementSizeT(&KphpSigningInfra->CatalogsAreLoadedCalls) == 1)
     {
         //
         // Force false on the first time through here.
@@ -251,14 +395,14 @@ BOOLEAN KphpSigningCatalogsAreLoaded(
     RtlZeroMemory(&policyInfo, sizeof(policyInfo));
     RtlZeroMemory(&timeStampPolicyInfo, sizeof(timeStampPolicyInfo));
 
-    status = KphpCiVerifyHashInCatalog(&KphpHalAuthenticode,
-                                      FALSE,
-                                      FALSE,
-                                      0xffffffff,
-                                      &policyInfo,
-                                      NULL,
-                                      NULL,
-                                      &timeStampPolicyInfo);
+    status = KphpCiVerifyHashInCatalog(&KphpSigningInfra->HalAuthenticode,
+                                       FALSE,
+                                       FALSE,
+                                       0xffffffff,
+                                       &policyInfo,
+                                       NULL,
+                                       NULL,
+                                       &timeStampPolicyInfo);
 
     KphDynCiFreePolicyInfo(&policyInfo);
     KphDynCiFreePolicyInfo(&timeStampPolicyInfo);

@@ -787,6 +787,16 @@ VOID KphCleanupHashing(
     VOID
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphReferenceHashingInfrastructure(
+    VOID
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphDereferenceHashingInfrastructure(
+    VOID
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHashFile(
@@ -842,6 +852,16 @@ NTSTATUS KphInitializeSigning(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphCleanupSigning(
+    VOID
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphReferenceSigningInfrastructure(
+    VOID
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphDereferenceSigningInfrastructure(
     VOID
     );
 
