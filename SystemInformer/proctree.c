@@ -227,6 +227,9 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_PARENTCONSOLEPID, FALSE, L"Parent console PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_COMMITSIZE, FALSE, L"Shared commit", 70, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_PRIORITYBOOST, FALSE, L"Priority boost", 45, PH_ALIGN_LEFT, ULONG_MAX, 0, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUAVERAGE, FALSE, L"CPU (average)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUKERNEL, FALSE, L"CPU (kernel)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -247,6 +250,33 @@ VOID PhInitializeProcessTreeList(
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
 }
 
+VOID PhLoadSettingsProcessTreeUpdateMask(
+    VOID
+    )
+{
+    PH_TREENEW_COLUMN column;
+
+    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_USERNAME, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME);
+
+    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CFGUARD, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD);
+
+    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CET, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET);
+
+    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CPUAVERAGE, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+}
+
 VOID PhLoadSettingsProcessTreeList(
     VOID
     )
@@ -264,6 +294,8 @@ VOID PhLoadSettingsProcessTreeList(
     {
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     }
+
+    PhLoadSettingsProcessTreeUpdateMask();
 }
 
 VOID PhSaveSettingsProcessTreeList(
@@ -291,6 +323,8 @@ VOID PhLoadSettingsProcessTreeListEx(
     {
         SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
     }
+
+    PhLoadSettingsProcessTreeUpdateMask();
 }
 
 VOID PhSaveSettingsProcessTreeListEx(
@@ -313,6 +347,8 @@ VOID PhReloadSettingsProcessTreeList(
 {
     SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL,
         PhGetIntegerSetting(L"EnableInstantTooltips") ? 0 : -1);
+
+    PhLoadSettingsProcessTreeUpdateMask();
 }
 
 struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportProcessTreeList(
@@ -595,6 +631,9 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ParentPidText);
     PhClearReference(&ProcessNode->ParentConsolePidText);
     PhClearReference(&ProcessNode->SharedCommitText);
+    PhClearReference(&ProcessNode->CpuAverageText);
+    PhClearReference(&ProcessNode->CpuKernelText);
+    PhClearReference(&ProcessNode->CpuUserText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -2202,6 +2241,12 @@ BEGIN_SORT_FUNCTION(PriorityBoost)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CpuAverage)
+{
+    sortResult = singlecmp(processItem1->CpuAverageUsage, processItem2->CpuAverageUsage);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2339,6 +2384,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(ParentConsolePid),
                         SORT_FUNCTION(SharedCommit),
                         SORT_FUNCTION(PriorityBoost),
+                        SORT_FUNCTION(CpuAverage),
+                        SORT_FUNCTION(Cpu), // CPU Kernel
+                        SORT_FUNCTION(Cpu), // CPU User
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3411,6 +3459,87 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitializeStringRef(&getCellText->Text, L"Yes");
                 }
                 break;
+            case PHPRTLC_CPUAVERAGE:
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = processItem->CpuAverageUsage * 100;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
+
+                        PhMoveReference(&node->CpuAverageText, PhFormat(&format, 1, 0));
+                        getCellText->Text = node->CpuAverageText->sr;
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatS(&format[0], L"< ");
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+
+                        PhMoveReference(&node->CpuAverageText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->CpuAverageText->sr;
+                    }
+                }
+                break;
+            case PHPRTLC_CPUKERNEL:
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = processItem->CpuKernelUsage * 100;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
+
+                        PhMoveReference(&node->CpuKernelText, PhFormat(&format, 1, 0));
+                        getCellText->Text = node->CpuKernelText->sr;
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatS(&format[0], L"< ");
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+
+                        PhMoveReference(&node->CpuKernelText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        getCellText->Text = node->CpuKernelText->sr;
+                    }
+                }
+                break;
+            case PHPRTLC_CPUUSER:
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = processItem->CpuUserUsage * 100;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        PH_FORMAT format;
+
+                        PhInitFormatF(&format, cpuUsage, PhMaxPrecisionUnit);
+
+                        PhMoveReference(&node->CpuUserText, PhFormat(&format, 1, 0));
+                        getCellText->Text = node->CpuUserText->sr;
+                    }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PH_FORMAT format[2];
+
+                        PhInitFormatS(&format[0], L"< ");
+                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+
+                        PhMoveReference(&node->CpuUserText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        getCellText->Text = node->CpuUserText->sr;
+                    }
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -3834,10 +3963,27 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
+            data.Selection = PhShowEMenu(
+                data.Menu,
+                hwnd,
+                PH_EMENU_SHOW_LEFTRIGHT,
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                data.MouseEvent->ScreenLocation.x,
+                data.MouseEvent->ScreenLocation.y
+                );
 
             PhHandleTreeNewColumnMenu(&data);
+
+            if (data.Selection)
+            {
+                if (data.Selection->Id == PH_TN_COLUMN_MENU_HIDE_COLUMN_ID ||
+                    data.Selection->Id == PH_TN_COLUMN_MENU_CHOOSE_COLUMNS_ID)
+                {
+                    // TODO: Reset flags for enabled/disabled columns. (dmex)
+                    PhReloadSettingsProcessTreeList();
+                }
+            }
+
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
