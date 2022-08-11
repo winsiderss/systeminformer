@@ -13,15 +13,156 @@
 
 #include <trace.h>
 
-static BOOLEAN KphpHashingLookasideInitialized = FALSE;
-static PAGED_LOOKASIDE_LIST KphpHashingLookaside;
+typedef struct _KPH_HASHING_INFRASTRUCTURE
+{
+    PAGED_LOOKASIDE_LIST HashingLookaside;
+    BCRYPT_ALG_HANDLE BCryptSha1Provider;
+    BCRYPT_ALG_HANDLE BCryptSha256Provider;
+
+} KPH_HASHING_INFRASTRUCTURE, *PKPH_HASHING_INFRASTRUCTURE;
+
+static UNICODE_STRING KphpHashingInfraName = RTL_CONSTANT_STRING(L"KphHashingInfrastructure");
+static PKPH_OBJECT_TYPE KphpHashingInfraType = NULL;
+static PKPH_HASHING_INFRASTRUCTURE KphpHashingInfra = NULL;
 
 PAGED_FILE();
 
-static BCRYPT_ALG_HANDLE KphpBCryptSha1Provider = NULL;
-static BCRYPT_ALG_HANDLE KphpBCryptSha256Provider = NULL;
-
 #define KPH_HASHING_BUFFER_SIZE (16 * 1024)
+
+/**
+ * \brief Allocates hashing infrastructure object.
+ *
+ * \param[in] Size The size to allocate.
+ *
+ * \return Allocated hashing infrastructure object, null on failure.
+ */
+_Function_class_(KPH_TYPE_ALLOCATE_PROCEDURE)
+_Return_allocatesMem_size_(Size)
+PVOID KSIAPI KphpAllocateHashingInfra(
+    _In_ SIZE_T Size
+    )
+{
+    PAGED_CODE();
+
+    return KphAllocateNPaged(Size, KPH_TAG_HASHING_INFRA);
+}
+
+/**
+ * \brief Initializes hashing infrastructure.
+ *
+ * \param[in,out] Object The hashing infrastructure to initialize.
+ * \param[in] Parameter Unused
+ *
+ * \return Successful or errant status.
+ */
+_Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpInitHashingInfra(
+    _Inout_ PVOID Object,
+    _In_opt_ PVOID Parameter
+    )
+{
+    NTSTATUS status;
+    PKPH_HASHING_INFRASTRUCTURE infra;
+
+    PAGED_CODE();
+
+    UNREFERENCED_PARAMETER(Parameter);
+
+    infra = Object;
+
+    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha1Provider,
+                                         BCRYPT_SHA1_ALGORITHM,
+                                         NULL,
+                                         0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      HASH,
+                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
+                      status);
+
+        infra->BCryptSha1Provider = NULL;
+        goto Exit;
+    }
+
+    status = BCryptOpenAlgorithmProvider(&infra->BCryptSha256Provider,
+                                         BCRYPT_SHA256_ALGORITHM,
+                                         NULL,
+                                         0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      HASH,
+                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
+                      status);
+
+        infra->BCryptSha256Provider = NULL;
+        goto Exit;
+    }
+
+    KphInitializePagedLookaside(&infra->HashingLookaside,
+                                KPH_HASHING_BUFFER_SIZE,
+                                KPH_TAG_HASHING_BUFFER);
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (!NT_SUCCESS(status))
+    {
+        if (infra->BCryptSha1Provider)
+        {
+            BCryptCloseAlgorithmProvider(infra->BCryptSha1Provider, 0);
+        }
+
+        if (infra->BCryptSha256Provider)
+        {
+            BCryptCloseAlgorithmProvider(infra->BCryptSha256Provider, 0);
+        }
+    }
+
+    return status;
+}
+
+/**
+ * \brief Deletes hashing infrastructure.
+ *
+ * \param[in,out] Object The hashing infrastructure to delete.
+ */
+_Function_class_(KPH_TYPE_DELETE_PROCEDURE)
+VOID KSIAPI KphpDeleteHashingInfra(
+    _Inout_ PVOID Object
+    )
+{
+    PKPH_HASHING_INFRASTRUCTURE infra;
+
+    PAGED_CODE();
+
+    infra = Object;
+
+    NT_ASSERT(infra->BCryptSha1Provider);
+    BCryptCloseAlgorithmProvider(infra->BCryptSha1Provider, 0);
+
+    NT_ASSERT(infra->BCryptSha256Provider);
+    BCryptCloseAlgorithmProvider(infra->BCryptSha256Provider, 0);
+
+    KphDeletePagedLookaside(&infra->HashingLookaside);
+}
+
+/**
+ * \brief Frees hashing infrastructure object.
+ *
+ * \param[in] Object The object to free.
+ */
+_Function_class_(KPH_TYPE_FREE_PROCEDURE)
+VOID KSIAPI KphpFreeHashingInfra(
+    _In_freesMem_ PVOID Object
+    )
+{
+    PAGED_CODE();
+
+    KphFree(Object, KPH_TAG_HASHING_INFRA);
+}
 
 /**
  * \brief Allocates a hashing buffer from the hashing look-aside list.
@@ -36,15 +177,15 @@ PUCHAR KphpAllocateHashingBuffer(
 {
     PAGED_PASSIVE();
 
-    NT_ASSERT(KphpHashingLookasideInitialized);
+    NT_ASSERT(KphpHashingInfra);
 
-    return KphAllocateFromPagedLookaside(&KphpHashingLookaside);
+    return KphAllocateFromPagedLookaside(&KphpHashingInfra->HashingLookaside);
 }
 
 /**
  * \brief Frees a hashing buffer back to the look-aside list.
  *
- * \param[in] Buffer The buffer to free baack to the look-aside list.
+ * \param[in] Buffer The buffer to free back to the look-aside list.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpFreeHashingBuffer(
@@ -53,9 +194,10 @@ VOID KphpFreeHashingBuffer(
 {
     PAGED_PASSIVE();
 
-    NT_ASSERT(KphpHashingLookasideInitialized);
+    NT_ASSERT(KphpHashingInfra);
 
-    KphFreeToPagedLookaside(&KphpHashingLookaside, Buffer);
+    KphFreeToPagedLookaside(&KphpHashingInfra->HashingLookaside,
+                            Buffer);
 }
 
 /**
@@ -70,45 +212,29 @@ NTSTATUS KphInitializeHashing(
     )
 {
     NTSTATUS status;
+    KPH_OBJECT_TYPE_INFO typeInfo;
 
     PAGED_PASSIVE();
 
-    status = BCryptOpenAlgorithmProvider(&KphpBCryptSha1Provider,
-                                         BCRYPT_SHA1_ALGORITHM,
-                                         NULL,
-                                         0);
+    typeInfo.Allocate = KphpAllocateHashingInfra;
+    typeInfo.Initialize = KphpInitHashingInfra;
+    typeInfo.Delete = KphpDeleteHashingInfra;
+    typeInfo.Free = KphpFreeHashingInfra;
+
+    KphCreateObjectType(&KphpHashingInfraName,
+                        &typeInfo,
+                        &KphpHashingInfraType);
+
+    status = KphCreateObject(KphpHashingInfraType,
+                             sizeof(KPH_HASHING_INFRASTRUCTURE),
+                             &KphpHashingInfra,
+                             NULL);
     if (!NT_SUCCESS(status))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      HASH,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        KphpBCryptSha1Provider = NULL;
-        return status;
+        KphpHashingInfra = NULL;
     }
 
-    status = BCryptOpenAlgorithmProvider(&KphpBCryptSha256Provider,
-                                         BCRYPT_SHA256_ALGORITHM,
-                                         NULL,
-                                         0);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      HASH,
-                      "BCryptOpenAlgorithmProvider failed: %!STATUS!",
-                      status);
-
-        KphpBCryptSha256Provider = NULL;
-        return status;
-    }
-
-    KphInitializePagedLookaside(&KphpHashingLookaside,
-                                KPH_HASHING_BUFFER_SIZE,
-                                KPH_TAG_HASHING_BUFFER);
-    KphpHashingLookasideInitialized = TRUE;
-
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
@@ -121,23 +247,40 @@ VOID KphCleanupHashing(
 {
     PAGED_PASSIVE();
 
-    if (KphpHashingLookasideInitialized)
+    if (KphpHashingInfra)
     {
-        KphDeletePagedLookaside(&KphpHashingLookaside);
-        KphpHashingLookasideInitialized = FALSE;
+        KphDereferenceObject(KphpHashingInfra);
     }
+}
 
-    if (KphpBCryptSha1Provider)
-    {
-        BCryptCloseAlgorithmProvider(KphpBCryptSha1Provider, 0);
-        KphpBCryptSha1Provider = NULL;
-    }
+/**
+ * \brief References the signing infrastructure.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphReferenceHashingInfrastructure(
+    VOID
+    )
+{
+    PAGED_CODE();
 
-    if (KphpBCryptSha256Provider)
-    {
-        BCryptCloseAlgorithmProvider(KphpBCryptSha256Provider, 0);
-        KphpBCryptSha256Provider = NULL;
-    }
+    NT_ASSERT(KphpHashingInfra);
+
+    KphReferenceObject(KphpHashingInfra);
+}
+
+/**
+ * \brief Dereferences the signing infrastructure.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphDereferenceHashingInfrastructure(
+    VOID
+    )
+{
+    PAGED_CODE();
+
+    NT_ASSERT(KphpHashingInfra);
+
+    KphDereferenceObject(KphpHashingInfra);
 }
 
 /**
@@ -168,6 +311,8 @@ NTSTATUS KphHashFile(
 
     PAGED_PASSIVE();
 
+    NT_ASSERT(KphpHashingInfra);
+
     hashHandle = NULL;
     mappedBase = NULL;
     readBuffer = NULL;
@@ -176,11 +321,11 @@ NTSTATUS KphHashFile(
 
     if (AlgorithmId == CALG_SHA1)
     {
-        algHandle = KphpBCryptSha1Provider;
+        algHandle = KphpHashingInfra->BCryptSha1Provider;
     }
     else if (AlgorithmId == CALG_SHA_256)
     {
-        algHandle = KphpBCryptSha256Provider;
+        algHandle = KphpHashingInfra->BCryptSha256Provider;
     }
     else
     {
@@ -445,7 +590,9 @@ NTSTATUS KphGetAuthenticodeInfo(
 
     RtlZeroMemory(Info, sizeof(*Info));
 
-    NT_ASSERT(KphpBCryptSha1Provider && KphpBCryptSha256Provider);
+    NT_ASSERT(KphpHashingInfra);
+    NT_ASSERT(KphpHashingInfra->BCryptSha1Provider);
+    NT_ASSERT(KphpHashingInfra->BCryptSha256Provider);
 
     viewSize = 0;
     status = KphMapViewOfFileInSystemProcess(FileHandle,
@@ -548,7 +695,7 @@ NTSTATUS KphGetAuthenticodeInfo(
 
 BeginHashing:
 
-    status = BCryptCreateHash(KphpBCryptSha1Provider,
+    status = BCryptCreateHash(KphpHashingInfra->BCryptSha1Provider,
                               &sha1Handle,
                               NULL,
                               0,
@@ -566,7 +713,7 @@ BeginHashing:
         goto Exit;
     }
 
-    status = BCryptCreateHash(KphpBCryptSha256Provider,
+    status = BCryptCreateHash(KphpHashingInfra->BCryptSha256Provider,
                               &sha256Handle,
                               NULL,
                               0,
