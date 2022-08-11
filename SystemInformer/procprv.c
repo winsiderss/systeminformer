@@ -163,6 +163,7 @@ ULONG PhStatisticsSampleCount = 512;
 BOOLEAN PhEnableProcessExtension = TRUE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
+ULONG PhProcessProviderFlagsMask = 0;
 
 PVOID PhProcessInformation = NULL; // only can be used if running on same thread as process provider
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
@@ -929,7 +930,7 @@ VOID PhpProcessQueryStage1(
         }
     }
 
-    if (processItem->Sid)
+    if (processItem->Sid && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
     {
         // Note: We delay resolving the SID name because the local LSA cache might still be
         // initializing for users on domain networks with slow links (e.g. VPNs). This can block
@@ -1374,7 +1375,7 @@ VOID PhpFillProcessItem(
     }
 
     // Control Flow Guard
-    if (WindowsVersion >= WINDOWS_8_1 && ProcessItem->QueryHandle)
+    if (WindowsVersion >= WINDOWS_8_1 && ProcessItem->QueryHandle && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD))
     {
         BOOLEAN cfguardEnabled;
 
@@ -1397,7 +1398,7 @@ VOID PhpFillProcessItem(
     }
 
     // CET
-    if (WindowsVersion >= WINDOWS_10_20H1)
+    if (WindowsVersion >= WINDOWS_10_20H1 && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET))
     {
         if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
         {
@@ -2463,6 +2464,23 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
+            // Average
+            if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE))
+            {
+                FLOAT value = 0.0f;
+
+                for (ULONG i = 0; i < processItem->CpuKernelHistory.Count; i++)
+                {
+                    value += PhGetItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, i) +
+                        PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, i);
+                }
+
+                if (processItem->CpuKernelHistory.Count)
+                    processItem->CpuAverageUsage = (FLOAT)value / processItem->CpuKernelHistory.Count;
+                else
+                    processItem->CpuAverageUsage = 0.0f;
+            }
+
             // Max. values
 
             if (processItem->ProcessId)
@@ -2501,24 +2519,30 @@ VOID PhProcessProviderUpdate(
                     MANDATORY_LEVEL integrityLevel;
                     PWSTR integrityString;
 
-                    // User
-                    if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+                    if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
                     {
-                        if (!processItem->Sid || !RtlEqualSid(processItem->Sid, tokenUser->User.Sid))
+                        // User
+                        if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                         {
-                            PSID processSid;
+                            if (!processItem->Sid || !RtlEqualSid(processItem->Sid, tokenUser->User.Sid))
+                            {
+                                PSID processSid;
 
-                            // HACK (dmex)
-                            processSid = processItem->Sid;
-                            processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
-                            if (processSid) PhFree(processSid);
+                                // HACK (dmex)
+                                processSid = processItem->Sid;
+                                processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                                if (processSid) PhFree(processSid);
+                                modified = TRUE;
+                            }
 
-                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
-
-                            modified = TRUE;
+                            PhFree(tokenUser);
                         }
 
-                        PhFree(tokenUser);
+                        if (PhIsNullOrEmptyString(processItem->UserName) && processItem->Sid)
+                        {
+                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
+                            modified = TRUE;
+                        }
                     }
 
                     // Elevation
@@ -2553,6 +2577,92 @@ VOID PhProcessProviderUpdate(
                     }
 
                     NtClose(tokenHandle);
+                }
+            }
+            else
+            {
+                if (FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_USERNAME))
+                {
+                    if (processItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
+                        processItem->ProcessId == SYSTEM_PROCESS_ID)
+                    {
+                        if (PhIsNullOrEmptyString(processItem->UserName))
+                        {
+                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(&PhSeLocalSystemSid));
+                            modified = TRUE;
+                        }
+                    }
+                }
+            }
+
+            // Control Flow Guard
+            if (WindowsVersion >= WINDOWS_8_1 && processItem->QueryHandle && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CFGUARD))
+            {
+                BOOLEAN cfguardEnabled;
+
+                if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(processItem->QueryHandle, &cfguardEnabled)))
+                {
+                    if (processItem->IsControlFlowGuardEnabled != cfguardEnabled)
+                    {
+                        processItem->IsControlFlowGuardEnabled = cfguardEnabled;
+                        modified = TRUE;
+                    }
+                }
+
+                if (WindowsVersion >= WINDOWS_11)
+                {
+                    BOOLEAN xfguardEnabled;
+                    BOOLEAN xfguardAuditEnabled;
+
+                    if (NT_SUCCESS(PhGetProcessIsXFGuardEnabled(processItem->QueryHandle, &xfguardEnabled, &xfguardAuditEnabled)))
+                    {
+                        if (processItem->IsXfgEnabled != xfguardEnabled)
+                        {
+                            processItem->IsXfgEnabled = xfguardEnabled;
+                            modified = TRUE;
+                        }
+
+                        if (processItem->IsXfgAuditEnabled != xfguardAuditEnabled)
+                        {
+                            processItem->IsXfgAuditEnabled = xfguardAuditEnabled;
+                            modified = TRUE;
+                        }
+                    }
+                }
+            }
+
+            // CET
+            if (WindowsVersion >= WINDOWS_10_20H1 && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_CET))
+            {
+                if (processItem->ProcessId == SYSTEM_PROCESS_ID)
+                {
+                    SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
+
+                    if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
+                    {
+                        if (processItem->IsCetEnabled != shadowStackInformation.KernelCetEnabled)
+                        {
+                            processItem->IsCetEnabled = shadowStackInformation.KernelCetEnabled;
+                            modified = TRUE;
+                        }
+                    }
+                }
+                else
+                {
+                    if (processItem->QueryHandle)
+                    {
+                        BOOLEAN cetEnabled;
+                        BOOLEAN cetStrictModeEnabled;
+
+                        if (NT_SUCCESS(PhGetProcessIsCetEnabled(processItem->QueryHandle, &cetEnabled, &cetStrictModeEnabled)))
+                        {
+                            if (processItem->IsCetEnabled != cetEnabled)
+                            {
+                                processItem->IsCetEnabled = cetEnabled;
+                                modified = TRUE;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -2664,18 +2774,18 @@ VOID PhProcessProviderUpdate(
             }
 
             // Immersive
-            if (processItem->QueryHandle && WindowsVersion >= WINDOWS_8 && !processItem->IsSubsystemProcess)
-            {
-                BOOLEAN isImmersive;
-
-                isImmersive = PhIsImmersiveProcess(processItem->QueryHandle);
-
-                if (processItem->IsImmersive != isImmersive)
-                {
-                    processItem->IsImmersive = isImmersive;
-                    modified = TRUE;
-                }
-            }
+            // if (processItem->QueryHandle && WindowsVersion >= WINDOWS_8 && !processItem->IsSubsystemProcess)
+            // {
+            //     BOOLEAN isImmersive;
+            //
+            //     isImmersive = PhIsImmersiveProcess(processItem->QueryHandle);
+            //
+            //     if (processItem->IsImmersive != isImmersive)
+            //     {
+            //         processItem->IsImmersive = isImmersive;
+            //         modified = TRUE;
+            //     }
+            // }
 
             if (processItem->QueryHandle && processItem->IsHandleValid)
             {

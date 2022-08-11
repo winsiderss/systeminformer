@@ -107,8 +107,11 @@
 #define PHPRTLC_PARENTCONSOLEPID 94
 #define PHPRTLC_COMMITSIZE 95
 #define PHPRTLC_PRIORITYBOOST 96
+#define PHPRTLC_CPUAVERAGE 97
+#define PHPRTLC_CPUKERNEL 98
+#define PHPRTLC_CPUUSER 99
 
-#define PHPRTLC_MAXIMUM 97
+#define PHPRTLC_MAXIMUM 100
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -257,6 +260,9 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING ParentPidText;
     PPH_STRING ParentConsolePidText;
     PPH_STRING SharedCommitText;
+    PPH_STRING CpuAverageText;
+    PPH_STRING CpuKernelText;
+    PPH_STRING CpuUserText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
