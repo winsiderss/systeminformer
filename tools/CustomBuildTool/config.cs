@@ -95,7 +95,6 @@ namespace CustomBuildTool
         public static readonly string[] Build_Phlib_Headers =
         {
             "appresolver.h",
-            "banned.h",
             "circbuf.h",
             "circbuf_h.h",
             "cpysave.h",
