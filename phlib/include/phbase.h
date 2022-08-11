@@ -22,7 +22,6 @@
 #endif
 
 #include <phnt_windows.h>
-#include <banned.h>
 #include <phnt.h>
 #include <phsup.h>
 #include <ref.h>

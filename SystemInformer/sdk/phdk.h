@@ -23,6 +23,4 @@
 
 #include "phapppub.h"
 
-#include "banned.h"
-
 #endif
