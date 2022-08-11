@@ -309,10 +309,10 @@ EXPORTS
     PhListenNamedPipe
     PhOpenKey
     PhLoadAppKey
-    PhOpenProcess = PhOpenProcessPublic
-    PhOpenThread = PhOpenThreadPublic
+    PhOpenProcess
+    PhOpenThread
     PhOpenThreadProcess
-    PhOpenProcessToken = PhOpenProcessTokenPublic
+    PhOpenProcessToken
     PhPeekNamedPipe
     PhQueryFullAttributesFileWin32
     PhQueryKey
@@ -330,7 +330,7 @@ EXPORTS
     PhSetTokenPrivilege2
     PhSetTokenSessionId
     PhSetValueKey
-    PhTerminateProcess = PhTerminateProcessPublic
+    PhTerminateProcess
     PhTransceiveNamedPipe
     PhUnloadDllProcess
     PhUnloadDriver
