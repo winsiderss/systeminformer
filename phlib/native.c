@@ -1929,6 +1929,11 @@ NTSTATUS PhLoadDllProcess(
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
 
+    if (KphProcessLevel(ProcessHandle) > KphLevelMed)
+    {
+        return STATUS_ACCESS_DENIED;
+    }
+
 #ifdef _WIN64
     status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
 

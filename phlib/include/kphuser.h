@@ -250,6 +250,13 @@ typedef enum _KPH_LEVEL
 PHLIBAPI
 KPH_LEVEL
 NTAPI
+KphProcessLevel(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+KPH_LEVEL
+NTAPI
 KphLevel(
     VOID
     );
