@@ -578,7 +578,6 @@ VOID KphApplyObProtections(
     PKPH_PROCESS_CONTEXT process;
     PKPH_THREAD_CONTEXT actor;
     BOOLEAN releaseLock;
-    KPH_PROCESS_STATE processState;
     ACCESS_MASK allowedAccessMask;
     ACCESS_MASK desiredAccess;
     PACCESS_MASK access;
@@ -635,12 +634,6 @@ VOID KphApplyObProtections(
     releaseLock = TRUE;
 
     if (!process->Protected)
-    {
-        goto Exit;
-    }
-
-    processState = KphGetProcessState(actor->ProcessContext);
-    if ((processState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)
     {
         goto Exit;
     }

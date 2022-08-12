@@ -1155,8 +1155,8 @@ KPH_PROCESS_STATE KphGetCurrentProcessState(
     return KphGetProcessState(NtCurrentProcess());
 }
 
-KPH_LEVEL KphLevel(
-    VOID
+KPH_LEVEL KphProcessLevel(
+    _In_ HANDLE ProcessHandle
     )
 {
     KPH_PROCESS_STATE state;
@@ -1172,7 +1172,7 @@ KPH_LEVEL KphLevel(
     // necessary. 
     //
 
-    state = KphGetCurrentProcessState();
+    state = KphGetProcessState(ProcessHandle);
 
     if ((state & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)
         return KphLevelMax;
@@ -1190,4 +1190,12 @@ KPH_LEVEL KphLevel(
         return KphLevelMin;
 
     return KphLevelNone;
+
+}
+
+KPH_LEVEL KphLevel(
+    VOID
+    )
+{
+    return KphProcessLevel(NtCurrentProcess());
 }
