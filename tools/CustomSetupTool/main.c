@@ -185,9 +185,10 @@ VOID SetupShowDialog(
     {
         PhShowInformation2(
             NULL,
-            L"Process Hacker.",
+            L"Process Hacker",
             L"%s",
-            L"Process Hacker was renamed System Informer."
+            L"Process Hacker was renamed System Informer.\n"
+            L"The legacy version of Process Hacker is no longer maintained and will not receive updates."
             );
     }
 
