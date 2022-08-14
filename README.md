@@ -35,7 +35,9 @@ Requires Visual Studio (2022 or later).
 
 Execute `build_release.cmd` located in the `build` directory to compile the project or load the `SystemInformer.sln` and `Plugins.sln` solutions if you prefer building the project using Visual Studio.
 
-You can download the free [Visual Studio Community Edition](https://www.visualstudio.com/vs/community/) to build the Process Hacker source code.
+You can download the free [Visual Studio Community Edition](https://www.visualstudio.com/vs/community/) to build the System Informer source code.
+
+See the [build readme](./build/README.md) for more information or if you're having trouble building.
 
 ## Enhancements/Bugs
 
