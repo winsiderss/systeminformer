@@ -471,146 +471,129 @@ HBITMAP ToolbarGetImage(
     {
     case PHAPP_ID_VIEW_REFRESH:
         {
-            HBITMAP toolbarBitmap = NULL;
+            ULONG id = IDI_ARROW_REFRESH;
 
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_ARROW_REFRESH_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_ARROW_REFRESH_MODERN_LIGHT;
+                else
+                    id = IDI_ARROW_REFRESH_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case PHAPP_ID_HACKER_OPTIONS:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_COG_EDIT;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_COG_EDIT_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_COG_EDIT));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_COG_EDIT_MODERN_LIGHT;
+                else
+                    id = IDI_COG_EDIT_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_FIND;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_FIND_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_FIND));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_FIND_MODERN_LIGHT;
+                else
+                    id = IDI_FIND_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_CHART_LINE;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CHART_LINE_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CHART_LINE));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_CHART_LINE_MODERN_LIGHT;
+                else
+                    id = IDI_CHART_LINE_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case TIDC_FINDWINDOW:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_TBAPPLICATION;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_TBAPPLICATION));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_TBAPPLICATION_MODERN_LIGHT;
+                else
+                    id = IDI_TBAPPLICATION_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case TIDC_FINDWINDOWTHREAD:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_APPLICATION_GO;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GO_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GO));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_APPLICATION_GO_MODERN_LIGHT;
+                else
+                    id = IDI_APPLICATION_GO_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case TIDC_FINDWINDOWKILL:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_CROSS;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_CROSS_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CROSS));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_CROSS_MODERN_LIGHT;
+                else
+                    id = IDI_CROSS_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case PHAPP_ID_VIEW_ALWAYSONTOP:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_APPLICATION_GET;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_APPLICATION_GET_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GET));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_APPLICATION_GET_MODERN_LIGHT;
+                else
+                    id = IDI_APPLICATION_GET_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case TIDC_POWERMENUDROPDOWN:
         {
-            HBITMAP toolbarBitmap = NULL;
-
+            ULONG id = IDI_LIGHTBULB_OFF;
             if (ToolStatusConfig.ModernIcons)
             {
-                toolbarBitmap = PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDB_POWER_MODERN), FALSE);
-            }
-            else
-            {
-                toolbarBitmap = ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF));
+                if (PhGetIntegerSetting(L"EnableThemeSupport"))
+                    id = IDI_LIGHTBULB_OFF_MODERN_LIGHT;
+                else
+                    id = IDI_LIGHTBULB_OFF_MODERN_DARK;
             }
 
-            return toolbarBitmap;
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id));
         }
         break;
     case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:

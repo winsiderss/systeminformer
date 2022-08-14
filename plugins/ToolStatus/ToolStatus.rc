@@ -153,31 +153,6 @@ BEGIN
     "K",            ID_SEARCH,              VIRTKEY, CONTROL, NOINVERT
 END
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// PNG
-//
-
-IDB_APPLICATION_GET_MODERN PNG                     "resources\\application_get_modern.png"
-
-IDB_APPLICATION_GO_MODERN PNG                     "resources\\application_go_modern.png"
-
-IDB_APPLICATION_MODERN  PNG                     "resources\\application_modern.png"
-
-IDB_ARROW_REFRESH_MODERN PNG                     "resources\\arrow_refresh_modern.png"
-
-IDB_CHART_LINE_MODERN   PNG                     "resources\\chart_line_modern.png"
-
-IDB_COG_EDIT_MODERN     PNG                     "resources\\cog_edit_modern.png"
-
-IDB_CROSS_MODERN        PNG                     "resources\\cross_modern.png"
-
-IDB_FIND_MODERN         PNG                     "resources\\find_modern.png"
-
-IDB_POWER_MODERN        PNG                     "resources\\lightbulb_off_modern.png"
-
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Icon
@@ -185,23 +160,41 @@ IDB_POWER_MODERN        PNG                     "resources\\lightbulb_off_modern
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ARROW_REFRESH       ICON                    "resources\\arrow_refresh.ico"
+IDI_ARROW_REFRESH                 ICON    "resources\\arrow_refresh.ico"
+IDI_ARROW_REFRESH_MODERN_LIGHT    ICON    "resources\\arrow_refresh_modern_light.ico"
+IDI_ARROW_REFRESH_MODERN_DARK     ICON    "resources\\arrow_refresh_modern_dark.ico"
 
-IDI_COG_EDIT            ICON                    "resources\\cog_edit.ico"
+IDI_COG_EDIT                      ICON   "resources\\cog_edit.ico"
+IDI_COG_EDIT_MODERN_LIGHT         ICON   "resources\\cog_edit_modern_light.ico"
+IDI_COG_EDIT_MODERN_DARK          ICON   "resources\\cog_edit_modern_dark.ico"
 
-IDI_FIND                ICON                    "resources\\find.ico"
+IDI_FIND                          ICON   "resources\\find.ico"
+IDI_FIND_MODERN_LIGHT             ICON   "resources\\find_modern_light.ico"
+IDI_FIND_MODERN_DARK              ICON   "resources\\find_modern_dark.ico"
 
-IDI_CHART_LINE          ICON                    "resources\\chart_line.ico"
+IDI_CHART_LINE                    ICON   "resources\\chart_line.ico"
+IDI_CHART_LINE_MODERN_LIGHT       ICON   "resources\\chart_line_modern_light.ico"
+IDI_CHART_LINE_MODERN_DARK        ICON   "resources\\chart_line_modern_dark.ico"
 
-IDI_TBAPPLICATION       ICON                    "resources\\application.ico"
+IDI_TBAPPLICATION                 ICON   "resources\\application.ico"
+IDI_TBAPPLICATION_MODERN_LIGHT    ICON   "resources\\application_modern_light.ico"
+IDI_TBAPPLICATION_MODERN_DARK     ICON   "resources\\application_modern_dark.ico"
 
-IDI_APPLICATION_GO      ICON                    "resources\\application_go.ico"
+IDI_APPLICATION_GO                ICON   "resources\\application_go.ico"
+IDI_APPLICATION_GO_MODERN_LIGHT   ICON   "resources\\application_go_modern_light.ico"
+IDI_APPLICATION_GO_MODERN_DARK    ICON   "resources\\application_go_modern_dark.ico"
 
-IDI_CROSS               ICON                    "resources\\cross.ico"
+IDI_CROSS                         ICON   "resources\\cross.ico"
+IDI_CROSS_MODERN_LIGHT            ICON   "resources\\cross_modern_light.ico"
+IDI_CROSS_MODERN_DARK             ICON   "resources\\cross_modern_dark.ico"
 
-IDI_APPLICATION_GET     ICON                    "resources\\application_get.ico"
+IDI_APPLICATION_GET               ICON   "resources\\application_get.ico"
+IDI_APPLICATION_GET_MODERN_LIGHT  ICON   "resources\\application_get_modern_light.ico"
+IDI_APPLICATION_GET_MODERN_DARK   ICON   "resources\\application_get_modern_dark.ico"
 
-IDI_LIGHTBULB_OFF       ICON                    "resources\\lightbulb_off.ico"
+IDI_LIGHTBULB_OFF                 ICON   "resources\\lightbulb_off.ico"
+IDI_LIGHTBULB_OFF_MODERN_LIGHT    ICON   "resources\\lightbulb_off_modern_light.ico"
+IDI_LIGHTBULB_OFF_MODERN_DARK     ICON   "resources\\lightbulb_off_modern_dark.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////
