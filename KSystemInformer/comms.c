@@ -724,7 +724,7 @@ NTSTATUS KphpFltSendMessage(
         //
         // return an error status instead 
         //
-        status = STATUS_REQUEST_ABORTED;
+        status = STATUS_IO_TIMEOUT;
     }
 
     FltObjectDereference(KphFltFilter);
