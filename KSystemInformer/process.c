@@ -633,29 +633,21 @@ NTSTATUS KphQueryInformationProcess(
         }
     }
 
-    if (ProcessHandle == NtCurrentProcess())
+    status = ObReferenceObjectByHandle(ProcessHandle,
+                                       0,
+                                       *PsProcessType,
+                                       AccessMode,
+                                       &processObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
     {
-        processObject = PsGetCurrentProcess();
-        ObReferenceObject(processObject);
-    }
-    else
-    {
-        status = ObReferenceObjectByHandle(ProcessHandle,
-                                           0,
-                                           *PsProcessType,
-                                           AccessMode,
-                                           &processObject,
-                                           NULL);
-        if (!NT_SUCCESS(status))
-        {
-            KphTracePrint(TRACE_LEVEL_ERROR,
-                          GENERAL,
-                          "ObReferenceObjectByHandle failed: %!STATUS!",
-                          status);
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
 
-            process = NULL;
-            goto Exit;
-        }
+        process = NULL;
+        goto Exit;
     }
 
     process = KphGetProcessContext(PsGetProcessId(processObject));
