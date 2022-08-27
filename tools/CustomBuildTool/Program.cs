@@ -76,6 +76,14 @@ namespace CustomBuildTool
             //
             //    Build.ShowBuildStats();
             //}
+            else if (ProgramArgs.ContainsKey("-encrypt"))
+            {
+                Verify.Encrypt(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]);
+            }
+            else if (ProgramArgs.ContainsKey("-decrypt"))
+            {
+                Verify.Decrypt(ProgramArgs["-input"], ProgramArgs["-output"], ProgramArgs["-secret"]);
+            }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))
             {
                 Build.BuildPublicHeaderFiles();
