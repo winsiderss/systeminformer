@@ -57,6 +57,23 @@ extern HWND UpdateDialogHandle;
 extern PH_EVENT InitializedEvent;
 extern PPH_PLUGIN PluginInstance;
 
+typedef enum _UPDATER_TYPE
+{
+    InvalidUpdaterType,
+
+    //
+    // N.B. Order here is important.
+    //
+
+    UpdaterTypeNightly,
+    UpdaterTypeNightlyLegacy,
+    UpdaterTypeRelease,
+    UpdaterTypeReleaseLegacy,
+
+    MaxUpdaterType
+
+} UPDATER_TYPE;
+
 typedef struct _PH_UPDATER_CONTEXT
 {
     union
@@ -88,6 +105,7 @@ typedef struct _PH_UPDATER_CONTEXT
     PPH_STRING SetupFileSignature;
     // Nightly builds only
     PPH_STRING CommitHash;
+    UPDATER_TYPE Type;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
 // TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations 
@@ -201,7 +219,7 @@ typedef struct _UPDATER_HASH_CONTEXT
 } UPDATER_HASH_CONTEXT, *PUPDATER_HASH_CONTEXT;
 
 PUPDATER_HASH_CONTEXT UpdaterInitializeHash(
-    VOID
+    _In_ UPDATER_TYPE Type
     );
 
 BOOLEAN UpdaterUpdateHash(

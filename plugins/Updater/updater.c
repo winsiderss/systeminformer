@@ -316,6 +316,11 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
     }
 
+    //
+    // TODO configurable nightly/release option. 
+    //
+    Context->Type = UpdaterTypeNightly;
+
     if (UseSourceForge)
     {
         if (!PhHttpSocketConnect(
@@ -589,6 +594,7 @@ NTSTATUS UpdateDownloadThread(
     PPH_STRING downloadHostPath = NULL;
     PPH_STRING downloadUrlPath = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
+    PUPDATER_HASH_CONTEXT hashContextLegacy = NULL;
     USHORT httpPort = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
@@ -705,8 +711,12 @@ NTSTATUS UpdateDownloadThread(
             }
         }
 
+        assert((context->Type == UpdaterTypeNightly) || (context->Type == UpdaterTypeRelease));
+
         // Initialize hash algorithm.
-        if (!(hashContext = UpdaterInitializeHash()))
+        if (!(hashContext = UpdaterInitializeHash(context->Type)))
+            goto CleanupExit;
+        if (!(hashContextLegacy = UpdaterInitializeHash(context->Type + 1)))
             goto CleanupExit;
 
         // Start the clock.
@@ -725,6 +735,7 @@ NTSTATUS UpdateDownloadThread(
 
             // Update the hash of bytes we downloaded.
             UpdaterUpdateHash(hashContext, buffer, bytesDownloaded);
+            UpdaterUpdateHash(hashContextLegacy, buffer, bytesDownloaded);
 
             // Write the downloaded bytes to disk.
             if (!NT_SUCCESS(NtWriteFile(
@@ -784,11 +795,26 @@ NTSTATUS UpdateDownloadThread(
         if (UpdaterVerifyHash(hashContext, context->SetupFileHash))
         {
             hashSuccess = TRUE;
+
+            if (UpdaterVerifySignature(hashContext, context->SetupFileSignature))
+            {
+                signatureSuccess = TRUE;
+            }
         }
 
-        if (UpdaterVerifySignature(hashContext, context->SetupFileSignature))
+        if (!signatureSuccess)
         {
-            signatureSuccess = TRUE;
+            hashSuccess = FALSE;
+
+            if (UpdaterVerifyHash(hashContextLegacy, context->SetupFileHash))
+            {
+                hashSuccess = TRUE;
+
+                if (UpdaterVerifySignature(hashContextLegacy, context->SetupFileSignature))
+                {
+                    signatureSuccess = TRUE;
+                }
+            }
         }
 
         if (hashSuccess && signatureSuccess)
@@ -1062,6 +1088,11 @@ VOID ShowStartupUpdateDialog(
 
     context = CreateUpdateContext(TRUE);
     jsonString = PH_AUTO(PhGetStringSetting(SETTING_NAME_UPDATE_DATA));
+
+    //
+    // TODO configurable nightly/release option. 
+    //
+    context->Type = UpdaterTypeNightly;
 
     if (jsonString && jsonString->Length)
     {

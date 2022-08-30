@@ -253,7 +253,11 @@ namespace CustomBuildTool
     {
         private static Aes GetRijndael(string secret)
         {
-            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(secret, Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="), 10000))
+            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
+                secret,
+                Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="),
+                10000,
+                HashAlgorithmName.SHA512))
             {
                 Aes rijndael = Aes.Create();
 
