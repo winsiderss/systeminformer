@@ -81,6 +81,10 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
+#define SETTING_NAME_POOL_WINDOW_POSITION (PLUGIN_NAME L".PoolWindowPosition")
+#define SETTING_NAME_POOL_WINDOW_SIZE (PLUGIN_NAME L".PoolWindowSize")
+#define SETTING_NAME_POOL_TREE_LIST_COLUMNS (PLUGIN_NAME L".PoolTreeViewColumns")
+#define SETTING_NAME_POOL_TREE_LIST_SORT (PLUGIN_NAME L".PoolTreeViewSort")
 
 VOID EtLoadSettings(
     VOID
@@ -1122,6 +1126,12 @@ HWND NTAPI FwToolStatusGetTreeNewHandle(
 
 VOID EtProcessFramesPropertiesInitializing(
     _In_ PVOID Parameter
+    );
+
+// poolmon
+
+VOID ShowPoolMonDialog(
+    VOID
     );
 
 #endif

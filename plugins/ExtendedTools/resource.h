@@ -96,6 +96,15 @@
 #define ID_DISK_OPENFILELOCATION        40008
 #define ID_DISK_INSPECT                 40009
 
+#define ID_POOL_TABLE                   50000
+#define IDD_POOL                        50001
+#define IDR_TXT_POOLTAGS                50002
+#define IDD_BIGPOOL                     50003
+#define IDC_POOLTREE                    50004
+#define IDC_POOLSEARCH                  50005
+#define IDC_POOLCLEAR                   50006
+#define IDC_BIGPOOLLIST                 50007
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
