@@ -1,0 +1,42 @@
+;
+; Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+;
+; This file is part of System Informer.
+;
+; Authors:
+;
+;     jxy-s   2022
+;
+
+.OPTION EXPLICIT
+.Set CabinetFileCountThreshold=0
+.Set FolderFileCountThreshold=0
+.Set FolderSizeThreshold=0
+.Set MaxCabinetSize=0
+.Set MaxDiskFileCount=0
+.Set MaxDiskSize=0
+.Set CompressionType=MSZIP
+.Set Cabinet=on
+.Set Compress=on
+.Set CabinetNameTemplate=KSystemInformer.cab
+
+.Set DestinationDir=x86
+KSystemInformer.inf
+Release32\systeminformer.sys
+Release32\systeminformer.pdb
+Release32\ksi.dll
+Release32\ksi.pdb
+
+.Set DestinationDir=x64
+KSystemInformer.inf
+Release64\systeminformer.sys
+Release64\systeminformer.pdb
+Release64\ksi.dll
+Release64\ksi.pdb
+
+.Set DestinationDir=arm64
+KSystemInformer.inf
+ReleaseARM64\systeminformer.sys
+ReleaseARM64\systeminformer.pdb
+ReleaseARM64\ksi.dll
+ReleaseARM64\ksi.pdb
