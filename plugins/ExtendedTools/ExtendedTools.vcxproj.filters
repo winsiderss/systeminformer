@@ -123,6 +123,9 @@
     <ClCompile Include="PresentMon\TraceConsumer.cpp">
       <Filter>Source Files\PresentMon</Filter>
     </ClCompile>
+    <ClCompile Include="objmgr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="pooldb.c">
       <Filter>Source Files</Filter>
     </ClCompile>
