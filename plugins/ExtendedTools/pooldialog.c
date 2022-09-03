@@ -236,6 +236,8 @@ INT_PTR CALLBACK PoolMonDlgProc(
                 &context->ProcessesUpdatedCallbackRegistration
                 );          
                 
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeNewHandle, TRUE);
         }
         break;
