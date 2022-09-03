@@ -1,0 +1,53 @@
+;
+; Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+;
+; This file is part of System Informer.
+;
+; Authors:
+;
+;     jxy-s   2022
+;
+
+[Version]
+Signature    = "$WINDOWS NT$"
+Class        = ActivityMonitor
+ClassGuid    = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
+Provider     = SystemInformer
+DriverVer    = 09/01/2022,3.0.0000.0000
+CatalogFile  = KSystemInformer.cat
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[DefaultInstall.nt]
+CopyFiles = SystemInformer.DriverFiles
+
+[DefaultInstall.nt.Services]
+AddService = KSystemInformer,,SystemInformer.Service
+
+[DefaultUninstall.nt]
+DelFiles = SystemInformer.DriverFiles
+
+[DefaultUninstall.nt.Services]
+DelService = KSystemInformer,0x200
+
+[SystemInformer.Service]
+DisplayName    = KSystemInformer 
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\systeminformer.sys
+
+[SystemInformer.DriverFiles]
+systeminformer.sys
+ksi.dll
+
+[SourceDiskFiles]
+systeminformer.sys = 1,,
+ksi.dll = 1,,
+
+[SourceDiskNames]
+1 = %DiskId1%,,,""
+
+[Strings]
+DiskId1 = "KSystemInformer Disk #1"
