@@ -81,6 +81,9 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
+#define SETTING_NAME_PIPE_ENUM_WINDOW_POSITION (PLUGIN_NAME L".PipeEnumWindowPosition")
+#define SETTING_NAME_PIPE_ENUM_WINDOW_SIZE (PLUGIN_NAME L".PipeEnumWindowSize")
+#define SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS (PLUGIN_NAME L".PipeEnumListViewColumns")
 #define SETTING_NAME_FIRMWARE_WINDOW_POSITION (PLUGIN_NAME L".FirmwareWindowPosition")
 #define SETTING_NAME_FIRMWARE_WINDOW_SIZE (PLUGIN_NAME L".FirmwareWindowSize")
 #define SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS (PLUGIN_NAME L".FirmwareListViewColumns")
@@ -94,6 +97,10 @@ extern BOOLEAN EtPropagateCpuUsage;
 
 VOID EtLoadSettings(
     VOID
+    );
+
+PPH_STRING PhGetSelectedListViewItemText(
+    _In_ HWND hWnd
     );
 
 // phsvc extensions
@@ -1132,6 +1139,15 @@ HWND NTAPI FwToolStatusGetTreeNewHandle(
 
 VOID EtProcessFramesPropertiesInitializing(
     _In_ PVOID Parameter
+    );
+
+// pipe_enum
+
+INT_PTR CALLBACK PipeEnumDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // firmware

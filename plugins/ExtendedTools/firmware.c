@@ -150,34 +150,6 @@ NTSTATUS EnumerateFirmwareEntries(
     return status;
 }
 
-PPH_STRING PhGetSelectedListViewItemText(
-    _In_ HWND hWnd
-    )
-{
-    INT index = PhFindListViewItemByFlags(
-        hWnd,
-        -1,
-        LVNI_SELECTED
-        );
-
-    if (index != -1)
-    {
-        WCHAR textBuffer[DOS_MAX_PATH_LENGTH] = L"";
-
-        LVITEM item;
-        item.mask = LVIF_TEXT;
-        item.iItem = index;
-        item.iSubItem = 0;
-        item.pszText = textBuffer;
-        item.cchTextMax = ARRAYSIZE(textBuffer);
-
-        if (ListView_GetItem(hWnd, &item))
-            return PhCreateString(textBuffer);
-    }
-
-    return NULL;
-}
-
 VOID ShowBootEntryMenu(
     _In_ PUEFI_WINDOW_CONTEXT Context,
     _In_ HWND hwndDlg

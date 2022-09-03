@@ -143,6 +143,16 @@ VOID NTAPI MenuItemCallback(
                 );
         }
         break;
+    case ID_PIPE_ENUM:
+        {
+            DialogBox(
+                PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_PIPEDIALOG),
+                NULL,
+                PipeEnumDlgProc
+                );
+        }
+        break;
     case ID_FIRMWARE:
         {
             if (!EfiSupported())
@@ -213,6 +223,9 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_EMENU_ITEM systemMenu;
     PPH_EMENU_ITEM bootMenuItem;
 
+    if (!menuInfo)
+        return;
+
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
 
@@ -225,6 +238,7 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), -1);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), -1);
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), -1);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), -1);
 
     if (!PhGetOwnTokenAttributes().Elevated)
     {
@@ -858,6 +872,34 @@ VOID EtLoadSettings(
     EtPropagateCpuUsage = !!PhGetIntegerSetting(L"PropagateCpuUsage");
 }
 
+PPH_STRING PhGetSelectedListViewItemText(
+    _In_ HWND hWnd
+    )
+{
+    INT index = PhFindListViewItemByFlags(
+        hWnd,
+        -1,
+        LVNI_SELECTED
+        );
+
+    if (index != -1)
+    {
+        WCHAR buffer[DOS_MAX_PATH_LENGTH] = L"";
+
+        LVITEM item;
+        item.mask = LVIF_TEXT;
+        item.iItem = index;
+        item.iSubItem = 0;
+        item.pszText = buffer;
+        item.cchTextMax = ARRAYSIZE(buffer);
+
+        if (ListView_GetItem(hWnd, &item))
+            return PhCreateString(buffer);
+    }
+
+    return NULL;
+}
+
 VOID NTAPI SettingsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1069,6 +1111,9 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
+                { IntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, L"350,350" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, L"@96|510,380" },
+                { StringSettingType, SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_POSITION, L"100,100" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_SIZE, L"@96|490,340" },
                 { StringSettingType, SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, L"" },
