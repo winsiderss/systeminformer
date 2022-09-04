@@ -105,6 +105,22 @@
 #define IDC_POOLCLEAR                   50006
 #define IDC_BIGPOOLLIST                 50007
 
+#define ID_OBJMGR                       60000
+#define IDD_OBJMGR                      60001
+#define IDI_FOLDER                      60002
+#define IDI_MUTANT                      60003
+#define IDI_DRIVER                      60004
+#define IDI_SECTION                     60005
+#define IDI_LINK                        60006
+#define IDI_KEY                         60007
+#define IDI_PORT                        60008
+#define IDI_SESSION                     60009
+#define IDI_EVENT                       60010
+#define IDI_DEVICE                      60011
+#define IDI_UNKNOWN                     60012
+#define IDC_OBJMGR_LIST                 60013
+#define IDC_OBJMGR_TREE                 60014
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
