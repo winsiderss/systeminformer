@@ -901,6 +901,27 @@ VOID PvpPeEnumFileHashes(
     }
 }
 
+VOID PvpSetImagelist(
+    _In_ PPV_PE_HASH_CONTEXT context
+    )
+{
+    HIMAGELIST listViewImageList;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(context->WindowHandle);
+
+    listViewImageList = PhImageListCreate (
+        2,
+        PhGetDpi(20, dpiValue),
+        ILC_MASK | ILC_COLOR,
+        1,
+        1
+        );
+
+    if (listViewImageList)
+        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+}
+
 INT_PTR CALLBACK PvpPeHashesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -933,8 +954,6 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HIMAGELIST listViewImageList;
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
@@ -949,8 +968,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+            PvpSetImagelist(context);
 
             PvpPeEnumFileHashes(context->ListViewHandle);
 
@@ -962,6 +980,11 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhSaveListViewColumnsToSetting(L"ImageHashesListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvpSetImagelist(context);
         }
         break;
     case WM_SHOWWINDOW:

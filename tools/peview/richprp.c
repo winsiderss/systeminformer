@@ -385,6 +385,27 @@ VOID PvpPeEnumProdEntries(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
+VOID PvpSetImagelist(
+    _In_ PPVP_PE_PRODUCTION_ID_CONTEXT context
+    )
+{
+    HIMAGELIST listViewImageList;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(context->WindowHandle);
+
+    listViewImageList = PhImageListCreate (
+        2,
+        PhGetDpi(20, dpiValue),
+        ILC_MASK | ILC_COLOR,
+        1,
+        1
+        );
+
+    if (listViewImageList)
+        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+}
+
 INT_PTR CALLBACK PvpPeProdIdDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -440,8 +461,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH2), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+            PvpSetImagelist(context);
 
             PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle);
 
@@ -453,6 +473,11 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PhSaveListViewColumnsToSetting(L"ImageProdIdListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvpSetImagelist(context);
         }
         break;
     case WM_SHOWWINDOW:

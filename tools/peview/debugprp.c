@@ -69,6 +69,28 @@ PWSTR PvpGetDebugTypeString(
     return PhaFormatString(L"%lu", Type)->Buffer;
 }
 
+VOID PvpSetImagelist(
+    _In_ PPVP_PE_DEBUG_CONTEXT context
+    )
+{
+    HIMAGELIST listViewImageList;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(context->WindowHandle);
+
+    listViewImageList = PhImageListCreate(
+        2,
+        PhGetDpi(20, dpiValue),
+        ILC_MASK | ILC_COLOR,
+        1,
+        1
+        );
+
+    if (listViewImageList)
+        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+
+}
+
 INT_PTR CALLBACK PvpPeDebugDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -103,7 +125,6 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
         {
             PH_MAPPED_IMAGE_DEBUG debug;
             PH_IMAGE_DEBUG_ENTRY entry;
-            HIMAGELIST listViewImageList;
             ULONG count = 0;
             ULONG i;
             INT lvItemIndex;
@@ -126,8 +147,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+            PvpSetImagelist(context);
 
             if (NT_SUCCESS(PhGetMappedImageDebug(&PvMappedImage, &debug)))
             {
@@ -191,6 +211,11 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
             PhSaveListViewColumnsToSetting(L"ImageDebugListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvpSetImagelist(context);
         }
         break;
     case WM_SHOWWINDOW:

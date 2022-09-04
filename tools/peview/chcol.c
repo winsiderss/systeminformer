@@ -192,6 +192,19 @@ VOID PvColumnsResetListBox(
     SendMessage(ListBoxHandle, WM_SETREDRAW, TRUE, 0);
 }
 
+VOID PvSetListHeight(
+    _In_ PCOLUMNS_DIALOG_CONTEXT context,
+    _In_ HWND hwndDlg
+)
+{
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwndDlg);
+
+    ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+    ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+}
+
 INT_PTR CALLBACK PvColumnsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -240,8 +253,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
             PvCreateSearchControl(context->SearchInactiveHandle, L"Inactive columns...");
             PvCreateSearchControl(context->SearchActiveHandle, L"Active columns...");
 
-            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PV_SCALE_DPI(16));
-            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PV_SCALE_DPI(16));
+            PvSetListHeight(context, hwndDlg);
 
             Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
             Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
@@ -358,6 +370,11 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                 PhDereferenceObject(context->ActiveSearchboxText);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvSetListHeight (context, hwndDlg);
         }
         break;
     case WM_COMMAND:

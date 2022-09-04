@@ -404,6 +404,27 @@ CleanupExit:
         FreeLibrary(mscoreeHandle);
 }
 
+VOID PvpSetImagelist(
+    _In_ PPVP_PE_CLR_CONTEXT context
+)
+{
+    HIMAGELIST listViewImageList;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(context->ListViewHandle);
+
+    listViewImageList = PhImageListCreate (
+        2,
+        PhGetDpi(20, dpiValue),
+        ILC_MASK | ILC_COLOR,
+        1,
+        1
+        );
+
+    if (listViewImageList)
+        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+}
+
 INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -437,7 +458,6 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HIMAGELIST listViewImageList;
             PSTORAGESIGNATURE clrMetaData;
 
             context->WindowHandle = hwndDlg;
@@ -461,8 +481,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TOKENSTRING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);         
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+            PvpSetImagelist(context);
 
             if (!context->PdbMetadataAddress)
             {
@@ -497,6 +516,11 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             PhSaveListViewColumnsToSetting(L"ImageClrListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvpSetImagelist(context);
         }
         break;
     case WM_SHOWWINDOW:
