@@ -42,9 +42,6 @@ typedef HANDLE HTHEME;
 #define DCX_USESTYLE 0x00010000
 #define DCX_NODELETERGN 0x00040000
 
-extern PH_INTEGER_PAIR PhSmallIconSize;
-extern PH_INTEGER_PAIR PhLargeIconSize;
-
 PHLIBAPI
 VOID PhGuiSupportInitialization(
     VOID
@@ -367,7 +364,8 @@ HICON PhLoadIcon(
     _In_ PWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
-    _In_opt_ ULONG Height
+    _In_opt_ ULONG Height,
+    _In_opt_ LONG dpiValue
     );
 
 PHLIBAPI
@@ -481,7 +479,6 @@ typedef struct _PH_LAYOUT_ITEM
     HDWP DeferHandle;
 
     RECT Rect;
-    RECT OrigRect;
     RECT Margin;
     ULONG Anchor;
 } PH_LAYOUT_ITEM, *PPH_LAYOUT_ITEM;
@@ -492,6 +489,8 @@ typedef struct _PH_LAYOUT_MANAGER
     PH_LAYOUT_ITEM RootItem;
 
     ULONG LayoutNumber;
+
+    LONG dpiValue;
 } PH_LAYOUT_MANAGER, *PPH_LAYOUT_MANAGER;
 
 PHLIBAPI
@@ -1015,7 +1014,8 @@ PhExtractIconEx(
     _In_ BOOLEAN NativeFileName,
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall
+    _Out_opt_ HICON *IconSmall,
+    _In_ LONG dpiValue
     );
 
 // Imagelist support
@@ -1262,14 +1262,15 @@ FORCEINLINE
 HFONT
 PhDuplicateFontWithNewHeight(
     _In_ HFONT Font,
-    _In_ LONG NewHeight
+    _In_ LONG NewHeight,
+    _In_ LONG dpiValue
     )
 {
     LOGFONT logFont;
 
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
     {
-        logFont.lfHeight = PhMultiplyDivide(NewHeight, PhGlobalDpi, 96);
+        logFont.lfHeight = PhGetDpi(NewHeight, dpiValue);
         return CreateFontIndirect(&logFont);
     }
 
