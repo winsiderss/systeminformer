@@ -123,6 +123,21 @@
     <ClCompile Include="PresentMon\TraceConsumer.cpp">
       <Filter>Source Files\PresentMon</Filter>
     </ClCompile>
+    <ClCompile Include="pooldb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pooldialog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pooldialogbig.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pooltable.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pooltree.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -185,6 +200,9 @@
     <ClInclude Include="extension\plugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="poolmon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
@@ -193,5 +211,10 @@
     <ResourceCompile Include="ExtendedTools.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\pooltag.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

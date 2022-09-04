@@ -122,6 +122,11 @@
     <ClCompile Include="gpusys.c" />
     <ClCompile Include="iconext.c" />
     <ClCompile Include="framemon.cpp" />
+    <ClCompile Include="pooldb.c" />
+    <ClCompile Include="pooldialog.c" />
+    <ClCompile Include="pooldialogbig.c" />
+    <ClCompile Include="pooltable.c" />
+    <ClCompile Include="pooltree.c" />
     <ClCompile Include="PresentMon\PresentMon.cpp" />
     <ClCompile Include="PresentMon\PresentMonTraceConsumer.cpp" />
     <ClCompile Include="PresentMon\TraceConsumer.cpp" />
@@ -150,6 +155,7 @@
     <ClInclude Include="gpumini.h" />
     <ClInclude Include="gpumon.h" />
     <ClInclude Include="gpusys.h" />
+    <ClInclude Include="poolmon.h" />
     <ClInclude Include="PresentMon\ETW\Microsoft_Windows_D3D9.h" />
     <ClInclude Include="PresentMon\ETW\Microsoft_Windows_Dwm_Core.h" />
     <ClInclude Include="PresentMon\ETW\Microsoft_Windows_DXGI.h" />
@@ -167,6 +173,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ExtendedTools.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\pooltag.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
