@@ -142,6 +142,16 @@
 #define IDD_REPARSEDIALOG               90003 
 #define IDC_REPARSE_LIST                90004
 
+#define ID_WCT_MENUITEM                 3000
+#define ID_WCT_SHOWCONTEXTMENU          3001
+#define IDD_WCT_DIALOG                  3002 
+#define IDR_WCT_MAIN_MENU               3003
+#define IDC_WCT_TREE                    3004
+#define ID_WCT_MENU_GOTOTHREAD          3005
+#define ID_WCT_MENU_GOTOPROCESS         3006
+#define ID_WCT_MENU_PROPERTIES          3007
+#define ID_WCT_MENU_COPY                3008
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

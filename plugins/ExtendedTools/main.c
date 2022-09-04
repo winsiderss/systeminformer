@@ -155,6 +155,17 @@ VOID NTAPI MenuItemCallback(
                 );
         }
         break;
+    case ID_WCT_MENUITEM:
+        {
+            DialogBoxParam(
+                PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_WCT_DIALOG),
+                NULL,
+                WaitChainDlgProc,
+                (LPARAM)menuItem->Context
+                );
+        }
+        break;
     case ID_PIPE_ENUM:
         {
             DialogBox(
@@ -323,6 +334,8 @@ VOID NTAPI ProcessMenuInitializingCallback(
     ULONG flags;
     PPH_EMENU_ITEM miscMenu;
 
+    WctProcessMenuInitializingCallback(Parameter, Context);
+
     if (!menuInfo)
         return;
 
@@ -364,6 +377,8 @@ VOID NTAPI ThreadMenuInitializingCallback(
     PPH_THREAD_ITEM threadItem;
     ULONG insertIndex;
     PPH_EMENU_ITEM menuItem;
+
+    WctThreadMenuInitializingCallback(Parameter, Context);
 
     if (!menuInfo)
         return;
@@ -1132,6 +1147,9 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
+                { StringSettingType, SETTING_NAME_WCT_TREE_LIST_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_WCT_WINDOW_POSITION, L"100,100" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_WCT_WINDOW_SIZE, L"@96|690,540" },
                 { IntegerPairSettingType, SETTING_NAME_REPARSE_WINDOW_POSITION, L"350,350" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_REPARSE_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_REPARSE_LISTVIEW_COLUMNS, L"" },
