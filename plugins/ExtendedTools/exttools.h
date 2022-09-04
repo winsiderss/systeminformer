@@ -81,6 +81,11 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
+#define SETTING_NAME_REPARSE_WINDOW_POSITION (PLUGIN_NAME L".ReparseWindowPosition")
+#define SETTING_NAME_REPARSE_WINDOW_SIZE (PLUGIN_NAME L".ReparseWindowSize")
+#define SETTING_NAME_REPARSE_LISTVIEW_COLUMNS (PLUGIN_NAME L".ReparseListViewColumns")
+#define SETTING_NAME_REPARSE_OBJECTID_LISTVIEW_COLUMNS (PLUGIN_NAME L".ReparseObjidListViewColumns")
+#define SETTING_NAME_REPARSE_SD_LISTVIEW_COLUMNS (PLUGIN_NAME L".ReparseSdListViewColumns")
 #define SETTING_NAME_PIPE_ENUM_WINDOW_POSITION (PLUGIN_NAME L".PipeEnumWindowPosition")
 #define SETTING_NAME_PIPE_ENUM_WINDOW_SIZE (PLUGIN_NAME L".PipeEnumWindowSize")
 #define SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS (PLUGIN_NAME L".PipeEnumListViewColumns")
@@ -1139,6 +1144,15 @@ HWND NTAPI FwToolStatusGetTreeNewHandle(
 
 VOID EtProcessFramesPropertiesInitializing(
     _In_ PVOID Parameter
+    );
+
+// reparse
+
+INT_PTR CALLBACK ReparseDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 // pipe_enum

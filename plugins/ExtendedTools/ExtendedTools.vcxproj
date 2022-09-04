@@ -136,6 +136,7 @@
     <ClCompile Include="PresentMon\PresentMonTraceConsumer.cpp" />
     <ClCompile Include="PresentMon\TraceConsumer.cpp" />
     <ClCompile Include="PresentMon\TraceSession.cpp" />
+    <ClCompile Include="reparse.c" />
     <ClCompile Include="svcext.c" />
     <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />

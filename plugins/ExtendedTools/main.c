@@ -142,6 +142,18 @@ VOID NTAPI MenuItemCallback(
                 ((PPH_MODULE_ITEM)menuItem->Context)->Name
                 );
         }
+    case ID_REPARSE_POINTS:
+    case ID_REPARSE_OBJID:
+    case ID_REPARSE_SDDL:
+        {
+            DialogBoxParam(
+                PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_REPARSEDIALOG),
+                NULL,
+                ReparseDlgProc,
+                (LPARAM)menuItem->Id
+                );
+        }
         break;
     case ID_PIPE_ENUM:
         {
@@ -222,6 +234,9 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM systemMenu;
     PPH_EMENU_ITEM bootMenuItem;
+    PPH_EMENU_ITEM reparsePointsMenu;
+    PPH_EMENU_ITEM reparseObjIdMenu;
+    PPH_EMENU_ITEM reparseSsdlMenu;
 
     if (!menuInfo)
         return;
@@ -239,10 +254,16 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), -1);
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), -1);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), -1);
+    PhInsertEMenuItem(systemMenu, reparsePointsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_POINTS, L"NTFS Reparse Points", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, reparseObjIdMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_OBJID, L"NTFS Object Identifiers", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, reparseSsdlMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_SDDL, L"NTFS Security Descriptors", NULL), ULONG_MAX);
 
     if (!PhGetOwnTokenAttributes().Elevated)
     {
         bootMenuItem->Flags |= PH_EMENU_DISABLED;
+        reparsePointsMenu->Flags |= PH_EMENU_DISABLED;
+        reparseObjIdMenu->Flags |= PH_EMENU_DISABLED;
+        reparseSsdlMenu->Flags |= PH_EMENU_DISABLED;
     }
 }
 
@@ -1111,6 +1132,11 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
+                { IntegerPairSettingType, SETTING_NAME_REPARSE_WINDOW_POSITION, L"350,350" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_REPARSE_WINDOW_SIZE, L"@96|510,380" },
+                { StringSettingType, SETTING_NAME_REPARSE_LISTVIEW_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_REPARSE_OBJECTID_LISTVIEW_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_REPARSE_SD_LISTVIEW_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, L"350,350" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, L"" },
