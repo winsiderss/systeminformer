@@ -123,6 +123,9 @@
     <ClCompile Include="PresentMon\TraceConsumer.cpp">
       <Filter>Source Files\PresentMon</Filter>
     </ClCompile>
+    <ClCompile Include="reparse.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="pipe_enum.c">
       <Filter>Source Files</Filter>
     </ClCompile>

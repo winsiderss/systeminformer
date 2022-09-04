@@ -136,6 +136,12 @@
 #define IDD_PIPEDIALOG                  80001
 #define IDC_ATOMLIST                    80002
 
+#define ID_REPARSE_POINTS               90000
+#define ID_REPARSE_OBJID                90001
+#define ID_REPARSE_SDDL                 90002
+#define IDD_REPARSEDIALOG               90003 
+#define IDC_REPARSE_LIST                90004
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
