@@ -319,7 +319,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
                         L""
                         ) == IDYES)
                     {
-                        PhResetSettings();
+                        PhResetSettings(hwndDlg);
 
                         PeSaveSettings();
 

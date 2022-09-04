@@ -1106,6 +1106,7 @@ BOOLEAN PhThemeWindowDrawItem(
     _In_ PDRAWITEMSTRUCT DrawInfo
     )
 {
+    LONG dpiValue = PhGetWindowDpi(DrawInfo->hwndItem);
     BOOLEAN isGrayed = (DrawInfo->itemState & CDIS_GRAYED) == CDIS_GRAYED;
     BOOLEAN isChecked = (DrawInfo->itemState & CDIS_CHECKED) == CDIS_CHECKED;
     BOOLEAN isDisabled = (DrawInfo->itemState & CDIS_DISABLED) == CDIS_DISABLED;
@@ -1222,8 +1223,8 @@ BOOLEAN PhThemeWindowDrawItem(
                     break;
                 }
 
-                DrawInfo->rcItem.left += 8;
-                DrawInfo->rcItem.top += 3;
+                DrawInfo->rcItem.left += PhGetDpi(8, dpiValue);
+                DrawInfo->rcItem.top += PhGetDpi(3, dpiValue);
                 DrawText(
                     DrawInfo->hDC,
                     menuCheckText.Buffer,
@@ -1231,8 +1232,8 @@ BOOLEAN PhThemeWindowDrawItem(
                     &DrawInfo->rcItem,
                     DT_VCENTER | DT_NOCLIP
                     );
-                DrawInfo->rcItem.left -= 8;
-                DrawInfo->rcItem.top -= 3;
+                DrawInfo->rcItem.left -= PhGetDpi(8, dpiValue);
+                DrawInfo->rcItem.top -= PhGetDpi(3, dpiValue);
 
                 SetTextColor(DrawInfo->hDC, oldTextColor);
             }
@@ -1251,13 +1252,13 @@ BOOLEAN PhThemeWindowDrawItem(
                     break;
                 }
 
-                //DrawInfo->rcItem.top += 1;
-                //DrawInfo->rcItem.bottom -= 2;
+                //DrawInfo->rcItem.top += PhGetDpi(1, dpiValue);
+                //DrawInfo->rcItem.bottom -= PhGetDpi(2, dpiValue);
                 //DrawFocusRect(drawInfo->hDC, &drawInfo->rcItem);
 
                 // +5 font margin, +1 extra padding
                 //INT cxMenuCheck = GetSystemMetrics(SM_CXMENUCHECK) + (GetSystemMetrics(SM_CXEDGE) * 2) + 5 + 1;
-                INT cyEdge = GetSystemMetrics(SM_CYEDGE);
+                INT cyEdge = PhGetSystemMetrics(SM_CYEDGE, dpiValue);
                 //
                 //SetRect(
                 //    &DrawInfo->rcItem,
@@ -1314,21 +1315,21 @@ BOOLEAN PhThemeWindowDrawItem(
                         DrawInfo->hDC,
                         DrawInfo->rcItem.left + 4,
                         DrawInfo->rcItem.top + 4,
-                        16,
-                        16,
+                        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
                         bufferDc,
                         0,
                         0,
-                        16,
-                        16,
+                        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
                         blendFunction
                         );
 
                     DeleteDC(bufferDc);
                 }
 
-                DrawInfo->rcItem.left += 25;
-                DrawInfo->rcItem.right -= 25;
+                DrawInfo->rcItem.left += PhGetDpi(25, dpiValue);
+                DrawInfo->rcItem.right -= PhGetDpi(25, dpiValue);
 
                 if ((menuItemInfo->Flags & PH_EMENU_MAINMENU) == PH_EMENU_MAINMENU)
                 {
@@ -1375,7 +1376,7 @@ BOOLEAN PhThemeWindowDrawItem(
                     menuThemeHandle = OpenThemeData(NULL, L"Menu");
                 }
             
-                rect.left = rect.right - 25;
+                rect.left = rect.right - PhGetDpi(25, dpiValue);
                 DrawThemeBackground(menuThemeHandle, DrawInfo->hDC, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL, &rect, NULL);
             }
 
@@ -1424,16 +1425,18 @@ BOOLEAN PhThemeWindowMeasureItem(
     _In_ PMEASUREITEMSTRUCT DrawInfo
     )
 {
+    LONG dpiValue = PhGetWindowDpi(WindowHandle);
+
     if (DrawInfo->CtlType == ODT_MENU)
     {
         PPH_EMENU_ITEM menuItemInfo = (PPH_EMENU_ITEM)DrawInfo->itemData;
 
-        DrawInfo->itemWidth = 150;
-        DrawInfo->itemHeight = 100;
+        DrawInfo->itemWidth = PhGetDpi(150, dpiValue);
+        DrawInfo->itemHeight = PhGetDpi(100, dpiValue);
 
         if ((menuItemInfo->Flags & PH_EMENU_SEPARATOR) == PH_EMENU_SEPARATOR)
         {
-            DrawInfo->itemHeight = GetSystemMetrics(SM_CYMENU) >> 2;
+            DrawInfo->itemHeight = PhGetSystemMetrics(SM_CYMENU, dpiValue) >> 2;
         }
         else if (menuItemInfo->Text)
         {
@@ -1455,8 +1458,8 @@ BOOLEAN PhThemeWindowMeasureItem(
                 SIZE_T textCount;
                 SIZE textSize;
                 HFONT oldFont = NULL;
-                INT cyborder = GetSystemMetrics(SM_CYBORDER);
-                INT cymenu = GetSystemMetrics(SM_CYMENU);
+                INT cyborder = PhGetSystemMetrics(SM_CYBORDER, dpiValue);
+                INT cymenu = PhGetSystemMetrics(SM_CYMENU, dpiValue);
 
                 text = menuItemInfo->Text;
                 textCount = PhCountStringZ(text);
@@ -1478,8 +1481,8 @@ BOOLEAN PhThemeWindowMeasureItem(
                 {
                     if (GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize))
                     {
-                        DrawInfo->itemWidth = textSize.cx + (cyborder * 2) + 90; // HACK
-                        DrawInfo->itemHeight = cymenu + (cyborder * 2) + 1;
+                        DrawInfo->itemWidth = textSize.cx + (cyborder * 2) + PhGetDpi(90, dpiValue); // HACK
+                        DrawInfo->itemHeight = cymenu + (cyborder * 2) + PhGetDpi(1, dpiValue);
                     }
                 }
 
@@ -1516,6 +1519,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
             PPH_STRING buttonText;
             LONG_PTR buttonStyle;
             HFONT oldFont;
+            LONG dpiValue;
 
             buttonText = PhGetWindowText(DrawInfo->hdr.hwndFrom);
             buttonStyle = PhGetWindowStyle(DrawInfo->hdr.hwndFrom);
@@ -1566,6 +1570,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
             }
 
+            dpiValue = PhGetWindowDpi(DrawInfo->hdr.hwndFrom);
+
             if ((buttonStyle & BS_ICON) == BS_ICON)
             {
                 RECT bufferRect =
@@ -1586,8 +1592,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 {
                     ICONINFO iconInfo;
                     BITMAP bmp;
-                    LONG width = PhSmallIconSize.X;
-                    LONG height = PhSmallIconSize.Y;
+                    LONG width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+                    LONG height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
                     memset(&iconInfo, 0, sizeof(ICONINFO));
                     memset(&bmp, 0, sizeof(BITMAP));
@@ -1615,8 +1621,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                         DeleteBitmap(iconInfo.hbmMask);
                     }
 
-                    bufferRect.left += 1; // HACK
-                    bufferRect.top += 1; // HACK
+                    bufferRect.left += PhGetDpi(1, dpiValue); // HACK
+                    bufferRect.top += PhGetDpi(1, dpiValue); // HACK
 
                     DrawIconEx(
                         DrawInfo->hdc,
@@ -1635,7 +1641,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
             {  
                 if (Button_GetCheck(DrawInfo->hdr.hwndFrom) == BST_CHECKED)
                 {
-                    HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 16);
+                    HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 16, dpiValue);
 
                     oldFont = SelectFont(DrawInfo->hdc, newFont);
                     DrawText(
@@ -1650,7 +1656,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 }
                 else
                 {
-                    HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22);
+                    HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 22, dpiValue);
 
                     oldFont = SelectFont(DrawInfo->hdc, newFont);
                     DrawText(
@@ -1664,7 +1670,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     DeleteFont(newFont);
                 }
 
-                DrawInfo->rc.left += 10;
+                DrawInfo->rc.left += PhGetDpi(10, dpiValue);
                 DrawText(
                     DrawInfo->hdc,
                     buttonText->Buffer,
@@ -1672,7 +1678,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     &DrawInfo->rc,
                     DT_CENTER | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
                     );
-                DrawInfo->rc.left -= 10;
+                DrawInfo->rc.left -= PhGetDpi(10, dpiValue);
             }
             else
             {
@@ -1683,6 +1689,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     DrawInfo->rc.bottom - DrawInfo->rc.top
                 };
                 HICON buttonIcon;
+                INT width;
+                INT height;
 
                 SetDCBrushColor(DrawInfo->hdc, RGB(65, 65, 65));
                 FrameRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
@@ -1692,13 +1700,16 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
 
                 if (buttonIcon)
                 {
+                    width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+                    height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+
                     DrawIconEx(
                         DrawInfo->hdc,
-                        bufferRect.left + ((bufferRect.right - bufferRect.left) - 16) / 2,
-                        bufferRect.top + ((bufferRect.bottom - bufferRect.top) - 16) / 2,
+                        bufferRect.left + ((bufferRect.right - bufferRect.left) - width) / 2,
+                        bufferRect.top + ((bufferRect.bottom - bufferRect.top) - height) / 2,
                         buttonIcon, 
-                        16,
-                        16,
+                        width,
+                        height,
                         0, 
                         NULL,
                         DI_NORMAL
@@ -1803,6 +1814,8 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
             };
 
             SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
+
+            LONG dpiValue;
 
             ULONG currentIndex = (ULONG)SendMessage(
                 DrawInfo->nmcd.hdr.hwndFrom,
@@ -1919,6 +1932,8 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, GetStockBrush(DC_BRUSH));
             }
 
+            dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
+
             SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
 
             if (buttonInfo.iImage != -1)
@@ -1937,15 +1952,15 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
                     if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
                     {
-                        DrawInfo->nmcd.rc.left += 5;
+                        DrawInfo->nmcd.rc.left += PhGetDpi(5, dpiValue);
 
                         x = DrawInfo->nmcd.rc.left;// + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - PhSmallIconSize.X) / 2;
-                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhSmallIconSize.Y) / 2;
+                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhGetSystemMetrics(SM_CYSMICON, dpiValue)) / 2;
                     }
                     else
                     {
-                        x = DrawInfo->nmcd.rc.left + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - PhSmallIconSize.X) / 2;
-                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhSmallIconSize.Y) / 2;
+                        x = DrawInfo->nmcd.rc.left + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - PhGetSystemMetrics(SM_CXSMICON, dpiValue)) / 2;
+                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhGetSystemMetrics(SM_CYSMICON, dpiValue)) / 2;
                     }
 
                     PhImageListDrawIcon(
@@ -1971,7 +1986,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     (LPARAM)buttonText
                     );
 
-                DrawInfo->nmcd.rc.left += 10;
+                DrawInfo->nmcd.rc.left += PhGetDpi(10, dpiValue);
                 DrawText(
                     DrawInfo->nmcd.hdc,
                     buttonText,
@@ -1998,6 +2013,10 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
     {
     case CDDS_PREPAINT:
         {
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
+
             SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
 
             switch (PhpThemeColorMode)
@@ -2020,7 +2039,7 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
 
                 if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
-                    metrics.lfMessageFont.lfHeight = PhMultiplyDivideSigned(-11, PhGlobalDpi, 96);
+                    metrics.lfMessageFont.lfHeight = PhGetDpi(-11, dpiValue);
                     metrics.lfMessageFont.lfWeight = FW_BOLD;
 
                     PhpListViewFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
@@ -2043,16 +2062,16 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
             SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor); // RGB(255, 69, 0)
             SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65));
 
-            DrawInfo->rcText.top += 2;
-            DrawInfo->rcText.bottom -= 2;
+            DrawInfo->rcText.top += PhGetDpi(2, dpiValue);
+            DrawInfo->rcText.bottom -= PhGetDpi(2, dpiValue);
             FillRect(DrawInfo->nmcd.hdc, &DrawInfo->rcText, GetStockBrush(DC_BRUSH));
-            DrawInfo->rcText.top -= 2;
-            DrawInfo->rcText.bottom += 2;
+            DrawInfo->rcText.top -= PhGetDpi(2, dpiValue);
+            DrawInfo->rcText.bottom += PhGetDpi(2, dpiValue);
 
             //SetTextColor(DrawInfo->nmcd.hdc, RGB(255, 69, 0));
             //SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(65, 65, 65));
 
-            DrawInfo->rcText.left += 10;
+            DrawInfo->rcText.left += PhGetDpi(10, dpiValue);
             DrawText(
                 DrawInfo->nmcd.hdc,
                 groupInfo.pszHeader,
@@ -2060,7 +2079,7 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
                 &DrawInfo->rcText,
                 DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
                 );
-            DrawInfo->rcText.left -= 10;
+            DrawInfo->rcText.left -= PhGetDpi(10, dpiValue);
         }
         return CDRF_SKIPDEFAULT;
     }
@@ -2234,11 +2253,14 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             RECT textRect;
             ULONG returnLength;
             WCHAR text[MAX_PATH];
+            LONG dpiValue;
 
             if (!(hdc = BeginPaint(WindowHandle, &ps)))
                 break;
 
             GetClientRect(WindowHandle, &clientRect);
+
+            dpiValue = PhGetWindowDpi(WindowHandle);
 
             if (!PhpGroupboxFontHandle) // HACK
             {
@@ -2246,7 +2268,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
 
                 if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
-                    metrics.lfMessageFont.lfHeight = PhMultiplyDivideSigned(-11, PhGlobalDpi, 96);
+                    metrics.lfMessageFont.lfHeight = PhGetDpi(-11, dpiValue);
                     metrics.lfMessageFont.lfWeight = FW_BOLD;
 
                     PhpGroupboxFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
@@ -2309,7 +2331,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
                 //    break;
                 //}
 
-                textRect.left += 10;
+                textRect.left += PhGetDpi(10, dpiValue);
                 DrawText(
                     hdc,
                     text,
@@ -2317,7 +2339,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
                     &textRect,
                     DT_LEFT | DT_END_ELLIPSIS | DT_SINGLELINE
                     );
-                textRect.left -= 10;
+                textRect.left -= PhGetDpi(10, dpiValue);
 
                 SelectFont(hdc, oldFont);
             }

@@ -639,10 +639,14 @@ static HFONT PhpTrayIconFont( // dmex
 {
     static HFONT iconTextFont = NULL;
 
+    LONG dpiValue;
+
     if (!iconTextFont)
     {
+        dpiValue = PhGetTaskbarDpi();
+
         iconTextFont = CreateFont(
-            PhMultiplyDivideSigned(-11, PhGlobalDpi, 96),
+            PhGetDpi(-11, dpiValue),
             0,
             0,
             0,
