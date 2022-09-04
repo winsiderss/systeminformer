@@ -63,6 +63,14 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
+    HANDLE tokenHandle;
+
+    if (NT_SUCCESS(NtOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
+    {
+        PhSetTokenPrivilege(tokenHandle, SE_SYSTEM_ENVIRONMENT_NAME, NULL, SE_PRIVILEGE_ENABLED);
+        NtClose(tokenHandle);
+    }
+
     EtLoadSettings();
 
     EtEtwStatisticsInitialization();
@@ -135,6 +143,22 @@ VOID NTAPI MenuItemCallback(
                 );
         }
         break;
+    case ID_FIRMWARE:
+        {
+            if (!EfiSupported())
+            {
+                PhShowError(menuItem->OwnerWindow, L"%s", L"Windows was installed using legacy BIOS.");
+                return;
+            }
+
+            DialogBox(
+                PluginInstance->DllBase,
+                MAKEINTRESOURCE(IDD_FIRMWARE),
+                NULL,
+                UefiEntriesDlgProc
+                );
+        }
+        break;
     case ID_OBJMGR:
         {
             DialogBox(
@@ -187,6 +211,7 @@ VOID NTAPI MainMenuInitializingCallback(
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM systemMenu;
+    PPH_EMENU_ITEM bootMenuItem;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
@@ -195,11 +220,16 @@ VOID NTAPI MainMenuInitializingCallback(
     {
         PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), -1);
         PhInsertEMenuItem(menuInfo->Menu, systemMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&System", NULL), -1);
-        PhInsertEMenuItem(menuInfo->Menu, systemMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&System", NULL), -1);
     }
 
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), -1);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), -1);
+    PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), -1);
+
+    if (!PhGetOwnTokenAttributes().Elevated)
+    {
+        bootMenuItem->Flags |= PH_EMENU_DISABLED;
+    }
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -1039,6 +1069,9 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_FW_TREE_LIST_SORT, L"12,2" },
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
+                { IntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_POSITION, L"100,100" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_SIZE, L"@96|490,340" },
+                { StringSettingType, SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_POSITION, L"100,100" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_SIZE, L"@96|1065,627" },
                 { StringSettingType, SETTING_NAME_OBJMGR_COLUMNS, L"" },
