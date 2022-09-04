@@ -132,6 +132,10 @@
 #define IDC_FIRMWARE_BOOT_LIST          70008
 #define IDC_FIRMWARE_BOOT_REFRESH       70009
 
+#define ID_PIPE_ENUM                    80000
+#define IDD_PIPEDIALOG                  80001
+#define IDC_ATOMLIST                    80002
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

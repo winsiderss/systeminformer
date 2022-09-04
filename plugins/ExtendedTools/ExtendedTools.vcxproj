@@ -125,6 +125,7 @@
     <ClCompile Include="gpusys.c" />
     <ClCompile Include="iconext.c" />
     <ClCompile Include="framemon.cpp" />
+    <ClCompile Include="pipe_enum.c" />
     <ClCompile Include="objmgr.c" />
     <ClCompile Include="pooldb.c" />
     <ClCompile Include="pooldialog.c" />
