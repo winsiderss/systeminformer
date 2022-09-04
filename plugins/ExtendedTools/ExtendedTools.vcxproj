@@ -149,6 +149,8 @@
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />
     <ClCompile Include="utils.c" />
+    <ClCompile Include="wct.c" />
+    <ClCompile Include="wndtree.c" />
     <ClCompile Include="wswatch.c" />
   </ItemGroup>
   <ItemGroup>
@@ -175,6 +177,7 @@
     <ClInclude Include="PresentMon\PresentMonTraceConsumer.hpp" />
     <ClInclude Include="PresentMon\TraceConsumer.hpp" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="wndtree.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
