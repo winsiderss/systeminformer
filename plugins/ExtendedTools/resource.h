@@ -96,51 +96,61 @@
 #define ID_DISK_OPENFILELOCATION        40008
 #define ID_DISK_INSPECT                 40009
 
-#define ID_POOL_TABLE                   50000
-#define IDD_POOL                        50001
-#define IDR_TXT_POOLTAGS                50002
-#define IDD_BIGPOOL                     50003
-#define IDC_POOLTREE                    50004
-#define IDC_POOLSEARCH                  50005
-#define IDC_POOLCLEAR                   50006
-#define IDC_BIGPOOLLIST                 50007
+#define ID_POOL_TABLE                   3000
+#define IDD_POOL                        3001
+#define IDR_TXT_POOLTAGS                3002
+#define IDD_BIGPOOL                     3003
+#define IDC_POOLTREE                    3004
+#define IDC_POOLSEARCH                  3005
+#define IDC_POOLCLEAR                   3006
+#define IDC_BIGPOOLLIST                 3007
 
-#define ID_OBJMGR                       60000
-#define IDD_OBJMGR                      60001
-#define IDI_FOLDER                      60002
-#define IDI_MUTANT                      60003
-#define IDI_DRIVER                      60004
-#define IDI_SECTION                     60005
-#define IDI_LINK                        60006
-#define IDI_KEY                         60007
-#define IDI_PORT                        60008
-#define IDI_SESSION                     60009
-#define IDI_EVENT                       60010
-#define IDI_DEVICE                      60011
-#define IDI_UNKNOWN                     60012
-#define IDC_OBJMGR_LIST                 60013
-#define IDC_OBJMGR_TREE                 60014
+#define ID_OBJMGR                       4000
+#define IDD_OBJMGR                      4001
+#define IDI_FOLDER                      4002
+#define IDI_MUTANT                      4003
+#define IDI_DRIVER                      4004
+#define IDI_SECTION                     4005
+#define IDI_LINK                        4006
+#define IDI_KEY                         4007
+#define IDI_PORT                        4008
+#define IDI_SESSION                     4009
+#define IDI_EVENT                       4010
+#define IDI_DEVICE                      4011
+#define IDI_UNKNOWN                     4012
+#define IDC_OBJMGR_LIST                 4013
+#define IDC_OBJMGR_TREE                 4014
 
-#define ID_FIRMWARE                     70000
-#define IDD_FIRMWARE                    70001
-#define IDD_FIRMWARE_EDITVAR            70002
-#define IDC_FIRMWARE_HEXEDITVAR         70003
-#define IDC_FIRMWARE_REREAD             70004
-#define IDC_FIRMWARE_WRITE              70005
-#define IDC_FIRMWARE_SAVE               70006
-#define IDC_FIRMWARE_BYTESPERROW        70007
-#define IDC_FIRMWARE_BOOT_LIST          70008
-#define IDC_FIRMWARE_BOOT_REFRESH       70009
+#define ID_FIRMWARE                     5001
+#define IDD_FIRMWARE                    5002
+#define IDD_FIRMWARE_EDITVAR            5003
+#define IDC_FIRMWARE_HEXEDITVAR         5004
+#define IDC_FIRMWARE_REREAD             5005
+#define IDC_FIRMWARE_WRITE              5006
+#define IDC_FIRMWARE_SAVE               5007
+#define IDC_FIRMWARE_BYTESPERROW        5008
+#define IDC_FIRMWARE_BOOT_LIST          5009
+#define IDC_FIRMWARE_BOOT_REFRESH       5010
 
-#define ID_PIPE_ENUM                    80000
-#define IDD_PIPEDIALOG                  80001
-#define IDC_ATOMLIST                    80002
+#define ID_PIPE_ENUM                    6000
+#define IDD_PIPEDIALOG                  6001
+#define IDC_ATOMLIST                    6002
 
-#define ID_REPARSE_POINTS               90000
-#define ID_REPARSE_OBJID                90001
-#define ID_REPARSE_SDDL                 90002
-#define IDD_REPARSEDIALOG               90003 
-#define IDC_REPARSE_LIST                90004
+#define ID_REPARSE_POINTS               7000
+#define ID_REPARSE_OBJID                7001
+#define ID_REPARSE_SDDL                 7002
+#define IDD_REPARSEDIALOG               7003 
+#define IDC_REPARSE_LIST                7004
+
+#define ID_WCT_MENUITEM                 8000
+#define ID_WCT_SHOWCONTEXTMENU          8001
+#define IDD_WCT_DIALOG                  8002 
+#define IDR_WCT_MAIN_MENU               8003
+#define IDC_WCT_TREE                    8004
+#define ID_WCT_MENU_GOTOTHREAD          8005
+#define ID_WCT_MENU_GOTOPROCESS         8006
+#define ID_WCT_MENU_PROPERTIES          8007
+#define ID_WCT_MENU_COPY                8008
 
 // Next default values for new objects
 // 

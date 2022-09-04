@@ -81,6 +81,9 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_FW_TREE_LIST_SORT (PLUGIN_NAME L".FwTreeSort")
 #define SETTING_NAME_FW_IGNORE_PORTSCAN (PLUGIN_NAME L".FwIgnorePortScan")
 #define SETTING_NAME_SHOWSYSINFOGRAPH (PLUGIN_NAME L".ToolbarShowSystemInfoGraph")
+#define SETTING_NAME_WCT_TREE_LIST_COLUMNS (PLUGIN_NAME L".WaitChainTreeListColumns")
+#define SETTING_NAME_WCT_WINDOW_POSITION (PLUGIN_NAME L".WaitChainWindowPosition")
+#define SETTING_NAME_WCT_WINDOW_SIZE (PLUGIN_NAME L".WaitChainWindowSize")
 #define SETTING_NAME_REPARSE_WINDOW_POSITION (PLUGIN_NAME L".ReparseWindowPosition")
 #define SETTING_NAME_REPARSE_WINDOW_SIZE (PLUGIN_NAME L".ReparseWindowSize")
 #define SETTING_NAME_REPARSE_LISTVIEW_COLUMNS (PLUGIN_NAME L".ReparseListViewColumns")
@@ -1144,6 +1147,25 @@ HWND NTAPI FwToolStatusGetTreeNewHandle(
 
 VOID EtProcessFramesPropertiesInitializing(
     _In_ PVOID Parameter
+    );
+
+// wct
+
+INT_PTR CALLBACK WaitChainDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID NTAPI WctProcessMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
+VOID NTAPI WctThreadMenuInitializingCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
     );
 
 // reparse

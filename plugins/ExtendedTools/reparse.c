@@ -1234,6 +1234,8 @@ INT_PTR CALLBACK FindSecurityIdsDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 250, L"Filename");
 
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+
             if (context->FileList)
             {
                 for (ULONG i = 0; i < context->FileList->Count; i++)
