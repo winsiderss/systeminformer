@@ -121,6 +121,17 @@
 #define IDC_OBJMGR_LIST                 60013
 #define IDC_OBJMGR_TREE                 60014
 
+#define ID_FIRMWARE                     70000
+#define IDD_FIRMWARE                    70001
+#define IDD_FIRMWARE_EDITVAR            70002
+#define IDC_FIRMWARE_HEXEDITVAR         70003
+#define IDC_FIRMWARE_REREAD             70004
+#define IDC_FIRMWARE_WRITE              70005
+#define IDC_FIRMWARE_SAVE               70006
+#define IDC_FIRMWARE_BYTESPERROW        70007
+#define IDC_FIRMWARE_BOOT_LIST          70008
+#define IDC_FIRMWARE_BOOT_REFRESH       70009
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

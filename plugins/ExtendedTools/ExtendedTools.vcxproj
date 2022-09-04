@@ -108,9 +108,12 @@
   <ItemGroup>
     <ClCompile Include="counters.c" />
     <ClCompile Include="disktab.c" />
+    <ClCompile Include="efi.c" />
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmini.c" />
     <ClCompile Include="etwmon.c" />
+    <ClCompile Include="firmware.c" />
+    <ClCompile Include="firmware_editor.c" />
     <ClCompile Include="frameprp.c" />
     <ClCompile Include="fwmon.c" />
     <ClCompile Include="fwtab.c" />
@@ -148,11 +151,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="disktabp.h" />
+    <ClInclude Include="efi_guid_list.h" />
     <ClInclude Include="etwmini.h" />
     <ClInclude Include="etwmon.h" />
     <ClInclude Include="etwsys.h" />
     <ClInclude Include="extension\plugin.h" />
     <ClInclude Include="exttools.h" />
+    <ClInclude Include="firmware.h" />
     <ClInclude Include="gpumini.h" />
     <ClInclude Include="gpumon.h" />
     <ClInclude Include="gpusys.h" />
