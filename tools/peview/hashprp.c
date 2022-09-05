@@ -901,7 +901,7 @@ VOID PvpPeEnumFileHashes(
     }
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistH(
     _In_ PPV_PE_HASH_CONTEXT context
     )
 {
@@ -968,7 +968,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvpSetImagelist(context);
+            PvpSetImagelistH(context);
 
             PvpPeEnumFileHashes(context->ListViewHandle);
 
@@ -984,7 +984,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvpSetImagelistH(context);
         }
         break;
     case WM_SHOWWINDOW:

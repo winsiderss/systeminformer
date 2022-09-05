@@ -559,7 +559,7 @@ VOID PvAddTreeViewSections(
     PvTabWindowOnSize();
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistP(
     _In_ HWND tabWindow
     )
 {
@@ -607,7 +607,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             TreeView_SetExtendedStyle(PvTabTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
             TreeView_SetBkColor(PvTabTreeControl, GetSysColor(COLOR_3DFACE));
 
-            PvpSetImagelist(PvTabTreeControl);
+            PvpSetImagelistP(PvTabTreeControl);
 
             PhInitializeLayoutManager(&PvTabWindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&PvTabWindowLayoutManager, PvTabTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
@@ -704,7 +704,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(PvTabTreeControl);
+            PvpSetImagelistP(PvTabTreeControl);
         }
         break;
     case WM_SIZE:

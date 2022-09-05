@@ -94,7 +94,7 @@ VOID PvEnumerateFileExtendedAttributes(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistA(
     _In_ PPVP_PE_ATTRIBUTES_CONTEXT context
     )
 {
@@ -162,7 +162,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvpSetImagelist(context);
+            PvpSetImagelistA(context);
 
             PvEnumerateFileExtendedAttributes(context->ListViewHandle);
 
@@ -180,7 +180,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvpSetImagelistA(context);
         }
         break;
     case WM_SHOWWINDOW:

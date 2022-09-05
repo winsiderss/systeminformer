@@ -69,7 +69,7 @@ PWSTR PvpGetDebugTypeString(
     return PhaFormatString(L"%lu", Type)->Buffer;
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistD(
     _In_ PPVP_PE_DEBUG_CONTEXT context
     )
 {
@@ -147,7 +147,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvpSetImagelist(context);
+            PvpSetImagelistD(context);
 
             if (NT_SUCCESS(PhGetMappedImageDebug(&PvMappedImage, &debug)))
             {
@@ -215,7 +215,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvpSetImagelistD(context);
         }
         break;
     case WM_SHOWWINDOW:

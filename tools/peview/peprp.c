@@ -1956,7 +1956,7 @@ static INT NTAPI PvpPeCharacteristicsCompareFunction(
     return uintcmp(entry1->Characteristics, entry2->Characteristics);
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistPE(
     _In_ PPVP_PE_GENERAL_CONTEXT context
     )
 {
@@ -2022,7 +2022,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PvPeAddImagePropertiesGroups(context);
             PhLoadListViewGroupStatesFromSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
 
-            PvpSetImagelist(context);
+            PvpSetImagelistPE(context);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -2054,7 +2054,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvpSetImagelistPE(context);
         }
         break;
     case WM_SHOWWINDOW:

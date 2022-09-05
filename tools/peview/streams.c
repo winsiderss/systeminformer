@@ -154,7 +154,7 @@ VOID PvpPeEnumerateFileStreams(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistS(
     _In_ PPVP_PE_STREAMS_CONTEXT context
     )
 {
@@ -207,8 +207,6 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HIMAGELIST listViewImageList;
-
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -225,7 +223,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvpSetImagelist(context);
+            PvpSetImagelistS(context);
 
             PvpPeEnumerateFileStreams(context->ListViewHandle);
 
@@ -241,7 +239,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvpSetImagelistS(context);
         }
         break;
     case WM_SHOWWINDOW:

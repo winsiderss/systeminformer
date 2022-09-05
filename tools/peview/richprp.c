@@ -385,7 +385,7 @@ VOID PvpPeEnumProdEntries(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistR(
     _In_ PPVP_PE_PRODUCTION_ID_CONTEXT context
     )
 {
@@ -438,8 +438,6 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HIMAGELIST listViewImageList;
-
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -461,7 +459,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH2), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvpSetImagelist(context);
+            PvpSetImagelistR(context);
 
             PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle);
 
@@ -477,7 +475,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvpSetImagelistR(context);
         }
         break;
     case WM_SHOWWINDOW:

@@ -198,7 +198,7 @@ VOID PvGeneralPageSave(
     }
 }
 
-VOID PvpSetImagelist(
+VOID PvpSetImagelistO(
     _In_ PPVP_PE_OPTIONS_CONTEXT context
     )
 {
@@ -252,7 +252,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ComboHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
 
-            PvpSetImagelist(context);
+            PvpSetImagelistO(context);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -292,7 +292,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvpSetImagelistO(context);
         }
         break;
     case WM_COMMAND:
