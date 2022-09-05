@@ -154,11 +154,21 @@ VOID GpuPropLayoutGraphs(
     HDWP deferHandle;
     RECT clientRect;
     //RECT panelRect;
-    RECT margin = { PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13) };
-    RECT innerMargin = { PH_SCALE_DPI(10), PH_SCALE_DPI(20), PH_SCALE_DPI(10), PH_SCALE_DPI(10) };
-    LONG between = PH_SCALE_DPI(3);
+    RECT margin;
+    RECT innerMargin;
+    LONG between;
     ULONG graphWidth;
     ULONG graphHeight;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, dpiValue);
+
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, dpiValue);
+    innerMargin.top = PhGetDpi(20, dpiValue);
+
+    between = PhGetDpi(3, dpiValue);
 
     Context->GpuGraphState.Valid = FALSE;
     Context->GpuGraphState.TooltipIndex = ULONG_MAX;
@@ -437,11 +447,14 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+                    LONG dpiValue;
+
+                    dpiValue = PhGetWindowDpi(context->WindowHandle);
 
                     if (header->hwndFrom == context->GpuGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
                         PhGraphStateGetDrawInfo(&context->GpuGraphState, getDrawInfo, context->Block->GpuHistory.Count);
 
                         if (!context->GpuGraphState.Valid)
@@ -509,7 +522,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     else if (header->hwndFrom == context->MemGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, dpiValue);
                         PhGraphStateGetDrawInfo(&context->MemoryGraphState, getDrawInfo, context->Block->MemoryHistory.Count);
 
                         if (!context->MemoryGraphState.Valid)
@@ -570,7 +583,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     else if (header->hwndFrom == context->SharedGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, dpiValue);
                         PhGraphStateGetDrawInfo(&context->MemorySharedGraphState, getDrawInfo, context->Block->MemorySharedHistory.Count);
 
                         if (!context->MemorySharedGraphState.Valid)
@@ -631,7 +644,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                     else if (header->hwndFrom == context->CommittedGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
                         PhGraphStateGetDrawInfo(&context->GpuCommittedGraphState, getDrawInfo, context->Block->GpuCommittedHistory.Count);
 
                         if (!context->GpuCommittedGraphState.Valid)

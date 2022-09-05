@@ -151,6 +151,9 @@ VOID RebarCreateOrUpdateWindow(
             ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
             LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
 
+            if (RebarBandExists (REBAR_BAND_ID_TOOLBAR))
+                RebarBandRemove (REBAR_BAND_ID_TOOLBAR);
+
             RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), __max(HIWORD(toolbarButtonSize), toolbarButtonHeight));
 
             if (HIWORD(toolbarButtonSize) < toolbarButtonHeight)
@@ -239,10 +242,14 @@ VOID RebarCreateOrUpdateWindow(
     if (ToolStatusConfig.SearchBoxEnabled && RebarHandle && SearchboxHandle)
     {
         UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
+        LONG dpiValue;
 
         // Add the Searchbox band into the rebar control.
         if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), height);
+        {
+            dpiValue = PhGetWindowDpi(RebarHandle);
+            RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), height);
+            }
 
         if (!IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
@@ -457,7 +464,7 @@ HBITMAP ToolbarLoadImageFromIcon(
     _In_ PWSTR Name
     )
 {
-    HICON icon = PhLoadIcon(PluginInstance->DllBase, Name, 0, Width, Height);
+    HICON icon = PhLoadIcon(PluginInstance->DllBase, Name, 0, Width, Height, 0);
     HBITMAP bitmap = PhIconToBitmap(icon, Width, Height);
     DestroyIcon(icon);
     return bitmap;
@@ -632,6 +639,7 @@ HBITMAP ToolbarGetImage(
                 MAKEINTRESOURCE(PHAPP_IDI_UACSHIELD),
                 PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
                 0,
+                0,
                 0
                 );
 
@@ -641,6 +649,7 @@ HBITMAP ToolbarGetImage(
                     NULL,
                     IDI_SHIELD,
                     PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                    0,
                     0,
                     0
                     );
@@ -784,6 +793,9 @@ VOID ToolbarLoadButtonSettings(
             }
         }
     }
+
+    for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
+        SendMessage(ToolBarHandle, TB_DELETEBUTTON, i, 0);
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, count, (LPARAM)buttonArray);
 

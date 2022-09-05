@@ -326,6 +326,9 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_INITDIALOG:
         {
             PPH_LAYOUT_ITEM panelItem;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -339,7 +342,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
             context->StatusHandle = GetDlgItem(hwndDlg, IDC_MAINTEXT);
             context->MinPingScaling = PhGetIntegerSetting(SETTING_NAME_PING_MINIMUM_SCALING);
             context->Timeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
-            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, context->StatusHandle);
+            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, context->StatusHandle, dpiValue);
             context->PingGraphHandle = CreateWindow(
                 PH_GRAPH_CLASSNAME,
                 NULL,
@@ -506,6 +509,9 @@ INT_PTR CALLBACK NetworkPingWndProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+                    LONG dpiValue;
+
+                    dpiValue = PhGetWindowDpi(header->hwndFrom);
 
                     if (header->hwndFrom == context->PingGraphHandle)
                     {
@@ -530,7 +536,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
                         PhGraphStateGetDrawInfo(&context->PingGraphState, getDrawInfo, context->PingHistory.Count);
 
                         if (!context->PingGraphState.Valid)

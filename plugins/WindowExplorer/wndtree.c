@@ -92,6 +92,9 @@ VOID WeInitializeWindowTree(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     HWND hwnd;
     PPH_STRING settings;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(ParentWindowHandle);
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -122,8 +125,8 @@ VOID WeInitializeWindowTree(
         HICON iconSmall;
 
         Context->NodeImageList = PhImageListCreate(
-            GetSystemMetrics(SM_CXSMICON),
-            GetSystemMetrics(SM_CYSMICON),
+            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
             ILC_MASK | ILC_COLOR32,
             200,
             200

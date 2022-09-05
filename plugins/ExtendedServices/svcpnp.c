@@ -351,6 +351,7 @@ VOID EspLoadDeviceInstanceImage(
     ULONG deviceIconPathLength;
     DEVPROPTYPE deviceIconPathPropertyType;
     PPH_STRING deviceIconPath;
+    LONG dpiValue;
 
     deviceIconPathLength = 0x40;
     deviceIconPath = PhCreateStringEx(NULL, deviceIconPathLength);
@@ -398,7 +399,9 @@ VOID EspLoadDeviceInstanceImage(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL))
+                dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     UINT imageIndex = PhImageListAddIcon(Context->ImageList, smallIcon);
                     PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);

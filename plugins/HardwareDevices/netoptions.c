@@ -722,9 +722,12 @@ VOID LoadNetworkAdapterImages(
     ULONG deviceIconPathLength;
     DEVPROPTYPE deviceIconPathPropertyType;
     PPH_STRING deviceIconPath;
+    LONG dpiValue;
 
     deviceIconPathLength = 0x40;
     deviceIconPath = PhCreateStringEx(NULL, deviceIconPathLength);
+
+    dpiValue = PhGetWindowDpi(Context->ListViewHandle);
 
     if ((result = CM_Get_Class_Property(
         &GUID_DEVCLASS_NET,
@@ -769,7 +772,7 @@ VOID LoadNetworkAdapterImages(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL))
+                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
                         24, // GetSystemMetrics(SM_CXSMICON)
