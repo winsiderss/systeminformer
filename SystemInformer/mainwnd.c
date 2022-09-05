@@ -280,9 +280,20 @@ LRESULT CALLBACK PhMwpWndProc(
 {
     switch (uMsg)
     {
+    case WM_CREATE:
+        {
+            PhProcessImageListInitialization(hWnd);
+        }
+        break;
     case WM_DESTROY:
         {
             PhMwpOnDestroy(hWnd);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhProcessImageListInitialization(hWnd);
+            PhMwpOnSettingChange(hWnd);
         }
         break;
     case WM_ENDSESSION:
@@ -290,7 +301,6 @@ LRESULT CALLBACK PhMwpWndProc(
             PhMwpOnEndSession(hWnd);
         }
         break;
-    case WM_DPICHANGED:
     case WM_SETTINGCHANGE:
         {
             PhMwpOnSettingChange(hWnd);
