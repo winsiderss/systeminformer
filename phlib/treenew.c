@@ -2049,6 +2049,9 @@ VOID PhTnpSetFont(
     _In_ BOOLEAN Redraw
     )
 {
+    LOGFONT logFont;
+    LONG dpiValue;
+
     if (Context->FontOwned)
     {
         DeleteFont(Context->Font);
@@ -2059,9 +2062,9 @@ VOID PhTnpSetFont(
 
     if (!Context->Font)
     {
-        LOGFONT logFont;
+        dpiValue = PhGetWindowDpi (Context->Handle);
 
-        if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+        if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
         {
             Context->Font = CreateFontIndirect(&logFont);
             Context->FontOwned = TRUE;
@@ -4144,9 +4147,12 @@ VOID PhTnpProcessMouseVWheel(
     LONG wholeLinesToScroll;
     SCROLLINFO scrollInfo;
     LONG oldPosition;
+    LONG dpiValue;
 
-    if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
-        wheelScrollLines = 3;
+    dpiValue = PhGetWindowDpi(Context->Handle);
+
+    if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, dpiValue))
+        wheelScrollLines = PhGetDpi(3, dpiValue);
 
     // If page scrolling is enabled, use the number of visible rows.
     if (wheelScrollLines == -1)
@@ -4207,9 +4213,12 @@ VOID PhTnpProcessMouseHWheel(
     LONG wholePixelsToScroll;
     SCROLLINFO scrollInfo;
     LONG oldPosition;
+    LONG dpiValue;
 
-    if (!SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, 0))
-        wheelScrollChars = 3;
+    dpiValue = PhGetWindowDpi(Context->Handle);
+
+    if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, dpiValue))
+        wheelScrollChars = PhGetDpi(3, dpiValue);
 
     // Zero the remainder if the direction changed.
     if ((Context->HScrollRemainder > 0) != (Distance > 0))

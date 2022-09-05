@@ -198,6 +198,16 @@ PhGetSystemMetrics (
     );
 
 PHLIBAPI
+BOOL
+NTAPI
+PhGetSystemParametersInfo (
+    _In_ INT Action,
+	_In_ UINT Param1,
+	_Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_opt_ LONG dpiValue
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhGetSizeDpiValue(

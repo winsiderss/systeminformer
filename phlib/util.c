@@ -353,6 +353,46 @@ LONG PhGetSystemMetrics (
     return _GetSystemMetricsForDpi(Index, dpiValue);
 }
 
+BOOL PhGetSystemParametersInfo (
+    _In_ INT Action,
+	_In_ UINT Param1,
+	_Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_opt_ LONG dpiValue
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *_SystemParametersInfoForDpi)(
+            _In_ UINT uiAction,
+            _In_ UINT uiParam,
+            _Pre_maybenull_ _Post_valid_ PVOID pvParam,
+            _In_ UINT fWinIni,
+            _In_ UINT dpi);
+
+    PVOID huser32;
+
+    // initialize library calls
+    if (PhBeginInitOnce(&initOnce))
+    {
+        huser32 = PhLoadLibrary(L"user32.dll");
+
+        if (huser32)
+        {
+            // win10rs1+
+            _SystemParametersInfoForDpi = PhGetProcedureAddress(huser32, "SystemParametersInfoForDpi", 0);
+
+            //FreeLibrary(huser32);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!dpiValue || !_SystemParametersInfoForDpi)
+        return SystemParametersInfo(Action, Param1, Param2, 0);
+
+    // win10rs1+
+    return _SystemParametersInfoForDpi(Action, Param1, Param2, 0, dpiValue);
+}
+
 VOID PhGetSizeDpiValue(
     _Inout_ PRECT rect,
     _In_ LONG dpiValue,

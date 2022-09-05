@@ -349,6 +349,7 @@ EXPORTS
     PhGetWindowDpi
     PhGetDpiValue
     PhGetSystemMetrics
+    PhGetSystemParametersInfo
     PhGetSizeDpiValue
     PhCompareUnicodeStringZIgnoreMenuPrefix
     PhCreateOpenFileDialog

@@ -269,9 +269,12 @@ LRESULT CALLBACK PhpHexEditWndProc(
             if (context->Data)
             {
                 ULONG wheelScrollLines;
+                LONG dpiValue;
 
-                if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
-                    wheelScrollLines = 3;
+                dpiValue = PhGetWindowDpi(hwnd);
+
+                if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, dpiValue))
+                    wheelScrollLines = PhGetDpi(3, dpiValue);
 
                 context->TopIndex += context->BytesPerRow * (LONG)wheelScrollLines * -wheelDelta / WHEEL_DELTA;
 
