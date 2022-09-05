@@ -1220,6 +1220,8 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
         TabCtrl_AdjustRect(Handle, FALSE, &item->Rect);
     }
 
+    PhGetSizeDpiValue(&item->Rect, Manager->dpiValue, FALSE);
+
     item->Margin = Margin;
     PhGetSizeDpiValue(&item->Margin, Manager->dpiValue, FALSE);
 
@@ -1278,7 +1280,6 @@ VOID PhpLayoutItemLayout(
 
         // Convert right/bottom into margins to make the calculations
         // easier.
-        rect = Item->Rect;
         PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
 
         if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
@@ -1327,7 +1328,7 @@ VOID PhpLayoutItemLayout(
         // Convert the right/bottom back into co-ordinates.
         PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
         Item->Rect = rect;
-        PhGetSizeDpiValue (&rect, Manager->dpiValue, TRUE);
+        PhGetSizeDpiValue(&rect, Manager->dpiValue, TRUE);
 
         if (!(Item->Anchor & PH_LAYOUT_IMMEDIATE_RESIZE))
         {
