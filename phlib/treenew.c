@@ -6903,15 +6903,18 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     UINT textLength;
                     RECT textRect;
                     HFONT oldFont;
+                    LONG dpiValue;
 
                     textBuffer = column->Text;
                     textLength = (UINT)PhCountStringZ(column->Text);
 
+                    dpiValue = PhGetWindowDpi(hwnd);
+
                     textRect = headerRect;
-                    textRect.left += 5;
-                    textRect.right -= 5;
-                    textRect.bottom -= 5;
-                    textRect.top += 2;
+                    textRect.left += PhGetDpi(5, dpiValue);
+                    textRect.right -= PhGetDpi(5, dpiValue);
+                    textRect.bottom -= PhGetDpi(5, dpiValue);
+                    textRect.top += PhGetDpi(2, dpiValue);
 
                     SetTextColor(bufferDc, context->ThemeSupport ? RGB(0x8f, 0x8f, 0x8f) : RGB(97, 116, 139)); // RGB(178, 178, 178)
                     oldFont = SelectFont(bufferDc, context->Font);
