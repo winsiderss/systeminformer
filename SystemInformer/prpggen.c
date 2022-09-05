@@ -237,6 +237,27 @@ typedef struct _PH_PROCGENERAL_CONTEXT
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
 
+VOID PhSetIcons(
+    _In_ HWND hwndDlg
+    )
+{
+    HICON folder;
+    HICON magnifier;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwndDlg);
+
+    folder = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER), dpiValue);
+    magnifier = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_MAGNIFIER), dpiValue);
+
+    SET_BUTTON_ICON(IDC_INSPECT, magnifier);
+    SET_BUTTON_ICON(IDC_OPENFILENAME, folder);
+    SET_BUTTON_ICON(IDC_INSPECT2, magnifier);
+    SET_BUTTON_ICON(IDC_OPENFILENAME2, folder);
+    SET_BUTTON_ICON(IDC_VIEWCOMMANDLINE, magnifier);
+    SET_BUTTON_ICON(IDC_VIEWPARENTPROCESS, magnifier);
+}
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -266,23 +287,13 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PPH_STRING curDir = NULL;
             PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
-            HICON folder;
-            HICON magnifier;
 
             context = propPageContext->Context = PhAllocateZero(sizeof(PH_PROCGENERAL_CONTEXT));
             context->WindowHandle = hwndDlg;
             context->StartedLabelHandle = GetDlgItem(hwndDlg, IDC_STARTED);
             context->Enabled = TRUE;
 
-            folder = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER));
-            magnifier = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_MAGNIFIER));
-
-            SET_BUTTON_ICON(IDC_INSPECT, magnifier);
-            SET_BUTTON_ICON(IDC_OPENFILENAME, folder);
-            SET_BUTTON_ICON(IDC_INSPECT2, magnifier);
-            SET_BUTTON_ICON(IDC_OPENFILENAME2, folder);
-            SET_BUTTON_ICON(IDC_VIEWCOMMANDLINE, magnifier);
-            SET_BUTTON_ICON(IDC_VIEWPARENTPROCESS, magnifier);
+            PhSetIcons(hwndDlg);
 
             // File
 
@@ -507,6 +518,11 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
 
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhSetIcons(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:

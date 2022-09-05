@@ -11,7 +11,8 @@ typedef enum _PH_SYSINFO_VIEW_TYPE
 typedef VOID (NTAPI *PPH_SYSINFO_COLOR_SETUP_FUNCTION)(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
-    _In_ COLORREF Color2
+    _In_ COLORREF Color2,
+    _In_ LONG dpiValue
     );
 
 typedef struct _PH_SYSINFO_PARAMETERS
@@ -146,7 +147,8 @@ NTAPI
 PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
-    _In_ COLORREF Color2
+    _In_ COLORREF Color2,
+    _In_ LONG dpiValue
     );
 
 PHAPPAPI

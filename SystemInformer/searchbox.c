@@ -60,10 +60,14 @@ VOID PhpSearchInitializeFont(
     _In_ HWND WindowHandle
     )
 {
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(WindowHandle);
+
     if (Context->WindowFont) 
         DeleteFont(Context->WindowFont);
 
-    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, WindowHandle);
+    Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, WindowHandle, dpiValue);
 }
 
 VOID PhpSearchInitializeTheme(
@@ -71,13 +75,18 @@ VOID PhpSearchInitializeTheme(
     _In_ HWND WindowHandle
     )
 {
-    Context->CXWidth = PH_SCALE_DPI(20);
+    HTHEME themeDataHandle;
+    LONG dpiValue;
+    LONG cx;
+
+    dpiValue = PhGetWindowDpi(WindowHandle);
+    cx = PhGetSystemMetrics(SM_CXBORDER, dpiValue);
+
+    Context->CXWidth = PhGetDpi(20, dpiValue);
     Context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
 
     if (IsThemeActive())
     {
-        HTHEME themeDataHandle;
-
         if (themeDataHandle = OpenThemeData(WindowHandle, VSCLASS_EDIT))
         {
             //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
@@ -90,30 +99,37 @@ VOID PhpSearchInitializeTheme(
                 &Context->CXBorder
                 )))
             {
-                Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+                Context->CXBorder = cx * 2;
             }
 
             CloseThemeData(themeDataHandle);
         }
         else
         {
-            Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+            Context->CXBorder = cx * 2;
         }
     }
     else
     {
-        Context->CXBorder = GetSystemMetrics(SM_CXBORDER) * 2;
+        Context->CXBorder = cx * 2;
     }
 }
 
 VOID PhpSearchInitializeImages(
+    _In_ HWND hwnd,
     _Inout_ PEDIT_CONTEXT Context
     )
 {
     HBITMAP bitmap;
+    LONG dpiValue;
 
-    Context->ImageWidth = PhSmallIconSize.X + 4; //GetSystemMetrics(SM_CXSMICON) + 4;
-    Context->ImageHeight = PhSmallIconSize.Y + 4; //GetSystemMetrics(SM_CYSMICON) + 4;
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if(Context->ImageListHandle)
+        PhImageListDestroy (Context->ImageListHandle);
+
+    Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(4, dpiValue);
+    Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, dpiValue) + PhGetDpi(4, dpiValue);
     Context->ImageListHandle = PhImageListCreate(
         Context->ImageWidth,
         Context->ImageHeight,
@@ -378,6 +394,11 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     case WM_ERASEBKGND:
         return 1;
+    case WM_DPICHANGED:
+        {
+            PhpSearchInitializeImages(hWnd, context);
+        }
+        break;
     case WM_NCCALCSIZE:
         {
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
@@ -833,7 +854,7 @@ VOID PhCreateSearchControl(
     context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
 
     //PhpSearchInitializeTheme(context);
-    PhpSearchInitializeImages(context);
+    PhpSearchInitializeImages(WindowHandle, context);
 
     // Set initial text
     if (BannerText)

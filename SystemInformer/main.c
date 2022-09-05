@@ -603,18 +603,21 @@ VOID PhInitializeCommonControls(
 }
 
 VOID PhInitializeFont(
-    VOID
+    _In_ HWND hwnd
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
     HFONT oldFont = PhApplicationFont;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwnd);
 
     if (
-        !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH)) &&
-        !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH))
+        !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH, dpiValue)) &&
+        !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH, dpiValue))
         )
     {
-        if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+        if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
             PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
         else
             PhApplicationFont = NULL;
@@ -624,16 +627,18 @@ VOID PhInitializeFont(
 }
 
 VOID PhInitializeMonospaceFont(
-    VOID
+    _In_ HWND hwnd
     )
 {
-    NONCLIENTMETRICS metrics = { sizeof(metrics) };
     HFONT oldFont = PhMonospaceFont;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwnd);
 
     if (
-        !(PhMonospaceFont = PhCreateFont(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN)) &&
-        !(PhMonospaceFont = PhCreateFont(L"Courier New", 9, FW_DONTCARE, FF_MODERN)) &&
-        !(PhMonospaceFont = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN))
+        !(PhMonospaceFont = PhCreateFont(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN, dpiValue)) &&
+        !(PhMonospaceFont = PhCreateFont(L"Courier New", 9, FW_DONTCARE, FF_MODERN, dpiValue)) &&
+        !(PhMonospaceFont = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN, dpiValue))
         )
     {
         PhMonospaceFont = GetStockObject(SYSTEM_FIXED_FONT);

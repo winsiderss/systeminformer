@@ -472,7 +472,7 @@ PHAPPAPI
 VOID
 NTAPI
 PhProcessImageListInitialization(
-    VOID
+    _In_ HWND hwnd
     );
 
 PHAPPAPI
@@ -480,7 +480,8 @@ PPH_IMAGELIST_ITEM
 NTAPI
 PhImageListExtractIcon(
     _In_ PPH_STRING FileName,
-    _In_ BOOLEAN NativeFileName
+    _In_ BOOLEAN NativeFileName,
+    _In_ LONG dpiValue
     );
 
 PHAPPAPI

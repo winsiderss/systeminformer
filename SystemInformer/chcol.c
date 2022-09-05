@@ -197,9 +197,12 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             ULONG total;
             ULONG i;
             PPH_LIST displayOrderList = NULL;
+            LONG dpiValue;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhSetApplicationWindowIcon(hwndDlg);
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
 
             context->InactiveWindowHandle = GetDlgItem(hwndDlg, IDC_INACTIVE);
             context->ActiveWindowHandle = GetDlgItem(hwndDlg, IDC_ACTIVE);
@@ -214,8 +217,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             PhCreateSearchControl(hwndDlg, context->SearchInactiveHandle, L"Inactive columns...");
             PhCreateSearchControl(hwndDlg, context->SearchActiveHandle, L"Active columns...");
 
-            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PH_SCALE_DPI(16));
-            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PH_SCALE_DPI(16));
+            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
 
             Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
             Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
@@ -334,6 +337,12 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 PhDereferenceObject(context->ActiveSearchboxText);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
+            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
         }
         break;
     case WM_COMMAND:

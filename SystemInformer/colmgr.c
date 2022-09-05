@@ -334,6 +334,9 @@ BOOLEAN PhCmLoadSettingsEx(
     PPH_KEY_VALUE_PAIR pair;
     LONG orderArray[PH_CM_ORDER_LIMIT];
     LONG maxOrder;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(TreeNewHandle);
 
     if (Settings->Length != 0)
     {
@@ -353,7 +356,7 @@ BOOLEAN PhCmLoadSettingsEx(
         }
         else
         {
-            scale = PhGlobalDpi;
+            scale = dpiValue;
         }
 
         while (remainingColumnPart.Length != 0)
@@ -428,8 +431,8 @@ BOOLEAN PhCmLoadSettingsEx(
 
                 width = (ULONG)integer;
 
-                if (scale != PhGlobalDpi && scale != 0)
-                    width = PhMultiplyDivide(width, PhGlobalDpi, scale);
+                if (scale != dpiValue && scale != 0)
+                    width = PhMultiplyDivide(width, dpiValue, scale);
 
                 column = PhAllocate(sizeof(PH_TREENEW_COLUMN));
                 column->Id = id;
@@ -590,6 +593,9 @@ PPH_STRING PhCmSaveSettingsEx(
     ULONG total;
     ULONG increment;
     PH_TREENEW_COLUMN column;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(TreeNewHandle);
 
     total = TreeNew_GetColumnCount(TreeNewHandle);
 
@@ -607,7 +613,7 @@ PPH_STRING PhCmSaveSettingsEx(
 
         // @%lu|
         PhInitFormatC(&format[0], L'@');
-        PhInitFormatU(&format[1], PhGlobalDpi);
+        PhInitFormatU(&format[1], dpiValue);
         PhInitFormatC(&format[2], L'|');
 
         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
@@ -616,7 +622,7 @@ PPH_STRING PhCmSaveSettingsEx(
         }
         else
         {
-            PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", PhGlobalDpi);
+            PhAppendFormatStringBuilder(&stringBuilder, L"@%lu|", dpiValue);
         }
     }
 

@@ -55,7 +55,7 @@ static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static PPH_LIST SectionList;
-static PH_SYSINFO_PARAMETERS CurrentParameters;
+static PH_SYSINFO_PARAMETERS CurrentParameters = {0};
 static PH_SYSINFO_VIEW_TYPE CurrentView;
 static PPH_SYSINFO_SECTION CurrentSection;
 static HWND ContainerControl;
@@ -182,6 +182,11 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
         {
             PhSipWindow = hwndDlg;
             PhSipOnInitDialog();
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhSipInitializeParameters();
         }
         break;
     case WM_DESTROY:
@@ -339,8 +344,11 @@ VOID PhSipOnInitDialog(
     RECT clientRect;
     PH_STRINGREF sectionName;
     PPH_SYSINFO_SECTION section;
+    LONG dpiValue;
 
     PhSetApplicationWindowIcon(PhSipWindow);
+
+    dpiValue = PhGetWindowDpi(PhSipWindow);
 
     PhSetControlTheme(PhSipWindow, L"explorer");
 
@@ -421,8 +429,8 @@ VOID PhSipOnInitDialog(
     MapDialogRect(PhSipWindow, &MinimumSize);
 
     MinimumSize.right += CurrentParameters.PanelWidth;
-    MinimumSize.right += GetSystemMetrics(SM_CXFRAME) * 2;
-    MinimumSize.bottom += GetSystemMetrics(SM_CYFRAME) * 2;
+    MinimumSize.right += PhGetSystemMetrics(SM_CXFRAME, dpiValue) * 2;
+    MinimumSize.bottom += PhGetSystemMetrics(SM_CYFRAME, dpiValue) * 2;
 
     if (SectionList->Count != 0)
     {
@@ -906,7 +914,8 @@ VOID PhSiNotifyChangeSettings(
 VOID PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ COLORREF Color1,
-    _In_ COLORREF Color2
+    _In_ COLORREF Color2,
+    _In_ LONG dpiValue
     )
 {
     static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
@@ -919,20 +928,20 @@ VOID PhSiSetColorsGraphDrawInfo(
     {
         PhAcquireQueuedLockExclusive(&lock);
 
-        if (lastDpi != PhGlobalDpi)
+        if (lastDpi != dpiValue)
         {
             LOGFONT logFont;
 
-            if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+            if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
             {
-                logFont.lfHeight += PhMultiplyDivide(1, PhGlobalDpi, 72);
+                logFont.lfHeight += PhMultiplyDivide(1, dpiValue, 72);
                 iconTitleFont = CreateFontIndirect(&logFont);
             }
 
             if (!iconTitleFont)
                 iconTitleFont = PhApplicationFont;
 
-            lastDpi = PhGlobalDpi;
+            lastDpi = dpiValue;
         }
 
         DrawInfo->LabelYFont = iconTitleFont;
@@ -1053,13 +1062,25 @@ VOID PhSipInitializeParameters(
     HDC hdc;
     TEXTMETRIC textMetrics;
     HFONT originalFont;
+    LONG dpiValue;
+
+    if(CurrentParameters.Font)
+        DeleteObject(CurrentParameters.Font);
+
+    if(CurrentParameters.MediumFont)
+        DeleteObject(CurrentParameters.MediumFont);
+
+    if(CurrentParameters.LargeFont)
+        DeleteObject(CurrentParameters.LargeFont);
 
     memset(&CurrentParameters, 0, sizeof(PH_SYSINFO_PARAMETERS));
+
+    dpiValue = PhGetWindowDpi(PhSipWindow);
 
     CurrentParameters.SysInfoWindowHandle = PhSipWindow;
     CurrentParameters.ContainerWindowHandle = ContainerControl;
 
-    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
     {
         CurrentParameters.Font = CreateFontIndirect(&logFont);
     }
@@ -1071,10 +1092,10 @@ VOID PhSipInitializeParameters(
 
     hdc = GetDC(PhSipWindow);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, PhGlobalDpi, 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, dpiValue, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, PhGlobalDpi, 72);
+    logFont.lfHeight -= PhMultiplyDivide(3, dpiValue, 72);
     CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
 
     PhSipUpdateColorParameters();
@@ -1094,14 +1115,14 @@ VOID PhSipInitializeParameters(
     SelectFont(hdc, originalFont);
 
     // Internal padding and other values
-    CurrentParameters.PanelPadding = PH_SCALE_DPI(PH_SYSINFO_PANEL_PADDING);
-    CurrentParameters.WindowPadding = PH_SCALE_DPI(PH_SYSINFO_WINDOW_PADDING);
-    CurrentParameters.GraphPadding = PH_SCALE_DPI(PH_SYSINFO_GRAPH_PADDING);
-    CurrentParameters.SmallGraphWidth = PH_SCALE_DPI(PH_SYSINFO_SMALL_GRAPH_WIDTH);
-    CurrentParameters.SmallGraphPadding = PH_SCALE_DPI(PH_SYSINFO_SMALL_GRAPH_PADDING);
-    CurrentParameters.SeparatorWidth = PH_SCALE_DPI(PH_SYSINFO_SEPARATOR_WIDTH);
-    CurrentParameters.CpuPadding = PH_SCALE_DPI(PH_SYSINFO_CPU_PADDING);
-    CurrentParameters.MemoryPadding = PH_SCALE_DPI(PH_SYSINFO_MEMORY_PADDING);
+    CurrentParameters.PanelPadding = PhGetDpi(PH_SYSINFO_PANEL_PADDING, dpiValue);
+    CurrentParameters.WindowPadding = PhGetDpi(PH_SYSINFO_WINDOW_PADDING, dpiValue);
+    CurrentParameters.GraphPadding = PhGetDpi(PH_SYSINFO_GRAPH_PADDING, dpiValue);
+    CurrentParameters.SmallGraphWidth = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_WIDTH, dpiValue);
+    CurrentParameters.SmallGraphPadding = PhGetDpi(PH_SYSINFO_SMALL_GRAPH_PADDING, dpiValue);
+    CurrentParameters.SeparatorWidth = PhGetDpi(PH_SYSINFO_SEPARATOR_WIDTH, dpiValue);
+    CurrentParameters.CpuPadding = PhGetDpi(PH_SYSINFO_CPU_PADDING, dpiValue);
+    CurrentParameters.MemoryPadding = PhGetDpi(PH_SYSINFO_MEMORY_PADDING, dpiValue);
 
     CurrentParameters.MinimumGraphHeight =
         CurrentParameters.PanelPadding +

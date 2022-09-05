@@ -286,7 +286,7 @@ VOID PhMipClearListSection(
     );
 
 LONG PhMipCalculateRowHeight(
-    VOID
+    _In_ HWND hwnd
     );
 
 PPH_MIP_GROUP_NODE PhMipAddGroupNode(

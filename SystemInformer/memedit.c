@@ -260,10 +260,16 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             HexEdit_SetBuffer(context->HexEditHandle, context->Buffer, (ULONG)context->RegionSize);
 
             {
-                PH_RECTANGLE windowRectangle;
+                PH_RECTANGLE windowRectangle = {0};
+                RECT rect;
+                LONG dpiValue;
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
-                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE).Pair;
+
+                rect = PhRectangleToRect(windowRectangle);
+                dpiValue = PhGetMonitorDpi(&rect);
+
+                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
                 PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -274,7 +280,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 windowRectangle.Top += 20;
 
                 PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
-                PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size);
+                PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
             }
 
             {

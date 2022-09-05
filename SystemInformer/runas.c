@@ -616,9 +616,9 @@ static VOID PhpAddAccountsToComboBox(
                     PPH_STRING usernameString;
 
                     usernameString = PhConcatStrings(
-                        3, 
-                        userDomainName->Buffer, 
-                        L"\\", 
+                        3,
+                        userDomainName->Buffer,
+                        L"\\",
                         entry->usri0_name
                         );
 
@@ -894,7 +894,7 @@ static VOID PhpAddDesktopsToComboBox(
     for (i = 0; i < callback.DesktopList->Count; i++)
     {
         INT itemIndex = ComboBox_AddString(
-            ComboBoxHandle, 
+            ComboBoxHandle,
             PhGetString(callback.DesktopList->Items[i])
             );
 
@@ -1055,8 +1055,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 if (!PhIsNullOrEmptyString(runAsUserName))
                 {
                     runAsUserNameIndex = ComboBox_FindString(
-                        context->UserComboBoxWindowHandle, 
-                        0, 
+                        context->UserComboBoxWindowHandle,
+                        0,
                         PhGetString(runAsUserName)
                         );
                 }
@@ -1126,7 +1126,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         }
         break;
     case WM_COMMAND:
-        {    
+        {
             switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case CBN_DROPDOWN:
@@ -1370,7 +1370,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                     NtClose(tokenHandle);
                                 }
-                
+
                                 status = PhCreateProcessWin32Ex(
                                     NULL,
                                     PhGetString(program),
@@ -1390,9 +1390,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                     if (PhGetOwnTokenAttributes().Elevated)
                                     {
-                                        // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 
-                                        // where the process and token security descriptors are created without an ACE for the current user, 
-                                        // owned by the wrong user and with a High-IL when the process token is Medium-IL 
+                                        // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+                                        // where the process and token security descriptors are created without an ACE for the current user,
+                                        // owned by the wrong user and with a High-IL when the process token is Medium-IL
                                         // preventing the new process from accessing user/system resources above Low-IL. (dmex)
 
                                         if (processSecurityDescriptor)
@@ -1933,7 +1933,7 @@ static VOID WINAPI RunAsServiceMain(
     SetRunAsServiceStatus(SERVICE_RUNNING);
 
     portName = PhConcatStrings2(
-        L"\\BaseNamedObjects\\", 
+        L"\\BaseNamedObjects\\",
         RunAsServiceName->Buffer
         );
 
@@ -2270,7 +2270,7 @@ NTSTATUS PhpRunFileProgram(
             );
     }
     else if (Button_GetCheck(Context->RunAsCheckboxHandle) == BST_CHECKED ||
-        // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys 
+        // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys
         // and clicking the OK button, so we'll implement the same functionality. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
@@ -2399,9 +2399,9 @@ NTSTATUS PhpRunFileProgram(
 
             if (PhGetOwnTokenAttributes().Elevated)
             {
-                // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 
-                // where the process and token security descriptors are created without an ACE for the current user, 
-                // owned by the wrong user and with a High-IL when the process token is Medium-IL 
+                // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+                // where the process and token security descriptors are created without an ACE for the current user,
+                // owned by the wrong user and with a High-IL when the process token is Medium-IL
                 // preventing the new process from accessing user/system resources above Low-IL. (dmex)
 
                 if (processSecurityDescriptor)
@@ -2634,6 +2634,41 @@ CleanupExit:
     return status;
 }
 
+VOID PhSetImagelistR(
+    _In_ HWND hwnd,
+    _Inout_ PPHP_RUNFILEDLG context
+    )
+{
+    HICON shieldIcon;
+    LONG dpiValue;
+
+    if(context->ImageListHandle)
+        PhImageListDestroy (context->ImageListHandle);
+
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if (shieldIcon = PhLoadIcon(
+        NULL,
+        IDI_SHIELD,
+        PH_LOAD_ICON_SIZE_SMALL,
+        0,
+        0,
+        dpiValue
+        ))
+    {
+        context->ImageListHandle = PhImageListCreate(
+            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            1,
+            1
+            );
+
+        PhImageListAddIcon(context->ImageListHandle, shieldIcon);
+        DestroyIcon(shieldIcon);
+    }
+}
+
 INT_PTR CALLBACK PhpRunFileWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2691,30 +2726,10 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
-                HICON shieldIcon;
-
                 Button_Enable(context->RunAsInstallerCheckboxHandle, FALSE);
                 context->RunAsInstallerCheckboxDisabled = TRUE;
 
-                if (shieldIcon = PhLoadIcon(
-                    NULL,
-                    IDI_SHIELD,
-                    PH_LOAD_ICON_SIZE_SMALL,
-                    PhSmallIconSize.X,
-                    PhSmallIconSize.Y
-                    ))
-                {
-                    context->ImageListHandle = PhImageListCreate(
-                        PhSmallIconSize.X,
-                        PhSmallIconSize.Y,
-                        ILC_MASK | ILC_COLOR32,
-                        1,
-                        1
-                        );
-
-                    PhImageListAddIcon(context->ImageListHandle, shieldIcon);
-                    DestroyIcon(shieldIcon);
-                }
+                PhSetImagelistR(hwndDlg, context);
             }
         }
         break;
@@ -2726,6 +2741,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 PhImageListDestroy(context->ImageListHandle);
 
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhSetImagelistR(hwndDlg, context);
         }
         break;
     case WM_CTLCOLORSTATIC:
@@ -2815,17 +2835,20 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         {
             HDC hdc = (HDC)wParam;
             RECT clientRect;
+            LONG dpiValue;
 
             if (!GetClientRect(hwndDlg, &clientRect))
                 break;
 
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             SetBkMode(hdc, TRANSPARENT);
 
-            clientRect.bottom -= PH_SCALE_DPI(60);
+            clientRect.bottom -= PhGetDpi(60, dpiValue);
             FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PH_SCALE_DPI(60);
+            clientRect.bottom = clientRect.top + PhGetDpi(60, dpiValue);
             FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
@@ -2859,6 +2882,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                             case CDDS_PREPAINT:
                                 {
                                     PPH_STRING buttonText;
+                                    LONG dpiValue;
+                                    LONG width;
 
                                     SetTextColor(customDraw->hdc, RGB(0, 0, 0));
                                     SetDCBrushColor(customDraw->hdc, RGB(0xff, 0xff, 0xff));
@@ -2866,7 +2891,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                                     if (buttonText = PhGetWindowText(customDraw->hdr.hwndFrom))
                                     {
-                                        customDraw->rc.left += PhSmallIconSize.X;
+                                        dpiValue = PhGetWindowDpi (hwndDlg);
+
+                                        width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+
+                                        customDraw->rc.left += width;
                                         DrawText(
                                             customDraw->hdc,
                                             buttonText->Buffer,
@@ -2874,7 +2903,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                                             &customDraw->rc,
                                             DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
                                             );
-                                        customDraw->rc.left -= PhSmallIconSize.X;
+                                        customDraw->rc.left -= width;
 
                                         PhDereferenceObject(buttonText);
                                     }

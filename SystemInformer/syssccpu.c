@@ -133,12 +133,15 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
+            LONG dpiValue;
 
             if (!drawInfo)
                 break;
 
+            dpiValue = PhGetWindowDpi(Section->DialogHandle);
+
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | PH_GRAPH_LABEL_MAX_Y;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
 
             if (!Section->GraphState.Valid)
@@ -509,6 +512,11 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             PhDeleteLayoutManager(&CpuLayoutManager);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhSipLayoutCpuGraphs();
+        }
+        break;
     case WM_SIZE:
         {
             if (OneGraphPerCpu)
@@ -660,7 +668,14 @@ VOID PhSipLayoutCpuGraphs(
     )
 {
     RECT clientRect;
+    RECT rect;
     HDWP deferHandle;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(CpuDialog);
+
+    rect = CpuGraphMargin;
+    PhGetSizeDpiValue(&rect, dpiValue, TRUE);
 
     GetClientRect(CpuDialog, &clientRect);
     deferHandle = BeginDeferWindowPos(OneGraphPerCpu ? NumberOfProcessors : 1);
@@ -671,10 +686,10 @@ VOID PhSipLayoutCpuGraphs(
             deferHandle,
             CpuGraphHandle,
             NULL,
-            CpuGraphMargin.left,
-            CpuGraphMargin.top,
-            clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right,
-            clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom,
+            rect.left,
+            rect.top,
+            clientRect.right - rect.left - rect.right,
+            clientRect.bottom - rect.top - rect.bottom,
             SWP_NOACTIVATE | SWP_NOZORDER
             );
     }
@@ -701,8 +716,8 @@ VOID PhSipLayoutCpuGraphs(
         ULONG numberOfYPaddings = numberOfRows - 1;
         ULONG numberOfXPaddings = numberOfColumns - 1;
 
-        ULONG cellHeight = (clientRect.bottom - CpuGraphMargin.top - CpuGraphMargin.bottom - CpuSection->Parameters->CpuPadding * numberOfYPaddings) / numberOfRows;
-        ULONG y = CpuGraphMargin.top;
+        ULONG cellHeight = (clientRect.bottom - rect.top - rect.bottom - CpuSection->Parameters->CpuPadding * numberOfYPaddings) / numberOfRows;
+        ULONG y = rect.top;
         ULONG cellWidth;
         ULONG x;
         ULONG i = 0;
@@ -712,17 +727,17 @@ VOID PhSipLayoutCpuGraphs(
             // Give the last row the remaining space; the height we calculated might be off by a few
             // pixels due to integer division.
             if (row == numberOfRows - 1)
-                cellHeight = clientRect.bottom - CpuGraphMargin.bottom - y;
+                cellHeight = clientRect.bottom - rect.bottom - y;
 
-            cellWidth = (clientRect.right - CpuGraphMargin.left - CpuGraphMargin.right - CpuSection->Parameters->CpuPadding * numberOfXPaddings) / numberOfColumns;
-            x = CpuGraphMargin.left;
+            cellWidth = (clientRect.right - rect.left - rect.right - CpuSection->Parameters->CpuPadding * numberOfXPaddings) / numberOfColumns;
+            x = rect.left;
 
             for (ULONG column = 0; column < numberOfColumns; column++)
             {
                 // Give the last cell the remaining space; the width we calculated might be off by a few
                 // pixels due to integer division.
                 if (column == numberOfColumns - 1)
-                    cellWidth = clientRect.right - CpuGraphMargin.right - x;
+                    cellWidth = clientRect.right - rect.right - x;
 
                 if (i < NumberOfProcessors)
                 {
@@ -772,9 +787,12 @@ VOID PhSipNotifyCpuGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
 
             if (Index == ULONG_MAX)
             {

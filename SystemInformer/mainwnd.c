@@ -73,8 +73,10 @@ BOOLEAN PhMainWndInitialization(
 {
     RTL_ATOM windowAtom;
     PPH_STRING windowName;
-    PH_RECTANGLE windowRectangle;
+    PH_RECTANGLE windowRectangle = {0};
+    RECT rect;
     HMENU windowMenuHandle = NULL;
+    LONG dpiValue;
 
     // Set FirstRun default settings.
 
@@ -87,7 +89,11 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE).Pair;
+
+    rect = PhRectangleToRect(windowRectangle);
+    dpiValue = PhGetMonitorDpi(&rect);
+
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue).Pair;
 
     // Create the window title.
     windowName = NULL;
@@ -187,7 +193,7 @@ BOOLEAN PhMainWndInitialization(
     // Initialize child controls.
     PhMwpInitializeControls(PhMainWndHandle);
 
-    PhMwpOnSettingChange();
+    PhMwpOnSettingChange(PhMainWndHandle);
 
     PhMwpLoadSettings(PhMainWndHandle);
     PhLogInitialization();
@@ -284,9 +290,10 @@ LRESULT CALLBACK PhMwpWndProc(
             PhMwpOnEndSession(hWnd);
         }
         break;
+    case WM_DPICHANGED:
     case WM_SETTINGCHANGE:
         {
-            PhMwpOnSettingChange();
+            PhMwpOnSettingChange(hWnd);
         }
         break;
     case WM_COMMAND:
@@ -588,14 +595,14 @@ VOID PhMwpOnEndSession(
 }
 
 VOID PhMwpOnSettingChange(
-    VOID
+    _In_ HWND hwnd
     )
 {
-    PhInitializeFont();
+    PhInitializeFont(hwnd);
 
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
     {
-        PhInitializeMonospaceFont();
+        PhInitializeMonospaceFont(hwnd);
     }
 
     //if (TabControlHandle)
@@ -1958,7 +1965,7 @@ VOID PhMwpOnInitMenuPopup(
     SetMenuInfo(Menu, &menuInfo);
 
     menu = PhpCreateMainMenu(Index);
-    PhMwpInitializeSubMenu(menu, Index);
+    PhMwpInitializeSubMenu(WindowHandle, menu, Index);
 
     if (PhPluginsEnabled)
     {
@@ -2109,7 +2116,7 @@ VOID PhMwpLoadSettings(
 
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
     {
-        PhMwpInvokeUpdateWindowFontMonospace(NULL);
+        PhMwpInvokeUpdateWindowFontMonospace(WindowHandle, NULL);
     }
 
     PhNfLoadStage1();
@@ -2831,11 +2838,15 @@ PPH_EMENU PhpCreateIconMenu(
 }
 
 VOID PhMwpInitializeSubMenu(
+    _In_ HWND hwnd,
     _In_ PPH_EMENU Menu,
     _In_ ULONG Index
     )
 {
     PPH_EMENU_ITEM menuItem;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwnd);
 
     if (Index == PH_MENU_ITEM_LOCATION_HACKER) // Hacker
     {
@@ -2851,7 +2862,7 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhGetShieldBitmap())
+            if (shieldBitmap = PhGetShieldBitmap(dpiValue))
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
                     menuItem->Bitmap = shieldBitmap;
@@ -2960,7 +2971,7 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhGetShieldBitmap())
+            if (shieldBitmap = PhGetShieldBitmap(dpiValue))
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
@@ -3391,6 +3402,14 @@ VOID PhMwpAddIconProcesses(
     ULONG numberOfProcessItems;
     PPH_LIST processList;
     PPH_PROCESS_ITEM processItem;
+    LONG dpiValue;
+    INT width;
+    INT height;
+
+    dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
+    width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
     processList = PhCreateList(numberOfProcessItems);
@@ -3468,7 +3487,7 @@ VOID PhMwpAddIconProcesses(
 
         if (icon = PhGetImageListIcon(processItem->SmallIconIndex, FALSE))
         {
-            iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            iconBitmap = PhIconToBitmap(icon, width, height);
             DestroyIcon(icon);
         }
 
@@ -3703,6 +3722,7 @@ VOID PhMwpInvokeUpdateWindowFont(
 }
 
 VOID PhMwpInvokeUpdateWindowFontMonospace(
+    _In_ HWND hwnd,
     _In_opt_ PVOID Parameter
     )
 {
@@ -3723,7 +3743,7 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
     }
     else
     {
-        PhInitializeMonospaceFont();
+        PhInitializeMonospaceFont(hwnd);
         return;
     }
 
