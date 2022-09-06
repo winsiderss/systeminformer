@@ -4,7 +4,6 @@
 #ifndef PHLIB_NO_DEFAULT_LIB
 #pragma comment(lib, "ntdll.lib")
 #pragma comment(lib, "comctl32.lib")
-#pragma comment(lib, "version.lib")
 #endif
 
 #ifndef UNICODE
