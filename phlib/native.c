@@ -10273,6 +10273,12 @@ NTSTATUS PhGetThreadName(
 
     if (NT_SUCCESS(status))
     {
+        if (buffer->ThreadName.Length == 0)
+        {
+            PhFree(buffer);
+            return STATUS_UNSUCCESSFUL;
+        }
+
         *ThreadName = PhCreateStringFromUnicodeString(&buffer->ThreadName);
     }
 
