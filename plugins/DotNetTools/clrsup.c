@@ -1204,8 +1204,8 @@ PVOID DnLoadMscordaccore(
     )
 {
     // \dotnet\shared\Microsoft.NETCore.App\ is the same path used by the CLR for DAC detection. (dmex)
-    static PH_STRINGREF mscordaccorePathSr = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
-    static PH_STRINGREF mscordaccoreNameSr = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
+    static PH_STRINGREF mscordaccorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
+    static PH_STRINGREF mscordaccoreName = PH_STRINGREF_INIT(L"\\mscordaccore.dll");
     DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)DataTarget;
     PVOID mscordacBaseAddress = NULL;
     HANDLE directoryHandle;
@@ -1248,7 +1248,7 @@ PVOID DnLoadMscordaccore(
         dataTargetDirectory = PhGetBaseDirectory(dataTargetFileName);
     }
 
-    if (!(directoryPath = PhExpandEnvironmentStrings(&mscordaccorePathSr)))
+    if (!(directoryPath = PhExpandEnvironmentStrings(&mscordaccorePath)))
         goto TryAppLocal;
 
     directoryList = PhCreateList(2);
@@ -1275,7 +1275,7 @@ PVOID DnLoadMscordaccore(
         fileName = PhConcatStringRef3(
             &directoryPath->sr,
             &directoryName->sr,
-            &mscordaccoreNameSr
+            &mscordaccoreName
             );
 
         if (PhDoesFileExistWin32(PhGetString(fileName)))
@@ -1319,7 +1319,7 @@ TryAppLocal:
 
         fileName = PhConcatStringRef2(
             &dataTargetDirectory->sr,
-            &mscordaccoreNameSr
+            &mscordaccoreName
             );
 
         PhMoveReference(&fileName, PhGetFileName(fileName));
