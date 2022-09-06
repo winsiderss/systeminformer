@@ -84,7 +84,6 @@ BOOLEAN UpdaterInstalledUsingSetup(
 {
     static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\ProcessHacker");
     static PH_STRINGREF key2xName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Process_Hacker2_is1");
-
     HANDLE keyHandle = NULL;
 
     // Check uninstall entries for the 'ProcessHacker' registry key.
@@ -154,7 +153,7 @@ PPH_STRING UpdateVersionString(
     VOID
     )
 {
-    static PH_STRINGREF versionHeader = PH_STRINGREF_INIT(L"ProcessHacker-Build: ");
+    static PH_STRINGREF versionHeader = PH_STRINGREF_INIT(L"SystemInformer-Build: ");
     ULONG majorVersion;
     ULONG minorVersion;
     ULONG buildVersion;
@@ -230,9 +229,9 @@ PPH_STRING UpdateWindowsString(
     if (fileVersion)
     {
         if (PhIsExecutingInWow64())
-            buildString = PhFormatString(L"%s: %s.%s", L"ProcessHacker-OsBuild", fileVersion->Buffer, L"x86fre");
+            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"x86fre");
         else
-            buildString = PhFormatString(L"%s: %s.%s", L"ProcessHacker-OsBuild", fileVersion->Buffer, L"amd64fre");
+            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"amd64fre");
 
         PhDereferenceObject(fileVersion);
     }
@@ -260,12 +259,12 @@ PPH_STRING UpdateWindowsString(
     //
     //    if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
     //    {
-    //        buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
+    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
     //        PhDereferenceObject(buildLabString);
     //    }
     //    else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
     //    {
-    //        buildLabHeader = PhConcatStrings2(L"ProcessHacker-OsBuild: ", buildLabString->Buffer);
+    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
     //        PhDereferenceObject(buildLabString);
     //    }
     //
@@ -279,10 +278,15 @@ ULONG64 ParseVersionString(
     _Inout_ PPH_STRING VersionString
     )
 {
-    PH_STRINGREF remaining, majorPart, minorPart, revisionPart;
-    ULONG64 majorInteger = 0, minorInteger = 0, revisionInteger = 0;
+    PH_STRINGREF remaining;
+    PH_STRINGREF majorPart;
+    PH_STRINGREF minorPart;
+    PH_STRINGREF revisionPart;
+    ULONG64 majorInteger = 0;
+    ULONG64 minorInteger = 0;
+    ULONG64 revisionInteger = 0;
 
-    PhInitializeStringRefLongHint(&remaining, PhGetStringOrEmpty(VersionString));
+    remaining = PhGetStringRef(VersionString);
 
     PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &minorPart, &remaining);
@@ -301,8 +305,7 @@ ULONG64 ParseVersionString(
 }
 
 BOOLEAN QueryUpdateData(
-    _Inout_ PPH_UPDATER_CONTEXT Context,
-    _In_ BOOLEAN UseSourceForge
+    _Inout_ PPH_UPDATER_CONTEXT Context
     )
 {
     BOOLEAN success = FALSE;
@@ -321,51 +324,25 @@ BOOLEAN QueryUpdateData(
     //
     Context->Type = UpdaterTypeNightly;
 
-    if (UseSourceForge)
+    if (!PhHttpSocketConnect(
+        httpContext,
+        L"systeminformer.sourceforge.io",
+        PH_HTTP_DEFAULT_HTTPS_PORT
+        ))
     {
-        if (!PhHttpSocketConnect(
-            httpContext,
-            L"processhacker.sourceforge.io",
-            PH_HTTP_DEFAULT_HTTPS_PORT
-            ))
-        {
-            Context->ErrorCode = GetLastError();
-            goto CleanupExit;
-        }
-
-        if (!PhHttpSocketBeginRequest(
-            httpContext,
-            NULL,
-            L"/nightly.php?phupdater",
-            PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-            ))
-        {
-            Context->ErrorCode = GetLastError();
-            goto CleanupExit;
-        }
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
     }
-    else
-    {
-        if (!PhHttpSocketConnect(
-            httpContext,
-            L"wj32.org",
-            PH_HTTP_DEFAULT_HTTPS_PORT
-            ))
-        {
-            Context->ErrorCode = GetLastError();
-            goto CleanupExit;
-        }
 
-        if (!PhHttpSocketBeginRequest(
-            httpContext,
-            NULL,
-            L"/processhacker/nightly.php?phupdater",
-            PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-            ))
-        {
-            Context->ErrorCode = GetLastError();
-            goto CleanupExit;
-        }
+    if (!PhHttpSocketBeginRequest(
+        httpContext,
+        NULL,
+        L"/nightly.php?update",
+        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
+        ))
+    {
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
     }
 
     {
@@ -474,11 +451,8 @@ NTSTATUS UpdateCheckSilentThread(
     PhDelayExecution(5 * 1000);
 
     // Query latest update information from the server.
-    if (!QueryUpdateData(context, FALSE))
-    {
-        if (!QueryUpdateData(context, TRUE))
-            goto CleanupExit;
-    }
+    if (!QueryUpdateData(context))
+        goto CleanupExit;
 
     // Compare the current version against the latest available version
     if (context->CurrentVersion < context->LatestVersion)
@@ -526,10 +500,7 @@ NTSTATUS UpdateCheckThread(
     // Check if we have cached update data
     if (!context->HaveData)
     {
-        context->HaveData = QueryUpdateData(context, FALSE);
-
-        if (!context->HaveData)
-            context->HaveData = QueryUpdateData(context, TRUE);
+        context->HaveData = QueryUpdateData(context);
     }
 
     if (!context->HaveData)
