@@ -3590,10 +3590,11 @@ NTSTATUS PhGetFileUsn(
     NTSTATUS status;
     ULONG recordLength;
     PUSN_RECORD_V2 recordBuffer; // USN_RECORD_UNION
+    UCHAR buffer[sizeof(USN_RECORD_V2) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR)];
     IO_STATUS_BLOCK isb;
 
-    recordLength = sizeof(USN_RECORD_V2) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR);
-    recordBuffer = PhAllocate(recordLength);
+    recordLength = sizeof(buffer);
+    recordBuffer = (PUSN_RECORD_V2)buffer;
 
     status = NtFsControlFile(
         FileHandle,
@@ -3601,7 +3602,7 @@ NTSTATUS PhGetFileUsn(
         NULL,
         NULL,
         &isb,
-        FSCTL_READ_FILE_USN_DATA,
+        FSCTL_READ_FILE_USN_DATA, // FSCTL_WRITE_USN_CLOSE_RECORD
         NULL, // READ_FILE_USN_DATA
         0,
         recordBuffer,
@@ -3625,8 +3626,6 @@ NTSTATUS PhGetFileUsn(
         //    break;
         //}
     }
-
-    PhFree(recordBuffer);
 
     return status;
 }
