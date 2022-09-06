@@ -181,7 +181,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     ULONG arrayLength;
 
     versionString = PhGetPhVersion();
-    userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
+    userAgentString = PhConcatStrings2(L"SystemInformer_", versionString->Buffer);
 
     if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
         goto CleanupExit;
@@ -192,7 +192,7 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
     if (!PhHttpSocketBeginRequest(
         httpContext,
         NULL,
-        L"/repos/processhacker/processhacker/commits",
+        L"/repos/winsiderss/systeminformer/commits",
         PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
         ))
     {
@@ -560,7 +560,7 @@ INT_PTR CALLBACK TextDlgProc(
                         if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                         {
                             if (commitHashUrl = PhConcatStrings2(
-                                L"https://github.com/processhacker/processhacker/commit/",
+                                L"https://github.com/winsiderss/systeminformer/commit/",
                                 PhGetString(entry->CommitHashString)
                                 ))
                             {
@@ -734,7 +734,7 @@ INT_PTR CALLBACK TextDlgProc(
                                         if (PhGetListViewItemParam(context->ListViewHandle, lvItemIndex, &entry))
                                         {
                                             if (commitHashUrl = PhConcatStrings2(
-                                                L"https://github.com/processhacker/processhacker/commit/",
+                                                L"https://github.com/winsiderss/systeminformer/commit/",
                                                 PhGetString(entry->CommitHashString)
                                                 ))
                                             {
