@@ -177,8 +177,8 @@ VOID PvGeneralPageSave(
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_LEGACY_TABS, L"EnableLegacyPropertiesDialog");
     SetSettingForLvItemCheckRestartRequired(Context->ListViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_BORDER, L"EnableTreeListBorder");
 
-    PhUpdateCachedSettings();
-    PeSaveSettings();
+    PvUpdateCachedSettings();
+    PvSaveSettings();
 
     if (RestartRequired)
     {
@@ -296,7 +296,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
                     {
                         PhResetSettings();
 
-                        PeSaveSettings();
+                        PvSaveSettings();
 
                         if (PvShellExecuteRestart(hwndDlg))
                         {
