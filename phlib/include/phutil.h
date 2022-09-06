@@ -392,6 +392,13 @@ PhGenerateRandomAlphaString(
     );
 
 PHLIBAPI
+ULONG64
+NTAPI
+PhGenerateRandomNumber64(
+    VOID
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhEllipsisString(
