@@ -1572,7 +1572,7 @@ NtSetLdtEntries(
     _In_ ULONG Entry1Hi
     );
 
-typedef VOID (*PPS_APC_ROUTINE)(
+typedef VOID (NTAPI* PPS_APC_ROUTINE)(
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
