@@ -304,6 +304,7 @@ EXPORTS
     PhGetTokenPrimaryGroup
     PhGetTokenPrivileges
     PhGetTokenUser
+    PhIsFirmwareSupported
     PhImpersonateToken
     PhListenNamedPipe
     PhOpenKey
@@ -384,6 +385,7 @@ EXPORTS
     PhGenerateGuid
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
+    PhGenerateRandomNumber64
     PhGetApplicationDirectory
     PhGetApplicationDirectoryWin32
     PhGetApplicationDirectoryFileNameWin32

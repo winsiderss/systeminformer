@@ -47,7 +47,8 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
     EXTENDEDTOOLS_INTERFACE_VERSION,
     EtLookupTotalGpuAdapterUtilization,
     EtLookupTotalGpuAdapterDedicated,
-    EtLookupTotalGpuAdapterShared
+    EtLookupTotalGpuAdapterShared,
+    EtLookupTotalGpuAdapterEngineUtilization
 };
 
 ULONG ProcessesUpdatedCount = 0;
@@ -178,7 +179,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_FIRMWARE:
         {
-            if (!EfiSupported())
+            if (!PhIsFirmwareSupported())
             {
                 PhShowError(menuItem->OwnerWindow, L"%s", L"Windows was installed using legacy BIOS.");
                 return;
@@ -257,14 +258,13 @@ VOID NTAPI MainMenuInitializingCallback(
 
     if (!(systemMenu = PhFindEMenuItem(menuInfo->Menu, 0, L"System", 0)))
     {
-        PhInsertEMenuItem(menuInfo->Menu, PhCreateEMenuSeparator(), -1);
-        PhInsertEMenuItem(menuInfo->Menu, systemMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&System", NULL), -1);
+        PhInsertEMenuItem(menuInfo->Menu, systemMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&System", NULL), ULONG_MAX);
     }
 
-    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), -1);
-    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), -1);
-    PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), -1);
-    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), -1);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparsePointsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_POINTS, L"NTFS Reparse Points", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparseObjIdMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_OBJID, L"NTFS Object Identifiers", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparseSsdlMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_SDDL, L"NTFS Security Descriptors", NULL), ULONG_MAX);

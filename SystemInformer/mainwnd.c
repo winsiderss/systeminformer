@@ -787,6 +787,7 @@ VOID PhMwpOnCommand(
     case ID_COMPUTER_SHUTDOWN_CRITICAL:
     case ID_COMPUTER_RESTART_UPDATE:
     case ID_COMPUTER_SHUTDOWN_UPDATE:
+    case ID_COMPUTER_RESTARTWDOSCAN:
         PhMwpExecuteComputerCommand(WindowHandle, Id);
         break;
     case ID_HACKER_EXIT:
@@ -2294,6 +2295,9 @@ BOOLEAN PhMwpExecuteComputerCommand(
     case ID_COMPUTER_SHUTDOWN_UPDATE:
         PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_UPDATE, 0);
         return TRUE;
+    case ID_COMPUTER_RESTARTWDOSCAN:
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_WDOSCAN, 0);
+        return TRUE;
     }
 
     return FALSE;
@@ -2375,7 +2379,10 @@ PPH_EMENU PhpCreateComputerMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_COMPUTER_RESTARTFWOPTIONS, L"Restart to firmware options", NULL, NULL), ULONG_MAX);
     if (PhGetIntegerSetting(L"EnableShutdownBootMenu"))
     {
-        PhInsertEMenuItem(menuItem, PhUiCreateComputerBootDeviceMenu(DelayLoadMenu), ULONG_MAX);
+        PVOID bootApplicationMenu = PhUiCreateComputerBootDeviceMenu(DelayLoadMenu);
+        if (PhGetOwnTokenAttributes().Elevated)
+            PhInsertEMenuItem(bootApplicationMenu, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTWDOSCAN, L"Windows Defender Offline Scan", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menuItem, bootApplicationMenu, ULONG_MAX);
         PhInsertEMenuItem(menuItem, PhUiCreateComputerFirmwareDeviceMenu(DelayLoadMenu), ULONG_MAX);
     }
     PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);

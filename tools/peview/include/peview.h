@@ -153,11 +153,15 @@ VOID PvConfigTreeBorders(
 
 extern BOOLEAN PeEnableThemeSupport;
 
-VOID PeInitializeSettings(
+VOID PvInitializeSettings(
     VOID
     );
 
-VOID PeSaveSettings(
+VOID PvSaveSettings(
+    VOID
+    );
+
+VOID PvUpdateCachedSettings(
     VOID
     );
 

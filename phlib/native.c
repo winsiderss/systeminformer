@@ -3590,10 +3590,11 @@ NTSTATUS PhGetFileUsn(
     NTSTATUS status;
     ULONG recordLength;
     PUSN_RECORD_V2 recordBuffer; // USN_RECORD_UNION
+    UCHAR buffer[sizeof(USN_RECORD_V2) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR)];
     IO_STATUS_BLOCK isb;
 
-    recordLength = sizeof(USN_RECORD_V2) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR);
-    recordBuffer = PhAllocate(recordLength);
+    recordLength = sizeof(buffer);
+    recordBuffer = (PUSN_RECORD_V2)buffer;
 
     status = NtFsControlFile(
         FileHandle,
@@ -3601,7 +3602,7 @@ NTSTATUS PhGetFileUsn(
         NULL,
         NULL,
         &isb,
-        FSCTL_READ_FILE_USN_DATA,
+        FSCTL_READ_FILE_USN_DATA, // FSCTL_WRITE_USN_CLOSE_RECORD
         NULL, // READ_FILE_USN_DATA
         0,
         recordBuffer,
@@ -3625,8 +3626,6 @@ NTSTATUS PhGetFileUsn(
         //    break;
         //}
     }
-
-    PhFree(recordBuffer);
 
     return status;
 }
@@ -8606,6 +8605,54 @@ NTSTATUS PhOpenFileWin32Ex(
     return status;
 }
 
+NTSTATUS PhOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions,
+    _Out_opt_ PULONG OpenStatus
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        ShareAccess,
+        OpenOptions
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    if (OpenStatus)
+    {
+        *OpenStatus = (ULONG)ioStatusBlock.Information;
+    }
+
+    return status;
+}
+
 // rev from OpenFileById
 NTSTATUS PhOpenFileById(
     _Out_ PHANDLE FileHandle,
@@ -10226,6 +10273,12 @@ NTSTATUS PhGetThreadName(
 
     if (NT_SUCCESS(status))
     {
+        if (buffer->ThreadName.Length == 0)
+        {
+            PhFree(buffer);
+            return STATUS_UNSUCCESSFUL;
+        }
+
         *ThreadName = PhCreateStringFromUnicodeString(&buffer->ThreadName);
     }
 

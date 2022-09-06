@@ -38,15 +38,6 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
     _In_ PVOID Entry
     );
 
-VOID PhpFreeSettingValue(
-    _In_ PH_SETTING_TYPE Type,
-    _In_ PPH_SETTING Setting
-    );
-
-PVOID PhpLookupSetting(
-    _In_ PPH_STRINGREF Name
-    );
-
 PPH_HASHTABLE PhSettingsHashtable;
 PH_QUEUED_LOCK PhSettingsLock = PH_QUEUED_LOCK_INIT;
 PPH_LIST PhIgnoredSettings;
@@ -62,9 +53,6 @@ VOID PhSettingsInitialization(
         512
         );
     PhIgnoredSettings = PhCreateList(4);
-
-    PhAddDefaultSettings();
-    PhUpdateCachedSettings();
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableEqualFunction(
@@ -736,8 +724,6 @@ NTSTATUS PhLoadSettings(
 
     PhFreeXmlObject(topNode);
 
-    PhUpdateCachedSettings();
-
     return STATUS_SUCCESS;
 }
 
@@ -906,6 +892,19 @@ VOID PhAddSettings(
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
+}
+
+PPH_SETTING PhGetSetting(
+    _In_ PPH_STRINGREF Name
+    )
+{
+    PPH_SETTING setting;
+
+    PhAcquireQueuedLockShared(&PhSettingsLock);
+    setting = PhpLookupSetting(Name);
+    PhReleaseQueuedLockShared(&PhSettingsLock);
+
+    return setting;
 }
 
 VOID PhLoadWindowPlacementFromSetting(

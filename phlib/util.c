@@ -1134,14 +1134,16 @@ VOID PhGenerateGuid(
     _Out_ PGUID Guid
     )
 {
-    static ULONG seed = 0;
+    LARGE_INTEGER seed;
     // The top/sign bit is always unusable for RtlRandomEx (the result is always unsigned), so we'll
     // take the bottom 24 bits. We need 128 bits in total, so we'll call the function 6 times.
     ULONG random[6];
     ULONG i;
 
+    PhQueryPerformanceCounter(&seed, NULL);
+
     for (i = 0; i < 6; i++)
-        random[i] = RtlRandomEx(&seed);
+        random[i] = RtlRandomEx(&seed.LowPart);
 
     // random[0] is usable
     *(PUSHORT)&Guid->Data1 = (USHORT)random[0];
@@ -1254,18 +1256,31 @@ VOID PhGenerateRandomAlphaString(
     _In_ ULONG Count
     )
 {
-    static ULONG seed = 0;
+    LARGE_INTEGER seed;
     ULONG i;
 
     if (Count == 0)
         return;
 
+    PhQueryPerformanceCounter(&seed, NULL);
+
     for (i = 0; i < Count - 1; i++)
     {
-        Buffer[i] = L'A' + (RtlRandomEx(&seed) % 26);
+        Buffer[i] = L'A' + (RtlRandomEx(&seed.LowPart) % 26);
     }
 
     Buffer[Count - 1] = UNICODE_NULL;
+}
+
+ULONG64 PhGenerateRandomNumber64(
+    VOID
+    )
+{
+    LARGE_INTEGER seed;
+
+    PhQueryPerformanceCounter(&seed, NULL);
+
+    return (ULONG64)RtlRandomEx(&seed.LowPart) | ((ULONG64)RtlRandomEx(&seed.LowPart) << 31);
 }
 
 /**

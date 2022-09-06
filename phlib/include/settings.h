@@ -51,16 +51,6 @@ PhSettingsInitialization(
     VOID
     );
 
-// Note: Program specific function.
-VOID PhAddDefaultSettings(
-    VOID
-    );
-
-// Note: Program specific function.
-VOID PhUpdateCachedSettings(
-    VOID
-    );
-
 // private
 
 PPH_STRING PhSettingToString(
@@ -383,6 +373,13 @@ NTAPI
 PhAddSettings(
     _In_ PPH_SETTING_CREATE Settings,
     _In_ ULONG NumberOfSettings
+    );
+
+PHLIBAPI
+PPH_SETTING
+NTAPI
+PhGetSetting(
+    _In_ PPH_STRINGREF Name
     );
 
 VOID

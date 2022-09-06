@@ -836,6 +836,11 @@ FLOAT EtLookupTotalGpuAdapterUtilization(
     _In_ LUID AdapterLuid
     );
 
+FLOAT EtLookupTotalGpuAdapterEngineUtilization(
+    _In_ LUID AdapterLuid,
+    _In_ ULONG EngineId
+    );
+
 ULONG64 EtLookupTotalGpuDedicated(
     VOID
     );
@@ -1193,10 +1198,6 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-    );
-
-BOOLEAN EfiSupported(
-    VOID
     );
 
 // objmgr

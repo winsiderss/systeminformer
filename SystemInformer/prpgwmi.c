@@ -592,7 +592,6 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     PVOID imageBaseAddress;
     PPH_STRING wbemProviderString = NULL;
     BSTR wbemResourceString = NULL;
-    BSTR wbemLanguageString = NULL;
     BSTR wbemQueryString = NULL;
     IWbemLocator* wbemLocator = NULL;
     IWbemServices* wbemServices = NULL;
@@ -846,8 +845,6 @@ PPH_STRING PhpQueryWmiProviderStatistics(
 CleanupExit:
     if (wbemQueryString)
         SysFreeString(wbemQueryString);
-    if (wbemLanguageString)
-        SysFreeString(wbemLanguageString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
     if (wbemEnumerator)

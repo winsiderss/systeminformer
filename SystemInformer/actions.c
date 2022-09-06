@@ -22,8 +22,9 @@
 #include <winsta.h>
 
 #include <kphuser.h>
-#include <svcsup.h>
+#include <secedit.h>
 #include <settings.h>
+#include <svcsup.h>
 
 #include <apiimport.h>
 #include <appresolver.h>
@@ -600,7 +601,7 @@ BOOLEAN PhUiRestartComputer(
                     NULL,
                     NULL,
                     0,
-                    SHUTDOWN_RESTART | Flags,
+                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART | Flags,
                     SHTDN_REASON_FLAG_PLANNED
                     );
 
@@ -706,7 +707,7 @@ BOOLEAN PhUiRestartComputer(
                         NULL,
                         NULL,
                         0,
-                        SHUTDOWN_RESTART,
+                        SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
                         SHTDN_REASON_FLAG_PLANNED
                         );
 
@@ -894,7 +895,7 @@ BOOLEAN PhUiRestartComputer(
                         NULL,
                         NULL,
                         0,
-                        SHUTDOWN_RESTART,
+                        SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
                         SHTDN_REASON_FLAG_PLANNED
                         );
 
@@ -928,7 +929,7 @@ BOOLEAN PhUiRestartComputer(
                     NULL,
                     NULL,
                     0,
-                    SHUTDOWN_RESTART | SHUTDOWN_INSTALL_UPDATES,
+                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART | SHUTDOWN_INSTALL_UPDATES,
                     SHTDN_REASON_FLAG_PLANNED
                     );
 
@@ -937,6 +938,34 @@ BOOLEAN PhUiRestartComputer(
 
                 PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
             }
+        }
+        break;
+    case PH_POWERACTION_TYPE_WDOSCAN:
+        {
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"restart",
+                L"the computer for Windows Defender Offline Scan",
+                NULL,
+                FALSE
+                ))
+            {
+                HRESULT status;
+
+                status = PhRestartDefenderOfflineScan();
+
+                if (status == S_OK)
+                    return TRUE;
+                
+                if ((status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0))
+                {
+                    PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, HRESULT_CODE(status));
+                }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"Unable to restart the computer.", STATUS_UNSUCCESSFUL, 0);
+                }
+            }       
         }
         break;
     }
@@ -968,7 +997,7 @@ BOOLEAN PhUiShutdownComputer(
                     NULL,
                     NULL,
                     0,
-                    SHUTDOWN_POWEROFF | Flags,
+                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_POWEROFF | Flags,
                     SHTDN_REASON_FLAG_PLANNED
                     );
 
@@ -1070,7 +1099,7 @@ BOOLEAN PhUiShutdownComputer(
                     NULL,
                     NULL,
                     0,
-                    SHUTDOWN_POWEROFF | SHUTDOWN_INSTALL_UPDATES,
+                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_POWEROFF | SHUTDOWN_INSTALL_UPDATES,
                     SHTDN_REASON_FLAG_PLANNED
                     );
 
@@ -1214,7 +1243,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
             NULL,
             NULL,
             0,
-            SHUTDOWN_RESTART,
+            SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
             SHTDN_REASON_FLAG_PLANNED
             );
 
@@ -1266,7 +1295,7 @@ VOID PhUiHandleComputerFirmwareApplicationMenu(
             NULL,
             NULL,
             0,
-            SHUTDOWN_RESTART,
+            SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
             SHTDN_REASON_FLAG_PLANNED
             );
 
@@ -3096,7 +3125,7 @@ BOOLEAN PhUiLoadDllProcess(
             &processHandle,
             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION |
             PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-            PROCESS_VM_READ | PROCESS_VM_WRITE,
+            PROCESS_VM_READ | PROCESS_VM_WRITE | SYNCHRONIZE,
             Process->ProcessId
             );
     }

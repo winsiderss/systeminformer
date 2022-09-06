@@ -175,12 +175,20 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                     {
                         PhDivideSinglesBySingle(Section->GraphState.Data1, max, drawInfo->LineDataCount);
                     }
-                }
 
-                if (EtEnableScaleText)
+                    if (EtEnableScaleText)
+                    {
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = max;
+                    }
+                }
+                else
                 {
-                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = 1.0f;
+                    if (EtEnableScaleText)
+                    {
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = 1.0f;
+                    }
                 }
 
                 Section->GraphState.Valid = TRUE;
@@ -852,12 +860,20 @@ VOID EtpNotifyGpuGraph(
                     {
                         PhDivideSinglesBySingle(GpuGraphState.Data1, max, drawInfo->LineDataCount);
                     }
-                }
 
-                if (EtEnableScaleText)
+                    if (EtEnableScaleText)
+                    {
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = max;
+                    }
+                }
+                else
                 {
-                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
-                    drawInfo->LabelYFunctionParameter = 1.0f;
+                    if (EtEnableScaleText)
+                    {
+                        drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                        drawInfo->LabelYFunctionParameter = 1.0f;
+                    }
                 }
 
                 GpuGraphState.Valid = TRUE;
