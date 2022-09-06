@@ -11,10 +11,10 @@
 
 #include <peview.h>
 
-static PPH_STRING PeSettingsFileName = NULL;
+static PPH_STRING PvSettingsFileName = NULL;
 BOOLEAN PeEnableThemeSupport = FALSE;
 
-VOID PhAddDefaultSettings(
+VOID PvAddDefaultSettings(
     VOID
     )
 {
@@ -87,7 +87,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"ExportsWslListViewColumns", L"");
 }
 
-VOID PhUpdateCachedSettings(
+VOID PvUpdateCachedSettings(
     VOID
     )
 {
@@ -95,7 +95,7 @@ VOID PhUpdateCachedSettings(
     PeEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
 }
 
-VOID PeInitializeSettings(
+VOID PvInitializeSettings(
     VOID
     )
 {
@@ -104,6 +104,8 @@ VOID PeInitializeSettings(
     NTSTATUS status;
     PPH_STRING appFileName;
     PPH_STRING tempFileName;  
+
+    PvAddDefaultSettings();
 
     // There are three possible locations for the settings file:
     // 1. A file named peview.exe.settings.xml in the program directory. (This changes
@@ -182,9 +184,11 @@ VOID PeInitializeSettings(
 
     // Apply basic global settings.
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
+
+    PvUpdateCachedSettings();
 }
 
-VOID PeSaveSettings(
+VOID PvSaveSettings(
     VOID
     )
 {

@@ -133,7 +133,6 @@ INT WINAPI wWinMain(
         PhExitApplication(PhRunAsServiceStart(PhStartupParameters.RunAsServiceMode));
     }
 
-    PhSettingsInitialization();
     PhpInitializeSettings();
 
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
@@ -1476,6 +1475,10 @@ VOID PhpInitializeSettings(
 {
     NTSTATUS status;
 
+    PhSettingsInitialization();
+    PhAddDefaultSettings();
+    PhUpdateCachedSettings();
+
     if (!PhStartupParameters.NoSettings)
     {
         static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
@@ -1526,6 +1529,7 @@ VOID PhpInitializeSettings(
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
         {
             status = PhLoadSettings(&PhSettingsFileName->sr);
+            PhUpdateCachedSettings();
 
             // If we didn't find the file, it will be created. Otherwise,
             // there was probably a parsing error and we don't want to
