@@ -158,7 +158,6 @@ typedef struct _PH_HTTP_CONTEXT
     PVOID SessionHandle;
     PVOID ConnectionHandle;
     PVOID RequestHandle;
-    PWSTR ServerName;
 } PH_HTTP_CONTEXT, *PPH_HTTP_CONTEXT;
 
 _Success_(return)
