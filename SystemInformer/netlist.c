@@ -377,7 +377,15 @@ BEGIN_SORT_FUNCTION(LocalAddress)
     }
     else
     {
-        sortResult = PhCompareStringZ(networkItem1->LocalAddressString, networkItem2->LocalAddressString, FALSE);
+        PH_STRINGREF item1;
+        PH_STRINGREF item2;
+
+        item1.Buffer = networkItem1->LocalAddressString;
+        item1.Length = networkItem1->LocalAddressStringLength;
+        item2.Buffer = networkItem2->LocalAddressString;
+        item2.Length = networkItem2->LocalAddressStringLength;
+
+        sortResult = PhCompareStringRef(&item1, &item2, FALSE);
     }
 }
 END_SORT_FUNCTION
@@ -406,7 +414,15 @@ BEGIN_SORT_FUNCTION(RemoteAddress)
     }
     else
     {
-        sortResult = PhCompareStringZ(networkItem1->RemoteAddressString, networkItem2->RemoteAddressString, FALSE);
+        PH_STRINGREF item1;
+        PH_STRINGREF item2;
+
+        item1.Buffer = networkItem1->RemoteAddressString;
+        item1.Length = networkItem1->RemoteAddressStringLength;
+        item2.Buffer = networkItem2->RemoteAddressString;
+        item2.Length = networkItem2->RemoteAddressStringLength;
+
+        sortResult = PhCompareStringRef(&item1, &item2, FALSE);
     }
 }
 END_SORT_FUNCTION
@@ -776,7 +792,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
