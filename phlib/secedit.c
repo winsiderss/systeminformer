@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -1995,7 +1995,6 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     PVOID securityDescriptorData = NULL;
     PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
-    BSTR wbemLanguageString = NULL;
     BSTR wbemQueryString = NULL;
     BSTR wbemMethodString = NULL;
     IWbemLocator* wbemLocator = NULL;
@@ -2128,8 +2127,6 @@ CleanupExit:
         SysFreeString(wbemMethodString);
     if (wbemQueryString)
         SysFreeString(wbemQueryString);
-    if (wbemLanguageString)
-        SysFreeString(wbemLanguageString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
     if (querySelectString)
@@ -2162,7 +2159,6 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     PVOID imageBaseAddress;
     PPH_STRING querySelectString = NULL;
     BSTR wbemResourceString = NULL;
-    BSTR wbemLanguageString = NULL;
     BSTR wbemQueryString = NULL;
     BSTR wbemMethodString = NULL;
     IWbemLocator* wbemLocator = NULL;
@@ -2355,8 +2351,6 @@ CleanupExit:
         SysFreeString(wbemMethodString);
     if (wbemQueryString)
         SysFreeString(wbemQueryString);
-    if (wbemLanguageString)
-        SysFreeString(wbemLanguageString);
     if (wbemResourceString)
         SysFreeString(wbemResourceString);
     if (querySelectString)
@@ -2373,4 +2367,133 @@ CleanupExit:
         return STATUS_INVALID_PARAMETER;
 
     return STATUS_INVALID_SECURITY_DESCR;
+}
+
+HRESULT PhRestartDefenderOfflineScan(
+    VOID
+    )
+{
+    HRESULT status;
+    PVOID imageBaseAddress;
+    PPH_STRING querySelectString = NULL;
+    BSTR wbemResourceString = NULL;
+    BSTR wbemQueryString = NULL;
+    BSTR wbemMethodString = NULL;
+    IWbemLocator* wbemLocator = NULL;
+    IWbemServices* wbemServices = NULL;
+    IWbemClassObject* wbemClassObject = NULL;
+    IWbemClassObject* wbemStartClassObject = 0;
+    VARIANT variantReturnValue = { VT_EMPTY };
+
+    if (!(imageBaseAddress = PhGetWbemProxDllBase()))
+        return STATUS_UNSUCCESSFUL;
+
+    status = PhGetClassObjectDllBase(
+        imageBaseAddress,
+        &CLSID_WbemLocator,
+        &IID_IWbemLocator,
+        &wbemLocator
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemResourceString = SysAllocString(L"Root\\Microsoft\\Windows\\Defender");
+    status = IWbemLocator_ConnectServer(
+        wbemLocator,
+        wbemResourceString,
+        NULL,
+        NULL,
+        NULL,
+        WBEM_FLAG_CONNECT_USE_MAX_WAIT,
+        NULL,
+        NULL,
+        &wbemServices
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = CoSetProxyBlanket(
+        (IUnknown*)wbemServices,
+        RPC_C_AUTHN_WINNT,
+        RPC_C_AUTHZ_NONE,
+        NULL,
+        RPC_C_AUTHN_LEVEL_CALL,
+        RPC_C_IMP_LEVEL_IMPERSONATE,
+        NULL,
+        EOAC_NONE
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemQueryString = SysAllocString(L"MSFT_MpWDOScan");
+    status = IWbemServices_GetObject(
+        wbemServices,
+        wbemQueryString,
+        0,
+        NULL,
+        &wbemClassObject,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    wbemMethodString = SysAllocString(L"Start");
+    status = IWbemServices_ExecMethod(
+        wbemServices,
+        wbemQueryString,
+        wbemMethodString,
+        0,
+        NULL,
+        wbemClassObject,
+        &wbemStartClassObject,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = IWbemClassObject_Get(
+        wbemStartClassObject,
+        L"ReturnValue",
+        0,
+        &variantReturnValue,
+        NULL,
+        NULL
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    if (V_UI4(&variantReturnValue) != ERROR_SUCCESS)
+    {
+        status = HRESULT_FROM_WIN32(V_UI4(&variantReturnValue));
+        goto CleanupExit;
+    }
+
+CleanupExit:
+    if (wbemStartClassObject)
+        IWbemClassObject_Release(wbemStartClassObject);
+    if (wbemServices)
+        IWbemServices_Release(wbemServices);
+    if (wbemClassObject)
+        IWbemClassObject_Release(wbemClassObject);
+    if (wbemLocator)
+        IWbemLocator_Release(wbemLocator);
+
+    VariantClear(&variantReturnValue);
+
+    if (wbemMethodString)
+        SysFreeString(wbemMethodString);
+    if (wbemQueryString)
+        SysFreeString(wbemQueryString);
+    if (wbemResourceString)
+        SysFreeString(wbemResourceString);
+    if (querySelectString)
+        PhDereferenceObject(querySelectString);
+
+    return status;
 }

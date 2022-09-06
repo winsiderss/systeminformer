@@ -179,6 +179,13 @@ PhGetAccessString(
     _In_ ULONG NumberOfAccessEntries
     );
 
+
+// WDOScan (Todo: Move to better location) (dmex)
+
+HRESULT PhRestartDefenderOfflineScan(
+    VOID
+    );
+
 #ifdef __cplusplus
 }
 #endif

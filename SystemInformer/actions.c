@@ -22,8 +22,9 @@
 #include <winsta.h>
 
 #include <kphuser.h>
-#include <svcsup.h>
+#include <secedit.h>
 #include <settings.h>
+#include <svcsup.h>
 
 #include <apiimport.h>
 #include <appresolver.h>
@@ -937,6 +938,34 @@ BOOLEAN PhUiRestartComputer(
 
                 PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
             }
+        }
+        break;
+    case PH_POWERACTION_TYPE_WDOSCAN:
+        {
+            if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                WindowHandle,
+                L"restart",
+                L"the computer for Windows Defender Offline Scan",
+                NULL,
+                FALSE
+                ))
+            {
+                HRESULT status;
+
+                status = PhRestartDefenderOfflineScan();
+
+                if (status == S_OK)
+                    return TRUE;
+                
+                if ((status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0))
+                {
+                    PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, HRESULT_CODE(status));
+                }
+                else
+                {
+                    PhShowStatus(WindowHandle, L"Unable to restart the computer.", STATUS_UNSUCCESSFUL, 0);
+                }
+            }       
         }
         break;
     }
