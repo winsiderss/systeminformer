@@ -110,7 +110,7 @@ INT WINAPI wWinMain(
 
     PhGuiSupportInitialization();
     PhSettingsInitialization();
-    PeInitializeSettings();
+    PvInitializeSettings();
     PvPropInitialization();
     PhTreeNewInitialization();
 
@@ -287,7 +287,7 @@ INT WINAPI wWinMain(
         }
     }
 
-    PeSaveSettings();
+    PvSaveSettings();
 
     return 0;
 }
