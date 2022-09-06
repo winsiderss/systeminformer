@@ -99,8 +99,6 @@ VOID PvInitializeSettings(
     VOID
     )
 {
-    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\peview.xml");
-    static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     NTSTATUS status;
     PPH_STRING appFileName;
     PPH_STRING tempFileName;  
@@ -116,11 +114,11 @@ VOID PvInitializeSettings(
 
     if (appFileName = PhGetApplicationFileNameWin32())
     {
-        tempFileName = PhConcatStringRef2(&appFileName->sr, &settingsSuffix);
+        tempFileName = PhConcatStringRefZ(&appFileName->sr, L".settings.xml");
 
         if (PhDoesFileExistWin32(PhGetString(tempFileName)))
         {
-            PeSettingsFileName = tempFileName;
+            PvSettingsFileName = tempFileName;
         }
         else
         {
@@ -131,14 +129,15 @@ VOID PvInitializeSettings(
     }
 
     // 2. Default location
-    if (PhIsNullOrEmptyString(PeSettingsFileName))
+    if (PhIsNullOrEmptyString(PvSettingsFileName))
     {
-        PeSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
+        PvSettingsFileName = PhExpandEnvironmentStringsZ(L"%APPDATA%\\SystemInformer\\peview.xml");
     }
 
-    if (!PhIsNullOrEmptyString(PeSettingsFileName))
+    if (!PhIsNullOrEmptyString(PvSettingsFileName))
     {
-        status = PhLoadSettings(&PeSettingsFileName->sr);
+        status = PhLoadSettings(&PvSettingsFileName->sr);
+        PvUpdateCachedSettings();
 
         // If we didn't find the file, it will be created. Otherwise,
         // there was probably a parsing error and we don't want to
@@ -176,8 +175,8 @@ VOID PvInitializeSettings(
             else
             {
                 // Pretend we don't have a settings store so bad things don't happen.
-                PhDereferenceObject(PeSettingsFileName);
-                PeSettingsFileName = NULL;
+                PhDereferenceObject(PvSettingsFileName);
+                PvSettingsFileName = NULL;
             }
         }
     }
@@ -192,6 +191,6 @@ VOID PvSaveSettings(
     VOID
     )
 {
-    if (!PhIsNullOrEmptyString(PeSettingsFileName))
-        PhSaveSettings(&PeSettingsFileName->sr);
+    if (!PhIsNullOrEmptyString(PvSettingsFileName))
+        PhSaveSettings(&PvSettingsFileName->sr);
 }
