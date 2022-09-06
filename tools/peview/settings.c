@@ -160,7 +160,7 @@ VOID PvInitializeSettings(
                 // and overwrite it with some valid XML, especially with case (2) above.
                 if (NT_SUCCESS(PhCreateFileWin32(
                     &fileHandle,
-                    PeSettingsFileName->Buffer,
+                    PhGetString(PvSettingsFileName),
                     FILE_GENERIC_WRITE,
                     FILE_ATTRIBUTE_NORMAL,
                     FILE_SHARE_READ | FILE_SHARE_DELETE,
