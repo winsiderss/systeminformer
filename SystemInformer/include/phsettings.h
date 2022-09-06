@@ -1,6 +1,20 @@
 #ifndef PH_SETTINGS_H
 #define PH_SETTINGS_H
 
+_User_set_
+VOID 
+NTAPI
+PhAddDefaultSettings(
+    VOID
+    );
+
+_User_set_
+VOID 
+NTAPI
+PhUpdateCachedSettings(
+    VOID
+    );
+
 // Cached settings
 
 #undef EXT
