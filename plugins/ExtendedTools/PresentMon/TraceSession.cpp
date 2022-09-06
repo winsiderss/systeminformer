@@ -258,7 +258,7 @@ ULONG TraceSession_StopNamedSession(
     TraceProperties sessionProps = { };
     sessionProps.Wnode.BufferSize = (ULONG)sizeof(TraceProperties);
     sessionProps.LoggerNameOffset = offsetof(TraceProperties, mSessionName);
-    return ControlTrace(NULL, L"PhPresentTraceSession", &sessionProps, EVENT_TRACE_CONTROL_STOP);
+    return ControlTrace(NULL, L"SiPresentTraceSession", &sessionProps, EVENT_TRACE_CONTROL_STOP);
 }
 
 BOOLEAN StartFpsTraceSession(
@@ -279,7 +279,7 @@ BOOLEAN StartFpsTraceSession(
 
     status = ControlTrace(
         NULL,
-        L"PhPresentTraceSession",
+        L"SiPresentTraceSession",
         &sessionProps,
         EVENT_TRACE_CONTROL_QUERY
         );
@@ -293,7 +293,7 @@ BOOLEAN StartFpsTraceSession(
         sessionProps.LogFileNameOffset = 0;
         status = StartTrace(
             &mSessionHandle,
-            L"PhPresentTraceSession",
+            L"SiPresentTraceSession",
             &sessionProps
             );
 
@@ -319,7 +319,7 @@ BOOLEAN StartFpsTraceSession(
         EVENT_TRACE_LOGFILE traceProps = {};
         traceProps.ProcessTraceMode = PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_RAW_TIMESTAMP;
         traceProps.EventRecordCallback = EventRecordCallback;
-        traceProps.LoggerName = const_cast<LPWSTR>(L"PhPresentTraceSession");
+        traceProps.LoggerName = const_cast<LPWSTR>(L"SiPresentTraceSession");
         traceProps.ProcessTraceMode |= PROCESS_TRACE_MODE_REAL_TIME;
         mTraceHandle = OpenTrace(&traceProps);
 
