@@ -1521,6 +1521,18 @@ PhOpenFileWin32Ex(
     _Out_opt_ PULONG OpenStatus
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions,
+    _Out_opt_ PULONG OpenStatus
+    );
+
 typedef struct _PH_FILE_ID_DESCRIPTOR
 {
     FILE_ID_TYPE Type;

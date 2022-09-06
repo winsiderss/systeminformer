@@ -8605,6 +8605,54 @@ NTSTATUS PhOpenFileWin32Ex(
     return status;
 }
 
+NTSTATUS PhOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions,
+    _Out_opt_ PULONG OpenStatus
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        ShareAccess,
+        OpenOptions
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    if (OpenStatus)
+    {
+        *OpenStatus = (ULONG)ioStatusBlock.Information;
+    }
+
+    return status;
+}
+
 // rev from OpenFileById
 NTSTATUS PhOpenFileById(
     _Out_ PHANDLE FileHandle,
