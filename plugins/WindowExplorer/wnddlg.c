@@ -592,6 +592,36 @@ LRESULT CALLBACK WepFindWindowButtonSubclassProc(
     return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
+BOOLEAN WepWindowEndTask(
+    _In_ HWND WindowHandle,
+    _In_ BOOL Force
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* EndTask_I)(
+        _In_ HWND WindowHandle,
+        _In_ BOOL ShutDown,
+        _In_ BOOL Force
+        );
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE moduleHandle;
+
+        if (moduleHandle = PhLoadLibrary(L"user32.dll"))
+        {
+            EndTask_I = PhGetProcedureAddress(moduleHandle, "EndTask", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!EndTask_I)
+        return FALSE;
+
+    return !!EndTask_I(WindowHandle, FALSE, Force);
+}
+
 INT_PTR CALLBACK WepWindowsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -894,6 +924,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
+                        //WepWindowEndTask(selectedNode->WindowHandle, TRUE);
                         PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
                     }
                 }
@@ -1543,6 +1574,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
+                        //WepWindowEndTask(selectedNode->WindowHandle, TRUE);
                         PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
                     }
                 }
