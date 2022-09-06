@@ -689,6 +689,19 @@ PhExpandEnvironmentStrings(
     _In_ PPH_STRINGREF String
     );
 
+FORCEINLINE
+PPH_STRING
+PhExpandEnvironmentStringsZ(
+    _In_ PWSTR String
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+
+    return PhExpandEnvironmentStrings(&string);
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
