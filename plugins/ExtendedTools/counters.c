@@ -47,15 +47,16 @@ typedef struct _ET_GPU_PROCESS_COUNTER
 // [1] Running Time
 // [2] Utilization Percentage
 DEFINE_GUID(GUID_GPU_ENGINE, 0x978C167D, 0x4764, 0x4D9C, 0x98, 0x24, 0x14, 0x74, 0x73, 0x51, 0xDC, 0x81);
+#define ET_GPU_ENGINE_RUNNINGTIME_COUNTER 1
 
 //{BE2139C7-AB81-424D-B107-D87F7C9322AC} - "GPU Adapter Memory"
 // [1] Total Committed
 // [2] Dedicated Usage
 // [3] Shared Usage
 DEFINE_GUID(GUID_GPU_ADAPTERMEMORY, 0xBE2139C7, 0xAB81, 0x424D, 0xB1, 0x07, 0xD8, 0x7F, 0x7C, 0x93, 0x22, 0xAC);
-#define ET_GPU_ADAPTERMEMORY_TOTALCOMMITTED_INDEX 1
-#define ET_GPU_ADAPTERMEMORY_DEDICATEDUSAGE_INDEX 2
-#define ET_GPU_ADAPTERMEMORY_SHAREDUSAGE_INDEX 3
+#define ET_GPU_ADAPTERMEMORY_TOTALCOMMITTED_COUNTER 1
+#define ET_GPU_ADAPTERMEMORY_DEDICATEDUSAGE_COUNTER 2
+#define ET_GPU_ADAPTERMEMORY_SHAREDUSAGE_COUNTER 3
 
 //{F802502B-77B4-4713-81B3-3BE05759DA5D} - "GPU Process Memory"
 // [1] Total Committed
@@ -517,20 +518,22 @@ PET_GPU_ENGINE_PERFCOUNTER EtPerfCounterAddOrUpdateGpuEngineCounters(
 
     if (entry = PhFindEntryHashtable(EtPerfCounterEngineInstanceHashTable, &lookupEntry))
     {
-        DOUBLE numerator;
-        DOUBLE denomenator;
-
-        numerator = (DOUBLE)entry->InstanceValue - (DOUBLE)CounterInstance.InstanceValue;
+        DOUBLE numerator = (DOUBLE)entry->InstanceValue - (DOUBLE)CounterInstance.InstanceValue;
 
         if (numerator)
         {
-            denomenator = (DOUBLE)entry->InstanceTime - (DOUBLE)CounterInstance.InstanceTime;
-            entry->CounterValue = (numerator / denomenator) * 100.0;
+            DOUBLE denomenator = (DOUBLE)entry->InstanceTime - (DOUBLE)CounterInstance.InstanceTime;
+            DOUBLE value = (numerator / denomenator) * 100.0;
 
-            if (entry->CounterValue < 0.0)
-                entry->CounterValue = 0.0;
-            if (entry->CounterValue > 100.0)
-                entry->CounterValue = 100.0;
+            if (value > 0.0 && value < 100.0)
+            {
+                entry->CounterValue = value;
+            }
+            else
+            {
+                // NOTE: PDH returns 0x800007D6 in this case and skips changing
+                // the counter value. We emulate the same behavior and do nothing. (dmex)
+            }
         }
         else
         {
@@ -1229,11 +1232,11 @@ BOOLEAN EtPerfCounterOpenHandle(
     if (status != ERROR_SUCCESS)
         return FALSE;
 
-    status = EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ENGINE, 1);
+    status = EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ENGINE, ET_GPU_ENGINE_RUNNINGTIME_COUNTER);
     if (status != ERROR_SUCCESS)
         goto CleanupExit;
 
-    status = EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ADAPTERMEMORY, 2);
+    status = EtPerfCounterAddCounters(perfQueryHandle, GUID_GPU_ADAPTERMEMORY, ET_GPU_ADAPTERMEMORY_DEDICATEDUSAGE_COUNTER);
     if (status != ERROR_SUCCESS)
         goto CleanupExit;
 
@@ -1735,6 +1738,44 @@ FLOAT EtLookupTotalGpuAdapterUtilization(
     return value;
 }
 
+FLOAT EtLookupTotalGpuAdapterEngineUtilization(
+    _In_ LUID AdapterLuid,
+    _In_ ULONG EngineId
+    )
+{
+    FLOAT value = 0;
+    ULONG enumerationKey;
+    PET_GPU_ENGINE_COUNTER entry;
+
+    if (!EtGpuRunningTimeHashTable)
+        return 0;
+
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        if (
+            entry->AdapterLuid == AdapterLuid.LowPart &&
+            entry->EngineId == EngineId
+            )
+        {
+            FLOAT usage = entry->ValueF;
+
+            if (usage > value)
+                value = usage;
+        }
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    if (value > 0) // HACK
+        value = value / 100;
+
+    return value;
+}
+
 ULONG64 EtLookupTotalGpuDedicated(
     VOID
     )
@@ -1812,7 +1853,7 @@ ULONG64 EtLookupTotalGpuAdapterShared(
 
     while (PhEnumHashtable(EtGpuProcessCounterHashTable, (PVOID*)&entry, &enumerationKey))
     {
-        if (entry->EngineId == AdapterLuid.LowPart)
+        if (entry->AdapterLuid == AdapterLuid.LowPart)
         {
             value += entry->SharedUsage;
         }
