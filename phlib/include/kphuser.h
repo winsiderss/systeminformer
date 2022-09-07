@@ -261,6 +261,26 @@ KphLevel(
     VOID
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSetInformationProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSetInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength
+    );
+
 // kphdata
 
 PHLIBAPI

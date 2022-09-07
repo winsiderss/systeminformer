@@ -301,21 +301,6 @@ PhGetProcessPriority(
         );
 }
 
-FORCEINLINE
-NTSTATUS
-PhSetProcessPriority(
-    _In_ HANDLE ProcessHandle,
-    _In_ PROCESS_PRIORITY_CLASS PriorityClass
-    )
-{
-    return NtSetInformationProcess(
-        ProcessHandle, 
-        ProcessPriorityClass, 
-        &PriorityClass,
-        sizeof(PROCESS_PRIORITY_CLASS)
-        );
-}
-
 /**
  * Gets a process' I/O priority.
  *
@@ -336,27 +321,6 @@ PhGetProcessIoPriority(
         IoPriority,
         sizeof(IO_PRIORITY_HINT),
         NULL
-        );
-}
-
-/**
- * Sets a process' I/O priority.
- *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
- * \param IoPriority The new I/O priority.
- */
-FORCEINLINE
-NTSTATUS
-PhSetProcessIoPriority(
-    _In_ HANDLE ProcessHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
-    )
-{
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessIoPriority,
-        &IoPriority,
-        sizeof(IO_PRIORITY_HINT)
         );
 }
 
@@ -395,25 +359,6 @@ PhGetProcessPagePriority(
 
 FORCEINLINE
 NTSTATUS
-PhSetProcessPagePriority(
-    _In_ HANDLE ProcessHandle,
-    _In_ ULONG PagePriority
-    )
-{
-    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
-
-    pagePriorityInfo.PagePriority = PagePriority;
-
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessPagePriority,
-        &pagePriorityInfo,
-        sizeof(PAGE_PRIORITY_INFORMATION)
-        );
-}
-
-FORCEINLINE
-NTSTATUS
 PhGetProcessPriorityBoost(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN PriorityBoost
@@ -436,25 +381,6 @@ PhGetProcessPriorityBoost(
     }
 
     return status;
-}
-
-FORCEINLINE
-NTSTATUS
-PhSetProcessPriorityBoost(
-    _In_ HANDLE ProcessHandle,
-    _In_ BOOLEAN PriorityBoost
-    )
-{
-    ULONG priorityBoost;
-
-    priorityBoost = PriorityBoost ? 1 : 0;
-
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessPriorityBoost,
-        &priorityBoost,
-        sizeof(ULONG)
-        );
 }
 
 /**
@@ -576,21 +502,6 @@ PhGetProcessQuotaLimits(
 
 FORCEINLINE
 NTSTATUS
-PhSetProcessQuotaLimits(
-    _In_ HANDLE ProcessHandle,
-    _In_ QUOTA_LIMITS QuotaLimits
-    )
-{
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessQuotaLimits,
-        &QuotaLimits,
-        sizeof(QUOTA_LIMITS)
-        );
-}
-
-FORCEINLINE
-NTSTATUS
 PhSetProcessEmptyWorkingSet(
     _In_ HANDLE ProcessHandle
     )
@@ -645,27 +556,6 @@ PhGetProcessAffinityMask(
     }
 
     return status;
-}
-
-/**
- * Sets a process' affinity mask.
- *
- * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
- * \param AffinityMask The new affinity mask.
- */
-FORCEINLINE
-NTSTATUS
-PhSetProcessAffinityMask(
-    _In_ HANDLE ProcessHandle,
-    _In_ KAFFINITY AffinityMask
-    )
-{
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessAffinityMask,
-        &AffinityMask,
-        sizeof(KAFFINITY)
-        );
 }
 
 FORCEINLINE
@@ -733,21 +623,6 @@ PhGetProcessGroupAffinity(
     }
 
     return status;
-}
-
-FORCEINLINE
-NTSTATUS
-PhSetProcessGroupAffinity(
-    _In_ HANDLE ProcessHandle,
-    _In_ GROUP_AFFINITY GroupAffinity
-    )
-{
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessAffinityMask,
-        &GroupAffinity,
-        sizeof(GROUP_AFFINITY)
-        );
 }
 
 FORCEINLINE
@@ -930,29 +805,6 @@ PhGetProcessPowerThrottlingState(
     return status;
 }
 
-FORCEINLINE
-NTSTATUS
-PhSetProcessPowerThrottlingState(
-    _In_ HANDLE ProcessHandle,
-    _In_ ULONG ControlMask,
-    _In_ ULONG StateMask
-    )
-{
-    POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
-
-    memset(&powerThrottlingState, 0, sizeof(POWER_THROTTLING_PROCESS_STATE));
-    powerThrottlingState.Version = POWER_THROTTLING_PROCESS_CURRENT_VERSION;
-    powerThrottlingState.ControlMask = ControlMask;
-    powerThrottlingState.StateMask = StateMask;
-
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessPowerThrottlingState,
-        &powerThrottlingState,
-        sizeof(POWER_THROTTLING_PROCESS_STATE)
-        );
-}
-
 /**
  * Gets basic information for a thread.
  *
@@ -1020,21 +872,6 @@ PhGetThreadStartAddress(
         );
 }
 
-FORCEINLINE
-NTSTATUS
-PhSetThreadBasePriority(
-    _In_ HANDLE ThreadHandle,
-    _In_ KPRIORITY Increment
-    )
-{
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadBasePriority,
-        &Increment,
-        sizeof(KPRIORITY)
-        );
-}
-
 /**
  * Gets a thread's I/O priority.
  *
@@ -1055,28 +892,6 @@ PhGetThreadIoPriority(
         IoPriority,
         sizeof(IO_PRIORITY_HINT),
         NULL
-        );
-}
-
-/**
- * Sets a thread's I/O priority.
- *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
- * access.
- * \param IoPriority The new I/O priority.
- */
-FORCEINLINE
-NTSTATUS
-PhSetThreadIoPriority(
-    _In_ HANDLE ThreadHandle,
-    _In_ IO_PRIORITY_HINT IoPriority
-    )
-{
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadIoPriority,
-        &IoPriority,
-        sizeof(IO_PRIORITY_HINT)
         );
 }
 
@@ -1115,25 +930,6 @@ PhGetThreadPagePriority(
 
 FORCEINLINE
 NTSTATUS
-PhSetThreadPagePriority(
-    _In_ HANDLE ThreadHandle,
-    _In_ ULONG PagePriority
-    )
-{
-    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
-
-    pagePriorityInfo.PagePriority = PagePriority;
-
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadPagePriority,
-        &pagePriorityInfo,
-        sizeof(PAGE_PRIORITY_INFORMATION)
-        );
-}
-
-FORCEINLINE
-NTSTATUS
 PhGetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
     _Out_ PBOOLEAN PriorityBoost
@@ -1156,25 +952,6 @@ PhGetThreadPriorityBoost(
     }
 
     return status;
-}
-
-FORCEINLINE
-NTSTATUS
-PhSetThreadPriorityBoost(
-    _In_ HANDLE ThreadHandle,
-    _In_ BOOLEAN PriorityBoost
-    )
-{
-    ULONG priorityBoost;
-
-    priorityBoost = PriorityBoost ? 1 : 0;
-
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadPriorityBoost,
-        &priorityBoost,
-        sizeof(ULONG)
-        );
 }
 
 /**
@@ -1224,31 +1001,6 @@ PhGetThreadIdealProcessor(
         sizeof(PROCESSOR_NUMBER),
         NULL
         );
-}
-
-FORCEINLINE
-NTSTATUS
-PhSetThreadIdealProcessor(
-    _In_ HANDLE ThreadHandle,
-    _In_ PPROCESSOR_NUMBER ProcessorNumber,
-    _Out_opt_ PPROCESSOR_NUMBER PreviousIdealProcessor
-    )
-{
-    NTSTATUS status;
-    PROCESSOR_NUMBER processorNumber;
-
-    processorNumber = *ProcessorNumber;
-    status = NtSetInformationThread(
-        ThreadHandle,
-        ThreadIdealProcessorEx,
-        &processorNumber,
-        sizeof(PROCESSOR_NUMBER)
-        );
-
-    if (PreviousIdealProcessor)
-        *PreviousIdealProcessor = processorNumber;
-
-    return status;
 }
 
 FORCEINLINE
@@ -1447,28 +1199,6 @@ PhGetThreadAffinityMask(
     //    );
 }
 
-/**
- * Sets a thread's affinity mask.
- *
- * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
- * access.
- * \param AffinityMask The new affinity mask.
- */
-FORCEINLINE
-NTSTATUS
-PhSetThreadAffinityMask(
-    _In_ HANDLE ThreadHandle,
-    _In_ KAFFINITY AffinityMask
-    )
-{
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadAffinityMask,
-        &AffinityMask,
-        sizeof(KAFFINITY)
-        );
-}
-
 FORCEINLINE
 NTSTATUS
 PhGetThreadGroupAffinity(
@@ -1482,21 +1212,6 @@ PhGetThreadGroupAffinity(
         GroupAffinity,
         sizeof(GROUP_AFFINITY),
         NULL
-        );
-}
-
-FORCEINLINE
-NTSTATUS
-PhSetThreadGroupAffinity(
-    _In_ HANDLE ThreadHandle,
-    _In_ GROUP_AFFINITY GroupAffinity
-    )
-{
-    return NtSetInformationThread(
-        ThreadHandle,
-        ThreadGroupInformation,
-        &GroupAffinity,
-        sizeof(GROUP_AFFINITY)
         );
 }
 

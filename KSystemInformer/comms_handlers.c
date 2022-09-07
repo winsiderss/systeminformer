@@ -30,6 +30,8 @@ KPHM_DEFINE_HANDLER(KphpCommsSetInformationObject);
 KPHM_DEFINE_HANDLER(KphpCommsOpenDriver);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationDriver);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationProcess);
+KPHM_DEFINE_HANDLER(KphpCommsSetInformationProcess);
+KPHM_DEFINE_HANDLER(KphpCommsSetInformationThread);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -60,6 +62,8 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgOpenDriver,                  KphpCommsOpenDriver,                  KphpCommsRequireMaximum },
 { KphMsgQueryInformationDriver,      KphpCommsQueryInformationDriver,      KphpCommsRequireMaximum },
 { KphMsgQueryInformationProcess,     KphpCommsQueryInformationProcess,     KphpCommsQueryInformationProcessRequires },
+{ KphMsgSetInformationProcess,       KphpCommsSetInformationProcess,       KphpCommsRequireMaximum },
+{ KphMsgSetInformationThread,        KphpCommsSetInformationThread,        KphpCommsRequireMaximum },
 };
 
 ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -629,6 +633,54 @@ NTSTATUS KSIAPI KphpCommsQueryInformationProcess(
                                              msg->ProcessInformationLength,
                                              msg->ReturnLength,
                                              UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsSetInformationProcess(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_SET_INFORMATION_PROCESS msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationProcess);
+
+    msg = &Message->User.SetInformationProcess;
+
+    msg->Status = KphSetInformationProcess(msg->ProcessHandle,
+                                           msg->ProcessInformationClass,
+                                           msg->ProcessInformation,
+                                           msg->ProcessInformationLength,
+                                           UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsSetInformationThread(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_SET_INFORMATION_THREAD msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgSetInformationThread);
+
+    msg = &Message->User.SetInformationThread;
+
+    msg->Status = KphSetInformationThread(msg->ThreadHandle,
+                                          msg->ThreadInformationClass,
+                                          msg->ThreadInformation,
+                                          msg->ThreadInformationLength,
+                                          UserMode);
 
     return STATUS_SUCCESS;
 }

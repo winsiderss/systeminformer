@@ -14,6 +14,7 @@
 
 #include <phintrnl.h>
 #include <phnativeinl.h>
+#include <phnative.h>
 
 #include <workqueuep.h>
 
