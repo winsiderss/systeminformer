@@ -582,8 +582,8 @@ Exit:
  * 
  * \param[in] ProcessHandle Handle to process to query.
  * \param[in] ProcessInformationClass Information class to query.
- * \param[out] DriverInformation Populated with process information by class.
- * \param[in] DriverInformationLength Length of the process information buffer.
+ * \param[out] ProcessInformation Populated with process information by class.
+ * \param[in] ProcessInformationLength Length of the process information buffer.
  * \param[out] ReturnLength Number of bytes written or necessary for the
  * information.
  * \param[in] AccessMode The mode in which to perform access checks.
@@ -788,5 +788,217 @@ Exit:
     }
 
     return status;
+}
 
+/**
+ * \brief Sets information about a process.
+ * 
+ * \param[in] ProcessHandle Handle to process to set information for.
+ * \param[in] ProcessInformationClass Information class to set.
+ * \param[in] ProcessInformation Information to set.
+ * \param[in] ProcessInformationLength Length of the process information buffer.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSetInformationProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PVOID processInformation;
+    UCHAR stackBuffer[64];
+    PEPROCESS process;
+    HANDLE processHandle;
+    PROCESSINFOCLASS processInformationClass;
+
+    PAGED_PASSIVE();
+
+    processInformation = NULL;
+    process = NULL;
+    processHandle = NULL;
+
+    if (!ProcessInformation)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (AccessMode != KernelMode)
+    {
+        if (ProcessInformationLength <= ARRAYSIZE(stackBuffer))
+        {
+            processInformation = stackBuffer;
+        }
+        else
+        {
+            processInformation = KphAllocatePaged(ProcessInformationLength,
+                                                  KPH_TAG_PROCESS_INFO);
+            if (!processInformation)
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "Failed to allocate process info buffer.");
+
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+        }
+
+        __try
+        {
+            ProbeForRead(ProcessInformation, ProcessInformationLength, 1);
+            RtlCopyMemory(processInformation,
+                          ProcessInformation,
+                          ProcessInformationLength);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+    else
+    {
+        processInformation = ProcessInformation;
+    }
+
+    status = ObReferenceObjectByHandle(ProcessHandle,
+                                       0,
+                                       *PsProcessType,
+                                       AccessMode,
+                                       &process,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        process = NULL;
+        goto Exit;
+    }
+
+    status = KphDominationCheck(PsGetCurrentProcess(),
+                                process,
+                                AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KphDominationCheck failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = ObOpenObjectByPointer(process,
+                                   OBJ_KERNEL_HANDLE,
+                                   NULL,
+                                   PROCESS_SET_INFORMATION,
+                                   *PsProcessType,
+                                   KernelMode,
+                                   &processHandle);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObOpenObjectByPointer failed: %!STATUS!",
+                      status);
+
+        processHandle = NULL;
+        goto Exit;
+    }
+
+    switch (ProcessInformationClass)
+    {
+        case KphProcessQuotaLimits:
+        {
+            processInformationClass = ProcessQuotaLimits;
+            break;
+        }
+        case KphProcessBasePriority:
+        {
+            processInformationClass = ProcessBasePriority;
+            break;
+        }
+        case KphProcessRaisePriority:
+        {
+            processInformationClass = ProcessRaisePriority;
+            break;
+        }
+        case KphProcessPriorityClass:
+        {
+            processInformationClass = ProcessPriorityClass;
+            break;
+        }
+        case KphProcessAffinityMask:
+        {
+            processInformationClass = ProcessAffinityMask;
+            break;
+        }
+        case KphProcessPriorityBoost:
+        {
+            processInformationClass = ProcessPriorityBoost;
+            break;
+        }
+        case KphProcessIoPriority:
+        {
+            processInformationClass = ProcessIoPriority;
+            break;
+        }
+        case KphProcessPagePriority:
+        {
+            processInformationClass = ProcessPagePriority;
+            break;
+        }
+        case KphProcessPowerThrottlingState:
+        {
+            processInformationClass = ProcessPowerThrottlingState;
+            break;
+        }
+        case KphProcessPriorityClassEx:
+        {
+            processInformationClass = ProcessPriorityClassEx;
+            break;
+        }
+        default:
+        {
+            status = STATUS_INVALID_INFO_CLASS;
+            goto Exit;
+        }
+    }
+
+    status = ZwSetInformationProcess(processHandle,
+                                     processInformationClass,
+                                     processInformation,
+                                     ProcessInformationLength);
+
+Exit:
+
+    if (processHandle)
+    {
+        ObCloseHandle(processHandle, KernelMode);
+    }
+
+    if (process)
+    {
+        ObDereferenceObject(process);
+    }
+
+    if (processInformation &&
+        (processInformation != ProcessInformation) &&
+        (processInformation != stackBuffer))
+    {
+        KphFree(processInformation, KPH_TAG_PROCESS_INFO);
+    }
+
+    return status;
 }

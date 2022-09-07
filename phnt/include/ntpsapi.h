@@ -148,7 +148,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessCookie, // q: ULONG
     ProcessImageInformation, // q: SECTION_IMAGE_INFORMATION
     ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
-    ProcessPagePriority, // q: PAGE_PRIORITY_INFORMATION
+    ProcessPagePriority, // qs: PAGE_PRIORITY_INFORMATION
     ProcessInstrumentationCallback, // s: PVOID or PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION // 40
     ProcessThreadStackAllocation, // s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
     ProcessWorkingSetWatchEx, // q: PROCESS_WS_WATCH_INFORMATION_EX[]
@@ -217,10 +217,10 @@ typedef enum _PROCESSINFOCLASS
     ProcessEnableOptionalXStateFeatures,
     ProcessAltPrefetchParam, // since 22H1
     ProcessAssignCpuPartitions,
-    ProcessPriorityClassEx,
+    ProcessPriorityClassEx, // s: PROCESS_PRIORITY_CLASS_EX
     ProcessMembershipInformation,
-    ProcessEffectiveIoPriority,
-    ProcessEffectivePagePriority,
+    ProcessEffectiveIoPriority, // q: IO_PRIORITY_HINT
+    ProcessEffectivePagePriority, // q: ULONG
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
 #endif
@@ -252,7 +252,7 @@ typedef enum _THREADINFOCLASS
     ThreadLastSystemCall, // q: THREAD_LAST_SYSCALL_INFORMATION
     ThreadIoPriority, // qs: IO_PRIORITY_HINT (requires SeIncreaseBasePriorityPrivilege)
     ThreadCycleTime, // q: THREAD_CYCLE_TIME_INFORMATION
-    ThreadPagePriority, // q: ULONG
+    ThreadPagePriority, // qs: PAGE_PRIORITY_INFORMATION
     ThreadActualBasePriority, // s: LONG (requires SeIncreaseBasePriorityPrivilege)
     ThreadTebInformation, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
     ThreadCSwitchMon,
@@ -282,8 +282,8 @@ typedef enum _THREADINFOCLASS
     ThreadCreateStateChange, // since WIN11
     ThreadApplyStateChange,
     ThreadStrongerBadHandleChecks, // since 22H1
-    ThreadEffectiveIoPriority,
-    ThreadEffectivePagePriority,
+    ThreadEffectiveIoPriority, // q: IO_PRIORITY_HINT
+    ThreadEffectivePagePriority, // q: ULONG
     MaxThreadInfoClass
 } THREADINFOCLASS;
 #endif
@@ -449,6 +449,21 @@ typedef struct _PROCESS_PRIORITY_CLASS
     BOOLEAN Foreground;
     UCHAR PriorityClass;
 } PROCESS_PRIORITY_CLASS, *PPROCESS_PRIORITY_CLASS;
+
+typedef struct _PROCESS_PRIORITY_CLASS_EX
+{
+    union
+    {
+        struct
+        {
+            USHORT ForegroundValid : 1;
+            USHORT PriorityClassValid : 1;
+        };
+        USHORT AllFlags;
+    };
+    UCHAR PriorityClass;
+    BOOLEAN Foreground;
+} PROCESS_PRIORITY_CLASS_EX, *PPROCESS_PRIORITY_CLASS_EX;
 
 typedef struct _PROCESS_FOREGROUND_BACKGROUND
 {

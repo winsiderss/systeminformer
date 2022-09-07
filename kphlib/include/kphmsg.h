@@ -40,6 +40,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgOpenDriver,
     KphMsgQueryInformationDriver,
     KphMsgQueryInformationProcess,
+    KphMsgSetInformationProcess,
+    KphMsgSetInformationThread,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -150,6 +152,8 @@ typedef struct _KPH_MESSAGE
             KPHM_OPEN_DRIVER OpenDriver;
             KPHM_QUERY_INFORMATION_DRIVER QueryInformationDriver;
             KPHM_QUERY_INFORMATION_PROCESS QueryInformationProcess;
+            KPHM_SET_INFORMATION_PROCESS SetInformationProcess;
+            KPHM_SET_INFORMATION_THREAD SetInformationThread;
 
         } User;
 

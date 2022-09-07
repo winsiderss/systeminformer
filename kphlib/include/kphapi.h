@@ -99,10 +99,37 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
 
 typedef enum _KPH_PROCESS_INFORMATION_CLASS
 {
-    KphProcessBasicInformation, // q: KPH_PROCESS_BASIC_INFORMATION
-    KphProcessStateInformation, // q: KPH_PROCESS_STATE
+    KphProcessBasicInformation,      // q: KPH_PROCESS_BASIC_INFORMATION
+    KphProcessStateInformation,      // q: KPH_PROCESS_STATE
+    KphProcessQuotaLimits,           // s: QUOTA_LIMITS
+    KphProcessBasePriority,          // s: KPRIORITY
+    KphProcessRaisePriority,         // s: ULONG
+    KphProcessPriorityClass,         // s: PROCESS_PRIORITY_CLASS
+    KphProcessAffinityMask,          // s: KAFFINITY/GROUP_AFFINITY
+    KphProcessPriorityBoost,         // s: ULONG
+    KphProcessIoPriority,            // s: IO_PRIORITY_HINT
+    KphProcessPagePriority,          // s: PAGE_PRIORITY_INFORMATION
+    KphProcessPowerThrottlingState,  // s: POWER_THROTTLING_PROCESS_STATE
+    KphProcessPriorityClassEx,       // s: PROCESS_PRIORITY_CLASS_EX
 
 } KPH_PROCESS_INFORMATION_CLASS;
+
+typedef enum _KPH_THREAD_INFORMATION_CLASS
+{
+    KphThreadPriority,               // s: KPRIORITY
+    KphThreadBasePriority,           // s: KPRIORITY
+    KphThreadAffinityMask,           // s: KAFFINITY
+    KphThreadIdealProcessor,         // s: ULONG
+    KphThreadPriorityBoost,          // s: ULONG
+    KphThreadIoPriority,             // s: IO_PRIORITY_HINT
+    KphThreadPagePriority,           // s: PAGE_PRIORITY_INFORMATION 
+    KphThreadActualBasePriority,     // s: LONG
+    KphThreadGroupInformation,       // s: GROUP_AFFINITY
+    KphThreadIdealProcessorEx,       // s: PROCESSOR_NUMBER
+    KphThreadActualGroupAffinity,    // s: GROUP_AFFINITY
+    KphThreadPowerThrottlingState,   // s: POWER_THROTTLING_THREAD_STATE
+
+} KPH_THREAD_INFORMATION_CLASS;
 
 typedef struct _KPH_PROCESS_BASIC_INFORMATION
 {

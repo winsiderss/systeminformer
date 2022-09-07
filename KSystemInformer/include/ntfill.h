@@ -632,6 +632,21 @@ PsIsProcessBeingDebugged(
     _In_ PEPROCESS Process
     );
 
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ZwSetInformationProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESSINFOCLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength
+    );
+
+#define ProcessPowerThrottlingState    77
+#define ProcessPriorityClassEx        108
+
+#define ThreadPowerThrottlingState     49
+
 // RTL
 
 #ifndef RTL_MAX_DRIVE_LETTERS

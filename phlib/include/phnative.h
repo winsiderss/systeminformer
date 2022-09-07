@@ -865,6 +865,71 @@ PhSetProcessModuleLoadCount32(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessQuotaLimits(
+    _In_ HANDLE ProcessHandle,
+    _In_ QUOTA_LIMITS QuotaLimits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessPriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessIoPriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG PagePriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessPriorityBoost(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN PriorityBoost
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessAffinityMask(
+    _In_ HANDLE ProcessHandle,
+    _In_ KAFFINITY AffinityMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _In_ GROUP_AFFINITY GroupAffinity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessPowerThrottlingState(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG ControlMask,
+    _In_ ULONG StateMask
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetDllHandle(
@@ -1785,6 +1850,63 @@ NTAPI
 PhSetThreadName(
     _In_ HANDLE ThreadHandle,
     _In_ PCWSTR ThreadName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadAffinityMask(
+    _In_ HANDLE ThreadHandle,
+    _In_ KAFFINITY AffinityMask
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadBasePriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPRIORITY Increment
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadIoPriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadPagePriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG PagePriority
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadPriorityBoost(
+    _In_ HANDLE ThreadHandle,
+    _In_ BOOLEAN PriorityBoost
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadIdealProcessor(
+    _In_ HANDLE ThreadHandle,
+    _In_ PPROCESSOR_NUMBER ProcessorNumber,
+    _Out_opt_ PPROCESSOR_NUMBER PreviousIdealProcessor
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetThreadGroupAffinity(
+    _In_ HANDLE ThreadHandle,
+    _In_ GROUP_AFFINITY GroupAffinity
     );
 
 PHLIBAPI
