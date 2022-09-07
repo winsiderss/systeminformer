@@ -1199,3 +1199,69 @@ KPH_LEVEL KphLevel(
 {
     return KphProcessLevel(NtCurrentProcess());
 }
+
+NTSTATUS KphSetInformationProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = PhAllocate(sizeof(KPH_MESSAGE));
+
+    KphMsgInit(msg, KphMsgSetInformationProcess);
+
+    msg->User.SetInformationProcess.ProcessHandle = ProcessHandle;
+    msg->User.SetInformationProcess.ProcessInformationClass = ProcessInformationClass;
+    msg->User.SetInformationProcess.ProcessInformation = ProcessInformation;
+    msg->User.SetInformationProcess.ProcessInformationLength = ProcessInformationLength;
+
+    status = KphCommsSendMessage(msg);
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(msg);
+        return status;
+    }
+
+    status = msg->User.SetInformationProcess.Status;
+
+    PhFree(msg);
+
+    return status;
+}
+
+NTSTATUS KphSetInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = PhAllocate(sizeof(KPH_MESSAGE));
+
+    KphMsgInit(msg, KphMsgSetInformationThread);
+
+    msg->User.SetInformationThread.ThreadHandle = ThreadHandle;
+    msg->User.SetInformationThread.ThreadInformationClass = ThreadInformationClass;
+    msg->User.SetInformationThread.ThreadInformation = ThreadInformation;
+    msg->User.SetInformationThread.ThreadInformationLength = ThreadInformationLength;
+
+    status = KphCommsSendMessage(msg);
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(msg);
+        return status;
+    }
+
+    status = msg->User.SetInformationThread.Status;
+
+    PhFree(msg);
+
+    return status;
+}

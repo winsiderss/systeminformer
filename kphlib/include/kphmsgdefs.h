@@ -175,6 +175,26 @@ typedef struct _KPHM_QUERY_INFORMATION_PROCESS
 
 } KPHM_QUERY_INFORMATION_PROCESS, *PKPHM_QUERY_INFORMATION_PROCESS;
 
+typedef struct _KPHM_SET_INFORMATION_PROCESS
+{
+    NTSTATUS Status;
+    HANDLE ProcessHandle;
+    KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass;
+    PVOID ProcessInformation;
+    ULONG ProcessInformationLength;
+
+} KPHM_SET_INFORMATION_PROCESS, *PKPHM_SET_INFORMATION_PROCESS;
+
+typedef struct _KPHM_SET_INFORMATION_THREAD
+{
+    NTSTATUS Status;
+    HANDLE ThreadHandle;
+    KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
+    PVOID ThreadInformation;
+    ULONG ThreadInformationLength;
+
+} KPHM_SET_INFORMATION_THREAD, *PKPHM_SET_INFORMATION_THREAD;
+
 //
 // KPH -> PH
 //

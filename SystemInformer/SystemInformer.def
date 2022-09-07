@@ -338,6 +338,9 @@ EXPORTS
     PhUpdateDosDevicePrefixes
     PhUpdateMupDevicePrefixes
     PhWaitForNamedPipe
+    PhSetProcessPriorityBoost
+    PhSetThreadBasePriority
+    PhSetThreadIoPriority
 
 ; phutil
     PhAdjustRectangleToBounds
