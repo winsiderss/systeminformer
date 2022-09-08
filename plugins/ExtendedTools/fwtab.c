@@ -50,6 +50,7 @@ BOOLEAN FwTabPageCallback(
             ULONG treelistBorder;
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+			LONG dpiValue;
 
             thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
             treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhGetIntegerSetting(L"EnableThemeSupport")) ? WS_BORDER : 0;
@@ -79,8 +80,10 @@ BOOLEAN FwTabPageCallback(
             if (!hwnd)
                 return FALSE;
 
+            dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
             FwTreeNewCreated = TRUE;
-            EtFwIconWidth = GetSystemMetrics(SM_CXSMICON);
+            EtFwIconWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -310,7 +313,7 @@ VOID SaveSettingsFwTreeList(
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
 
-    if (!FwTreeNewCreated)  
+    if (!FwTreeNewCreated)
         return;
 
     settings = PhCmSaveSettings(TreeNewHandle);
@@ -386,7 +389,7 @@ VOID FwTickNodes(
 
             oldList = FwNodeList;
             FwNodeList = newList;
-            EtFwFilterSupport.NodeList = newList; // HACK 
+            EtFwFilterSupport.NodeList = newList; // HACK
             PhDereferenceObject(oldList);
             lastTickCount = tickCount;
         }
@@ -562,7 +565,7 @@ int __cdecl EtFwNodeNoOrderSortFunction(
     int sortResult = 0;
 
     sortResult = uint64cmp(node1->Index, node2->Index);
-    
+
     return PhModifySort(sortResult, DescendingSortOrder);
 }
 
@@ -680,7 +683,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
                         PhInitializeStringRef(&getCellText->Text, L"DROP");
                         break;
-                    case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:    
+                    case FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW:
                     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
                         PhInitializeStringRef(&getCellText->Text, L"ALLOW");
                         break;
@@ -729,7 +732,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 {
                     getCellText->Text = PhGetStringRef(node->RuleName);
                 }
-                break; 
+                break;
             case FW_COLUMN_RULEDESCRIPTION:
                 {
                     getCellText->Text = PhGetStringRef(node->RuleDescription);
@@ -1355,7 +1358,7 @@ VOID EtFwWriteFwList(
         PPH_STRING line;
 
         line = lines->Items[i];
-        
+
         PhWriteStringAsUtf8FileStream(FileStream, &line->sr);
         PhDereferenceObject(line);
         PhWriteStringAsUtf8FileStream2(FileStream, L"\r\n");

@@ -478,7 +478,7 @@ VOID FindNetworkAdapters(
                     PPH_STRING adapterName;
 
                     // Try query the full adapter name
-        
+
                     if (adapterName = NetworkAdapterQueryName(deviceHandle))
                         adapterEntry->DeviceName = adapterName;
 
@@ -766,7 +766,7 @@ VOID LoadNetworkAdapterImages(
         ULONG64 index = 0;
 
         if (
-            PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr) && 
+            PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr) &&
             PhStringToInteger64(&indexPartSr, 10, &index)
             )
         {
@@ -775,8 +775,8 @@ VOID LoadNetworkAdapterImages(
                 if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
-                        24, // GetSystemMetrics(SM_CXSMICON)
-                        24, // GetSystemMetrics(SM_CYSMICON)
+                        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
                         ILC_MASK | ILC_COLOR32,
                         1,
                         1

@@ -3025,6 +3025,7 @@ VOID PhMwpLayoutTabControl(
 {
     RECT rect;
     RECT tabrect;
+    LONG dpiValue;
 
     if (!LayoutPaddingValid)
     {
@@ -3039,13 +3040,15 @@ VOID PhMwpLayoutTabControl(
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
+        dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
         // Remove the tabctrl padding (dmex)
         *DeferHandle = DeferWindowPos(
             *DeferHandle,
             CurrentPage->WindowHandle,
             NULL,
             rect.left,
-            tabrect.top - 1, // 1=GetSystemMetrics(SM_CXBORDER)
+            tabrect.top - PhGetSystemMetrics(SM_CXBORDER, dpiValue),
             rect.right - rect.left,
             (tabrect.bottom - tabrect.top) + (rect.bottom - tabrect.bottom),
             SWP_NOACTIVATE | SWP_NOZORDER

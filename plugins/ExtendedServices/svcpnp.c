@@ -25,7 +25,7 @@ typedef struct _PNP_SERVICE_CONTEXT
 
 BOOLEAN HardwareDeviceEnableDisable(
     _In_ HWND ParentWindow,
-    _In_ PPH_STRING DeviceInstance, 
+    _In_ PPH_STRING DeviceInstance,
     _In_ BOOLEAN Enable
     )
 {
@@ -38,16 +38,16 @@ BOOLEAN HardwareDeviceEnableDisable(
         CM_LOCATE_DEVNODE_PHANTOM
         );
 
-    if (result != CR_SUCCESS) 
+    if (result != CR_SUCCESS)
     {
         PhShowStatus(ParentWindow, L"Failed to change the device state.", 0, CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE));
         return FALSE;
     }
 
     if (Enable)
-        result = CM_Enable_DevInst(deviceInstanceHandle, 0); // CM_DISABLE_PERSIST 
+        result = CM_Enable_DevInst(deviceInstanceHandle, 0); // CM_DISABLE_PERSIST
     else
-        result = CM_Disable_DevInst(deviceInstanceHandle, 0); // CM_DISABLE_PERSIST 
+        result = CM_Disable_DevInst(deviceInstanceHandle, 0); // CM_DISABLE_PERSIST
 
     if (result != CR_SUCCESS)
     {
@@ -258,7 +258,7 @@ BOOLEAN HardwareDeviceOpenKey(
             );
 
         if (bestObjectName)
-        { 
+        {
             // HKLM\SYSTEM\ControlSet\Control\Class\ += DEVPKEY_Device_Driver
             PhShellOpenKey(ParentWindow, bestObjectName);
             PhDereferenceObject(bestObjectName);
@@ -393,7 +393,7 @@ VOID EspLoadDeviceInstanceImage(
         LONG64 index = 0;
 
         if (
-            PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr) && 
+            PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr) &&
             PhStringToInteger64(&indexPartSr, 10, &index)
             )
         {
@@ -755,6 +755,10 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
     {
     case WM_INITDIALOG:
         {
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -771,8 +775,8 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
             context->ImageList = PhImageListCreate(
-                24, // GetSystemMetrics(SM_CXSMICON)
-                24, // GetSystemMetrics(SM_CYSMICON)
+                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
                 ILC_MASK | ILC_COLOR32, 1, 1);
             ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
 

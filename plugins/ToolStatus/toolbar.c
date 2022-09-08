@@ -97,12 +97,17 @@ VOID RebarCreateOrUpdateWindow(
     VOID
     )
 {
+    LONG dpiValue;
+
     ToolbarWindowFont = ProcessHacker_GetFont();
 
     if (ToolStatusConfig.ToolBarEnabled && !ToolBarImageList)
     {
-        ToolBarImageSize.cx = GetSystemMetrics(SM_CXSMICON);
-        ToolBarImageSize.cy = GetSystemMetrics(SM_CYSMICON);
+        dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
+        ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+        ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+
         ToolBarImageList = PhImageListCreate(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_MASK | ILC_COLOR32, 0, 0);
     }
 
