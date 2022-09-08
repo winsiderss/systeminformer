@@ -5098,6 +5098,247 @@ NTSTATUS PhSetProcessModuleLoadCount32(
     return context.Status;
 }
 
+NTSTATUS PhSetProcessQuotaLimits(
+    _In_ HANDLE ProcessHandle,
+    _In_ QUOTA_LIMITS QuotaLimits
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessQuotaLimits,
+        &QuotaLimits,
+        sizeof(QUOTA_LIMITS)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle, 
+            KphProcessQuotaLimits,
+            &QuotaLimits,
+            sizeof(QUOTA_LIMITS)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessPriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationProcess(
+        ProcessHandle, 
+        ProcessPriorityClass, 
+        &PriorityClass,
+        sizeof(PROCESS_PRIORITY_CLASS)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle, 
+            KphProcessPriorityClass, 
+            &PriorityClass,
+            sizeof(PROCESS_PRIORITY_CLASS)
+            );
+    }
+
+    return status;
+}
+
+/**
+ * Sets a process' I/O priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
+ * \param IoPriority The new I/O priority.
+ */
+NTSTATUS PhSetProcessIoPriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle, 
+            KphProcessIoPriority,
+            &IoPriority,
+            sizeof(IO_PRIORITY_HINT)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessPagePriority(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG PagePriority
+    )
+{
+    NTSTATUS status;
+    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
+
+    pagePriorityInfo.PagePriority = PagePriority;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessPagePriority,
+        &pagePriorityInfo,
+        sizeof(PAGE_PRIORITY_INFORMATION)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle,
+            KphProcessPagePriority,
+            &pagePriorityInfo,
+            sizeof(PAGE_PRIORITY_INFORMATION)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessPriorityBoost(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN PriorityBoost
+    )
+{
+    NTSTATUS status;
+    ULONG priorityBoost;
+
+    priorityBoost = PriorityBoost ? 1 : 0;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessPriorityBoost,
+        &priorityBoost,
+        sizeof(ULONG)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle,
+            KphProcessPriorityBoost,
+            &priorityBoost,
+            sizeof(ULONG)
+            );
+    }
+
+    return status;
+}
+
+/**
+ * Sets a process' affinity mask.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have PROCESS_SET_INFORMATION access.
+ * \param AffinityMask The new affinity mask.
+ */
+NTSTATUS PhSetProcessAffinityMask(
+    _In_ HANDLE ProcessHandle,
+    _In_ KAFFINITY AffinityMask
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &AffinityMask,
+        sizeof(KAFFINITY)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle,
+            KphProcessAffinityMask,
+            &AffinityMask,
+            sizeof(KAFFINITY)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessGroupAffinity(
+    _In_ HANDLE ProcessHandle,
+    _In_ GROUP_AFFINITY GroupAffinity
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &GroupAffinity,
+        sizeof(GROUP_AFFINITY)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle,
+            KphProcessAffinityMask,
+            &GroupAffinity,
+            sizeof(GROUP_AFFINITY)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessPowerThrottlingState(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG ControlMask,
+    _In_ ULONG StateMask
+    )
+{
+    NTSTATUS status;
+    POWER_THROTTLING_PROCESS_STATE powerThrottlingState;
+
+    memset(&powerThrottlingState, 0, sizeof(POWER_THROTTLING_PROCESS_STATE));
+    powerThrottlingState.Version = POWER_THROTTLING_PROCESS_CURRENT_VERSION;
+    powerThrottlingState.ControlMask = ControlMask;
+    powerThrottlingState.StateMask = StateMask;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessPowerThrottlingState,
+        &powerThrottlingState,
+        sizeof(POWER_THROTTLING_PROCESS_STATE)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle,
+            KphProcessPowerThrottlingState,
+            &powerThrottlingState,
+            sizeof(POWER_THROTTLING_PROCESS_STATE)
+            );
+    }
+
+    return status;
+}
+
 PVOID PhGetDllHandle(
     _In_ PWSTR DllName
     )
@@ -10304,6 +10545,222 @@ NTSTATUS PhSetThreadName(
         sizeof(THREAD_NAME_INFORMATION)
         );
 }
+
+/**
+ * Sets a thread's affinity mask.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
+ * access.
+ * \param AffinityMask The new affinity mask.
+ */
+NTSTATUS PhSetThreadAffinityMask(
+    _In_ HANDLE ThreadHandle,
+    _In_ KAFFINITY AffinityMask
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadAffinityMask,
+        &AffinityMask,
+        sizeof(KAFFINITY)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationThread(
+            ThreadHandle,
+            KphThreadAffinityMask,
+            &AffinityMask,
+            sizeof(KAFFINITY)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetThreadBasePriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPRIORITY Increment
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadBasePriority,
+        &Increment,
+        sizeof(KPRIORITY)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationThread(
+            ThreadHandle,
+            KphThreadBasePriority,
+            &Increment,
+            sizeof(KPRIORITY)
+            );
+    }
+
+    return status;
+}
+
+/**
+ * Sets a thread's I/O priority.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have THREAD_SET_LIMITED_INFORMATION
+ * access.
+ * \param IoPriority The new I/O priority.
+ */
+NTSTATUS PhSetThreadIoPriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ IO_PRIORITY_HINT IoPriority
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadIoPriority,
+        &IoPriority,
+        sizeof(IO_PRIORITY_HINT)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationThread(
+            ThreadHandle,
+            KphThreadIoPriority,
+            &IoPriority,
+            sizeof(IO_PRIORITY_HINT)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetThreadPagePriority(
+    _In_ HANDLE ThreadHandle,
+    _In_ ULONG PagePriority
+    )
+{
+    NTSTATUS status;
+    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
+
+    pagePriorityInfo.PagePriority = PagePriority;
+
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadPagePriority,
+        &pagePriorityInfo,
+        sizeof(PAGE_PRIORITY_INFORMATION)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationThread(
+            ThreadHandle,
+            KphThreadPagePriority,
+            &pagePriorityInfo,
+            sizeof(PAGE_PRIORITY_INFORMATION)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetThreadPriorityBoost(
+    _In_ HANDLE ThreadHandle,
+    _In_ BOOLEAN PriorityBoost
+    )
+{
+    NTSTATUS status;
+    ULONG priorityBoost;
+
+    priorityBoost = PriorityBoost ? 1 : 0;
+
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadPriorityBoost,
+        &priorityBoost,
+        sizeof(ULONG)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationThread(
+            ThreadHandle,
+            KphThreadPriorityBoost,
+            &priorityBoost,
+            sizeof(ULONG)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetThreadIdealProcessor(
+    _In_ HANDLE ThreadHandle,
+    _In_ PPROCESSOR_NUMBER ProcessorNumber,
+    _Out_opt_ PPROCESSOR_NUMBER PreviousIdealProcessor
+    )
+{
+    NTSTATUS status;
+    PROCESSOR_NUMBER processorNumber;
+
+    processorNumber = *ProcessorNumber;
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadIdealProcessorEx,
+        &processorNumber,
+        sizeof(PROCESSOR_NUMBER)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationThread(
+            ThreadHandle,
+            KphThreadIdealProcessorEx,
+            &processorNumber,
+            sizeof(PROCESSOR_NUMBER)
+            );
+    }
+
+    if (PreviousIdealProcessor)
+        *PreviousIdealProcessor = processorNumber;
+
+    return status;
+}
+
+NTSTATUS PhSetThreadGroupAffinity(
+    _In_ HANDLE ThreadHandle,
+    _In_ GROUP_AFFINITY GroupAffinity
+    )
+{
+    NTSTATUS status;
+
+    status = NtSetInformationThread(
+        ThreadHandle,
+        ThreadGroupInformation,
+        &GroupAffinity,
+        sizeof(GROUP_AFFINITY)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationThread(
+            ThreadHandle,
+            KphThreadGroupInformation,
+            &GroupAffinity,
+            sizeof(GROUP_AFFINITY)
+            );
+    }
+
+    return status;
+}
+
 
 NTSTATUS PhImpersonateToken(
     _In_ HANDLE ThreadHandle,

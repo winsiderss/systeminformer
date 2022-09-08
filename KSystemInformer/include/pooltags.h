@@ -33,9 +33,14 @@
 
 #define KPH_TAG_OBJECT_QUERY                    '0OpK'
 
+// process
+
+#define KPH_TAG_PROCESS_INFO                    '0PpK'
+
 // thread
 
 #define KPH_TAG_BACKTRACE                       '0TpK'
+#define KPH_TAG_THREAD_INFO                     '1TpK'
 
 // util
 
@@ -82,4 +87,4 @@
 
 // protection
 
-#define KPH_TAG_IMAGE_LOAD_APC                  '0PpK'
+#define KPH_TAG_IMAGE_LOAD_APC                  '0ppK'

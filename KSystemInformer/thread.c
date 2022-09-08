@@ -874,3 +874,226 @@ Exit:
 
     return status;
 }
+
+/**
+ * \brief Sets information about a thread.
+ * 
+ * \param[in] ThreadHandle Handle to thread to set information for.
+ * \param[in] ThreadInformationClass Information class to set.
+ * \param[in] ThreadInformation Information to set.
+ * \param[in] ThreadInformationLength Length of the thread information buffer.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSetInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PVOID threadInformation;
+    UCHAR stackBuffer[64];
+    PETHREAD thread;
+    HANDLE threadHandle;
+    THREADINFOCLASS threadInformationClass;
+
+    PAGED_PASSIVE();
+
+    threadInformation = NULL;
+    thread = NULL;
+    threadHandle = NULL;
+
+    if (!ThreadInformation)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (AccessMode != KernelMode)
+    {
+        if (ThreadInformationLength <= ARRAYSIZE(stackBuffer))
+        {
+            threadInformation = stackBuffer;
+        }
+        else
+        {
+            threadInformation = KphAllocatePaged(ThreadInformationLength,
+                                                 KPH_TAG_THREAD_INFO);
+            if (!threadInformation)
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "Failed to allocate thread info buffer.");
+
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+        }
+
+        __try
+        {
+            ProbeForRead(ThreadInformation, ThreadInformationLength, 1);
+            RtlCopyMemory(threadInformation,
+                          ThreadInformation,
+                          ThreadInformationLength);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+    else
+    {
+        threadInformation = ThreadInformation;
+    }
+
+    status = ObReferenceObjectByHandle(ThreadHandle,
+                                       0,
+                                       *PsThreadType,
+                                       AccessMode,
+                                       &thread,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        thread = NULL;
+        goto Exit;
+    }
+
+    status = KphDominationCheck(PsGetCurrentProcess(),
+                                PsGetThreadProcess(thread),
+                                AccessMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KphDominationCheck failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = ObOpenObjectByPointer(thread,
+                                   OBJ_KERNEL_HANDLE,
+                                   NULL,
+                                   THREAD_SET_INFORMATION,
+                                   *PsThreadType,
+                                   KernelMode,
+                                   &threadHandle);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObOpenObjectByPointer failed: %!STATUS!",
+                      status);
+
+        threadHandle = NULL;
+        goto Exit;
+    }
+
+    switch (ThreadInformationClass)
+    {
+        case KphThreadPriority:
+        {
+            threadInformationClass = ThreadPriority;
+            break;
+        }
+        case KphThreadBasePriority:
+        {
+            threadInformationClass = ThreadBasePriority;
+            break;
+        }
+        case KphThreadAffinityMask:
+        {
+            threadInformationClass = ThreadAffinityMask;
+            break;
+        }
+        case KphThreadIdealProcessor:
+        {
+            threadInformationClass = ThreadIdealProcessor;
+            break;
+        }
+        case KphThreadPriorityBoost:
+        {
+            threadInformationClass = ThreadPriorityBoost;
+            break;
+        }
+        case KphThreadIoPriority:
+        {
+            threadInformationClass = ThreadIoPriority;
+            break;
+        }
+        case KphThreadPagePriority:
+        {
+            threadInformationClass = ThreadPagePriority;
+            break;
+        }
+        case KphThreadActualBasePriority:
+        {
+            threadInformationClass = ThreadActualBasePriority;
+            break;
+        }
+        case KphThreadGroupInformation:
+        {
+            threadInformationClass = ThreadGroupInformation;
+            break;
+        }
+        case KphThreadIdealProcessorEx:
+        {
+            threadInformationClass = ThreadIdealProcessorEx;
+            break;
+        }
+        case KphThreadActualGroupAffinity:
+        {
+            threadInformationClass = ThreadActualGroupAffinity;
+            break;
+        }
+        case KphThreadPowerThrottlingState:
+        {
+            threadInformationClass = ThreadPowerThrottlingState;
+            break;
+        }
+        default:
+        {
+            status = STATUS_INVALID_INFO_CLASS;
+            goto Exit;
+        }
+    }
+
+    status = ZwSetInformationThread(threadHandle,
+                                    threadInformationClass,
+                                    threadInformation,
+                                    ThreadInformationLength);
+
+Exit:
+
+    if (threadHandle)
+    {
+        ObCloseHandle(threadHandle, KernelMode);
+    }
+
+    if (thread)
+    {
+        ObDereferenceObject(thread);
+    }
+
+    if (threadInformation &&
+        (threadInformation != ThreadInformation) &&
+        (threadInformation != stackBuffer))
+    {
+        KphFree(threadInformation, KPH_TAG_THREAD_INFO);
+    }
+
+    return status;
+}

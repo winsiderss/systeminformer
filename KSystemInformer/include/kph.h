@@ -399,6 +399,16 @@ NTSTATUS KphQueryInformationProcess(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSetInformationProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphGetProcessProtection(
@@ -491,6 +501,16 @@ NTSTATUS KphCaptureStackBackTraceThreadByHandle(
     _In_ KPROCESSOR_MODE AccessMode,
     _In_ ULONG Flags,
     _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSetInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // util
@@ -723,13 +743,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN KphSinglePrivilegeCheck(
     _In_ LUID PrivilegeValue,
     _In_ KPROCESSOR_MODE AccessMode
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-NTSTATUS KphCheckMembership(
-    _In_ PSECURITY_SUBJECT_CONTEXT SubjectSecurityContext,
-    _In_ PSID SidToCheck,
-    _Out_ PBOOLEAN IsMember
     );
 
 // vm
