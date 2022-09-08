@@ -111,13 +111,16 @@ static ULONG IndexOfStringInList(
 }
 
 static HFONT PhpColumnsGetCurrentFont(
-    VOID
+    _In_ HWND hwnd
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
     HFONT font;
+    LONG dpiValue;
 
-    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
         font = CreateFontIndirect(&metrics.lfMessageFont);
     else
         font = NULL;
@@ -210,7 +213,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             context->SearchActiveHandle = GetDlgItem(hwndDlg, IDC_FILTER);
             context->InactiveListArray = PhCreateList(1);
             context->ActiveListArray = PhCreateList(1);
-            context->ControlFont = PhpColumnsGetCurrentFont();
+            context->ControlFont = PhpColumnsGetCurrentFont(hwndDlg);
             context->InactiveSearchboxText = PhReferenceEmptyString();
             context->ActiveSearchboxText = PhReferenceEmptyString();
 

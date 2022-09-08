@@ -173,7 +173,7 @@ BOOLEAN PhMainWndInitialization(
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
     MoveWindow(
-        PhMainWndHandle, 
+        PhMainWndHandle,
         windowRectangle.Left, windowRectangle.Top,
         windowRectangle.Width, windowRectangle.Height,
         FALSE
@@ -544,7 +544,7 @@ NTSTATUS PhMwpLoadStage1Worker(
     )
 {
     // If the update interval is too large, the user might have to wait a while before seeing some types of
-    // process-related data. We force an update by boosting the provider shortly after the program 
+    // process-related data. We force an update by boosting the provider shortly after the program
     // starts up to make things appear more quickly.
 
     if (PhCsUpdateInterval > PH_FLUSH_PROCESS_QUERY_DATA_INTERVAL_LONG_TERM)
@@ -572,7 +572,7 @@ NTSTATUS PhMwpLoadStage1Worker(
 
     //if (PhEnableThemeSupport)
     DrawMenuBar(PhMainWndHandle);
-    
+
     return STATUS_SUCCESS;
 }
 
@@ -628,7 +628,7 @@ static NTSTATUS PhpOpenServiceControlManager(
     )
 {
     SC_HANDLE serviceHandle;
-    
+
     if (serviceHandle = OpenSCManager(NULL, NULL, DesiredAccess))
     {
         *Handle = serviceHandle;
@@ -1572,7 +1572,7 @@ VOID PhMwpOnCommand(
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
-            if (processItem && 
+            if (processItem &&
                 !PhIsNullOrEmptyString(processItem->FileNameWin32) &&
                 PhDoesFileExistWin32(PhGetString(processItem->FileNameWin32)
                 ))
@@ -1954,7 +1954,7 @@ VOID PhMwpOnInitMenuPopup(
         return;
 
     // Delete all items in this submenu.
-    while (DeleteMenu(Menu, 0, MF_BYPOSITION)) 
+    while (DeleteMenu(Menu, 0, MF_BYPOSITION))
         NOTHING;
 
     // Delete the previous EMENU for this submenu.
@@ -2501,7 +2501,7 @@ PPH_EMENU PhpCreateUsersMenu(
     }
 
     PhUiCreateSessionMenu(UsersMenu);
-  
+
     return UsersMenu;
 }
 
@@ -3710,6 +3710,7 @@ VOID PhMwpInvokeUpdateWindowFont(
     HFONT newFont;
     PPH_STRING fontHexString;
     LOGFONT font;
+    LONG dpiValue;
 
     fontHexString = PhaGetStringSetting(L"Font");
 
@@ -3723,7 +3724,9 @@ VOID PhMwpInvokeUpdateWindowFont(
     }
     else
     {
-        if (!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &font, 0))
+        dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
+        if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &font, dpiValue))
             return;
         if (!(newFont = CreateFontIndirect(&font)))
             return;
