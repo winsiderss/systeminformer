@@ -1101,15 +1101,12 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelUtilizationLabel, formatBuffer);
     else
     {
-        PhSetWindowText(CpuPanelUtilizationLabel, PhaFormatString(
-            L"%.2f%%",
-            ((DOUBLE)PhCpuUserUsage + PhCpuKernelUsage) * 100
-            )->Buffer);
+        PhSetWindowText(CpuPanelUtilizationLabel, PH_AUTO_T(PH_STRING, PhFormat(format, 2, 0))->Buffer);
     }
 
-    PhInitFormatF(&format[0], cpuGhz, 2);
+    PhInitFormatF(&format[0], cpuGhz, PhMaxPrecisionUnit);
     PhInitFormatS(&format[1], L" / ");
-    PhInitFormatF(&format[2], (DOUBLE)CpuMaxMhz / 1000, 2);
+    PhInitFormatF(&format[2], (DOUBLE)CpuMaxMhz / 1000, PhMaxPrecisionUnit);
     PhInitFormatS(&format[3], L" GHz");
 
     // %.2f / %.2f GHz
@@ -1117,11 +1114,7 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelSpeedLabel, formatBuffer);
     else
     {
-        PhSetWindowText(CpuPanelSpeedLabel, PhaFormatString(
-            L"%.2f / %.2f GHz",
-            cpuGhz,
-            (DOUBLE)CpuMaxMhz / 1000)->Buffer
-            );
+        PhSetWindowText(CpuPanelSpeedLabel, PH_AUTO_T(PH_STRING, PhFormat(format, 4, 0))->Buffer);
     }
 
     PhInitFormatI64UGroupDigits(&format[0], PhTotalProcesses);
