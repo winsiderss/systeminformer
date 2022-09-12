@@ -5125,28 +5125,88 @@ NTSTATUS PhSetProcessQuotaLimits(
     return status;
 }
 
+NTSTATUS PhGetProcessPriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUCHAR PriorityClass
+    )
+{
+    NTSTATUS status;
+    PROCESS_PRIORITY_CLASS processPriorityClass;
+
+    memset(&processPriorityClass, 0, sizeof(PROCESS_PRIORITY_CLASS));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessPriorityClass,
+        &processPriorityClass,
+        sizeof(PROCESS_PRIORITY_CLASS),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PriorityClass = processPriorityClass.PriorityClass;
+    }
+
+    return status;
+}
+
 NTSTATUS PhSetProcessPriority(
     _In_ HANDLE ProcessHandle,
-    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    _In_ UCHAR PriorityClass
     )
 {
     NTSTATUS status;
 
-    status = NtSetInformationProcess(
-        ProcessHandle, 
-        ProcessPriorityClass, 
-        &PriorityClass,
-        sizeof(PROCESS_PRIORITY_CLASS)
-        );
-
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if (WindowsVersion >= WINDOWS_11_22H1)
     {
-        status = KphSetInformationProcess(
-            ProcessHandle, 
-            KphProcessPriorityClass, 
-            &PriorityClass,
+        PROCESS_PRIORITY_CLASS_EX processPriorityClassEx;
+
+        memset(&processPriorityClassEx, 0, sizeof(PROCESS_PRIORITY_CLASS_EX));
+        processPriorityClassEx.PriorityClassValid = TRUE;
+        processPriorityClassEx.PriorityClass = PriorityClass;
+
+        status = NtSetInformationProcess(
+            ProcessHandle,
+            ProcessPriorityClassEx,
+            &processPriorityClassEx,
+            sizeof(PROCESS_PRIORITY_CLASS_EX)
+            );
+
+        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        {
+            status = KphSetInformationProcess(
+                ProcessHandle,
+                KphProcessPriorityClassEx,
+                &processPriorityClassEx,
+                sizeof(PROCESS_PRIORITY_CLASS_EX)
+                );
+        }
+    }
+    else
+    {
+        PROCESS_PRIORITY_CLASS processPriorityClass;
+
+        memset(&processPriorityClass, 0, sizeof(PROCESS_PRIORITY_CLASS));
+        processPriorityClass.Foreground = FALSE;
+        processPriorityClass.PriorityClass = PriorityClass;
+
+        status = NtSetInformationProcess(
+            ProcessHandle,
+            ProcessPriorityClass,
+            &processPriorityClass,
             sizeof(PROCESS_PRIORITY_CLASS)
             );
+
+        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        {
+            status = KphSetInformationProcess(
+                ProcessHandle,
+                KphProcessPriorityClass,
+                &processPriorityClass,
+                sizeof(PROCESS_PRIORITY_CLASS)
+                );
+        }
     }
 
     return status;

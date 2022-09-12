@@ -1442,11 +1442,11 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
 
     if (ProcessItem->QueryHandle)
     {
-        PROCESS_PRIORITY_CLASS priorityClass;
+        UCHAR priorityClass;
 
         if (NT_SUCCESS(PhGetProcessPriority(ProcessItem->QueryHandle, &priorityClass)))
         {
-            ProcessItem->PriorityClass = priorityClass.PriorityClass;
+            ProcessItem->PriorityClass = priorityClass;
         }
     }
     else
@@ -2514,8 +2514,8 @@ VOID PhProcessProviderUpdate(
                     )))
                 {
                     PTOKEN_USER tokenUser;
-                    BOOLEAN isElevated;
-                    TOKEN_ELEVATION_TYPE elevationType;
+                    //BOOLEAN isElevated;
+                    //TOKEN_ELEVATION_TYPE elevationType;
                     MANDATORY_LEVEL integrityLevel;
                     PWSTR integrityString;
 
@@ -2547,23 +2547,23 @@ VOID PhProcessProviderUpdate(
 
                     // Elevation
 
-                    if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
-                    {
-                        if (processItem->IsElevated != isElevated)
-                        {
-                            processItem->IsElevated = isElevated;
-                            modified = TRUE;
-                        }
-                    }
-
-                    if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                    {
-                        if (processItem->ElevationType != elevationType)
-                        {
-                            processItem->ElevationType = elevationType;
-                            modified = TRUE;
-                        }
-                    }
+                    //if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    //{
+                    //    if (processItem->IsElevated != isElevated)
+                    //    {
+                    //        processItem->IsElevated = isElevated;
+                    //        modified = TRUE;
+                    //    }
+                    //}
+                    //
+                    //if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                    //{
+                    //    if (processItem->ElevationType != elevationType)
+                    //    {
+                    //        processItem->ElevationType = elevationType;
+                    //        modified = TRUE;
+                    //    }
+                    //}
 
                     // Integrity
                     if (NT_SUCCESS(PhGetTokenIntegrityLevel(tokenHandle, &integrityLevel, &integrityString)))

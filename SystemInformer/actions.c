@@ -2979,12 +2979,8 @@ BOOLEAN PhUiSetEcoModeProcess(
                     FALSE
                     ))
                 {
-                    PROCESS_PRIORITY_CLASS priorityClass;
-
                     // Taskmgr sets the process priority to idle before enabling 'Eco mode'. (dmex)
-                    priorityClass.Foreground = FALSE;
-                    priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
-                    PhSetProcessPriority(processHandle, priorityClass);
+                    PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
 
                     status = PhSetProcessPowerThrottlingState(
                         processHandle,
@@ -3003,14 +2999,10 @@ BOOLEAN PhUiSetEcoModeProcess(
                 //    FALSE
                 //    ))
                 {
-                    PROCESS_PRIORITY_CLASS priorityClass;
-
                     // Taskmgr does not properly restore the original priority after it has exited
                     // and you later decide to disable 'Eco mode', so we'll restore normal priority
                     // which isn't quite correct but still way better than what taskmgr does. (dmex)
-                    priorityClass.Foreground = FALSE;
-                    priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
-                    PhSetProcessPriority(processHandle, priorityClass);
+                    PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_NORMAL);
 
                     status = PhSetProcessPowerThrottlingState(processHandle, 0, 0);
                 }
@@ -3284,12 +3276,7 @@ BOOLEAN PhUiSetPriorityProcesses(
         {
             if (Processes[i]->ProcessId != SYSTEM_PROCESS_ID)
             {
-                PROCESS_PRIORITY_CLASS priorityClass;
-
-                priorityClass.Foreground = FALSE;
-                priorityClass.PriorityClass = (UCHAR)PriorityClass;
-
-                status = PhSetProcessPriority(processHandle, priorityClass);
+                status = PhSetProcessPriority(processHandle, (UCHAR)PriorityClass);
             }
             else
             {

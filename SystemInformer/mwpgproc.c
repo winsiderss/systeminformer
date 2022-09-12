@@ -368,7 +368,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     )
 {
     HANDLE processHandle;
-    PROCESS_PRIORITY_CLASS priorityClass = { 0 };
+    UCHAR priorityClass = 0;
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
     ULONG pagePriority = ULONG_MAX;
     BOOLEAN priorityBoost = FALSE;
@@ -417,7 +417,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
 
     if (SetPriority)
     {
-        switch (priorityClass.PriorityClass)
+        switch (priorityClass)
         {
         case PROCESS_PRIORITY_CLASS_REALTIME:
             id = ID_PRIORITY_REALTIME;

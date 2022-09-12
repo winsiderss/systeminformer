@@ -285,22 +285,6 @@ PhGetProcessExecuteFlags(
         );
 }
 
-FORCEINLINE
-NTSTATUS
-PhGetProcessPriority(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PPROCESS_PRIORITY_CLASS PriorityClass
-    )
-{
-    return NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessPriorityClass,
-        PriorityClass,
-        sizeof(PROCESS_PRIORITY_CLASS),
-        NULL
-        );
-}
-
 /**
  * Gets a process' I/O priority.
  *

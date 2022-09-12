@@ -340,7 +340,7 @@ NTSTATUS
 NTAPI
 PhSetProcessItemPriority(
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    _In_ UCHAR PriorityClass
     );
 
 PHAPPAPI
