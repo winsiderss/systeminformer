@@ -5,8 +5,6 @@
 #define IDD_OPTIONS                     101
 #define IDD_PROCCOMMENT                 102
 #define IDD_SRVCOMMENT                  103
-#define IDC_DATABASE                    1001
-#define IDC_BROWSE                      1002
 #define IDC_COMMENT                     1003
 #define IDC_REVERT                      1004
 #define IDC_MATCHCOMMANDLINE            1005
