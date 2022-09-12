@@ -854,7 +854,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
@@ -1163,7 +1163,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
                         {
@@ -1570,7 +1570,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUserUsageText, sizeof(node->CpuUserUsageText), &returnLength))
                         {
@@ -1605,7 +1605,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuKernelUsageText, sizeof(node->CpuKernelUsageText), &returnLength))
                         {
