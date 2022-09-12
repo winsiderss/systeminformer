@@ -150,6 +150,14 @@ PhGetCapabilityGuidName(
     _In_ PPH_STRING GuidString
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBuildTrusteeWithSid(
+    _Out_ PVOID Trustee,
+    _In_opt_ PSID Sid
+    );
+
 #ifdef __cplusplus
 }
 #endif
