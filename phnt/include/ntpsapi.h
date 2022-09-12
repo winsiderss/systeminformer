@@ -117,7 +117,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessBasePriority, // s: KPRIORITY
     ProcessRaisePriority, // s: ULONG
     ProcessDebugPort, // q: HANDLE
-    ProcessExceptionPort, // s: PROCESS_EXCEPTION_PORT
+    ProcessExceptionPort, // s: PROCESS_EXCEPTION_PORT (requires SeTcbPrivilege)
     ProcessAccessToken, // s: PROCESS_ACCESS_TOKEN
     ProcessLdtInformation, // qs: PROCESS_LDT_INFORMATION // 10
     ProcessLdtSize, // s: PROCESS_LDT_SIZE
