@@ -406,7 +406,7 @@ NTSTATUS UploadFileThreadStart(
     // HTTP request boundary string.
     postBoundary = PhFormatString(
         L"--%I64u",
-        (ULONG64)RtlRandomEx(&httpPostSeed) | ((ULONG64)RtlRandomEx(&httpPostSeed) << 31)
+        PhGenerateRandomNumber64()
         );
 
     if (
