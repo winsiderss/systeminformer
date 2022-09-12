@@ -1104,7 +1104,7 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     BOOLEAN defaulted = FALSE;
     PACL dacl = NULL;
     PACCESS_MASK accessRights;
-    TRUSTEE trustee = { 0 };
+    TRUSTEE trustee;
 
     status = RtlGetDaclSecurityDescriptor(
         SecurityDescriptor,
@@ -1124,7 +1124,7 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     if (!accessRights)
         return S_FALSE;
 
-    BuildTrusteeWithSid(&trustee, UserSid);
+    PhBuildTrusteeWithSid(&trustee, UserSid);
     status = GetEffectiveRightsFromAcl(dacl, &trustee, accessRights);
 
     if (status != ERROR_SUCCESS)
