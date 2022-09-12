@@ -37,7 +37,7 @@ VOID FileLogInitialization(
 
         if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
         {
-            fileName = PH_AUTO(PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
+            fileName = PH_AUTO(PhGetApplicationDirectoryFileName(&fileName->sr, FALSE));
         }
 
         status = PhCreateFileStream(
