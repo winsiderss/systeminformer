@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016
+ *     dmex    2016-2022
  *
  */
 
@@ -168,11 +168,9 @@ VOID InitializeTreeImages(
     )
 {
     HICON icon;
-
-    Context->TreeImageList = ImageList_Create(22, 22, ILC_COLOR32, 1, 1);
-
+    Context->TreeImageList = PhImageListCreate(22, 22, ILC_COLOR32, 1, 1);
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_FOLDER), PH_LOAD_ICON_SIZE_LARGE, 16, 16);
-    ImageList_AddIcon(Context->TreeImageList, icon);
+    PhImageListAddIcon(Context->TreeImageList, icon);
     DestroyIcon(icon);
 }
 
@@ -182,46 +180,46 @@ VOID InitializeListImages(
 {
     HICON icon;
 
-    Context->ListImageList = ImageList_Create(22, 22, ILC_COLOR32, 10, 10);
+    Context->ListImageList = PhImageListCreate(22, 22, ILC_COLOR32, 10, 10);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_UNKNOWN), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MUTANT), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DRIVER), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SECTION), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_LINK), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEY), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_PORT), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SESSION), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_EVENT), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
     icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DEVICE), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 }
 
@@ -493,8 +491,9 @@ INT_PTR CALLBACK WinObjDlgProc(
 
             context->TreeViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_TREE);
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_OBJMGR_LIST);
-             
-            PhRegisterDialog(hwndDlg);
+
+            PhSetApplicationWindowIcon(hwndDlg);
+
             InitializeTreeImages(context);
             InitializeListImages(context);
             
@@ -534,16 +533,15 @@ INT_PTR CALLBACK WinObjDlgProc(
         break;
     case WM_DESTROY:
         {
-            if (context->TreeImageList)
-                ImageList_Destroy(context->TreeImageList);
-
-            if (context->ListImageList)
-                ImageList_Destroy(context->ListImageList);
+            //if (context->TreeImageList)
+            //   PhImageListDestroy(context->TreeImageList);
+            //if (context->ListImageList)
+            //    PhImageListDestroy(context->ListImageList);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
-            PhUnregisterDialog(hwndDlg);
+
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }

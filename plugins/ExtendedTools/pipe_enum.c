@@ -5,28 +5,31 @@
  *
  * Authors:
  *
- *     dmex    2020
+ *     dmex    2020-2022
  *
  */
 
 #include "exttools.h"
 
-static HWND ListViewWndHandle;
-static PH_LAYOUT_MANAGER LayoutManager;
-
-BOOLEAN NTAPI PhpPipeFilenameDirectoryCallback(
-    _In_ PVOID Information,
-    _In_opt_ PVOID Context
-)
+typedef struct _PIPE_ENUM_DIALOG_CONTEXT
 {
-    PFILE_DIRECTORY_INFORMATION info = Information;
+    HWND WindowHandle;
+    HWND ListViewWndHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
+} PIPE_ENUM_DIALOG_CONTEXT, *PPIPE_ENUM_DIALOG_CONTEXT;
 
-    if (Context)
-        PhAddItemList(Context, PhCreateStringEx(info->FileName, info->FileNameLength));
+BOOLEAN NTAPI NamedPipeDirectoryCallback(
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PhAddItemList(Context, PhCreateStringEx(Information->FileName, Information->FileNameLength));
     return TRUE;
 }
 
-VOID EnumerateNamedPipeDirectory(VOID)
+VOID EnumerateNamedPipeDirectory(
+    _In_ PPIPE_ENUM_DIALOG_CONTEXT Context
+    )
 {
     NTSTATUS status;
     HANDLE pipeDirectoryHandle;
@@ -36,8 +39,8 @@ VOID EnumerateNamedPipeDirectory(VOID)
     PPH_LIST pipeList;
     ULONG count = 0;
 
-    ExtendedListView_SetRedraw(ListViewWndHandle, FALSE);
-    ListView_DeleteAllItems(ListViewWndHandle);
+    ExtendedListView_SetRedraw(Context->ListViewWndHandle, FALSE);
+    ListView_DeleteAllItems(Context->ListViewWndHandle);
 
     RtlInitUnicodeString(&objectNameUs, DEVICE_NAMED_PIPE);
     InitializeObjectAttributes(
@@ -61,7 +64,7 @@ VOID EnumerateNamedPipeDirectory(VOID)
         return;
 
     pipeList = PhCreateList(1);
-    PhEnumDirectoryFile(pipeDirectoryHandle, NULL, PhpPipeFilenameDirectoryCallback, pipeList);
+    PhEnumDirectoryFile(pipeDirectoryHandle, NULL, NamedPipeDirectoryCallback, pipeList);
 
     for (ULONG i = 0; i < pipeList->Count; i++)
     {
@@ -90,8 +93,8 @@ VOID EnumerateNamedPipeDirectory(VOID)
             );
 
         PhPrintUInt32(value, ++count);
-        lvItemIndex = PhAddListViewItem(ListViewWndHandle, MAXINT, value, NULL);
-        PhSetListViewSubItem(ListViewWndHandle, lvItemIndex, 1, pipeName->Buffer);
+        lvItemIndex = PhAddListViewItem(Context->ListViewWndHandle, MAXINT, value, NULL);
+        PhSetListViewSubItem(Context->ListViewWndHandle, lvItemIndex, 1, pipeName->Buffer);
 
         if (NT_SUCCESS(status))
         {
@@ -103,14 +106,14 @@ VOID EnumerateNamedPipeDirectory(VOID)
                 {
                     if (NT_SUCCESS(PhGetNamedPipeServerProcessId(pipeHandle, &processID)))
                     {
-                        PhSetListViewSubItem(ListViewWndHandle, lvItemIndex, 2, PhaFormatUInt64(HandleToUlong(processID), FALSE)->Buffer);
+                        PhSetListViewSubItem(Context->ListViewWndHandle, lvItemIndex, 2, PhaFormatUInt64(HandleToUlong(processID), FALSE)->Buffer);
                     }
                 }
                 else //if (pipeInfo.NamedPipeEnd == FILE_PIPE_SERVER_END)
                 {
                     if (NT_SUCCESS(PhGetNamedPipeClientProcessId(pipeHandle, &processID)))
                     {
-                        PhSetListViewSubItem(ListViewWndHandle, lvItemIndex, 2, PhaFormatUInt64(HandleToUlong(processID), FALSE)->Buffer);
+                        PhSetListViewSubItem(Context->ListViewWndHandle, lvItemIndex, 2, PhaFormatUInt64(HandleToUlong(processID), FALSE)->Buffer);
                     }
                 }
             }
@@ -124,7 +127,7 @@ VOID EnumerateNamedPipeDirectory(VOID)
     PhDereferenceObject(pipeList);
     NtClose(pipeDirectoryHandle);
 
-    ExtendedListView_SetRedraw(ListViewWndHandle, TRUE);
+    ExtendedListView_SetRedraw(Context->ListViewWndHandle, TRUE);
 }
 
 INT_PTR CALLBACK PipeEnumDlgProc(
@@ -134,40 +137,60 @@ INT_PTR CALLBACK PipeEnumDlgProc(
     _In_ LPARAM lParam
     )
 {
+    PPIPE_ENUM_DIALOG_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        context = PhAllocateZero(sizeof(PIPE_ENUM_DIALOG_CONTEXT));
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+    }
+    else
+    {
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
+            context->ListViewWndHandle = GetDlgItem(hwndDlg, IDC_ATOMLIST);
+
             PhCenterWindow(hwndDlg, PhMainWndHandle);
-            ListViewWndHandle = GetDlgItem(hwndDlg, IDC_ATOMLIST);
+            PhSetApplicationWindowIcon(hwndDlg);
 
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, ListViewWndHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, context->ListViewWndHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, hwndDlg);
 
-            PhSetListViewStyle(ListViewWndHandle, FALSE, TRUE);
-            PhSetControlTheme(ListViewWndHandle, L"explorer");
-            PhAddListViewColumn(ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
-            PhAddListViewColumn(ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name");
-            PhAddListViewColumn(ListViewWndHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"PID");
-            PhSetExtendedListView(ListViewWndHandle);
-            PhLoadListViewColumnsFromSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, ListViewWndHandle);
+            PhSetListViewStyle(context->ListViewWndHandle, FALSE, TRUE);
+            PhSetControlTheme(context->ListViewWndHandle, L"explorer");
+            PhAddListViewColumn(context->ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
+            PhAddListViewColumn(context->ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name");
+            PhAddListViewColumn(context->ListViewWndHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"PID");
+            PhSetExtendedListView(context->ListViewWndHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, context->ListViewWndHandle);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            EnumerateNamedPipeDirectory();
+            EnumerateNamedPipeDirectory(context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveWindowPlacementToSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, hwndDlg);
+            PhSaveListViewColumnsToSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, context->ListViewWndHandle);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhFree(context);
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&LayoutManager);
-        break;
-    case WM_DESTROY:
-        PhSaveWindowPlacementToSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, hwndDlg);
-        PhSaveListViewColumnsToSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, ListViewWndHandle);
-        PhDeleteLayoutManager(&LayoutManager);
+        PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_COMMAND:
         {
@@ -178,7 +201,7 @@ INT_PTR CALLBACK PipeEnumDlgProc(
                 EndDialog(hwndDlg, IDOK);
                 break;
             case IDRETRY:
-                EnumerateNamedPipeDirectory();
+                EnumerateNamedPipeDirectory(context);
                 break;
             }
         }

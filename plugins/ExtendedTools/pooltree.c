@@ -438,8 +438,8 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
 
             SendMessage(
                 context->ParentWindowHandle, 
-                WM_COMMAND, 
-                POOL_TABLE_SHOWCONTEXTMENU, 
+                WM_COMMAND,
+                WM_PH_UPDATE_DIALOG,
                 (LPARAM)contextMenuEvent
                 );
         }

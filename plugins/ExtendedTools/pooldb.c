@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016
+ *     dmex    2016-2022
  *
  */
 
@@ -32,26 +32,27 @@ PPH_STRING FindPoolTagFilePath(
     } locations[] =
     {
 #ifdef _WIN64
-        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\triage\\pooltag.txt") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\triage\\pooltag.txt") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\triage\\pooltag.txt") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\triage\\pooltag.txt") }
+        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\10\\Debuggers\\x64\\") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.1\\Debuggers\\x64\\") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles(x86)%\\Windows Kits\\8.0\\Debuggers\\x64\\") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x64)\\") }
 #else
-        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\triage\\pooltag.txt") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\triage\\pooltag.txt") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\triage\\pooltag.txt") },
-        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\triage\\pooltag.txt") }
+        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\10\\Debuggers\\x86\\") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.1\\Debuggers\\x86\\") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Windows Kits\\8.0\\Debuggers\\x86\\") },
+        { PH_STRINGREF_INIT(L"%ProgramFiles%\\Debugging Tools for Windows (x86)\\") }
 #endif
     };
- 
-    PPH_STRING path;
-    ULONG i;
-   
-    for (i = 0; i < RTL_NUMBER_OF(locations); i++)
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(locations); i++)
     {
-        if (path = PhExpandEnvironmentStrings(&locations[i].AppendPath))
+        PPH_STRING path = PhExpandEnvironmentStrings(&locations[i].AppendPath);
+
+        if (path)
         {
-            if (RtlDoesFileExists_U(path->Buffer))
+            PhMoveReference(&path, PhConcatStringRefZ(&path->sr, L"triage\\pooltag.txt"));
+
+            if (PhDoesFileExistWin32(PhGetString(path)))
                 return path;
 
             PhDereferenceObject(path);
@@ -60,7 +61,6 @@ PPH_STRING FindPoolTagFilePath(
 
     return NULL;
 }
-
 
 BOOLEAN PmPoolTagListHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -77,7 +77,7 @@ ULONG PmPoolTagListHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (*(PPOOL_TAG_LIST_ENTRY*)Entry)->TagUlong;
+    return PhHashInt32((*(PPOOL_TAG_LIST_ENTRY*)Entry)->TagUlong);
 }
 
 PPOOL_TAG_LIST_ENTRY FindPoolTagListEntry(
@@ -108,11 +108,10 @@ VOID LoadPoolTagDatabase(
 {
     static PH_STRINGREF skipPoolTagFileHeader = PH_STRINGREF_INIT(L"\r\n\r\n");
     static PH_STRINGREF skipPoolTagFileLine = PH_STRINGREF_INIT(L"\r\n");
-
     PPH_STRING poolTagFilePath;
     HANDLE fileHandle = NULL;
     LARGE_INTEGER fileSize;
-    ULONG stringBufferLength;
+    SIZE_T stringBufferLength;
     PSTR stringBuffer;
     PPH_STRING utf16StringBuffer = NULL;
     IO_STATUS_BLOCK isb;
@@ -129,7 +128,7 @@ VOID LoadPoolTagDatabase(
     {
         if (!NT_SUCCESS(PhCreateFileWin32(
             &fileHandle,
-            poolTagFilePath->Buffer,
+            PhGetString(poolTagFilePath),
             FILE_GENERIC_READ,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -155,9 +154,8 @@ VOID LoadPoolTagDatabase(
             return;
         }
 
-        stringBufferLength = (ULONG)fileSize.QuadPart + 1;
-        stringBuffer = PhAllocate(stringBufferLength);
-        memset(stringBuffer, 0, stringBufferLength);
+        stringBufferLength = (SIZE_T)fileSize.QuadPart + 1;
+        stringBuffer = PhAllocateZero(stringBufferLength);
 
         if (NT_SUCCESS(NtReadFile(
             fileHandle,
@@ -171,7 +169,7 @@ VOID LoadPoolTagDatabase(
             NULL
             )))
         {
-            utf16StringBuffer = PhZeroExtendToUtf16(stringBuffer);
+            utf16StringBuffer = PhZeroExtendToUtf16Ex(stringBuffer, (SIZE_T)fileSize.QuadPart);
         }
 
         PhFree(stringBuffer);
@@ -180,31 +178,18 @@ VOID LoadPoolTagDatabase(
     }
     else
     {
-        HRSRC resourceHandle;
+        ULONG resourceLength;
+        PVOID resourceBuffer;
 
-        // Find the resource
-        if (resourceHandle = FindResource(
+        if (PhLoadResource(
             PluginInstance->DllBase,
             MAKEINTRESOURCE(IDR_TXT_POOLTAGS),
-            L"TXT")
-            )
+            L"TXT",
+            &resourceLength,
+            &resourceBuffer
+            ))
         {
-            ULONG resourceLength;
-            HGLOBAL resourceBuffer;
-            PSTR utf16Buffer;
-
-            // Get the resource length
-            resourceLength = SizeofResource(PluginInstance->DllBase, resourceHandle);
-
-            // Load the resource
-            if (resourceBuffer = LoadResource(PluginInstance->DllBase, resourceHandle))
-            {
-                utf16Buffer = (PSTR)LockResource(resourceBuffer);
-
-                utf16StringBuffer = PhZeroExtendToUtf16Ex(utf16Buffer, resourceLength);
-            }
-
-            FreeResource(resourceBuffer);
+            utf16StringBuffer = PhZeroExtendToUtf16Ex(resourceBuffer, resourceLength);
         }
     }
 
@@ -216,7 +201,7 @@ VOID LoadPoolTagDatabase(
         PH_STRINGREF binaryNamePart;
         PH_STRINGREF descriptionPart;
 
-        remainingPart = utf16StringBuffer->sr;
+        remainingPart = PhGetStringRef(utf16StringBuffer);
 
         PhSplitStringRefAtString(&remainingPart, &skipPoolTagFileHeader, TRUE, &firstPart, &remainingPart);
 
@@ -243,15 +228,12 @@ VOID LoadPoolTagDatabase(
                 binaryName = PhCreateString2(&binaryNamePart);
                 description = PhCreateString2(&descriptionPart);
 
-                entry = PhAllocate(sizeof(POOL_TAG_LIST_ENTRY));
-                memset(entry, 0, sizeof(POOL_TAG_LIST_ENTRY));
-
-                // Strip leading/trailing space characters.
-                poolTagString = TrimString(poolTag);
+                entry = PhAllocateZero(sizeof(POOL_TAG_LIST_ENTRY));
                 entry->BinaryNameString = TrimString(binaryName);
                 entry->DescriptionString = TrimString(description);
 
                 // Convert the poolTagString to ULONG
+                poolTagString = TrimString(poolTag);
                 PhConvertUtf16ToUtf8Buffer(
                     entry->Tag,
                     sizeof(entry->Tag),

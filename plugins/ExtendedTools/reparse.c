@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020-2021
+ *     dmex    2020-2022
  *
  */
 
@@ -1357,8 +1357,6 @@ INT_PTR CALLBACK ReparseDlgProc(
             }
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
-
-            //Enumerate(context);
 
             status = EnumerateVolumeDirectoryObjects(context);
 
