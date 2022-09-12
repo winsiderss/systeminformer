@@ -542,6 +542,7 @@
 #define IDC_USERMODE                    1413
 #define IDC_HYPERVISOR                  1414
 #define IDC_SIZESINBYTES                1415
+#define IDC_DUMPKERNELTHREADSTACKS      1415
 #define IDC_FONTMONOSPACE               1416
 #define ID_HACKER_EXIT                  40001
 #define ID_PROCESS_PROPERTIES           40006
@@ -784,9 +785,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        262
+#define _APS_NEXT_RESOURCE_VALUE        265
 #define _APS_NEXT_COMMAND_VALUE         40298
-#define _APS_NEXT_CONTROL_VALUE         1413
+#define _APS_NEXT_CONTROL_VALUE         1415
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
