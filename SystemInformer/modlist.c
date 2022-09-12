@@ -1109,7 +1109,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                             break;
                         }
 
-                        PhInitFormatF(&format[0], (DOUBLE)(moduleItem->ImageCoherency * 100.0f), 2);
+                        PhInitFormatF(&format[0], moduleItem->ImageCoherency * 100.0f, PhMaxPrecisionUnit);
                         PhInitFormatS(&format[1], L"%");
 
                         PhMoveReference(&node->ImageCoherencyText, PhFormat(format, RTL_NUMBER_OF(format), 0));

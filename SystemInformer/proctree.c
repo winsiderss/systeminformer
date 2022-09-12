@@ -2438,7 +2438,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHPRTLC_NAME:
-                getCellText->Text = processItem->ProcessName->sr;
+                getCellText->Text = PhGetStringRef(processItem->ProcessName);
                 break;
             case PHPRTLC_PID:
                 PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdString);
@@ -2469,7 +2469,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
@@ -3321,7 +3321,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PH_FORMAT format[2];
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         PhMoveReference(&node->CpuCoreUsageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = node->CpuCoreUsageText->sr;
@@ -3479,7 +3479,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PH_FORMAT format[2];
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         PhMoveReference(&node->CpuAverageText, PhFormat(format, 2, 0));
                         getCellText->Text = node->CpuAverageText->sr;
@@ -3506,7 +3506,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PH_FORMAT format[2];
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         PhMoveReference(&node->CpuKernelText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = node->CpuKernelText->sr;
@@ -3533,7 +3533,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PH_FORMAT format[2];
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         PhMoveReference(&node->CpuUserText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = node->CpuUserText->sr;

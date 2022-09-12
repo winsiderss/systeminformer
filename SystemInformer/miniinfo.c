@@ -2067,7 +2067,7 @@ BOOLEAN PhMipCommitListSectionCallback(
             PhInitFormatS(&format[0], L"Commit    ");
             PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
             PhInitFormatS(&format[2], L" (");
-            PhInitFormatF(&format[3], commitFraction * 100, 2);
+            PhInitFormatF(&format[3], commitFraction * 100, PhMaxPrecisionUnit);
             PhInitFormatS(&format[4], L"%)");
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
@@ -2178,7 +2178,7 @@ BOOLEAN PhMipPhysicalListSectionCallback(
             PhInitFormatS(&format[0], L"Physical    ");
             PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
             PhInitFormatS(&format[2], L" (");
-            PhInitFormatF(&format[3], physicalPercent, 2);
+            PhInitFormatF(&format[3], physicalPercent, PhMaxPrecisionUnit);
             PhInitFormatS(&format[4], L"%)");
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
