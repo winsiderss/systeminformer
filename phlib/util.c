@@ -2988,14 +2988,20 @@ PPH_STRING PhGetApplicationDirectoryWin32(
     return directoryPath;
 }
 
-PPH_STRING PhGetApplicationDirectoryFileNameWin32(
-    _In_ PPH_STRINGREF FileName
+PPH_STRING PhGetApplicationDirectoryFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
     )
 {
     PPH_STRING applicationFileName = NULL;
     PPH_STRING applicationDirectory;
 
-    if (applicationDirectory = PhGetApplicationDirectoryWin32())
+    if (NativeFileName)
+        applicationDirectory = PhGetApplicationDirectory();
+    else
+        applicationDirectory = PhGetApplicationDirectoryWin32();
+
+    if (applicationDirectory)
     {
         applicationFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
         PhReferenceObject(applicationDirectory);
@@ -3036,6 +3042,70 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     }
 
     return randomAlphaFileName;
+}
+
+PPH_STRING PhGetApplicationDataDirectory(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
+    PPH_STRING applicationDataDirectory = NULL;
+    PPH_STRING applicationDirectory;
+
+    if (applicationDirectory = PhExpandEnvironmentStrings(&directoryPath))
+    {
+        applicationDataDirectory = PhConcatStringRef2(&applicationDirectory->sr, FileName);
+        PhReferenceObject(applicationDirectory);
+    }
+
+    return applicationDataDirectory;
+}
+
+PPH_STRING PhGetApplicationDataFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"\\??\\%APPDATA%\\SystemInformer\\");
+    static PH_STRINGREF directoryPathWin32 = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
+    PPH_STRING applicationDataFileName = NULL;
+    PPH_STRING applicationDirectory;
+
+    // Check current directory. (dmex)
+
+    if (applicationDataFileName = PhGetApplicationDirectoryFileName(FileName, NativeFileName))
+    {
+        if (NativeFileName)
+        {
+            if (PhDoesFileExist(&applicationDataFileName->sr))
+                return applicationDataFileName;
+        }
+        else
+        {
+            if (PhDoesFileExistWin32(PhGetString(applicationDataFileName)))
+                return applicationDataFileName;
+        }
+
+        PhClearReference(&applicationDataFileName);
+    }
+
+    // Check appdata directory. (dmex)
+    if (NativeFileName)
+    {
+        applicationDirectory = PhExpandEnvironmentStrings(&directoryPath);
+    }
+    else
+    {
+        applicationDirectory = PhExpandEnvironmentStrings(&directoryPathWin32);
+    }
+
+    if (applicationDirectory)
+    {
+        applicationDataFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
+        PhReferenceObject(applicationDirectory);
+    }
+
+    return applicationDataFileName;
 }
 
 /**
@@ -7800,7 +7870,7 @@ NTSTATUS PhLoaderEntryLoadDll(
         0,
         NULL,
         &imageBaseOffset,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_EXECUTE
         );
@@ -8306,7 +8376,7 @@ NTSTATUS PhLoadLibraryAsResource(
         0,
         NULL,
         &imageBaseSize,
-        ViewShare,
+        ViewUnmap,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );
