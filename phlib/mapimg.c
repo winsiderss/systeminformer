@@ -274,7 +274,7 @@ NTSTATUS PhMapViewOfEntireFile(
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         );
@@ -363,7 +363,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         );

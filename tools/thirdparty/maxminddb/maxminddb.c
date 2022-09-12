@@ -404,7 +404,7 @@ static int map_file(MMDB_s *const mmdb) // dmex: modified for NTAPI
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         );

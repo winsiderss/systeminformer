@@ -12310,7 +12310,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );
