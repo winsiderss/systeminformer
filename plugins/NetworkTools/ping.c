@@ -658,7 +658,7 @@ VOID ShowPingWindow(
 
     PhCreateThread2(NetworkPingDialogThreadStart, context);
 }
-    
+
 VOID ShowPingWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     )

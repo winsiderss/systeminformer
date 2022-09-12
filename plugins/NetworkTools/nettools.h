@@ -25,7 +25,6 @@
 #include "resource.h"
 
 #define PLUGIN_NAME L"ProcessHacker.NetworkTools"
-#define SETTING_NAME_DB_LOCATION (PLUGIN_NAME L".GeoDbPath")
 #define SETTING_NAME_ADDRESS_HISTORY (PLUGIN_NAME L".AddressHistory")
 #define SETTING_NAME_PING_WINDOW_POSITION (PLUGIN_NAME L".PingWindowPosition")
 #define SETTING_NAME_PING_WINDOW_SIZE (PLUGIN_NAME L".PingWindowSize")
@@ -43,6 +42,7 @@
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
+extern PH_STRINGREF GeoDbFileName;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
@@ -252,10 +252,6 @@ typedef enum _NETWORK_COLUMN_ID
 } NETWORK_COLUMN_ID;
 
 // country.c
-
-PPH_STRING NetToolsGetGeoLiteDbPath(
-    _In_ PWSTR SettingName
-    );
 
 VOID FreeGeoLiteDb(
     VOID
