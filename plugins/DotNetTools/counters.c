@@ -472,7 +472,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V2(
         viewSize,
         &sectionOffset,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         )))
@@ -589,7 +589,7 @@ BOOLEAN OpenDotNetPublicControlBlock_V4(
         viewSize,
         &sectionOffset,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         )))
@@ -694,7 +694,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V2(
         viewSize,
         &sectionOffset,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         )))
@@ -823,7 +823,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
         viewSize,
         &sectionOffset,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         )))
