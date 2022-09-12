@@ -27,14 +27,15 @@ typedef struct _LIVE_DUMP_CONFIG
             BOOLEAN CompressMemoryPages : 1;
             BOOLEAN IncludeUserSpaceMemory : 1;
             BOOLEAN IncludeHypervisorPages : 1;
+            BOOLEAN IncludeKernelThreadStack : 1;
             BOOLEAN UseDumpStorageStack : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN Spare : 2;
         };
     };
 
     HANDLE FileHandle;
     HANDLE EventHandle;
-} LIVE_DUMP_CONFIG, * PLIVE_DUMP_CONFIG;
+} LIVE_DUMP_CONFIG, *PLIVE_DUMP_CONFIG;
 
 NTSTATUS PhpCreateLiveKernelDump(
     _In_ PLIVE_DUMP_CONFIG Context
@@ -44,6 +45,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     SYSDBG_LIVEDUMP_CONTROL liveDumpControl;
     SYSDBG_LIVEDUMP_CONTROL_FLAGS flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES pages;
+    SYSDBG_LIVEDUMP_SELECTIVE_CONTROL selective;
 
      // HACK: Give some time for the progress window to become visible. (dmex)
     PhDelayExecution(2000);
@@ -51,6 +53,7 @@ NTSTATUS PhpCreateLiveKernelDump(
     memset(&liveDumpControl, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL));
     memset(&flags, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_FLAGS));
     memset(&pages, 0, sizeof(SYSDBG_LIVEDUMP_CONTROL_ADDPAGES));
+    memset(&selective, 0, sizeof(SYSDBG_LIVEDUMP_SELECTIVE_CONTROL));
 
     if (Context->UseDumpStorageStack)
         flags.UseDumpStorageStack = TRUE;
@@ -61,16 +64,25 @@ NTSTATUS PhpCreateLiveKernelDump(
     if (Context->IncludeHypervisorPages)
         pages.HypervisorPages = TRUE;
 
+    if (Context->IncludeKernelThreadStack)
+    {
+        selective.Version = SYSDBG_LIVEDUMP_SELECTIVE_CONTROL_VERSION;
+        selective.Size = sizeof(SYSDBG_LIVEDUMP_SELECTIVE_CONTROL);
+        selective.ThreadKernelStacks = TRUE;
+
+        liveDumpControl.SelectiveControl = &selective;
+    }
+
     liveDumpControl.Version = SYSDBG_LIVEDUMP_CONTROL_VERSION;
     liveDumpControl.DumpFileHandle = Context->FileHandle;
     liveDumpControl.CancelEventHandle = Context->EventHandle;
-    liveDumpControl.AddPagesControl = pages;
     liveDumpControl.Flags = flags;
+    liveDumpControl.AddPagesControl = pages;
 
     status = NtSystemDebugControl(
         SysDbgGetLiveKernelDump,
         &liveDumpControl,
-        RTL_SIZEOF_THROUGH_FIELD(SYSDBG_LIVEDUMP_CONTROL, AddPagesControl),
+        WindowsVersion >= WINDOWS_11 ? SYSDBG_LIVEDUMP_CONTROL_SIZE_WIN11 : SYSDBG_LIVEDUMP_CONTROL_SIZE,
         NULL,
         0,
         NULL
@@ -366,6 +378,7 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                     dumpConfig->CompressMemoryPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_COMPRESS)) == BST_CHECKED;
                     dumpConfig->IncludeUserSpaceMemory = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USERMODE)) == BST_CHECKED;
                     dumpConfig->IncludeHypervisorPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HYPERVISOR)) == BST_CHECKED;
+                    dumpConfig->IncludeKernelThreadStack = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DUMPKERNELTHREADSTACKS)) == BST_CHECKED;
                     dumpConfig->UseDumpStorageStack = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DUMPSTACK)) == BST_CHECKED;
 
                     dumpConfig->FileName = PhpLiveDumpFileDialogFileName(hwndDlg);
