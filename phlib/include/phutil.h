@@ -761,8 +761,9 @@ PhGetApplicationDirectoryWin32(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetApplicationDirectoryFileNameWin32(
-    _In_ PPH_STRINGREF FileName
+PhGetApplicationDirectoryFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
     );
 
 PHLIBAPI
@@ -770,6 +771,21 @@ PPH_STRING
 NTAPI
 PhGetTemporaryDirectoryRandomAlphaFileName(
     VOID
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetApplicationDataDirectory(
+    _In_ PPH_STRINGREF FileName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetApplicationDataFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
     );
 
 PHLIBAPI
