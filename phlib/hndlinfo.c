@@ -815,7 +815,7 @@ NTSTATUS PhGetSectionFileName(
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         );
