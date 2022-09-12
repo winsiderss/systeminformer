@@ -232,13 +232,10 @@ INT WINAPI wWinMain(
 
     // Set the default priority.
     {
-        PROCESS_PRIORITY_CLASS priorityClass;
-
-        priorityClass.Foreground = FALSE;
-        priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
+        UCHAR priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
 
         if (PhStartupParameters.PriorityClass != 0)
-            priorityClass.PriorityClass = (UCHAR)PhStartupParameters.PriorityClass;
+            priorityClass = (UCHAR)PhStartupParameters.PriorityClass;
 
         PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }

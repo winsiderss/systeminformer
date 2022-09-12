@@ -2257,12 +2257,7 @@ VOID ProcessesUpdatedCallback(
         {
             if (processItem->PriorityClass != object->PriorityClass && !extension->SkipPriority)
             {
-                PROCESS_PRIORITY_CLASS priorityClass;
-
-                priorityClass.Foreground = FALSE;
-                priorityClass.PriorityClass = (UCHAR)object->PriorityClass;
-
-                if (!NT_SUCCESS(PhSetProcessItemPriority(processItem, priorityClass)))
+                if (!NT_SUCCESS(PhSetProcessItemPriority(processItem, (UCHAR)object->PriorityClass)))
                 {
                     extension->SkipPriority = TRUE;
                 }

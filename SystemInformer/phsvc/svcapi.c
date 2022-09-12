@@ -508,11 +508,9 @@ NTSTATUS PhSvcApiControlProcess(
         {
             if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
             {
-                PROCESS_PRIORITY_CLASS priorityClass;
+                UCHAR priorityClass;
 
-                priorityClass.Foreground = FALSE;
-                priorityClass.PriorityClass = (UCHAR)Payload->u.ControlProcess.i.Argument;
-
+                priorityClass = (UCHAR)Payload->u.ControlProcess.i.Argument;
                 status = PhSetProcessPriority(processHandle, priorityClass);
 
                 NtClose(processHandle);
