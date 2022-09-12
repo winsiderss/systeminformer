@@ -25,18 +25,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
     "#include ""include/phappres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -645,7 +645,7 @@ BEGIN
     LTEXT           "Icon processes:",IDC_STATIC,7,72,52,8
     EDITTEXT        IDC_ICONPROCESSES,61,70,40,12,ES_AUTOHSCROLL | ES_NUMBER
     PUSHBUTTON      "Font...",IDC_FONT,179,70,49,14
-    PUSHBUTTON      "Monospace...", IDC_FONTMONOSPACE,230,70,70,14
+    PUSHBUTTON      "Monospace...",IDC_FONTMONOSPACE,230,70,70,14
     PUSHBUTTON      "Make default...",IDC_REPLACETASKMANAGER,179,86,72,14
     LTEXT           "Graph history length:",IDC_STATIC,106,56,69,8
     EDITTEXT        IDC_SAMPLECOUNT,180,55,48,12,ES_AUTOHSCROLL | ES_NUMBER
@@ -844,11 +844,11 @@ CAPTION "Graphs"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Show text",IDC_SHOWTEXT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,49,10
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_DISABLED | WS_TABSTOP,7,44,236,105
     CONTROL         "Use old colors (black background)",IDC_USEOLDCOLORS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,123,10
     CONTROL         "Show commit charge instead of physical memory in summary view",IDC_SHOWCOMMITINSUMMARY,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,227,10
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_DISABLED | WS_BORDER | WS_TABSTOP,7,44,236,105
 END
 
 IDD_PLUGINMANAGER DIALOGEX 0, 0, 501, 272
@@ -1342,12 +1342,14 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Live kernel dump"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Use dump storage stack",IDC_DUMPSTACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,52,93,10
+    CONTROL         "Use dump storage stack",IDC_DUMPSTACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,62,93,10
     CONTROL         "Compress memory pages",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,96,10
-    CONTROL         "Include UserSpace memory pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,22,124,10
-    CONTROL         "Include Hypervisor memory pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,125,10
+    CONTROL         "Include UserSpace memory pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,21,124,10
+    CONTROL         "Include Hypervisor memory pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,35,125,10
     DEFPUSHBUTTON   "Save",IDOK,80,76,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,134,76,50,14
+    CONTROL         "Include kernel thread stacks",IDC_DUMPKERNELTHREADSTACKS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,49,106,10
 END
 
 IDD_HEAPS DIALOGEX 0, 0, 343, 268
