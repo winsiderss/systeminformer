@@ -1003,7 +1003,6 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"14" },
                 { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
-                { StringSettingType, SETTING_NAME_DB_LOCATION, L"%APPDATA%\\SystemInformer\\GeoLite2-Country.mmdb" },
                 { IntegerSettingType, SETTING_NAME_EXTENDED_TCP_STATS, L"0" }
             };
 
