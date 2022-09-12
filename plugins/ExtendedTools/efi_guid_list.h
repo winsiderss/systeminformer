@@ -1,26 +1,16 @@
 /*
- * Process Hacker Extra Plugins -
- *   Firmware Plugin
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
- * Copyright (C) 2016 dmex
+ * This file is part of System Informer.
  *
- * This file is part of Process Hacker.
+ * Authors:
  *
- * Process Hacker is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     dmex    2016-2022
  *
- * Process Hacker is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#ifndef EFI_GUIDS_H
+#define EFI_GUIDS_H
 
 struct _EFI_GUID_TABLE
 {
@@ -1518,3 +1508,5 @@ struct _EFI_GUID_TABLE
     { L"DockSmmBin_GUID",                                                     { 0x854fb23e, 0xea74, 0x42bb, { 0xae, 0x7f, 0x13, 0x66, 0x4b, 0x03, 0xae, 0x4c } } },
     { L"ZERO_GUID",                                                           { 0x00000000, 0x0000, 0x0000, { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } } },
 };
+
+#endif

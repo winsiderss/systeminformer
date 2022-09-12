@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2017
+ *     dmex    2016-2022
  *
  */
 
@@ -119,10 +119,9 @@ INT_PTR CALLBACK UefiEditorDlgProc(
         {
             NTSTATUS status;
 
-            PhSetApplicationWindowIcon(hwndDlg);
-
             context->HexEditHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_HEXEDITVAR);
 
+            PhSetApplicationWindowIcon(hwndDlg);
             PhSetWindowText(hwndDlg, PhGetString(context->Name));
 
             if (!NT_SUCCESS(status = UefiQueryVariable(context, context->Name, context->GuidString)))
@@ -356,9 +355,7 @@ VOID ShowUefiEditorDialog(
 {
     PEFI_EDITOR_CONTEXT context;
 
-    context = PhAllocate(sizeof(EFI_EDITOR_CONTEXT));
-    memset(context, 0, sizeof(EFI_EDITOR_CONTEXT));
-
+    context = PhAllocateZero(sizeof(EFI_EDITOR_CONTEXT));
     context->Name = PhDuplicateString(Entry->Name);
     context->GuidString = PhDuplicateString(Entry->GuidString);
 

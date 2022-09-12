@@ -72,43 +72,42 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="counters.c" />
     <ClCompile Include="disktab.c" />
-    <ClCompile Include="efi.c" />
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmini.c" />
     <ClCompile Include="etwmon.c" />
@@ -187,6 +186,19 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="resources\pooltag.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\device.ico" />
+    <Image Include="resources\driver.ico" />
+    <Image Include="resources\event.ico" />
+    <Image Include="resources\folder.ico" />
+    <Image Include="resources\key.ico" />
+    <Image Include="resources\link.ico" />
+    <Image Include="resources\mutant.ico" />
+    <Image Include="resources\port.ico" />
+    <Image Include="resources\section.ico" />
+    <Image Include="resources\session.ico" />
+    <Image Include="resources\unknown.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

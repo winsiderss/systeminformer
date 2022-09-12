@@ -198,11 +198,11 @@ INT_PTR CALLBACK PoolMonDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(hwndDlg);
-
             context->ParentWindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_POOLTREE);
             context->SearchboxHandle = GetDlgItem(hwndDlg, IDC_POOLSEARCH);
+
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhRegisterDialog(hwndDlg);
             PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -266,7 +266,7 @@ INT_PTR CALLBACK PoolMonDlgProc(
             PostQuitMessage(0);
         }
         break;
-    case POOL_TABLE_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -307,7 +307,7 @@ INT_PTR CALLBACK PoolMonDlgProc(
                     }
                 }
                 break;
-            case POOL_TABLE_SHOWCONTEXTMENU:
+            case WM_PH_UPDATE_DIALOG:
                 {
                     PPH_EMENU menu;
                     PPOOLTAG_ROOT_NODE selectedNode;
@@ -371,7 +371,7 @@ NTSTATUS ShowPoolMonDialogThread(
 
     PhSetEvent(&PoolTagDialogInitializedEvent);
 
-    PostMessage(PoolTagDialogHandle, POOL_TABLE_SHOWDIALOG, 0, 0);
+    PostMessage(PoolTagDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
@@ -408,12 +408,12 @@ VOID ShowPoolMonDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&PoolTagDialogThreadHandle, ShowPoolMonDialogThread, NULL)))
         {
-            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the pool monitor window.");
+            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
             return;
         }
 
         PhWaitForEvent(&PoolTagDialogInitializedEvent, NULL);
     }
 
-    PostMessage(PoolTagDialogHandle, POOL_TABLE_SHOWDIALOG, 0, 0);
+    PostMessage(PoolTagDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }
