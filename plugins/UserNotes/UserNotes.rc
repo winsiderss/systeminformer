@@ -53,12 +53,8 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Database location:",IDC_STATIC,7,9,61,8
-    EDITTEXT        IDC_DATABASE,72,8,183,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse...",IDC_BROWSE,260,7,50,14
-    LTEXT           "If a relative path is specified, it is relative to System Informer's directory. Environment variables can be used. Changes will take place after System Informer is restarted.",IDC_STATIC,7,26,303,19
     CONTROL         "Collapse services on start",IDC_COLLAPSE_SERVICES_CHECK,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,53,98,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,98,10
 END
 
 IDD_PROCCOMMENT DIALOGEX 0, 0, 260, 260

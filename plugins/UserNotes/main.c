@@ -248,10 +248,11 @@ VOID InitializeDbPath(
     VOID
     )
 {
+    static PH_STRINGREF databaseFilePath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\usernotesdb.xml");
     static PH_STRINGREF databaseFileName = PH_STRINGREF_INIT(L"usernotesdb.xml");
     PPH_STRING fileName;
 
-    fileName = PhGetApplicationDirectoryFileNameWin32(&databaseFileName);
+    fileName = PhGetApplicationDirectoryFileName(&databaseFileName, FALSE);
 
     if (fileName && PhDoesFileExistWin32(PhGetString(fileName)))
     {
@@ -259,17 +260,9 @@ VOID InitializeDbPath(
     }
     else
     {
-        if (fileName = PhaGetStringSetting(SETTING_NAME_DATABASE_PATH))
-        {
-            fileName = PH_AUTO(PhExpandEnvironmentStrings(&fileName->sr));
+        fileName = PH_AUTO(PhExpandEnvironmentStrings(&databaseFilePath));
 
-            if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
-            {
-                fileName = PH_AUTO(PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
-            }
-
-            SetDbPath(fileName);
-        }
+        SetDbPath(fileName);
     }
 }
 
@@ -302,14 +295,11 @@ VOID NTAPI UnloadCallback(
 }
 
 VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-
-    if (!optionsEntry)
-        return;
 
     optionsEntry->CreateSection(
         L"UserNotes",
@@ -321,23 +311,20 @@ VOID NTAPI ShowOptionsCallback(
 }
 
 VOID NTAPI MainMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_EMENU_ITEM onlineMenuItem;
 
-    if (!menuInfo)
-        return;
-
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
 
     onlineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&User Notes", NULL);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PRIORITY_SAVE_IFEO, L"Configure priority for executable file...", NULL), ULONG_MAX);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_IO_PRIORITY_SAVE_IFEO, L"Configure IO priority for executable file...", NULL), ULONG_MAX);
-    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PAGE_PRIORITY_SAVE_IFEO, L"Configure page priority for executable file...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PRIORITY_SAVE_IFEO, L"Configure priority for executable...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_IO_PRIORITY_SAVE_IFEO, L"Configure IO priority for executable...", NULL), ULONG_MAX);
+    PhInsertEMenuItem(onlineMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, FILE_PAGE_PRIORITY_SAVE_IFEO, L"Configure page priority for executable...", NULL), ULONG_MAX);
     PhInsertEMenuItem(menuInfo->Menu, onlineMenuItem, ULONG_MAX);
 }
 
@@ -347,6 +334,7 @@ PPH_STRING ShowFileDialog(
 {
     static PH_FILETYPE_FILTER filters[] =
     {
+        { L"Executable files (*.exe)", L"*.exe" },
         { L"All files (*.*)", L"*.*" }
     };
     PPH_STRING fileName = NULL;
@@ -2509,7 +2497,6 @@ LOGICAL DllMain(
         PPH_PLUGIN_INFORMATION info;
         PH_SETTING_CREATE settings[] =
         {
-            { StringSettingType, SETTING_NAME_DATABASE_PATH, L"%APPDATA%\\SystemInformer\\usernotesdb.xml" },
             { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" }
         };
 
@@ -2714,63 +2701,17 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ LPARAM lParam
     )
 {
-    static PH_LAYOUT_MANAGER LayoutManager;
-
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PhSetDialogItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DATABASE_PATH)->Buffer);
-
-            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DATABASE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_COLLAPSE_SERVICES_CHECK),
-                IsCollapseServicesOnStartEnabled());
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhSetStringSetting2(SETTING_NAME_DATABASE_PATH, &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
-
-            PhDeleteLayoutManager(&LayoutManager);
-        }
-        break;
-    case WM_SIZE:
-        {
-            PhLayoutManagerLayout(&LayoutManager);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_COLLAPSE_SERVICES_CHECK), IsCollapseServicesOnStartEnabled());
         }
         break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
-            case IDC_BROWSE:
-                {
-                    static PH_FILETYPE_FILTER filters[] =
-                    {
-                        { L"XML files (*.xml)", L"*.xml" },
-                        { L"All files (*.*)", L"*.*" }
-                    };
-                    PVOID fileDialog;
-                    PPH_STRING fileName;
-
-                    fileDialog = PhCreateOpenFileDialog();
-                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
-
-                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DATABASE)));
-                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-
-                    if (PhShowFileDialog(hwndDlg, fileDialog))
-                    {
-                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        PhSetDialogItemText(hwndDlg, IDC_DATABASE, fileName->Buffer);
-                    }
-
-                    PhFreeFileDialog(fileDialog);
-                }
-                break;
             case IDC_COLLAPSE_SERVICES_CHECK:
                 {
                     AddOrRemoveCollapseServicesOnStart(
@@ -2825,7 +2766,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             PDB_OBJECT object;
             PPH_STRING comment;
 
-            context = propPageContext->Context = PhAllocate(sizeof(PROCESS_COMMENT_PAGE_CONTEXT));
+            context = propPageContext->Context = PhAllocateZero(sizeof(PROCESS_COMMENT_PAGE_CONTEXT));
             context->CommentHandle = GetDlgItem(hwndDlg, IDC_COMMENT);
             context->RevertHandle = GetDlgItem(hwndDlg, IDC_REVERT);
             context->MatchCommandlineHandle = GetDlgItem(hwndDlg, IDC_MATCHCOMMANDLINE);
@@ -2987,9 +2928,7 @@ INT_PTR CALLBACK ProcessCommentPageDlgProc(
             switch (header->code)
             {
             case PSN_QUERYINITIALFOCUS:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->MatchCommandlineHandle);
-                }
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->MatchCommandlineHandle);
                 return TRUE;
             }
         }
