@@ -19,6 +19,9 @@
     <Filter Include="Source Files\RAPL">
       <UniqueIdentifier>{b8808621-a8f2-4a5f-a996-2e576e66ac45}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Graphics">
+      <UniqueIdentifier>{54c0ff15-7e21-40df-9fd7-8883d37008fb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -83,9 +86,27 @@
     <ClCompile Include="poweroptions.c">
       <Filter>Source Files\RAPL</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="CHANGELOG.txt" />
+    <ClCompile Include="gpu.c">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="gpugraph.c">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="gpuoptions.c">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="graphics.c">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="gpunodes.c">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="gpudetails.c">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="ndiswlan.c">
+      <Filter>Source Files\Network</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="HardwareDevices.rc">

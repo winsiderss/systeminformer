@@ -288,15 +288,15 @@ PDV_DISK_ENTRY CreateDiskEntry(
     )
 {
     PDV_DISK_ENTRY entry;
+    ULONG sampleCount;
 
-    entry = PhCreateObject(sizeof(DV_DISK_ENTRY), DiskDriveEntryType);
-    memset(entry, 0, sizeof(DV_DISK_ENTRY));
-
+    entry = PhCreateObjectZero(sizeof(DV_DISK_ENTRY), DiskDriveEntryType);
     entry->DiskIndex = ULONG_MAX;
     CopyDiskId(&entry->Id, Id);
 
-    PhInitializeCircularBuffer_ULONG64(&entry->ReadBuffer, PhGetIntegerSetting(L"SampleCount"));
-    PhInitializeCircularBuffer_ULONG64(&entry->WriteBuffer, PhGetIntegerSetting(L"SampleCount"));
+    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhInitializeCircularBuffer_ULONG64(&entry->ReadBuffer, sampleCount);
+    PhInitializeCircularBuffer_ULONG64(&entry->WriteBuffer, sampleCount);
 
     PhAcquireQueuedLockExclusive(&DiskDrivesListLock);
     PhAddItemList(DiskDrivesList, entry);

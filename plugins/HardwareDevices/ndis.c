@@ -144,7 +144,7 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
 }
 
 PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
-    _In_ PPH_STRING InterfaceGuid
+    _In_ PGUID InterfaceGuid
     )
 {
     // Query adapter description using undocumented function. (dmex)
@@ -156,6 +156,8 @@ PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
         _In_ BOOL Refresh
         ) = NULL;
     GUID interfaceGuid = { 0 };
+    WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
+    SIZE_T adapterDescriptionLength = sizeof(adapterDescription);
 
     if (!NhGetInterfaceDescriptionFromGuid_I)
     {
@@ -173,28 +175,22 @@ PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
     if (!NhGetInterfaceDescriptionFromGuid_I)
         return NULL;
 
-    if (NT_SUCCESS(PhStringToGuid(&InterfaceGuid->sr, &interfaceGuid)))
+    if (SUCCEEDED(NhGetInterfaceDescriptionFromGuid_I(
+        InterfaceGuid,
+        adapterDescription,
+        &adapterDescriptionLength,
+        FALSE,
+        TRUE
+        )))
     {
-        WCHAR adapterDescription[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
-        SIZE_T adapterDescriptionLength = sizeof(adapterDescription);
-
-        if (SUCCEEDED(NhGetInterfaceDescriptionFromGuid_I(
-            &interfaceGuid,
-            adapterDescription,
-            &adapterDescriptionLength,
-            FALSE,
-            TRUE
-            )))
-        {
-            return PhCreateString(adapterDescription);
-        }
+        return PhCreateString(adapterDescription);
     }
 
     return NULL;
 }
 
 PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
-    _In_ PPH_STRING DeviceGuid
+    _In_ PGUID InterfaceGuid
     )
 {
     // Query adapter description using undocumented function. (dmex)
@@ -206,6 +202,8 @@ PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
         _In_ BOOL Refresh
         ) = NULL;
     GUID interfaceGuid = { 0 };
+    WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
+    SIZE_T adapterAliasLength = sizeof(adapterAlias);
 
     if (!NhGetInterfaceNameFromDeviceGuid_I)
     {
@@ -223,21 +221,15 @@ PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
     if (!NhGetInterfaceNameFromDeviceGuid_I)
         return NULL;
 
-    if (NT_SUCCESS(PhStringToGuid(&DeviceGuid->sr, &interfaceGuid)))
-    {
-        WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
-        SIZE_T adapterAliasLength = sizeof(adapterAlias);
-
-        if (SUCCEEDED(NhGetInterfaceNameFromDeviceGuid_I(
-            &interfaceGuid,
-            adapterAlias,
-            &adapterAliasLength,
-            FALSE,
-            TRUE
+    if (SUCCEEDED(NhGetInterfaceNameFromDeviceGuid_I(
+        InterfaceGuid,
+        adapterAlias,
+        &adapterAliasLength,
+        FALSE,
+        TRUE
         )))
-        {
-            return PhCreateString(adapterAlias);
-        }
+    {
+        return PhCreateString(adapterAlias);
     }
 
     return NULL;
@@ -249,11 +241,7 @@ PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
 {
     WCHAR aliasBuffer[IF_MAX_STRING_SIZE + 1];
 
-    if (NETIO_SUCCESS(ConvertInterfaceLuidToAlias(
-        &Id->InterfaceLuid,
-        aliasBuffer,
-        IF_MAX_STRING_SIZE
-        )))
+    if (NETIO_SUCCESS(ConvertInterfaceLuidToAlias(&Id->InterfaceLuid, aliasBuffer, IF_MAX_STRING_SIZE)))
     {
         return PhCreateString(aliasBuffer);
     }
@@ -267,11 +255,7 @@ PPH_STRING NetworkAdapterGetInterfaceNameFromLuid(
 {
     WCHAR interfaceName[IF_MAX_STRING_SIZE + 1];
 
-    if (NETIO_SUCCESS(ConvertInterfaceLuidToNameW(
-        &Id->InterfaceLuid,
-        interfaceName,
-        IF_MAX_STRING_SIZE
-        )))
+    if (NETIO_SUCCESS(ConvertInterfaceLuidToNameW(&Id->InterfaceLuid, interfaceName, IF_MAX_STRING_SIZE)))
     {
         return PhCreateString(interfaceName);
     }
@@ -280,17 +264,19 @@ PPH_STRING NetworkAdapterGetInterfaceNameFromLuid(
 }
 
 PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
-    _In_ PPH_STRING InterfaceGuid
+    _In_ PGUID InterfaceGuid
     )
 {
-   static ULONG (WINAPI* NhGetInterfaceNameFromGuid_I)(
-       _In_ PGUID InterfaceGuid,
-       _Out_writes_(InterfaceAliasLength) PWSTR InterfaceAlias,
-       _Inout_ PSIZE_T InterfaceAliasLength,
-       _In_ BOOL Cache,
-       _In_ BOOL Refresh
-       ) = NULL;
-   GUID interfaceGuid = { 0 };
+    static ULONG (WINAPI *NhGetInterfaceNameFromGuid_I)(
+        _In_ PGUID InterfaceGuid,
+        _Out_writes_(InterfaceAliasLength) PWSTR InterfaceAlias,
+        _Inout_ PSIZE_T InterfaceAliasLength,
+        _In_ BOOL Cache,
+        _In_ BOOL Refresh
+        ) = NULL;
+    GUID interfaceGuid = { 0 };
+    WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
+    SIZE_T adapterAliasLength = sizeof(adapterAlias);
 
     if (!NhGetInterfaceNameFromGuid_I)
     {
@@ -308,21 +294,15 @@ PPH_STRING NetworkAdapterGetInterfaceAliasNameFromGuid(
     if (!NhGetInterfaceNameFromGuid_I)
         return NULL;
 
-    if (NT_SUCCESS(PhStringToGuid(&InterfaceGuid->sr, &interfaceGuid)))
+    if (SUCCEEDED(NhGetInterfaceNameFromGuid_I(
+        InterfaceGuid,
+        adapterAlias,
+        &adapterAliasLength,
+        FALSE,
+        TRUE
+        )))
     {
-        WCHAR adapterAlias[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
-        SIZE_T adapterAliasLength = sizeof(adapterAlias);
-
-        if (SUCCEEDED(NhGetInterfaceNameFromGuid_I(
-            &interfaceGuid,
-            adapterAlias,
-            &adapterAliasLength,
-            FALSE,
-            TRUE
-            )))
-        {
-            return PhCreateString(adapterAlias);
-        }
+        return PhCreateString(adapterAlias);
     }
 
     return NULL;
@@ -348,7 +328,19 @@ PPH_STRING NetworkAdapterQueryName(
         sizeof(adapterName)
         )))
     {
-        return PhCreateString(adapterName);
+        PPH_STRING string;
+
+        if (isb.Information > sizeof(UNICODE_NULL))
+        {
+            string = PhCreateStringEx(adapterName, isb.Information - sizeof(UNICODE_NULL));
+            //PhTrimToNullTerminatorString(string);
+        }
+        else
+        {
+            string = PhCreateString(adapterName);
+        }
+
+        return string;
     }
 
     return NULL;
@@ -359,7 +351,6 @@ NTSTATUS NetworkAdapterQueryStatistics(
     _Out_ PNDIS_STATISTICS_INFO Info
     )
 {
-    NTSTATUS status;
     IO_STATUS_BLOCK isb;
     NDIS_STATISTICS_INFO result;
 
@@ -368,7 +359,7 @@ NTSTATUS NetworkAdapterQueryStatistics(
     result.Header.Revision = NDIS_STATISTICS_INFO_REVISION_1;
     result.Header.Size = NDIS_SIZEOF_STATISTICS_INFO_REVISION_1;
 
-    if (NT_SUCCESS(status = NtDeviceIoControlFile(
+    return NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
@@ -377,14 +368,9 @@ NTSTATUS NetworkAdapterQueryStatistics(
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_STATISTICS },
         sizeof(NDIS_OID),
-        &result,
-        sizeof(result)
-        )))
-    {
-        *Info = result;
-    }
-
-    return status;
+        Info,
+        sizeof(NDIS_STATISTICS_INFO)
+        );
 }
 
 NTSTATUS NetworkAdapterQueryLinkState(
@@ -392,7 +378,6 @@ NTSTATUS NetworkAdapterQueryLinkState(
     _Out_ PNDIS_LINK_STATE State
     )
 {
-    NTSTATUS status;
     IO_STATUS_BLOCK isb;
     NDIS_LINK_STATE result;
 
@@ -401,23 +386,18 @@ NTSTATUS NetworkAdapterQueryLinkState(
     result.Header.Revision = NDIS_LINK_STATE_REVISION_1;
     result.Header.Size = NDIS_SIZEOF_LINK_STATE_REVISION_1;
 
-    if (NT_SUCCESS(status = NtDeviceIoControlFile(
+    return NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
         NULL,
         &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
-        &(NDIS_OID) { OID_GEN_LINK_STATE }, // OID_GEN_MEDIA_CONNECT_STATUS;
+        &(NDIS_OID) { OID_GEN_LINK_STATE }, // OID_GEN_MEDIA_CONNECT_STATUS
         sizeof(NDIS_OID),
-        &result,
-        sizeof(result)
-        )))
-    {
-        *State = result;
-    }
-
-    return status;
+        State,
+        sizeof(NDIS_LINK_STATE)
+        );
 }
 
 _Success_(return)
@@ -522,7 +502,7 @@ NTSTATUS NetworkAdapterQueryLinkSpeed(
 
     memset(&result, 0, sizeof(NDIS_LINK_SPEED));
 
-    if (NT_SUCCESS(status = NtDeviceIoControlFile(
+    status = NtDeviceIoControlFile(
         DeviceHandle,
         NULL,
         NULL,
@@ -532,8 +512,10 @@ NTSTATUS NetworkAdapterQueryLinkSpeed(
         &(NDIS_OID) { OID_GEN_LINK_SPEED },
         sizeof(NDIS_OID),
         &result,
-        sizeof(result)
-        )))
+        sizeof(NDIS_LINK_SPEED)
+        );
+
+    if (NT_SUCCESS(status))
     {
         *LinkSpeed = UInt32x32To64(result.XmitLinkSpeed, NDIS_UNIT_OF_MEASUREMENT);
     }

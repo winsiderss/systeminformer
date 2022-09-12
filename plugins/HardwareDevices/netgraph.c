@@ -665,8 +665,8 @@ VOID NetAdapterSysInfoInitializing(
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
-    context->AdapterEntry = AdapterEntry;
-    context->SectionName = PhConcatStringRef2(&text, &AdapterEntry->AdapterId.InterfaceGuid->sr);
+    context->AdapterEntry = PhReferenceObject(AdapterEntry);
+    context->SectionName = PhConcatStringRef2(&text, &AdapterEntry->AdapterId.InterfaceGuidString->sr);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;
