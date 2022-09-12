@@ -16,10 +16,22 @@
 
 typedef struct _NET_ENUM_ENTRY
 {
-    BOOLEAN DevicePresent;
     IF_LUID DeviceLuid;
-    //PPH_STRING DeviceInterface;
-    PPH_STRING DeviceGuid;
+    //NET_IFINDEX InterfaceIndex;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN DevicePresent : 1;
+            BOOLEAN SoftwareDevice : 1;
+            BOOLEAN UseAlternateMethod : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
+
+    PPH_STRING DeviceGuidString;
     PPH_STRING DeviceName;
     PPH_STRING DevicePath;
 } NET_ENUM_ENTRY, *PNET_ENUM_ENTRY;
@@ -71,6 +83,7 @@ VOID NetAdaptersLoadList(
         PhStringToInteger64(&part2, 10, &luid64);
 
         ifLuid.Value = luid64;
+
         InitializeNetAdapterId(&id, (IF_INDEX)ifindex, ifLuid, PhCreateString2(&part3));
         entry = CreateNetAdapterEntry(&id);
         DeleteNetAdapterId(&id);
@@ -108,7 +121,7 @@ VOID NetAdaptersSaveList(
             PhInitFormatC(&format[1], L',');
             PhInitFormatI64U(&format[2], entry->AdapterId.InterfaceLuid.Value);
             PhInitFormatC(&format[3], L',');
-            PhInitFormatSR(&format[4], entry->AdapterId.InterfaceGuid->sr);
+            PhInitFormatSR(&format[4], entry->AdapterId.InterfaceGuidString->sr);
             PhInitFormatC(&format[5], L',');
 
             if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), &returnLength))
@@ -122,7 +135,7 @@ VOID NetAdaptersSaveList(
                     L"%lu,%I64u,%s,",
                     entry->AdapterId.InterfaceIndex, // This value is UNSAFE and will change after reboot.
                     entry->AdapterId.InterfaceLuid.Value, // This value is SAFE and does not change (Vista+).
-                    entry->AdapterId.InterfaceGuid->Buffer
+                    entry->AdapterId.InterfaceGuidString->Buffer
                     );
             }
         }
@@ -225,7 +238,7 @@ VOID AddNetworkAdapterToListView(
     {
         newId = PhAllocate(sizeof(DV_NETADAPTER_ID));
         CopyNetAdapterId(newId, &adapterId);
-        PhMoveReference(&newId->InterfaceGuid, Guid);
+        PhMoveReference(&newId->InterfaceGuidString, Guid);
     }
 
     lvItemIndex = PhAddListViewGroupItem(
@@ -372,17 +385,21 @@ VOID FindNetworkAdapters(
 
                 if (description = PhCreateString(i->Description))
                 {
-                    PPH_STRING deviceGuid = PhConvertMultiByteToUtf16(i->AdapterName);
+                    PPH_STRING deviceGuidString = PhConvertUtf8ToUtf16(i->AdapterName);
                     PPH_STRING deviceName;
+                    GUID deviceGuid;
 
-                    if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(deviceGuid))
+                    if (NT_SUCCESS(PhStringToGuid(&deviceGuidString->sr, &deviceGuid)))
                     {
-                        PhMoveReference(&description, PhFormatString(
-                            L"%s [Alias: %s]",
-                            PhGetString(description),
-                            PhGetString(deviceName)
-                            ));
-                        PhDereferenceObject(deviceName);
+                        if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(&deviceGuid))
+                        {
+                            PhMoveReference(&description, PhFormatString(
+                                L"%s [Alias: %s]",
+                                PhGetString(description),
+                                PhGetString(deviceName)
+                                ));
+                            PhDereferenceObject(deviceName);
+                        }
                     }
 
                     AddNetworkAdapterToListView(
@@ -390,7 +407,7 @@ VOID FindNetworkAdapters(
                         TRUE,
                         i->IfIndex,
                         i->Luid,
-                        deviceGuid,
+                        deviceGuidString,
                         description
                         );
 
@@ -458,12 +475,29 @@ VOID FindNetworkAdapters(
             {
                 PNET_ENUM_ENTRY adapterEntry;
                 HANDLE deviceHandle;
+                GUID deviceGuid = { 0 };
 
                 adapterEntry = PhAllocateZero(sizeof(NET_ENUM_ENTRY));
-                adapterEntry->DeviceGuid = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
-                adapterEntry->DevicePath = PhConcatStringRef2(&devicePathSr, &adapterEntry->DeviceGuid->sr);
+                adapterEntry->DeviceGuidString = PhQueryRegistryString(keyHandle, L"NetCfgInstanceId");
+                adapterEntry->DevicePath = PhConcatStringRef2(&devicePathSr, &adapterEntry->DeviceGuidString->sr);
                 adapterEntry->DeviceLuid.Info.IfType = PhQueryRegistryUlong64(keyHandle, L"*IfType");
                 adapterEntry->DeviceLuid.Info.NetLuidIndex = PhQueryRegistryUlong64(keyHandle, L"NetLuidIndex");
+                PhStringToGuid(&adapterEntry->DeviceGuidString->sr, &deviceGuid);
+
+                {
+                    MIB_IF_ROW2 interfaceRow = { 0 };
+                    DV_NETADAPTER_ID id;
+
+                    memset(&id, 0, sizeof(DV_NETADAPTER_ID));
+                    id.InterfaceLuid = adapterEntry->DeviceLuid;
+                    id.InterfaceIndex = 0;
+
+                    if (NetworkAdapterQueryInterfaceRow(&id, MibIfEntryNormalWithoutStatistics, &interfaceRow))
+                    {
+                        //adapterEntry->InterfaceIndex = interfaceRow.InterfaceIndex;
+                        adapterEntry->SoftwareDevice = !interfaceRow.InterfaceAndOperStatusFlags.ConnectorPresent;
+                    }
+                }
 
                 if (NT_SUCCESS(PhCreateFile(
                     &deviceHandle,
@@ -483,7 +517,7 @@ VOID FindNetworkAdapters(
                         adapterEntry->DeviceName = adapterName;
 
                     if (PhIsNullOrEmptyString(adapterEntry->DeviceName))
-                        adapterEntry->DeviceName = NetworkAdapterQueryNameFromInterfaceGuid(adapterEntry->DeviceGuid);
+                        adapterEntry->DeviceName = NetworkAdapterQueryNameFromInterfaceGuid(&deviceGuid);
 
                     adapterEntry->DevicePresent = TRUE;
 
@@ -497,7 +531,7 @@ VOID FindNetworkAdapters(
                 {
                     PPH_STRING deviceName;
 
-                    if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(adapterEntry->DeviceGuid))
+                    if (deviceName = NetworkAdapterQueryNameFromDeviceGuid(&deviceGuid))
                     {
                         PhMoveReference(&adapterEntry->DeviceName, PhFormatString(
                             L"%s [Alias: %s]",
@@ -524,29 +558,43 @@ VOID FindNetworkAdapters(
         qsort(deviceList->Items, deviceList->Count, sizeof(PVOID), AdapterEntryCompareFunction);
 
         PhAcquireQueuedLockShared(&NetworkAdaptersListLock);
-
         for (ULONG i = 0; i < deviceList->Count; i++)
         {
             PNET_ENUM_ENTRY entry = deviceList->Items[i];
 
-            AddNetworkAdapterToListView(
-                Context,
-                entry->DevicePresent,
-                0,
-                entry->DeviceLuid,
-                entry->DeviceGuid,
-                entry->DeviceName
-                );
+            if (Context->UseAlternateMethod || !Context->ShowHardwareAdapters)
+            {
+                AddNetworkAdapterToListView(
+                    Context,
+                    entry->DevicePresent,
+                    0, // entry->InterfaceIndex
+                    entry->DeviceLuid,
+                    entry->DeviceGuidString,
+                    entry->DeviceName
+                    );
+            }
+            else
+            {
+                if (entry->DevicePresent && !entry->SoftwareDevice)
+                {
+                    AddNetworkAdapterToListView(
+                        Context,
+                        entry->DevicePresent,
+                        0, // entry->InterfaceIndex
+                        entry->DeviceLuid,
+                        entry->DeviceGuidString,
+                        entry->DeviceName
+                        );
+                }
+            }
 
             if (entry->DeviceName)
                 PhDereferenceObject(entry->DeviceName);
             if (entry->DevicePath)
                 PhDereferenceObject(entry->DevicePath);
-            // Note: DeviceGuid is disposed by WM_DESTROY.
-
+            // Note: DeviceGuidString is disposed by WM_DESTROY.
             PhFree(entry);
         }
-
         PhReleaseQueuedLockShared(&NetworkAdaptersListLock);
     }
 
@@ -602,7 +650,7 @@ VOID FindNetworkAdapters(
                     FALSE,
                     entry->AdapterId.InterfaceIndex,
                     entry->AdapterId.InterfaceLuid,
-                    entry->AdapterId.InterfaceGuid,
+                    entry->AdapterId.InterfaceGuidString,
                     description
                     );
 
@@ -835,8 +883,14 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_PHYSICAL_ADAPTERS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
+            context->ShowHardwareAdapters = TRUE;
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_SHOW_PHYSICAL_ADAPTERS), BST_CHECKED);
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindNetworkAdapters(context);
+            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
             if (ListView_GetItemCount(context->ListViewHandle) == 0)
                 PhSetWindowStyle(context->ListViewHandle, WS_BORDER, WS_BORDER);
@@ -872,6 +926,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                 {
                     context->UseAlternateMethod = !context->UseAlternateMethod;
 
+                    ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+
                     if (context->UseAlternateMethod)
                     {
                         ListView_EnableGroupView(context->ListViewHandle, FALSE);
@@ -884,8 +940,22 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
                     FreeListViewAdapterEntries(context);
                     ListView_DeleteAllItems(context->ListViewHandle);
                     FindNetworkAdapters(context);
+                    ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
                     ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+                }
+                break;
+            case IDC_SHOW_PHYSICAL_ADAPTERS:
+                {
+                    context->ShowHardwareAdapters = !context->ShowHardwareAdapters;
+
+                    ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+                    FreeListViewAdapterEntries(context);
+                    ListView_DeleteAllItems(context->ListViewHandle);
+                    FindNetworkAdapters(context);
+                    ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+
+                    //ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
                 }
                 break;
             }
@@ -940,14 +1010,16 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
                 if (param = PhGetSelectedListViewItemParam(context->ListViewHandle))
                 {
-                    if (deviceInstance = FindNetworkDeviceInstance(param->AdapterId.InterfaceGuid))
+                    if (deviceInstance = FindNetworkDeviceInstance(param->AdapterId.InterfaceGuidString))
                     {
                         ShowDeviceMenu(hwndDlg, deviceInstance);
                         PhDereferenceObject(deviceInstance);
 
+                        ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
                         FreeListViewAdapterEntries(context);
                         ListView_DeleteAllItems(context->ListViewHandle);
                         FindNetworkAdapters(context);
+                        ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
                     }
                 }
             }
@@ -958,7 +1030,7 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 
                 if (param = PhGetSelectedListViewItemParam(context->ListViewHandle))
                 {
-                    if (deviceInstance = FindNetworkDeviceInstance(param->AdapterId.InterfaceGuid))
+                    if (deviceInstance = FindNetworkDeviceInstance(param->AdapterId.InterfaceGuidString))
                     {
                         HardwareDeviceShowProperties(hwndDlg, deviceInstance);
                         PhDereferenceObject(deviceInstance);

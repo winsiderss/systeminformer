@@ -94,28 +94,27 @@ VOID NetAdaptersUpdate(
         if (deviceHandle)
         {
             NDIS_STATISTICS_INFO interfaceStats;
+            NDIS_LINK_STATE interfaceState;
 
             memset(&interfaceStats, 0, sizeof(NDIS_STATISTICS_INFO));
 
             if (NT_SUCCESS(NetworkAdapterQueryStatistics(deviceHandle, &interfaceStats)))
             {
-                if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
-                    networkInOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
-                else
+                if (FlagOn(interfaceStats.SupportedStatistics, NDIS_STATISTICS_FLAGS_VALID_BYTES_RCV))
                     networkInOctets = interfaceStats.ifHCInOctets;
-
-                if (!(interfaceStats.SupportedStatistics & NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
-                    networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
                 else
+                    networkInOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
+
+                if (FlagOn(interfaceStats.SupportedStatistics, NDIS_STATISTICS_FLAGS_VALID_BYTES_XMIT))
                     networkOutOctets = interfaceStats.ifHCOutOctets;
+                else
+                    networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
             }
             else
             {
                 networkInOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_RCV);
                 networkOutOctets = NetworkAdapterQueryValue(deviceHandle, OID_GEN_BYTES_XMIT);
             }
-
-            NDIS_LINK_STATE interfaceState;
 
             if (NT_SUCCESS(NetworkAdapterQueryLinkState(deviceHandle, &interfaceState)))
             {
@@ -257,7 +256,7 @@ VOID NetAdapterUpdateDeviceInfo(
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(AdapterEntry->AdapterId.InterfaceGuid);
+                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid);
             }
 
             if (!DeviceHandle && deviceHandle)
@@ -271,7 +270,7 @@ VOID NetAdapterUpdateDeviceInfo(
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
             {
-                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(AdapterEntry->AdapterId.InterfaceGuid);
+                AdapterEntry->AdapterName = NetworkAdapterQueryNameFromInterfaceGuid(&AdapterEntry->AdapterId.InterfaceGuid);
             }
 
             if (PhIsNullOrEmptyString(AdapterEntry->AdapterName))
@@ -292,15 +291,20 @@ VOID InitializeNetAdapterId(
     _Out_ PDV_NETADAPTER_ID Id,
     _In_ NET_IFINDEX InterfaceIndex,
     _In_ IF_LUID InterfaceLuid,
-    _In_ PPH_STRING InterfaceGuid
+    _In_ PPH_STRING InterfaceGuidString
     )
 {
     static PH_STRINGREF nativeNamespacePath = PH_STRINGREF_INIT(L"\\??\\");
 
     Id->InterfaceIndex = InterfaceIndex;
     Id->InterfaceLuid = InterfaceLuid;
-    PhSetReference(&Id->InterfaceGuid, InterfaceGuid);
-    Id->InterfacePath = PhConcatStringRef2(&nativeNamespacePath, &InterfaceGuid->sr);
+    PhSetReference(&Id->InterfaceGuidString, InterfaceGuidString);
+    Id->InterfacePath = PhConcatStringRef2(&nativeNamespacePath, &InterfaceGuidString->sr);
+
+    if (NT_SUCCESS(PhStringToGuid(&InterfaceGuidString->sr, &Id->InterfaceGuid)))
+    {
+        NOTHING;
+    }
 }
 
 VOID CopyNetAdapterId(
@@ -312,7 +316,7 @@ VOID CopyNetAdapterId(
         Destination,
         Source->InterfaceIndex,
         Source->InterfaceLuid,
-        Source->InterfaceGuid
+        Source->InterfaceGuidString
         );
 }
 
@@ -320,7 +324,7 @@ VOID DeleteNetAdapterId(
     _Inout_ PDV_NETADAPTER_ID Id
     )
 {
-    PhClearReference(&Id->InterfaceGuid);
+    PhClearReference(&Id->InterfaceGuidString);
     PhClearReference(&Id->InterfacePath);
 }
 
@@ -340,14 +344,14 @@ PDV_NETADAPTER_ENTRY CreateNetAdapterEntry(
     )
 {
     PDV_NETADAPTER_ENTRY entry;
+    ULONG sampleCount;
 
-    entry = PhCreateObject(sizeof(DV_NETADAPTER_ENTRY), NetAdapterEntryType);
-    memset(entry, 0, sizeof(DV_NETADAPTER_ENTRY));
-
+    entry = PhCreateObjectZero(sizeof(DV_NETADAPTER_ENTRY), NetAdapterEntryType);
     CopyNetAdapterId(&entry->AdapterId, Id);
 
-    PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, PhGetIntegerSetting(L"SampleCount"));
-    PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, PhGetIntegerSetting(L"SampleCount"));
+    sampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhInitializeCircularBuffer_ULONG64(&entry->InboundBuffer, sampleCount);
+    PhInitializeCircularBuffer_ULONG64(&entry->OutboundBuffer, sampleCount);
 
     PhAcquireQueuedLockExclusive(&NetworkAdaptersListLock);
     PhAddItemList(NetworkAdaptersList, entry);
