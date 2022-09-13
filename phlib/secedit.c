@@ -2017,7 +2017,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root");
+    wbemResourceString = SysAllocStringLen(L"Root", 4);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -2033,7 +2033,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemQueryString = SysAllocString(L"__SystemSecurity");
+    wbemQueryString = SysAllocStringLen(L"__SystemSecurity", 16);
     status = IWbemServices_GetObject(
         wbemServices,
         wbemQueryString,
@@ -2046,7 +2046,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemMethodString = SysAllocString(L"GetSD");
+    wbemMethodString = SysAllocStringLen(L"GetSD", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemQueryString,
@@ -2187,7 +2187,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root");
+    wbemResourceString = SysAllocStringLen(L"Root", 4);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -2203,7 +2203,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemQueryString = SysAllocString(L"__SystemSecurity");
+    wbemQueryString = SysAllocStringLen(L"__SystemSecurity", 16);
     status = IWbemServices_GetObject(
         wbemServices,
         wbemQueryString,
@@ -2298,7 +2298,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemMethodString = SysAllocString(L"SetSD");
+    wbemMethodString = SysAllocStringLen(L"SetSD", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemQueryString,
@@ -2398,7 +2398,7 @@ HRESULT PhRestartDefenderOfflineScan(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root\\Microsoft\\Windows\\Defender");
+    wbemResourceString = SysAllocStringLen(L"Root\\Microsoft\\Windows\\Defender", 31);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -2428,7 +2428,7 @@ HRESULT PhRestartDefenderOfflineScan(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemQueryString = SysAllocString(L"MSFT_MpWDOScan");
+    wbemQueryString = SysAllocStringLen(L"MSFT_MpWDOScan", 14);
     status = IWbemServices_GetObject(
         wbemServices,
         wbemQueryString,
@@ -2441,7 +2441,7 @@ HRESULT PhRestartDefenderOfflineScan(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemMethodString = SysAllocString(L"Start");
+    wbemMethodString = SysAllocStringLen(L"Start", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemQueryString,

@@ -166,7 +166,7 @@ PPH_STRING PhGetWbemClassObjectString(
 }
 
 HRESULT PhpWmiProviderExecMethod(
-    _In_ PWSTR Method,
+    _In_ PPH_STRINGREF Method,
     _In_ PWSTR ProcessIdString,
     _In_ PPH_WMI_ENTRY Entry
     )
@@ -197,7 +197,7 @@ HRESULT PhpWmiProviderExecMethod(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length);
+    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length / sizeof(WCHAR));
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -218,8 +218,8 @@ HRESULT PhpWmiProviderExecMethod(
         ProcessIdString
         );
 
-    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length);
-    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length);
+    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length / sizeof(WCHAR));
+    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length / sizeof(WCHAR));
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
@@ -259,8 +259,8 @@ HRESULT PhpWmiProviderExecMethod(
                 PhEqualString(Entry->UserName, userName, FALSE)
                 )
             {
-                BSTR wbemPathString = SysAllocStringLen(PhGetString(instancePath), (UINT32)instancePath->Length);
-                BSTR wbemMethodString = SysAllocString(Method);
+                BSTR wbemPathString = SysAllocStringLen(PhGetString(instancePath), (UINT32)instancePath->Length / sizeof(WCHAR));
+                BSTR wbemMethodString = SysAllocStringLen(Method->Buffer, (UINT32)Method->Length / sizeof(WCHAR));
 
                 status = IWbemServices_ExecMethod(
                     wbemServices,
@@ -343,7 +343,7 @@ HRESULT PhpQueryWmiProviderFileName(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocStringLen(PhGetString(ProviderNameSpace), (UINT32)ProviderNameSpace->Length);
+    wbemResourceString = SysAllocStringLen(PhGetString(ProviderNameSpace), (UINT32)ProviderNameSpace->Length / sizeof(WCHAR));
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -364,8 +364,8 @@ HRESULT PhpQueryWmiProviderFileName(
         PhGetString(ProviderName)
         );
 
-    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length);
-    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length);
+    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length / sizeof(WCHAR));
+    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length / sizeof(WCHAR));
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
@@ -489,7 +489,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length);
+    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length / sizeof(WCHAR));
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -510,8 +510,8 @@ HRESULT PhpQueryWmiProviderHostProcess(
         ProcessItem->ProcessIdString
         );
 
-    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length);
-    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length);
+    wbemLanguageString = SysAllocStringLen(wbemLanguage.Buffer, (UINT32)wbemLanguage.Length / sizeof(WCHAR));
+    wbemQueryString = SysAllocStringLen(PhGetString(querySelectString), (UINT32)querySelectString->Length / sizeof(WCHAR));
 
     if (FAILED(status = IWbemServices_ExecQuery(
         wbemServices,
@@ -611,7 +611,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length);
+    wbemResourceString = SysAllocStringLen(wbemResource.Buffer, (UINT32)wbemResource.Length / sizeof(WCHAR));
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -1027,13 +1027,13 @@ VOID PhpShowWmiProviderNodeContextMenu(
             switch (selectedItem->Id)
             {
             case 1:
-                PhpWmiProviderExecMethod(L"Suspend", Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+                PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Suspend"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
                 break;
             case 2:
-                PhpWmiProviderExecMethod(L"Resume", Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+                PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Resume"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
                 break;
             case 3:
-                PhpWmiProviderExecMethod(L"Unload", Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+                PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Unload"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
                 break;
             case 4:
                 {
