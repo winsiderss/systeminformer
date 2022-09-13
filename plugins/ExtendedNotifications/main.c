@@ -497,7 +497,7 @@ INT_PTR HandleCommonMessages(
             oldWndProc = (WNDPROC)GetWindowLongPtr(textBoxHandle, GWLP_WNDPROC);
             PhSetWindowContext(textBoxHandle, UCHAR_MAX, oldWndProc);
             SetWindowLongPtr(textBoxHandle, GWLP_WNDPROC, (LONG_PTR)TextBoxSubclassProc);
-            
+
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_INCLUDE), BST_CHECKED);
 
             FixControlStates(hwndDlg, ListBox);

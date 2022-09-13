@@ -256,7 +256,7 @@ BOOLEAN PhpMemoryTreeFilterCallback(
         if (PhWordMatchStringRef(&memoryContext->SearchboxText->sr, &useText->sr))
             return TRUE;
     }
-    
+
     tempString = PhGetMemoryTypeString(memoryItem->Type);
     if (tempString[0])
     {
@@ -902,7 +902,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                     if (selectedItem && selectedItem->Id)
                     {
-                        if (selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_FREE || 
+                        if (selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_FREE ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_RESERVED ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIDE_GUARD ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE ||

@@ -262,8 +262,8 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     }
     else
     {
-        // HACK: PhParseCommandLine requires the - symbol for commandline parameters 
-        // and we already support the -silent parameter however we need to maintain 
+        // HACK: PhParseCommandLine requires the - symbol for commandline parameters
+        // and we already support the -silent parameter however we need to maintain
         // compatibility with the legacy Inno Setup.
         //if (!PhIsNullOrEmptyString(Value))
         //{

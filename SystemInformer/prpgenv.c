@@ -387,7 +387,7 @@ NTSTATUS PhpEditDlgSetEnvironment(
             );
     }
 
-    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
     if (!NT_SUCCESS(status))
     {
         status = PhOpenProcess(
@@ -451,7 +451,7 @@ NTSTATUS PhpEditDeleteEnvironment(
             );
     }
 
-    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
     if (!NT_SUCCESS(status))
     {
         status = PhOpenProcess(
@@ -1159,11 +1159,11 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(
-                data.Menu, 
-                hwnd, 
+                data.Menu,
+                hwnd,
                 PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP, 
-                data.MouseEvent->ScreenLocation.x, 
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                data.MouseEvent->ScreenLocation.x,
                 data.MouseEvent->ScreenLocation.y
                 );
 

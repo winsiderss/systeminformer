@@ -157,7 +157,7 @@ NTSTATUS PhpShowServicePropertiesThread(
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
- 
+
     {
         if (serviceItem->IconEntry && serviceItem->IconEntry->SmallIconIndex)
         {
@@ -545,7 +545,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         newServiceBinaryPath = PH_AUTO(PhGetWindowText(context->BinaryPathWindowHandle));
                     if (PhGetWindowTextLength(context->UserNameWindowHandle))
                         newServiceUserAccount = PH_AUTO(PhGetWindowText(context->UserNameWindowHandle));
-                    
+
                     if (Button_GetCheck(context->PassCheckBoxWindowHandle) == BST_CHECKED)
                         newServicePassword = PhGetWindowText(context->PassBoxWindowHandle);
 

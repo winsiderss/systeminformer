@@ -513,7 +513,7 @@ PPH_STRING EtFwGetDnsReverseNameFromAddress(
             else
             {
                 return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
-            } 
+            }
         }
     case PH_IPV6_NETWORK_TYPE:
         {
@@ -656,7 +656,7 @@ PPH_STRING EtFwGetNameFromAddress(
     if (dnsLocalQuery && PhIsNullOrEmptyString(addressEndpointString))
     {
         // If the local hostname query failed then we'll cache an empty string.
-        // The hostname lookup generates a firewall event, caching the null string for 
+        // The hostname lookup generates a firewall event, caching the null string for
         // these requests prevents hostname lookups generating infinite firewall events. (dmex)
         PhMoveReference(&addressEndpointString, PhReferenceEmptyString());
     }

@@ -108,7 +108,7 @@ VOID NTAPI ShowOptionsCallback(
 _Success_(return)
 static BOOLEAN ParseNetworkAddress(
     _In_ PWSTR AddressString,
-    _Out_ PPH_IP_ENDPOINT RemoteEndpoint  
+    _Out_ PPH_IP_ENDPOINT RemoteEndpoint
     )
 {
     NET_ADDRESS_INFO addressInfo;
@@ -204,7 +204,7 @@ static BOOLEAN ParseNetworkAddress(
             );
         RemoteEndpoint->Port = _byteswap_ushort(addressInfo.Ipv6Address.sin6_port);
         RemoteEndpoint->Address.Type = PH_IPV6_NETWORK_TYPE;
-        return TRUE;      
+        return TRUE;
     }
 
     return FALSE;
@@ -235,7 +235,7 @@ VOID NTAPI MenuItemCallback(
         ShowWhoisWindow(networkItem);
         break;
     case MAINMENU_ACTION_PING:
-        {           
+        {
             PPH_STRING selectedChoice = NULL;
             PH_IP_ENDPOINT remoteEndpoint = { 0 };
 
@@ -330,8 +330,8 @@ VOID NTAPI MainMenuInitializingCallback(
         return;
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
-  
-    networkToolsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Network Tools", NULL);    
+
+    networkToolsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Network Tools", NULL);
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_GEOIP_UPDATE, L"&GeoIP database update...", NULL), ULONG_MAX);
     PhInsertEMenuItem(networkToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(networkToolsMenu, PhPluginCreateEMenuItem(PluginInstance, 0, MAINMENU_ACTION_PING, L"&Ping address...", NULL), ULONG_MAX);
@@ -800,7 +800,7 @@ VOID NTAPI TreeNewMessageCallback(
                 // nothing to draw
                 break;
             }
-            
+
             // Padding
             rect.left += 5;
 
@@ -814,7 +814,7 @@ VOID NTAPI TreeNewMessageCallback(
                 }
 
                 DrawText(
-                    hdc, 
+                    hdc,
                     extension->RemoteCountryName->Buffer,
                     (INT)extension->RemoteCountryName->Length / sizeof(WCHAR),
                     &rect,
@@ -870,8 +870,8 @@ VOID ProcessesUpdatedCallback(
     }
 
     for (
-        listEntry = NetworkExtensionListHead.Flink; 
-        listEntry != &NetworkExtensionListHead; 
+        listEntry = NetworkExtensionListHead.Flink;
+        listEntry != &NetworkExtensionListHead;
         listEntry = listEntry->Flink
         )
     {
@@ -1058,7 +1058,7 @@ LOGICAL DllMain(
                 TreeNewMessageCallback,
                 NULL,
                 &TreeNewMessageCallbackRegistration
-                );     
+                );
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
@@ -1068,8 +1068,8 @@ LOGICAL DllMain(
                 );
 
             PhPluginSetObjectExtension(
-                PluginInstance, 
-                EmNetworkItemType, 
+                PluginInstance,
+                EmNetworkItemType,
                 sizeof(NETWORK_EXTENSION),
                 NetworkItemCreateCallback,
                 NetworkItemDeleteCallback

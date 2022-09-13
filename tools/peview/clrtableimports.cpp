@@ -77,7 +77,7 @@ PPH_STRING PvClrImportFlagsToString(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-// TODO: Add support for dynamic imports by enumerating the types. (dmex) 
+// TODO: Add support for dynamic imports by enumerating the types. (dmex)
 EXTERN_C HRESULT PvGetClrImageImports(
     _In_ PVOID ClrMetaDataDispenser,
     _In_ PWSTR FileName,

@@ -282,7 +282,7 @@ NTSTATUS KphpCiVerifyHashInCatalog(
 }
 
 /**
- * \brief Initializes signing infrastructure. 
+ * \brief Initializes signing infrastructure.
  *
  * \return Successful or errant status.
  */
@@ -319,7 +319,7 @@ NTSTATUS KphInitializeSigning(
 }
 
 /**
- * \brief Cleans up signing infrastructure. 
+ * \brief Cleans up signing infrastructure.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphCleanupSigning(

@@ -207,11 +207,11 @@ typedef struct _KPHM_PROCESS_CREATE
     BOOLEAN IsSubsystemProcess;
 
     //
-    // Dynamic 
+    // Dynamic
     //
     // id: KphMsgFieldFileName       type: KphMsgTypeUnicodeString
     // id: KphMsgFieldCommandLine    type: KphMsgTypeUnicodeString
-    // 
+    //
 
 } KPHM_PROCESS_CREATE, *PKPHM_PROCESS_CREATE;
 
@@ -276,10 +276,10 @@ typedef struct _KPHM_IMAGE_LOAD
     ULONG ImageSectionNumber;
 
     //
-    // Dynamic 
+    // Dynamic
     //
     // id: KphMsgFieldFileName    type: KphMsgTypeUnicodeString
-    // 
+    //
 
 } KPHM_IMAGE_LOAD, *PKPHM_IMAGE_LOAD;
 
@@ -290,10 +290,10 @@ typedef struct _KPHM_DEBUG_PRINT
     ULONG Level;
 
     //
-    // Dynamic 
+    // Dynamic
     //
     // id: KphMsgFieldOutput      type: KphMsgTypeAnsiString
-    // 
+    //
 
 } KPHM_DEBUG_PRINT, *PKPHM_DEBUG_PRINT;
 
@@ -489,10 +489,10 @@ typedef struct _KPHM_DESKTOP_HANDLE_PRE_CREATE
     ACCESS_MASK OriginalDesiredAccess;
 
     //
-    // Dynamic 
+    // Dynamic
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
-    // 
+    //
 
 } KPHM_DESKTOP_HANDLE_PRE_CREATE, *PKPHM_DESKTOP_HANDLE_PRE_CREATE;
 
@@ -514,10 +514,10 @@ typedef struct _KPHM_DESKTOP_HANDLE_POST_CREATE
     ACCESS_MASK GrantedAccess;
 
     //
-    // Dynamic 
+    // Dynamic
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
-    // 
+    //
 
 } KPHM_DESKTOP_HANDLE_POST_CREATE, *PKPHM_DESKTOP_HANDLE_POST_CREATE;
 
@@ -542,10 +542,10 @@ typedef struct _KPHM_DESKTOP_HANDLE_PRE_DUPLICATE
     HANDLE TargetProcessId;
 
     //
-    // Dynamic 
+    // Dynamic
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
-    // 
+    //
 
 } KPHM_DESKTOP_HANDLE_PRE_DUPLICATE, *PKPHM_DESKTOP_HANDLE_PRE_DUPLICATE;
 
@@ -567,10 +567,10 @@ typedef struct _KPHM_DESKTOP_HANDLE_POST_DUPLICATE
     ACCESS_MASK GrantedAccess;
 
     //
-    // Dynamic 
+    // Dynamic
     //
     // id: KphMsgFieldObjectName    type: KphMsgTypeUnicodeString
-    // 
+    //
 
 } KPHM_DESKTOP_HANDLE_POST_DUPLICATE, *PKPHM_DESKTOP_HANDLE_POST_DUPLICATE;
 

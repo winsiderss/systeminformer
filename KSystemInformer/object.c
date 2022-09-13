@@ -148,12 +148,12 @@ typedef struct _KPH_ENUM_PROC_HANDLE_EX_CONTEXT
 
 /**
  * \brief Pass-through callback for handle table enumeration.
- * 
+ *
  * \param[in,out] HandleTableEntry Related handle table entry.
  * \param[in] Handle The handle for this entry.
  * \param[in] Context Enumeration context.
  *
- * \return Result from wrapped callback. 
+ * \return Result from wrapped callback.
  */
 _Function_class_(EX_ENUM_HANDLE_CALLBACK_61)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -177,12 +177,12 @@ BOOLEAN NTAPI KphEnumerateProcessHandlesExCallback61(
 
 /**
  * \brief Pass-through callback for handle table enumeration.
- * 
+ *
  * \param[in,out] HandleTableEntry Related handle table entry.
  * \param[in] Handle The handle for this entry.
  * \param[in] Context Enumeration context.
  *
- * \return Result from wrapped callback. 
+ * \return Result from wrapped callback.
  */
 _Function_class_(EX_ENUM_HANDLE_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -276,7 +276,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
 
 /**
  * \brief Enumeration callback for handle enumeration.
- * 
+ *
  * \param[in,out] HandleTableEntry Related handle table entry.
  * \param[in] Handle The handle for this entry.
  * \param[in] Context Enumeration context.
@@ -589,7 +589,7 @@ NTSTATUS KphQueryNameObject(
  * \param[in] BufferLength The number of bytes available in \a Buffer.
  * \param[out] ReturnLength A variable which receives the number of bytes
  * required to be available in \a Buffer.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -758,7 +758,7 @@ NTSTATUS KphpExtractNameFileObject(
  * \param[in] BufferLength The number of bytes available in \a Buffer.
  * \param[out] ReturnLength A variable which receives the number of bytes
  * required to be available in \a Buffer.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -846,7 +846,7 @@ Exit:
  * \param[out] ReturnLength A variable which receives the number of bytes
  * required to be available in \a ObjectInformation.
  * \param[in] AccessMode The mode in which to perform access checks.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1510,7 +1510,7 @@ Exit:
  * \param[in] ObjectInformationLength The number of bytes present in \a
  * ObjectInformation.
  * \param[in] AccessMode The mode in which to perform access checks.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)

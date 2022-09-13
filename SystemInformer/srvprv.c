@@ -1045,7 +1045,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
 
     if (notifyBuffer->dwNotificationStatus == ERROR_SUCCESS)
     {
-        if ((notifyBuffer->dwNotificationTriggered & (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)) && 
+        if ((notifyBuffer->dwNotificationTriggered & (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)) &&
             notifyBuffer->pszServiceNames)
         {
             PWSTR name;

@@ -86,7 +86,7 @@ typedef struct _POOLTAG_ROOT_NODE
     PH_TREENEW_NODE Node;
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 
-    ULONG TagUlong; 
+    ULONG TagUlong;
     PPOOL_ITEM PoolItem;
 
     PPH_STRING PagedAllocsDeltaString;
@@ -116,7 +116,7 @@ typedef struct _POOLTAG_CONTEXT
 
     PH_QUEUED_LOCK PoolTagListLock;
     PPH_LIST PoolTagDbList;
-    PPH_HASHTABLE PoolTagDbHashtable;  
+    PPH_HASHTABLE PoolTagDbHashtable;
 
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;

@@ -551,8 +551,8 @@ INT LookupCountryIcon(
                     ))
                 {
                     CountryResourceTable[i].IconIndex = PhImageListAddBitmap(
-                        GeoImageList, 
-                        countryBitmap, 
+                        GeoImageList,
+                        countryBitmap,
                         NULL
                         );
                     DeleteBitmap(countryBitmap);
@@ -567,8 +567,8 @@ INT LookupCountryIcon(
 }
 
 VOID DrawCountryIcon(
-    _In_ HDC hdc, 
-    _In_ RECT rect, 
+    _In_ HDC hdc,
+    _In_ RECT rect,
     _In_ INT Index
     )
 {
@@ -576,11 +576,11 @@ VOID DrawCountryIcon(
         return;
 
     PhImageListDrawIcon(
-        GeoImageList, 
-        Index, 
+        GeoImageList,
+        Index,
         hdc,
-        rect.left, 
-        rect.top + ((rect.bottom - rect.top) - 11) / 2, 
+        rect.left,
+        rect.top + ((rect.bottom - rect.top) - 11) / 2,
         ILD_NORMAL,
         FALSE
         );
@@ -656,7 +656,7 @@ BOOLEAN LookupCountryCode(
             32
             );
     }
-  
+
     newEntry.CountryCode = countryCode;
     newEntry.CountryName = countryName;
     memcpy_s(&newEntry.RemoteAddress, sizeof(newEntry.RemoteAddress), &RemoteAddress, sizeof(PH_IP_ADDRESS));

@@ -183,7 +183,7 @@ VOID EtAddGpuFrameToHashTable(
 VOID EtClearGpuFrameHashTable(
     VOID
     )
-{ 
+{
     static ULONG64 lastTickCount = 0;
     ULONG64 tickCount = NtGetTickCount64();
 

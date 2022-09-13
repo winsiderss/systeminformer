@@ -34,7 +34,7 @@ NTSTATUS KphFltInformerStart(
     VOID
     );
 
-// process informer 
+// process informer
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_

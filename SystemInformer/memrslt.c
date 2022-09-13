@@ -633,11 +633,11 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                         GetCursorPos(&point);
 
                         selectedItem = PhShowEMenu(
-                            menu, 
-                            hwndDlg, 
-                            PH_EMENU_SHOW_LEFTRIGHT, 
-                            PH_ALIGN_LEFT | PH_ALIGN_TOP, 
-                            point.x, 
+                            menu,
+                            hwndDlg,
+                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            point.x,
                             point.y
                             );
 

@@ -191,7 +191,7 @@ NTSTATUS PhpGetObjectTypeName(
                 for (ULONG i = 0; i < objectTypes->NumberOfTypes; i++)
                 {
                     PhMoveReference(
-                        &PhObjectTypeNames[objectType->TypeIndex], 
+                        &PhObjectTypeNames[objectType->TypeIndex],
                         PhCreateStringFromUnicodeString(&objectType->TypeName)
                         );
 
@@ -1058,11 +1058,11 @@ NTSTATUS PhpGetBestObjectName(
     {
         HANDLE dupHandle;
         PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
-    
+
         // Skip when we already have a valid job object name. (dmex)
         if (!PhIsNullOrEmptyString(ObjectName))
             goto CleanupExit;
-    
+
         status = NtDuplicateObject(
             ProcessHandle,
             Handle,
@@ -1072,7 +1072,7 @@ NTSTATUS PhpGetBestObjectName(
             0,
             0
             );
-    
+
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
@@ -1082,15 +1082,15 @@ NTSTATUS PhpGetBestObjectName(
             ULONG i;
             CLIENT_ID clientId;
             PPH_STRING name;
-    
+
             PhInitializeStringBuilder(&sb, 40);
             clientId.UniqueThread = NULL;
-    
+
             for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
             {
                 clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
                 name = handleGetClientIdName(&clientId);
-    
+
                 if (name)
                 {
                     PhAppendStringBuilder(&sb, &name->sr);
@@ -1098,9 +1098,9 @@ NTSTATUS PhpGetBestObjectName(
                     PhDereferenceObject(name);
                 }
             }
-    
+
             PhFree(processIdList);
-    
+
             if (sb.String->Length != 0)
                 PhRemoveEndStringBuilder(&sb, 2);
 
@@ -1109,7 +1109,7 @@ NTSTATUS PhpGetBestObjectName(
 
             bestObjectName = PhFinalStringBuilderString(&sb);
         }
-    
+
         NtClose(dupHandle);
     }
     else if (PhEqualString2(TypeName, L"Key", TRUE))

@@ -596,7 +596,7 @@ BOOLEAN PhUiRestartComputer(
                 ))
             {
                 ULONG status;
-                
+
                 status = InitiateShutdown(
                     NULL,
                     NULL,
@@ -763,7 +763,7 @@ BOOLEAN PhUiRestartComputer(
                 //            SHUTDOWN_RESTART,
                 //            SHTDN_REASON_FLAG_PLANNED
                 //            );
-                //        
+                //
                 //        if (status != ERROR_SUCCESS)
                 //        {
                 //            PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
@@ -956,7 +956,7 @@ BOOLEAN PhUiRestartComputer(
 
                 if (status == S_OK)
                     return TRUE;
-                
+
                 if ((status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0))
                 {
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, HRESULT_CODE(status));
@@ -965,7 +965,7 @@ BOOLEAN PhUiRestartComputer(
                 {
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", STATUS_UNSUCCESSFUL, 0);
                 }
-            }       
+            }
         }
         break;
     }
@@ -1034,7 +1034,7 @@ BOOLEAN PhUiShutdownComputer(
                 ))
             {
                 NTSTATUS status;
-                
+
                 status = NtShutdownSystem(ShutdownPowerOff);
 
                 if (NT_SUCCESS(status))
@@ -1068,14 +1068,14 @@ BOOLEAN PhUiShutdownComputer(
                     PowerActionShutdownOff,
                     PowerSystemShutdown,
                     POWER_ACTION_CRITICAL
-                    );            
+                    );
                 //status = NtInitiatePowerAction(
                 //    PowerActionShutdownReset,
                 //    PowerSystemShutdown,
                 //    POWER_ACTION_CRITICAL,
                 //    FALSE
                 //    );
-                
+
                 if (NT_SUCCESS(status))
                     return TRUE;
 
@@ -2555,9 +2555,9 @@ BOOLEAN PhUiRestartProcess(
             flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
         }
 
-        // CreateProcess returns access_denied when restarting full-trust immersive/store processes since appcontainer information 
+        // CreateProcess returns access_denied when restarting full-trust immersive/store processes since appcontainer information
         // is located in the current user registry hive. This is especially noticeable when we're running elevated with a
-        // different user on the same desktop session via UAC over-the-shoulder elevation and try to restart notepad.exe 
+        // different user on the same desktop session via UAC over-the-shoulder elevation and try to restart notepad.exe
         // so we're required to impersonate the token before restarting full-trust immersive/store processes... sigh. (dmex)
         if (PhIsTokenFullTrustAppPackage(tokenHandle))
         {
@@ -3110,7 +3110,7 @@ BOOLEAN PhUiLoadDllProcess(
             );
     }
 
-    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
     if (!NT_SUCCESS(status))
     {
         status = PhOpenProcess(
@@ -4468,7 +4468,7 @@ BOOLEAN PhUiUnloadModule(
                     );
             }
 
-            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
             if (!NT_SUCCESS(status))
             {
                 status = PhOpenProcess(

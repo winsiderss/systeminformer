@@ -39,7 +39,7 @@ VOID KphpPerformImageTracking(
 
 /**
  * \brief Informs any clients of image notify routine invocations.
- * 
+ *
  * \param[in] FullImageName File name of the loading image.
  * \param[in] ProcessId Process ID where the image is being loaded.
  * \param[in] ImageInfo Information about the image being loaded.
@@ -118,7 +118,7 @@ VOID KphpLoadImageNotifyInformer(
 
 /**
  * \brief Image load notify routine.
- * 
+ *
  * \param[in] FullImageName File name of the loading image.
  * \param[in] ProcessId Process ID where the image is being loaded.
  * \param[in] ImageInfo Information about the image being loaded.
@@ -156,7 +156,7 @@ VOID KphpLoadImageNotifyRoutine(
 
 /**
  * \brief Starts the image informer.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)

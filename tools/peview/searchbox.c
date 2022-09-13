@@ -61,7 +61,7 @@ VOID PhpSearchInitializeFont(
 {
     LOGFONT logFont;
 
-    if (Context->WindowFont) 
+    if (Context->WindowFont)
         DeleteFont(Context->WindowFont);
 
     if (!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
@@ -587,7 +587,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 // Get the screen coordinates of the window.
                 GetWindowRect(hWnd, &windowRect);
                 // Adjust the coordinates (start from 0,0).
-                PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);   
+                PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
                 buttonRect = windowRect;
                 // Get the position of the inserted button.
                 PhpSearchGetButtonRect(context, &buttonRect);
@@ -954,7 +954,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             PWSTR text = (PWSTR)lParam;
 
             PhMoveReference(&context->CueBannerText, PhCreateString(text));
-            
+
             RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         return TRUE;

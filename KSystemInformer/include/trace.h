@@ -29,8 +29,8 @@
     (WPP_LEVEL_ENABLED(event) && \
      WPP_CONTROL(WPP_BIT_ ## event).Level >= level)
 
-#define TMH_STRINGIFYX(x) #x 
-#define TMH_STRINGIFY(x) TMH_STRINGIFYX(x) 
+#define TMH_STRINGIFYX(x) #x
+#define TMH_STRINGIFY(x) TMH_STRINGIFYX(x)
 
 #ifdef TMH_FILE
 #include TMH_STRINGIFY(TMH_FILE)

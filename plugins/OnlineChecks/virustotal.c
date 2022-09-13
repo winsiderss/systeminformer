@@ -73,7 +73,7 @@ PVIRUSTOTAL_FILE_HASH_ENTRY VirusTotalAddCacheResult(
     )
 {
     PVIRUSTOTAL_FILE_HASH_ENTRY result;
-    
+
     result = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_HASH_ENTRY));
     result->FileName = PhReferenceObject(FileName);
     result->FileNameAnsi = PhConvertUtf16ToMultiByte(PhGetString(FileName));
@@ -95,7 +95,7 @@ VOID VirusTotalRemoveCacheResult(
     for (ULONG i = 0; i < VirusTotalList->Count; i++)
     {
         PVIRUSTOTAL_FILE_HASH_ENTRY extension = VirusTotalList->Items[i];
-        
+
         PhRemoveItemList(VirusTotalList, i);
 
         PhClearReference(&extension->FileName);
@@ -361,7 +361,7 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
     userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
 
     if (!PhHttpSocketCreate(
-        &httpContext, 
+        &httpContext,
         PhGetString(userAgentString)
         ))
     {
@@ -413,7 +413,7 @@ PVIRUSTOTAL_FILE_REPORT VirusTotalRequestFileReport(
 
     if (!PhHttpSocketEndRequest(httpContext))
         goto CleanupExit;
-    
+
     if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
         goto CleanupExit;
 
@@ -522,7 +522,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
 
     if (!PhHttpSocketCreate(
-        &httpContext, 
+        &httpContext,
         PhGetString(userAgentString)
         ))
     {
@@ -574,7 +574,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
 
     if (!PhHttpSocketEndRequest(httpContext))
         goto CleanupExit;
-    
+
     if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
         goto CleanupExit;
 
@@ -629,7 +629,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestIpAddressReport(
     userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
 
     if (!PhHttpSocketCreate(
-        &httpContext, 
+        &httpContext,
         PhGetString(userAgentString)
         ))
     {
@@ -681,7 +681,7 @@ PVIRUSTOTAL_API_RESPONSE VirusTotalRequestIpAddressReport(
 
     if (!PhHttpSocketEndRequest(httpContext))
         goto CleanupExit;
-    
+
     if (!(jsonString = PhHttpSocketDownloadString(httpContext, FALSE)))
         goto CleanupExit;
 
@@ -795,7 +795,7 @@ NTSTATUS NTAPI VirusTotalProcessApiThread(
                         entry->Found = result->Found;
                         entry->Positives = result->Positives;
                         entry->Total = result->Total;
- 
+
                         if (!FindProcessDbObject(&entry->FileName->sr))
                         {
                             CreateProcessDbObject(
@@ -817,17 +817,17 @@ CleanupExit:
             for (i = 0; i < virusTotalResults->Count; i++)
             {
                 PVIRUSTOTAL_API_RESULT result = virusTotalResults->Items[i];
-            
+
             //    PhClearReference(&result->Permalink);
             //    PhClearReference(&result->FileHash);
             //    PhClearReference(&result->DetectionRatio);
 
                 PhFree(result);
             }
-            
+
             PhDereferenceObject(virusTotalResults);
         }
-        
+
         if (rootJsonObject)
         {
             PhFreeJsonObject(rootJsonObject);
@@ -901,14 +901,14 @@ VOID CleanupVirusTotalProcessMonitor(
 }
 
 // NOTE: This function does not use the SCM due to major performance issues.
-// For now just query this information from the registry but it might be out-of-sync 
+// For now just query this information from the registry but it might be out-of-sync
 // with any recent services changes until the SCM flushes its cache.
 NTSTATUS QueryServiceFileName(
     _In_ PPH_STRINGREF ServiceName,
     _Out_ PPH_STRING *ServiceFileName,
     _Out_ PPH_STRING *ServiceBinaryPath
     )
-{   
+{
     static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
     NTSTATUS status;
     HANDLE keyHandle;
@@ -985,7 +985,7 @@ NTSTATUS QueryServiceFileName(
         if (binaryPath)
             PhDereferenceObject(binaryPath);
     }
-   
+
     PhDereferenceObject(keyName);
 
     return status;

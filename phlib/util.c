@@ -1447,7 +1447,7 @@ PPH_STRING PhFormatTimeSpanEx(
 {
     SIZE_T returnLength;
     WCHAR buffer[PH_TIMESPAN_STR_LEN_1];
-    
+
     if (PhPrintTimeSpanToBuffer(
         Ticks,
         Mode,
@@ -6708,7 +6708,7 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryNameHash(
 
         listEntry = listEntry->Flink;
     }
-    
+
     return NULL;
 }
 
@@ -6805,8 +6805,8 @@ PVOID PhGetDllBaseProcedureAddress(
     return PhGetLoaderEntryImageExportFunction(
         DllBase,
         dataDirectory,
-        exportDirectory, 
-        ProcedureName, 
+        exportDirectory,
+        ProcedureName,
         ProcedureNumber
         );
 }
@@ -6947,7 +6947,7 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
     for (i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
         sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(ImageNtHeader), sizeof(IMAGE_SECTION_HEADER) * i);
-        
+
         if (
             ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
             ((ULONG_PTR)ImageDirectoryAddress < (ULONG_PTR)PTR_ADD_OFFSET(PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress), sectionHeader->SizeOfRawData))
@@ -7087,7 +7087,7 @@ static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
 PVOID PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
-    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory, 
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_opt_ PSTR ExportName,
     _In_opt_ USHORT ExportOrdinal
     )
@@ -7300,7 +7300,7 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
 }
 
 static NTSTATUS PhpFixupLoaderEntryImageImports(
-    _In_ PVOID BaseAddress, 
+    _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader
     )
 {
@@ -8007,7 +8007,7 @@ NTSTATUS PhLoadPluginImage(
         return status;
 
     status = PhGetLoaderEntryImageNtHeaders(
-        imageBaseAddress, 
+        imageBaseAddress,
         &imageNtHeaders
         );
 
@@ -8015,7 +8015,7 @@ NTSTATUS PhLoadPluginImage(
         goto CleanupExit;
 
     status = PhpFixupLoaderEntryImageImports(
-        imageBaseAddress, 
+        imageBaseAddress,
         imageNtHeaders
         );
 
@@ -8033,7 +8033,7 @@ NTSTATUS PhLoadPluginImage(
         goto CleanupExit;
 
     status = PhGetLoaderEntryImageEntryPoint(
-        imageBaseAddress, 
+        imageBaseAddress,
         imageNtHeaders,
         &imageEntryRoutine
         );
@@ -8614,7 +8614,7 @@ NTSTATUS PhCreateRingBuffer(
     // Success, return both mapped views to the caller.
     //
 
-    *RingBuffer = sectionView1; 
+    *RingBuffer = sectionView1;
     *SecondaryView = sectionView2;
 
 #ifdef DEBUG

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2020 
+ *     jxy-s   2020
  *
  */
 
@@ -23,7 +23,7 @@ PAGED_FILE();
  * \details This wraps a call to PsGetProcessProtection which is not exported
  * everywhere. If the function is not exported this call fails with
  * STATUS_NOT_IMPLEMENTED.
- * 
+ *
  * \param[in] Process A process object to retrieve the information from.
  * \param[out] Protection On success this is populated with the process
  * protection.
@@ -346,7 +346,7 @@ Exit:
  * \param[in] DesiredAccess The desired access to the job.
  * \param[out] JobHandle A variable which receives the job object handle.
  * \param[in] AccessMode The mode in which to perform access checks.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -474,7 +474,7 @@ Exit:
  * being terminated.
  * \param[in] Key An access key.
  * \param[in] AccessMode The mode in which to perform access checks.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -579,7 +579,7 @@ Exit:
 
 /**
  * \brief Queries information about a process.
- * 
+ *
  * \param[in] ProcessHandle Handle to process to query.
  * \param[in] ProcessInformationClass Information class to query.
  * \param[out] ProcessInformation Populated with process information by class.
@@ -792,7 +792,7 @@ Exit:
 
 /**
  * \brief Sets information about a process.
- * 
+ *
  * \param[in] ProcessHandle Handle to process to set information for.
  * \param[in] ProcessInformationClass Information class to set.
  * \param[in] ProcessInformation Information to set.

@@ -204,7 +204,7 @@ namespace CustomBuildTool
                 if (instance != null)
                 {
                     Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(instance.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);//  
+                    Program.PrintColorMessage(instance.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);//
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(instance.Name, ConsoleColor.Green, true);
                 }
@@ -642,7 +642,7 @@ namespace CustomBuildTool
                     File.Delete(BuildOutputFolder + "\\systeminformer-build-setup.exe");
 
                 File.Move(
-                    "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe", 
+                    "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
                     BuildOutputFolder + "\\systeminformer-build-setup.exe"
                     );
 

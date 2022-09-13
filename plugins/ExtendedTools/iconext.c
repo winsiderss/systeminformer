@@ -620,7 +620,7 @@ BOOLEAN EtpNetworkIconMessageCallback(
     return FALSE;
 }
 
-// Text 
+// Text
 
 VOID EtpGpuTextIconUpdateCallback(
     _In_ struct _PH_NF_ICON *Icon,

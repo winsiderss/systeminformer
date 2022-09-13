@@ -280,8 +280,8 @@ BOOLEAN PhHttpSocketSendRequest(
 {
     return !!WinHttpSendRequest(
         HttpContext->RequestHandle,
-        WINHTTP_NO_ADDITIONAL_HEADERS, 
-        0, 
+        WINHTTP_NO_ADDITIONAL_HEADERS,
+        0,
         RequestData,
         RequestDataLength,
         RequestDataLength,
@@ -333,8 +333,8 @@ BOOLEAN PhHttpSocketAddRequestHeaders(
     )
 {
     return !!WinHttpAddRequestHeaders(
-        HttpContext->RequestHandle, 
-        Headers, 
+        HttpContext->RequestHandle,
+        Headers,
         HeadersLength ? HeadersLength : ULONG_MAX,
         WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE
         );
@@ -450,7 +450,7 @@ BOOLEAN PhHttpSocketQueryHeaderUlong(
         *HeaderValue = headerValue;
         return TRUE;
     }
- 
+
     return FALSE;
 }
 
@@ -472,7 +472,7 @@ ULONG PhHttpSocketQueryStatusCode(
     {
         return headerValue;
     }
- 
+
     return ULONG_MAX;
 }
 
@@ -871,9 +871,9 @@ BOOLEAN PhHttpSocketSetCredentials(
     )
 {
     return !!WinHttpSetCredentials(
-        HttpContext->RequestHandle, 
-        WINHTTP_AUTH_TARGET_SERVER, 
-        WINHTTP_AUTH_SCHEME_BASIC, 
+        HttpContext->RequestHandle,
+        WINHTTP_AUTH_TARGET_SERVER,
+        WINHTTP_AUTH_SCHEME_BASIC,
         Name,
         Value,
         NULL

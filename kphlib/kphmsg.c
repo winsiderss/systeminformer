@@ -15,8 +15,8 @@
 
 /**
  * \brief Initializes a message.
- * 
- * \param MessageId Message identifier to initialize with. 
+ *
+ * \param MessageId Message identifier to initialize with.
  */
 VOID KphMsgInit(
     _Out_writes_bytes_(KPH_MESSAGE_MIN_SIZE) PKPH_MESSAGE Message,
@@ -39,7 +39,7 @@ VOID KphMsgInit(
 
 /**
  * \brief Validates a message.
- * 
+ *
  * \param Message The message to validate.
  *
  * \return Successful or errant status.

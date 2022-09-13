@@ -225,12 +225,12 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
                 if (context->SystemDllInitBlock->MitigationOptionsMap.Map[0] & PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_INDIRECT_BRANCH_PREDICTION_ALWAYS_ON)
                 {
                     PMITIGATION_POLICY_ENTRY entry;
-                
+
                     entry = PhAllocate(sizeof(MITIGATION_POLICY_ENTRY));
                     entry->NonStandard = TRUE;
                     entry->ShortDescription = PhCreateString(L"Indirect branch prediction");
                     entry->LongDescription = PhCreateString(L"Protects against sibling hardware threads (hyperthreads) from interfering with indirect branch predictions.");
-                
+
                     PhAddListViewItem(lvHandle, MAXINT, entry->ShortDescription->Buffer, entry);
                 }
 

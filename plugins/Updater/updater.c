@@ -136,7 +136,7 @@ BOOLEAN LastUpdateCheckExpired(
     if (currentUpdateTimeTicks.QuadPart - lastUpdateTimeTicks >= 7 * PH_TICKS_PER_DAY)
     {
         PPH_STRING currentUpdateTimeString;
-        
+
         currentUpdateTimeString = PhIntegerToString64(currentUpdateTimeTicks.QuadPart, 0, FALSE);
         PhSetStringSetting2(SETTING_NAME_LAST_CHECK, &currentUpdateTimeString->sr);
 
@@ -320,7 +320,7 @@ BOOLEAN QueryUpdateData(
     }
 
     //
-    // TODO configurable nightly/release option. 
+    // TODO configurable nightly/release option.
     //
     Context->Type = UpdaterTypeNightly;
 
@@ -576,7 +576,7 @@ NTSTATUS UpdateDownloadThread(
 
     if (!PhHttpSocketParseUrl(
         context->SetupFileDownloadUrl,
-        &downloadHostPath, 
+        &downloadHostPath,
         &downloadUrlPath,
         &httpPort
         ))
@@ -594,8 +594,8 @@ NTSTATUS UpdateDownloadThread(
     }
 
     if (!PhHttpSocketConnect(
-        httpContext, 
-        PhGetString(downloadHostPath), 
+        httpContext,
+        PhGetString(downloadHostPath),
         httpPort
         ))
     {
@@ -604,9 +604,9 @@ NTSTATUS UpdateDownloadThread(
     }
 
     if (!PhHttpSocketBeginRequest(
-        httpContext, 
-        NULL, 
-        PhGetString(downloadUrlPath), 
+        httpContext,
+        NULL,
+        PhGetString(downloadUrlPath),
         PH_HTTP_FLAG_REFRESH | (httpPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0)
         ))
     {
@@ -1061,7 +1061,7 @@ VOID ShowStartupUpdateDialog(
     jsonString = PH_AUTO(PhGetStringSetting(SETTING_NAME_UPDATE_DATA));
 
     //
-    // TODO configurable nightly/release option. 
+    // TODO configurable nightly/release option.
     //
     context->Type = UpdaterTypeNightly;
 

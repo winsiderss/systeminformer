@@ -189,7 +189,7 @@ PUCHAR KphpAllocateHashingBuffer(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpFreeHashingBuffer(
-    _In_freesMem_ PUCHAR Buffer 
+    _In_freesMem_ PUCHAR Buffer
     )
 {
     PAGED_PASSIVE();

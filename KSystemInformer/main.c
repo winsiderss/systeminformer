@@ -70,10 +70,10 @@ VOID DriverUnload(
 
 /**
  * \brief Driver entry point.
- * 
+ *
  * \param[in] DriverObject Driver object for this driver.
  * \param[in] RegistryPath Registry path for this driver.
- * 
+ *
  * \return Successful or errant status.
  */
 _Function_class_(DRIVER_INITIALIZE)

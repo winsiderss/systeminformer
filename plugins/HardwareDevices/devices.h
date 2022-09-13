@@ -384,7 +384,8 @@ PWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
-VOID NetworkAdapterQuery802Value(
+_Success_(return)
+BOOLEAN NetworkAdapterQueryWlanConfig(
     _In_ PGUID InterfaceGuid
     );
 

@@ -51,8 +51,8 @@ BOOLEAN GraphicsCloseAdapterHandle(
 
 NTSTATUS GraphicsQueryAdapterInformation(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ KMTQUERYADAPTERINFOTYPE InformationClass, 
-    _Out_writes_bytes_opt_(InformationLength) PVOID Information, 
+    _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
     _In_ UINT32 InformationLength
     )
 {

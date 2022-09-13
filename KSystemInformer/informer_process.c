@@ -325,11 +325,11 @@ _Function_class_(KSI_KCLEANUP_ROUTINE)
 _IRQL_requires_min_(PASSIVE_LEVEL)
 _IRQL_requires_max_(APC_LEVEL)
 _IRQL_requires_same_
-VOID 
+VOID
 KSIAPI
 KphpProcessCreateCleanupRoutine(
     _In_ PKSI_KAPC Apc,
-    _In_ KSI_KAPC_CLEANUP_REASON Reason 
+    _In_ KSI_KAPC_CLEANUP_REASON Reason
     )
 {
     PKPH_PROCESS_CREATE_APC apc;
@@ -481,8 +481,8 @@ VOID KphpPerformProcessCreationTracking(
 }
 
 /**
- * \brief Process create notify routine. 
- * 
+ * \brief Process create notify routine.
+ *
  * \param[in,out] Process The process object being created.
  * \param[in] ProcessId ProcessID of the process being created.
  * \param[in,out] CreateInfo Information on the process being created, if the
@@ -511,7 +511,7 @@ VOID KphpCreateProcessNotifyRoutine(
 }
 
 /**
- * \brief Starts the process informer. 
+ * \brief Starts the process informer.
  *
  * \return Successful or errant status.
  */
@@ -585,7 +585,7 @@ Exit:
 
 /**
  * \brief Stops the process informer.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)

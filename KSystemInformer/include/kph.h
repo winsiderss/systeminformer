@@ -463,7 +463,7 @@ VOID KphInitializeStackBackTrace(
     VOID
     );
 
-#define KPH_STACK_TRACE_CAPTURE_USER_STACK 0x00000001 
+#define KPH_STACK_TRACE_CAPTURE_USER_STACK 0x00000001
 
 _IRQL_requires_max_(APC_LEVEL)
 _Success_(return != 0)
@@ -549,25 +549,25 @@ VOID KphInitializeRWLock(
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphDeleteRWLock(
-    _In_ PKPH_RWLOCK Lock 
+    _In_ PKPH_RWLOCK Lock
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 _Acquires_lock_(_Global_critical_region_)
 VOID KphAcquireRWLockExclusive(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock 
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 _Acquires_lock_(_Global_critical_region_)
 VOID KphAcquireRWLockShared(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock 
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 _Releases_lock_(_Global_critical_region_)
 VOID KphReleaseRWLock(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock 
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     );
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -922,7 +922,7 @@ KPH_TYPE_ALLOCATE_PROCEDURE(
     );
 typedef KPH_TYPE_ALLOCATE_PROCEDURE* PKPH_TYPE_ALLOCATE_PROCEDURE;
 
-typedef 
+typedef
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _Must_inspect_result_
 NTSTATUS
@@ -933,7 +933,7 @@ KPH_TYPE_INITIALIZE_PROCEDURE(
     );
 typedef KPH_TYPE_INITIALIZE_PROCEDURE* PKPH_TYPE_INITIALIZE_PROCEDURE;
 
-typedef 
+typedef
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 VOID
 KSIAPI
@@ -1002,7 +1002,7 @@ KphGetObjectType(
     _In_ PVOID Object
     );
 
-// cid_tracking 
+// cid_tracking
 
 #define KPH_PROTECED_PROCESS_MASK (KPH_PROCESS_READ_ACCESS |\
                                    PROCESS_TERMINATE |\
@@ -1157,7 +1157,7 @@ PKPH_THREAD_CONTEXT KphUntrackThreadContext(
     _In_ HANDLE ThreadId
     );
 
-typedef 
+typedef
 _Function_class_(KPH_ENUM_PROCESS_CONTEXTS_CALLBACK)
 _Must_inspect_result_
 BOOLEAN
@@ -1174,7 +1174,7 @@ VOID KphEnumerateProcessContexts(
     _In_opt_ PVOID Parameter
     );
 
-typedef 
+typedef
 _Function_class_(KPH_ENUM_THREAD_CONTEXTS_CALLBACK)
 _Must_inspect_result_
 BOOLEAN
@@ -1191,7 +1191,7 @@ VOID KphEnumerateThreadContexts(
     _In_opt_ PVOID Parameter
     );
 
-typedef 
+typedef
 _Function_class_(KPH_ENUM_CID_CONTEXTS_CALLBACK)
 _Must_inspect_result_
 BOOLEAN
@@ -1268,13 +1268,13 @@ NTSTATUS KphDominationCheck(
 
 _IRQL_requires_max_(APC_LEVEL)
 KPH_PROCESS_STATE KphGetProcessState(
-    _In_ PKPH_PROCESS_CONTEXT Process 
+    _In_ PKPH_PROCESS_CONTEXT Process
     );
 
 // ksi.dll
 
 #if !defined(_KSIDLL_)
-#define KSISYSAPI DECLSPEC_IMPORT 
+#define KSISYSAPI DECLSPEC_IMPORT
 #else
 #define KSISYSAPI
 #endif
@@ -1297,24 +1297,24 @@ typedef enum _KSI_KAPC_CLEANUP_REASON
 
 } KSI_KAPC_CLEANUP_REASON;
 
-typedef 
+typedef
 _Function_class_(KSI_KCLEANUP_ROUTINE)
 _IRQL_requires_min_(PASSIVE_LEVEL)
 _IRQL_requires_max_(APC_LEVEL)
 _IRQL_requires_same_
-VOID 
+VOID
 KSIAPI
 KSI_KCLEANUP_ROUTINE(
     _In_ PKSI_KAPC Apc,
-    _In_ KSI_KAPC_CLEANUP_REASON Reason 
+    _In_ KSI_KAPC_CLEANUP_REASON Reason
     );
 typedef KSI_KCLEANUP_ROUTINE *PKSI_KCLEANUP_ROUTINE;
 
-typedef 
+typedef
 _Function_class_(KSI_KKERNEL_ROUTINE)
 _IRQL_requires_(APC_LEVEL)
 _IRQL_requires_same_
-VOID 
+VOID
 KSIAPI
 KSI_KKERNEL_ROUTINE(
     _In_ PKSI_KAPC Apc,

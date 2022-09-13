@@ -1037,7 +1037,7 @@ VOID EtpNotifySharedGraph(
                     drawInfo->LabelYFunction = PhSiSizeLabelYFunction;
                     drawInfo->LabelYFunctionParameter = max;
                 }
- 
+
                 SharedGraphState.Valid = TRUE;
             }
         }

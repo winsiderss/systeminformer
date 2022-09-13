@@ -32,7 +32,7 @@ typedef struct _KPH_LOOKASIDE_INIT
  *
  * \param[in] NumberOfBytes The number of bytes to allocate.
  * \param[in] Tag The pool tag to use.
- * 
+ *
  * \return Allocated non-page-able memory. Null on failure.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -314,7 +314,7 @@ PAGED_FILE();
  *
  * \param[in] NumberOfBytes The number of bytes to allocate.
  * \param[in] Tag The pool tag to use.
- * 
+ *
  * \return Allocated page-able memory. Null on failure.
  */
 _IRQL_requires_max_(APC_LEVEL)

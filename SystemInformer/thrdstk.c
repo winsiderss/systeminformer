@@ -544,7 +544,7 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
-            
+
             SendMessage(
                 context->WindowHandle,
                 WM_COMMAND,
@@ -947,7 +947,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
     case WM_INITDIALOG:
         {
             NTSTATUS status;
-            
+
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->HighlightUserPages = !!PhGetIntegerSetting(L"UseColorUserThreadStack");

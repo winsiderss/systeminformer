@@ -797,7 +797,7 @@ BOOLEAN PhCopyBytesZ(
     BOOLEAN copied;
 
     // Determine the length of the input string.
-    
+
     if (InputCount != SIZE_MAX)
     {
         i = 0;

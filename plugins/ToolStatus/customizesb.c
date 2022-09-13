@@ -578,7 +578,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
                 oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
                 SelectFont(bufferDc, context->FontHandle);
-                SetBkMode(bufferDc, TRANSPARENT);    
+                SetBkMode(bufferDc, TRANSPARENT);
 
                 if (isSelected || isFocused)
                     FillRect(bufferDc, &bufferRect, context->BrushHot);
@@ -591,7 +591,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                     SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
 
                 if (!button->IsVirtual)
-                {           
+                {
                     bufferRect.left += 5;
                     DrawText(
                         bufferDc,

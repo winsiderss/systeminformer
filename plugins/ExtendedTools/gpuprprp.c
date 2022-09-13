@@ -280,12 +280,12 @@ VOID GpuPropUpdateGraphs(
 //    if (Context->DetailsHandle)
 //    {
 //        ET_PROCESS_GPU_STATISTICS processGpuStatistics;
-//    
+//
 //        if (Context->Block->ProcessItem->QueryHandle)
 //            EtQueryProcessGpuStatistics(Context->Block->ProcessItem->QueryHandle, &processGpuStatistics);
 //        else
 //            memset(&processGpuStatistics, 0, sizeof(ET_PROCESS_GPU_STATISTICS));
-//    
+//
 //        PhSetDialogItemText(Context->DetailsHandle, IDC_ZDEDICATEDCOMMITTED_V, PhaFormatSize(processGpuStatistics.DedicatedCommitted, ULONG_MAX)->Buffer);
 //        PhSetDialogItemText(Context->DetailsHandle, IDC_ZSHAREDCOMMITTED_V, PhaFormatSize(processGpuStatistics.SharedCommitted, ULONG_MAX)->Buffer);
 //        PhSetDialogItemText(Context->DetailsHandle, IDC_ZTOTALALLOCATED_V, PhaFormatSize(processGpuStatistics.BytesAllocated, ULONG_MAX)->Buffer);
@@ -544,7 +544,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             context->MemoryGraphState.Valid = TRUE;
                         }
-                        
+
                         if (EtGraphShowText)
                         {
                             HDC hdc;
@@ -605,7 +605,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
 
                             context->MemorySharedGraphState.Valid = TRUE;
                         }
-                        
+
                         if (EtGraphShowText)
                         {
                             HDC hdc;

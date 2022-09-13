@@ -55,7 +55,7 @@ typedef enum _SYSTEM_ENVIRONMENT_INFORMATION_CLASS
     MaxSystemEnvironmentInfoClass
 } SYSTEM_ENVIRONMENT_INFORMATION_CLASS;
 
-typedef struct _VARIABLE_NAME 
+typedef struct _VARIABLE_NAME
 {
     ULONG NextEntryOffset;
     GUID VendorGuid;
@@ -70,7 +70,7 @@ typedef struct _VARIABLE_NAME
 #define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS    0x00000020
 #define EFI_VARIABLE_APPEND_WRITE                             0x00000040
 
-typedef struct _VARIABLE_NAME_AND_VALUE 
+typedef struct _VARIABLE_NAME_AND_VALUE
 {
     ULONG NextEntryOffset;
     ULONG ValueOffset;

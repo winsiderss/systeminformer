@@ -93,8 +93,8 @@ typedef struct _ASMPAGE_CONTEXT
 
     PPH_STRING SearchBoxText;
     PPH_STRING TreeErrorMessage;
-    
-    PPH_PROCESS_ITEM ProcessItem; 
+
+    PPH_PROCESS_ITEM ProcessItem;
     PDNA_NODE ClrV2Node;
 
     union
@@ -1013,7 +1013,7 @@ VOID DotNetAsmInitializeTreeList(
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_FLAGS, TRUE, L"Flags", 80, PH_ALIGN_LEFT, 2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_PATH, TRUE, L"File name", 600, PH_ALIGN_LEFT, 3, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_NATIVEPATH, FALSE, L"Native image path", 600, PH_ALIGN_LEFT, 4, DT_PATH_ELLIPSIS);
-    PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_BASEADDRESS, FALSE, L"Base address", 100, PH_ALIGN_LEFT, 5, DT_PATH_ELLIPSIS);   
+    PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_BASEADDRESS, FALSE, L"Base address", 100, PH_ALIGN_LEFT, 5, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(Context->TreeNewHandle, DNATNC_MVID, FALSE, L"MVID", 100, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
 
     DotNetAsmLoadSettingsTreeList(Context);

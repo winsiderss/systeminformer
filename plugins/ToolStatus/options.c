@@ -22,11 +22,11 @@ static PH_KEY_VALUE_PAIR GraphTypePairs[] =
     { L"Physical Memory History", (PVOID)TASKBAR_ICON_PHYSICAL_HISTORY },
 };
 
-static PWSTR GraphTypeStrings[] = 
-{ 
-    L"None", 
-    L"CPU History", 
-    L"CPU Usage", 
+static PWSTR GraphTypeStrings[] =
+{
+    L"None",
+    L"CPU History",
+    L"CPU Usage",
     L"I/O History",
     L"Commit History",
     L"Physical Memory History"
@@ -47,7 +47,7 @@ PWSTR GraphTypeGetTypeString(
     {
         return string;
     }
- 
+
     return L"None";
 }
 
@@ -66,7 +66,7 @@ ULONG GraphTypeGetTypeInteger(
     {
         return integer;
     }
-    
+
     return 0;
 }
 

@@ -12,7 +12,7 @@
 #include <kph.h>
 
 //
-// This library is intended to be an extension of core OS functionality which 
+// This library is intended to be an extension of core OS functionality which
 // enables drivers to preform operations within the system that would otherwise
 // be dangerous or impossible.
 //
@@ -163,9 +163,9 @@ BOOLEAN KsiInsertQueueApc(
 
     ObReferenceObject(Apc->DriverObject);
 
-    result = KeInsertQueueApc(&Apc->Apc, 
-                              SystemArgument1, 
-                              SystemArgument2, 
+    result = KeInsertQueueApc(&Apc->Apc,
+                              SystemArgument1,
+                              SystemArgument2,
                               PriorityBoost);
     if (!result)
     {

@@ -126,12 +126,12 @@ typedef enum _KAPC_ENVIRONMENT
 
 } KAPC_ENVIRONMENT, *PKAPC_ENVIRONMENT;
 
-typedef 
+typedef
 _Function_class_(KNORMAL_ROUTINE)
 _IRQL_requires_(PASSIVE_LEVEL)
 _IRQL_requires_same_
-VOID 
-NTAPI 
+VOID
+NTAPI
 KNORMAL_ROUTINE(
     _In_opt_ PVOID NormalContext,
     _In_opt_ PVOID SystemArgument1,
@@ -139,22 +139,22 @@ KNORMAL_ROUTINE(
     );
 typedef KNORMAL_ROUTINE *PKNORMAL_ROUTINE;
 
-typedef 
+typedef
 _Function_class_(KRUNDOWN_ROUTINE)
 _IRQL_requires_(PASSIVE_LEVEL)
 _IRQL_requires_same_
-VOID 
+VOID
 NTAPI
 KRUNDOWN_ROUTINE(
     _In_ PRKAPC Apc
     );
 typedef KRUNDOWN_ROUTINE *PKRUNDOWN_ROUTINE;
 
-typedef 
+typedef
 _Function_class_(KKERNEL_ROUTINE)
 _IRQL_requires_(APC_LEVEL)
 _IRQL_requires_same_
-VOID 
+VOID
 NTAPI
 KKERNEL_ROUTINE(
     _In_ PRKAPC Apc,
@@ -362,7 +362,7 @@ NTAPI
 ObSetHandleAttributes(
     _In_ HANDLE Handle,
     _In_ POBJECT_HANDLE_FLAG_INFORMATION HandleFlags,
-    _In_ KPROCESSOR_MODE AccessMode 
+    _In_ KPROCESSOR_MODE AccessMode
     );
 
 // PS
@@ -403,7 +403,7 @@ typedef struct _KLDR_DATA_TABLE_ENTRY
     ULONG SizeOfImageNotRounded;
     ULONG TimeDateStamp;
 
-} KLDR_DATA_TABLE_ENTRY, *PKLDR_DATA_TABLE_ENTRY; 
+} KLDR_DATA_TABLE_ENTRY, *PKLDR_DATA_TABLE_ENTRY;
 
 NTSYSCALLAPI
 NTSTATUS
@@ -564,7 +564,7 @@ NTAPI
 PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2(
     _In_ PSCREATEPROCESSNOTIFYTYPE NotifyType,
     _In_ PVOID NotifyInformation,
-    _In_ BOOLEAN Remove 
+    _In_ BOOLEAN Remove
     );
 typedef PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2* PPS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2;
 
@@ -753,11 +753,11 @@ typedef unsigned int ALG_ID;
 
 #ifndef CRYPTO_BLOBS_DEFINED
 #define CRYPTO_BLOBS_DEFINED
-typedef struct _CRYPTOAPI_BLOB 
+typedef struct _CRYPTOAPI_BLOB
 {
     ULONG cbData;
     _Field_size_bytes_(cbData) UCHAR *pbData;
-} 
+}
 CRYPT_INTEGER_BLOB, *PCRYPT_INTEGER_BLOB,
 CRYPT_UINT_BLOB, *PCRYPT_UINT_BLOB,
 CRYPT_OBJID_BLOB, *PCRYPT_OBJID_BLOB,

@@ -212,7 +212,7 @@ PPH_EMENU_ITEM PhCreateEMenuSeparator(
     return PhCreateEMenuItem(PH_EMENU_SEPARATOR, 0, NULL, NULL, NULL);
 }
 
-FORCEINLINE 
+FORCEINLINE
 BOOLEAN PhEnableEMenuItem(
     _Inout_ PPH_EMENU_ITEM Item,
     _In_ ULONG Id,
@@ -222,7 +222,7 @@ BOOLEAN PhEnableEMenuItem(
     return PhSetFlagsEMenuItem(Item, Id, PH_EMENU_DISABLED, Enable ? 0 : PH_EMENU_DISABLED);
 }
 
-FORCEINLINE 
+FORCEINLINE
 VOID PhSetDisabledEMenuItem(
     _In_ PPH_EMENU_ITEM Item
     )

@@ -45,7 +45,7 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
 } PH_IMAGE_COHERENCY_CONTEXT, *PPH_IMAGE_COHERENCY_CONTEXT;
 
 /**
-* Inspection skip callback type. 
+* Inspection skip callback type.
 *
 * \param[in] Rva - Current rva in the range being inspected.
 * \param[in] Context - Context supplied to this callback.
@@ -273,7 +273,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
     context->RemoteImageBase = RemoteImageBase;
 
     //
-    // Map the remote image 
+    // Map the remote image
     //
     context->RemoteMappedImageStatus =
         PhLoadRemoteMappedImageEx(ProcessHandle,
@@ -354,7 +354,7 @@ VOID PhpAnalyzeImageCoherencyInspect(
 
 /**
 * Analyzes the image coherency as if it were a native application.
-* 
+*
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Rva - Relative virtual address to inspect.
 * \param[in] Size - Size of data to inspect from the RVA.
@@ -402,7 +402,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
                                                    &bytesRead)))
         {
             //
-            // Force 0, we'll handle this below 
+            // Force 0, we'll handle this below
             //
             bytesRead = 0;
         }
@@ -420,7 +420,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
         else
         {
             //
-            // Force 0, we'll handle this below 
+            // Force 0, we'll handle this below
             //
             remainingView = 0;
         }
@@ -432,7 +432,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
         assert(bytes <= PAGE_SIZE);
 
         //
-        // Do the inspection, clamp the bytes to the minimum 
+        // Do the inspection, clamp the bytes to the minimum
         //
         PhpAnalyzeImageCoherencyInspect(fileBytes,
                                         (ULONG)bytes,
@@ -451,7 +451,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
 /**
 * Analyzes the image coherency as if it were a native application. And expects
 * certain bytes over the range, used for code cave scanning.
-* 
+*
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Rva - Relative virtual address to inspect.
 * \param[in] Size - Size of data to inspect from the RVA.
@@ -499,7 +499,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
             assert(bytesRead <= PAGE_SIZE);
 
             //
-            // Do the inspection 
+            // Do the inspection
             //
             PhpAnalyzeImageCoherencyInspect(expected,
                                             (ULONG)bytesRead,
@@ -566,7 +566,7 @@ ULONG CALLBACK PhpImgCoherencySkip(
 
 /**
 * Analyzes the image coherency as if it were a native application.
-* 
+*
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Context - Image coherency context.
 */
@@ -716,7 +716,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
 
 /**
 * Analyzes the image coherency as if it were a managed (.NET) application.
-* 
+*
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Context - Image coherency context.
 */
@@ -755,7 +755,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsManaged(
                                         NULL);
 
     //
-    // Get the .NET MetaData 
+    // Get the .NET MetaData
     //
     dotNet = PhMappedImageRvaToVa(&Context->MappedImage,
                                   dataDirectory->VirtualAddress,
@@ -780,7 +780,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsManaged(
 
 /**
 * Checks if the image is a .NET application.
-* 
+*
 * \param[in] Context - Image coherency context.
 *
 * \return TRUE if the image is a .NET application, FALSE otherwise.
@@ -826,7 +826,7 @@ BOOLEAN PhpAnalyzeImageCoherencyIsDotNet (
 
 /**
 * Common analysis for image coherency.
-* 
+*
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Context - Image coherency context.
 */
@@ -907,7 +907,7 @@ ULONG CALLBACK PspImageCoherencySkipImageOptionalHeader32(
 
 /**
 * Analyzes image coherency for 32 bit images.
-* 
+*
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Context - Image coherency context.
 *
@@ -949,7 +949,7 @@ NTSTATUS PhpAnalyzeImageCoherencyNt32(
                                     NULL);
 
     //
-    // Do the common inspection 
+    // Do the common inspection
     //
     PhpAnalyzeImageCoherencyCommon(ProcessHandle, Context);
 
@@ -985,7 +985,7 @@ ULONG CALLBACK PspImageCoherencySkipImageOptionalHeader64(
 
 /**
 * Analyzes image coherency for 64 bit images.
-* 
+*
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Context - Image coherency context.
 *
@@ -1026,7 +1026,7 @@ NTSTATUS PhpAnalyzeImageCoherencyNt64(
                                     NULL);
 
     //
-    // Do the common inspection 
+    // Do the common inspection
     //
     PhpAnalyzeImageCoherencyCommon(ProcessHandle, Context);
 
@@ -1141,7 +1141,7 @@ NTSTATUS PhpInspectForImageCoherency(
             break;
         }
     }
-    
+
 CleanupExit:
 
     if (Context->TotalBytes)
@@ -1205,7 +1205,7 @@ NTSTATUS PhGetProcessImageCoherency(
     }
 
     //
-    // Get the remote image base 
+    // Get the remote image base
     //
     status = PhGetProcessImageBaseAddress(processHandle, &remoteImageBase);
     if (!NT_SUCCESS(status))
@@ -1223,7 +1223,7 @@ NTSTATUS PhGetProcessImageCoherency(
     status = PhpInspectForImageCoherency(processHandle,
                                          context,
                                          ImageCoherency);
-    
+
 CleanupExit:
 
     PhpFreeImageCoherencyContext(context);
@@ -1240,7 +1240,7 @@ CleanupExit:
 * Inspects a module image coherency compared to the file on disk.
 *
 * \param[in] FileName Win32 path to the image file on disk.
-* \param[in] ProcessHandle - Handle to the process where the module is mapped 
+* \param[in] ProcessHandle - Handle to the process where the module is mapped
 * requires PROCESS_VM_READ.
 * \param[in] ImageBaseAddress - Base address of the image.
 * \param[in] IsKernelModule - Notes if this is a kernel module.

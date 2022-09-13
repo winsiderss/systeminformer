@@ -1076,7 +1076,7 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
         *NumberOfSignatures = 0;
         return VrUnknown;
     }
-  
+
     verifyResult = PhpSignatureStateToVerifyResult(signatureInfo.nSignatureState);
     PhpGetSignaturesFromStateData(verifyTrustStateData, Signatures, NumberOfSignatures);
 

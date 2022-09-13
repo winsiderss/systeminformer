@@ -248,7 +248,7 @@ NTSTATUS PhGetProcessSwitchContext(
             )))
             return status;
     }
-    
+
     //static ULONG (WINAPI *BaseReadAppCompatDataForProcess_I)(
     //    _In_ HANDLE ProcessHandle,
     //    _Out_ PULONG_PTR ShimData,
@@ -326,7 +326,7 @@ NTSTATUS PhGetProcessKnownType(
     PhDereferenceObject(fileName);
 
     *KnownProcessType = PhGetProcessKnownTypeEx(
-        basicInfo.UniqueProcessId, 
+        basicInfo.UniqueProcessId,
         newFileName
         );
 
@@ -826,10 +826,10 @@ VOID PhShellExecuteUserString(
         return;
     }
 
-    // Get the execute command. (dmex) 
+    // Get the execute command. (dmex)
     executeString = PhGetStringSetting(Setting);
 
-    // Expand environment strings. (dmex) 
+    // Expand environment strings. (dmex)
     PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
 
     // Make sure the user executable string is absolute. We can't use PhDetermineDosPathNameType
@@ -839,7 +839,7 @@ VOID PhShellExecuteUserString(
         INT stringArgCount;
         PWSTR* stringArgList;
 
-        // HACK: Escape the individual executeString components. (dmex) 
+        // HACK: Escape the individual executeString components. (dmex)
         if ((stringArgList = CommandLineToArgvW(executeString->Buffer, &stringArgCount)) && stringArgCount == 2)
         {
             PPH_STRING fileName = PhCreateString(stringArgList[0]);
@@ -877,8 +877,8 @@ VOID PhShellExecuteUserString(
         PPH_STRING stringMiddle;
 
         // Note: This code is needed to solve issues with faulty RamDisk software that doesn't use the Mount Manager API
-        // and instead returns \device\ FileName strings. We also can't change the way the process provider stores 
-        // the FileName string since it'll break various features and use-cases required by developers 
+        // and instead returns \device\ FileName strings. We also can't change the way the process provider stores
+        // the FileName string since it'll break various features and use-cases required by developers
         // who need the raw untranslated FileName string.
         stringTemp = PhCreateString(String);
         stringMiddle = PhGetFileName(stringTemp);
@@ -1424,7 +1424,7 @@ BOOLEAN PhCreateProcessIgnoreIfeoDebugger(
         RtlEnterCriticalSection(NtCurrentPeb()->FastPebLock);
         NtCurrentPeb()->ReadImageFileExecOptions = originalValue;
         RtlLeaveCriticalSection(NtCurrentPeb()->FastPebLock);
-    }    
+    }
 
     return result;
 }

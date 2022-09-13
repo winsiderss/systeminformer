@@ -94,7 +94,7 @@ struct PresentEvent
     ULONGLONG Win32KBindId;              // Combine with CompositionSurfaceLuid and Win32KPresentCount as key into mWin32KPresentHistoryTokens
     ULONGLONG LegacyBlitTokenData;       // Key for mPresentsByLegacyBlitToken
     std::deque<std::shared_ptr<PresentEvent>> DependentPresents;
-    
+
     // We need a signal to prevent us from looking fruitlessly through the WaitingForDwm list
     //bool PresentInDwmWaitingStruct;
 

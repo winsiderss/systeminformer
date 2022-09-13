@@ -333,7 +333,7 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
                         PH_FORMAT format[1];
 
                         PhInitFormatSize(&format[0], node->Size);
-  
+
                         PhMoveReference(&node->SizeText, PhFormat(format, 1, 0));
                         getCellText->Text = node->SizeText->sr;
                     }
@@ -379,7 +379,7 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_PV_SEARCH_SHOWMENU, 0, (LPARAM)contextMenu);
         }
         return TRUE;
-    case TreeNewHeaderRightClick: 
+    case TreeNewHeaderRightClick:
         {
             PH_TN_COLUMN_MENU_DATA data;
 

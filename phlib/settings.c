@@ -98,7 +98,7 @@ PPH_STRING PhSettingToString(
             // %x
             PhInitFormatX(&format[0], Setting->u.Integer);
 
-            return PhFormat(format, RTL_NUMBER_OF(format), 0);  
+            return PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
     case IntegerPairSettingType:
         {
@@ -556,7 +556,7 @@ _May_raise_ VOID PhSetBinarySetting(
     )
 {
     PPH_STRING binaryString;
-    
+
     binaryString = PhBufferToHexString((PUCHAR)Buffer, Length);
     PhSetStringSetting(Name, binaryString->Buffer);
     PhDereferenceObject(binaryString);
@@ -952,7 +952,7 @@ VOID PhLoadWindowPlacementFromSetting(
             size.Y = windowRect.bottom - windowRect.top;
         }
 
-        // Make sure the window doesn't get positioned on disconnected monitors. (dmex) 
+        // Make sure the window doesn't get positioned on disconnected monitors. (dmex)
         windowRectangle.Position = position;
         windowRectangle.Size = size;
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);

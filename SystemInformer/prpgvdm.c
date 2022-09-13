@@ -220,7 +220,7 @@ VOID PhpRefreshVdmHostProcess(
 
             lvItemIndex = PhAddListViewItem(
                 Context->ListViewHandle,
-                MAXINT, 
+                MAXINT,
                 PhGetStringOrEmpty(entry->ModuleName),
                 UlongToPtr(Context->VdmHostProcessList->Count + 1)
                 );

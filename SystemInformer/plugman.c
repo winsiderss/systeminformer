@@ -120,7 +120,7 @@ VOID PluginsLoadSettingsTreeList(
     )
 {
     PPH_STRING settings;
-    
+
     settings = PhGetStringSetting(L"PluginManagerTreeListColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
@@ -401,7 +401,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
-            
+
             SendMessage(context->WindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenuEvent);
         }
         return TRUE;
@@ -439,7 +439,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                     PH_STRINGREF text;
                     SIZE nameSize;
                     SIZE textSize;
- 
+
                     rect.left += PH_SCALE_DPI(15);
                     rect.top += PH_SCALE_DPI(5);
                     rect.right -= PH_SCALE_DPI(5);
@@ -770,7 +770,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         case PH_PLUGIN_TREE_ITEM_MENU_DISABLE:
                             {
                                 PPH_STRING baseName = PhpGetPluginBaseName(selectedNode->PluginInstance);
-          
+
                                 PhSetPluginDisabled(&baseName->sr, TRUE);
 
                                 RemovePluginsNode(context, selectedNode);
@@ -783,9 +783,9 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         case PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES:
                             {
                                 DialogBoxParam(
-                                    PhInstanceHandle, 
-                                    MAKEINTRESOURCE(IDD_PLUGINPROPERTIES), 
-                                    hwndDlg, 
+                                    PhInstanceHandle,
+                                    MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
+                                    hwndDlg,
                                     PhpPluginPropertiesDlgProc,
                                     (LPARAM)selectedNode->PluginInstance
                                     );
@@ -900,7 +900,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
 //    else
 //    {
 //        PhShowInformation2(
-//            ParentWindowHandle, 
+//            ParentWindowHandle,
 //            L"Plugins are not enabled.",
 //            L"%s",
 //            L"To use plugins enable them in Options and restart System Informer."

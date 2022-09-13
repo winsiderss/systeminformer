@@ -2,7 +2,7 @@
 #define _PH_EXPRODID_H
 
 /*
- * This file contains the required types for the RICH header. 
+ * This file contains the required types for the RICH header.
  *
  * References:
  * http://bytepointer.com/articles/the_microsoft_rich_header.htm

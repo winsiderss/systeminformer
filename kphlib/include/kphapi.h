@@ -122,7 +122,7 @@ typedef enum _KPH_THREAD_INFORMATION_CLASS
     KphThreadIdealProcessor,         // s: ULONG
     KphThreadPriorityBoost,          // s: ULONG
     KphThreadIoPriority,             // s: IO_PRIORITY_HINT
-    KphThreadPagePriority,           // s: PAGE_PRIORITY_INFORMATION 
+    KphThreadPagePriority,           // s: PAGE_PRIORITY_INFORMATION
     KphThreadActualBasePriority,     // s: LONG
     KphThreadGroupInformation,       // s: GROUP_AFFINITY
     KphThreadIdealProcessorEx,       // s: PROCESSOR_NUMBER
@@ -266,7 +266,7 @@ typedef struct _ETWREG_BASIC_INFORMATION
     ULONG_PTR SessionId;
 } ETWREG_BASIC_INFORMATION, *PETWREG_BASIC_INFORMATION;
 
-// Dynamic Configuration 
+// Dynamic Configuration
 
 #define KPH_DYN_CONFIGURATION_VERSION 4
 

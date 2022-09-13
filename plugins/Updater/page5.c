@@ -290,7 +290,7 @@ VOID ShowUpdateFailedDialog(
         if (Context->ErrorCode)
         {
             PPH_STRING errorMessage;
-          
+
             if (errorMessage = PhHttpSocketGetErrorMessage(Context->ErrorCode))
             {
                 config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;

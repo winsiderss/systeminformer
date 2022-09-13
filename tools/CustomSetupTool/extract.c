@@ -217,9 +217,9 @@ BOOLEAN SetupExtractBuild(
         //    PPH_STRING backupFilePath;
         //
         //    backupFilePath = PhConcatStrings(
-        //        4, 
-        //        PhGetString(Context->SetupInstallPath), 
-        //        L"\\", 
+        //        4,
+        //        PhGetString(Context->SetupInstallPath),
+        //        L"\\",
         //        PhGetString(fileName),
         //        L".bak"
         //        );

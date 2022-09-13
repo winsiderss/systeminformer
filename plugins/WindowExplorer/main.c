@@ -158,7 +158,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
         return;
 
     if (
-        propContext->ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID && 
+        propContext->ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID &&
         propContext->ProcessItem->ProcessId != SYSTEM_PROCESS_ID
         )
     {
@@ -276,7 +276,7 @@ LOGICAL DllMain(
                 &ThreadMenuInitializingCallbackRegistration
                 );
 
-            PhAddSettings(settings, RTL_NUMBER_OF(settings));    
+            PhAddSettings(settings, RTL_NUMBER_OF(settings));
         }
         break;
     }

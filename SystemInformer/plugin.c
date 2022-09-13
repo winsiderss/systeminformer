@@ -495,7 +495,7 @@ VOID PhLoadPlugins(
             {
                 // Note: The MUP devices for Virtualbox and VMware improperly truncate
                 // data returned by NtQueryDirectoryFile when ReturnSingleEntry=FALSE and also have
-                // various other bugs and issues for information classes other than FileNamesInformation. (dmex)  
+                // various other bugs and issues for information classes other than FileNamesInformation. (dmex)
                 PhEnumDirectoryFileEx(
                     pluginsDirectoryHandle,
                     FileNamesInformation,

@@ -443,7 +443,7 @@ BOOLEAN PhDescribeProcessMitigationPolicy(
     case ProcessSystemCallFilterPolicy:
         {
             PPROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY data = Data;
-            
+
             if (data->FilterId)
             {
                 if (ShortDescription)

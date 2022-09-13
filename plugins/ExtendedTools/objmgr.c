@@ -102,8 +102,8 @@ HTREEITEM TreeViewAddItem(
 }
 
 HTREEITEM TreeViewFindItem(
-    _In_ HWND TreeViewHandle, 
-    _In_ HTREEITEM ParentTreeItem, 
+    _In_ HWND TreeViewHandle,
+    _In_ HTREEITEM ParentTreeItem,
     _In_ PWSTR Name
     )
 {
@@ -131,9 +131,9 @@ HTREEITEM TreeViewFindItem(
             if (treeItem.cChildren)
             {
                 HTREEITEM treeChildren;
-                
+
                 if (treeChildren = TreeViewFindItem(TreeViewHandle, treeItem.hItem, Name))
-                { 
+                {
                     return treeChildren;
                 }
             }
@@ -246,16 +246,16 @@ static BOOLEAN NTAPI EnumDirectoryObjectsCallback(
         }
 
         currentItem = TreeViewAddItem(
-            context->TreeViewHandle, 
-            context->RootTreeItem, 
-            FALSE, 
+            context->TreeViewHandle,
+            context->RootTreeItem,
+            FALSE,
             Name
             );
 
         // Recursively enumerate all subdirectories.
         EnumDirectoryObjects(
-            context->TreeViewHandle, 
-            currentItem, 
+            context->TreeViewHandle,
+            currentItem,
             PhGetStringRef(childDirectoryPath)
             );
 
@@ -285,13 +285,13 @@ static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
         INT index;
         INT imageIndex;
         POBJECT_ENTRY entry;
-        
+
         entry = PhAllocate(sizeof(OBJECT_ENTRY));
         memset(entry, 0, sizeof(OBJECT_ENTRY));
 
         entry->Name = PhCreateString2(Name);
         entry->TypeName = PhCreateString2(TypeName);
-      
+
         if (PhEqualStringRef2(TypeName, L"ALPC Port", TRUE))
         {
             imageIndex = 6;
@@ -342,9 +342,9 @@ static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
             );
 
         PhSetListViewSubItem(
-            context->ListViewHandle, 
+            context->ListViewHandle,
             index,
-            1, 
+            1,
             TypeName->Buffer
             );
     }
@@ -353,7 +353,7 @@ static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
 }
 
 NTSTATUS EnumDirectoryObjects(
-    _In_ HWND TreeViewHandle, 
+    _In_ HWND TreeViewHandle,
     _In_ HTREEITEM RootTreeItem,
     _In_ PH_STRINGREF DirectoryPath
     )
@@ -365,16 +365,16 @@ NTSTATUS EnumDirectoryObjects(
     PhStringRefToUnicodeString(&DirectoryPath, &name);
 
     InitializeObjectAttributes(
-        &oa, 
-        &name, 
-        0, 
-        NULL, 
+        &oa,
+        &name,
+        0,
+        NULL,
         NULL
         );
 
     if (NT_SUCCESS(NtOpenDirectoryObject(
-        &directoryHandle, 
-        DIRECTORY_QUERY, 
+        &directoryHandle,
+        DIRECTORY_QUERY,
         &oa
         )))
     {
@@ -385,8 +385,8 @@ NTSTATUS EnumDirectoryObjects(
         enumContext.DirectoryPath = DirectoryPath;
 
         PhEnumDirectoryObjects(
-            directoryHandle, 
-            EnumDirectoryObjectsCallback, 
+            directoryHandle,
+            EnumDirectoryObjectsCallback,
             &enumContext
             );
 
@@ -410,21 +410,21 @@ NTSTATUS EnumCurrentDirectoryObjects(
     PhStringRefToUnicodeString(&DirectoryPath, &name);
 
     InitializeObjectAttributes(
-        &oa, 
-        &name, 
-        0, 
-        NULL, 
+        &oa,
+        &name,
+        0,
+        NULL,
         NULL
         );
 
     if (NT_SUCCESS(NtOpenDirectoryObject(
-        &directoryHandle, 
-        DIRECTORY_QUERY, 
+        &directoryHandle,
+        DIRECTORY_QUERY,
         &oa
         )))
     {
         PhEnumDirectoryObjects(
-            directoryHandle, 
+            directoryHandle,
             EnumCurrentDirectoryObjectsCallback,
             Context
             );
@@ -496,7 +496,7 @@ INT_PTR CALLBACK WinObjDlgProc(
 
             InitializeTreeImages(context);
             InitializeListImages(context);
-            
+
             PhSetControlTheme(context->TreeViewHandle, L"explorer");
             TreeView_SetExtendedStyle(context->TreeViewHandle, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
             TreeView_SetImageList(context->TreeViewHandle, context->TreeImageList, TVSIL_NORMAL);
@@ -506,7 +506,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             PhSetListViewStyle(context->ListViewHandle, FALSE, FALSE);
             PhSetExtendedListView(context->ListViewHandle);
             ListView_SetImageList(context->ListViewHandle, context->ListImageList, LVSIL_SMALL);
-            
+
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 620, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Type");
 
@@ -518,11 +518,11 @@ INT_PTR CALLBACK WinObjDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->TreeViewHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
-            PhLoadListViewColumnsFromSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);       
-            
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
+
             EnumDirectoryObjects(
-                context->TreeViewHandle, 
-                context->RootTreeObject, 
+                context->TreeViewHandle,
+                context->RootTreeObject,
                 RootDirectoryObject
                 );
 
@@ -581,7 +581,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                         PPH_STRING selectedPath = GetSelectedTreeViewPath(context);
 
                         EnumCurrentDirectoryObjects(
-                            context, 
+                            context,
                             PhGetStringRef(selectedPath)
                             );
 
@@ -596,11 +596,11 @@ INT_PTR CALLBACK WinObjDlgProc(
                     if (header->hwndFrom == context->TreeViewHandle)
                     {
                         HCURSOR cursor = (HCURSOR)LoadImage(
-                            NULL, 
-                            IDC_ARROW, 
-                            IMAGE_CURSOR, 
-                            0, 
-                            0, 
+                            NULL,
+                            IDC_ARROW,
+                            IMAGE_CURSOR,
+                            0,
+                            0,
                             LR_SHARED
                             );
 

@@ -190,7 +190,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->ObjectType = PhCreateString(ObjectType);
     info->OpenObject = OpenObject;
     info->CloseObject = CloseObject;
-    info->Context = Context;  
+    info->Context = Context;
     info->IsPage = IsPage;
 
     if (PhGetAccessEntries(ObjectType, &info->AccessEntriesArray, &info->NumberOfAccessEntries))
@@ -318,11 +318,11 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation_Release(
         if (this->CloseObject)
             this->CloseObject(this->Context);
 
-        if (this->ObjectName) 
+        if (this->ObjectName)
             PhDereferenceObject(this->ObjectName);
         if (this->ObjectType)
             PhDereferenceObject(this->ObjectType);
-        if (this->AccessEntries) 
+        if (this->AccessEntries)
             PhFree(this->AccessEntries);
         if (this->AccessEntriesArray)
             PhFree(this->AccessEntriesArray);
@@ -1447,7 +1447,7 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
             SecurityInformation,
             SecurityDescriptor
             );
-        
+
         LsaClose(handle);
     }
     else if (
@@ -1872,7 +1872,7 @@ NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
     if (!WTSGetListenerSecurity_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    // Todo: Add support for SI_RESET using the default security descriptor: 
+    // Todo: Add support for SI_RESET using the default security descriptor:
     // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultSecurity
 
     status = WTSGetListenerSecurity_I(
@@ -2003,7 +2003,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     IWbemClassObject* wbemGetSDClassObject = 0;
     VARIANT variantReturnValue = { VT_EMPTY };
     VARIANT variantArrayValue = { VT_EMPTY };
-   
+
     if (!(imageBaseAddress = PhGetWbemProxDllBase()))
         return STATUS_UNSUCCESSFUL;
 

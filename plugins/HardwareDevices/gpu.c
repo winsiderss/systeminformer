@@ -115,7 +115,7 @@ VOID GraphicsDevicesUpdate(
 
                         entry->TotalRunningTimeNodesDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * numberOfNodes);
                         entry->GpuNodesHistory = PhAllocateZero(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * numberOfNodes);
-                  
+
                         {
                             ULONG sampleCount = PhGetIntegerSetting(L"SampleCount");
 
@@ -159,7 +159,7 @@ VOID GraphicsDevicesUpdate(
                 //{
                 //    entry->CurrentDedicatedUsage = 0;
                 //}
-                // 
+                //
                 //if (sharedUsage = GraphicsDevicePluginInterfaceGetGpuAdapterShared(adapterLuid))
                 //{
                 //    entry->CurrentSharedUsage = sharedUsage;
@@ -223,7 +223,7 @@ VOID GraphicsDevicesUpdate(
             if (entry->TotalRunningTimeNodesDelta)
             {
                 FLOAT value;
-                
+
                 if (value = GraphicsDevicePluginInterfaceGetGpuAdapterUtilization(adapterLuid))
                 {
                     entry->CurrentGpuUsage = value;

@@ -24,7 +24,7 @@ static PVOID KphpObRegistrationHandle = NULL;
  * \brief Populates object name in a message for registered object callbacks.
  *
  * \details Used to populate the desktop name for desktop object callbacks.
- * 
+ *
  * \param[in,out] Message The message to populate.
  * \param[in] Object The object for which the name is populated in the message.
  */
@@ -793,7 +793,7 @@ _Function_class_(POB_PRE_OPERATION_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 OB_PREOP_CALLBACK_STATUS KphpObPreCallback(
     _In_ PVOID Context,
-    _Inout_ POB_PRE_OPERATION_INFORMATION Info 
+    _Inout_ POB_PRE_OPERATION_INFORMATION Info
     )
 {
     PAGED_PASSIVE();
@@ -844,7 +844,7 @@ _Function_class_(POB_POST_OPERATION_CALLBACK)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpObPostCallback(
     _In_ PVOID Context,
-    _In_ POB_POST_OPERATION_INFORMATION Info 
+    _In_ POB_POST_OPERATION_INFORMATION Info
     )
 {
     PAGED_PASSIVE();

@@ -1313,7 +1313,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process page priority.", status, 0);  
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process page priority.", status, 0);
                 }
             }
 
@@ -1447,7 +1447,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process boost priority.", status, 0);  
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process boost priority.", status, 0);
                 }
             }
 

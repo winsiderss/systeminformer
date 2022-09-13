@@ -689,7 +689,7 @@ VOID GraphicsDeviceNotifyPowerUsageGraph(
             if (!Context->PowerUsageGraphState.Valid)
             {
                 FLOAT max = 100.0f;
-                
+
                 for (i = 0; i < drawInfo->LineDataCount; i++)
                 {
                     FLOAT data = Context->PowerUsageGraphState.Data1[i] = PhGetItemCircularBuffer_FLOAT(&Context->DeviceEntry->PowerHistory, i);
@@ -789,7 +789,7 @@ VOID GraphicsDeviceNotifyTemperatureGraph(
                     if (max < data)
                         max = data;
                 }
-                
+
                 if (max != 0)
                 {
                     PhDivideSinglesBySingle(Context->TemperatureGraphState.Data1, max, drawInfo->LineDataCount);
@@ -988,30 +988,30 @@ VOID GraphicsDeviceUpdatePanel(
 {
     PH_FORMAT format[1];
     WCHAR formatBuffer[512];
-    
+
     PhInitFormatSize(&format[0], Context->DeviceEntry->CurrentDedicatedUsage);
-    
+
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(Context->GpuPanelDedicatedUsageLabel, formatBuffer);
     else
         PhSetWindowText(Context->GpuPanelDedicatedUsageLabel, PhaFormatSize(Context->DeviceEntry->CurrentDedicatedUsage, ULONG_MAX)->Buffer);
-    
+
     PhInitFormatSize(&format[0], Context->DeviceEntry->DedicatedLimit);
-    
+
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(Context->GpuPanelDedicatedLimitLabel, formatBuffer);
     else
         PhSetWindowText(Context->GpuPanelDedicatedLimitLabel, PhaFormatSize(Context->DeviceEntry->DedicatedLimit, ULONG_MAX)->Buffer);
-    
+
     PhInitFormatSize(&format[0], Context->DeviceEntry->CurrentSharedUsage);
-    
+
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(Context->GpuPanelSharedUsageLabel, formatBuffer);
     else
         PhSetWindowText(Context->GpuPanelSharedUsageLabel, PhaFormatSize(Context->DeviceEntry->CurrentSharedUsage, ULONG_MAX)->Buffer);
-    
+
     PhInitFormatSize(&format[0], Context->DeviceEntry->SharedLimit);
-    
+
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(Context->GpuPanelSharedLimitLabel, formatBuffer);
     else
@@ -1315,7 +1315,7 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
                 PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PhGetString(PH_AUTO_T(PH_STRING, description)));
             else
                 PhSetDialogItemText(hwndDlg, IDC_GPUNAME, L"GPU");
- 
+
             context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), hwndDlg, GraphicsDevicePanelDialogProc, context);
             ShowWindow(context->GpuPanel, SW_SHOW);
             PhAddLayoutItemEx(&context->GpuLayoutManager, context->GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);

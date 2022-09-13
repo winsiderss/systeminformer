@@ -22,10 +22,10 @@ typedef struct _KPH_DYN_DATA_BUFFER
 
 /**
  * \brief Finds a dynamic data entry in the table.
- * 
+ *
  * \param Message Message to get the table entry from.
  * \param FieldId Field identifier to look for.
- * 
+ *
  * \return Pointer to table entry on success, null if not found.
  */
 _Must_inspect_result_
@@ -47,13 +47,13 @@ PCKPH_MESSAGE_DYNAMIC_TABLE_ENTRY KphpMsgDynFindEntry(
 
 /**
  * \brief Claims some data in the dynamic data buffer.
- * 
+ *
  * \param Message Message to claim dynamic data in.
  * \param FieldId Field identifier of the data to be populated.
  * \param TypeId Type identifier of the data to be populated.
  * \param RequiredSize Required size of the dynamic data.
  * \param DynData Set to pointer to claimed data in buffer on success.
- * 
+ *
  * \return Successful or errant status.
  */
 _Must_inspect_result_
@@ -142,7 +142,7 @@ NTSTATUS KphpMsgDynClaimDynData(
 
 /**
  * \brief Looks up a dynamic data entry.
- * 
+ *
  * \param Message Message to look up dynamic data in.
  * \param FieldId Field identifier to look up.
  * \param TypeId Type identifier to look up.
@@ -213,7 +213,7 @@ VOID KphMsgDynClear(
 
 /**
  * \brief Adds a unicode string to the dynamic data.
- * 
+ *
  * \param Message Message to populate dynamic data of.
  * \param FieldId Field identifier for the data.
  * \param String Unicode string to copy into the dynamic data.
@@ -224,7 +224,7 @@ _Must_inspect_result_
 NTSTATUS KphMsgDynAddUnicodeString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _In_ PCUNICODE_STRING String 
+    _In_ PCUNICODE_STRING String
     )
 {
     NTSTATUS status;
@@ -274,7 +274,7 @@ _Must_inspect_result_
 NTSTATUS KphMsgDynGetUnicodeString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _Out_ PUNICODE_STRING String 
+    _Out_ PUNICODE_STRING String
     )
 {
     NTSTATUS status;
@@ -297,18 +297,18 @@ NTSTATUS KphMsgDynGetUnicodeString(
 
 /**
  * \brief Adds an ANSI string to the dynamic data buffer.
- * 
+ *
  * \param Message Message to add the string to.
  * \param FieldId Field identifier for the string.
  * \param String ANSI string to copy into the dynamic data buffer.
- * 
- * \return Successful or errant status. 
+ *
+ * \return Successful or errant status.
  */
 _Must_inspect_result_
 NTSTATUS KphMsgDynAddAnsiString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _In_ PCANSI_STRING String 
+    _In_ PCANSI_STRING String
     )
 {
     NTSTATUS status;
@@ -351,14 +351,14 @@ NTSTATUS KphMsgDynAddAnsiString(
  * \param FieldId Field identifier of the string.
  * \param String If found populated with a reference to the string data in the
  * dynamic data buffer.
- * 
- * \return Successful or errant status. 
+ *
+ * \return Successful or errant status.
  */
 _Must_inspect_result_
 NTSTATUS KphMsgDynGetAnsiString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _Out_ PANSI_STRING String 
+    _Out_ PANSI_STRING String
     )
 {
     NTSTATUS status;

@@ -309,8 +309,8 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 PPH_STRING errorMessage = PhGetNtMessage(status);
 
                 PhSetDialogItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
- 
-                context->EnableFlagCheckBox = TRUE;               
+
+                context->EnableFlagCheckBox = TRUE;
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
 
                 PhShowWarning(

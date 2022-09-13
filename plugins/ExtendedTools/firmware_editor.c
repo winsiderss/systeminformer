@@ -139,7 +139,7 @@ INT_PTR CALLBACK UefiEditorDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
- 
+
             {
                 PH_RECTANGLE windowRectangle;
 
@@ -172,7 +172,7 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                 if (bytesPerRow >= 4)
                 {
                     HexEdit_SetBytesPerRow(context->HexEditHandle, bytesPerRow);
-                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW), 
+                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW),
                         PhaFormatString(L"%u bytes per row", bytesPerRow)->Buffer, FALSE
                         );
                 }
@@ -218,9 +218,9 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                         { L"All files (*.*)", L"*.*" }
                     };
                     PVOID fileDialog;
-    
+
                     fileDialog = PhCreateSaveFileDialog();
-    
+
                     PhSetFileDialogFilter(fileDialog, filters, ARRAYSIZE(filters));
                     PhSetFileDialogFileName(fileDialog, PhaFormatString(
                         L"%s.bin",
@@ -232,9 +232,9 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                         NTSTATUS status;
                         PPH_STRING fileName;
                         PPH_FILE_STREAM fileStream;
-    
+
                         fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-    
+
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,
                             fileName->Buffer,

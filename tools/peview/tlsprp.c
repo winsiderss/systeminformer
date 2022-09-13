@@ -123,7 +123,7 @@ INT_PTR CALLBACK PvpPeTlsDlgProc(
 
             PvpPeEnumerateTlsCallbacks(context->ListViewHandle);
             //ExtendedListView_SortItems(context->ListViewHandle);
-            
+
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;

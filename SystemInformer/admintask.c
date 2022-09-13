@@ -154,7 +154,7 @@ HRESULT PhCreateAdminTask(
 
     IPrincipal_put_RunLevel(taskPrincipal, TASK_RUNLEVEL_HIGHEST);
     IPrincipal_put_LogonType(taskPrincipal, TASK_LOGON_INTERACTIVE_TOKEN);
-        
+
     status = ITaskDefinition_get_Actions(
         taskDefinition,
         &taskActionCollection

@@ -94,7 +94,7 @@ BOOLEAN PhSipCpuSectionCallback(
 
             if (view == SysInfoSummaryView || section != Section)
                 return TRUE;
-            
+
             if (OneGraphPerCpu)
             {
                 for (ULONG i = 0; i < NumberOfProcessors; i++)

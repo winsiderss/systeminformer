@@ -141,7 +141,7 @@ PPH_LIST DiskDriveQueryMountPointHandles(
             {
                 // BUG: Device numbers are re-used on seperate device controllers and this
                 // causes drive letters to be assigned to disks at those same indexes.
-                // For now, just filter CD_ROM devices but we may need to be a lot more strict and 
+                // For now, just filter CD_ROM devices but we may need to be a lot more strict and
                 // only allow devices of type FILE_DEVICE_DISK to be scanned for mount points.
                 if (deviceNumber == DeviceNumber && deviceType != FILE_DEVICE_CD_ROM)
                 {

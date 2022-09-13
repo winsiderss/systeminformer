@@ -183,7 +183,7 @@ namespace PH
 
         ToastEventHandler(
             PPH_TOAST_CALLBACK ToastCallback,
-            PVOID Context 
+            PVOID Context
             ) : m_ToastCallback(ToastCallback),
                 m_Context(Context)
         {
@@ -205,7 +205,7 @@ namespace PH
             ) override;
 
         virtual HRESULT STDMETHODCALLTYPE QueryInterface(
-            _In_ REFIID InterfaceId, 
+            _In_ REFIID InterfaceId,
             _COM_Outptr_ void** Interface
             ) override;
 
@@ -244,7 +244,7 @@ namespace PH
         std::atomic<ULONG> m_RefCount = 0;
         PPH_TOAST_CALLBACK m_ToastCallback;
         PVOID m_Context;
-        
+
         EventRegistrationToken m_ActivatedToken{};
         EventRegistrationToken m_DismissedToken{};
         EventRegistrationToken m_FailedToken{};
@@ -331,9 +331,9 @@ HRESULT PH::Toast::Initialize(
     //
     // Note, if it's valid XAML but you include an image file that is not
     // found we will end up returning success but the callback will never
-    // get invoked. So if you allocated the context through to the C interface 
-    // it will leak... We could solve this by requiring a context cleanup 
-    // callback from the C interface. Honestly, that's kind of overkill, don't 
+    // get invoked. So if you allocated the context through to the C interface
+    // it will leak... We could solve this by requiring a context cleanup
+    // callback from the C interface. Honestly, that's kind of overkill, don't
     // include an image that can't be found.
     //
     RETURN_IF_FAILED(stringRef.Set(ToastXml));
@@ -612,7 +612,7 @@ VOID PhUninitializeToastRuntime()
      in PH::Toast::Initialize.
 
     @code
-            hr = PhShowToast(L"System Informer", 
+            hr = PhShowToast(L"System Informer",
                              L"<toast>"
                              L"    <visual>"
                              L"       <binding template=\"ToastImageAndText02\">"
@@ -623,7 +623,7 @@ VOID PhUninitializeToastRuntime()
                              L"    </visual>"
                              L"</toast>",
                              30 * 1000,
-                             ToastCallback, 
+                             ToastCallback,
                              NULL);
     @endcode
 
@@ -645,7 +645,7 @@ HRESULT PhShowToast(
     _In_ PCWSTR ToastXml,
     _In_opt_ ULONG TimeoutMilliseconds,
     _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
-    _In_opt_ PVOID Context 
+    _In_opt_ PVOID Context
     )
 {
     auto toast = std::make_unique<PH::Toast>();
