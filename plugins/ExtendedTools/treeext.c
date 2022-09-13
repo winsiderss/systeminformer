@@ -1173,7 +1173,7 @@ ET_FIREWALL_STATUS EtQueryFirewallStatus(
         localAddressBStr = NULL;
 
         if (!PhIsNullIpAddress(&NetworkItem->LocalEndpoint.Address))
-            localAddressBStr = SysAllocString(NetworkItem->LocalAddressString);
+            localAddressBStr = SysAllocStringLen(NetworkItem->LocalAddressString, NetworkItem->LocalAddressStringLength / sizeof(WCHAR));
 
         memset(&allowed, 0, sizeof(VARIANT)); // VariantInit
         memset(&restricted, 0, sizeof(VARIANT)); // VariantInit
