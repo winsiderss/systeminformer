@@ -26,7 +26,7 @@ static UNICODE_STRING KphpDisableImageLoadProtectionValueName = RTL_CONSTANT_STR
 /**
  * \brief Verifies the PHNT version from dynamic configuration.
  *
- * \param[in] Version The version reported by OS. 
+ * \param[in] Version The version reported by OS.
  * \param[in] NtVersion PHNT version from dynamic configuration.
  *
  * \return TRUE if the version makes sense, FALSE otherwise.
@@ -102,7 +102,7 @@ NTSTATUS KphpSetDynamicConfigiration(
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Dynamic configuration version mismatch!");
-        
+
         return STATUS_REVISION_MISMATCH;
     }
 
@@ -183,7 +183,7 @@ NTSTATUS KphpSetDynamicConfigiration(
 
 /**
  * \brief Opens the driver parameters key.
- * 
+ *
  * \param[in] RegistryPath Registry path from the entry point.
  * \param[out] KeyHandle Handle to parameters key on success, null on failure.
  *
@@ -284,7 +284,7 @@ NTSTATUS KphpReadDynamicConfiguration(
 
     RtlCopyMemory(Configuration, buffer, sizeof(*Configuration));
     status = STATUS_SUCCESS;
-    
+
 Exit:
 
     if (buffer)
@@ -297,7 +297,7 @@ Exit:
 
 /**
  * \brief Initializes the dynamic data from the driver parameters.
- * 
+ *
  * \param[in] RegistryPath Registry path from the entry point.
  *
  * \return Successful or errant status.

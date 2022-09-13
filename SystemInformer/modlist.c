@@ -312,7 +312,7 @@ PPH_MODULE_NODE PhAddModuleNode(
     for (i = 0; i < Context->NodeList->Count; i++)
     {
         parentNode = Context->NodeList->Items[i];
-    
+
         if (parentNode != moduleNode && parentNode->ModuleItem->BaseAddress == ModuleItem->ParentBaseAddress)
         {
             moduleNode->Parent = parentNode;
@@ -906,7 +906,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
                     {
-                        PhInitializeStringRef(&getCellText->Text, 
+                        PhInitializeStringRef(&getCellText->Text,
                             moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
                     }
                     else
@@ -1448,7 +1448,7 @@ BOOLEAN PhShouldShowModuleCoherency(
     {
         //
         // We special case these modules types and opt not to show/calculate
-        // the coherency for them. 
+        // the coherency for them.
         //
         return FALSE;
     }

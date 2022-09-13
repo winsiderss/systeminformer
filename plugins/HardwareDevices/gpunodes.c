@@ -384,7 +384,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
 
                                 context->GraphState[i].Valid = TRUE;
                             }
-                            
+
                             if (GraphicsGraphShowText)
                             {
                                 HDC hdc;
@@ -400,7 +400,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                                 {
                                     engineName = context->NodeNameList->Items[i];
                                 }
-                                
+
                                 if (!PhIsNullOrEmptyString(engineName))
                                 {
                                     PH_FORMAT format[4];

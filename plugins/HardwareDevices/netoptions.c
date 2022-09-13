@@ -512,7 +512,7 @@ VOID FindNetworkAdapters(
                     PPH_STRING adapterName;
 
                     // Try query the full adapter name
-        
+
                     if (adapterName = NetworkAdapterQueryName(deviceHandle))
                         adapterEntry->DeviceName = adapterName;
 
@@ -811,7 +811,7 @@ VOID LoadNetworkAdapterImages(
         ULONG64 index = 0;
 
         if (
-            PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr) && 
+            PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr) &&
             PhStringToInteger64(&indexPartSr, 10, &index)
             )
         {

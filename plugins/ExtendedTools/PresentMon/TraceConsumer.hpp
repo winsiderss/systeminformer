@@ -25,7 +25,7 @@ struct EventMetadataKey
     EVENT_DESCRIPTOR desc_;
 };
 
-struct EventMetadataKeyHash { size_t operator()(EventMetadataKey const& k) const; }; 
+struct EventMetadataKeyHash { size_t operator()(EventMetadataKey const& k) const; };
 struct EventMetadataKeyEqual { bool operator()(EventMetadataKey const& lhs, EventMetadataKey const& rhs) const; };
 
 enum PropertyStatus {

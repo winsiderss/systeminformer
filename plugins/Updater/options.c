@@ -622,7 +622,7 @@ INT_PTR CALLBACK TextDlgProc(
 
                                     PhDereferenceObject(commitHash);
                                 }
-        
+
                                 if (newFont)
                                 {
                                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_NEWFONT);

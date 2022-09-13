@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     jxy-s   2020 
+ *     jxy-s   2020
  *
  */
 
@@ -317,7 +317,7 @@ BOOLEAN KSIAPI KphEnumProcessHandlesForProtection(
 
         process = PsGetThreadProcess(object);
 
-        if (parameter->Process->EProcess != process) 
+        if (parameter->Process->EProcess != process)
         {
             return FALSE;
         }
@@ -384,7 +384,7 @@ BOOLEAN KSIAPI KphEnumProcessContextsForProtection(
     {
         //
         // This means we don't have the dynamic data necessary to do work.
-        // All other errors are failure to access process objects because 
+        // All other errors are failure to access process objects because
         // the process is exiting or has no object table.
         //
         parameter->Status = status;
@@ -430,7 +430,7 @@ VOID KphStopProtectingProcess(
  * \brief Starts protecting a process.
  *
  * \param[in] Process The process to start protecting.
- * \param[in] ProcessAllowedMask Access mask containing the allowed access to 
+ * \param[in] ProcessAllowedMask Access mask containing the allowed access to
  * the process.
  * \param[in] ThreadAllowedMask Access mask containing the allowed access to
  * the process threads.
@@ -537,7 +537,7 @@ BOOLEAN
 KphpShouldPermitCreatorProcess(
     _In_ POB_PRE_OPERATION_INFORMATION Info,
     _In_ PKPH_THREAD_CONTEXT Actor,
-    _In_ PKPH_PROCESS_CONTEXT Process 
+    _In_ PKPH_PROCESS_CONTEXT Process
     )
 {
     KPH_PROCESS_STATE processState;
@@ -771,7 +771,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _IRQL_requires_same_
 VOID KSIAPI KphpImageLoadCleanupRoutine(
     _In_ PKSI_KAPC Apc,
-    _In_ KSI_KAPC_CLEANUP_REASON Reason 
+    _In_ KSI_KAPC_CLEANUP_REASON Reason
     )
 {
     PKPH_IMAGE_LOAD_APC apc;
@@ -789,7 +789,7 @@ VOID KSIAPI KphpImageLoadCleanupRoutine(
  * \brief Normal kernel APC routine where we carry out image load denial.
  *
  * \param[in] NormalContext Unused.
- * \param[in] SystemArgument1 Image load APC object. 
+ * \param[in] SystemArgument1 Image load APC object.
  * \param[in] SystemArgument2 Unused.
  */
 _Function_class_(KNORMAL_ROUTINE)
@@ -1000,7 +1000,7 @@ Exit:
  * is disabled we will denote in the target process that an untrusted image
  * was loaded. The approach here is to queue a user APC to execute when
  * the thread returns from the system. Then, we issue another APC to drop
- * down to passive level and remove the image mapping from the process. 
+ * down to passive level and remove the image mapping from the process.
  *
  * \param[in,out] Process The process where the image is being loaded.
  * \param[in] ImageBase The base address of the untrusted image.
@@ -1262,7 +1262,7 @@ Exit:
  * disablement.
  *
  * \param[in] NormalContext Unused.
- * \param[in] SystemArgument1 Image load APC object. 
+ * \param[in] SystemArgument1 Image load APC object.
  * \param[in] SystemArgument2 Unused.
  */
 _Function_class_(KNORMAL_ROUTINE)
@@ -1458,7 +1458,7 @@ BOOLEAN KphpShouldSuppressImageProtections(
         return FALSE;
     }
 #endif
-    
+
     __try
     {
         PTEB teb;

@@ -1163,8 +1163,8 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
     m.p.ApiNumber = PhSvcWriteMiniDumpProcessApiNumber;
 
     status = PhOpenProcess(
-        &serverHandle, 
-        PROCESS_DUP_HANDLE, 
+        &serverHandle,
+        PROCESS_DUP_HANDLE,
         PhSvcClServerProcessId
         );
 
@@ -1172,12 +1172,12 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
         goto CleanupExit;
 
     status = NtDuplicateObject(
-        NtCurrentProcess(), 
+        NtCurrentProcess(),
         ProcessHandle,
-        serverHandle, 
+        serverHandle,
         &remoteProcessHandle,
-        0, 
-        0, 
+        0,
+        0,
         DUPLICATE_SAME_ACCESS
         );
 
@@ -1187,10 +1187,10 @@ NTSTATUS PhSvcCallWriteMiniDumpProcess(
     status = NtDuplicateObject(
         NtCurrentProcess(),
         FileHandle,
-        serverHandle, 
-        &remoteFileHandle, 
+        serverHandle,
+        &remoteFileHandle,
         FILE_GENERIC_WRITE,
-        0, 
+        0,
         0
         );
 

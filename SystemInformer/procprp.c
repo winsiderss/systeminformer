@@ -501,7 +501,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
         return;
     if (processItem->ProcessId == NtCurrentProcessId())
         return;
-    // On Windows 8.1 and above, processes without threads are reflected processes 
+    // On Windows 8.1 and above, processes without threads are reflected processes
     // which will not terminate if we have a handle open. (wj32)
     if (processItem->NumberOfThreads == 0)
         return;

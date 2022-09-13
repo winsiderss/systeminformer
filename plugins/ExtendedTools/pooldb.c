@@ -272,7 +272,7 @@ VOID FreePoolTagDatabase(
         PhDereferenceObject(entry->BinaryNameString);
         PhFree(entry);
     }
- 
+
     PhClearHashtable(Context->PoolTagDbHashtable);
     PhClearList(Context->PoolTagDbList);
 

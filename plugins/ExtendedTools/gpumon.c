@@ -111,8 +111,8 @@ VOID EtGpuMonitorInitialization(
 
 NTSTATUS EtQueryAdapterInformation(
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ KMTQUERYADAPTERINFOTYPE InformationClass, 
-    _Out_writes_bytes_opt_(InformationLength) PVOID Information, 
+    _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
     _In_ UINT32 InformationLength
     )
 {
@@ -598,8 +598,8 @@ D3D_FEATURE_LEVEL EtQueryAdapterFeatureLevel(
 PETP_GPU_ADAPTER EtpAddDisplayAdapter(
     _In_ PCWSTR DeviceInterface,
     _In_ D3DKMT_HANDLE AdapterHandle,
-    _In_ LUID AdapterLuid, 
-    _In_ ULONG NumberOfSegments, 
+    _In_ LUID AdapterLuid,
+    _In_ ULONG NumberOfSegments,
     _In_ ULONG NumberOfNodes
     )
 {
@@ -759,7 +759,7 @@ BOOLEAN EtpInitializeD3DStatistics(
             gpuAdapter = EtpAddDisplayAdapter(
                 openAdapterFromDeviceName.pDeviceName,
                 openAdapterFromDeviceName.hAdapter,
-                openAdapterFromDeviceName.AdapterLuid, 
+                openAdapterFromDeviceName.AdapterLuid,
                 queryStatistics.QueryResult.AdapterInformation.NbSegments,
                 queryStatistics.QueryResult.AdapterInformation.NodeCount
                 );

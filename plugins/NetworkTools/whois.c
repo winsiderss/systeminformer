@@ -178,7 +178,7 @@ BOOLEAN WhoisExtractServerUrl(
         return FALSE;
     if ((whoisServerHostnameLength = whoisServerHostnameLength - whoisServerHostnameIndex) == 0)
         return FALSE;
- 
+
     whoisServerName = PhSubstring(
         WhoisResponse,
         whoisServerHostnameIndex + wcslen(L"whois:"),
@@ -226,7 +226,7 @@ BOOLEAN WhoisExtractReferralServer(
     if (swscanf_s(
         whoisServerHostname->Buffer,
         L"%255[^:]://%255[^:]:%255[^/]/%255s",
-        urlProtocal, 
+        urlProtocal,
         (UINT)RTL_NUMBER_OF(urlProtocal),
         urlHost,
         (UINT)RTL_NUMBER_OF(urlHost),
@@ -420,7 +420,7 @@ _Success_(return)
 BOOLEAN WhoisQueryServer(
     _In_ PWSTR WhoisServerAddress,
     _In_ USHORT WhoisServerPort,
-    _In_ PWSTR WhoisQueryAddress, 
+    _In_ PWSTR WhoisQueryAddress,
     _Out_ PPH_STRING* WhoisQueryResponse
     )
 {
@@ -539,8 +539,8 @@ NTSTATUS NetworkWhoisThreadStart(
 
             PhAppendFormatStringBuilder(
                 &stringBuilder,
-                L"%s referred the request to %s\n", 
-                PhGetString(whoisServerName), 
+                L"%s referred the request to %s\n",
+                PhGetString(whoisServerName),
                 PhGetString(whoisReferralServerName)
                 );
 
@@ -711,7 +711,7 @@ INT_PTR CALLBACK WhoisDlgProc(
                 {
                     ENLINK* link = (ENLINK*)lParam;
 
-                    if (link->msg == WM_LBUTTONUP) 
+                    if (link->msg == WM_LBUTTONUP)
                     {
                         ULONG length;
                         PWSTR buffer;
@@ -739,7 +739,7 @@ INT_PTR CALLBACK WhoisDlgProc(
         }
         break;
     case NTM_RECEIVEDWHOIS:
-        {           
+        {
             PPH_STRING whoisString = PH_AUTO((PPH_STRING)lParam);
             PPH_STRING trimString = PH_AUTO(TrimString2(whoisString));
 

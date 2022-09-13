@@ -240,7 +240,7 @@ NTSTATUS NetworkPingThreadStart(
         if (performanceCounterTime != 0.0f)
             icmpCurrentOverhead = (ULONG)performanceCounterTime - icmpReplyStruct->RoundTripTime;
         icmpCurrentPingMs = performanceCounterTime - (FLOAT)icmpCurrentOverhead;
-    }  
+    }
 
     if (context->PingMinMs == 0.0f || icmpCurrentPingMs < context->PingMinMs)
         context->PingMinMs = icmpCurrentPingMs;

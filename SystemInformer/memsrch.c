@@ -294,8 +294,8 @@ VOID PhSearchMemoryString(
                 byte = buffer[i];
 
                 // dmex: We don't want to enable extra bits in the PhCharIsPrintable array by default
-                // or we'll get higher amounts of false positive search results. If the user selects the 
-                // ExtendedUnicode option then we'll use iswprint (GetStringTypeW) which does check 
+                // or we'll get higher amounts of false positive search results. If the user selects the
+                // ExtendedUnicode option then we'll use iswprint (GetStringTypeW) which does check
                 // every available character by default.
                 if (detectUnicode && extendedUnicode && !iswascii(byte))
                     printable = !!iswprint(byte);

@@ -737,7 +737,7 @@ NTSTATUS PhGetProcessImageFileNameById(
             *FileName = PhCreateString2(&stringRef);
         }
     }
-    
+
     PhFree(data.ImageName.Buffer);
 
     return status;
@@ -1917,7 +1917,7 @@ NTSTATUS PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PLARGE_INTEGER Timeout
-    ) 
+    )
 {
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
@@ -2413,7 +2413,7 @@ NTSTATUS PhGetJobProcessIdList(
     NTSTATUS status;
     PVOID buffer;
     ULONG bufferSize = 0x100;
-    
+
     do
     {
         buffer = PhAllocate(bufferSize);
@@ -2425,7 +2425,7 @@ NTSTATUS PhGetJobProcessIdList(
             bufferSize,
             &bufferSize
             );
-        
+
         if (NT_SUCCESS(status))
         {
             *ProcessIdList = (PJOBOBJECT_BASIC_PROCESS_ID_LIST)buffer;
@@ -5115,7 +5115,7 @@ NTSTATUS PhSetProcessQuotaLimits(
     if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
-            ProcessHandle, 
+            ProcessHandle,
             KphProcessQuotaLimits,
             &QuotaLimits,
             sizeof(QUOTA_LIMITS)
@@ -5235,7 +5235,7 @@ NTSTATUS PhSetProcessIoPriority(
     if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
-            ProcessHandle, 
+            ProcessHandle,
             KphProcessIoPriority,
             &IoPriority,
             sizeof(IO_PRIORITY_HINT)
@@ -6810,7 +6810,7 @@ NTSTATUS PhEnumDirectoryFileEx(
             PFILE_NAMES_INFORMATION information;
 
             // HACK: Use the wrong structure for the NextEntryOffset. (dmex)
-            information = PTR_ADD_OFFSET(buffer, i); 
+            information = PTR_ADD_OFFSET(buffer, i);
 
             if (!Callback(information, Context))
             {
@@ -9453,9 +9453,9 @@ NTSTATUS PhDeleteDirectoryWin32(
     {
         // Remove any files or folders inside the directory. (dmex)
         status = PhEnumDirectoryFile(
-            directoryHandle, 
-            NULL, 
-            PhpDeleteDirectoryCallback, 
+            directoryHandle,
+            NULL,
+            PhpDeleteDirectoryCallback,
             DirectoryPath
             );
 
@@ -11119,7 +11119,7 @@ NTSTATUS PhQueryProcessHeapInformation(
             {
                 heapDebugInfo->Heaps[i].HeapFrontEndType = frontEndType;
             }
-            
+
             NtClose(processHandle);
         }
     }
@@ -11981,7 +11981,7 @@ BOOLEAN PhIsFirmwareSupported(
     GUID vendorGuid = { 0 };
 
     if (NtQuerySystemEnvironmentValueEx(
-        &variableName, 
+        &variableName,
         &vendorGuid,
         NULL,
         &variableValueLength,

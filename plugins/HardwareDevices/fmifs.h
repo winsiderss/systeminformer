@@ -17,7 +17,7 @@
 //
 // These are the defines for 'PacketType'.
 //
-typedef enum _FMIFS_PACKET_TYPE 
+typedef enum _FMIFS_PACKET_TYPE
 {
     FmIfsPercentCompleted,
     FmIfsFormatReport,
@@ -44,12 +44,12 @@ typedef enum _FMIFS_PACKET_TYPE
     FmIfsHiddenStatus
 } FMIFS_PACKET_TYPE, *PFMIFS_PACKET_TYPE;
 
-typedef struct _FMIFS_PERCENT_COMPLETE_INFORMATION 
+typedef struct _FMIFS_PERCENT_COMPLETE_INFORMATION
 {
     ULONG PercentCompleted;
 } FMIFS_PERCENT_COMPLETE_INFORMATION, *PFMIFS_PERCENT_COMPLETE_INFORMATION;
 
-typedef struct _FMIFS_FORMAT_REPORT_INFORMATION 
+typedef struct _FMIFS_FORMAT_REPORT_INFORMATION
 {
     ULONG KiloBytesTotalDiskSpace;
     ULONG KiloBytesAvailable;
@@ -63,43 +63,43 @@ typedef struct _FMIFS_FORMAT_REPORT_INFORMATION
 #define DISK_TYPE_TARGET 2
 #define DISK_TYPE_SOURCE_AND_TARGET 3
 
-typedef struct _FMIFS_INSERT_DISK_INFORMATION 
+typedef struct _FMIFS_INSERT_DISK_INFORMATION
 {
     ULONG DiskType;
 } FMIFS_INSERT_DISK_INFORMATION, *PFMIFS_INSERT_DISK_INFORMATION;
 
-typedef struct _FMIFS_IO_ERROR_INFORMATION 
+typedef struct _FMIFS_IO_ERROR_INFORMATION
 {
     ULONG DiskType;
     ULONG Head;
     ULONG Track;
 } FMIFS_IO_ERROR_INFORMATION, *PFMIFS_IO_ERROR_INFORMATION;
 
-typedef struct _FMIFS_FINISHED_INFORMATION 
+typedef struct _FMIFS_FINISHED_INFORMATION
 {
     BOOLEAN Success;
 } FMIFS_FINISHED_INFORMATION, *PFMIFS_FINISHED_INFORMATION;
 
-typedef struct _FMIFS_CHECKONREBOOT_INFORMATION 
+typedef struct _FMIFS_CHECKONREBOOT_INFORMATION
 {
     _Out_ BOOLEAN QueryResult; // TRUE for "yes", FALSE for "no"
 } FMIFS_CHECKONREBOOT_INFORMATION, *PFMIFS_CHECKONREBOOT_INFORMATION;
 
-typedef enum _TEXT_MESSAGE_TYPE 
+typedef enum _TEXT_MESSAGE_TYPE
 {
     MESSAGE_TYPE_PROGRESS,
     MESSAGE_TYPE_RESULTS,
     MESSAGE_TYPE_FINAL
 } TEXT_MESSAGE_TYPE, *PTEXT_MESSAGE_TYPE;
 
-typedef struct _FMIFS_TEXT_MESSAGE 
+typedef struct _FMIFS_TEXT_MESSAGE
 {
     _In_ TEXT_MESSAGE_TYPE MessageType;
     _In_ PSTR Message;
 } FMIFS_TEXT_MESSAGE, *PFMIFS_TEXT_MESSAGE;
 
 // This is a list of supported floppy media types for format.
-typedef enum _FMIFS_MEDIA_TYPE 
+typedef enum _FMIFS_MEDIA_TYPE
 {
     FmMediaUnknown,
     FmMediaF5_160_512, // 5.25", 160KB, 512 bytes/sector
@@ -122,7 +122,7 @@ typedef enum _FMIFS_MEDIA_TYPE
 // When new fields are added, the version number will have to be upgraded
 // so that only new code will reference those new fields.
 //
-typedef struct 
+typedef struct
 {
     UCHAR Major; // initial version is 1.0
     UCHAR Minor;
@@ -429,7 +429,7 @@ DoubleSpaceDismount(
 // Miscellaneous
 
 NTSYSAPI
-BOOLEAN 
+BOOLEAN
 NTAPI
 FmifsQueryDriveInformation(
     _In_ PWSTR DosDriveName,
@@ -446,7 +446,7 @@ FmifsQueryDriveInformation(
     );
 
 NTSYSAPI
-BOOLEAN 
+BOOLEAN
 NTAPI
 FmifsSetAutomount(
     _In_ BOOLEAN EnableAutomount

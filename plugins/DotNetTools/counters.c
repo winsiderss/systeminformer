@@ -786,7 +786,7 @@ PPH_LIST QueryDotNetAppDomainsForPid_V4(
     UNICODE_STRING sectionNameUs;
     LARGE_INTEGER sectionOffset;
     SIZE_T viewSize;
-    
+
     legacyPrivateBlockName = PhFormatString(
         L"\\BaseNamedObjects\\" CorLegacyPrivateIPCBlockTempV4,
         HandleToUlong(ProcessId)

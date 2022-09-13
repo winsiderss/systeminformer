@@ -153,7 +153,7 @@ NTSTATUS WaitChainCallbackThread(
         return NTSTATUS_FROM_WIN32(GetLastError());
 
     //TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
-    
+
     if (context->IsProcessItem)
     {
         NTSTATUS status;
@@ -178,11 +178,11 @@ NTSTATUS WaitChainCallbackThread(
             }
 
             status = NtGetNextThread(
-                context->ProcessItem->QueryHandle, 
-                threadHandle, 
+                context->ProcessItem->QueryHandle,
+                threadHandle,
                 THREAD_QUERY_LIMITED_INFORMATION,
-                0, 
-                0, 
+                0,
+                0,
                 &newThreadHandle
                 );
 
@@ -299,8 +299,8 @@ INT_PTR CALLBACK WaitChainDlgProc(
                             PhSetFlagsEMenuItem(menu, ID_WCT_MENU_GOTOTHREAD, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                             PhSetFlagsEMenuItem(menu, ID_WCT_MENU_GOTOPROCESS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                         }
-                       
-                        PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);                       
+
+                        PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
                         PhDestroyEMenu(menu);
                     }
                 }

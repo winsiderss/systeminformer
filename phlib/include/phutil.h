@@ -233,7 +233,7 @@ PhShowMessage(
 #define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
 PHLIBAPI
-INT 
+INT
 NTAPI
 PhShowMessage2(
     _In_opt_ HWND hWnd,
@@ -1225,7 +1225,7 @@ typedef enum _PH_IMGCOHERENCY_SCAN_TYPE
     /**
     * Normal scan of the image coherency
     * - Image header information
-    * - Up to 40Mib of each executable section 
+    * - Up to 40Mib of each executable section
     * - Scans a few pages at entry point if it exists and was missed due to previous note
     * - .NET manifests if appropriate
     */
@@ -1236,7 +1236,7 @@ typedef enum _PH_IMGCOHERENCY_SCAN_TYPE
     * - Image header information
     * - Complete scan of all executable sections, this will include the entry point
     * - .NET manifests if appropriate
-    * - Scans for code caves in tail of mapped sections (virtual mapping > size on disk) 
+    * - Scans for code caves in tail of mapped sections (virtual mapping > size on disk)
     */
     PhImageCoherencyFull
 

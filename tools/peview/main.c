@@ -333,7 +333,7 @@ BOOLEAN PvInitializeExceptionPolicy(
 {
 #ifndef DEBUG
     ULONG errorMode;
-    
+
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
         errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);

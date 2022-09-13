@@ -403,7 +403,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                             PhInitFormatSize(&format[3], context->Block->CurrentDiskWrite);
 
                             PhMoveReference(&context->DiskGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-    
+
                             hdc = Graph_GetBufferedContext(context->DiskGraphHandle);
                             PhSetGraphText(
                                 hdc,

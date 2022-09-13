@@ -357,9 +357,9 @@ VOID PhReInitializeWindowTheme(
         if (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
         {
             ULONG processID = 0;
-    
+
             GetWindowThreadProcessId(currentWindow, &processID);
-    
+
             if (UlongToHandle(processID) == NtCurrentProcessId())
             {
                 WCHAR windowClassName[MAX_PATH];
@@ -438,7 +438,7 @@ VOID PhInitializeThemeWindowFrame(
 #ifndef DWMWA_SYSTEMBACKDROP_TYPE
 #define DWMWA_SYSTEMBACKDROP_TYPE 38
 #endif
-    
+
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
         if (PhpThemeEnable)
@@ -1144,8 +1144,8 @@ BOOLEAN PhThemeWindowDrawItem(
             }
 
             //FillRect(
-            //    DrawInfo->hDC, 
-            //    &DrawInfo->rcItem, 
+            //    DrawInfo->hDC,
+            //    &DrawInfo->rcItem,
             //    CreateSolidBrush(RGB(0, 0, 0))
             //    );
             //SetTextColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
@@ -1350,7 +1350,7 @@ BOOLEAN PhThemeWindowDrawItem(
                         DT_LEFT | DT_VCENTER | drawTextFlags
                         );
                 }
- 
+
 
                 DrawText(
                     DrawInfo->hDC,
@@ -1369,12 +1369,12 @@ BOOLEAN PhThemeWindowDrawItem(
             if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
             {
                 static HTHEME menuThemeHandle = NULL;
-            
+
                 if (!menuThemeHandle)
                 {
                     menuThemeHandle = OpenThemeData(NULL, L"Menu");
                 }
-            
+
                 rect.left = rect.right - 25;
                 DrawThemeBackground(menuThemeHandle, DrawInfo->hDC, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL, &rect, NULL);
             }
@@ -1491,7 +1491,7 @@ BOOLEAN PhThemeWindowMeasureItem(
                 ReleaseDC(WindowHandle, hdc);
             }
         }
-        
+
         return TRUE;
     }
 
@@ -1632,7 +1632,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 }
             }
             else if ((buttonStyle & BS_CHECKBOX) == BS_CHECKBOX)
-            {  
+            {
                 if (Button_GetCheck(DrawInfo->hdr.hwndFrom) == BST_CHECKED)
                 {
                     HFONT newFont = PhDuplicateFontWithNewHeight(PhApplicationFont, 16);
@@ -1696,10 +1696,10 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                         DrawInfo->hdc,
                         bufferRect.left + ((bufferRect.right - bufferRect.left) - 16) / 2,
                         bufferRect.top + ((bufferRect.bottom - bufferRect.top) - 16) / 2,
-                        buttonIcon, 
+                        buttonIcon,
                         16,
                         16,
-                        0, 
+                        0,
                         NULL,
                         DI_NORMAL
                         );
@@ -1877,7 +1877,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     //{
                     //    rowRect.left = Context->NormalLeft - hScrollPosition;
                     //}
-                
+
                 }
 
                 //switch (PhpThemeColorMode)
@@ -1926,9 +1926,9 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 HIMAGELIST toolbarImageList;
 
                 if (toolbarImageList = (HIMAGELIST)SendMessage(
-                    DrawInfo->nmcd.hdr.hwndFrom, 
-                    TB_GETIMAGELIST, 
-                    0, 
+                    DrawInfo->nmcd.hdr.hwndFrom,
+                    TB_GETIMAGELIST,
+                    0,
                     0
                     ))
                 {
@@ -2032,8 +2032,8 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
             LVGROUP groupInfo = { sizeof(LVGROUP) };
             groupInfo.mask = LVGF_HEADER;
             if (ListView_GetGroupInfo(
-                DrawInfo->nmcd.hdr.hwndFrom, 
-                (ULONG)DrawInfo->nmcd.dwItemSpec, 
+                DrawInfo->nmcd.hdr.hwndFrom,
+                (ULONG)DrawInfo->nmcd.dwItemSpec,
                 &groupInfo
                 ) == -1)
             {
@@ -2452,16 +2452,16 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
             if (!context->MouseActive)
             {
                 TRACKMOUSEEVENT trackEvent =
-                { 
+                {
                     sizeof(TRACKMOUSEEVENT),
-                    TME_LEAVE, 
+                    TME_LEAVE,
                     WindowHandle,
-                    0 
+                    0
                 };
 
                 TrackMouseEvent(&trackEvent);
                 context->MouseActive = TRUE;
-            }         
+            }
 
             InvalidateRect(WindowHandle, NULL, FALSE);
         }
@@ -2555,7 +2555,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
             //    FillRect(hdc, &clientRect, GetStockBrush(DC_BRUSH));
             //    break;
             //}
-    
+
             POINT pt;
             GetCursorPos(&pt);
             MapWindowPoints(NULL, WindowHandle, &pt, 1);
@@ -2744,7 +2744,7 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
 
             InvalidateRect(WindowHandle, NULL, TRUE);
 
-            return result; 
+            return result;
         }
         break;
     case WM_PAINT:
@@ -2919,12 +2919,12 @@ LRESULT CALLBACK PhpThemeWindowStatusbarWndSubclassProc(
         {
             if (!context->MouseActive)
             {
-                TRACKMOUSEEVENT trackEvent = 
-                { 
-                    sizeof(TRACKMOUSEEVENT), 
-                    TME_LEAVE, 
+                TRACKMOUSEEVENT trackEvent =
+                {
+                    sizeof(TRACKMOUSEEVENT),
+                    TME_LEAVE,
                     WindowHandle,
-                    0 
+                    0
                 };
 
                 TrackMouseEvent(&trackEvent);

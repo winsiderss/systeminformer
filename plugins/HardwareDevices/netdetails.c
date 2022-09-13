@@ -140,7 +140,7 @@ VOID NetAdapterEnumerateAddresses(
                 IN_ADDR subnetMask = { 0 };
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
                 WCHAR subnetAddressString[INET_ADDRSTRLEN] = L"";
-            
+
                 ipv4SockAddr = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
 
                 if (RtlIpv4AddressToString(&ipv4SockAddr->sin_addr, ipv4AddressString))
@@ -447,7 +447,7 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_TOTAL, 1, PhaFormatSize(interfaceStats.ifHCInOctets + interfaceStats.ifHCOutOctets, ULONG_MAX)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENDING, 1, interfaceXmitSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceXmitSpeed, ULONG_MAX)->Buffer)->Buffer : L"");
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVING, 1, interfaceRcvSpeed != 0 ? PhaFormatString(L"%s/s", PhaFormatSize(interfaceRcvSpeed, ULONG_MAX)->Buffer)->Buffer : L"");
-    
+
     if (interfaceLinkSpeed > 0)
     {
         FLOAT utilization = (FLOAT)(interfaceRcvSpeed + interfaceXmitSpeed) / (interfaceLinkSpeed / BITS_IN_ONE_BYTE);

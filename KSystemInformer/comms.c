@@ -55,8 +55,8 @@ typedef struct _KPH_CLIENT
 typedef const KPH_CLIENT* PCKPH_CLIENT;
 
 /**
- * \brief Allocates a message queue item. 
- * 
+ * \brief Allocates a message queue item.
+ *
  * \return Message queue item, null on allocation failure.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -92,7 +92,7 @@ VOID KphpFreeMessageQueueItem(_In_freesMem_ PKPHM_QUEUE_ITEM Item)
 }
 
 /**
- * \brief Allocates a non-paged message. 
+ * \brief Allocates a non-paged message.
  *
  * \return Non-paged message, null on allocation failure.
  */
@@ -108,8 +108,8 @@ PKPH_MESSAGE KphAllocateNPagedMessage(
 }
 
 /**
- * \brief Frees a non-paged message. 
- * 
+ * \brief Frees a non-paged message.
+ *
  * \param[in] Message Message to free.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -266,7 +266,7 @@ VOID KSIAPI KphpFreeClientObject(
 }
 
 /**
- * \brief Communication port connect notify callback. 
+ * \brief Communication port connect notify callback.
  *
  * \param[in] ClientPort Client port for this client.
  * \param[in] ServerPortCookie Unused
@@ -416,7 +416,7 @@ VOID FLTAPI KphpCommsDisconnectNotifyCallback(
 
 /**
  * \brief Connection port message notification callback.
- * 
+ *
  * \param[in] PortCookie Client object
  * \param[in] InputBuffer Input buffer from client.
  * \param[in] InputBufferLength Length of the input buffer.
@@ -671,7 +671,7 @@ Exit:
 
 /**
  * \brief Wrapper for the communication port message send API.
- * 
+ *
  * \param[in] ClientPort Client port to send message to.
  * \param[in] SendBuffer Buffer to send.
  * \param[in] SendBufferLength Length of send buffer.
@@ -722,7 +722,7 @@ NTSTATUS KphpFltSendMessage(
     if (status == STATUS_TIMEOUT)
     {
         //
-        // return an error status instead 
+        // return an error status instead
         //
         status = STATUS_IO_TIMEOUT;
     }
@@ -734,7 +734,7 @@ NTSTATUS KphpFltSendMessage(
 
 /**
  * \brief Sends a message asynchronously to a single target client process.
- * 
+ *
  * \param[in] Message The message to send asynchronously. This function assumes
  * ownership over the message. The caller should *not* free the message after
  * it is passed to this function.
@@ -799,7 +799,7 @@ VOID KphpCommsSendMessageAsync(
  * \param[in] TargetClientProcess Optional target client process to send the
  * message to. If provided the message will only be sent to the target client
  * from the queue processing. Otherwise, the message will be sent to all
- * clients. If TargetClientProcess is provided Reply must be null. 
+ * clients. If TargetClientProcess is provided Reply must be null.
  *
  * \return Successful or errant status.
  */
@@ -982,7 +982,7 @@ NTSTATUS KphpCommsSendMessage(
 
 /**
  * \brief Async message queue thread.
- * 
+ *
  * \param[in] StartContext Unused
  */
 _Function_class_(KSTART_ROUTINE)
@@ -1343,7 +1343,7 @@ PKPH_MESSAGE KphAllocateMessage(
 
 /**
  * \brief Frees a message.
- * 
+ *
  * \param[in] Message The message to free.
  */
 _IRQL_requires_max_(APC_LEVEL)
@@ -1361,7 +1361,7 @@ KphFreeMessage(
 
 /**
  * \brief Sends a message asynchronously.
- * 
+ *
  * \param[in] Message The message to send asynchronously. This function assumes
  * ownership over the message. The caller should *not* free the message after
  * it is passed to this function.

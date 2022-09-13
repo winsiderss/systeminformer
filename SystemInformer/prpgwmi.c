@@ -381,9 +381,9 @@ HRESULT PhpQueryWmiProviderFileName(
 
     if (SUCCEEDED(status = IEnumWbemClassObject_Next(
         wbemEnumerator,
-        WBEM_INFINITE, 
-        1, 
-        &wbemClassObject, 
+        WBEM_INFINITE,
+        1,
+        &wbemClassObject,
         &count
         )))
     {
@@ -898,7 +898,7 @@ VOID PhQueryWmiHostProcessString(
 
             PhAppendFormatStringBuilder(
                 Providers,
-                L"    %s (%s)\n", 
+                L"    %s (%s)\n",
                 PhGetStringOrEmpty(entry->ProviderName),
                 PhGetStringOrEmpty(entry->FileName)
                 );
@@ -929,7 +929,7 @@ VOID PhpSetWmiProviderListStatusMessage(
     )
 {
     PPH_STRING statusMessage;
-    
+
     statusMessage = PhGetStatusMessage(0, HRESULT_CODE(Status)); // HACK
     PhMoveReference(&Context->StatusMessage, PhConcatStrings2(
         L"Unable to query provider information:\n",
@@ -1503,11 +1503,11 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(
-                data.Menu, 
-                hwnd, 
+                data.Menu,
+                hwnd,
                 PH_EMENU_SHOW_LEFTRIGHT,
-                PH_ALIGN_LEFT | PH_ALIGN_TOP, 
-                data.MouseEvent->ScreenLocation.x, 
+                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                data.MouseEvent->ScreenLocation.x,
                 data.MouseEvent->ScreenLocation.y
                 );
 

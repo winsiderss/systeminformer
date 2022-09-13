@@ -97,7 +97,7 @@ static BOOLEAN PhpKernelAppCoreInitialized(
 
             if (
                 AppContainerDeriveSidFromMoniker_I &&
-                AppContainerLookupMoniker_I && 
+                AppContainerLookupMoniker_I &&
                 AppContainerFreeMemory_I
                 )
             {
@@ -456,7 +456,7 @@ PPH_STRING PhGetAppContainerName(
         return NULL;
 
     result = AppContainerLookupMoniker_I(
-        AppContainerSid, 
+        AppContainerSid,
         &packageMonikerName
         );
 
@@ -506,7 +506,7 @@ PPH_STRING PhGetAppContainerSidFromName(
         return NULL;
 
     if (SUCCEEDED(AppContainerDeriveSidFromMoniker_I(
-        AppContainerName, 
+        AppContainerName,
         &appContainerSid
         )))
     {
@@ -521,7 +521,7 @@ PPH_STRING PhGetAppContainerSidFromName(
 PPH_STRING PhGetAppContainerPackageName(
     _In_ PSID Sid
     )
-{   
+{
     static PH_STRINGREF appcontainerMappings = PH_STRINGREF_INIT(L"Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppContainer\\Mappings\\");
     static PH_STRINGREF appcontainerDefaultMappings = PH_STRINGREF_INIT(L".DEFAULT\\");
     HANDLE keyHandle;

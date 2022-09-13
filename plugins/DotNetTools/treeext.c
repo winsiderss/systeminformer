@@ -225,7 +225,7 @@ VOID ThreadTreeNewInitializing(
     PTHREAD_TREE_CONTEXT context;
     BOOLEAN isDotNet = FALSE;
     ULONG flags = 0;
-  
+
     threadsContext = info->SystemContext;
     context = PhPluginGetObjectExtension(PluginInstance, threadsContext, EmThreadsContextType);
 

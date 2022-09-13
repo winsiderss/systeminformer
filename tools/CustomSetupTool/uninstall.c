@@ -188,7 +188,7 @@ VOID ShowUninstallingPageDialog(
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Uninstalling System Informer...";
-    
+
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
@@ -210,7 +210,7 @@ VOID ShowUninstallErrorPageDialog(
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"System Informer could not be uninstalled.";
     config.pszContent = L"Click retry to try again or close to exit setup.";
-    
+
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 

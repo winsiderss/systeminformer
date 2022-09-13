@@ -519,7 +519,7 @@ NtLoadKeyEx(
     _Out_opt_ PHANDLE RootHandle,
     _Reserved_ PVOID Reserved // previously PIO_STATUS_BLOCK
     );
-       
+
 // rev by tyranid
 #if (PHNT_VERSION >= PHNT_20H1)
 NTSYSCALLAPI
@@ -710,7 +710,7 @@ NTSTATUS NtCreateRegistryTransaction(
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjAttributes,
     _Reserved_ ULONG CreateOptions
-    );     
+    );
 #endif
 
 #if (PHNT_VERSION >= PHNT_REDSTONE)

@@ -1737,7 +1737,7 @@ INT_PTR CALLBACK DotNetPerfPageDlgProc(
                                     else
                                     {
                                         wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, L"0.00", _TRUNCATE);
-                                    }   
+                                    }
                                 }
                                 break;
                             case DOTNET_INDEX_SECURITY_STACKWALKDEPTH:

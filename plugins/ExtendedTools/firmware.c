@@ -143,15 +143,15 @@ NTSTATUS EnumerateFirmwareEntries(
         PVARIABLE_NAME_AND_VALUE i;
 
         for (i = PH_FIRST_EFI_VARIABLE(variables); i; i = PH_NEXT_EFI_VARIABLE(i))
-        {       
+        {
             INT index;
             PEFI_ENTRY entry;
-            
+
             entry = PhAllocateZero(sizeof(EFI_ENTRY));
             entry->Length = i->ValueLength;
             entry->Name = PhCreateString(i->Name);
             entry->GuidString = PhFormatGuid(&i->VendorGuid);
-            
+
             index = PhAddListViewItem(
                 Context->ListViewHandle,
                 MAXINT,
@@ -179,7 +179,7 @@ NTSTATUS EnumerateFirmwareEntries(
             PhSetListViewSubItem(
                 Context->ListViewHandle,
                 index,
-                4, 
+                4,
                 PhaFormatSize(entry->Length, ULONG_MAX)->Buffer
                 );
         }
@@ -283,7 +283,7 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
             PhLoadWindowPlacementFromSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, hwndDlg);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
-            
+
             EnumerateFirmwareEntries(context);
         }
         break;

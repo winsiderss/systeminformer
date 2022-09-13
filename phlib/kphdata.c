@@ -44,7 +44,7 @@ ULONG KphpGetKernelRevisionNumber(
 #ifdef _WIN64
 
 NTSTATUS KphInitializeDynamicConfiguration(
-    _Out_ PKPH_DYN_CONFIGURATION Configuration 
+    _Out_ PKPH_DYN_CONFIGURATION Configuration
     )
 {
     ULONG majorVersion = PhOsVersion.dwMajorVersion;
@@ -222,7 +222,7 @@ NTSTATUS KphInitializeDynamicConfiguration(
 #else
 
 NTSTATUS KphInitializeDynamicConfiguration(
-    _Out_ PKPH_DYN_CONFIGURATION Configuration 
+    _Out_ PKPH_DYN_CONFIGURATION Configuration
     )
 {
     ULONG majorVersion, minorVersion, servicePack, buildNumber;

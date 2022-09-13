@@ -111,7 +111,7 @@ VOID KphCleanupVerify(
 
 /**
  * \brief Verifies that a file matches the provided signature.
- * 
+ *
  * \param[in] FileName File name of file to verify.
  *
  * \return Successful or errant status.
@@ -343,7 +343,7 @@ NTSTATUS KphDominationCheck(
 /**
  * \brief Retrieves the process state mask from a process.
  *
- * \param[in] Process The process to get the state from. 
+ * \param[in] Process The process to get the state from.
  *
  * \return State mask describing what state the process is in.
  */

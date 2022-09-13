@@ -201,7 +201,7 @@ BOOLEAN SetupCreateUninstallFile(
     uninstallFilePath = PhConcatStrings2(PhGetString(Context->SetupInstallPath), L"\\systeminformer-setup.exe");
 
     if (PhDoesFileExistWin32(PhGetString(backupFilePath)))
-    {    
+    {
         PPH_STRING tempFileName;
         PPH_STRING tempFilePath;
 
@@ -289,7 +289,7 @@ VOID SetupStartService(
     SC_HANDLE serviceHandle;
 
     serviceHandle = PhOpenService(
-        ServiceName, 
+        ServiceName,
         SERVICE_QUERY_STATUS | SERVICE_START
         );
 
@@ -429,7 +429,7 @@ BOOLEAN SetupCheckDriverInstallState( // TODO: Use PhGetKernelDriverSystemStart 
         0
         )))
     {
-        // Make sure we re-install the driver when installed as a service. 
+        // Make sure we re-install the driver when installed as a service.
         if (PhQueryRegistryUlong(runKeyHandle, L"Start") == SERVICE_SYSTEM_START)
         {
             driverInstallRequired = TRUE;
@@ -613,11 +613,11 @@ VOID SetupSetWindowsOptions(
     //
     //        value = PhConcatStrings(3, L"\"", PhGetString(clientPathString), L"\"");
     //        status = NtSetValueKey(
-    //            taskmgrKeyHandle, 
+    //            taskmgrKeyHandle,
     //            &valueName,
     //            0,
     //            REG_SZ,
-    //            value->Buffer, 
+    //            value->Buffer,
     //            (ULONG)value->Length + sizeof(UNICODE_NULL)
     //            );
     //
@@ -930,8 +930,8 @@ VOID ExtractResourceToFile(
     if (!PhLoadResource(
         DllBase,
         Name,
-        RT_RCDATA, 
-        &resourceLength, 
+        RT_RCDATA,
+        &resourceLength,
         &resourceBuffer
         ))
     {
@@ -984,10 +984,10 @@ BOOLEAN ConnectionAvailable(VOID)
     INetworkListManager* networkListManager = NULL;
 
     if (SUCCEEDED(CoCreateInstance(
-        &CLSID_NetworkListManager, 
-        NULL, 
-        CLSCTX_ALL, 
-        &IID_INetworkListManager, 
+        &CLSID_NetworkListManager,
+        NULL,
+        CLSCTX_ALL,
+        &IID_INetworkListManager,
         &networkListManager
         )))
     {
@@ -1197,11 +1197,11 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
             goto CleanupExit;
 
         PhOpenProcess(
-            &processHandle, 
+            &processHandle,
             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE,
             objectInfo.ClientId.UniqueProcess
             );
-        
+
         hwnd = PhGetProcessMainWindowEx(
             objectInfo.ClientId.UniqueProcess,
             processHandle,

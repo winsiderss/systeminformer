@@ -2626,7 +2626,7 @@ typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
     SIZE_T NumberOfBytesAvailableContiguous;
 } SYSTEM_SESSION_MAPPED_VIEW_INFORMATION, *PSYSTEM_SESSION_MAPPED_VIEW_INFORMATION;
 
-typedef enum _WATCHDOG_HANDLER_ACTION 
+typedef enum _WATCHDOG_HANDLER_ACTION
 {
     WdActionSetTimeoutValue,
     WdActionQueryTimeoutValue,
@@ -2641,7 +2641,7 @@ typedef enum _WATCHDOG_HANDLER_ACTION
 typedef NTSTATUS (*PSYSTEM_WATCHDOG_HANDLER)(_In_ WATCHDOG_HANDLER_ACTION Action, _In_ PVOID Context, _Inout_ PULONG DataValue, _In_ BOOLEAN NoLocks);
 
 // private
-typedef struct _SYSTEM_WATCHDOG_HANDLER_INFORMATION 
+typedef struct _SYSTEM_WATCHDOG_HANDLER_INFORMATION
 {
     PSYSTEM_WATCHDOG_HANDLER WdHandler;
     PVOID Context;
@@ -4608,7 +4608,7 @@ typedef struct _SYSTEM_HYPERVISOR_MINROOT_INFORMATION
     USHORT RootProcNumaNodes[64];
     ULONG RootProcPerCore;
     ULONG RootProcPerNode;
-    ULONG RootProcNumaNodesLpsSpecified;  
+    ULONG RootProcNumaNodesLpsSpecified;
     HV_MINROOT_NUMA_LPS RootProcNumaNodeLps[64];
 } SYSTEM_HYPERVISOR_MINROOT_INFORMATION, *PSYSTEM_HYPERVISOR_MINROOT_INFORMATION;
 

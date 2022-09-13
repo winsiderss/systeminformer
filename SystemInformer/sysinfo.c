@@ -240,7 +240,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
-        {    
+        {
             SetBkMode((HDC)wParam, TRANSPARENT);
 
             if (PhEnableThemeSupport)
@@ -582,7 +582,7 @@ VOID PhSipOnCommand(
         }
         break;
     case IDC_MAXSCREEN:
-        {                
+        {
             static WINDOWPLACEMENT windowLayout = { sizeof(WINDOWPLACEMENT) };
             ULONG windowStyle = (ULONG)GetWindowLongPtr(PhSipWindow, GWL_STYLE);
 
@@ -597,8 +597,8 @@ VOID PhSipOnCommand(
                 {
                     PhSetWindowStyle(PhSipWindow, WS_OVERLAPPEDWINDOW, 0);
                     SetWindowPos(
-                        PhSipWindow, 
-                        HWND_TOPMOST, 
+                        PhSipWindow,
+                        HWND_TOPMOST,
                         info.rcMonitor.left,
                         info.rcMonitor.top,
                         (info.rcMonitor.right - info.rcMonitor.left),
@@ -1284,7 +1284,7 @@ VOID PhSipDrawRestoreSummaryPanel(
     bufferDc = CreateCompatibleDC(hdc);
     bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-    
+
     SetBkMode(bufferDc, TRANSPARENT);
 
     if (PhEnableThemeSupport)
@@ -1668,7 +1668,7 @@ VOID PhSipDefaultDrawPanel(
         textHeight = measureRect.bottom - measureRect.top;
         textWidth = measureRect.right - measureRect.left;
         //dprintf(
-        //    "[rectHeight: %u, rectwidth: %u] [lineHeight: %u, lineWidth: %u] [textHeight: %u, textWidth: %u]\n", 
+        //    "[rectHeight: %u, rectwidth: %u] [lineHeight: %u, lineWidth: %u] [textHeight: %u, textWidth: %u]\n",
         //    rectHeight, rectWidth,
         //    lineHeight, lineWidth,
         //    textHeight, textWidth

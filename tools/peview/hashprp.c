@@ -835,7 +835,7 @@ VOID PvpPeEnumFileHashes(
     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Imphash");
 
     if (PvpGetMappedImageImphash(&imphashString, &imphashFuzzyString))
-    {    
+    {
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetStringOrDefault(imphashString, L"ERROR"));
         PhClearReference(&imphashString);
     }

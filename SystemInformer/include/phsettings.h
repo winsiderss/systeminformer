@@ -2,14 +2,14 @@
 #define PH_SETTINGS_H
 
 _User_set_
-VOID 
+VOID
 NTAPI
 PhAddDefaultSettings(
     VOID
     );
 
 _User_set_
-VOID 
+VOID
 NTAPI
 PhUpdateCachedSettings(
     VOID

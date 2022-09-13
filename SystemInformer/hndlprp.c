@@ -91,7 +91,7 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
 #define PhFileModeUpdAsyncFlag(mode) \
     (mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC)
 
-PH_ACCESS_ENTRY FileModeAccessEntries[6] = 
+PH_ACCESS_ENTRY FileModeAccessEntries[6] =
 {
     { L"FILE_FLAG_OVERLAPPED", PH_FILEMODE_ASYNC, FALSE, FALSE, L"Asynchronous" },
     { L"FILE_FLAG_WRITE_THROUGH", FILE_WRITE_THROUGH, FALSE, FALSE, L"Write through" },
@@ -933,7 +933,7 @@ VOID PhpUpdateHandleGeneral(
                 0,
                 0
                 );
-            
+
             if (!NT_SUCCESS(status))
             {
                 status = NtDuplicateObject(

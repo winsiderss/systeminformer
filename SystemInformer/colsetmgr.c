@@ -460,7 +460,7 @@ INT_PTR CALLBACK PhpColumnSetEditorDlgProc(
                         if (index != ULONG_MAX)
                         {
                             PhRemoveItemList(context->ColumnSetList, index);
-                            PhInsertItemList(context->ColumnSetList, lvItemIndex, entry);   
+                            PhInsertItemList(context->ColumnSetList, lvItemIndex, entry);
                         }
                     }
                 }

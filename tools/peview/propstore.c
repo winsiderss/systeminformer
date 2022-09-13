@@ -110,7 +110,7 @@ VOID PvpPeEnumerateFilePropStore(
 
                             IPropertyDescription_Release(propertyDescriptionPtr);
                         }
-       
+
                         CoTaskMemFree(propKeyName);
                     }
                     else
@@ -194,7 +194,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
 
             PvpPeEnumerateFilePropStore(context->ListViewHandle);
             //ExtendedListView_SortItems(context->ListViewHandle);
-            
+
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
         }
         break;

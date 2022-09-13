@@ -472,10 +472,10 @@ VOID FindGraphicsDevices(
         ULONG index = ULONG_MAX;
         BOOLEAN found = FALSE;
         PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
-    
+
         if (!entry)
             continue;
-    
+
         while ((index = PhFindListViewItemByFlags(
             Context->ListViewHandle,
             index,
@@ -483,7 +483,7 @@ VOID FindGraphicsDevices(
             )) != ULONG_MAX)
         {
             PDV_GPU_ID param;
-    
+
             if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
             {
                 if (EquivalentGraphicsDeviceId(param, &entry->Id))
@@ -492,7 +492,7 @@ VOID FindGraphicsDevices(
                 }
             }
         }
-    
+
         if (!found)
         {
             PPH_STRING description;
@@ -505,11 +505,11 @@ VOID FindGraphicsDevices(
                     entry->Id.DevicePath,
                     description
                     );
-    
+
                 PhDereferenceObject(description);
             }
         }
-    
+
         PhDereferenceObjectDeferDelete(entry);
     }
     PhReleaseQueuedLockShared(&GraphicsDevicesListLock);

@@ -297,7 +297,7 @@ LRESULT CALLBACK PhTnpWndProc(
         break;
     case WM_CTLCOLORSTATIC:
         if (context->ThemeSupport)
-            return HANDLE_WM_CTLCOLORSTATIC(hwnd, wParam, lParam, PhWindowThemeControlColor);      
+            return HANDLE_WM_CTLCOLORSTATIC(hwnd, wParam, lParam, PhWindowThemeControlColor);
         break;
     }
 
@@ -889,8 +889,8 @@ VOID PhTnpOnMouseLeave(
     if (Context->TooltipIndex != ULONG_MAX || Context->TooltipId != ULONG_MAX)
     {
         // Hide the tooltip when the mouse leaves the window or we lose focus. This fixes a certain tooltip bug
-        // when hovering over an item to show the tooltip while alt-tabbing causes the tooltip to remain stuck 
-        // on screen. There's also a similar issue when a window steals focus just as the tooltip becomes visible 
+        // when hovering over an item to show the tooltip while alt-tabbing causes the tooltip to remain stuck
+        // on screen. There's also a similar issue when a window steals focus just as the tooltip becomes visible
         // and also causes the tooltip to remain stuck on screen. Popping here fixes both issues. (dmex)
         PhTnpPopTooltip(Context);
     }
@@ -6091,7 +6091,7 @@ VOID PhTnpInitializeTooltips(
     // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
     Context->HeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
     Context->FixedHeaderWindowProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
-    
+
     PhSetWindowContext(Context->HeaderHandle, 0xF, Context);
     PhSetWindowContext(Context->FixedHeaderHandle, 0xF, Context);
 
@@ -6700,7 +6700,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 InvalidateRect(hwnd, NULL, FALSE);
             }
 
-            return result; 
+            return result;
         }
         break;
     case WM_PAINT:
@@ -6763,7 +6763,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 HDITEM headerItem;
                 RECT headerRect;
                 PPH_TREENEW_COLUMN column;
-   
+
                 if (!CallWindowProc(oldWndProc, hwnd, HDM_GETITEMRECT, (WPARAM)i, (LPARAM)&headerRect))
                     continue;
                 if (!RectVisible(bufferDc, &headerRect))

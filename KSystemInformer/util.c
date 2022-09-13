@@ -19,7 +19,7 @@
 
 /**
  * \brief Acquires rundown. On successful return the caller should release
- * the rundown using KphReleaseRundown. 
+ * the rundown using KphReleaseRundown.
  *
  * \param[in,out] Rundown The rundown object to acquire.
  *
@@ -107,7 +107,7 @@ VOID KphInitializeRWLock(
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphDeleteRWLock(
-    _In_ PKPH_RWLOCK Lock 
+    _In_ PKPH_RWLOCK Lock
     )
 {
     PAGED_CODE();
@@ -123,7 +123,7 @@ VOID KphDeleteRWLock(
 _IRQL_requires_max_(APC_LEVEL)
 _Acquires_lock_(_Global_critical_region_)
 VOID KphAcquireRWLockExclusive(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock 
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
     PAGED_CODE();
@@ -139,7 +139,7 @@ VOID KphAcquireRWLockExclusive(
 _IRQL_requires_max_(APC_LEVEL)
 _Acquires_lock_(_Global_critical_region_)
 VOID KphAcquireRWLockShared(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock 
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
     PAGED_CODE();
@@ -155,7 +155,7 @@ VOID KphAcquireRWLockShared(
 _IRQL_requires_max_(APC_LEVEL)
 _Releases_lock_(_Global_critical_region_)
 VOID KphReleaseRWLock(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock 
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PKPH_RWLOCK Lock
     )
 {
     PAGED_CODE();
@@ -223,7 +223,7 @@ NTSTATUS KphGetSystemModules(
 
 /**
  * \brief Frees modules previously retrieved by KphEnumerateSystemModules.
- * 
+ *
  * \param[in] Modules The modules to free.
  */
 _IRQL_requires_max_(APC_LEVEL)
@@ -488,7 +488,7 @@ VOID KphFreeProcessMappedFileName(
 
 /**
  * \brief Queries the registry key for a string value.
- * 
+ *
  * \param[in] KeyHandle Handle to key to query.
  * \param[in] ValueName Name of value to query.
  * \param[out] String Populated with the queried registry string. The string is
@@ -629,10 +629,10 @@ VOID KphFreeRegistryString(
 
 /**
  * \brief Queries the registry key for a string value.
- * 
+ *
  * \param[in] KeyHandle Handle to key to query.
  * \param[in] ValueName Name of value to query.
- * \param[out] Buffer Registry binary buffer on success, should be freed using 
+ * \param[out] Buffer Registry binary buffer on success, should be freed using
  * KphFreeRegistryBinary.
  * \param[out] Length Set to the length of the buffer.
  *
@@ -705,7 +705,7 @@ NTSTATUS KphQueryRegistryBinary(
     *Buffer = info->Data;
     buffer = NULL;
     status = STATUS_SUCCESS;
-    
+
 Exit:
 
     if (buffer)
@@ -734,10 +734,10 @@ VOID KphFreeRegistryBinary(
 
 /**
  * \brief Queries the registry key for a string value.
- * 
+ *
  * \param[in] KeyHandle Handle to key to query.
  * \param[in] ValueName Name of value to query.
- * \param[out] Value Registry unsigned long. 
+ * \param[out] Value Registry unsigned long.
  *
  * \return Successful or errant status.
  */
@@ -787,9 +787,9 @@ NTSTATUS KphQueryRegistryULong(
 }
 
 /**
- * \brief Retrieves the image headers from a module base address. 
+ * \brief Retrieves the image headers from a module base address.
  *
- * \param[in] Base - Module base address. 
+ * \param[in] Base - Module base address.
  * \param[in] Size - Size of the address range to parse.
  * \param[out] OutHeaders - On success points to the image headers.
  *
@@ -890,7 +890,7 @@ NTSTATUS KphAdvancePointer(
 /**
  * \brief Advances a buffer. If the advancement would advance at or passed the
  * remaining size of the buffer the function fails.
- * 
+ *
  * \param[in,out] Pointer Pointer to advance.
  * \param[in,out] Size Remaining size of the buffer.
  * \param[in] Offset Offset to advance by.
@@ -1111,10 +1111,10 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
         }
     }
 
-    InitializeObjectAttributes(&objectAttributes, 
-                               NULL, 
-                               OBJ_KERNEL_HANDLE, 
-                               NULL, 
+    InitializeObjectAttributes(&objectAttributes,
+                               NULL,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
                                NULL);
 
     status = ZwCreateSection(&sectionHandle,

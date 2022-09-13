@@ -118,7 +118,7 @@ PVOID KSIAPI KphpAllocateProcessContext(
  * \brief Initializes a process context.
  *
  * \param[in] Object The process context object to initialize.
- * \param[in] Parameter The kernel process object associated with this context. 
+ * \param[in] Parameter The kernel process object associated with this context.
  *
  * \return STATUS_SUCCESS
  */
@@ -127,7 +127,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeProcessContext(
     _Inout_ PVOID Object,
-    _In_opt_ PVOID Parameter 
+    _In_opt_ PVOID Parameter
     )
 {
     NTSTATUS status;
@@ -296,7 +296,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 NTSTATUS KSIAPI KphpInitializeThreadContext(
     _Inout_ PVOID Object,
-    _In_opt_ PVOID Parameter 
+    _In_opt_ PVOID Parameter
     )
 {
     PKPH_THREAD_CONTEXT thread;
@@ -461,7 +461,7 @@ Exit:
  *
  * \param[in] Object The CID table entry to clean up.
  * \param[in] Parameter Unused
- * 
+ *
  * \return FALSE to continue enumerating.
  */
 _Function_class_(CID_ENUMERATE_CALLBACK_EX)
@@ -703,7 +703,7 @@ PVOID KphpUntrackContext(
 
     //
     // We do not release the in-table reference here. The caller is given
-    // ownership over the reference, they are responsible for releasing it. 
+    // ownership over the reference, they are responsible for releasing it.
     //
     CidAssignObject(entry, NULL);
 
@@ -864,7 +864,7 @@ NTSTATUS KphCidPopulate(
     // gives us a guarantee that a new process/thread can't be fully created or
     // tracked before we get here. However, this is still the possibility of
     // a TOCTOU for an exiting process/thread. We need to take care here during
-    // initialization. If the process/thread is already exited we should not 
+    // initialization. If the process/thread is already exited we should not
     // track it.
     //
 
@@ -880,8 +880,8 @@ NTSTATUS KphCidPopulate(
         {
             //
             // Idle Process.
-            // For now we aren't going to track it. There are "valid" watchdog 
-            // threads in the idle process, but we can't look up their thread 
+            // For now we aren't going to track it. There are "valid" watchdog
+            // threads in the idle process, but we can't look up their thread
             // objects in a documented way. For simplicity, for now, we opt
             // not to track it.
             //
@@ -1082,7 +1082,7 @@ PKPH_PROCESS_CONTEXT KphGetProcessContext(
     )
 {
     PAGED_CODE();
-    
+
     return KphpLookupContext(ProcessId, KphProcessContextType);
 }
 
@@ -1097,7 +1097,7 @@ PKPH_PROCESS_CONTEXT KphGetProcessContext(
 _IRQL_requires_max_(APC_LEVEL)
 _Must_inspect_result_
 PKPH_THREAD_CONTEXT KphGetThreadContext(
-    _In_ HANDLE ThreadId 
+    _In_ HANDLE ThreadId
     )
 {
     PAGED_CODE();

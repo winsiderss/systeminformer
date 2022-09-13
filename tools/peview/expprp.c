@@ -186,7 +186,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                     if (forwardName->Buffer[0] == L'?')
                     {
                         PPH_STRING undecoratedName;
-    
+
                         if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, forwardName->Buffer))
                             PhMoveReference(&forwardName, undecoratedName);
                     }
@@ -211,7 +211,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                     if (exportName->Buffer[0] == L'?')
                     {
                         PPH_STRING undecoratedName;
-    
+
                         if (undecoratedName = PhUndecorateSymbolName(PvSymbolProvider, exportName->Buffer))
                             PhMoveReference(&exportName, undecoratedName);
                     }
@@ -224,7 +224,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
                     {
                         PPH_STRING exportSymbol = NULL;
                         PPH_STRING exportSymbolName = NULL;
-    
+
                         // Try find the export name using symbols.
                         if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                         {
@@ -787,7 +787,7 @@ BOOLEAN NTAPI PvExportTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_PV_SEARCH_SHOWMENU, 0, (LPARAM)contextMenu);
         }
         return TRUE;
-    case TreeNewHeaderRightClick: 
+    case TreeNewHeaderRightClick:
         {
             PH_TN_COLUMN_MENU_DATA data;
 

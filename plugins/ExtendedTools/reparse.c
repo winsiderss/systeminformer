@@ -1072,7 +1072,7 @@ PPH_LIST FindVolumeFilesWithSecurityId(
 
                     if (fileLayoutNameEntry->NextNameOffset == 0)
                         break;
-                
+
                     fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutNameEntry, fileLayoutNameEntry->NextNameOffset);
                 }
             }
@@ -1147,10 +1147,10 @@ NTSTATUS EnumerateVolumeDirectoryObjects(
 
     RtlInitUnicodeString(&name, L"\\Device");
     InitializeObjectAttributes(
-        &oa, 
-        &name, 
-        0, 
-        NULL, 
+        &oa,
+        &name,
+        0,
+        NULL,
         NULL
         );
 
@@ -1168,8 +1168,8 @@ NTSTATUS EnumerateVolumeDirectoryObjects(
         }
 
         PhEnumDirectoryObjects(
-            directoryHandle, 
-            EnumDirectoryObjectsCallback, 
+            directoryHandle,
+            EnumDirectoryObjectsCallback,
             Context
             );
 
@@ -1530,7 +1530,7 @@ INT_PTR CALLBACK ReparseDlgProc(
                                                             (LPARAM)fileNames
                                                             );
                                                     }
-                                                    else    
+                                                    else
                                                     {
                                                         PhShowStatus(hwndDlg, L"Unable to locate files with the SecurityId.", STATUS_NOT_FOUND, 0);
                                                     }

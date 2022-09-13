@@ -144,7 +144,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleTracing, // q: PROCESS_HANDLE_TRACING_QUERY; s: size 0 disables, otherwise enables
     ProcessIoPriority, // qs: IO_PRIORITY_HINT
     ProcessExecuteFlags, // qs: ULONG
-    ProcessTlsInformation, // PROCESS_TLS_INFORMATION // ProcessResourceManagement 
+    ProcessTlsInformation, // PROCESS_TLS_INFORMATION // ProcessResourceManagement
     ProcessCookie, // q: ULONG
     ProcessImageInformation, // q: SECTION_IMAGE_INFORMATION
     ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
@@ -243,7 +243,7 @@ typedef enum _THREADINFOCLASS
     ThreadAmILastThread, // q: ULONG
     ThreadIdealProcessor, // s: ULONG
     ThreadPriorityBoost, // qs: ULONG
-    ThreadSetTlsArrayAddress, // s: ULONG_PTR 
+    ThreadSetTlsArrayAddress, // s: ULONG_PTR
     ThreadIsIoPending, // q: ULONG
     ThreadHideFromDebugger, // q: BOOLEAN; s: void
     ThreadBreakOnTermination, // qs: ULONG
@@ -396,7 +396,7 @@ typedef struct _POOLED_USAGE_AND_LIMITS
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_BITS 0x00000003
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_FLAGS ((ULONG_PTR)((1UL << PROCESS_EXCEPTION_PORT_ALL_STATE_BITS) - 1))
 
-typedef struct _PROCESS_EXCEPTION_PORT 
+typedef struct _PROCESS_EXCEPTION_PORT
 {
     _In_ HANDLE ExceptionPortHandle; // Handle to the exception port. No particular access required.
     _Inout_ ULONG StateFlags; // Miscellaneous state flags to be cached along with the exception port in the kernel.
@@ -940,7 +940,7 @@ typedef struct _PROCESS_UPTIME_INFORMATION
         ULONG HangCount : 4;
         ULONG GhostCount : 4;
         ULONG Crashed : 1;
-        ULONG Terminated : 1;       
+        ULONG Terminated : 1;
     };
 } PROCESS_UPTIME_INFORMATION, *PPROCESS_UPTIME_INFORMATION;
 
@@ -1189,7 +1189,7 @@ typedef struct _RTL_WORK_ON_BEHALF_TICKET_EX
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 // private
-typedef enum _SUBSYSTEM_INFORMATION_TYPE 
+typedef enum _SUBSYSTEM_INFORMATION_TYPE
 {
     SubsystemInformationTypeWin32,
     SubsystemInformationTypeWSL,

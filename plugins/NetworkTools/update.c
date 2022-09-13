@@ -206,7 +206,7 @@ PPH_STRING QueryFwLinkUrl(
 
     if (!PhHttpSocketEndRequest(httpContext))
         goto CleanupExit;
-    
+
     //redirectUrl = PhCreateString(L"https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz");
     redirectUrl = PhHttpSocketQueryHeaderString(httpContext, L"Location"); // WINHTTP_QUERY_LOCATION
 
@@ -214,7 +214,7 @@ CleanupExit:
 
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
-    
+
     PhClearReference(&versionString);
     PhClearReference(&userAgentString);
 

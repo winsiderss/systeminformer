@@ -39,7 +39,7 @@ static HRESULT (WINAPI* AppContainerDeriveSidFromMoniker_I)( // DeriveAppContain
 
 // Note: LookupAppContainerDisplayName (userenv.dll, ordinal 211) has the same prototype but returns 'PackageName/ContainerName'.
 static HRESULT (WINAPI* AppContainerLookupMoniker_I)(
-    _In_ PSID AppContainerSid, 
+    _In_ PSID AppContainerSid,
     _Out_ PWSTR *PackageFamilyName
     ) = NULL;
 
@@ -404,13 +404,13 @@ DECLARE_INTERFACE_IID(IMrtResourceManager, IUnknown)
 };
 
 #define IMrtResourceManager_QueryInterface(This, riid, ppvObject) \
-    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject)) 
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
 #define IMrtResourceManager_AddRef(This) \
     ((This)->lpVtbl->AddRef(This))
 #define IMrtResourceManager_Release(This) \
-    ((This)->lpVtbl->Release(This)) 
+    ((This)->lpVtbl->Release(This))
 #define IMrtResourceManager_Initialize(This) \
-    ((This)->lpVtbl->Initialize(This)) 
+    ((This)->lpVtbl->Initialize(This))
 #define IMrtResourceManager_InitializeForCurrentApplication(This) \
     ((This)->lpVtbl->InitializeForCurrentApplication(This))
 #define IMrtResourceManager_InitializeForPackage(This, PackageName) \
@@ -494,35 +494,35 @@ DECLARE_INTERFACE_IID(IResourceMap, IUnknown)
 };
 
 #define IResourceMap_QueryInterface(This, riid, ppvObject) \
-    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject)) 
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
 #define IResourceMap_AddRef(This) \
     ((This)->lpVtbl->AddRef(This))
 #define IResourceMap_Release(This) \
-    ((This)->lpVtbl->Release(This)) 
+    ((This)->lpVtbl->Release(This))
 #define IResourceMap_GetUri(This, UriString) \
-    ((This)->lpVtbl->GetUri(This, UriString)) 
+    ((This)->lpVtbl->GetUri(This, UriString))
 #define IResourceMap_GetSubtree(This, Name, ResourceMap) \
-    ((This)->lpVtbl->GetSubtree(This, Name, ResourceMap)) 
+    ((This)->lpVtbl->GetSubtree(This, Name, ResourceMap))
 #define IResourceMap_GetString(This, Key, Value) \
-    ((This)->lpVtbl->GetString(This, Key, Value)) 
+    ((This)->lpVtbl->GetString(This, Key, Value))
 #define IResourceMap_GetStringForContext(This, Context, Key, Value) \
-    ((This)->lpVtbl->GetStringForContext(This, Context, Key, Value)) 
+    ((This)->lpVtbl->GetStringForContext(This, Context, Key, Value))
 #define IResourceMap_GetFilePath(This, Key, Value) \
-    ((This)->lpVtbl->GetFilePath(This, Key, Value)) 
+    ((This)->lpVtbl->GetFilePath(This, Key, Value))
 #define IResourceMap_GetFilePathForContext(This) \
-    ((This)->lpVtbl->GetFilePathForContext(This)) 
+    ((This)->lpVtbl->GetFilePathForContext(This))
 #define IResourceMap_GetNamedResourceCount(This, Count) \
-    ((This)->lpVtbl->GetNamedResourceCount(This, Count)) 
+    ((This)->lpVtbl->GetNamedResourceCount(This, Count))
 #define IResourceMap_GetNamedResourceUri(This, Index, Name) \
-    ((This)->lpVtbl->GetNamedResourceUri(This, Index, Name)) 
+    ((This)->lpVtbl->GetNamedResourceUri(This, Index, Name))
 #define IResourceMap_GetNamedResource(This, Name, rrid, ppvObject) \
     ((This)->lpVtbl->GetNamedResource(This, Name, rrid, ppvObject))
 #define IResourceMap_GetFullyQualifiedReference(This) \
-    ((This)->lpVtbl->GetFullyQualifiedReference(This)) 
+    ((This)->lpVtbl->GetFullyQualifiedReference(This))
 #define IResourceMap_GetFilePathByUri(This) \
-    ((This)->lpVtbl->GetFilePathByUri(This)) 
+    ((This)->lpVtbl->GetFilePathByUri(This))
 #define IResourceMap_GetFilePathForContextByUri(This) \
-    ((This)->lpVtbl->GetFilePathForContextByUri(This)) 
+    ((This)->lpVtbl->GetFilePathForContextByUri(This))
 
 // Note: Documented PKEY_AppUserModel_XYZ keys can be found in propkey.h
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_HostEnvironment, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 14);
@@ -633,13 +633,13 @@ DECLARE_INTERFACE_IID(IOSTaskCompletion, IUnknown)
 };
 
 #define IOSTaskCompletion_QueryInterface(This, riid, ppvObject) \
-    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject)) 
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
 #define IOSTaskCompletion_AddRef(This) \
     ((This)->lpVtbl->AddRef(This))
 #define IOSTaskCompletion_Release(This) \
-    ((This)->lpVtbl->Release(This)) 
+    ((This)->lpVtbl->Release(This))
 #define IOSTaskCompletion_BeginTask(This, ProcessId, Flags) \
-    ((This)->lpVtbl->BeginTask(This, ProcessId, Flags)) 
+    ((This)->lpVtbl->BeginTask(This, ProcessId, Flags))
 #define IOSTaskCompletion_BeginTaskByHandle(This, ProcessHandle, Flags) \
     ((This)->lpVtbl->BeginTaskByHandle(This, ProcessHandle, Flags))
 #define IOSTaskCompletion_EndTask(This) \
@@ -668,13 +668,13 @@ DECLARE_INTERFACE_IID(IOSTaskCompletion2, IOSTaskCompletion)
 };
 
 #define IOSTaskCompletion_QueryInterface(This, riid, ppvObject) \
-    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject)) 
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
 #define IOSTaskCompletion_AddRef(This) \
     ((This)->lpVtbl->AddRef(This))
 #define IOSTaskCompletion_Release(This) \
-    ((This)->lpVtbl->Release(This)) 
+    ((This)->lpVtbl->Release(This))
 #define IOSTaskCompletion_InternalGetTrustLevelStatic(This) \
-    ((This)->lpVtbl->InternalGetTrustLevelStatic(This)) 
+    ((This)->lpVtbl->InternalGetTrustLevelStatic(This))
 #define IOSTaskCompletion_InternalGetTrustLevelStatic2(This) \
     ((This)->lpVtbl->InternalGetTrustLevelStatic2(This))
 #define IOSTaskCompletion_EndAllTasksAndWait(This) \

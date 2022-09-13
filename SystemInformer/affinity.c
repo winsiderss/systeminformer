@@ -115,7 +115,7 @@ VOID PhShowThreadAffinityDialog(
     context.NumberOfThreads = NumberOfThreads;
     context.ThreadHandles = PhAllocateZero(NumberOfThreads * sizeof(HANDLE));
 
-    // Cache handles to each thread since the ThreadId gets 
+    // Cache handles to each thread since the ThreadId gets
     // reassigned to a different process after the thread exits. (dmex)
     for (ULONG i = 0; i < NumberOfThreads; i++)
     {

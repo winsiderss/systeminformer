@@ -117,7 +117,7 @@ BOOLEAN EtpDiskPageCallback(
                 PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
                 TreeNew_ThemeSupport(hwnd, TRUE);
             }
-            
+
             DiskTreeNewCreated = TRUE;
 
             DiskNodeHashtable = PhCreateHashtable(

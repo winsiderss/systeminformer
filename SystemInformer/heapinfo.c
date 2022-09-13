@@ -423,7 +423,7 @@ VOID PhpEnumerateProcessHeaps(
     }
     else if (WindowsVersion >= WINDOWS_10)
     {
-        // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+        // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
         status = PhOpenProcess(
             &processHandle,
             PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION,
@@ -752,7 +752,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 DeleteFont(context->BoldFont);
                 context->BoldFont = NULL;
             }
- 
+
             if (context->DebugBuffer)
             {
                 PhFree(context->DebugBuffer);

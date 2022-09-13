@@ -288,7 +288,7 @@ INT WINAPI wWinMain(
                 L"System Informer's access to the kernel driver is restricted.\r\n"
                 L"\r\n"
                 L"%s",
-                infoString->Buffer 
+                infoString->Buffer
                 );
 
             PhDereferenceObject(infoString);
@@ -853,7 +853,7 @@ BOOLEAN PhInitializeExceptionPolicy(
 {
 #ifndef DEBUG
     ULONG errorMode;
-    
+
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
         errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
@@ -1040,7 +1040,7 @@ BOOLEAN PhInitializeMitigationSignaturePolicy(
 #ifndef DEBUG
     BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
     // Starting with Win10 20H1 processes with uiAccess=true override the ProcessExtensionPointDisablePolicy
-    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled 
+    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled
     // the MicrosoftSignedOnly policy causing an infinite loop of APC messages and hook DLL loading/unloading
     // inside user32!_ClientLoadLibrary while calling the GetMessageW API for the window message loop.
     // ...
@@ -1219,7 +1219,7 @@ NTSTATUS PhpReadSignature(
 }
 
 VOID PhpShowKphError(
-    _In_ PWSTR Message, 
+    _In_ PWSTR Message,
     _In_opt_ NTSTATUS Status
     )
 {
@@ -1255,7 +1255,7 @@ VOID PhpShowKphError(
         else
         {
             PhShowError2(
-                NULL, 
+                NULL,
                 Message,
                 L"%s",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."

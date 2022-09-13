@@ -338,7 +338,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
 
                                 GraphState[i].Valid = TRUE;
                             }
-                            
+
                             if (EtGraphShowText)
                             {
                                 HDC hdc;

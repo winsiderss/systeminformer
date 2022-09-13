@@ -133,7 +133,7 @@ PKPH_THREAD_CONTEXT KphpPerformThreadTracking(
 
 /**
  * \brief Informs any clients of thread notify routine invocations.
- * 
+ *
  * \param[in] Thread The thread being created.
  * \param[in] ProcessId Process ID of the process where the thread is being
  * created.
@@ -147,7 +147,7 @@ VOID KphpCreateThreadNotifyInformer(
     _In_ PKPH_THREAD_CONTEXT Thread,
     _In_ HANDLE ProcessId,
     _In_ HANDLE ThreadId,
-    _In_ KPH_THREAD_NOTIFY_TYPE Type 
+    _In_ KPH_THREAD_NOTIFY_TYPE Type
     )
 {
     PKPH_MESSAGE msg;
@@ -157,7 +157,7 @@ VOID KphpCreateThreadNotifyInformer(
     msg = NULL;
 
     if (Type == KphThreadNotifyCreate)
-    { 
+    {
         if (!KphInformerSettings.ThreadCreate)
         {
             goto Exit;
@@ -236,7 +236,7 @@ Exit:
 
 /**
  * \brief Thread execution notify routine.
- * 
+ *
  * \param[in] ProcessId Process ID of the process where the thread is beginning
  * execution.
  * \param[in] ThreadId Thread ID of the thread beginning execution.
@@ -271,8 +271,8 @@ VOID KphpExecuteThreadNotifyRoutine(
 }
 
 /**
- * \brief Thread create notify routine. 
- * 
+ * \brief Thread create notify routine.
+ *
  * \param[in] ProcessId Process ID of the process where the thread is being
  * created.
  * \param[in] ThreadID Thread ID of the thread being created.

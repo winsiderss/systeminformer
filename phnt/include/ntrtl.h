@@ -3011,13 +3011,13 @@ RtlFreeUserStack(
 
 // Extended thread context
 
-typedef struct _CONTEXT_CHUNK 
+typedef struct _CONTEXT_CHUNK
 {
     LONG Offset; // Offset may be negative.
     ULONG Length;
 } CONTEXT_CHUNK, *PCONTEXT_CHUNK;
 
-typedef struct _CONTEXT_EX 
+typedef struct _CONTEXT_EX
 {
     CONTEXT_CHUNK All;
     CONTEXT_CHUNK Legacy;
@@ -3364,8 +3364,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGuardCheckLongJumpTarget(
-    _In_ PVOID PcValue, 
-    _In_ BOOL IsFastFail, 
+    _In_ PVOID PcValue,
+    _In_ BOOL IsFastFail,
     _Out_ PBOOL IsLongJumpTarget
     );
 
@@ -4365,7 +4365,7 @@ RtlWalkHeap(
 #define HeapCompatibilityInformation 0x0 // q; s: ULONG
 #define HeapEnableTerminationOnCorruption 0x1 // q; s: NULL
 #define HeapExtendedInformation 0x2 // q; s: HEAP_EXTENDED_INFORMATION
-#define HeapOptimizeResources 0x3 // q; s: HEAP_OPTIMIZE_RESOURCES_INFORMATION 
+#define HeapOptimizeResources 0x3 // q; s: HEAP_OPTIMIZE_RESOURCES_INFORMATION
 #define HeapTaggingInformation 0x4
 #define HeapStackDatabase 0x5
 #define HeapMemoryLimit 0x6 // 19H2
@@ -7759,7 +7759,7 @@ typedef struct _RTL_UNLOAD_EVENT_TRACE
     ULONG Version[2];
 } RTL_UNLOAD_EVENT_TRACE, *PRTL_UNLOAD_EVENT_TRACE;
 
-typedef struct _RTL_UNLOAD_EVENT_TRACE32 
+typedef struct _RTL_UNLOAD_EVENT_TRACE32
 {
     ULONG BaseAddress;
     ULONG SizeOfImage;
@@ -8004,7 +8004,7 @@ RtlSetImageMitigationPolicy(
 
 #endif
 
-// session 
+// session
 
 // rev
 NTSYSAPI
@@ -8040,8 +8040,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetTokenNamedObjectPath(
-    _In_ HANDLE Token, 
-    _In_opt_ PSID Sid, 
+    _In_ HANDLE Token,
+    _In_opt_ PSID Sid,
     _Out_ PUNICODE_STRING ObjectPath // RtlFreeUnicodeString
     );
 #endif
@@ -8065,7 +8065,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetAppContainerParent(
-    _In_ PSID AppContainerSid, 
+    _In_ PSID AppContainerSid,
     _Out_ PSID* AppContainerSidParent // RtlFreeSid
     );
 #endif
@@ -8235,7 +8235,7 @@ RtlFlsFree(
 #if (PHNT_VERSION >= PHNT_20H1)
 NTSYSAPI
 NTSTATUS
-WINAPI 
+WINAPI
 RtlFlsGetValue(
     _In_ ULONG FlsIndex,
     _Out_ PVOID* FlsData
@@ -8250,7 +8250,7 @@ RtlFlsSetValue(
     );
 #endif
 
-typedef enum _STATE_LOCATION_TYPE 
+typedef enum _STATE_LOCATION_TYPE
 {
     LocationTypeRegistry,
     LocationTypeFileSystem,
@@ -8373,7 +8373,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAppxIsFileOwnedByTrustedInstaller(
-    _In_ HANDLE FileHandle, 
+    _In_ HANDLE FileHandle,
     _Out_ PBOOLEAN IsFileOwnedByTrustedInstaller
     );
 #endif
@@ -8580,7 +8580,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCheckBootStatusIntegrity(
-    _In_ HANDLE FileHandle, 
+    _In_ HANDLE FileHandle,
     _Out_ PBOOLEAN Verified
     );
 

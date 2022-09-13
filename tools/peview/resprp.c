@@ -277,7 +277,7 @@ VOID PvpPeResourceSaveToFile(
                     }
                     __except (EXCEPTION_EXECUTE_HANDLER)
                     {
-                        status = GetExceptionCode();    
+                        status = GetExceptionCode();
                     }
 
                     NtClose(fileHandle);
@@ -662,9 +662,9 @@ VOID PhSaveSettingsResourcesList(
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
-    
+
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
-    
+
     //PhSetIntegerSetting(L"ImageResourcesTreeListFlags", Context->Flags);
     PhSetStringSetting2(L"ImageResourcesTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ImageResourcesTreeListSort", &sortSettings->sr);
@@ -1008,7 +1008,7 @@ BOOLEAN NTAPI PvResourcesTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_PV_SEARCH_SHOWMENU, 0, (LPARAM)contextMenu);
         }
         return TRUE;
-    case TreeNewHeaderRightClick: 
+    case TreeNewHeaderRightClick:
         {
             PH_TN_COLUMN_MENU_DATA data;
 

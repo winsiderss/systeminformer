@@ -151,8 +151,8 @@ VOID WeInitializeWindowTree(
     Context->SearchboxText = PhReferenceEmptyString();
 
     PhInitializeTreeNewFilterSupport(
-        &Context->FilterSupport, 
-        Context->TreeNewHandle, 
+        &Context->FilterSupport,
+        Context->TreeNewHandle,
         Context->NodeList
         );
 

@@ -228,7 +228,7 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
             PhLoadListViewColumnsFromSetting(L"ImageClrImportsListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);   
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             PvpEnumerateClrImports(context->ListViewHandle);

@@ -50,8 +50,8 @@ NTSTATUS FLTAPI KphpFltFilterUnloadCallback(
 
 /**
  * \brief Invoked when the mini-filter instance is asked to be removed.
- * 
- * \param[in] FltObjects Unused 
+ *
+ * \param[in] FltObjects Unused
  * \param[in] Flags Unused
  *
  * \return STATUS_SUCCESS
@@ -61,7 +61,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS FLTAPI KphpFltInstanceQueryTeardownCallback(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
-    ) 
+    )
 {
     PAGED_PASSIVE();
 
@@ -385,7 +385,7 @@ VOID KphFltUnregister(
 
 /**
  * \brief Begins informing on file activity from the mini-filter.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -101,7 +101,7 @@ VOID PvInitializeSettings(
 {
     NTSTATUS status;
     PPH_STRING appFileName;
-    PPH_STRING tempFileName;  
+    PPH_STRING tempFileName;
 
     PvAddDefaultSettings();
 

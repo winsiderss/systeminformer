@@ -692,7 +692,7 @@ PhCreateSearchControl(
     );
 
 PHAPPAPI
-HBITMAP 
+HBITMAP
 NTAPI
 PhLoadPngImageFromResource(
     _In_ PVOID DllBase,
@@ -713,7 +713,7 @@ PhLoadPngImageFromFile(
     );
 
 FORCEINLINE
-HFONT 
+HFONT
 PhCreateFont(
     _In_ PWSTR Name,
     _In_ ULONG Size,

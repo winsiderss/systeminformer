@@ -203,7 +203,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
                 &lxssDpkgCommandLine,
                 &lxssFileName->sr
                 ));
-    
+
             PhCreateProcessLxss(
                 lxssDistroName,
                 lxssCommandLine,

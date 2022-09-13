@@ -592,7 +592,7 @@ PPH_STRING PhSidToStringSid(
 }
 
 PPH_STRING PhGetTokenUserString(
-    _In_ HANDLE TokenHandle, 
+    _In_ HANDLE TokenHandle,
     _In_ BOOLEAN IncludeDomain
     )
 {
@@ -1009,7 +1009,7 @@ PPH_STRING PhGetCapabilityGuidName(
     return NULL;
 }
 
-// rev from BuildTrusteeWithSidW (dmex) 
+// rev from BuildTrusteeWithSidW (dmex)
 BOOLEAN PhBuildTrusteeWithSid(
     _Out_ PVOID Trustee,
     _In_opt_ PSID Sid

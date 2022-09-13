@@ -26,9 +26,9 @@ PAGED_FILE();
 #define CID_L1_COUNT (PAGE_SIZE / sizeof(CID_TABLE_ENTRY))
 #define CID_L2_COUNT ((1 << 24) / (CID_L0_COUNT * CID_L1_COUNT))
 
-#define CID_MAX_L0 CID_L0_COUNT 
-#define CID_MAX_L1 (CID_L1_COUNT * CID_L0_COUNT) 
-#define CID_MAX_L2 (CID_L2_COUNT * CID_L1_COUNT * CID_L0_COUNT) 
+#define CID_MAX_L0 CID_L0_COUNT
+#define CID_MAX_L1 (CID_L1_COUNT * CID_L0_COUNT)
+#define CID_MAX_L2 (CID_L2_COUNT * CID_L1_COUNT * CID_L0_COUNT)
 
 #define CID_MAX CID_MAX_L2
 C_ASSERT(CID_MAX > 0);
@@ -37,13 +37,13 @@ C_ASSERT(CID_MAX > 0);
 
 /**
  * \brief Acquires the CID table entry object lock.
- * 
+ *
  * \param[in] Entry The entry to acquire the object lock of.
  */
 _IRQL_requires_max_(APC_LEVEL)
 _Acquires_lock_(_Global_critical_region_)
 VOID CidAcquireObjectLock(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PCID_TABLE_ENTRY Entry 
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PCID_TABLE_ENTRY Entry
     )
 {
     PAGED_CODE();
@@ -76,13 +76,13 @@ VOID CidAcquireObjectLock(
 
 /**
  * \brief Releases the CID table entry object lock.
- * 
+ *
  * \param[in] Entry The entry to release the object lock of.
  */
 _IRQL_requires_max_(APC_LEVEL)
 _Releases_lock_(_Global_critical_region_)
 VOID CidReleaseObjectLock(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PCID_TABLE_ENTRY Entry 
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PCID_TABLE_ENTRY Entry
     )
 {
     ULONG_PTR object;
@@ -102,7 +102,7 @@ VOID CidReleaseObjectLock(
 
 /**
  * \brief Assigns an object to the table entry.
- * 
+ *
  * \param[in,out] Entry The entry to assign to.
  * \param[in] Object The object pointer to assign.
  */
@@ -195,7 +195,7 @@ NTSTATUS CidTableCreate(
 
 /**
  * \brief Deletes a CID table.
- * 
+ *
  * \param[in] Table The table to delete.
  */
 _IRQL_requires_max_(APC_LEVEL)

@@ -695,7 +695,7 @@ VOID PhMipCalculateWindowRectangle(
         {
             APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
 
-            // dmex: FindWindow + Shell_TrayWnd causes a lot of FPs by security software (malware uses this string to inject code into Explorer)... 
+            // dmex: FindWindow + Shell_TrayWnd causes a lot of FPs by security software (malware uses this string to inject code into Explorer)...
             // TODO: This comment block should be removed if the SHAppBarMessage function is more reliable.
             //HWND trayWindow;
             //RECT taskbarRect;
@@ -1111,7 +1111,7 @@ VOID PhMipShowOptionsMenu(
 
     // Menu
 
-    menu = PhpMipCreateMenu(); 
+    menu = PhpMipCreateMenu();
 
     // Opacity
 

@@ -616,9 +616,9 @@ static VOID PhpAddAccountsToComboBox(
                     PPH_STRING usernameString;
 
                     usernameString = PhConcatStrings(
-                        3, 
-                        userDomainName->Buffer, 
-                        L"\\", 
+                        3,
+                        userDomainName->Buffer,
+                        L"\\",
                         entry->usri0_name
                         );
 
@@ -894,7 +894,7 @@ static VOID PhpAddDesktopsToComboBox(
     for (i = 0; i < callback.DesktopList->Count; i++)
     {
         INT itemIndex = ComboBox_AddString(
-            ComboBoxHandle, 
+            ComboBoxHandle,
             PhGetString(callback.DesktopList->Items[i])
             );
 
@@ -1055,8 +1055,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 if (!PhIsNullOrEmptyString(runAsUserName))
                 {
                     runAsUserNameIndex = ComboBox_FindString(
-                        context->UserComboBoxWindowHandle, 
-                        0, 
+                        context->UserComboBoxWindowHandle,
+                        0,
                         PhGetString(runAsUserName)
                         );
                 }
@@ -1126,7 +1126,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         }
         break;
     case WM_COMMAND:
-        {    
+        {
             switch (GET_WM_COMMAND_CMD(wParam, lParam))
             {
             case CBN_DROPDOWN:
@@ -1370,7 +1370,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                     NtClose(tokenHandle);
                                 }
-                
+
                                 status = PhCreateProcessWin32Ex(
                                     NULL,
                                     PhGetString(program),
@@ -1390,9 +1390,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                     if (PhGetOwnTokenAttributes().Elevated)
                                     {
-                                        // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 
-                                        // where the process and token security descriptors are created without an ACE for the current user, 
-                                        // owned by the wrong user and with a High-IL when the process token is Medium-IL 
+                                        // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+                                        // where the process and token security descriptors are created without an ACE for the current user,
+                                        // owned by the wrong user and with a High-IL when the process token is Medium-IL
                                         // preventing the new process from accessing user/system resources above Low-IL. (dmex)
 
                                         if (processSecurityDescriptor)
@@ -1933,7 +1933,7 @@ static VOID WINAPI RunAsServiceMain(
     SetRunAsServiceStatus(SERVICE_RUNNING);
 
     portName = PhConcatStrings2(
-        L"\\BaseNamedObjects\\", 
+        L"\\BaseNamedObjects\\",
         RunAsServiceName->Buffer
         );
 
@@ -2270,7 +2270,7 @@ NTSTATUS PhpRunFileProgram(
             );
     }
     else if (Button_GetCheck(Context->RunAsCheckboxHandle) == BST_CHECKED ||
-        // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys 
+        // The explorer runas dialog executes programs as administrator when holding ctrl/shift keys
         // and clicking the OK button, so we'll implement the same functionality. (dmex)
         (!!(GetKeyState(VK_CONTROL) < 0 && !!(GetKeyState(VK_SHIFT) < 0))))
     {
@@ -2399,9 +2399,9 @@ NTSTATUS PhpRunFileProgram(
 
             if (PhGetOwnTokenAttributes().Elevated)
             {
-                // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS 
-                // where the process and token security descriptors are created without an ACE for the current user, 
-                // owned by the wrong user and with a High-IL when the process token is Medium-IL 
+                // Note: This is needed to workaround a severe bug with PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+                // where the process and token security descriptors are created without an ACE for the current user,
+                // owned by the wrong user and with a High-IL when the process token is Medium-IL
                 // preventing the new process from accessing user/system resources above Low-IL. (dmex)
 
                 if (processSecurityDescriptor)

@@ -686,8 +686,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         }
         break;
     case WM_DESTROY:
-        {   
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);  
+        {
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -849,11 +849,11 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         }
 
                         selectedItem = PhShowEMenu(
-                            menu, 
-                            hwndDlg, 
+                            menu,
+                            hwndDlg,
                             PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
-                            PH_ALIGN_LEFT | PH_ALIGN_TOP, 
-                            contextMenuEvent->Location.x, 
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            contextMenuEvent->Location.x,
                             contextMenuEvent->Location.y
                             );
 
@@ -1136,7 +1136,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         break;
     case WM_SIZE:
         {
-            PhLayoutManagerLayout(&context->LayoutManager);  
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -1783,7 +1783,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);  
+        PhLayoutManagerLayout(&context->LayoutManager);
         break;
     case WM_NOTIFY:
         {

@@ -79,7 +79,7 @@ VOID EtpQueryAdapterDeviceProperties(
         PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_DRIVERDATE, 1, PhGetStringOrEmpty(driverDate));
         PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_DRIVERVERSION, 1, PhGetStringOrEmpty(driverVersion));
         PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, 1, PhGetStringOrEmpty(locationInfo));
- 
+
         if (installedMemory != ULLONG_MAX)
         {
             PhSetListViewSubItem(ListViewHandle, GPUADAPTER_DETAILS_INDEX_TOTALMEMORY, 1, PhaFormatSize(installedMemory, ULONG_MAX)->Buffer);
@@ -97,7 +97,7 @@ VOID EtpQueryAdapterDeviceProperties(
 }
 
 VOID EtpQueryAdapterRegistryInfo(
-    _In_ D3DKMT_HANDLE AdapterHandle, 
+    _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
     D3DKMT_ADAPTERREGISTRYINFO adapterInfo;
@@ -116,7 +116,7 @@ VOID EtpQueryAdapterRegistryInfo(
 }
 
 VOID EtpQueryAdapterDriverModel(
-    _In_ D3DKMT_HANDLE AdapterHandle, 
+    _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
     D3DKMT_DRIVERVERSION d3dkmtDriverVersion;

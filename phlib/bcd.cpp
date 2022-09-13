@@ -468,7 +468,7 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
     {
         HANDLE objectFirmwareHandle;
 
-        // The user might have a third party boot loader where the Windows NT {bootmgr} 
+        // The user might have a third party boot loader where the Windows NT {bootmgr}
         // is NOT the default {fwbootmgr} entry. So make the reboot seemless/effortless by
         // synchronizing the {fwbootmgr} one-time option to the Windows NT {bootmgr}.
         // This is a QOL optimization so you don't have to manually select Windows

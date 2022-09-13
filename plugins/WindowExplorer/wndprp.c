@@ -920,7 +920,7 @@ VOID WepRefreshDpiContext(
     }
     else
     {
-	    dpiContext = GetWindowDpiAwarenessContext_I(Context->WindowHandle);
+        dpiContext = GetWindowDpiAwarenessContext_I(Context->WindowHandle);
 
         if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_UNAWARE))
         {

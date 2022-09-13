@@ -4,7 +4,7 @@
  * This file is part of System Informer.
  *
  * Authors:
- * 
+ *
  *     dmex
  *
  */

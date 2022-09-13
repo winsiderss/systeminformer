@@ -147,7 +147,7 @@ BOOLEAN PhMwpProcessesPageCallback(
                     {
                         PPH_COLUMN_SET_ENTRY entry = columnSetList->Items[index];
 
-                        menuItem = PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_VIEW_LOADCOLUMNSET, 
+                        menuItem = PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_VIEW_LOADCOLUMNSET,
                             PhAllocateCopy(entry->Name->Buffer, entry->Name->Length + sizeof(UNICODE_NULL)), NULL, NULL);
                         PhInsertEMenuItem(columnSetMenuItem, menuItem, ULONG_MAX);
                     }
@@ -531,7 +531,7 @@ VOID PhMwpInitializeProcessMenu(
 
         // If the user selected a fake process, disable all but a few menu items.
         if (
-            PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId) || 
+            PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId) ||
             Processes[0]->ProcessId == SYSTEM_IDLE_PROCESS_ID
             //Processes[0]->ProcessId == SYSTEM_PROCESS_ID // (dmex)
             )
@@ -562,7 +562,7 @@ VOID PhMwpInitializeProcessMenu(
             !PhDoesFileExist(&Processes[0]->FileName->sr)
             )
         {
-            PhEnableEMenuItem(Menu, ID_PROCESS_OPENFILELOCATION, FALSE);  
+            PhEnableEMenuItem(Menu, ID_PROCESS_OPENFILELOCATION, FALSE);
         }
 
         // Critical
