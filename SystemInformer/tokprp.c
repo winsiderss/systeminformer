@@ -1477,7 +1477,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 }
                                 else if (menuItem->Id > (ULONG)integrityLevelRID)
                                 {
-                                    menuItem->Flags |= PH_EMENU_DISABLED;
+                                    PhSetDisabledEMenuItem(menuItem);
                                     customLevelPosition = i + 1;
                                 }
                             }
@@ -1499,8 +1499,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     {
                         for (ULONG i = 0; i < menu->Items->Count; i++)
                         {
-                            PPH_EMENU_ITEM menuItem = menu->Items->Items[i];
-                            menuItem->Flags |= PH_EMENU_DISABLED;
+                            PhSetDisabledEMenuItem(menu->Items->Items[i]);
                         }
                     }
 
@@ -1508,9 +1507,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         menu,
                         hwndDlg,
                         PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
                         rect.left,
-                        rect.bottom
+                        rect.top
                         );
 
                     if (selectedItem && selectedItem->Id != integrityLevelRID)
@@ -1530,7 +1529,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
                                 )))
                             {
                                 static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
-
                                 UCHAR newSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG)];
                                 PSID newSid;
                                 TOKEN_MANDATORY_LABEL mandatoryLabel;
