@@ -1251,17 +1251,6 @@ BOOLEAN PhShellProcessHackerEx(
         {
             PhAppendStringBuilder2(&sb, L" -nosettings");
         }
-        else if (PhStartupParameters.SettingsFileName && (PhSettingsFileName || (AppFlags & PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS)))
-        {
-            PPH_STRINGREF fileName;
-
-            if (PhSettingsFileName)
-                fileName = &PhSettingsFileName->sr;
-            else
-                fileName = &PhStartupParameters.SettingsFileName->sr;
-
-            PhpAppendCommandLineArgument(&sb, L"settings", fileName);
-        }
 
         if (PhStartupParameters.NoKph)
             PhAppendStringBuilder2(&sb, L" -nokph");
