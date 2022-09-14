@@ -91,7 +91,7 @@ BOOLEAN PhInitializeComPolicy(
 
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
-PH_STARTUP_PARAMETERS PhStartupParameters;
+PH_STARTUP_PARAMETERS PhStartupParameters = { 0 };
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
@@ -1471,8 +1471,6 @@ VOID PhpInitializeSettings(
     VOID
     )
 {
-    NTSTATUS status;
-
     PhSettingsInitialization();
     PhAddDefaultSettings();
     PhUpdateCachedSettings();
@@ -1490,11 +1488,11 @@ VOID PhpInitializeSettings(
         // 3. The default location.
 
         // 1. File specified in command line
-        if (PhStartupParameters.SettingsFileName)
-        {
-            // Get an absolute path now.
-            PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
-        }
+        //if (PhStartupParameters.SettingsFileName)
+        //{
+        //    // Get an absolute path now.
+        //    PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
+        //}
 
         // 2. File in program directory
         if (PhIsNullOrEmptyString(PhSettingsFileName))
@@ -1526,6 +1524,8 @@ VOID PhpInitializeSettings(
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
         {
+            NTSTATUS status;
+
             status = PhLoadSettings(&PhSettingsFileName->sr);
             PhUpdateCachedSettings();
 
@@ -1594,7 +1594,6 @@ VOID PhpInitializeSettings(
 typedef enum _PH_COMMAND_ARG
 {
     PH_ARG_NONE,
-    PH_ARG_SETTINGS,
     PH_ARG_NOSETTINGS,
     PH_ARG_SHOWVISIBLE,
     PH_ARG_SHOWHIDDEN,
@@ -1633,9 +1632,6 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     {
         switch (Option->Id)
         {
-        case PH_ARG_SETTINGS:
-            PhSwapReference(&PhStartupParameters.SettingsFileName, Value);
-            break;
         case PH_ARG_NOSETTINGS:
             PhStartupParameters.NoSettings = TRUE;
             break;
@@ -1766,7 +1762,6 @@ VOID PhpProcessStartupParameters(
 {
     PH_COMMAND_LINE_OPTION options[] =
     {
-        { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
         { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },
         { PH_ARG_SHOWVISIBLE, L"v", NoArgumentType },
         { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType },
@@ -1794,9 +1789,7 @@ VOID PhpProcessStartupParameters(
     };
     PH_STRINGREF commandLine;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
-
-    memset(&PhStartupParameters, 0, sizeof(PH_STARTUP_PARAMETERS));
+    PhGetProcessCommandLineStringRef(&commandLine);
 
     if (!PhParseCommandLine(
         &commandLine,
@@ -1825,7 +1818,6 @@ VOID PhpProcessStartupParameters(
             L"-s\n"
             L"-selectpid pid-to-select\n"
             L"-selecttab name-of-tab-to-select\n"
-            L"-settings filename\n"
             L"-sysinfo [section-name]\n"
             L"-uninstallkph\n"
             L"-v\n"
@@ -1916,7 +1908,7 @@ VOID PhpProcessStartupParameters(
             NULL,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
-            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS,
             0,
             NULL
             );

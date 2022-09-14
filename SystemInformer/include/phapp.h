@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2022
+ *
+ */
+
 #ifndef PHAPP_H
 #define PHAPP_H
 
@@ -51,7 +63,6 @@ typedef struct _PH_STARTUP_PARAMETERS
         ULONG Flags;
     };
 
-    PPH_STRING SettingsFileName;
     PPH_STRING RunAsServiceMode;
 
     HWND WindowHandle;
@@ -715,7 +726,7 @@ PhLoadPngImageFromFile(
 FORCEINLINE
 HFONT
 PhCreateFont(
-    _In_ PWSTR Name,
+    _In_opt_ PWSTR Name,
     _In_ ULONG Size,
     _In_ ULONG Weight,
     _In_ ULONG PitchAndFamily
