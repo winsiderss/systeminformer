@@ -68,10 +68,6 @@ BEGIN
     LTEXT           "Max Tracert Hops:",IDC_STATIC,105,25,60,8
     CONTROL         "Enable extended TCP statistics",IDC_ENABLE_EXTENDED_TCP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,115,10
-    LTEXT           "GeoIP database location:",IDC_STATIC,7,60,82,8
-    EDITTEXT        IDC_DATABASE,7,73,180,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse...",IDC_BROWSE,193,72,50,14
-    LTEXT           "If a relative path is specified, it is relative to System Informer's directory. Environment variables can be used. Changes will take place after System Informer is restarted.",IDC_STATIC,7,92,235,26
 END
 
 IDD_PING DIALOGEX 0, 0, 329, 151
