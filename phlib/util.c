@@ -3691,19 +3691,16 @@ NTSTATUS PhCreateProcessAsUser(
 
         if (useWithLogon)
         {
-            PPH_STRING commandLine;
-            PROCESS_INFORMATION processInfo;
-            ULONG newFlags;
+            PPH_STRING commandLine = NULL;
+            PROCESS_INFORMATION processInfo = { 0 };
+            ULONG newFlags = 0;
 
             if (Information->CommandLine) // duplicate because CreateProcess modifies the string
                 commandLine = PhCreateString(Information->CommandLine);
-            else
-                commandLine = NULL;
 
             if (!Information->Environment)
                 Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
 
-            newFlags = 0;
             PhMapFlags1(&newFlags, Flags, PhpCreateProcessMappings, sizeof(PhpCreateProcessMappings) / sizeof(PH_FLAG_MAPPING));
 
             if (CreateProcessWithLogonW(
