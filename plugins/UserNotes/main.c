@@ -2657,7 +2657,7 @@ VOID AddOrRemoveCollapseServicesOnStart(
     )
 {
     // This is for backwards compat with PhCsCollapseServicesOnStart (dmex)
-    // https://github.com/processhacker/processhacker/issues/519
+    // https://github.com/winsiderss/systeminformer/issues/519
 
     if (CollapseServicesOnStart)
     {
