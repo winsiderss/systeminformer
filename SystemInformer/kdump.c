@@ -374,6 +374,12 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                 {
                     PLIVE_DUMP_CONFIG dumpConfig;
 
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to create live kernel dump.", 0, ERROR_ELEVATION_REQUIRED);
+                        break;
+                    }
+
                     dumpConfig = PhAllocateZero(sizeof(LIVE_DUMP_CONFIG));
                     dumpConfig->CompressMemoryPages = Button_GetCheck(GetDlgItem(hwndDlg, IDC_COMPRESS)) == BST_CHECKED;
                     dumpConfig->IncludeUserSpaceMemory = Button_GetCheck(GetDlgItem(hwndDlg, IDC_USERMODE)) == BST_CHECKED;
