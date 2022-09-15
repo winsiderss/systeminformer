@@ -439,11 +439,14 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
                     PH_STRINGREF text;
                     SIZE nameSize;
                     SIZE textSize;
+                    LONG dpiValue;
 
-                    rect.left += PH_SCALE_DPI(15);
-                    rect.top += PH_SCALE_DPI(5);
-                    rect.right -= PH_SCALE_DPI(5);
-                    rect.bottom -= PH_SCALE_DPI(8);
+                    dpiValue = PhGetWindowDpi(hwnd);
+
+                    rect.left += PhGetDpi(15, dpiValue);
+                    rect.top += PhGetDpi(5, dpiValue);
+                    rect.right -= PhGetDpi(5, dpiValue);
+                    rect.bottom -= PhGetDpi(8, dpiValue);
 
                     // top
                     if (PhEnableThemeSupport)
@@ -547,6 +550,10 @@ VOID InitializePluginsTree(
     _Inout_ PPH_PLUGMAN_CONTEXT Context
     )
 {
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
     Context->NodeList = PhCreateList(20);
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPH_PLUGIN_TREE_ROOT_NODE),
@@ -555,13 +562,13 @@ VOID InitializePluginsTree(
         20
         );
 
-    Context->NormalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL);
-    Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL);
+    Context->NormalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL, dpiValue);
+    Context->TitleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, dpiValue);
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
     TreeNew_SetCallback(Context->TreeNewHandle, PluginsTreeNewCallback, Context);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PH_SCALE_DPI(48));
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(48, dpiValue));
 
     PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_NAME, TRUE, L"Plugin", 80, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
     //PhAddTreeNewColumnEx2(Context->TreeNewHandle, PH_PLUGIN_TREE_COLUMN_ITEM_AUTHOR, TRUE, L"Author", 80, PH_ALIGN_LEFT, 1, 0, 0);

@@ -127,11 +127,21 @@ VOID EtwDiskNetworkLayoutGraphs(
     HDWP deferHandle;
     RECT clientRect;
     RECT panelRect;
-    RECT margin = { PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13) };
-    RECT innerMargin = { PH_SCALE_DPI(10), PH_SCALE_DPI(20), PH_SCALE_DPI(10), PH_SCALE_DPI(10) };
-    LONG between = PH_SCALE_DPI(3);
+    RECT margin;
+    RECT innerMargin;
+    LONG between;
+    LONG dpiValue;
     ULONG graphWidth;
     ULONG graphHeight;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, dpiValue);
+
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, dpiValue);
+    innerMargin.top = PhGetDpi(20, dpiValue);
+
+    between = PhGetDpi(3, dpiValue);
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 
@@ -342,11 +352,14 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+                    LONG dpiValue;
+
+                    dpiValue = PhGetWindowDpi(hwndDlg);
 
                     if (header->hwndFrom == context->DiskGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
                         PhGraphStateGetDrawInfo(&context->DiskGraphState, getDrawInfo, context->Block->DiskReadHistory.Count);
 
                         if (!context->DiskGraphState.Valid)
@@ -422,7 +435,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                     else if (header->hwndFrom == context->NetworkGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
                         PhGraphStateGetDrawInfo(&context->NetworkGraphState, getDrawInfo, context->Block->NetworkSendHistory.Count);
 
                         if (!context->NetworkGraphState.Valid)

@@ -168,9 +168,27 @@ VOID InitializeTreeImages(
     )
 {
     HICON icon;
-    Context->TreeImageList = PhImageListCreate(22, 22, ILC_COLOR32, 1, 1);
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_FOLDER), PH_LOAD_ICON_SIZE_LARGE, 16, 16);
-    PhImageListAddIcon(Context->TreeImageList, icon);
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
+
+    Context->TreeImageList = ImageList_Create(
+        PhGetDpi(22, dpiValue),
+        PhGetDpi(22, dpiValue),
+        ILC_COLOR32,
+        1, 1
+        );
+
+    icon = PhLoadIcon(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDI_FOLDER),
+        PH_LOAD_ICON_SIZE_LARGE,
+        PhGetDpi(16, dpiValue),
+        PhGetDpi(16, dpiValue),
+        dpiValue
+        );
+    ImageList_AddIcon(Context->TreeImageList, icon);
+
     DestroyIcon(icon);
 }
 
@@ -179,47 +197,56 @@ VOID InitializeListImages(
     )
 {
     HICON icon;
+    LONG dpiValue;
 
-    Context->ListImageList = PhImageListCreate(22, 22, ILC_COLOR32, 10, 10);
+    dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
+    
+    Context->ListImageList = ImageList_Create(
+        PhGetDpi(22, dpiValue), 
+        PhGetDpi(22, dpiValue), 
+        ILC_COLOR32, 
+        10, 10
+        );
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_UNKNOWN), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_UNKNOWN), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MUTANT), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MUTANT), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DRIVER), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DRIVER), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SECTION), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SECTION), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_LINK), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_LINK), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEY), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEY), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_PORT), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_PORT), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SESSION), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SESSION), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_EVENT), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_EVENT), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DEVICE), PH_LOAD_ICON_SIZE_LARGE, 22, 22);
-    PhImageListAddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DEVICE), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
+    ImageList_AddIcon(Context->ListImageList, icon);
+
     DestroyIcon(icon);
 }
 

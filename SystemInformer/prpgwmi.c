@@ -1597,6 +1597,10 @@ VOID PhpInitializeWmiProviderTree(
     _Inout_ PPH_PROCESS_WMI_CONTEXT Context
     )
 {
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
     Context->NodeList = PhCreateList(10);
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PHP_PROCESS_WMI_TREENODE),
@@ -1616,7 +1620,7 @@ VOID PhpInitializeWmiProviderTree(
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, NoSortOrder);
 
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PH_SCALE_DPI(22));
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PhGetDpi(22, dpiValue));
 
     PhCmInitializeManager(&Context->Cm, Context->TreeNewHandle, PHMOTLC_MAXIMUM, PhpWmiProviderTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
@@ -1761,6 +1765,11 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                 PhDereferenceObject(context->SearchboxText);
 
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+             TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi (22, LOWORD(wParam)));
         }
         break;
     case WM_SHOWWINDOW:

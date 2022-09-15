@@ -151,11 +151,14 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+                    LONG dpiValue;
+
+                    dpiValue = PhGetWindowDpi (header->hwndFrom);
 
                     if (header->hwndFrom == performanceContext->CpuGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->CpuGraphState,
@@ -236,7 +239,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     else if (header->hwndFrom == performanceContext->PrivateGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0, dpiValue);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->PrivateGraphState,
@@ -290,7 +293,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     else if (header->hwndFrom == performanceContext->IoGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, dpiValue);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->IoGraphState,
@@ -461,11 +464,21 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
         {
             HDWP deferHandle;
             RECT clientRect;
-            RECT margin = { PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13), PH_SCALE_DPI(13) };
-            RECT innerMargin = { PH_SCALE_DPI(10), PH_SCALE_DPI(20), PH_SCALE_DPI(10), PH_SCALE_DPI(10) };
-            LONG between = PH_SCALE_DPI(3);
+            RECT margin;
+            RECT innerMargin;
+            LONG between;
             LONG width;
             LONG height;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
+            margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, dpiValue);
+
+            innerMargin.top = PhGetDpi(20, dpiValue);
+            innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, dpiValue);
+
+            between = PhGetDpi(3, dpiValue);
 
             performanceContext->CpuGraphState.Valid = FALSE;
             performanceContext->CpuGraphState.TooltipIndex = ULONG_MAX;

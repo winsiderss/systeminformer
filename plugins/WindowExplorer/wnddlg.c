@@ -487,6 +487,7 @@ VOID DrawWindowBorderForTargeting(
 {
     RECT rect;
     HDC hdc;
+    LONG dpiValue;
 
     GetWindowRect(hWnd, &rect);
     hdc = GetWindowDC(hWnd);
@@ -498,7 +499,9 @@ VOID DrawWindowBorderForTargeting(
         HPEN pen;
         HBRUSH brush;
 
-        penWidth = GetSystemMetrics(SM_CXBORDER) * 3;
+        dpiValue = PhGetWindowDpi(hWnd);
+        penWidth = PhGetSystemMetrics(SM_CXBORDER, dpiValue) * 3;
+
         oldDc = SaveDC(hdc);
 
         // Get an inversion effect.

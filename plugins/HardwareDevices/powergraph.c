@@ -232,10 +232,13 @@ VOID RaplDeviceLayoutGraphs(
 {
     RECT clientRect;
     RECT labelRect;
+    RECT margin;
     ULONG graphWidth;
     ULONG graphHeight;
     HDWP deferHandle;
     ULONG y;
+    LONG graphPadding;
+    LONG dpiValue;
 
     Context->ProcessorGraphState.Valid = FALSE;
     Context->ProcessorGraphState.TooltipIndex = ULONG_MAX;
@@ -246,109 +249,116 @@ VOID RaplDeviceLayoutGraphs(
     Context->TotalGraphState.Valid = FALSE;
     Context->TotalGraphState.TooltipIndex = ULONG_MAX;
 
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    margin = Context->GraphMargin;
+    PhGetSizeDpiValue(&margin, dpiValue, TRUE);
+
+    graphPadding = PhGetDpi(RAPL_GRAPH_PADDING, dpiValue);
+
     GetClientRect(Context->WindowHandle, &clientRect);
     GetClientRect(GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L), &labelRect);
-    graphWidth = clientRect.right - Context->GraphMargin.left - Context->GraphMargin.right;
-    graphHeight = (clientRect.bottom - Context->GraphMargin.top - Context->GraphMargin.bottom - labelRect.bottom * 4 - RAPL_GRAPH_PADDING * 5) / 4;
+    graphWidth = clientRect.right - margin.left - margin.right;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 4 - graphPadding * 5) / 4;
 
     deferHandle = BeginDeferWindowPos(8);
-    y = Context->GraphMargin.top;
+    y = margin.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L),
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + RAPL_GRAPH_PADDING;
+    y += labelRect.bottom + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->ProcessorGraphHandle,
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         graphWidth,
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + RAPL_GRAPH_PADDING;
+    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(Context->WindowHandle, IDC_CORE_L),
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + RAPL_GRAPH_PADDING;
+    y += labelRect.bottom + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->CoreGraphHandle,
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         graphWidth,
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + RAPL_GRAPH_PADDING;
+    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(Context->WindowHandle, IDC_DIMM_L),
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + RAPL_GRAPH_PADDING;
+    y += labelRect.bottom + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->DimmGraphHandle,
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         graphWidth,
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + RAPL_GRAPH_PADDING;
+    y += graphHeight + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(Context->WindowHandle, IDC_TOTAL_L),
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         0,
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + RAPL_GRAPH_PADDING;
+    y += labelRect.bottom + graphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         Context->TotalGraphHandle,
         NULL,
-        Context->GraphMargin.left,
+        margin.left,
         y,
         graphWidth,
-        clientRect.bottom - Context->GraphMargin.bottom - y,
+        clientRect.bottom - margin.bottom - y,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + RAPL_GRAPH_PADDING;
+    y += graphHeight + graphPadding;
 
     EndDeferWindowPos(deferHandle);
 }
@@ -390,9 +400,12 @@ VOID RaplDeviceNotifyProcessorGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
             PhGraphStateGetDrawInfo(&Context->ProcessorGraphState, getDrawInfo, Context->DeviceEntry->PackageBuffer.Count);
 
             if (!Context->ProcessorGraphState.Valid)
@@ -460,9 +473,12 @@ VOID RaplDeviceNotifyPackageGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, dpiValue);
             PhGraphStateGetDrawInfo(&Context->CoreGraphState, getDrawInfo, Context->DeviceEntry->CoreBuffer.Count);
 
             if (!Context->CoreGraphState.Valid)
@@ -528,9 +544,12 @@ VOID RaplDeviceNotifyDimmGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, dpiValue);
             PhGraphStateGetDrawInfo(&Context->DimmGraphState, getDrawInfo, Context->DeviceEntry->DimmBuffer.Count);
 
             if (!Context->DimmGraphState.Valid)
@@ -598,9 +617,12 @@ VOID RaplDeviceNotifyTotalGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
             PhGraphStateGetDrawInfo(&Context->TotalGraphState, getDrawInfo, Context->DeviceEntry->TotalBuffer.Count);
 
             if (!Context->TotalGraphState.Valid)
@@ -872,12 +894,15 @@ BOOLEAN RaplDeviceSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
+            LONG dpiValue;
 
             if (!drawInfo)
                 break;
 
+            dpiValue = PhGetWindowDpi(Section->GraphHandle);
+
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DeviceEntry->TotalBuffer.Count);
 
             if (!Section->GraphState.Valid)

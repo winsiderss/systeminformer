@@ -31,7 +31,6 @@ BOOLEAN PhInitializeProcessorInformation(
 
 PVOID PhInstanceHandle = NULL;
 PWSTR PhApplicationName = NULL;
-PHLIBAPI ULONG PhGlobalDpi = 96;
 PVOID PhHeapHandle = NULL;
 RTL_OSVERSIONINFOEXW PhOsVersion = { 0 };
 PHLIBAPI PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };

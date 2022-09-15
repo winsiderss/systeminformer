@@ -276,6 +276,10 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
     {
     case WM_INITDIALOG:
         {
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -304,8 +308,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
             }
 
-            ListBox_SetItemHeight(context->AvailableListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
-            ListBox_SetItemHeight(context->CurrentListHandle, 0, PH_SCALE_DPI(22)); // BitmapHeight
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, dpiValue)); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, dpiValue)); // BitmapHeight
 
             CustomizeLoadStatusBarItems(context);
 
@@ -331,6 +335,12 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
 
             if (context->FontHandle)
                 DeleteFont(context->FontHandle);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, LOWORD(wParam))); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, LOWORD(wParam))); // BitmapHeight
         }
         break;
     case WM_NCDESTROY:

@@ -141,10 +141,16 @@ INT_PTR CALLBACK UefiEditorDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             {
-                PH_RECTANGLE windowRectangle;
+                PH_RECTANGLE windowRectangle = {0};
+                RECT rect;
+                LONG dpiValue;
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
-                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE).Pair;
+
+                rect = PhRectangleToRect(windowRectangle);
+                dpiValue = PhGetMonitorDpi(&rect);
+
+                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
                 PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -155,7 +161,7 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                 windowRectangle.Top += 20;
 
                 PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
-                PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size);
+                PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
             }
 
             {

@@ -50,6 +50,7 @@ BOOLEAN FwTabPageCallback(
             ULONG treelistBorder;
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+			LONG dpiValue;
 
             thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
             treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhGetIntegerSetting(L"EnableThemeSupport")) ? WS_BORDER : 0;
@@ -79,8 +80,10 @@ BOOLEAN FwTabPageCallback(
             if (!hwnd)
                 return FALSE;
 
+            dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
             FwTreeNewCreated = TRUE;
-            EtFwIconWidth = GetSystemMetrics(SM_CXSMICON);
+            EtFwIconWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {

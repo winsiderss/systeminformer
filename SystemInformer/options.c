@@ -250,6 +250,28 @@ static PPH_OPTIONS_SECTION PhpTreeViewGetSelectedSection(
     return (PPH_OPTIONS_SECTION)item.lParam;
 }
 
+VOID PhSetimagelist(
+    _In_ HWND hwnd,
+    _Inout_ HIMAGELIST* himagelist,
+    _In_ BOOLEAN isTreeview
+    )
+{
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if(*himagelist)
+        PhImageListDestroy(*himagelist);
+
+    *himagelist = PhImageListCreate(2, PhGetDpi(22, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
+
+    if(isTreeview)
+        TreeView_SetImageList(hwnd, *himagelist, TVSIL_NORMAL);
+    else
+        ListView_SetImageList(hwnd, *himagelist, LVSIL_SMALL);
+
+}
+
 INT_PTR CALLBACK PhOptionsDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -261,16 +283,16 @@ INT_PTR CALLBACK PhOptionsDialogProc(
     {
     case WM_INITDIALOG:
         {
-            OptionsTreeImageList = PhImageListCreate(2, PH_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
             OptionsTreeControl = GetDlgItem(hwndDlg, IDC_SECTIONTREE);
             ContainerControl = GetDlgItem(hwndDlg, IDD_CONTAINER);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
+            PhSetimagelist(OptionsTreeControl, &OptionsTreeImageList, TRUE);
+
             //PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
             PhSetControlTheme(OptionsTreeControl, L"explorer");
             TreeView_SetExtendedStyle(OptionsTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
-            TreeView_SetImageList(OptionsTreeControl, OptionsTreeImageList, TVSIL_NORMAL);
             TreeView_SetBkColor(OptionsTreeControl, GetSysColor(COLOR_3DFACE));
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
@@ -347,6 +369,11 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             PhOptionsWindowHandle = NULL;
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhSetimagelist(OptionsTreeControl, &OptionsTreeImageList, TRUE);
+        }
+        break;
     case WM_SIZE:
         {
             PhOptionsOnSize();
@@ -374,7 +401,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     {
                         ProcessHacker_PrepareForEarlyShutdown();
 
-                        PhResetSettings();
+                        PhResetSettings(hwndDlg);
 
                         if (!PhIsNullOrEmptyString(PhSettingsFileName))
                             PhSaveSettings(&PhSettingsFileName->sr);
@@ -1633,7 +1660,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
             listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
-            GeneralListviewImageList = PhImageListCreate(1, PH_SCALE_DPI(22), ILC_MASK | ILC_COLOR, 1, 1);
+
+            PhSetimagelist(listviewHandle, &GeneralListviewImageList, FALSE);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHENGINE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -1643,7 +1671,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             PhSetListViewStyle(listviewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(listviewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
-            ListView_SetImageList(listviewHandle, GeneralListviewImageList, LVSIL_SMALL);
             PhSetControlTheme(listviewHandle, L"explorer");
             PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
             PhSetExtendedListView(listviewHandle);
@@ -1719,6 +1746,15 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             PhClearReference(&OldTaskMgrDebugger);
 
             PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HWND listviewHandle;
+
+            listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+
+            PhSetimagelist(listviewHandle, &GeneralListviewImageList, FALSE);
         }
         break;
     case WM_COMMAND:
@@ -2252,11 +2288,15 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                 {
                     PPH_SETTING setting = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING settingValue = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
+                    LONG dpiValue;
+
+                    dpiValue = PhGetWindowDpi(hwndDlg);
 
                     if (!PhSettingFromString(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
+                        dpiValue,
                         setting
                         ))
                     {
@@ -2264,6 +2304,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
+                            dpiValue,
                             setting
                             );
                     }

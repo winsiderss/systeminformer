@@ -69,12 +69,15 @@ VOID WeInvertWindowBorder(
 {
     RECT rect;
     HDC hdc;
+    LONG dpiValue;
 
     GetWindowRect(hWnd, &rect);
 
+    dpiValue = PhGetWindowDpi(hWnd);
+
     if (hdc = GetWindowDC(hWnd))
     {
-        ULONG penWidth = GetSystemMetrics(SM_CXBORDER) * 3;
+        ULONG penWidth = PhGetSystemMetrics(SM_CXBORDER, dpiValue) * 3;
         INT oldDc;
         HPEN pen;
         HBRUSH brush;

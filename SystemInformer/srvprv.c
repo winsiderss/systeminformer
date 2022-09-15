@@ -513,12 +513,15 @@ VOID PhpServiceQueryStage1(
 {
     PPH_SERVICE_ITEM serviceItem = Data->Header.ServiceItem;
     //SC_HANDLE serviceManagerHandle = Data->Header.ServiceManagerHandle;
+    LONG dpiValue;
 
     if (serviceItem->FileName)
     {
         if (!(serviceItem->Type & SERVICE_DRIVER)) // Skip icons for driver services (dmex)
         {
-            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName, FALSE);
+            dpiValue = PhGetSystemDpi();
+
+            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName, FALSE, dpiValue);
         }
 
         // Version info.

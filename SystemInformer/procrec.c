@@ -102,6 +102,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             BOOLEAN versionInfoInitialized;
             PPH_STRING processNameString;
             PPH_PROCESS_ITEM processItem;
+            LONG dpiValue;
 
             if (!PH_IS_FAKE_PROCESS_ID(context->Record->ProcessId))
             {
@@ -178,8 +179,10 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                 SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)largeIcon, 0);
             }
 
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             SendMessage(GetDlgItem(hwndDlg, IDC_OPENFILENAME), BM_SETIMAGE, IMAGE_ICON,
-                (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER)));
+                (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER), dpiValue));
 
             PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(versionInfo.FileDescription, L"N/A"));
             PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PhGetStringOrDefault(versionInfo.CompanyName, L"N/A"));

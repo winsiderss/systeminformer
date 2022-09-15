@@ -330,10 +330,16 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 PhaFormatUInt64(context->Results->Count, TRUE)->Buffer)->Buffer);
 
             {
-                PH_RECTANGLE windowRectangle;
+                PH_RECTANGLE windowRectangle = {0};
+                RECT rect;
+                LONG dpiValue;
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemResultsPosition");
-                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemResultsSize", TRUE).Pair;
+
+                rect = PhRectangleToRect(windowRectangle);
+                dpiValue = PhGetMonitorDpi(&rect);
+
+                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemResultsSize", TRUE, dpiValue).Pair;
                 PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
                 MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
@@ -344,7 +350,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                 windowRectangle.Top += 20;
 
                 PhSetIntegerPairSetting(L"MemResultsPosition", windowRectangle.Position);
-                PhSetScalableIntegerPairSetting2(L"MemResultsSize", windowRectangle.Size);
+                PhSetScalableIntegerPairSetting2(L"MemResultsSize", windowRectangle.Size, dpiValue);
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);

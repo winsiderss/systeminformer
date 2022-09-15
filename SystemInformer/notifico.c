@@ -1192,17 +1192,23 @@ VOID PhNfpBeginBitmap2(
     _Out_ HBITMAP *OldBitmap
     )
 {
+    HDC screenHdc;
+    LONG dpiValue;
+
+    dpiValue = PhGetTaskbarDpi();
+
+    *Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    *Height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+
     if (!Context->Initialized)
     {
-        HDC screenHdc;
-
         screenHdc = GetDC(NULL);
         Context->Hdc = CreateCompatibleDC(screenHdc);
 
         memset(&Context->Header, 0, sizeof(BITMAPINFOHEADER));
         Context->Header.biSize = sizeof(BITMAPINFOHEADER);
-        Context->Header.biWidth = PhSmallIconSize.X;
-        Context->Header.biHeight = PhSmallIconSize.Y;
+        Context->Header.biWidth = *Width;
+        Context->Header.biHeight = *Height;
         Context->Header.biPlanes = 1;
         Context->Header.biBitCount = 32;
         Context->Bitmap = CreateDIBSection(screenHdc, (BITMAPINFO *)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
@@ -1212,8 +1218,6 @@ VOID PhNfpBeginBitmap2(
         Context->Initialized = TRUE;
     }
 
-    *Width = PhSmallIconSize.X;
-    *Height = PhSmallIconSize.Y;
     *Bitmap = Context->Bitmap;
     if (Bits) *Bits = Context->Bits;
     *Hdc = Context->Hdc;

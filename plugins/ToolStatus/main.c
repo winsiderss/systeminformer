@@ -562,6 +562,7 @@ VOID DrawWindowBorderForTargeting(
 {
     RECT rect;
     HDC hdc;
+    LONG dpiValue;
 
     GetWindowRect(hWnd, &rect);
     hdc = GetWindowDC(hWnd);
@@ -573,7 +574,9 @@ VOID DrawWindowBorderForTargeting(
         HPEN pen;
         HBRUSH brush;
 
-        penWidth = GetSystemMetrics(SM_CXBORDER) * 3;
+        dpiValue = PhGetWindowDpi(hWnd);
+        penWidth = PhGetSystemMetrics(SM_CXBORDER, dpiValue) * 3;
+
         oldDc = SaveDC(hdc);
 
         // Get an inversion effect.
@@ -607,6 +610,9 @@ LRESULT CALLBACK MainWndSubclassProc(
     {
     case WM_DESTROY:
         SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)MainWindowHookProc);
+        break;
+    case WM_DPICHANGED:
+        ToolbarLoadSettings();
         break;
     case WM_COMMAND:
         {
@@ -715,8 +721,12 @@ LRESULT CALLBACK MainWndSubclassProc(
                         {
                             if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
                             {
+                                LONG dpiValue;
+
+                                dpiValue = PhGetWindowDpi(hWnd);
+
                                 if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
-                                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PH_SCALE_DPI(180), 22);
+                                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), 22);
 
                                 if (!IsWindowVisible(SearchboxHandle))
                                     ShowWindow(SearchboxHandle, SW_SHOW);

@@ -84,8 +84,6 @@ extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
 extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
 extern PH_PROVIDER_THREAD PhTertiaryProviderThread;
 
-#define PH_SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96) // phapppub
-
 // begin_phapppub
 PHAPPAPI
 VOID
@@ -129,11 +127,11 @@ PhUnregisterMessageLoopFilter(
 // end_phapppub
 
 VOID PhInitializeFont(
-    VOID
+    _In_ HWND hwnd
     );
 
 VOID PhInitializeMonospaceFont(
-    VOID
+    _In_ HWND hwnd
     );
 
 // plugin
@@ -729,11 +727,12 @@ PhCreateFont(
     _In_opt_ PWSTR Name,
     _In_ ULONG Size,
     _In_ ULONG Weight,
-    _In_ ULONG PitchAndFamily
+    _In_ ULONG PitchAndFamily,
+    _In_ LONG dpiValue
     )
 {
     return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, PhGlobalDpi, 72),
+        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
         0,
         0,
         0,
@@ -755,17 +754,18 @@ HFONT
 PhCreateCommonFont(
     _In_ LONG Size,
     _In_ INT Weight,
-    _In_opt_ HWND hwnd
+    _In_opt_ HWND hwnd,
+    _In_ LONG dpiValue
     )
 {
     HFONT fontHandle;
     LOGFONT logFont;
 
-    if (!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
         return NULL;
 
     fontHandle = CreateFont(
-        -PhMultiplyDivideSigned(Size, PhGlobalDpi, 72),
+        -PhMultiplyDivideSigned(Size, dpiValue, 72),
         0,
         0,
         0,

@@ -559,6 +559,33 @@ VOID PvAddTreeViewSections(
     PvTabWindowOnSize();
 }
 
+VOID PvpSetImagelistP(
+    _In_ HWND tabWindow
+    )
+{
+    HIMAGELIST hImageList;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(tabWindow);
+
+    hImageList = PhImageListCreate (
+        2,
+        PhGetDpi(24, dpiValue),
+        ILC_MASK | ILC_COLOR,
+        1,
+        1
+        );
+
+    if(PvTabTreeImageList)
+        PhImageListDestroy (PvTabTreeImageList);
+
+    if (hImageList)
+    {
+        PvTabTreeImageList = hImageList;
+        TreeView_SetImageList (PvTabTreeControl, hImageList, TVSIL_NORMAL);
+    }
+}
+
 INT_PTR CALLBACK PvTabWindowDialogProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -572,15 +599,15 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
         {
             PvTabTreeControl = GetDlgItem(hwndDlg, IDC_SECTIONTREE);
             PvTabContainerControl = GetDlgItem(hwndDlg, IDD_CONTAINER);
-            PvTabTreeImageList = PhImageListCreate(2, PV_SCALE_DPI(24), ILC_MASK | ILC_COLOR32, 1, 1);
 
             PhSetWindowText(hwndDlg, PhaFormatString(L"%s Properties", PhGetString(PvFileName))->Buffer);
 
             //PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
             PhSetControlTheme(PvTabTreeControl, L"explorer");
             TreeView_SetExtendedStyle(PvTabTreeControl, TVS_EX_DOUBLEBUFFER, TVS_EX_DOUBLEBUFFER);
-            TreeView_SetImageList(PvTabTreeControl, PvTabTreeImageList, TVSIL_NORMAL);
             TreeView_SetBkColor(PvTabTreeControl, GetSysColor(COLOR_3DFACE));
+
+            PvpSetImagelistP(PvTabTreeControl);
 
             PhInitializeLayoutManager(&PvTabWindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&PvTabWindowLayoutManager, PvTabTreeControl, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
@@ -673,6 +700,11 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                 PhImageListDestroy(PvTabTreeImageList);
 
             PostQuitMessage(0);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvpSetImagelistP(PvTabTreeControl);
         }
         break;
     case WM_SIZE:

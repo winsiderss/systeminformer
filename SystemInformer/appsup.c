@@ -1048,6 +1048,7 @@ BOOLEAN PhGetListViewContextMenuPoint(
     INT selectedIndex;
     RECT bounds;
     RECT clientRect;
+    LONG dpiValue;
 
     // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
@@ -1056,8 +1057,10 @@ BOOLEAN PhGetListViewContextMenuPoint(
     {
         if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
         {
-            Point->x = bounds.left + PhSmallIconSize.X / 2;
-            Point->y = bounds.top + PhSmallIconSize.Y / 2;
+            dpiValue = PhGetWindowDpi(ListViewHandle);
+
+            Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
+            Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
 
             GetClientRect(ListViewHandle, &clientRect);
 
@@ -2172,7 +2175,7 @@ PPH_STRING PhPcre2GetErrorMessage(
 }
 
 HBITMAP PhGetShieldBitmap(
-    VOID
+    _In_ LONG dpiValue
     )
 {
     static HBITMAP shieldBitmap = NULL;
@@ -2186,7 +2189,8 @@ HBITMAP PhGetShieldBitmap(
             MAKEINTRESOURCE(IDI_UACSHIELD),
             PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
             0,
-            0
+            0,
+            dpiValue
             );
 
         if (!shieldIcon)
@@ -2196,13 +2200,14 @@ HBITMAP PhGetShieldBitmap(
                 IDI_SHIELD,
                 PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
                 0,
-                0
+                0,
+                dpiValue
                 );
         }
 
         if (shieldIcon)
         {
-            shieldBitmap = PhIconToBitmap(shieldIcon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            shieldBitmap = PhIconToBitmap(shieldIcon, PhGetSystemMetrics(SM_CXSMICON, dpiValue), PhGetSystemMetrics(SM_CYSMICON, dpiValue));
             DestroyIcon(shieldIcon);
         }
     }
@@ -2217,10 +2222,17 @@ HICON PhGetApplicationIcon(
     static HICON smallIcon = NULL;
     static HICON largeIcon = NULL;
 
-    if (!smallIcon)
-        smallIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
-    if (!largeIcon)
-        largeIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
+    LONG dpiValue;
+
+    if (!smallIcon || !largeIcon)
+    {
+        dpiValue = PhGetSystemDpi();
+
+        if (!smallIcon)
+            smallIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
+        if (!largeIcon)
+            largeIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
+    }
 
     return SmallIcon ? smallIcon : largeIcon;
 }

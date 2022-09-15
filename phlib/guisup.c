@@ -23,8 +23,6 @@
 #include <shellapi.h>
 #include <uxtheme.h>
 
-#define SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96)
-
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -50,8 +48,6 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
-PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
-PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -66,8 +62,6 @@ VOID PhGuiSupportInitialization(
     VOID
     )
 {
-    HDC hdc;
-
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
         PhpWindowCallbackHashtableEqualFunction,
@@ -80,17 +74,6 @@ VOID PhGuiSupportInitialization(
         PhpWindowContextHashtableHashFunction,
         10
         );
-
-    PhSmallIconSize.X = GetSystemMetrics(SM_CXSMICON);
-    PhSmallIconSize.Y = GetSystemMetrics(SM_CYSMICON);
-    PhLargeIconSize.X = GetSystemMetrics(SM_CXICON);
-    PhLargeIconSize.Y = GetSystemMetrics(SM_CYICON);
-
-    if (hdc = GetDC(NULL))
-    {
-        PhGlobalDpi = GetDeviceCaps(hdc, LOGPIXELSY);
-        ReleaseDC(NULL, hdc);
-    }
 }
 
 VOID PhSetControlTheme(
@@ -112,10 +95,13 @@ INT PhAddListViewColumn(
     )
 {
     LVCOLUMN column;
+    LONG dpiValue;
+
+    dpiValue = GetDpiForWindow(ListViewHandle);
 
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = Width < 0 ? -Width : SCALE_DPI(Width);
+    column.cx = Width < 0 ? -Width : PhGetDpi(Width, dpiValue);
     column.pszText = Text;
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -674,12 +660,15 @@ HICON PhLoadIcon(
     _In_ PWSTR Name,
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
-    _In_opt_ ULONG Height
+    _In_opt_ ULONG Height,
+    _In_opt_ LONG dpiValue
     )
 {
     PHP_ICON_ENTRY entry;
     PPHP_ICON_ENTRY actualEntry;
     HICON icon = NULL;
+    INT width;
+    INT height;
 
     if (PhBeginInitOnce(&SharedIconCacheInitOnce))
     {
@@ -708,18 +697,15 @@ HICON PhLoadIcon(
 
     if (Flags & (PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_SIZE_LARGE))
     {
-        INT width;
-        INT height;
-
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhSmallIconSize.X;
-            height = PhSmallIconSize.Y;
+            width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+            height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
         }
         else
         {
-            width = PhLargeIconSize.X;
-            height = PhLargeIconSize.Y;
+            width = PhGetSystemMetrics(SM_CXICON, dpiValue);
+            height = PhGetSystemMetrics(SM_CYICON, dpiValue);
         }
 
         if (LoadIconWithScaleDown)
@@ -735,18 +721,15 @@ HICON PhLoadIcon(
 
     if (!icon && !(Flags & PH_LOAD_ICON_STRICT))
     {
-        INT width;
-        INT height;
-
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhSmallIconSize.X;
-            height = PhSmallIconSize.Y;
+            width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+            height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
         }
         else
         {
-            width = PhLargeIconSize.X;
-            height = PhLargeIconSize.Y;
+            width = PhGetSystemMetrics(SM_CXICON, dpiValue);
+            height = PhGetSystemMetrics(SM_CYICON, dpiValue);
         }
 
         icon = LoadImage(ImageBaseAddress, Name, IMAGE_ICON, width, height, 0);
@@ -785,12 +768,16 @@ VOID PhGetStockApplicationIcon(
     static HICON smallIcon = NULL;
     static HICON largeIcon = NULL;
 
+    LONG dpiValue;
+
     // This no longer uses SHGetFileInfo because it is *very* slow and causes many other DLLs to be
     // loaded, increasing memory usage. The worst thing about it, however, is that it is horribly
     // incompatible with multi-threading. The first time it is called, it tries to perform some
     // one-time initialization. It guards this with a lock, but when multiple threads try to call
     // the function at the same time, instead of waiting for initialization to finish it simply
     // fails the other threads.
+
+    dpiValue = PhGetSystemDpi();
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -819,9 +806,9 @@ VOID PhGetStockApplicationIcon(
 
         // Fallback icons
         if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0);
+            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0);
+            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
 
         PhEndInitOnce(&initOnce);
     }
@@ -1122,12 +1109,22 @@ VOID PhInitializeLayoutManager(
     _In_ HWND RootWindowHandle
     )
 {
+    RECT rect;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(RootWindowHandle);
+
+    GetClientRect(RootWindowHandle, &rect);
+
+    PhGetSizeDpiValue(&rect, dpiValue, FALSE);
+
     Manager->List = PhCreateList(4);
+
+    Manager->dpiValue = dpiValue;
     Manager->LayoutNumber = 0;
 
     Manager->RootItem.Handle = RootWindowHandle;
-    GetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect);
-    Manager->RootItem.OrigRect = Manager->RootItem.Rect;
+    Manager->RootItem.Rect = rect;
     Manager->RootItem.ParentItem = NULL;
     Manager->RootItem.LayoutParentItem = NULL;
     Manager->RootItem.LayoutNumber = 0;
@@ -1215,7 +1212,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     item->LayoutParentItem->NumberOfChildren++;
 
     GetWindowRect(Handle, &item->Rect);
-    MapWindowPoints(NULL, item->LayoutParentItem->Handle, (POINT *)&item->Rect, 2);
+    MapWindowPoints(HWND_DESKTOP, item->LayoutParentItem->Handle, (PPOINT)&item->Rect, 2);
 
     if (item->Anchor & PH_LAYOUT_TAB_CONTROL)
     {
@@ -1223,9 +1220,10 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
         TabCtrl_AdjustRect(Handle, FALSE, &item->Rect);
     }
 
-    item->Margin = Margin;
+    PhGetSizeDpiValue(&item->Rect, Manager->dpiValue, FALSE);
 
-    item->OrigRect = item->Rect;
+    item->Margin = Margin;
+    PhGetSizeDpiValue(&item->Margin, Manager->dpiValue, FALSE);
 
     PhAddItemList(Manager->List, item);
 
@@ -1237,7 +1235,9 @@ VOID PhpLayoutItemLayout(
     _Inout_ PPH_LAYOUT_ITEM Item
     )
 {
+    RECT margin;
     RECT rect;
+    ULONG diff;
     BOOLEAN hasDummyParent;
 
     if (Item->NumberOfChildren > 0 && !Item->DeferHandle)
@@ -1263,7 +1263,7 @@ VOID PhpLayoutItemLayout(
     }
 
     GetWindowRect(Item->Handle, &Item->Rect);
-    MapWindowPoints(NULL, Item->LayoutParentItem->Handle, (POINT *)&Item->Rect, 2);
+    MapWindowPoints(HWND_DESKTOP, Item->LayoutParentItem->Handle, (PPOINT)&Item->Rect, 2);
 
     if (Item->Anchor & PH_LAYOUT_TAB_CONTROL)
     {
@@ -1271,11 +1271,15 @@ VOID PhpLayoutItemLayout(
         TabCtrl_AdjustRect(Item->Handle, FALSE, &Item->Rect);
     }
 
+    PhGetSizeDpiValue(&Item->Rect, Manager->dpiValue, FALSE);
+
     if (!(Item->Anchor & PH_LAYOUT_DUMMY_MASK))
     {
+        margin = Item->Margin;
+        rect = Item->Rect;
+
         // Convert right/bottom into margins to make the calculations
         // easier.
-        rect = Item->Rect;
         PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
 
         if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
@@ -1287,12 +1291,12 @@ VOID PhpLayoutItemLayout(
         {
             if (Item->Anchor & PH_ANCHOR_LEFT)
             {
-                rect.left = (hasDummyParent ? Item->ParentItem->Rect.left : 0) + Item->Margin.left;
-                rect.right = Item->Margin.right;
+                rect.left = (hasDummyParent ? Item->ParentItem->Rect.left : 0) + margin.left;
+                rect.right = margin.right;
             }
             else
             {
-                ULONG diff = Item->Margin.right - rect.right;
+                diff = margin.right - rect.right;
 
                 rect.left -= diff;
                 rect.right += diff;
@@ -1309,12 +1313,12 @@ VOID PhpLayoutItemLayout(
             if (Item->Anchor & PH_ANCHOR_TOP)
             {
                 // tab control hack
-                rect.top = (hasDummyParent ? Item->ParentItem->Rect.top : 0) + Item->Margin.top;
-                rect.bottom = Item->Margin.bottom;
+                rect.top = (hasDummyParent ? Item->ParentItem->Rect.top : 0) + margin.top;
+                rect.bottom = margin.bottom;
             }
             else
             {
-                ULONG diff = Item->Margin.bottom - rect.bottom;
+                diff = margin.bottom - rect.bottom;
 
                 rect.top -= diff;
                 rect.bottom += diff;
@@ -1324,6 +1328,7 @@ VOID PhpLayoutItemLayout(
         // Convert the right/bottom back into co-ordinates.
         PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
         Item->Rect = rect;
+        PhGetSizeDpiValue(&rect, Manager->dpiValue, TRUE);
 
         if (!(Item->Anchor & PH_LAYOUT_IMMEDIATE_RESIZE))
         {
@@ -1354,22 +1359,28 @@ VOID PhLayoutManagerLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager
     )
 {
+    PPH_LAYOUT_ITEM item;
+    LONG dpiValue;
     ULONG i;
 
     Manager->LayoutNumber++;
 
+    dpiValue = PhGetWindowDpi(Manager->RootItem.Handle);
+    Manager->dpiValue = dpiValue;
+
     GetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect);
+    PhGetSizeDpiValue(&Manager->RootItem.Rect, dpiValue, FALSE);
 
     for (i = 0; i < Manager->List->Count; i++)
     {
-        PPH_LAYOUT_ITEM item = (PPH_LAYOUT_ITEM)Manager->List->Items[i];
+        item = (PPH_LAYOUT_ITEM)Manager->List->Items[i];
 
         PhpLayoutItemLayout(Manager, item);
     }
 
     for (i = 0; i < Manager->List->Count; i++)
     {
-        PPH_LAYOUT_ITEM item = (PPH_LAYOUT_ITEM)Manager->List->Items[i];
+        item = (PPH_LAYOUT_ITEM)Manager->List->Items[i];
 
         if (item->DeferHandle)
         {
@@ -2205,7 +2216,8 @@ BOOLEAN PhExtractIconEx(
     _In_ BOOLEAN NativeFileName,
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
-    _Out_opt_ HICON *IconSmall
+    _Out_opt_ HICON *IconSmall,
+    _In_ LONG dpiValue
     )
 {
     NTSTATUS status;
@@ -2290,8 +2302,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhLargeIconSize.X,
-                PhLargeIconSize.Y,
+                PhGetSystemMetrics(SM_CXICON, dpiValue),
+                PhGetSystemMetrics(SM_CYICON, dpiValue),
                 LR_DEFAULTCOLOR
                 );
         }
@@ -2302,8 +2314,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhSmallIconSize.X,
-                PhSmallIconSize.Y,
+                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
                 LR_DEFAULTCOLOR
                 );
         }

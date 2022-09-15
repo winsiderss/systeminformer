@@ -171,6 +171,22 @@ static VOID PhpRefreshProcessList(
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
+VOID PhSetImagelist(
+    _Inout_ PPH_CHOOSE_PROCESS_DIALOG_CONTEXT context
+    )
+{
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(context->ListViewHandle);
+
+    if(!context->ImageList)
+        context->ImageList = PhImageListCreate(PhGetSystemMetrics(SM_CXSMICON, dpiValue), PhGetSystemMetrics(SM_CYSMICON, dpiValue), ILC_COLOR32 | ILC_MASK, 0, 40);
+    else
+        ImageList_SetIconSize(context->ImageList, PhGetSystemMetrics(SM_CXSMICON, dpiValue), PhGetSystemMetrics(SM_CYSMICON, dpiValue));
+
+    ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
+}
+
 INT_PTR CALLBACK PhpChooseProcessDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -225,7 +241,6 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
             context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            context->ImageList = PhImageListCreate(PhSmallIconSize.X, PhSmallIconSize.Y, ILC_COLOR32 | ILC_MASK, 0, 40);
 
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
@@ -234,7 +249,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 160, L"User name");
             PhSetExtendedListView(lvHandle);
 
-            ListView_SetImageList(lvHandle, context->ImageList, LVSIL_SMALL);
+            PhSetImagelist(context);
 
             PhpRefreshProcessList(hwndDlg, context);
 
@@ -245,6 +260,11 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         {
             //PhImageListDestroy(context->ImageList);
             PhDeleteLayoutManager(&context->LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhSetImagelist(context);
         }
         break;
     case WM_COMMAND:

@@ -291,6 +291,12 @@ VOID EtpGpuIconUpdateCallback(
     HANDLE maxGpuProcessId;
     PPH_PROCESS_ITEM maxGpuProcessItem;
     PH_FORMAT format[8];
+    LONG dpiValue;
+
+    dpiValue = PhGetTaskbarDpi();
+
+    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -405,6 +411,12 @@ VOID EtpDiskIconUpdateCallback(
     HANDLE maxDiskProcessId;
     PPH_PROCESS_ITEM maxDiskProcessItem;
     PH_FORMAT format[6];
+    LONG dpiValue;
+
+    dpiValue = PhGetTaskbarDpi();
+
+    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -531,6 +543,12 @@ VOID EtpNetworkIconUpdateCallback(
     HANDLE maxNetworkProcessId;
     PPH_PROCESS_ITEM maxNetworkProcessItem;
     PH_FORMAT format[6];
+    LONG dpiValue;
+
+    dpiValue = PhGetTaskbarDpi();
+
+    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -729,7 +747,13 @@ VOID EtpDiskTextIconUpdateCallback(
     PPH_PROCESS_ITEM maxDiskProcessItem;
     PH_FORMAT format[6];
     PPH_STRING text;
+    LONG dpiValue;
     static ULONG64 maxValue = 100000 * 1024; // minimum scaling of 100 MB.
+
+    dpiValue = PhGetTaskbarDpi();
+
+    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -807,7 +831,13 @@ VOID EtpNetworkTextIconUpdateCallback(
     PPH_PROCESS_ITEM maxNetworkProcessItem;
     PH_FORMAT format[6];
     PPH_STRING text;
+    LONG dpiValue;
     static ULONG64 maxValue = 1024 * 1024; // minimum scaling of 1 MB.
+
+    dpiValue = PhGetTaskbarDpi();
+
+    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -864,9 +894,12 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallba
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
 
             if (ProcessesUpdatedCount != 3)
                 break;
@@ -946,9 +979,12 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarDiskHistoryGraphMessageCallb
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
 
             if (ProcessesUpdatedCount != 3)
                 break;
@@ -1067,9 +1103,12 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarNetworkHistoryGraphMessageCa
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"));
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
 
             if (ProcessesUpdatedCount != 3)
                 break;

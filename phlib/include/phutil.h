@@ -1,6 +1,8 @@
 #ifndef _PH_PHUTIL_H
 #define _PH_PHUTIL_H
 
+#include <shellscalingapi.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -141,6 +143,77 @@ NTAPI
 PhCenterWindow(
     _In_ HWND WindowHandle,
     _In_opt_ HWND ParentWindowHandle
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetDpi(
+    _In_ LONG Number,
+    _In_ LONG DpiValue
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetMonitorDpi(
+    _In_ LPCRECT rect
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetSystemDpi(
+    VOID
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetTaskbarDpi(
+    VOID
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetWindowDpi(
+    _In_ HWND hwnd
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetDpiValue(
+    _In_opt_ HWND hwnd,
+    _In_opt_ LPCRECT rect
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetSystemMetrics (
+    _In_ INT Index,
+    _In_opt_ LONG dpiValue
+    );
+
+PHLIBAPI
+BOOL
+NTAPI
+PhGetSystemParametersInfo (
+    _In_ INT Action,
+	_In_ UINT Param1,
+	_Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_opt_ LONG dpiValue
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhGetSizeDpiValue(
+    _Inout_ PRECT rect,
+    _In_ LONG dpiValue,
+    _In_ BOOLEAN isUnpack
     );
 
 // NLS

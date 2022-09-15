@@ -821,6 +821,23 @@ static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     return STATUS_SUCCESS;
 }
 
+VOID PhSetImagelistT(
+    _In_ HWND hwnd,
+    _Inout_ PTOKEN_PAGE_CONTEXT tokenPageContext
+)
+{
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if (!tokenPageContext->ListViewImageList)
+        tokenPageContext->ListViewImageList = PhImageListCreate(2, PhGetDpi(20, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
+    else
+        ImageList_SetIconSize(tokenPageContext->ListViewImageList, 2, PhGetDpi(20, dpiValue));
+
+    ListView_SetImageList(tokenPageContext->ListViewHandle, tokenPageContext->ListViewImageList, LVSIL_SMALL);
+}
+
 INT_PTR CALLBACK PhpTokenPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -848,7 +865,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
             HANDLE tokenHandle;
 
             tokenPageContext->ListViewHandle = GetDlgItem(hwndDlg, IDC_GROUPS);
-            tokenPageContext->ListViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1);
 
             PhSetListViewStyle(tokenPageContext->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(tokenPageContext->ListViewHandle, L"explorer");
@@ -864,10 +880,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES, L"Privileges");
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_GROUPS, L"Groups");
             PhAddListViewGroup(tokenPageContext->ListViewHandle, PH_PROCESS_TOKEN_CATEGORY_RESTRICTED, L"Restricting SIDs");
-            ListView_SetImageList(tokenPageContext->ListViewHandle, tokenPageContext->ListViewImageList, LVSIL_SMALL);
             PhLoadListViewColumnsFromSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
             PhLoadListViewGroupStatesFromSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
+
+            PhSetImagelistT(hwndDlg, tokenPageContext);
 
             PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
             PhSetDialogItemText(hwndDlg, IDC_USERSID, L"Unknown");
@@ -1013,6 +1030,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->RestrictedSids) PhFree(tokenPageContext->RestrictedSids);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhSetImagelistT(hwndDlg, tokenPageContext);
         }
         break;
     case WM_COMMAND:

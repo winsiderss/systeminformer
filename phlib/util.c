@@ -161,6 +161,285 @@ VOID PhCenterWindow(
     }
 }
 
+LONG PhGetDpi(
+    _In_ LONG Number,
+    _In_ LONG DpiValue
+    )
+{
+    return PhMultiplyDivideSigned (Number, DpiValue, USER_DEFAULT_SCREEN_DPI);
+}
+
+LONG PhGetMonitorDpi(
+    _In_ LPCRECT rect
+    )
+{
+    return PhGetDpiValue(NULL, rect);
+}
+
+LONG PhGetSystemDpi(
+    VOID
+    )
+{
+    return PhGetDpiValue(NULL, NULL);
+}
+
+LONG PhGetTaskbarDpi(
+    VOID
+    )
+{
+    APPBARDATA taskbar_rect = {0};
+
+    taskbar_rect.cbSize = sizeof (APPBARDATA);
+
+    if (SHAppBarMessage (ABM_GETTASKBARPOS, &taskbar_rect))
+        return PhGetMonitorDpi (&taskbar_rect.rc);
+
+    return PhGetDpiValue(NULL, NULL);
+}
+
+LONG PhGetWindowDpi(
+    _In_ HWND hwnd
+    )
+{
+    RECT rect;
+
+    if (!GetWindowRect (hwnd, &rect))
+        return PhGetDpiValue(hwnd, NULL);
+
+    return PhGetDpiValue(NULL, &rect);
+}
+
+LONG PhGetDpiValue(
+    _In_opt_ HWND hwnd,
+    _In_opt_ LPCRECT rect
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI *_GetDpiForMonitor)(
+        _In_ HMONITOR hmonitor,
+        _In_ MONITOR_DPI_TYPE dpiType,
+        _Out_ PUINT dpiX,
+        _Out_ PUINT dpiY
+        );  // win81+
+    static UINT (WINAPI *_GetDpiForWindow)(
+        _In_ HWND hwnd
+        );  // win10rs1+
+    static UINT (WINAPI *_GetDpiForSystem)(
+        VOID
+        );  // win10rs1+
+
+    HMONITOR hmonitor;
+    PVOID hshcore;
+    PVOID huser32;
+    HDC hdc;
+    LONG dpi_value;
+    UINT dpi_x;
+    UINT dpi_y;
+    HRESULT hr;
+
+    // initialize library calls
+    if (PhBeginInitOnce(&initOnce))
+    {
+        hshcore = PhLoadLibrary(L"shcore.dll");
+        huser32 = PhLoadLibrary(L"user32.dll");
+
+        if (hshcore)
+        {
+            // win81+
+            _GetDpiForMonitor = PhGetProcedureAddress(hshcore, "GetDpiForMonitor", 0);
+
+            //FreeLibrary(hshcore);
+        }
+
+        if (huser32)
+        {
+            // win10rs1+
+            _GetDpiForWindow = PhGetProcedureAddress(huser32, "GetDpiForWindow", 0);
+
+            // win10rs1+
+            _GetDpiForSystem = PhGetProcedureAddress(huser32, "GetDpiForSystem", 0);
+
+            //FreeLibrary(huser32);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (rect || hwnd)
+    {
+        // win10rs1+
+        if (_GetDpiForWindow)
+        {
+            if (hwnd)
+            {
+                dpi_x = _GetDpiForWindow(hwnd);
+
+                if (dpi_x)
+                    return dpi_x;
+            }
+        }
+
+        // win81+
+        if (_GetDpiForMonitor)
+        {
+            if (rect)
+            {
+                hmonitor = MonitorFromRect(rect, MONITOR_DEFAULTTONEAREST);
+            }
+            else
+            {
+                hmonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            }
+
+            hr = _GetDpiForMonitor(hmonitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y);
+
+            if (SUCCEEDED (hr))
+                return dpi_x;
+        }
+    }
+
+    // win10rs1+
+    if (_GetDpiForSystem)
+        return _GetDpiForSystem();
+
+    // win8 and lower fallback
+    hdc = GetDC(NULL);
+
+    if (hdc)
+    {
+        dpi_value = GetDeviceCaps(hdc, LOGPIXELSX);
+
+        ReleaseDC(NULL, hdc);
+
+        return dpi_value;
+    }
+
+    return USER_DEFAULT_SCREEN_DPI;
+}
+
+LONG PhGetSystemMetrics (
+    _In_ INT Index,
+    _In_opt_ LONG dpiValue
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static INT (WINAPI *_GetSystemMetricsForDpi)(
+        _In_ INT nIndex,
+        _In_ UINT dpi
+        );
+
+    PVOID huser32;
+
+    // initialize library calls
+    if (PhBeginInitOnce(&initOnce))
+    {
+        huser32 = PhLoadLibrary(L"user32.dll");
+
+        if (huser32)
+        {
+            // win10rs1+
+            _GetSystemMetricsForDpi = PhGetProcedureAddress(huser32, "GetSystemMetricsForDpi", 0);
+
+            //FreeLibrary(huser32);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!dpiValue || !_GetSystemMetricsForDpi)
+        return GetSystemMetrics(Index);
+
+    // win10rs1+
+    return _GetSystemMetricsForDpi(Index, dpiValue);
+}
+
+BOOL PhGetSystemParametersInfo (
+    _In_ INT Action,
+	_In_ UINT Param1,
+	_Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_opt_ LONG dpiValue
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *_SystemParametersInfoForDpi)(
+            _In_ UINT uiAction,
+            _In_ UINT uiParam,
+            _Pre_maybenull_ _Post_valid_ PVOID pvParam,
+            _In_ UINT fWinIni,
+            _In_ UINT dpi);
+
+    PVOID huser32;
+
+    // initialize library calls
+    if (PhBeginInitOnce(&initOnce))
+    {
+        huser32 = PhLoadLibrary(L"user32.dll");
+
+        if (huser32)
+        {
+            // win10rs1+
+            _SystemParametersInfoForDpi = PhGetProcedureAddress(huser32, "SystemParametersInfoForDpi", 0);
+
+            //FreeLibrary(huser32);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!dpiValue || !_SystemParametersInfoForDpi)
+        return SystemParametersInfo(Action, Param1, Param2, 0);
+
+    // win10rs1+
+    return _SystemParametersInfoForDpi(Action, Param1, Param2, 0, dpiValue);
+}
+
+VOID PhGetSizeDpiValue(
+    _Inout_ PRECT rect,
+    _In_ LONG dpiValue,
+    _In_ BOOLEAN isUnpack
+    )
+{
+    PH_RECTANGLE rectangle;
+    LONG numerator;
+    LONG denominator;
+
+    if (dpiValue == USER_DEFAULT_SCREEN_DPI)
+        return;
+
+    if (isUnpack)
+    {
+        numerator = dpiValue;
+        denominator = USER_DEFAULT_SCREEN_DPI;
+    }
+    else
+    {
+        numerator = USER_DEFAULT_SCREEN_DPI;
+        denominator = dpiValue;
+    }
+
+    rectangle.Left = rect->left;
+    rectangle.Top = rect->top;
+    rectangle.Width = rect->right - rect->left;
+    rectangle.Height = rect->bottom - rect->top;
+
+    if(rectangle.Left)
+        rectangle.Left = PhMultiplyDivideSigned(rectangle.Left, numerator, denominator);
+
+    if(rectangle.Top)
+        rectangle.Top = PhMultiplyDivideSigned(rectangle.Top, numerator, denominator);
+
+    if(rectangle.Width)
+        rectangle.Width = PhMultiplyDivideSigned(rectangle.Width, numerator, denominator);
+
+    if(rectangle.Height)
+        rectangle.Height = PhMultiplyDivideSigned(rectangle.Height, numerator, denominator);
+
+    rect->left = rectangle.Left;
+    rect->top = rectangle.Top;
+    rect->right = rectangle.Left + rectangle.Width;
+    rect->bottom = rectangle.Top + rectangle.Height;
+}
+
 // rev from GetSystemDefaultLCID
 LCID PhGetSystemDefaultLCID(
     VOID
