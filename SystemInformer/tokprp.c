@@ -821,21 +821,21 @@ static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     return STATUS_SUCCESS;
 }
 
-VOID PhSetImagelistT(
-    _In_ HWND hwnd,
-    _Inout_ PTOKEN_PAGE_CONTEXT tokenPageContext
-)
+static VOID PhpTokenSetImageList(
+    _In_ HWND WindowHandle,
+    _Inout_ PTOKEN_PAGE_CONTEXT TokenPageContext
+    )
 {
     LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
+    dpiValue = PhGetWindowDpi(WindowHandle);
 
-    if (!tokenPageContext->ListViewImageList)
-        tokenPageContext->ListViewImageList = PhImageListCreate(2, PhGetDpi(20, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
+    if (!TokenPageContext->ListViewImageList)
+        TokenPageContext->ListViewImageList = PhImageListCreate(2, PhGetDpi(20, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
     else
-        ImageList_SetIconSize(tokenPageContext->ListViewImageList, 2, PhGetDpi(20, dpiValue));
+        ImageList_SetIconSize(TokenPageContext->ListViewImageList, 2, PhGetDpi(20, dpiValue));
 
-    ListView_SetImageList(tokenPageContext->ListViewHandle, tokenPageContext->ListViewImageList, LVSIL_SMALL);
+    ListView_SetImageList(TokenPageContext->ListViewHandle, TokenPageContext->ListViewImageList, LVSIL_SMALL);
 }
 
 INT_PTR CALLBACK PhpTokenPageProc(
@@ -884,7 +884,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhLoadListViewGroupStatesFromSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(L"TokenGroupsListViewSort", tokenPageContext->ListViewHandle);
 
-            PhSetImagelistT(hwndDlg, tokenPageContext);
+            PhpTokenSetImageList(hwndDlg, tokenPageContext);
 
             PhSetDialogItemText(hwndDlg, IDC_USER, L"Unknown");
             PhSetDialogItemText(hwndDlg, IDC_USERSID, L"Unknown");
@@ -1034,7 +1034,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_DPICHANGED:
         {
-            PhSetImagelistT(hwndDlg, tokenPageContext);
+            PhpTokenSetImageList(hwndDlg, tokenPageContext);
         }
         break;
     case WM_COMMAND:

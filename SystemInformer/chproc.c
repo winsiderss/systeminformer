@@ -171,7 +171,7 @@ static VOID PhpRefreshProcessList(
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
-VOID PhSetImagelist(
+static VOID PhpChooseProcessSetImagelist(
     _Inout_ PPH_CHOOSE_PROCESS_DIALOG_CONTEXT context
     )
 {
@@ -249,7 +249,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 160, L"User name");
             PhSetExtendedListView(lvHandle);
 
-            PhSetImagelist(context);
+            PhpChooseProcessSetImagelist(context);
 
             PhpRefreshProcessList(hwndDlg, context);
 
@@ -264,7 +264,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhSetImagelist(context);
+            PhpChooseProcessSetImagelist(context);
         }
         break;
     case WM_COMMAND:
