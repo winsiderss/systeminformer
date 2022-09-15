@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2015-2021
+ *     dmex    2015-2022
  *
  */
 
@@ -438,7 +438,14 @@ INT_PTR CALLBACK NetworkPingWndProc(
         }
         break;
     case WM_SIZE:
-        PhLayoutManagerLayout(&context->LayoutManager);
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+
+            context->PingGraphState.Valid = FALSE;
+            context->PingGraphState.TooltipIndex = ULONG_MAX;
+            if (context->PingGraphHandle)
+                Graph_Draw(context->PingGraphHandle);
+        }
         break;
     case WM_SIZING:
         //PhResizingMinimumSize((PRECT)lParam, wParam, 420, 250);
