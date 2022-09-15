@@ -668,6 +668,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                  HDC bufferDc;
                  HBITMAP bufferBitmap;
                  HBITMAP oldBufferBitmap;
+                 HFONT oldFontHandle;
                  PPH_STRING string;
                  RECT bufferRect =
                  {
@@ -691,6 +692,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                  bufferDc = CreateCompatibleDC(drawInfo->hDC);
                  bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
+                 oldFontHandle = SelectFont(bufferDc, PhTreeWindowFont);
 
                  oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
                  SelectFont(bufferDc, context->ControlFont);
@@ -731,6 +733,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                      SRCCOPY
                      );
 
+                 SelectFont(bufferDc, oldFontHandle);
                  SelectBitmap(bufferDc, oldBufferBitmap);
                  DeleteBitmap(bufferBitmap);
                  DeleteDC(bufferDc);
