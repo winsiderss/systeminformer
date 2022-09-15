@@ -158,7 +158,7 @@ CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     LTEXT           "",IDC_GRAPH_LAYOUT,0,21,314,60,NOT WS_VISIBLE | WS_BORDER
-    LTEXT           "Adapter",IDC_ADAPTERTEXT,0,0,105,21
+    LTEXT           "Adapter",IDC_ADAPTERTEXT,0,0,238,21
     LTEXT           "Panel layout",IDC_LAYOUT,0,98,314,36,NOT WS_VISIBLE
     RTEXT           "Adapter name",IDC_ADAPTERNAME,107,4,207,16,SS_WORDELLIPSIS
 END
