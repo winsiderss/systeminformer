@@ -401,7 +401,7 @@ VOID GraphicsDeviceNotifyGpuGraph(
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             LONG dpiValue;
             
-            dpiValue = PhGetWindowDpi(context->GpuGraphHandle);
+            dpiValue = PhGetWindowDpi(Context->GpuGraphHandle);
                         
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
@@ -494,7 +494,7 @@ VOID GraphicsDeviceNotifyDedicatedGraph(
             ULONG i;
             LONG dpiValue;
             
-            dpiValue = PhGetWindowDpi(context->DedicatedGraphHandle);
+            dpiValue = PhGetWindowDpi(Context->DedicatedGraphHandle);
             
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
@@ -579,7 +579,7 @@ VOID GraphicsDeviceNotifySharedGraph(
             ULONG i;
             LONG dpiValue;
             
-            dpiValue = PhGetWindowDpi(context->SharedGraphHandle);
+            dpiValue = PhGetWindowDpi(Context->SharedGraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), PhGetIntegerSetting(L"ColorCpuKernel"), dpiValue);
@@ -687,7 +687,7 @@ VOID GraphicsDeviceNotifyPowerUsageGraph(
             ULONG i;
             LONG dpiValue;
             
-            dpiValue = PhGetWindowDpi(context->PowerUsageGraphHandle);
+            dpiValue = PhGetWindowDpi(Context->PowerUsageGraphHandle);
             
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPowerUsage"), 0, dpiValue);
@@ -782,7 +782,7 @@ VOID GraphicsDeviceNotifyTemperatureGraph(
             ULONG i;
             LONG dpiValue;
             
-            dpiValue = PhGetWindowDpi(context->TemperatureGraphHandle);
+            dpiValue = PhGetWindowDpi(Context->TemperatureGraphHandle);
             
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorTemperature"), 0, dpiValue);
@@ -885,7 +885,7 @@ VOID GraphicsDeviceNotifyFanRpmGraph(
             ULONG i;
             LONG dpiValue;
             
-            dpiValue = PhGetWindowDpi(context->FanRpmGraphHandle);
+            dpiValue = PhGetWindowDpi(Context->FanRpmGraphHandle);
             
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorFanRpm"), 0, dpiValue);
@@ -1147,8 +1147,8 @@ BOOLEAN GraphicsDeviceSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             LONG dpiValue;
             
-            dpiValue = PhGetWindowDpi(context->GraphHandle);
-            
+            dpiValue = PhGetWindowDpi(Section->GraphHandle);
+
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DeviceEntry->GpuUsageHistory.Count);
