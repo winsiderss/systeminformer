@@ -250,7 +250,7 @@ static PPH_OPTIONS_SECTION PhpTreeViewGetSelectedSection(
     return (PPH_OPTIONS_SECTION)item.lParam;
 }
 
-VOID PhSetimagelist(
+static VOID PhpOptionsSetImageList(
     _In_ HWND WindowHandle,
     _Inout_ HIMAGELIST* Imagelist,
     _In_ BOOLEAN Treeview
@@ -259,9 +259,6 @@ VOID PhSetimagelist(
     LONG dpiValue;
 
     dpiValue = PhGetWindowDpi(WindowHandle);
-
-    //if (*Imagelist)
-    //    PhImageListDestroy(*Imagelist);
 
     *Imagelist = PhImageListCreate(2, PhGetDpi(22, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
 
@@ -287,7 +284,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhSetimagelist(OptionsTreeControl, &OptionsTreeImageList, TRUE);
+            PhpOptionsSetImageList(OptionsTreeControl, &OptionsTreeImageList, TRUE);
 
             //PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_SEPARATOR), SS_OWNERDRAW, SS_OWNERDRAW);
             PhSetControlTheme(OptionsTreeControl, L"explorer");
@@ -370,7 +367,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
         break;
     case WM_DPICHANGED:
         {
-            PhSetimagelist(OptionsTreeControl, &OptionsTreeImageList, TRUE);
+            PhpOptionsSetImageList(OptionsTreeControl, &OptionsTreeImageList, TRUE);
         }
         break;
     case WM_SIZE:
@@ -1647,32 +1644,32 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 {
     static PH_LAYOUT_MANAGER LayoutManager;
     static BOOLEAN GeneralListViewStateInitializing = FALSE;
+    static HWND ListViewHandle = NULL;
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             HWND comboBoxHandle;
-            HWND listviewHandle;
             ULONG i;
             LOGFONT font;
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
-            listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
+            ListViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
 
-            PhSetimagelist(listviewHandle, &GeneralListviewImageList, FALSE);
+            PhpOptionsSetImageList(ListViewHandle, &GeneralListviewImageList, FALSE);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHENGINE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_PEVIEWER), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&LayoutManager, listviewHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&LayoutManager, ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DBGHELPSEARCHPATH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
 
-            PhSetListViewStyle(listviewHandle, FALSE, TRUE);
-            ListView_SetExtendedListViewStyleEx(listviewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
-            PhSetControlTheme(listviewHandle, L"explorer");
-            PhAddListViewColumn(listviewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
-            PhSetExtendedListView(listviewHandle);
+            PhSetListViewStyle(ListViewHandle, FALSE, TRUE);
+            ListView_SetExtendedListViewStyleEx(ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
+            PhSetControlTheme(ListViewHandle, L"explorer");
+            PhAddListViewColumn(ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Name");
+            PhSetExtendedListView(ListViewHandle);
 
             for (i = 0; i < RTL_NUMBER_OF(PhSizeUnitNames); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
@@ -1697,7 +1694,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 if (CurrentFontInstance)
                 {
                     SetWindowFont(OptionsTreeControl, CurrentFontInstance, TRUE); // HACK
-                    SetWindowFont(listviewHandle, CurrentFontInstance, TRUE);
+                    SetWindowFont(ListViewHandle, CurrentFontInstance, TRUE);
                     SetWindowFont(GetDlgItem(hwndDlg, IDC_FONT), CurrentFontInstance, TRUE);
                 }
             }
@@ -1749,11 +1746,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HWND listviewHandle;
-
-            listviewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
-
-            PhSetimagelist(listviewHandle, &GeneralListviewImageList, FALSE);
+            PhpOptionsSetImageList(ListViewHandle, &GeneralListviewImageList, FALSE);
         }
         break;
     case WM_COMMAND:
