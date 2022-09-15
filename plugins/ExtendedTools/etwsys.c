@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2015-2021
+ *     dmex    2015-2022
  *
  */
 
@@ -270,6 +270,11 @@ INT_PTR CALLBACK EtpDiskDialogProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&DiskLayoutManager);
+
+            DiskGraphState.Valid = FALSE;
+            DiskGraphState.TooltipIndex = ULONG_MAX;
+            if (DiskGraphHandle)
+                Graph_Draw(DiskGraphHandle);
         }
         break;
     case WM_NOTIFY:
@@ -766,6 +771,11 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&NetworkLayoutManager);
+
+            NetworkGraphState.Valid = FALSE;
+            NetworkGraphState.TooltipIndex = ULONG_MAX;
+            if (NetworkGraphHandle)
+                Graph_Draw(NetworkGraphHandle);
         }
         break;
     case WM_NOTIFY:
