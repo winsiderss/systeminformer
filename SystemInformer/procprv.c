@@ -3410,17 +3410,12 @@ VOID PhProcessImageListInitialization(
     HICON iconLarge;
     LONG dpiValue;
 
-    if(PhProcessLargeImageList)
-        PhImageListDestroy(PhProcessLargeImageList);
-        
-    if(PhProcessSmallImageList)
-        PhImageListDestroy(PhProcessSmallImageList);
-
-    if(!PhImageListItemType)
+    if (!PhImageListItemType)
         PhImageListItemType = PhCreateObjectType (L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
 
     dpiValue = PhGetWindowDpi(hwnd);
 
+    if (PhProcessLargeImageList) PhImageListDestroy(PhProcessLargeImageList);
     PhProcessLargeImageList = PhImageListCreate(
         PhGetSystemMetrics(SM_CXICON, dpiValue),
         PhGetSystemMetrics(SM_CYICON, dpiValue),
@@ -3429,6 +3424,7 @@ VOID PhProcessImageListInitialization(
         100
         );
 
+    if (PhProcessSmallImageList) PhImageListDestroy(PhProcessSmallImageList);
     PhProcessSmallImageList = PhImageListCreate(
         PhGetSystemMetrics(SM_CXSMICON, dpiValue),
         PhGetSystemMetrics(SM_CYSMICON, dpiValue),
