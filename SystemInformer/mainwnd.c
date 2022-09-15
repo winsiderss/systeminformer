@@ -293,6 +293,10 @@ LRESULT CALLBACK PhMwpWndProc(
     case WM_DPICHANGED:
         {
             PhProcessImageListInitialization(hWnd);
+            TreeNew_SetImageList(PhMwpProcessTreeNewHandle, PhProcessSmallImageList);
+            TreeNew_SetImageList(PhMwpServiceTreeNewHandle, PhProcessSmallImageList);
+            TreeNew_SetImageList(PhMwpNetworkTreeNewHandle, PhProcessSmallImageList);
+
             PhMwpOnSettingChange(hWnd);
         }
         break;
