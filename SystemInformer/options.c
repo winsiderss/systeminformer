@@ -251,25 +251,24 @@ static PPH_OPTIONS_SECTION PhpTreeViewGetSelectedSection(
 }
 
 VOID PhSetimagelist(
-    _In_ HWND hwnd,
-    _Inout_ HIMAGELIST* himagelist,
-    _In_ BOOLEAN isTreeview
+    _In_ HWND WindowHandle,
+    _Inout_ HIMAGELIST* Imagelist,
+    _In_ BOOLEAN Treeview
     )
 {
     LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
+    dpiValue = PhGetWindowDpi(WindowHandle);
 
-    if(*himagelist)
-        PhImageListDestroy(*himagelist);
+    //if (*Imagelist)
+    //    PhImageListDestroy(*Imagelist);
 
-    *himagelist = PhImageListCreate(2, PhGetDpi(22, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
+    *Imagelist = PhImageListCreate(2, PhGetDpi(22, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
 
-    if(isTreeview)
-        TreeView_SetImageList(hwnd, *himagelist, TVSIL_NORMAL);
+    if (Treeview)
+        TreeView_SetImageList(WindowHandle, *Imagelist, TVSIL_NORMAL);
     else
-        ListView_SetImageList(hwnd, *himagelist, LVSIL_SMALL);
-
+        ListView_SetImageList(WindowHandle, *Imagelist, LVSIL_SMALL);
 }
 
 INT_PTR CALLBACK PhOptionsDialogProc(
@@ -2807,7 +2806,7 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
