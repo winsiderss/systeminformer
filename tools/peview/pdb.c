@@ -1304,7 +1304,7 @@ NTSTATUS PeDumpFileSymbols(
 }
 
 VOID PdbDumpAddress(
-    _In_ PPDB_SYMBOL_CONTEXT Context, 
+    _In_ PPDB_SYMBOL_CONTEXT Context,
     _In_ ULONG Rva
     )
 {

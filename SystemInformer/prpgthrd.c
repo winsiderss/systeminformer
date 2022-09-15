@@ -306,7 +306,7 @@ VOID PhpInitializeThreadMenu(
                     PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
             }
         }
-     
+
         if (threadPriorityBoost)
         {
             PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST,

@@ -186,60 +186,38 @@ PPH_STRING PhpGetPluginDirectoryPath(
     VOID
     )
 {
-    static PPH_STRING cachedPluginDirectory = NULL;
     PPH_STRING pluginsDirectory;
     PPH_STRING applicationDirectory;
+    SIZE_T returnLength;
+    PH_FORMAT format[3];
+    WCHAR pluginsDirectoryPath[MAX_PATH];
 
-    if (pluginsDirectory = InterlockedCompareExchangePointer(
-        &cachedPluginDirectory,
-        NULL,
-        NULL
+    applicationDirectory = PhGetApplicationDirectoryWin32();
+    PhInitFormatSR(&format[0], applicationDirectory->sr);
+    PhInitFormatS(&format[1], L"plugins");
+    PhInitFormatC(&format[2], OBJ_NAME_PATH_SEPARATOR);
+
+    if (PhFormatToBuffer(
+        format,
+        RTL_NUMBER_OF(format),
+        pluginsDirectoryPath,
+        sizeof(pluginsDirectoryPath),
+        &returnLength
         ))
     {
-        return PhReferenceObject(pluginsDirectory);
-    }
+        PH_STRINGREF pluginsDirectoryPathSr;
 
-    if (applicationDirectory = PhGetApplicationDirectoryWin32())
+        pluginsDirectoryPathSr.Buffer = pluginsDirectoryPath;
+        pluginsDirectoryPathSr.Length = returnLength - sizeof(UNICODE_NULL);
+
+        pluginsDirectory = PhCreateString2(&pluginsDirectoryPathSr);
+    }
+    else
     {
-        SIZE_T returnLength;
-        PH_FORMAT format[3];
-        WCHAR pluginsDirectoryPath[MAX_PATH];
-
-        PhInitFormatSR(&format[0], applicationDirectory->sr);
-        PhInitFormatS(&format[1], L"plugins");
-        PhInitFormatC(&format[2], OBJ_NAME_PATH_SEPARATOR);
-
-        if (PhFormatToBuffer(
-            format,
-            RTL_NUMBER_OF(format),
-            pluginsDirectoryPath,
-            sizeof(pluginsDirectoryPath),
-            &returnLength
-            ))
-        {
-            PH_STRINGREF pluginsDirectoryPathSr;
-
-            pluginsDirectoryPathSr.Buffer = pluginsDirectoryPath;
-            pluginsDirectoryPathSr.Length = returnLength - sizeof(UNICODE_NULL);
-
-            PhMoveReference(&pluginsDirectory, PhCreateString2(&pluginsDirectoryPathSr));
-        }
-        else
-        {
-            PhMoveReference(&pluginsDirectory, PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH));
-        }
-
-        PhDereferenceObject(applicationDirectory);
+        pluginsDirectory = PhFormat(format, RTL_NUMBER_OF(format), MAX_PATH);
     }
 
-    if (!InterlockedCompareExchangePointer(
-        &cachedPluginDirectory,
-        pluginsDirectory,
-        NULL
-        ))
-    {
-        PhReferenceObject(pluginsDirectory);
-    }
+    PhDereferenceObject(applicationDirectory);
 
     return pluginsDirectory;
 }
@@ -517,7 +495,7 @@ VOID PhLoadPlugins(
             {
                 // Note: The MUP devices for Virtualbox and VMware improperly truncate
                 // data returned by NtQueryDirectoryFile when ReturnSingleEntry=FALSE and also have
-                // various other bugs and issues for information classes other than FileNamesInformation. (dmex)  
+                // various other bugs and issues for information classes other than FileNamesInformation. (dmex)
                 PhEnumDirectoryFileEx(
                     pluginsDirectoryHandle,
                     FileNamesInformation,

@@ -108,7 +108,7 @@ typedef struct _PH_UPDATER_CONTEXT
     UPDATER_TYPE Type;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
-// TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations 
+// TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations
 // after navigating to the page and you press keys such as ctrl, alt, home and insert. (dmex)
 #define TaskDialogNavigatePage(WindowHandle, Config) \
     assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \

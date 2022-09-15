@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2012-2018
+ *     dmex    2012-2022
  *
  */
 
@@ -29,8 +29,6 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetDialogItemValue(hwndDlg, IDC_MAXHOPS, PhGetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS), FALSE);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_EXTENDED_TCP), PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS) ? BST_CHECKED : BST_UNCHECKED);
 
-            PhSetDialogItemText(hwndDlg, IDC_DATABASE, PhaGetStringSetting(SETTING_NAME_DB_LOCATION)->Buffer);
-
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DATABASE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -42,46 +40,12 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS, PhGetDialogItemValue(hwndDlg, IDC_MAXHOPS));
             PhSetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_EXTENDED_TCP)) == BST_CHECKED);
 
-            PhSetStringSetting2(SETTING_NAME_DB_LOCATION, &PhaGetDlgItemText(hwndDlg, IDC_DATABASE)->sr);
-
             PhDeleteLayoutManager(&LayoutManager);
         }
         break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&LayoutManager);
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDC_BROWSE:
-                {
-                    static PH_FILETYPE_FILTER filters[] =
-                    {
-                        { L"XML files (*.xml)", L"*.xml" },
-                        { L"All files (*.*)", L"*.*" }
-                    };
-                    PVOID fileDialog;
-                    PPH_STRING fileName;
-
-                    fileDialog = PhCreateOpenFileDialog();
-                    PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
-
-                    fileName = PH_AUTO(PhGetFileName(PhaGetDlgItemText(hwndDlg, IDC_DATABASE)));
-                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-
-                    if (PhShowFileDialog(hwndDlg, fileDialog))
-                    {
-                        fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-                        PhSetDialogItemText(hwndDlg, IDC_DATABASE, fileName->Buffer);
-                    }
-
-                    PhFreeFileDialog(fileDialog);
-                }
-                break;
-            }
         }
         break;
     case WM_CTLCOLORBTN:

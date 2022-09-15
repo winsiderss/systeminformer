@@ -26,7 +26,7 @@ typedef struct _ET_FPS_COUNTER
     FLOAT MsUntilRenderComplete;
     FLOAT MsUntilDisplayed;
     FLOAT DisplayLatency;
-    //FLOAT DisplayFramesPerSecond;   
+    //FLOAT DisplayFramesPerSecond;
     USHORT Runtime;
     USHORT PresentMode;
 } ET_FPS_COUNTER, *PET_FPS_COUNTER;

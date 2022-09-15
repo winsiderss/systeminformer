@@ -111,6 +111,12 @@
     <ClCompile Include="adapter.c" />
     <ClCompile Include="diskdetails.c" />
     <ClCompile Include="disknotify.c" />
+    <ClCompile Include="gpu.c" />
+    <ClCompile Include="gpudetails.c" />
+    <ClCompile Include="gpugraph.c" />
+    <ClCompile Include="gpunodes.c" />
+    <ClCompile Include="gpuoptions.c" />
+    <ClCompile Include="graphics.c" />
     <ClCompile Include="netdetails.c" />
     <ClCompile Include="diskgraph.c" />
     <ClCompile Include="diskoptions.c" />
@@ -133,9 +139,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="HardwareDevices.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="CHANGELOG.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

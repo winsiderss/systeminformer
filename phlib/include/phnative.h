@@ -875,9 +875,17 @@ PhSetProcessQuotaLimits(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessPriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUCHAR PriorityClass
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetProcessPriority(
     _In_ HANDLE ProcessHandle,
-    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    _In_ UCHAR PriorityClass
     );
 
 PHLIBAPI

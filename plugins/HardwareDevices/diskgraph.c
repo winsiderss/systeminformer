@@ -613,8 +613,8 @@ VOID DiskDriveSysInfoInitializing(
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_DISK_SYSINFO_CONTEXT));
-    context->DiskEntry = DiskEntry;
     context->SectionName = PhConcatStringRef2(&text, &DiskEntry->Id.DevicePath->sr);
+    context->DiskEntry = PhReferenceObject(DiskEntry);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;

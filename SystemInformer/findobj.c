@@ -95,7 +95,7 @@ typedef enum _PH_HANDLE_OBJECT_TREE_COLUMN_ITEM_NAME
     PH_OBJECT_SEARCH_TREE_COLUMN_PROCESS,
     PH_OBJECT_SEARCH_TREE_COLUMN_TYPE,
     PH_OBJECT_SEARCH_TREE_COLUMN_NAME,
-    PH_OBJECT_SEARCH_TREE_COLUMN_HANDLE, 
+    PH_OBJECT_SEARCH_TREE_COLUMN_HANDLE,
     PH_OBJECT_SEARCH_TREE_COLUMN_OBJECTADDRESS,
     PH_OBJECT_SEARCH_TREE_COLUMN_ORIGINALNAME,
     PH_OBJECT_SEARCH_TREE_COLUMN_GRANTEDACCESS,
@@ -188,7 +188,7 @@ VOID PhpHandleObjectLoadSettingsTreeList(
     )
 {
     PPH_STRING settings;
-    
+
     settings = PhGetStringSetting(L"FindObjTreeListColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
@@ -199,7 +199,7 @@ VOID PhpHandleObjectSaveSettingsTreeList(
     )
 {
     PPH_STRING settings;
-    
+
     settings = PhCmSaveSettings(Context->TreeNewHandle);
     PhSetStringSetting2(L"FindObjTreeListColumns", &settings->sr);
     PhDereferenceObject(settings);
@@ -469,7 +469,7 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
-            
+
             SendMessage(
                 context->WindowHandle,
                 WM_COMMAND,
@@ -486,7 +486,7 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
@@ -1498,7 +1498,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         {
                             NTSTATUS status;
                             HANDLE processHandle;
-                    
+
                             if (handleObjectNodes[i]->ResultType != HandleSearchResult)
                                 continue;
 
@@ -1561,7 +1561,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                     NtClose(processHandle);
                                 }
                             }
-                    
+
                             if (NT_SUCCESS(status = PhOpenProcess(
                                 &processHandle,
                                 PROCESS_DUP_HANDLE,
@@ -1580,10 +1580,10 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                 {
                                     PhpRemoveHandleObjectNode(context, handleObjectNodes[i]);
                                 }
-                    
+
                                 NtClose(processHandle);
                             }
-                    
+
                             if (!NT_SUCCESS(status))
                             {
                                 if (!PhShowContinueStatus(hwndDlg,
@@ -1646,9 +1646,9 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         if (handleObjectNode->ResultType == HandleSearchResult)
                         {
                             PPH_HANDLE_ITEM handleItem;
-                    
+
                             handleItem = PhCreateHandleItem(&handleObjectNode->HandleInfo);
-                    
+
                             if (!PhIsNullOrEmptyString(handleObjectNode->BestObjectName))
                             {
                                 handleItem->BestObjectName = handleItem->ObjectName = handleObjectNode->BestObjectName;
@@ -1660,7 +1660,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                 handleItem->TypeName = handleObjectNode->TypeNameString;
                                 PhReferenceObject(handleObjectNode->TypeNameString);
                             }
-                    
+
                             PhShowHandleProperties(
                                 hwndDlg,
                                 handleObjectNode->ProcessId,

@@ -17,7 +17,7 @@ PAGED_FILE();
 
 /**
  * \brief Opens a driver object.
- * 
+ *
  * \param[out] DriverHandle Set to the opened handle to the driver.
  * \param[in] DesiredAccess Desired access to the driver object.
  * \param[in] ObjectAttributes Object attributes for opening the driver object.
@@ -45,7 +45,7 @@ NTSTATUS KphOpenDriver(
 
 /**
  * \brief Queries information about a driver.
- * 
+ *
  * \param[in] DriverHandle Handle to driver to query.
  * \param[in] DriverInformationClass Information class to query.
  * \param[out] DriverInformation Populated with driver information by class.

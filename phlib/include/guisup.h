@@ -529,24 +529,24 @@ VOID PhLayoutManagerLayout(
 #define PH_WINDOW_CONTEXT_DEFAULT 0xFFFF
 
 PHLIBAPI
-PVOID 
+PVOID
 PhGetWindowContext(
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_ ULONG PropertyHash
     );
 
 PHLIBAPI
-VOID 
+VOID
 PhSetWindowContext(
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_ ULONG PropertyHash,
     _In_ PVOID Context
     );
 
 PHLIBAPI
-VOID 
+VOID
 PhRemoveWindowContext(
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_ ULONG PropertyHash
     );
 
@@ -561,7 +561,7 @@ VOID PhEnumWindows(
     );
 
 typedef BOOLEAN (CALLBACK *PH_CHILD_ENUM_CALLBACK)(
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     );
 
@@ -638,7 +638,7 @@ FORCEINLINE VOID PhSetDialogFocus(
     _In_ HWND FocusHandle
     )
 {
-    // Do not use the SendMessage function to send a WM_NEXTDLGCTL message if your application will 
+    // Do not use the SendMessage function to send a WM_NEXTDLGCTL message if your application will
     // concurrently process other messages that set the focus. Use the PostMessage function instead.
     SendMessage(WindowHandle, WM_NEXTDLGCTL, (WPARAM)FocusHandle, MAKELPARAM(TRUE, 0));
 }

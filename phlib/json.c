@@ -18,7 +18,7 @@
 #include "..\tools\thirdparty\mxml\mxml.h"
 
 static json_object_ptr json_get_object(
-    _In_ json_object_ptr rootObj, 
+    _In_ json_object_ptr rootObj,
     _In_ PSTR key
     )
 {
@@ -339,7 +339,7 @@ PVOID PhGetJsonObjectAsArrayList(
     json_object_object_foreachC(Object, json_array_ptr)
     {
         PJSON_ARRAY_LIST_OBJECT object;
-        
+
         object = PhAllocateZero(sizeof(JSON_ARRAY_LIST_OBJECT));
         object->Key = json_array_ptr.key;
         object->Entry = json_array_ptr.val;

@@ -25,9 +25,9 @@ NTSTATUS PhInitializeMappedWslImage(
     __try
     {
         PhProbeAddress(
-            MappedWslImage->Header, 
-            sizeof(ELF_IMAGE_HEADER), 
-            MappedWslImage->ViewBase, 
+            MappedWslImage->Header,
+            sizeof(ELF_IMAGE_HEADER),
+            MappedWslImage->ViewBase,
             MappedWslImage->Size,
             1
             );
@@ -51,10 +51,10 @@ NTSTATUS PhInitializeMappedWslImage(
         __try
         {
             PhProbeAddress(
-                MappedWslImage->Headers64, 
-                sizeof(ELF64_IMAGE_SECTION_HEADER), 
-                MappedWslImage->ViewBase, 
-                MappedWslImage->Size, 
+                MappedWslImage->Headers64,
+                sizeof(ELF64_IMAGE_SECTION_HEADER),
+                MappedWslImage->ViewBase,
+                MappedWslImage->Size,
                 1
                 );
         }
@@ -291,7 +291,7 @@ BOOLEAN PhGetMappedWslImageSections(
 
     // Get the string table (The string table is an array of null terminated strings).
     stringTableAddress = PTR_ADD_OFFSET(MappedWslImage->Header, stringSection->sh_offset);
-                                                                                  
+
     // Enumerate the sections.
     for (i = 0; i < count; i++)
     {
@@ -432,7 +432,7 @@ BOOLEAN PhGetMappedWslImageSymbols(
         entry = PTR_ADD_OFFSET(MappedWslImage->Header, section->sh_offset);
         stringTable = PhGetMappedWslImageSectionData(MappedWslImage, NULL, section->sh_link);
 
-        // NOTE: SHT_DYNSYM entries include the version in the symbol name (e.g. printf@GLIBC_2.2.5) 
+        // NOTE: SHT_DYNSYM entries include the version in the symbol name (e.g. printf@GLIBC_2.2.5)
         // instead of using a version record entry from the SHT_SUNW_versym section -dmex
         versionTable = PhGetMappedWslImageSectionDataByType(MappedWslImage, SHT_SUNW_versym);
         versionRecords = PhpParseMappedWslImageVersionRecords(MappedWslImage, stringTable);

@@ -148,8 +148,8 @@ VOID PvPeProperties(
 
         // General page
         newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_PEGENERAL), 
-            PvPeGeneralDlgProc, 
+            MAKEINTRESOURCE(IDD_PEGENERAL),
+            PvPeGeneralDlgProc,
             NULL
             );
         PvAddPropPage(propContext, newPage);
@@ -233,10 +233,10 @@ VOID PvPeProperties(
             __try
             {
                 PhProbeAddress(
-                    PvImageCor20Header, 
+                    PvImageCor20Header,
                     sizeof(IMAGE_COR20_HEADER),
-                    PvMappedImage.ViewBase, 
-                    PvMappedImage.Size, 
+                    PvMappedImage.ViewBase,
+                    PvMappedImage.Size,
                     4
                     );
             }
@@ -1777,7 +1777,7 @@ VOID PvpSetPeImageProperties(
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewHandle);
 
-    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_NAME, L"Target machine", NULL);  
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_NAME, L"Target machine", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_TIMESTAMP, L"Time stamp", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_ENTROPY, L"Image entropy", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_BASICINFO, PVP_IMAGE_GENERAL_INDEX_IMAGEBASE, L"Image base", NULL);

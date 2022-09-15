@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2017
+ *     dmex    2016-2022
  *
  */
 
@@ -119,10 +119,9 @@ INT_PTR CALLBACK UefiEditorDlgProc(
         {
             NTSTATUS status;
 
-            PhSetApplicationWindowIcon(hwndDlg);
-
             context->HexEditHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_HEXEDITVAR);
 
+            PhSetApplicationWindowIcon(hwndDlg);
             PhSetWindowText(hwndDlg, PhGetString(context->Name));
 
             if (!NT_SUCCESS(status = UefiQueryVariable(context, context->Name, context->GuidString)))
@@ -140,7 +139,7 @@ INT_PTR CALLBACK UefiEditorDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
- 
+
             {
                 PH_RECTANGLE windowRectangle = {0};
                 RECT rect;
@@ -179,7 +178,7 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                 if (bytesPerRow >= 4)
                 {
                     HexEdit_SetBytesPerRow(context->HexEditHandle, bytesPerRow);
-                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW), 
+                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW),
                         PhaFormatString(L"%u bytes per row", bytesPerRow)->Buffer, FALSE
                         );
                 }
@@ -225,9 +224,9 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                         { L"All files (*.*)", L"*.*" }
                     };
                     PVOID fileDialog;
-    
+
                     fileDialog = PhCreateSaveFileDialog();
-    
+
                     PhSetFileDialogFilter(fileDialog, filters, ARRAYSIZE(filters));
                     PhSetFileDialogFileName(fileDialog, PhaFormatString(
                         L"%s.bin",
@@ -239,9 +238,9 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                         NTSTATUS status;
                         PPH_STRING fileName;
                         PPH_FILE_STREAM fileStream;
-    
+
                         fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-    
+
                         if (NT_SUCCESS(status = PhCreateFileStream(
                             &fileStream,
                             fileName->Buffer,
@@ -362,9 +361,7 @@ VOID ShowUefiEditorDialog(
 {
     PEFI_EDITOR_CONTEXT context;
 
-    context = PhAllocate(sizeof(EFI_EDITOR_CONTEXT));
-    memset(context, 0, sizeof(EFI_EDITOR_CONTEXT));
-
+    context = PhAllocateZero(sizeof(EFI_EDITOR_CONTEXT));
     context->Name = PhDuplicateString(Entry->Name);
     context->GuidString = PhDuplicateString(Entry->GuidString);
 

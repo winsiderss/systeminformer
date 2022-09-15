@@ -46,7 +46,7 @@ typedef struct _PH_SETTING
 } PH_SETTING, *PPH_SETTING;
 
 PHLIBAPI
-VOID 
+VOID
 PhSettingsInitialization(
     VOID
     );
@@ -218,7 +218,7 @@ PhGetStringSetting(
 
 #define PhaGetStringSetting(Name) PH_AUTO_T(PH_STRING, PhGetStringSetting(Name)) // phapppub
 
-FORCEINLINE 
+FORCEINLINE
 PPH_STRING
 NTAPI
 PhGetExpandStringSetting(

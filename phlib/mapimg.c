@@ -274,7 +274,7 @@ NTSTATUS PhMapViewOfEntireFile(
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         );
@@ -363,7 +363,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_READONLY
         );
@@ -1820,7 +1820,7 @@ NTSTATUS PhGetMappedImageCfg32(
 
     if (!NT_SUCCESS(status = PhGetMappedImageLoadConfig32(MappedImage, &config32)))
         return status;
-    
+
     // Not every load configuration defines CFG characteristics
     if (!RTL_CONTAINS_FIELD(config32, config32->Size, GuardFlags))
         return STATUS_INVALID_VIEW_SIZE;
@@ -1844,7 +1844,7 @@ NTSTATUS PhGetMappedImageCfg32(
         config32->GuardCFFunctionTable,
         NULL
         );
-    
+
     if (CfgConfig->GuardFunctionTable && CfgConfig->NumberOfGuardFunctionEntries)
     {
         __try
@@ -2777,7 +2777,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
                 continue;
             }
 
-            // The prodid header can include 3 extra checksum values. Ignore these for now (dmex) 
+            // The prodid header can include 3 extra checksum values. Ignore these for now (dmex)
             if ((item->dwCount ^ richHeaderKey) != richHeaderKey)
             {
                 PH_MAPPED_IMAGE_PRODID_ENTRY entry;
@@ -3000,7 +3000,7 @@ NTSTATUS PhGetMappedImageDebug(
         PhpMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
-    {   
+    {
         return GetExceptionCode();
     }
 
@@ -3085,7 +3085,7 @@ NTSTATUS PhGetMappedImageDebugEntryByType(
         PhpMappedImageProbe(MappedImage, debugDirectory, sizeof(IMAGE_DEBUG_DIRECTORY));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
-    {   
+    {
         return GetExceptionCode();
     }
 
@@ -3423,7 +3423,7 @@ NTSTATUS PhGetMappedImageRelocations(
         PhpMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
-    {   
+    {
         return GetExceptionCode();
     }
 

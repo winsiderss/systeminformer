@@ -155,7 +155,7 @@ VOID PvGeneralPageSave(
     )
 {
     //PhSetStringSetting2(L"SearchEngine", &PhaGetDlgItemText(WindowHandle, IDC_SEARCHENGINE)->sr);
-    
+
     if (ComboBox_GetCurSel(GetDlgItem(Context->WindowHandle, IDC_MAXSIZEUNIT)) != PhGetIntegerSetting(L"MaxSizeUnit"))
     {
         PhSetIntegerSetting(L"MaxSizeUnit", ComboBox_GetCurSel(GetDlgItem(Context->WindowHandle, IDC_MAXSIZEUNIT)));

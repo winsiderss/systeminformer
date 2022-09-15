@@ -389,9 +389,10 @@ EXPORTS
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
     PhGenerateRandomNumber64
+    PhGetApplicationDataFileName
     PhGetApplicationDirectory
     PhGetApplicationDirectoryWin32
-    PhGetApplicationDirectoryFileNameWin32
+    PhGetApplicationDirectoryFileName
     PhGetApplicationFileNameWin32
     PhGetBaseDirectory
     PhGetBaseName

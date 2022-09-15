@@ -312,7 +312,7 @@ PPH_MODULE_NODE PhAddModuleNode(
     for (i = 0; i < Context->NodeList->Count; i++)
     {
         parentNode = Context->NodeList->Items[i];
-    
+
         if (parentNode != moduleNode && parentNode->ModuleItem->BaseAddress == ModuleItem->ParentBaseAddress)
         {
             moduleNode->Parent = parentNode;
@@ -906,7 +906,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
                     {
-                        PhInitializeStringRef(&getCellText->Text, 
+                        PhInitializeStringRef(&getCellText->Text,
                             moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
                     }
                     else
@@ -1109,7 +1109,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                             break;
                         }
 
-                        PhInitFormatF(&format[0], (DOUBLE)(moduleItem->ImageCoherency * 100.0f), 2);
+                        PhInitFormatF(&format[0], moduleItem->ImageCoherency * 100.0f, PhMaxPrecisionUnit);
                         PhInitFormatS(&format[1], L"%");
 
                         PhMoveReference(&node->ImageCoherencyText, PhFormat(format, RTL_NUMBER_OF(format), 0));
@@ -1448,7 +1448,7 @@ BOOLEAN PhShouldShowModuleCoherency(
     {
         //
         // We special case these modules types and opt not to show/calculate
-        // the coherency for them. 
+        // the coherency for them.
         //
         return FALSE;
     }

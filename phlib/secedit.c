@@ -190,7 +190,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     info->ObjectType = PhCreateString(ObjectType);
     info->OpenObject = OpenObject;
     info->CloseObject = CloseObject;
-    info->Context = Context;  
+    info->Context = Context;
     info->IsPage = IsPage;
 
     if (PhGetAccessEntries(ObjectType, &info->AccessEntriesArray, &info->NumberOfAccessEntries))
@@ -318,11 +318,11 @@ ULONG STDMETHODCALLTYPE PhSecurityInformation_Release(
         if (this->CloseObject)
             this->CloseObject(this->Context);
 
-        if (this->ObjectName) 
+        if (this->ObjectName)
             PhDereferenceObject(this->ObjectName);
         if (this->ObjectType)
             PhDereferenceObject(this->ObjectType);
-        if (this->AccessEntries) 
+        if (this->AccessEntries)
             PhFree(this->AccessEntries);
         if (this->AccessEntriesArray)
             PhFree(this->AccessEntriesArray);
@@ -1104,7 +1104,7 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     BOOLEAN defaulted = FALSE;
     PACL dacl = NULL;
     PACCESS_MASK accessRights;
-    TRUSTEE trustee = { 0 };
+    TRUSTEE trustee;
 
     status = RtlGetDaclSecurityDescriptor(
         SecurityDescriptor,
@@ -1124,7 +1124,7 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     if (!accessRights)
         return S_FALSE;
 
-    BuildTrusteeWithSid(&trustee, UserSid);
+    PhBuildTrusteeWithSid(&trustee, UserSid);
     status = GetEffectiveRightsFromAcl(dacl, &trustee, accessRights);
 
     if (status != ERROR_SUCCESS)
@@ -1447,7 +1447,7 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
             SecurityInformation,
             SecurityDescriptor
             );
-        
+
         LsaClose(handle);
     }
     else if (
@@ -1872,7 +1872,7 @@ NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
     if (!WTSGetListenerSecurity_I)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    // Todo: Add support for SI_RESET using the default security descriptor: 
+    // Todo: Add support for SI_RESET using the default security descriptor:
     // HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\DefaultSecurity
 
     status = WTSGetListenerSecurity_I(
@@ -2003,7 +2003,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     IWbemClassObject* wbemGetSDClassObject = 0;
     VARIANT variantReturnValue = { VT_EMPTY };
     VARIANT variantArrayValue = { VT_EMPTY };
-   
+
     if (!(imageBaseAddress = PhGetWbemProxDllBase()))
         return STATUS_UNSUCCESSFUL;
 
@@ -2017,7 +2017,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root");
+    wbemResourceString = SysAllocStringLen(L"Root", 4);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -2033,7 +2033,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemQueryString = SysAllocString(L"__SystemSecurity");
+    wbemQueryString = SysAllocStringLen(L"__SystemSecurity", 16);
     status = IWbemServices_GetObject(
         wbemServices,
         wbemQueryString,
@@ -2046,7 +2046,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemMethodString = SysAllocString(L"GetSD");
+    wbemMethodString = SysAllocStringLen(L"GetSD", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemQueryString,
@@ -2187,7 +2187,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root");
+    wbemResourceString = SysAllocStringLen(L"Root", 4);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -2203,7 +2203,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemQueryString = SysAllocString(L"__SystemSecurity");
+    wbemQueryString = SysAllocStringLen(L"__SystemSecurity", 16);
     status = IWbemServices_GetObject(
         wbemServices,
         wbemQueryString,
@@ -2298,7 +2298,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemMethodString = SysAllocString(L"SetSD");
+    wbemMethodString = SysAllocStringLen(L"SetSD", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemQueryString,
@@ -2398,7 +2398,7 @@ HRESULT PhRestartDefenderOfflineScan(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemResourceString = SysAllocString(L"Root\\Microsoft\\Windows\\Defender");
+    wbemResourceString = SysAllocStringLen(L"Root\\Microsoft\\Windows\\Defender", 31);
     status = IWbemLocator_ConnectServer(
         wbemLocator,
         wbemResourceString,
@@ -2428,7 +2428,7 @@ HRESULT PhRestartDefenderOfflineScan(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemQueryString = SysAllocString(L"MSFT_MpWDOScan");
+    wbemQueryString = SysAllocStringLen(L"MSFT_MpWDOScan", 14);
     status = IWbemServices_GetObject(
         wbemServices,
         wbemQueryString,
@@ -2441,7 +2441,7 @@ HRESULT PhRestartDefenderOfflineScan(
     if (FAILED(status))
         goto CleanupExit;
 
-    wbemMethodString = SysAllocString(L"Start");
+    wbemMethodString = SysAllocStringLen(L"Start", 5);
     status = IWbemServices_ExecMethod(
         wbemServices,
         wbemQueryString,

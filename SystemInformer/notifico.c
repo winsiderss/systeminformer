@@ -1492,7 +1492,7 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     PhInitFormatS(&format[0], L"Commit: ");
     PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatF(&format[3], commitFraction * 100, 2);
+    PhInitFormatF(&format[3], commitFraction * 100, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
     *NewText = PhFormat(format, 5, 96);
@@ -1568,7 +1568,7 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     PhInitFormatS(&format[0], L"Physical memory: ");
     PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatF(&format[3], physicalFraction * 100, 2);
+    PhInitFormatF(&format[3], physicalFraction * 100, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
     *NewText = PhFormat(format, 5, 96);
@@ -1780,7 +1780,7 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
             PhInitFormatC(&format[0], L'\n');
             PhInitFormatSR(&format[1], maxCpuProcessItem->ProcessName->sr);
             PhInitFormatS(&format[2], L": ");
-            PhInitFormatF(&format[3], (DOUBLE)maxCpuProcessItem->CpuUsage * 100, 2);
+            PhInitFormatF(&format[3], (DOUBLE)maxCpuProcessItem->CpuUsage * 100, PhMaxPrecisionUnit);
             PhInitFormatC(&format[4], L'%');
 
             maxCpuText = PhFormat(format, 5, 128);
@@ -1836,7 +1836,7 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     PH_FORMAT format[8];
     PPH_STRING text;
     static ULONG64 maxValue = 100000 * 1024; // minimum scaling of 100 MB.
-    
+
     // TODO: Reset maxValue every X amount of time.
 
     // Icon
@@ -1940,7 +1940,7 @@ VOID PhNfpCommitTextIconUpdateCallback(
     PhInitFormatS(&format[0], L"Commit: ");
     PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatF(&format[3], commitFraction * 100, 2);
+    PhInitFormatF(&format[3], commitFraction * 100, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
     *NewText = PhFormat(format, 5, 96);
@@ -2004,7 +2004,7 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     PhInitFormatS(&format[0], L"Physical memory: ");
     PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatF(&format[3], physicalFraction * 100, 2);
+    PhInitFormatF(&format[3], physicalFraction * 100, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
     *NewText = PhFormat(format, 5, 96);

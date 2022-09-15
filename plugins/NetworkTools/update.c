@@ -71,7 +71,7 @@ PPH_STRING UpdateVersionString(
 
     if (currentVersion = PhFormatString(L"%lu.%lu.%lu", majorVersion, minorVersion, revisionVersion))
     {
-        versionHeader = PhConcatStrings2(L"ProcessHacker-Build: ", currentVersion->Buffer);
+        versionHeader = PhConcatStrings2(L"SystemInformer-Build: ", currentVersion->Buffer);
         PhDereferenceObject(currentVersion);
     }
 
@@ -82,36 +82,78 @@ PPH_STRING UpdateWindowsString(
     VOID
     )
 {
-    static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
+    PPH_STRING buildString = NULL;
+    PPH_STRING fileName = NULL;
+    PPH_STRING fileVersion = NULL;
+    PVOID versionInfo;
+    VS_FIXEDFILEINFO* rootBlock;
+    PH_FORMAT fileVersionFormat[3];
 
-    HANDLE keyHandle;
-    PPH_STRING buildLabHeader = NULL;
+    fileName = PhGetKernelFileName();
+    PhMoveReference(&fileName, PhGetFileName(fileName));
+    versionInfo = PhGetFileVersionInfo(fileName->Buffer);
+    PhDereferenceObject(fileName);
 
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName,
-        0
-        )))
+    if (versionInfo)
     {
-        PPH_STRING buildLabString;
+        if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
+        {
+            PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionLS));
+            PhInitFormatC(&fileVersionFormat[1], '.');
+            PhInitFormatU(&fileVersionFormat[2], LOWORD(rootBlock->dwFileVersionLS));
 
-        if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
-        {
-            buildLabHeader = PhConcatStrings2(L"ProcessHacker_OsBuild: ", buildLabString->Buffer);
-            PhDereferenceObject(buildLabString);
-        }
-        else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
-        {
-            buildLabHeader = PhConcatStrings2(L"ProcessHacker_OsBuild: ", buildLabString->Buffer);
-            PhDereferenceObject(buildLabString);
+            fileVersion = PhFormat(fileVersionFormat, 3, 30);
         }
 
-        NtClose(keyHandle);
+        PhFree(versionInfo);
     }
 
-    return buildLabHeader;
+    if (fileVersion)
+    {
+        if (PhIsExecutingInWow64())
+            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"x86fre");
+        else
+            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"amd64fre");
+
+        PhDereferenceObject(fileVersion);
+    }
+
+    return buildString;
+
+    //
+    // NOTE: Some security products have started randomizing the build string located in the registry
+    // breaking the version check that blocks updates that are not compatible with old and unsupported
+    // versions of Windows. (dmex)
+    //
+    //static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
+    //HANDLE keyHandle;
+    //PPH_STRING buildLabHeader = NULL;
+    //
+    //if (NT_SUCCESS(PhOpenKey(
+    //    &keyHandle,
+    //    KEY_READ,
+    //    PH_KEY_LOCAL_MACHINE,
+    //    &keyName,
+    //    0
+    //    )))
+    //{
+    //    PPH_STRING buildLabString;
+    //
+    //    if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
+    //    {
+    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
+    //        PhDereferenceObject(buildLabString);
+    //    }
+    //    else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
+    //    {
+    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
+    //        PhDereferenceObject(buildLabString);
+    //    }
+    //
+    //    NtClose(keyHandle);
+    //}
+    //
+    //return buildLabHeader;
 }
 
 PPH_STRING QueryFwLinkUrl(
@@ -126,7 +168,7 @@ PPH_STRING QueryFwLinkUrl(
     PPH_STRING windowsHeader;
 
     versionString = PhGetPhVersion();
-    userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
+    userAgentString = PhConcatStrings2(L"SystemInformer_", versionString->Buffer);
 
     if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
         goto CleanupExit;
@@ -164,7 +206,7 @@ PPH_STRING QueryFwLinkUrl(
 
     if (!PhHttpSocketEndRequest(httpContext))
         goto CleanupExit;
-    
+
     //redirectUrl = PhCreateString(L"https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz");
     redirectUrl = PhHttpSocketQueryHeaderString(httpContext, L"Location"); // WINHTTP_QUERY_LOCATION
 
@@ -172,7 +214,7 @@ CleanupExit:
 
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
-    
+
     PhClearReference(&versionString);
     PhClearReference(&userAgentString);
 
@@ -220,7 +262,7 @@ NTSTATUS GeoIPUpdateThread(
     }
 
     versionString = PhGetPhVersion();
-    userAgentString = PhConcatStrings2(L"ProcessHacker_", versionString->Buffer);
+    userAgentString = PhConcatStrings2(L"SystemInformer_", versionString->Buffer);
 
     if (!PhHttpSocketCreate(
         &httpContext,
@@ -285,7 +327,11 @@ NTSTATUS GeoIPUpdateThread(
         {
             LARGE_INTEGER allocationSize;
 
-            zipFilePath = PhCreateCacheFile(PhaCreateString(L"GeoLite2-Country.mmdb.gz"));
+            {
+                PPH_STRING temp = PhCreateString2(&GeoDbFileName);
+                zipFilePath = PhCreateCacheFile(temp);
+                PhClearReference(&temp);
+            }
 
             if (PhIsNullOrEmptyString(zipFilePath))
                 goto CleanupExit;
@@ -375,7 +421,7 @@ NTSTATUS GeoIPUpdateThread(
         }
 
         {
-            dbpath = NetToolsGetGeoLiteDbPath(SETTING_NAME_DB_LOCATION);
+            dbpath = PhGetApplicationDataFileName(&GeoDbFileName, FALSE);
 
             if (PhIsNullOrEmptyString(dbpath))
                 goto CleanupExit;

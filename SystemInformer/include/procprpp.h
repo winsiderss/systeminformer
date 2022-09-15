@@ -413,7 +413,7 @@ typedef struct _PH_ENVIRONMENT_CONTEXT
         };
     };
 
-    PPH_PROCESS_ITEM ProcessItem;   
+    PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING SearchboxText;
     PPH_STRING StatusMessage;
 

@@ -389,7 +389,7 @@ PhHttpSocketGetErrorMessage(
     );
 
 PHLIBAPI
-BOOLEAN 
+BOOLEAN
 NTAPI
 PhHttpSocketSetCredentials(
     _In_ PPH_HTTP_CONTEXT HttpContext,

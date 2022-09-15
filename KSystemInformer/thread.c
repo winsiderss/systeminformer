@@ -448,7 +448,7 @@ _IRQL_requires_max_(APC_LEVEL)
 _IRQL_requires_same_
 VOID KSIAPI KphpCaptureStackBackTraceThreadSpecialApcCleanup(
     _In_ PKSI_KAPC Apc,
-    _In_ KSI_KAPC_CLEANUP_REASON Reason 
+    _In_ KSI_KAPC_CLEANUP_REASON Reason
     )
 {
     PKPH_STACK_BACKTRACE_OBJECT backTrace;
@@ -545,7 +545,7 @@ VOID KphInitializeStackBackTrace(
     )
 {
     KPH_OBJECT_TYPE_INFO typeInfo;
-    
+
     PAGED_PASSIVE();
 
     typeInfo.Allocate = KphpStackBackTraceAllocate;
@@ -877,7 +877,7 @@ Exit:
 
 /**
  * \brief Sets information about a thread.
- * 
+ *
  * \param[in] ThreadHandle Handle to thread to set information for.
  * \param[in] ThreadInformationClass Information class to set.
  * \param[in] ThreadInformation Information to set.

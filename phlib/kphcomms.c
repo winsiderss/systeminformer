@@ -53,7 +53,7 @@ typedef struct _FILTER_PORT_EA
 
 /**
  * \brief Wrapper which is essentially FilterpDeviceIoControl.
- * 
+ *
  * \param[in] Handle Filter port handle.
  * \param[in] IoControlCode Filter I/O control code
  * \param[in] InBuffer Input buffer.
@@ -62,7 +62,7 @@ typedef struct _FILTER_PORT_EA
  * \param[in] OutputBufferSize Output buffer size.
  * \param[out] BytesReturned Optionally set to the number of bytes returned.
  * \param[in,out] Overlapped Optional overlapped structure.
- * 
+ *
  * \return Successful or errant status.
  */
 _Must_inspect_result_
@@ -171,14 +171,14 @@ NTSTATUS KphpFilterDeviceIoControl(
 
 /**
  * \brief Wrapper which is essentially FilterSendMessage.
- * 
+ *
  * \param[in] Port Filter port handle.
  * \param[in] InBuffer Input buffer.
  * \param[in] InBufferSize Input buffer size.
  * \param[out] OutputBuffer Output Buffer.
  * \param[in] OutputBufferSize Output buffer size.
  * \param[out] BytesReturned Set to the number of bytes returned.
- * 
+ *
  * \return Successful or errant status.
  */
 _Must_inspect_result_
@@ -203,13 +203,13 @@ NTSTATUS KphpFilterSendMessage(
 
 /**
  * \brief Wrapper which is essentially FilterGetMessage.
- * 
+ *
  * \param[in] Port Filter port handle.
  * \param[out] MessageBuffer Message buffer.
  * \param[in] MessageBufferSize Message buffer size.
  * \param[in] Overlapped Th overlapped structure.
- * 
- * \return Successful or errant status. 
+ *
+ * \return Successful or errant status.
  */
 _Must_inspect_result_
 NTSTATUS KphpFilterGetMessage(
@@ -231,7 +231,7 @@ NTSTATUS KphpFilterGetMessage(
 
 /**
  * \brief Wrapper which is essentially FilterReplyMessage.
- * 
+ *
  * \param[in] Port Filter port handle.
  * \param[in] ReplyBuffer Reply buffer.
  * \param[in] ReplyBufferSize Reply buffer size.
@@ -257,7 +257,7 @@ NTSTATUS KphpFilterReplyMessage(
 
 /**
  * \brief Wrapper which is essentially FilterConnectCommunicationPort.
- * 
+ *
  * \param[in] PortName Name of filter port to connect to.
  * \param[in] Options Filter port options.
  * \param[in] ConnectionContext Connection context.
@@ -357,7 +357,7 @@ NTSTATUS KphpFilterConnectCommunicationPort(
                           0,
                           0,
                           FILE_OPEN_IF,
-                          createOptions, 
+                          createOptions,
                           ea,
                           eaLen);
 
@@ -368,8 +368,8 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 
 /**
  * \brief Retrieves the message port name.
- * 
- * @return Message port name string. 
+ *
+ * @return Message port name string.
  */
 PPH_STRING KphCommGetMessagePortName(
     VOID
@@ -393,8 +393,8 @@ PPH_STRING KphCommGetMessagePortName(
 
 /**
  * \brief I/O thread pool callback for filter port.
- * 
- * \param[in,out] Instance Unused 
+ *
+ * \param[in,out] Instance Unused
  * \param[in,out] Context Unused
  * \param[in,out] Overlapped Pointer to overlapped I/O that was completed.
  * \param[in] IoResult Result of the asynchronous I/O operation.
@@ -483,7 +483,7 @@ Exit:
 
 /**
  * \brief Starts the communications infrastructure.
- * 
+ *
  * \param[in] PortName Communication port name.
  * \param[in] Callback Communication callback for receiving (and replying to)
  * messages from the driver.
@@ -674,8 +674,8 @@ VOID KphCommsStop(
 
 /**
  * \brief Checks if communications is connected to the driver.
- * 
- * @return TRUE if connected, FALSE otherwise. 
+ *
+ * @return TRUE if connected, FALSE otherwise.
  */
 BOOLEAN KphCommsIsConnected(
     VOID
@@ -686,7 +686,7 @@ BOOLEAN KphCommsIsConnected(
 
 /**
  * \brief Replies to a message send to the communications callback.
- * 
+ *
  * \param[in] ReplyToken Reply token from the communications callback.
  * \param[in] Message The message to reply with.
  *
@@ -761,7 +761,7 @@ Exit:
 
 /**
  * \brief Sends a message to the driver (and may receive output if applicable).
- * 
+ *
  * \param[in,out] Message The message to send to driver, on success this message
  * contains the output from the driver.
  *

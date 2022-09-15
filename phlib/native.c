@@ -737,7 +737,7 @@ NTSTATUS PhGetProcessImageFileNameById(
             *FileName = PhCreateString2(&stringRef);
         }
     }
-    
+
     PhFree(data.ImageName.Buffer);
 
     return status;
@@ -1917,7 +1917,7 @@ NTSTATUS PhLoadDllProcess(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PLARGE_INTEGER Timeout
-    ) 
+    )
 {
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
@@ -2413,7 +2413,7 @@ NTSTATUS PhGetJobProcessIdList(
     NTSTATUS status;
     PVOID buffer;
     ULONG bufferSize = 0x100;
-    
+
     do
     {
         buffer = PhAllocate(bufferSize);
@@ -2425,7 +2425,7 @@ NTSTATUS PhGetJobProcessIdList(
             bufferSize,
             &bufferSize
             );
-        
+
         if (NT_SUCCESS(status))
         {
             *ProcessIdList = (PJOBOBJECT_BASIC_PROCESS_ID_LIST)buffer;
@@ -5115,7 +5115,7 @@ NTSTATUS PhSetProcessQuotaLimits(
     if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
-            ProcessHandle, 
+            ProcessHandle,
             KphProcessQuotaLimits,
             &QuotaLimits,
             sizeof(QUOTA_LIMITS)
@@ -5125,28 +5125,88 @@ NTSTATUS PhSetProcessQuotaLimits(
     return status;
 }
 
+NTSTATUS PhGetProcessPriority(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PUCHAR PriorityClass
+    )
+{
+    NTSTATUS status;
+    PROCESS_PRIORITY_CLASS processPriorityClass;
+
+    memset(&processPriorityClass, 0, sizeof(PROCESS_PRIORITY_CLASS));
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessPriorityClass,
+        &processPriorityClass,
+        sizeof(PROCESS_PRIORITY_CLASS),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *PriorityClass = processPriorityClass.PriorityClass;
+    }
+
+    return status;
+}
+
 NTSTATUS PhSetProcessPriority(
     _In_ HANDLE ProcessHandle,
-    _In_ PROCESS_PRIORITY_CLASS PriorityClass
+    _In_ UCHAR PriorityClass
     )
 {
     NTSTATUS status;
 
-    status = NtSetInformationProcess(
-        ProcessHandle, 
-        ProcessPriorityClass, 
-        &PriorityClass,
-        sizeof(PROCESS_PRIORITY_CLASS)
-        );
-
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    if (WindowsVersion >= WINDOWS_11_22H1)
     {
-        status = KphSetInformationProcess(
-            ProcessHandle, 
-            KphProcessPriorityClass, 
-            &PriorityClass,
+        PROCESS_PRIORITY_CLASS_EX processPriorityClassEx;
+
+        memset(&processPriorityClassEx, 0, sizeof(PROCESS_PRIORITY_CLASS_EX));
+        processPriorityClassEx.PriorityClassValid = TRUE;
+        processPriorityClassEx.PriorityClass = PriorityClass;
+
+        status = NtSetInformationProcess(
+            ProcessHandle,
+            ProcessPriorityClassEx,
+            &processPriorityClassEx,
+            sizeof(PROCESS_PRIORITY_CLASS_EX)
+            );
+
+        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        {
+            status = KphSetInformationProcess(
+                ProcessHandle,
+                KphProcessPriorityClassEx,
+                &processPriorityClassEx,
+                sizeof(PROCESS_PRIORITY_CLASS_EX)
+                );
+        }
+    }
+    else
+    {
+        PROCESS_PRIORITY_CLASS processPriorityClass;
+
+        memset(&processPriorityClass, 0, sizeof(PROCESS_PRIORITY_CLASS));
+        processPriorityClass.Foreground = FALSE;
+        processPriorityClass.PriorityClass = PriorityClass;
+
+        status = NtSetInformationProcess(
+            ProcessHandle,
+            ProcessPriorityClass,
+            &processPriorityClass,
             sizeof(PROCESS_PRIORITY_CLASS)
             );
+
+        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        {
+            status = KphSetInformationProcess(
+                ProcessHandle,
+                KphProcessPriorityClass,
+                &processPriorityClass,
+                sizeof(PROCESS_PRIORITY_CLASS)
+                );
+        }
     }
 
     return status;
@@ -5175,7 +5235,7 @@ NTSTATUS PhSetProcessIoPriority(
     if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
     {
         status = KphSetInformationProcess(
-            ProcessHandle, 
+            ProcessHandle,
             KphProcessIoPriority,
             &IoPriority,
             sizeof(IO_PRIORITY_HINT)
@@ -6750,7 +6810,7 @@ NTSTATUS PhEnumDirectoryFileEx(
             PFILE_NAMES_INFORMATION information;
 
             // HACK: Use the wrong structure for the NextEntryOffset. (dmex)
-            information = PTR_ADD_OFFSET(buffer, i); 
+            information = PTR_ADD_OFFSET(buffer, i);
 
             if (!Callback(information, Context))
             {
@@ -9393,9 +9453,9 @@ NTSTATUS PhDeleteDirectoryWin32(
     {
         // Remove any files or folders inside the directory. (dmex)
         status = PhEnumDirectoryFile(
-            directoryHandle, 
-            NULL, 
-            PhpDeleteDirectoryCallback, 
+            directoryHandle,
+            NULL,
+            PhpDeleteDirectoryCallback,
             DirectoryPath
             );
 
@@ -11059,7 +11119,7 @@ NTSTATUS PhQueryProcessHeapInformation(
             {
                 heapDebugInfo->Heaps[i].HeapFrontEndType = frontEndType;
             }
-            
+
             NtClose(processHandle);
         }
     }
@@ -11921,7 +11981,7 @@ BOOLEAN PhIsFirmwareSupported(
     GUID vendorGuid = { 0 };
 
     if (NtQuerySystemEnvironmentValueEx(
-        &variableName, 
+        &variableName,
         &vendorGuid,
         NULL,
         &variableValueLength,
@@ -12310,7 +12370,7 @@ static BOOLEAN NTAPI PhpKnownDllObjectsCallback(
         0,
         NULL,
         &viewSize,
-        ViewShare,
+        ViewUnmap,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );

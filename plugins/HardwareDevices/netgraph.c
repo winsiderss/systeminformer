@@ -191,7 +191,7 @@ VOID NetAdapterUpdateTitle(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    // The interface alias can change so update the value. 
+    // The interface alias can change so update the value.
     PhSetWindowText(Context->AdapterTextLabel, PhGetStringOrEmpty(Context->AdapterEntry->AdapterAlias));
     PhSetWindowText(Context->AdapterNameLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterName, L"Unknown network adapter")); // TODO: We only need to set the name once. (dmex)
 }
@@ -680,8 +680,8 @@ VOID NetAdapterSysInfoInitializing(
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
-    context->AdapterEntry = AdapterEntry;
-    context->SectionName = PhConcatStringRef2(&text, &AdapterEntry->AdapterId.InterfaceGuid->sr);
+    context->AdapterEntry = PhReferenceObject(AdapterEntry);
+    context->SectionName = PhConcatStringRef2(&text, &AdapterEntry->AdapterId.InterfaceGuidString->sr);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;

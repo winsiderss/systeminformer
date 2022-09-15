@@ -30,7 +30,7 @@ EventMetadata mMetadata;
 //
 // mPresentByThreadId stores the in-progress present that was last operated
 // on by each thread for event sequences that are known to execute on the
-// same thread. Its members' lifetime should track the lifetime of the 
+// same thread. Its members' lifetime should track the lifetime of the
 // runtime present API as much as possible. Only one present will be going
 // through this sequence on any particular thread at a time.
 //
@@ -621,7 +621,7 @@ void HandleDxgkSyncDPCMPO(
 
     // VSyncDPC and VSyncDPCMultiPlaneOverlay are both sent, with VSyncDPC only including flipSubmitSequence for one layer.
     // VSyncDPCMultiPlaneOverlay is sent afterward and contains info on whether this vsync/hsync contains an overlay.
-    // So we should avoid updating ScreenTime and FinalState with the second event, but update isMultiPlane with the 
+    // So we should avoid updating ScreenTime and FinalState with the second event, but update isMultiPlane with the
     // correct information when we have them.
     if (pEvent->FinalState != PresentResult::Presented)
     {
@@ -942,7 +942,7 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
                     CompletePresent(present);
                 }
             }
-            
+
             // We use the first observed event to indicate that Dxgk provider is
             // running and able to successfully track/complete presents.
             //
@@ -1431,7 +1431,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
             if (flipIter == mPresentsByLegacyBlitToken.end())
                 return;
 
-            // Watch for multiple legacy blits completing against the same window		
+            // Watch for multiple legacy blits completing against the same window
             mLastWindowPresent[hwnd] = flipIter->second;
             flipIter->second->DwmNotified = true;
             mPresentsByLegacyBlitToken.erase(flipIter);
@@ -1473,7 +1473,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
 void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent> p)
 {
     // Remove the present from any struct that would only host the event temporarily.
-    // Currently defined as all structures except for mPresentsByProcess, 
+    // Currently defined as all structures except for mPresentsByProcess,
     // mPresentsByProcessAndSwapChain, and mAllPresents.
 
     auto threadEventIter = mPresentByThreadId.find(p->ThreadId);

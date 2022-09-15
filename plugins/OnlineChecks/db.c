@@ -123,7 +123,7 @@ PPROCESS_DB_OBJECT CreateProcessDbObject(
 
     realObject = PhAddEntryHashtableEx(ProcessObjectDb, &object, &added);
 
-    if (added)   
+    if (added)
         return object;
     else
         return NULL;

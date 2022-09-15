@@ -596,7 +596,7 @@ BOOLEAN PhUiRestartComputer(
                 ))
             {
                 ULONG status;
-                
+
                 status = InitiateShutdown(
                     NULL,
                     NULL,
@@ -763,7 +763,7 @@ BOOLEAN PhUiRestartComputer(
                 //            SHUTDOWN_RESTART,
                 //            SHTDN_REASON_FLAG_PLANNED
                 //            );
-                //        
+                //
                 //        if (status != ERROR_SUCCESS)
                 //        {
                 //            PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
@@ -956,7 +956,7 @@ BOOLEAN PhUiRestartComputer(
 
                 if (status == S_OK)
                     return TRUE;
-                
+
                 if ((status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0))
                 {
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, HRESULT_CODE(status));
@@ -965,7 +965,7 @@ BOOLEAN PhUiRestartComputer(
                 {
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", STATUS_UNSUCCESSFUL, 0);
                 }
-            }       
+            }
         }
         break;
     }
@@ -1034,7 +1034,7 @@ BOOLEAN PhUiShutdownComputer(
                 ))
             {
                 NTSTATUS status;
-                
+
                 status = NtShutdownSystem(ShutdownPowerOff);
 
                 if (NT_SUCCESS(status))
@@ -1068,14 +1068,14 @@ BOOLEAN PhUiShutdownComputer(
                     PowerActionShutdownOff,
                     PowerSystemShutdown,
                     POWER_ACTION_CRITICAL
-                    );            
+                    );
                 //status = NtInitiatePowerAction(
                 //    PowerActionShutdownReset,
                 //    PowerSystemShutdown,
                 //    POWER_ACTION_CRITICAL,
                 //    FALSE
                 //    );
-                
+
                 if (NT_SUCCESS(status))
                     return TRUE;
 
@@ -2555,9 +2555,9 @@ BOOLEAN PhUiRestartProcess(
             flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
         }
 
-        // CreateProcess returns access_denied when restarting full-trust immersive/store processes since appcontainer information 
+        // CreateProcess returns access_denied when restarting full-trust immersive/store processes since appcontainer information
         // is located in the current user registry hive. This is especially noticeable when we're running elevated with a
-        // different user on the same desktop session via UAC over-the-shoulder elevation and try to restart notepad.exe 
+        // different user on the same desktop session via UAC over-the-shoulder elevation and try to restart notepad.exe
         // so we're required to impersonate the token before restarting full-trust immersive/store processes... sigh. (dmex)
         if (PhIsTokenFullTrustAppPackage(tokenHandle))
         {
@@ -2979,12 +2979,8 @@ BOOLEAN PhUiSetEcoModeProcess(
                     FALSE
                     ))
                 {
-                    PROCESS_PRIORITY_CLASS priorityClass;
-
                     // Taskmgr sets the process priority to idle before enabling 'Eco mode'. (dmex)
-                    priorityClass.Foreground = FALSE;
-                    priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
-                    PhSetProcessPriority(processHandle, priorityClass);
+                    PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_IDLE);
 
                     status = PhSetProcessPowerThrottlingState(
                         processHandle,
@@ -3003,14 +2999,10 @@ BOOLEAN PhUiSetEcoModeProcess(
                 //    FALSE
                 //    ))
                 {
-                    PROCESS_PRIORITY_CLASS priorityClass;
-
                     // Taskmgr does not properly restore the original priority after it has exited
                     // and you later decide to disable 'Eco mode', so we'll restore normal priority
                     // which isn't quite correct but still way better than what taskmgr does. (dmex)
-                    priorityClass.Foreground = FALSE;
-                    priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
-                    PhSetProcessPriority(processHandle, priorityClass);
+                    PhSetProcessPriority(processHandle, PROCESS_PRIORITY_CLASS_NORMAL);
 
                     status = PhSetProcessPowerThrottlingState(processHandle, 0, 0);
                 }
@@ -3118,7 +3110,7 @@ BOOLEAN PhUiLoadDllProcess(
             );
     }
 
-    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+    // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
     if (!NT_SUCCESS(status))
     {
         status = PhOpenProcess(
@@ -3284,12 +3276,7 @@ BOOLEAN PhUiSetPriorityProcesses(
         {
             if (Processes[i]->ProcessId != SYSTEM_PROCESS_ID)
             {
-                PROCESS_PRIORITY_CLASS priorityClass;
-
-                priorityClass.Foreground = FALSE;
-                priorityClass.PriorityClass = (UCHAR)PriorityClass;
-
-                status = PhSetProcessPriority(processHandle, priorityClass);
+                status = PhSetProcessPriority(processHandle, (UCHAR)PriorityClass);
             }
             else
             {
@@ -4481,7 +4468,7 @@ BOOLEAN PhUiUnloadModule(
                     );
             }
 
-            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex) 
+            // Windows 10 and above require SET_LIMITED for PLM execution requests. (dmex)
             if (!NT_SUCCESS(status))
             {
                 status = PhOpenProcess(

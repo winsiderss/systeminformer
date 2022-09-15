@@ -14,7 +14,6 @@
 #define DB_H
 
 #define PLUGIN_NAME L"ProcessHacker.UserNotes"
-#define SETTING_NAME_DATABASE_PATH (PLUGIN_NAME L".DatabasePath")
 #define SETTING_NAME_CUSTOM_COLOR_LIST (PLUGIN_NAME L".ColorCustomList")
 
 #define FILE_TAG 1

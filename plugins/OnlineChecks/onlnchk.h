@@ -108,7 +108,7 @@ typedef struct _UPLOAD_CONTEXT
     ULONG Service;
     ULONG ErrorCode;
     ULONG TotalFileLength;
-    
+
     HWND DialogHandle;
     WNDPROC DialogWindowProc;
 

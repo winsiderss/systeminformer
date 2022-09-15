@@ -52,10 +52,10 @@ VOID PhpEscapeStringForCsv(
                 runStart = NULL;
             }
 
-            // Note: There doesn't seem to be a proper way to escape 
-            // commas for some locales in a way that works with all 
-            // third party software. For now we'll swap commas 
-            // for full stops. This works but prevents formatting 
+            // Note: There doesn't seem to be a proper way to escape
+            // commas for some locales in a way that works with all
+            // third party software. For now we'll swap commas
+            // for full stops. This works but prevents formatting
             // integers with the correct decimal separator. (dmex)
 
             PhAppendStringBuilder2(StringBuilder, L".");

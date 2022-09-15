@@ -1726,7 +1726,7 @@ PPH_STRING PhFormatTimeSpanEx(
 {
     SIZE_T returnLength;
     WCHAR buffer[PH_TIMESPAN_STR_LEN_1];
-    
+
     if (PhPrintTimeSpanToBuffer(
         Ticks,
         Mode,
@@ -3267,14 +3267,20 @@ PPH_STRING PhGetApplicationDirectoryWin32(
     return directoryPath;
 }
 
-PPH_STRING PhGetApplicationDirectoryFileNameWin32(
-    _In_ PPH_STRINGREF FileName
+PPH_STRING PhGetApplicationDirectoryFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
     )
 {
     PPH_STRING applicationFileName = NULL;
     PPH_STRING applicationDirectory;
 
-    if (applicationDirectory = PhGetApplicationDirectoryWin32())
+    if (NativeFileName)
+        applicationDirectory = PhGetApplicationDirectory();
+    else
+        applicationDirectory = PhGetApplicationDirectoryWin32();
+
+    if (applicationDirectory)
     {
         applicationFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
         PhReferenceObject(applicationDirectory);
@@ -3315,6 +3321,70 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     }
 
     return randomAlphaFileName;
+}
+
+PPH_STRING PhGetApplicationDataDirectory(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
+    PPH_STRING applicationDataDirectory = NULL;
+    PPH_STRING applicationDirectory;
+
+    if (applicationDirectory = PhExpandEnvironmentStrings(&directoryPath))
+    {
+        applicationDataDirectory = PhConcatStringRef2(&applicationDirectory->sr, FileName);
+        PhReferenceObject(applicationDirectory);
+    }
+
+    return applicationDataDirectory;
+}
+
+PPH_STRING PhGetApplicationDataFileName(
+    _In_ PPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"\\??\\%APPDATA%\\SystemInformer\\");
+    static PH_STRINGREF directoryPathWin32 = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
+    PPH_STRING applicationDataFileName = NULL;
+    PPH_STRING applicationDirectory;
+
+    // Check current directory. (dmex)
+
+    if (applicationDataFileName = PhGetApplicationDirectoryFileName(FileName, NativeFileName))
+    {
+        if (NativeFileName)
+        {
+            if (PhDoesFileExist(&applicationDataFileName->sr))
+                return applicationDataFileName;
+        }
+        else
+        {
+            if (PhDoesFileExistWin32(PhGetString(applicationDataFileName)))
+                return applicationDataFileName;
+        }
+
+        PhClearReference(&applicationDataFileName);
+    }
+
+    // Check appdata directory. (dmex)
+    if (NativeFileName)
+    {
+        applicationDirectory = PhExpandEnvironmentStrings(&directoryPath);
+    }
+    else
+    {
+        applicationDirectory = PhExpandEnvironmentStrings(&directoryPathWin32);
+    }
+
+    if (applicationDirectory)
+    {
+        applicationDataFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
+        PhReferenceObject(applicationDirectory);
+    }
+
+    return applicationDataFileName;
 }
 
 /**
@@ -3900,19 +3970,16 @@ NTSTATUS PhCreateProcessAsUser(
 
         if (useWithLogon)
         {
-            PPH_STRING commandLine;
-            PROCESS_INFORMATION processInfo;
-            ULONG newFlags;
+            PPH_STRING commandLine = NULL;
+            PROCESS_INFORMATION processInfo = { 0 };
+            ULONG newFlags = 0;
 
             if (Information->CommandLine) // duplicate because CreateProcess modifies the string
                 commandLine = PhCreateString(Information->CommandLine);
-            else
-                commandLine = NULL;
 
             if (!Information->Environment)
                 Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
 
-            newFlags = 0;
             PhMapFlags1(&newFlags, Flags, PhpCreateProcessMappings, sizeof(PhpCreateProcessMappings) / sizeof(PH_FLAG_MAPPING));
 
             if (CreateProcessWithLogonW(
@@ -6917,7 +6984,7 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntryNameHash(
 
         listEntry = listEntry->Flink;
     }
-    
+
     return NULL;
 }
 
@@ -7014,8 +7081,8 @@ PVOID PhGetDllBaseProcedureAddress(
     return PhGetLoaderEntryImageExportFunction(
         DllBase,
         dataDirectory,
-        exportDirectory, 
-        ProcedureName, 
+        exportDirectory,
+        ProcedureName,
         ProcedureNumber
         );
 }
@@ -7156,7 +7223,7 @@ NTSTATUS PhGetLoaderEntryImageVaToSection(
     for (i = 0; i < ImageNtHeader->FileHeader.NumberOfSections; i++)
     {
         sectionHeader = PTR_ADD_OFFSET(IMAGE_FIRST_SECTION(ImageNtHeader), sizeof(IMAGE_SECTION_HEADER) * i);
-        
+
         if (
             ((ULONG_PTR)ImageDirectoryAddress >= (ULONG_PTR)PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress)) &&
             ((ULONG_PTR)ImageDirectoryAddress < (ULONG_PTR)PTR_ADD_OFFSET(PTR_ADD_OFFSET(BaseAddress, sectionHeader->VirtualAddress), sectionHeader->SizeOfRawData))
@@ -7296,7 +7363,7 @@ static ULONG PhpLookupLoaderEntryImageExportFunctionIndex(
 PVOID PhGetLoaderEntryImageExportFunction(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
-    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory, 
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
     _In_opt_ PSTR ExportName,
     _In_opt_ USHORT ExportOrdinal
     )
@@ -7509,7 +7576,7 @@ PVOID PhGetDllBaseProcedureAddressWithHint(
 }
 
 static NTSTATUS PhpFixupLoaderEntryImageImports(
-    _In_ PVOID BaseAddress, 
+    _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader
     )
 {
@@ -8079,7 +8146,7 @@ NTSTATUS PhLoaderEntryLoadDll(
         0,
         NULL,
         &imageBaseOffset,
-        ViewShare,
+        ViewUnmap,
         0,
         PAGE_EXECUTE
         );
@@ -8216,7 +8283,7 @@ NTSTATUS PhLoadPluginImage(
         return status;
 
     status = PhGetLoaderEntryImageNtHeaders(
-        imageBaseAddress, 
+        imageBaseAddress,
         &imageNtHeaders
         );
 
@@ -8224,7 +8291,7 @@ NTSTATUS PhLoadPluginImage(
         goto CleanupExit;
 
     status = PhpFixupLoaderEntryImageImports(
-        imageBaseAddress, 
+        imageBaseAddress,
         imageNtHeaders
         );
 
@@ -8242,7 +8309,7 @@ NTSTATUS PhLoadPluginImage(
         goto CleanupExit;
 
     status = PhGetLoaderEntryImageEntryPoint(
-        imageBaseAddress, 
+        imageBaseAddress,
         imageNtHeaders,
         &imageEntryRoutine
         );
@@ -8585,7 +8652,7 @@ NTSTATUS PhLoadLibraryAsResource(
         0,
         NULL,
         &imageBaseSize,
-        ViewShare,
+        ViewUnmap,
         WindowsVersion < WINDOWS_10_RS2 ? 0 : MEM_MAPPED,
         PAGE_READONLY
         );
@@ -8823,7 +8890,7 @@ NTSTATUS PhCreateRingBuffer(
     // Success, return both mapped views to the caller.
     //
 
-    *RingBuffer = sectionView1; 
+    *RingBuffer = sectionView1;
     *SecondaryView = sectionView2;
 
 #ifdef DEBUG

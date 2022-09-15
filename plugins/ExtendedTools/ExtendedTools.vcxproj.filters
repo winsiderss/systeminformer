@@ -141,9 +141,6 @@
     <ClCompile Include="firmware_editor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="efi.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="objmgr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -249,5 +246,40 @@
     <Text Include="resources\pooltag.txt">
       <Filter>Resource Files</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\folder.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\mutant.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\driver.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\section.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\link.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\key.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\port.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\session.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\event.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\device.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\unknown.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2019
+ *     dmex    2019-2022
  *
  */
 
@@ -19,6 +19,8 @@
 
 #include <ph.h>
 #include <apiimport.h>
+
+#include <accctrl.h>
 #include <lsasup.h>
 
 NTSTATUS PhOpenLsaPolicy(
@@ -590,7 +592,7 @@ PPH_STRING PhSidToStringSid(
 }
 
 PPH_STRING PhGetTokenUserString(
-    _In_ HANDLE TokenHandle, 
+    _In_ HANDLE TokenHandle,
     _In_ BOOLEAN IncludeDomain
     )
 {
@@ -1005,4 +1007,19 @@ PPH_STRING PhGetCapabilityGuidName(
     }
 
     return NULL;
+}
+
+// rev from BuildTrusteeWithSidW (dmex)
+BOOLEAN PhBuildTrusteeWithSid(
+    _Out_ PVOID Trustee,
+    _In_opt_ PSID Sid
+    )
+{
+    memset((PTRUSTEE)Trustee, 0, sizeof(TRUSTEE));
+    ((PTRUSTEE)Trustee)->pMultipleTrustee = NULL;
+    ((PTRUSTEE)Trustee)->MultipleTrusteeOperation = NO_MULTIPLE_TRUSTEE;
+    ((PTRUSTEE)Trustee)->TrusteeForm = TRUSTEE_IS_SID;
+    ((PTRUSTEE)Trustee)->TrusteeType = TRUSTEE_IS_UNKNOWN;
+    ((PTRUSTEE)Trustee)->ptstrName = (LPWCH)Sid;
+    return TRUE;
 }

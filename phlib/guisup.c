@@ -957,10 +957,10 @@ HWND PhCreateDialogFromTemplate(
     }
 
     dialogHandle = CreateDialogIndirectParam(
-        Instance, 
-        (DLGTEMPLATE *)dialogTemplate, 
-        Parent, 
-        DialogProc, 
+        Instance,
+        (DLGTEMPLATE *)dialogTemplate,
+        Parent,
+        DialogProc,
         (LPARAM)Parameter
         );
 
@@ -987,7 +987,7 @@ HWND PhCreateDialog(
         Instance,
         (LPDLGTEMPLATE)dialogTemplate,
         ParentWindow,
-        DialogProc, 
+        DialogProc,
         (LPARAM)Parameter
         );
 
@@ -1409,7 +1409,7 @@ static BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     PPH_WINDOW_PROPERTY_CONTEXT entry1 = Entry1;
     PPH_WINDOW_PROPERTY_CONTEXT entry2 = Entry2;
 
-    return 
+    return
         entry1->WindowHandle == entry2->WindowHandle &&
         entry1->PropertyHash == entry2->PropertyHash;
 }
@@ -1667,7 +1667,7 @@ VOID PhSetWindowAlwaysOnTop(
     SetFocus(WindowHandle); // HACK - SetWindowPos doesn't work properly without this (wj32)
     SetWindowPos(
         WindowHandle,
-        AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 
+        AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
         0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
         );
@@ -1774,7 +1774,7 @@ HICON PhGetInternalWindowIcon(
     }
 
     if (!InternalGetWindowIcon_I)
-        return NULL; 
+        return NULL;
 
     return InternalGetWindowIcon_I(WindowHandle, Type);
 }
@@ -1915,7 +1915,7 @@ BOOLEAN PhGetSendMessageReceiver(
 // rev from ExtractIconExW
 _Success_(return)
 BOOLEAN PhExtractIcon(
-    _In_ PWSTR FileName, 
+    _In_ PWSTR FileName,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall
     )

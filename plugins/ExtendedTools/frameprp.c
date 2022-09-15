@@ -670,7 +670,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                             drawInfo->LabelYFunctionParameter = max;
                             context->FramesLatencyGraphState.Valid = TRUE;
                         }
-                        
+
                         if (EtGraphShowText)
                         {
                             HDC hdc;

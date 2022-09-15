@@ -735,7 +735,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                             SetFocus(SearchboxHandle);
                             Edit_SetSel(SearchboxHandle, 0, -1);
                         }
-                    }   
+                    }
                 }
                 goto DefaultWndProc;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
@@ -747,7 +747,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     BOOLEAN isAlwaysOnTopEnabled = !!PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
 
                     // Set the pressed button state.
-                    SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0))); 
+                    SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0)));
                 }
                 goto DefaultWndProc;
             case PHAPP_ID_UPDATEINTERVAL_FAST:

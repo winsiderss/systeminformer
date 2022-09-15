@@ -51,7 +51,7 @@ typedef struct _API_SET_NAMESPACE_ENTRY
 } API_SET_NAMESPACE_ENTRY, *PAPI_SET_NAMESPACE_ENTRY;
 
 // private
-typedef struct _API_SET_VALUE_ENTRY 
+typedef struct _API_SET_VALUE_ENTRY
 {
     ULONG Flags;
     ULONG NameOffset;
@@ -120,11 +120,11 @@ typedef struct _PEB
     ULONG TlsExpansionCounter;
     PVOID TlsBitmap;
     ULONG TlsBitmapBits[2];
-    
-    PVOID ReadOnlySharedMemoryBase; 
+
+    PVOID ReadOnlySharedMemoryBase;
     PVOID SharedData; // HotpatchInformation
     PVOID *ReadOnlyStaticServerData;
-    
+
     PVOID AnsiCodePageData; // PCPTABLEINFO
     PVOID OemCodePageData; // PCPTABLEINFO
     PVOID UnicodeCaseTableData; // PNLSTABLEINFO
@@ -297,14 +297,14 @@ typedef struct _TEB
 #else
     PVOID SystemReserved1[26];
 #endif
-    
+
     CHAR PlaceholderCompatibilityMode;
     BOOLEAN PlaceholderHydrationAlwaysExplicit;
     CHAR PlaceholderReserved[10];
 
     ULONG ProxiedProcessId;
     ACTIVATION_CONTEXT_STACK ActivationStack;
-    
+
     UCHAR WorkingOnBehalfTicket[8];
     NTSTATUS ExceptionCode;
 

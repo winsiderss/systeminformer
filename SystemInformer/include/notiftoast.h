@@ -24,7 +24,7 @@ typedef enum _PH_TOAST_REASON
     PhToastReasonTimedOut,
     PhToastReasonActivated,
     PhToastReasonError,
-    PhToastReasonUnknown 
+    PhToastReasonUnknown
 
 } PH_TOAST_REASON;
 
@@ -47,7 +47,7 @@ HRESULT PhShowToast(
     _In_ PCWSTR ToastXml,
     _In_opt_ ULONG TimeoutMilliseconds,
     _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
-    _In_opt_ PVOID Context 
+    _In_opt_ PVOID Context
     );
 
 #ifdef __cplusplus

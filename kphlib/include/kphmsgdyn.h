@@ -25,35 +25,35 @@ _Must_inspect_result_
 NTSTATUS KphMsgDynAddUnicodeString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _In_ PCUNICODE_STRING String 
+    _In_ PCUNICODE_STRING String
     );
 
 _Must_inspect_result_
 NTSTATUS KphMsgDynAddUnicodeString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _In_ PCUNICODE_STRING String 
+    _In_ PCUNICODE_STRING String
     );
 
 _Must_inspect_result_
 NTSTATUS KphMsgDynGetUnicodeString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _Out_ PUNICODE_STRING String 
+    _Out_ PUNICODE_STRING String
     );
 
 _Must_inspect_result_
 NTSTATUS KphMsgDynAddAnsiString(
     _Inout_ PKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _In_ PCANSI_STRING String 
+    _In_ PCANSI_STRING String
     );
 
 _Must_inspect_result_
 NTSTATUS KphMsgDynGetAnsiString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _Out_ PANSI_STRING String 
+    _Out_ PANSI_STRING String
     );
 
 #ifdef __cplusplus

@@ -119,7 +119,7 @@ VOID KphpDebugPrintDpc (
 
 /**
  * \brief Debug print callback.
- * 
+ *
  * \param[in] Output Debug print string output.
  * \param[in] ComponentId Component ID printing to the debug output.
  * \param[in] Level Debug print level.
@@ -177,7 +177,7 @@ VOID KphpDebugPrintCallback(
 Exit:
 
     KeReleaseSpinLockFromDpcLevel(&KphpDbgPrintLock);
-    
+
     if (slot)
     {
         KeInsertQueueDpc(&slot->Dpc, NULL, NULL);
@@ -186,7 +186,7 @@ Exit:
 
 /**
  * \brief Starts the debug informer.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)

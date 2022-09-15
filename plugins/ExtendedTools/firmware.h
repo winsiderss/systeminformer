@@ -9,7 +9,8 @@
  *
  */
 
-#pragma once
+#ifndef FIRMWARE_H
+#define FIRMWARE_H
 
 #define CINTERFACE
 #define COBJMACROS
@@ -40,10 +41,6 @@ typedef struct _EFI_ENTRY
     PPH_STRING GuidString;
 } EFI_ENTRY, *PEFI_ENTRY;
 
-NTSTATUS EnumerateFirmwareValues(
-    _Out_ PVOID *Values
-    );
-
 VOID ShowUefiEditorDialog(
     _In_ PEFI_ENTRY Entry
     );
@@ -58,8 +55,7 @@ typedef enum _SYSTEM_ENVIRONMENT_INFORMATION_CLASS
     MaxSystemEnvironmentInfoClass
 } SYSTEM_ENVIRONMENT_INFORMATION_CLASS;
 
-
-typedef struct _VARIABLE_NAME 
+typedef struct _VARIABLE_NAME
 {
     ULONG NextEntryOffset;
     GUID VendorGuid;
@@ -74,7 +70,7 @@ typedef struct _VARIABLE_NAME
 #define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS    0x00000020
 #define EFI_VARIABLE_APPEND_WRITE                             0x00000040
 
-typedef struct _VARIABLE_NAME_AND_VALUE 
+typedef struct _VARIABLE_NAME_AND_VALUE
 {
     ULONG NextEntryOffset;
     ULONG ValueOffset;
@@ -100,11 +96,6 @@ typedef struct _VARIABLE_NAME_AND_VALUE
     NULL \
     )
 
-typedef BOOLEAN (NTAPI *PPH_BOOT_ENTRY_CALLBACK)(
-    _In_ PBOOT_ENTRY BootEntry,
-    _In_ PVOID Context
-    );
-
 #define FILE_PATH_TYPE_MIN FILE_PATH_TYPE_ARC
 #define FILE_PATH_TYPE_MAX FILE_PATH_TYPE_EFI
 
@@ -119,3 +110,5 @@ typedef struct _WINDOWS_OS_OPTIONS
     ULONG OsLoadPathOffset; //FILE_PATH OsLoadPath;
     WCHAR OsLoadOptions[1];
 } WINDOWS_OS_OPTIONS, *PWINDOWS_OS_OPTIONS;
+
+#endif

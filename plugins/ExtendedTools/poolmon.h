@@ -6,10 +6,12 @@
  * Authors:
  *
  *     jxy-s   2022
+ *     dmex    2022
  *
  */
 
-#pragma once
+#ifndef POOLMON_H
+#define POOLMON_H
 
 #define CINTERFACE
 #define COBJMACROS
@@ -22,9 +24,6 @@
 #include <workqueue.h>
 
 #include "resource.h"
-
-#define POOL_TABLE_SHOWDIALOG  (WM_APP + 1)
-#define POOL_TABLE_SHOWCONTEXTMENU (WM_APP + 2)
 
 typedef enum _POOLTAG_TREE_ITEM_TYPE
 {
@@ -87,7 +86,7 @@ typedef struct _POOLTAG_ROOT_NODE
     PH_TREENEW_NODE Node;
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 
-    ULONG TagUlong; 
+    ULONG TagUlong;
     PPOOL_ITEM PoolItem;
 
     PPH_STRING PagedAllocsDeltaString;
@@ -117,7 +116,7 @@ typedef struct _POOLTAG_CONTEXT
 
     PH_QUEUED_LOCK PoolTagListLock;
     PPH_LIST PoolTagDbList;
-    PPH_HASHTABLE PoolTagDbHashtable;  
+    PPH_HASHTABLE PoolTagDbHashtable;
 
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
@@ -198,7 +197,6 @@ NTSTATUS EnumBigPoolTable(
     _Out_ PVOID* Buffer
     );
 
-
 // pooldb.c
 
 VOID LoadPoolTagDatabase(
@@ -214,3 +212,5 @@ VOID UpdatePoolTagBinaryName(
     _In_ PPOOL_ITEM PoolEntry,
     _In_ ULONG TagUlong
     );
+
+#endif

@@ -55,10 +55,10 @@ HRESULT PhCreateAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
-    taskNameString = SysAllocStringLen(TaskName->Buffer, (UINT32)TaskName->Length);
-    taskFileNameString = SysAllocStringLen(FileName->Buffer, (UINT32)FileName->Length);
-    taskFolderString = SysAllocStringLen(PhNtPathSeperatorString.Buffer, (UINT32)PhNtPathSeperatorString.Length);
-    taskTimeLimitString = SysAllocStringLen(taskTimeLimit.Buffer, (UINT32)taskTimeLimit.Length);
+    taskNameString = SysAllocStringLen(TaskName->Buffer, (UINT32)TaskName->Length / sizeof(WCHAR));
+    taskFileNameString = SysAllocStringLen(FileName->Buffer, (UINT32)FileName->Length / sizeof(WCHAR));
+    taskFolderString = SysAllocStringLen(PhNtPathSeperatorString.Buffer, (UINT32)PhNtPathSeperatorString.Length / sizeof(WCHAR));
+    taskTimeLimitString = SysAllocStringLen(taskTimeLimit.Buffer, (UINT32)taskTimeLimit.Length / sizeof(WCHAR));
 
     status = ITaskService_Connect(
         taskService,
@@ -154,7 +154,7 @@ HRESULT PhCreateAdminTask(
 
     IPrincipal_put_RunLevel(taskPrincipal, TASK_RUNLEVEL_HIGHEST);
     IPrincipal_put_LogonType(taskPrincipal, TASK_LOGON_INTERACTIVE_TOKEN);
-        
+
     status = ITaskDefinition_get_Actions(
         taskDefinition,
         &taskActionCollection
@@ -262,8 +262,8 @@ HRESULT PhDeleteAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
-    taskNameString = SysAllocStringLen(TaskName->Buffer, (UINT32)TaskName->Length);
-    taskFolderString = SysAllocStringLen(PhNtPathSeperatorString.Buffer, (UINT32)PhNtPathSeperatorString.Length);
+    taskNameString = SysAllocStringLen(TaskName->Buffer, (UINT32)TaskName->Length / sizeof(WCHAR));
+    taskFolderString = SysAllocStringLen(PhNtPathSeperatorString.Buffer, (UINT32)PhNtPathSeperatorString.Length / sizeof(WCHAR));
 
     status = ITaskService_Connect(
         taskService,
@@ -328,8 +328,8 @@ HRESULT PhRunAsAdminTask(
     if (FAILED(status))
         goto CleanupExit;
 
-    taskNameString = SysAllocStringLen(TaskName->Buffer, (UINT32)TaskName->Length);
-    taskFolderString = SysAllocStringLen(PhNtPathSeperatorString.Buffer, (UINT32)PhNtPathSeperatorString.Length);
+    taskNameString = SysAllocStringLen(TaskName->Buffer, (UINT32)TaskName->Length / sizeof(WCHAR));
+    taskFolderString = SysAllocStringLen(PhNtPathSeperatorString.Buffer, (UINT32)PhNtPathSeperatorString.Length / sizeof(WCHAR));
 
     status = ITaskService_Connect(
         taskService,

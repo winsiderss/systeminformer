@@ -26,14 +26,14 @@ BOOLEAN UpdaterCheckApplicationDirectory(
     HANDLE fileHandle;
     PPH_STRING fileName;
 
-    fileName = PhGetApplicationDirectoryFileNameWin32(&fileNameStringRef);
+    fileName = PhGetApplicationDirectoryFileName(&fileNameStringRef, TRUE);
 
     if (PhIsNullOrEmptyString(fileName))
         return FALSE;
 
-    if (NT_SUCCESS(PhCreateFileWin32(
+    if (NT_SUCCESS(PhCreateFile(
         &fileHandle,
-        PhGetString(fileName),
+        &fileName->sr,
         FILE_GENERIC_WRITE | DELETE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -290,7 +290,7 @@ VOID ShowUpdateFailedDialog(
         if (Context->ErrorCode)
         {
             PPH_STRING errorMessage;
-          
+
             if (errorMessage = PhHttpSocketGetErrorMessage(Context->ErrorCode))
             {
                 config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;

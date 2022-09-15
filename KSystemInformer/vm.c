@@ -22,8 +22,8 @@ PAGED_FILE();
 #define KPH_POOL_COPY_THRESHOLD 0x3ff
 
 /**
- * \brief Copies out the bad address from a virtual memory flavored exception. 
- * 
+ * \brief Copies out the bad address from a virtual memory flavored exception.
+ *
  * \param[in] ExceptionInfo Exception information to copy from.
  * \param[out] HaveBadAddress Set to true if the exception is flavored properly
  * to retrieve the bad address.

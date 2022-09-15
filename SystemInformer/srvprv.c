@@ -1048,7 +1048,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
 
     if (notifyBuffer->dwNotificationStatus == ERROR_SUCCESS)
     {
-        if ((notifyBuffer->dwNotificationTriggered & (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)) && 
+        if ((notifyBuffer->dwNotificationTriggered & (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED)) &&
             notifyBuffer->pszServiceNames)
         {
             PWSTR name;
@@ -1438,7 +1438,7 @@ VOID PhpWorkaroundWindows10ServiceTypeBug(
     _Inout_ LPENUM_SERVICE_STATUS_PROCESS ServiceEntry
     )
 {
-    // https://github.com/processhacker2/processhacker/issues/120 (dmex)
+    // https://github.com/winsiderss/systeminformer/issues/120 (dmex)
     if (ServiceEntry->ServiceStatusProcess.dwServiceType == SERVICE_WIN32)
         ServiceEntry->ServiceStatusProcess.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
     if (ServiceEntry->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))

@@ -890,7 +890,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                         0,
                         NULL,
                         DI_NORMAL
-                        ); 
+                        );
                 }
 
                 bufferRect.left += context->CXWidth + 4;

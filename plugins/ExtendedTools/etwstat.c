@@ -198,8 +198,8 @@ VOID EtProcessNetworkEvent(
 
     if (!networkItem && Event->ProtocolType & PH_UDP_PROTOCOL_TYPE)
     {
-        // Note: ETW generates UDP events with the LocalEndpoint set to the LAN endpoint address 
-        // of the local adapter the packet was sent or recieved but GetExtendedUdpTable 
+        // Note: ETW generates UDP events with the LocalEndpoint set to the LAN endpoint address
+        // of the local adapter the packet was sent or recieved but GetExtendedUdpTable
         // returns some UDP connections with endpoints set to in4addr_any/in6addr_any (zero). (dmex)
 
         if (Event->ProtocolType & PH_IPV4_NETWORK_TYPE)

@@ -230,7 +230,7 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
     key.desc_ = eventRecord->EventHeader.EventDescriptor;
 
     auto ii = metadata_.find(key);
-    if (ii == metadata_.end()) 
+    if (ii == metadata_.end())
     {
         ULONG bufferSize = 0;
         TDHSTATUS status;
@@ -243,8 +243,8 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
 
             status = TdhGetEventInformation(eventRecord, 0, nullptr, (TRACE_EVENT_INFO*) ii->second.data(), &bufferSize);
             assert(status == ERROR_SUCCESS);
-        } 
-        else 
+        }
+        else
         {
             // No schema registered with system, nor ETL-embedded metadata.
             ii = metadata_.emplace(key, std::vector<uint8_t>(sizeof(TRACE_EVENT_INFO), 0)).first;
@@ -276,7 +276,7 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
 
         for (ULONG j = 0; j < descCount; ++j)
         {
-            if (desc[j].status_ == PROP_STATUS_NOT_FOUND && wcscmp(propName, desc[j].name_) == 0) 
+            if (desc[j].status_ == PROP_STATUS_NOT_FOUND && wcscmp(propName, desc[j].name_) == 0)
             {
                 assert(desc[j].arrayIndex_ < count);
 
@@ -286,7 +286,7 @@ void EventMetadata::GetEventData(EVENT_RECORD* eventRecord, EventDataDesc* desc,
 
                 foundCount += 1;
 
-                if (foundCount == descCount) 
+                if (foundCount == descCount)
                 {
                     return;
                 }

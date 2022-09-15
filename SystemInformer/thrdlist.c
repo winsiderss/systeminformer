@@ -854,7 +854,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
                         {
@@ -957,7 +957,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     PH_FORMAT format[1];
 
                     PhInitFormatD(&format[0], threadItem->Priority);
-            
+
                     if (PhFormatToBuffer(format, 1, node->PriorityText, sizeof(node->PriorityText), &returnLength))
                     {
                         getCellText->Text.Buffer = node->PriorityText;
@@ -1163,7 +1163,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuCoreUsageText, sizeof(node->CpuCoreUsageText), &returnLength))
                         {
@@ -1201,7 +1201,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                             node->TokenState = PH_THREAD_TOKEN_STATE_PRESENT;
                             PhInitializeStringRef(&getCellText->Text, L"Yes");
                         }
-                        
+
                         if (NT_SUCCESS(status))
                             NtClose(tokenHandle);
                     }
@@ -1570,7 +1570,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuUserUsageText, sizeof(node->CpuUserUsageText), &returnLength))
                         {
@@ -1605,7 +1605,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                         SIZE_T returnLength;
 
                         PhInitFormatS(&format[0], L"< ");
-                        PhInitFormatF(&format[1], 0.01, PhMaxPrecisionUnit);
+                        PhInitFormatF(&format[1], cpuUsage, PhMaxPrecisionUnit);
 
                         if (PhFormatToBuffer(format, 2, node->CpuKernelUsageText, sizeof(node->CpuKernelUsageText), &returnLength))
                         {
@@ -2121,7 +2121,7 @@ VOID PhpGenerateSyscallLists(
                             entry->Name = PhZeroExtendToUtf16(exportEntry.Name);
                             PhSkipStringRef(&entry->Name->sr, 13 * sizeof(WCHAR));
 
-                            PhAddItemList(list, entry); 
+                            PhAddItemList(list, entry);
                         }
                     }
                 }
@@ -2182,14 +2182,14 @@ VOID PhpGenerateSyscallLists(
 
                                 #ifdef _WIN64
                                     BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
-                            
+
                                     if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
                                     {
                                         systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
                                     }
                                 #else
                                     BYTE prologue[1] = { 0xB8 };
-                            
+
                                     if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
                                     {
                                         systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));

@@ -1377,6 +1377,7 @@ BOOLEAN PhThemeWindowDrawItem(
                 }
 
                 rect.left = rect.right - PhGetDpi(25, dpiValue);
+
                 DrawThemeBackground(menuThemeHandle, DrawInfo->hDC, MENU_POPUPSUBMENU, isDisabled ? MSM_DISABLED : MSM_NORMAL, &rect, NULL);
             }
 

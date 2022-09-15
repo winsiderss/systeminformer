@@ -1002,7 +1002,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
 
     // NOTE: Don't pass a filename or filehandle. We'll get a CBA_DEFERRED_SYMBOL_LOAD_START callback event
     // and we'll open the file during the callback instead. This allows us to mitigate dbghelp's legacy
-    // Win32 path limitations and instead use NT path handling for improved support on newer Windows. (dmex) 
+    // Win32 path limitations and instead use NT path handling for improved support on newer Windows. (dmex)
     baseAddress = SymLoadModuleExW_I(
         SymbolProvider->ProcessHandle,
         NULL,

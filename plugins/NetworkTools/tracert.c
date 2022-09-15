@@ -118,7 +118,7 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
             else
             {
                 return PhFormat(format, RTL_NUMBER_OF(format), IP4_REVERSE_DOMAIN_STRING_LENGTH);
-            } 
+            }
         }
         break;
     case PH_IPV6_NETWORK_TYPE:
@@ -293,7 +293,7 @@ VOID TracertQueueHostLookup(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ PTRACERT_ROOT_NODE Node,
     _In_ PVOID SocketAddress
-    ) 
+    )
 {
     PPH_STRING remoteCountryCode;
     PPH_STRING remoteCountryName;
@@ -311,7 +311,7 @@ VOID TracertQueueHostLookup(
         {
             if (PhIsNullOrEmptyString(Node->IpAddressString))
             {
-                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));     
+                PhMoveReference(&Node->IpAddressString, PhCreateString(addressString));
             }
             else
             {
@@ -340,7 +340,7 @@ VOID TracertQueueHostLookup(
             ((PSOCKADDR_IN)&resolve->SocketAddress)->sin_addr = sockAddrIn;
 
             PhQueueItemWorkQueue(&Context->WorkQueue, TracertHostnameLookupCallback, resolve);
-        }       
+        }
 
         if (LookupSockInAddr4CountryCode(
             sockAddrIn,
@@ -616,7 +616,7 @@ NTSTATUS NetworkTracertThreadStart(
                         node,
                         &reply6->Address.sin6_addr
                         );
-              
+
                     node->PingStatus[ii] = reply6->Status;
                     node->PingList[ii] = icmpCurrentPingMs;
                     UpdateTracertNode(context, node);
@@ -654,7 +654,7 @@ NTSTATUS NetworkTracertThreadStart(
 
         if (icmpReplyStatusFatal)
         {
-            // If the route becomes unavailable the error response is IP_DEST_NO_ROUTE, since this node cannot 
+            // If the route becomes unavailable the error response is IP_DEST_NO_ROUTE, since this node cannot
             // forward packets the responses will all be from this same address. We need to end the trace
             // and wait for the route to become available (tracert does the same in this case). (dmex)
             break;
@@ -687,7 +687,7 @@ CleanupExit:
 }
 
 VOID TracertMenuActionCallback(
-    _In_ PNETWORK_TRACERT_CONTEXT Context, 
+    _In_ PNETWORK_TRACERT_CONTEXT Context,
     _In_ ULONG Id
     )
 {
@@ -702,9 +702,9 @@ VOID TracertMenuActionCallback(
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(
-                    node->IpAddressString->Buffer, 
-                    TRUE, 
-                    &terminator, 
+                    node->IpAddressString->Buffer,
+                    TRUE,
+                    &terminator,
                     &RemoteEndpoint.Address.InAddr
                     )))
                 {
@@ -714,8 +714,8 @@ VOID TracertMenuActionCallback(
                 }
 
                 if (NT_SUCCESS(RtlIpv6StringToAddress(
-                    node->IpAddressString->Buffer, 
-                    &terminator, 
+                    node->IpAddressString->Buffer,
+                    &terminator,
                     &RemoteEndpoint.Address.In6Addr
                     )))
                 {
@@ -735,9 +735,9 @@ VOID TracertMenuActionCallback(
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(
-                    node->IpAddressString->Buffer, 
-                    TRUE, 
-                    &terminator, 
+                    node->IpAddressString->Buffer,
+                    TRUE,
+                    &terminator,
                     &RemoteEndpoint.Address.InAddr
                     )))
                 {
@@ -745,10 +745,10 @@ VOID TracertMenuActionCallback(
                     ShowTracertWindowFromAddress(RemoteEndpoint);
                     break;
                 }
-    
+
                 if (NT_SUCCESS(RtlIpv6StringToAddress(
-                    node->IpAddressString->Buffer, 
-                    &terminator, 
+                    node->IpAddressString->Buffer,
+                    &terminator,
                     &RemoteEndpoint.Address.In6Addr
                     )))
                 {
@@ -768,9 +768,9 @@ VOID TracertMenuActionCallback(
             if ((node = GetSelectedTracertNode(Context)) && !PhIsNullOrEmptyString(node->IpAddressString))
             {
                 if (NT_SUCCESS(RtlIpv4StringToAddress(
-                    node->IpAddressString->Buffer, 
-                    TRUE, 
-                    &terminator, 
+                    node->IpAddressString->Buffer,
+                    TRUE,
+                    &terminator,
                     &RemoteEndpoint.Address.InAddr
                     )))
                 {
@@ -778,10 +778,10 @@ VOID TracertMenuActionCallback(
                     ShowWhoisWindowFromAddress(RemoteEndpoint);
                     break;
                 }
-    
+
                 if (NT_SUCCESS(RtlIpv6StringToAddress(
                     node->IpAddressString->Buffer,
-                    &terminator, 
+                    &terminator,
                     &RemoteEndpoint.Address.In6Addr
                     )))
                 {
@@ -1046,13 +1046,13 @@ INT_PTR CALLBACK TracertDlgProc(
             EnableWindow(GetDlgItem(hwndDlg, IDC_REFRESH), TRUE);
 
             PhSetWindowText(context->WindowHandle, PhaFormatString(
-                L"Tracing %s... %s", 
+                L"Tracing %s... %s",
                 context->IpAddressString,
                 failed ? L"error" : L"complete"
                 )->Buffer);
             PhSetWindowText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
-                L"Tracing route to %s with %lu bytes of data... %s.", 
-                context->IpAddressString, 
+                L"Tracing route to %s with %lu bytes of data... %s.",
+                context->IpAddressString,
                 PhGetIntegerSetting(SETTING_NAME_PING_SIZE),
                 failed ? L"error" : L"complete"
                 )->Buffer);

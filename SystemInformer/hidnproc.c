@@ -531,7 +531,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     HANDLE processHandle;
     PROCESS_BASIC_INFORMATION basicInfo;
     KERNEL_USER_TIMES times;
-    PROCESS_PRIORITY_CLASS priorityClass;
+    UCHAR priorityClass;
     PROCESS_HANDLE_INFORMATION handleInfo;
     HANDLE processHandle2;
     LONG dpiValue;
@@ -620,7 +620,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
         if (NT_SUCCESS(PhGetProcessPriority(processHandle, &priorityClass)))
         {
-            processItem->PriorityClass = priorityClass.PriorityClass;
+            processItem->PriorityClass = priorityClass;
         }
 
         if (NT_SUCCESS(PhGetProcessHandleCount(processHandle, &handleInfo)))

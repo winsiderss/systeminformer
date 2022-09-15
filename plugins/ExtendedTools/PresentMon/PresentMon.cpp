@@ -407,7 +407,7 @@ NTSTATUS PresentMonOutputThread(
     for (auto& pair : ProcessesHashTable)
     {
        auto processInfo = &pair.second;
-    
+
        if (processInfo->ProcessItem)
        {
            PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));

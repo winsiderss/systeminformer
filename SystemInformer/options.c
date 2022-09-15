@@ -1172,7 +1172,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
                     &keyName->sr,
                     OBJ_OPENIF
                     );
-                
+
                 if (NT_SUCCESS(status))
                 {
                     status = NtDeleteKey(keyHandle);
@@ -1428,7 +1428,7 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LASTTAB_SUPPORT, L"Remember last selected window", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"Enable theme support (experimental)", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"Enable start as admin (experimental)", NULL);
-    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"Enable silent crash notification (experimental)", NULL);   
+    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"Enable silent crash notification (experimental)", NULL);
     //PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_LINUX_SUPPORT, L"Enable Windows subsystem for Linux support", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE, L"Resolve network addresses", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_NETWORK_RESOLVE_DOH, L"Resolve DNS over HTTPS (DoH)", NULL);
@@ -2034,7 +2034,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                 &SI_RUNAS_ADMIN_TASK_NAME,
                                                 &quotedFileName->sr
                                                 );
-                                            
+
                                             if (FAILED(status))
                                             {
                                                 PhShowStatus(
@@ -3050,7 +3050,7 @@ BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
         return TRUE;
 
     if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->Name->sr))
-        return TRUE;  
+        return TRUE;
     if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->DefaultString->sr))
         return TRUE;
     if (PhWordMatchStringRef(&context->SearchBoxText->sr, &node->ValueString->sr))

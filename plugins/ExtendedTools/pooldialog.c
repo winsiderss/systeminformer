@@ -23,33 +23,33 @@ VOID UpdatePoolTagTable(
 {
     PSYSTEM_POOLTAG_INFORMATION poolTagTable;
     ULONG i;
-    
+
     if (!NT_SUCCESS(EnumPoolTagTable(&poolTagTable)))
     {
         PhDereferenceObject(Context);
         return;
     }
-    
+
     for (i = 0; i < poolTagTable->Count; i++)
     {
         PPOOLTAG_ROOT_NODE node;
         SYSTEM_POOLTAG poolTagInfo;
 
         poolTagInfo = poolTagTable->TagInfo[i];
-    
+
         if (node = PmFindPoolTagNode(Context, poolTagInfo.TagUlong))
         {
             PhUpdateDelta(&node->PoolItem->PagedAllocsDelta, poolTagInfo.PagedAllocs);
             PhUpdateDelta(&node->PoolItem->PagedFreesDelta, poolTagInfo.PagedFrees);
             PhUpdateDelta(&node->PoolItem->PagedCurrentDelta, poolTagInfo.PagedAllocs - poolTagInfo.PagedFrees);
-            PhUpdateDelta(&node->PoolItem->PagedTotalSizeDelta, poolTagInfo.PagedUsed);     
+            PhUpdateDelta(&node->PoolItem->PagedTotalSizeDelta, poolTagInfo.PagedUsed);
             PhUpdateDelta(&node->PoolItem->NonPagedAllocsDelta, poolTagInfo.NonPagedAllocs);
             PhUpdateDelta(&node->PoolItem->NonPagedFreesDelta, poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&node->PoolItem->NonPagedCurrentDelta, poolTagInfo.NonPagedAllocs - poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&node->PoolItem->NonPagedTotalSizeDelta, poolTagInfo.NonPagedUsed);
 
             PmUpdatePoolTagNode(Context, node);
-        } 
+        }
         else
         {
             PPOOL_ITEM entry;
@@ -59,7 +59,7 @@ VOID UpdatePoolTagTable(
 
             entry->TagUlong = poolTagInfo.TagUlong;
             PhZeroExtendToUtf16Buffer(poolTagInfo.Tag, sizeof(poolTagInfo.Tag), entry->TagString);
-         
+
             PhUpdateDelta(&entry->PagedAllocsDelta, poolTagInfo.PagedAllocs);
             PhUpdateDelta(&entry->PagedFreesDelta, poolTagInfo.PagedFrees);
             PhUpdateDelta(&entry->PagedCurrentDelta, poolTagInfo.PagedAllocs - poolTagInfo.PagedFrees);
@@ -159,7 +159,7 @@ VOID NTAPI PoolmonProcessesUpdatedCallback(
 
     if (context->ProcessesUpdatedCount < 2)
         return;
- 
+
     PhReferenceObject(context);
     UpdatePoolTagTable(Context);
 }
@@ -198,11 +198,11 @@ INT_PTR CALLBACK PoolMonDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(hwndDlg);
-
             context->ParentWindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_POOLTREE);
             context->SearchboxHandle = GetDlgItem(hwndDlg, IDC_POOLSEARCH);
+
+            PhSetApplicationWindowIcon(hwndDlg);
 
             PhRegisterDialog(hwndDlg);
             PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -212,10 +212,10 @@ INT_PTR CALLBACK PoolMonDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, context->SearchboxHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);         
+            PhAddLayoutItem(&context->LayoutManager, context->SearchboxHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_POOL_WINDOW_POSITION, SETTING_NAME_POOL_WINDOW_SIZE, hwndDlg);
-            
+
             context->SearchboxText = PhReferenceEmptyString();
             context->TreeFilterEntry = PhAddTreeNewFilter(
                 &context->FilterSupport,
@@ -234,8 +234,8 @@ INT_PTR CALLBACK PoolMonDlgProc(
                 PoolmonProcessesUpdatedCallback,
                 context,
                 &context->ProcessesUpdatedCallbackRegistration
-                );          
-                
+                );
+
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->TreeNewHandle, TRUE);
@@ -266,7 +266,7 @@ INT_PTR CALLBACK PoolMonDlgProc(
             PostQuitMessage(0);
         }
         break;
-    case POOL_TABLE_SHOWDIALOG:
+    case WM_PH_SHOW_DIALOG:
         {
             if (IsMinimized(hwndDlg))
                 ShowWindow(hwndDlg, SW_RESTORE);
@@ -307,7 +307,7 @@ INT_PTR CALLBACK PoolMonDlgProc(
                     }
                 }
                 break;
-            case POOL_TABLE_SHOWCONTEXTMENU:
+            case WM_PH_UPDATE_DIALOG:
                 {
                     PPH_EMENU menu;
                     PPOOLTAG_ROOT_NODE selectedNode;
@@ -320,7 +320,7 @@ INT_PTR CALLBACK PoolMonDlgProc(
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"Show allocations", NULL, NULL), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), -1);
                         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Edit description...", NULL, NULL), -1);
-                        
+
                         selectedItem = PhShowEMenu(
                             menu,
                             hwndDlg,
@@ -371,7 +371,7 @@ NTSTATUS ShowPoolMonDialogThread(
 
     PhSetEvent(&PoolTagDialogInitializedEvent);
 
-    PostMessage(PoolTagDialogHandle, POOL_TABLE_SHOWDIALOG, 0, 0);
+    PostMessage(PoolTagDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
@@ -408,12 +408,12 @@ VOID ShowPoolMonDialog(
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&PoolTagDialogThreadHandle, ShowPoolMonDialogThread, NULL)))
         {
-            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the pool monitor window.");
+            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
             return;
         }
 
         PhWaitForEvent(&PoolTagDialogInitializedEvent, NULL);
     }
 
-    PostMessage(PoolTagDialogHandle, POOL_TABLE_SHOWDIALOG, 0, 0);
+    PostMessage(PoolTagDialogHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }

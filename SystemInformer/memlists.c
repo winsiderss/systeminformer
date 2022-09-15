@@ -247,8 +247,8 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                 MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
 
                                 status = NtSetSystemInformation(
-                                    SystemCombinePhysicalMemoryInformation, 
-                                    &combineInfo, 
+                                    SystemCombinePhysicalMemoryInformation,
+                                    &combineInfo,
                                     sizeof(MEMORY_COMBINE_INFORMATION_EX)
                                     );
 

@@ -176,8 +176,11 @@ NTSTATUS LoadDb(
     PVOID topNode;
     PVOID currentNode;
 
-    if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(&ObjectDbPath->sr, &topNode)))
+    status = PhLoadXmlObjectFromFile(&ObjectDbPath->sr, &topNode);
+
+    if (!NT_SUCCESS(status))
         return status;
+
     if (!topNode)
         return STATUS_FILE_CORRUPT_ERROR;
 

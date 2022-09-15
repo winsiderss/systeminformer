@@ -43,13 +43,13 @@ VOID CidTableDelete(
 _IRQL_requires_max_(APC_LEVEL)
 _Acquires_lock_(_Global_critical_region_)
 VOID CidAcquireObjectLock(
-    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PCID_TABLE_ENTRY Entry 
+    _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_) PCID_TABLE_ENTRY Entry
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 _Releases_lock_(_Global_critical_region_)
 VOID CidReleaseObjectLock(
-    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PCID_TABLE_ENTRY Entry 
+    _Inout_ _Requires_lock_held_(*_Curr_) _Releases_lock_(*_Curr_) PCID_TABLE_ENTRY Entry
     );
 
 _IRQL_requires_max_(APC_LEVEL)

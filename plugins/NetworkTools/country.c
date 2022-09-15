@@ -17,6 +17,7 @@ BOOLEAN GeoDbInitialized = FALSE;
 BOOLEAN GeoDbExpired = FALSE;
 HIMAGELIST GeoImageList = NULL;
 MMDB_s GeoDbCountry = { 0 };
+PH_STRINGREF GeoDbFileName = PH_STRINGREF_INIT(L"GeoLite2-Country.mmdb");
 PPH_HASHTABLE NetworkToolsGeoDbCacheHashtable = NULL;
 PH_QUEUED_LOCK NetworkToolsGeoDbCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -26,25 +27,6 @@ typedef struct _GEODB_IPADDR_CACHE_ENTRY
     PPH_STRING CountryCode;
     PPH_STRING CountryName;
 } GEODB_IPADDR_CACHE_ENTRY, *PGEODB_IPADDR_CACHE_ENTRY;
-
-PPH_STRING NetToolsGetGeoLiteDbPath(
-    _In_ PWSTR SettingName
-    )
-{
-    PPH_STRING fileName;
-
-    fileName = PhGetExpandStringSetting(SettingName);
-
-    if (PhIsNullOrEmptyString(fileName))  
-        return NULL;
-
-    if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
-    {
-        PhMoveReference(&fileName, PhGetApplicationDirectoryFileNameWin32(&fileName->sr));
-    }
-
-    return fileName;
-}
 
 BOOLEAN NetToolsGeoLiteInitialized(
     VOID
@@ -56,7 +38,7 @@ BOOLEAN NetToolsGeoLiteInitialized(
     {
         PPH_STRING dbpath;
 
-        if (dbpath = NetToolsGetGeoLiteDbPath(SETTING_NAME_DB_LOCATION))
+        if (dbpath = PhGetApplicationDataFileName(&GeoDbFileName, FALSE))
         {
             if (MMDB_open(dbpath->Buffer, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
             {
@@ -569,8 +551,8 @@ INT LookupCountryIcon(
                     ))
                 {
                     CountryResourceTable[i].IconIndex = PhImageListAddBitmap(
-                        GeoImageList, 
-                        countryBitmap, 
+                        GeoImageList,
+                        countryBitmap,
                         NULL
                         );
                     DeleteBitmap(countryBitmap);
@@ -585,8 +567,8 @@ INT LookupCountryIcon(
 }
 
 VOID DrawCountryIcon(
-    _In_ HDC hdc, 
-    _In_ RECT rect, 
+    _In_ HDC hdc,
+    _In_ RECT rect,
     _In_ INT Index
     )
 {
@@ -594,11 +576,11 @@ VOID DrawCountryIcon(
         return;
 
     PhImageListDrawIcon(
-        GeoImageList, 
-        Index, 
+        GeoImageList,
+        Index,
         hdc,
-        rect.left, 
-        rect.top + ((rect.bottom - rect.top) - 11) / 2, 
+        rect.left,
+        rect.top + ((rect.bottom - rect.top) - 11) / 2,
         ILD_NORMAL,
         FALSE
         );
@@ -674,7 +656,7 @@ BOOLEAN LookupCountryCode(
             32
             );
     }
-  
+
     newEntry.CountryCode = countryCode;
     newEntry.CountryName = countryName;
     memcpy_s(&newEntry.RemoteAddress, sizeof(newEntry.RemoteAddress), &RemoteAddress, sizeof(PH_IP_ADDRESS));

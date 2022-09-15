@@ -245,7 +245,7 @@ BOOLEAN PhMwpMicrosoftServiceTreeFilter(
             {
                 static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
 
-                // Note: This is how msconfig determines default services. (dmex) 
+                // Note: This is how msconfig determines default services. (dmex)
                 if (versionInfo.CompanyName && PhStartsWithStringRef(&versionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
                 {
                     PhDeleteImageVersionInfo(&versionInfo);

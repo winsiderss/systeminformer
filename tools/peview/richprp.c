@@ -57,7 +57,7 @@ PWSTR PvpGetProductIdComponent(
 {
     switch (ProductId)
     {
-    case prodidUnknown: // linker generated unnamed ordinal export stubs with RVAs of zero? 
+    case prodidUnknown: // linker generated unnamed ordinal export stubs with RVAs of zero?
         return L"Linker generated export object";
     case prodidImport0:
         return L"Linker generated import object";

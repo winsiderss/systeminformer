@@ -2626,7 +2626,7 @@ typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
     SIZE_T NumberOfBytesAvailableContiguous;
 } SYSTEM_SESSION_MAPPED_VIEW_INFORMATION, *PSYSTEM_SESSION_MAPPED_VIEW_INFORMATION;
 
-typedef enum _WATCHDOG_HANDLER_ACTION 
+typedef enum _WATCHDOG_HANDLER_ACTION
 {
     WdActionSetTimeoutValue,
     WdActionQueryTimeoutValue,
@@ -2641,7 +2641,7 @@ typedef enum _WATCHDOG_HANDLER_ACTION
 typedef NTSTATUS (*PSYSTEM_WATCHDOG_HANDLER)(_In_ WATCHDOG_HANDLER_ACTION Action, _In_ PVOID Context, _Inout_ PULONG DataValue, _In_ BOOLEAN NoLocks);
 
 // private
-typedef struct _SYSTEM_WATCHDOG_HANDLER_INFORMATION 
+typedef struct _SYSTEM_WATCHDOG_HANDLER_INFORMATION
 {
     PSYSTEM_WATCHDOG_HANDLER WdHandler;
     PVOID Context;
@@ -4514,7 +4514,7 @@ typedef struct _SYSTEM_SHADOW_STACK_INFORMATION
             ULONG ReservedForUserCet : 6;
             ULONG KernelCetEnabled : 1;
             ULONG KernelCetAuditModeEnabled : 1;
-            ULONG ReservedForKernelCet : 6;       // since Windows 10 build 21387
+            ULONG ReservedForKernelCet : 6; // since Windows 10 build 21387
             ULONG Reserved : 16;
         };
     };
@@ -4608,7 +4608,7 @@ typedef struct _SYSTEM_HYPERVISOR_MINROOT_INFORMATION
     USHORT RootProcNumaNodes[64];
     ULONG RootProcPerCore;
     ULONG RootProcPerNode;
-    ULONG RootProcNumaNodesLpsSpecified;  
+    ULONG RootProcNumaNodesLpsSpecified;
     HV_MINROOT_NUMA_LPS RootProcNumaNodeLps[64];
 } SYSTEM_HYPERVISOR_MINROOT_INFORMATION, *PSYSTEM_HYPERVISOR_MINROOT_INFORMATION;
 
@@ -4817,7 +4817,7 @@ typedef union _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
     struct
     {
         ULONG HypervisorPages : 1;
-        ULONG NonEssentialHypervisorPages : 1; // WIN11
+        ULONG NonEssentialHypervisorPages : 1; // since WIN11
         ULONG Reserved : 30;
     };
     ULONG AsUlong;
@@ -4858,7 +4858,7 @@ typedef struct _SYSDBG_LIVEDUMP_CONTROL
     HANDLE CancelEventHandle;
     SYSDBG_LIVEDUMP_CONTROL_FLAGS Flags;
     SYSDBG_LIVEDUMP_CONTROL_ADDPAGES AddPagesControl;
-    PSYSDBG_LIVEDUMP_SELECTIVE_CONTROL SelectiveControl; // WIN11
+    PSYSDBG_LIVEDUMP_SELECTIVE_CONTROL SelectiveControl; // since WIN11
 } SYSDBG_LIVEDUMP_CONTROL, *PSYSDBG_LIVEDUMP_CONTROL;
 
 #define SYSDBG_LIVEDUMP_CONTROL_SIZE RTL_SIZEOF_THROUGH_FIELD(SYSDBG_LIVEDUMP_CONTROL, AddPagesControl)

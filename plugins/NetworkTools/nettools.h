@@ -25,7 +25,6 @@
 #include "resource.h"
 
 #define PLUGIN_NAME L"ProcessHacker.NetworkTools"
-#define SETTING_NAME_DB_LOCATION (PLUGIN_NAME L".GeoDbPath")
 #define SETTING_NAME_ADDRESS_HISTORY (PLUGIN_NAME L".AddressHistory")
 #define SETTING_NAME_PING_WINDOW_POSITION (PLUGIN_NAME L".PingWindowPosition")
 #define SETTING_NAME_PING_WINDOW_SIZE (PLUGIN_NAME L".PingWindowSize")
@@ -35,7 +34,7 @@
 #define SETTING_NAME_TRACERT_WINDOW_POSITION (PLUGIN_NAME L".TracertWindowPosition")
 #define SETTING_NAME_TRACERT_WINDOW_SIZE (PLUGIN_NAME L".TracertWindowSize")
 #define SETTING_NAME_TRACERT_TREE_LIST_COLUMNS (PLUGIN_NAME L".TracertTreeColumns")
-#define SETTING_NAME_TRACERT_TREE_LIST_SORT (PLUGIN_NAME L".TracertTreeSort") 
+#define SETTING_NAME_TRACERT_TREE_LIST_SORT (PLUGIN_NAME L".TracertTreeSort")
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")
@@ -43,6 +42,7 @@
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
+extern PH_STRINGREF GeoDbFileName;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
@@ -146,7 +146,7 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     WCHAR IpAddressString[INET6_ADDRSTRLEN + sizeof(UNICODE_NULL)];
 } NETWORK_WHOIS_CONTEXT, *PNETWORK_WHOIS_CONTEXT;
 
-// TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations 
+// TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations
 // after navigating to the page and you press keys such as ctrl, alt, home and insert. (dmex)
 #define TaskDialogNavigatePage(WindowHandle, Config) \
     assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \
@@ -252,10 +252,6 @@ typedef enum _NETWORK_COLUMN_ID
 } NETWORK_COLUMN_ID;
 
 // country.c
-
-PPH_STRING NetToolsGetGeoLiteDbPath(
-    _In_ PWSTR SettingName
-    );
 
 VOID FreeGeoLiteDb(
     VOID

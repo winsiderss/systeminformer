@@ -1128,7 +1128,7 @@ BOOLEAN DnGetProcessCoreClrPath(
                 PhDereferenceObject(processItem);
                 return TRUE;
             }
-        
+
             PhDereferenceObject(processItem);
         }
 #else

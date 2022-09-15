@@ -91,7 +91,7 @@ BOOLEAN PhInitializeComPolicy(
 
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
-PH_STARTUP_PARAMETERS PhStartupParameters;
+PH_STARTUP_PARAMETERS PhStartupParameters = { 0 };
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
@@ -232,13 +232,10 @@ INT WINAPI wWinMain(
 
     // Set the default priority.
     {
-        PROCESS_PRIORITY_CLASS priorityClass;
-
-        priorityClass.Foreground = FALSE;
-        priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
+        UCHAR priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
 
         if (PhStartupParameters.PriorityClass != 0)
-            priorityClass.PriorityClass = (UCHAR)PhStartupParameters.PriorityClass;
+            priorityClass = (UCHAR)PhStartupParameters.PriorityClass;
 
         PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
@@ -291,7 +288,7 @@ INT WINAPI wWinMain(
                 L"System Informer's access to the kernel driver is restricted.\r\n"
                 L"\r\n"
                 L"%s",
-                infoString->Buffer 
+                infoString->Buffer
                 );
 
             PhDereferenceObject(infoString);
@@ -861,7 +858,7 @@ BOOLEAN PhInitializeExceptionPolicy(
 {
 #ifndef DEBUG
     ULONG errorMode;
-    
+
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
         errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
@@ -1048,7 +1045,7 @@ BOOLEAN PhInitializeMitigationSignaturePolicy(
 #ifndef DEBUG
     BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
     // Starting with Win10 20H1 processes with uiAccess=true override the ProcessExtensionPointDisablePolicy
-    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled 
+    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled
     // the MicrosoftSignedOnly policy causing an infinite loop of APC messages and hook DLL loading/unloading
     // inside user32!_ClientLoadLibrary while calling the GetMessageW API for the window message loop.
     // ...
@@ -1227,7 +1224,7 @@ NTSTATUS PhpReadSignature(
 }
 
 VOID PhpShowKphError(
-    _In_ PWSTR Message, 
+    _In_ PWSTR Message,
     _In_opt_ NTSTATUS Status
     )
 {
@@ -1263,7 +1260,7 @@ VOID PhpShowKphError(
         else
         {
             PhShowError2(
-                NULL, 
+                NULL,
                 Message,
                 L"%s",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
@@ -1479,8 +1476,6 @@ VOID PhpInitializeSettings(
     VOID
     )
 {
-    NTSTATUS status;
-
     PhSettingsInitialization();
     PhAddDefaultSettings();
     PhUpdateCachedSettings();
@@ -1498,11 +1493,11 @@ VOID PhpInitializeSettings(
         // 3. The default location.
 
         // 1. File specified in command line
-        if (PhStartupParameters.SettingsFileName)
-        {
-            // Get an absolute path now.
-            PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
-        }
+        //if (PhStartupParameters.SettingsFileName)
+        //{
+        //    // Get an absolute path now.
+        //    PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
+        //}
 
         // 2. File in program directory
         if (PhIsNullOrEmptyString(PhSettingsFileName))
@@ -1534,6 +1529,8 @@ VOID PhpInitializeSettings(
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
         {
+            NTSTATUS status;
+
             status = PhLoadSettings(&PhSettingsFileName->sr);
             PhUpdateCachedSettings();
 
@@ -1602,7 +1599,6 @@ VOID PhpInitializeSettings(
 typedef enum _PH_COMMAND_ARG
 {
     PH_ARG_NONE,
-    PH_ARG_SETTINGS,
     PH_ARG_NOSETTINGS,
     PH_ARG_SHOWVISIBLE,
     PH_ARG_SHOWHIDDEN,
@@ -1641,9 +1637,6 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     {
         switch (Option->Id)
         {
-        case PH_ARG_SETTINGS:
-            PhSwapReference(&PhStartupParameters.SettingsFileName, Value);
-            break;
         case PH_ARG_NOSETTINGS:
             PhStartupParameters.NoSettings = TRUE;
             break;
@@ -1774,7 +1767,6 @@ VOID PhpProcessStartupParameters(
 {
     PH_COMMAND_LINE_OPTION options[] =
     {
-        { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
         { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },
         { PH_ARG_SHOWVISIBLE, L"v", NoArgumentType },
         { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType },
@@ -1802,9 +1794,7 @@ VOID PhpProcessStartupParameters(
     };
     PH_STRINGREF commandLine;
 
-    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CommandLine, &commandLine);
-
-    memset(&PhStartupParameters, 0, sizeof(PH_STARTUP_PARAMETERS));
+    PhGetProcessCommandLineStringRef(&commandLine);
 
     if (!PhParseCommandLine(
         &commandLine,
@@ -1833,7 +1823,6 @@ VOID PhpProcessStartupParameters(
             L"-s\n"
             L"-selectpid pid-to-select\n"
             L"-selecttab name-of-tab-to-select\n"
-            L"-settings filename\n"
             L"-sysinfo [section-name]\n"
             L"-uninstallkph\n"
             L"-v\n"
@@ -1924,7 +1913,7 @@ VOID PhpProcessStartupParameters(
             NULL,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
-            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_FORCE_SETTINGS,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS,
             0,
             NULL
             );

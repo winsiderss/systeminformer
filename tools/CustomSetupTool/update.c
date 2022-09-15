@@ -227,7 +227,7 @@ VOID ShowUpdateErrorPageDialog(
     if (Context->ErrorCode)
     {
         PPH_STRING errorString;
-        
+
         if (errorString = PhGetStatusMessage(0, Context->ErrorCode))
             config.pszContent = PhGetString(errorString);
     }

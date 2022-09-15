@@ -90,7 +90,7 @@ PVOID KphpFindExportedRoutineByNameInImage(
                                            TRUE,
                                            IMAGE_DIRECTORY_ENTRY_EXPORT,
                                            &size);
-    if (!exports || 
+    if (!exports ||
         (exports->NumberOfNames == 0) ||
         (exports->AddressOfNames == 0) ||
         (exports->AddressOfFunctions == 0))
@@ -336,7 +336,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 PVOID KphGetRoutineAddress(
     _In_z_ PCWSTR ModuleName,
-    _In_z_ PCSTR RoutineName 
+    _In_z_ PCSTR RoutineName
     )
 {
     PAGED_PASSIVE();

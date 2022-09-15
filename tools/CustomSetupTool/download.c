@@ -6,7 +6,7 @@
  * Authors:
  *
  *     dmex
- * 
+ *
  */
 
 #include <setup.h>
@@ -98,7 +98,7 @@ ULONG64 ParseVersionString(
     return MAKE_VERSION_ULONGLONG(
         (ULONG)majorInteger,
         (ULONG)minorInteger,
-        (ULONG)revisionInteger, 
+        (ULONG)revisionInteger,
         0
         );
 }
@@ -216,9 +216,9 @@ BOOLEAN SetupQueryUpdateData(
     if (WindowsVersion >= WINDOWS_7)
     {
         WinHttpSetOption(
-            httpRequestHandle, 
-            WINHTTP_OPTION_DISABLE_FEATURE, 
-            &(ULONG) { WINHTTP_DISABLE_KEEP_ALIVE }, 
+            httpRequestHandle,
+            WINHTTP_OPTION_DISABLE_FEATURE,
+            &(ULONG) { WINHTTP_DISABLE_KEEP_ALIVE },
             sizeof(ULONG)
             );
     }
@@ -421,7 +421,7 @@ BOOLEAN UpdateDownloadUpdateData(
     }
 
     SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)PhFormatString(
-        L"Downloading System Informer %s...", 
+        L"Downloading System Informer %s...",
         PhGetString(Context->RelVersion)
         )->Buffer);
 
@@ -443,8 +443,8 @@ BOOLEAN UpdateDownloadUpdateData(
     if (WindowsVersion >= WINDOWS_8_1)
     {
         WinHttpSetOption(
-            httpSessionHandle, 
-            WINHTTP_OPTION_DECOMPRESSION, 
+            httpSessionHandle,
+            WINHTTP_OPTION_DECOMPRESSION,
             &(ULONG) { WINHTTP_DECOMPRESSION_FLAG_GZIP | WINHTTP_DECOMPRESSION_FLAG_DEFLATE },
             sizeof(ULONG)
             );
@@ -478,8 +478,8 @@ BOOLEAN UpdateDownloadUpdateData(
     if (WindowsVersion >= WINDOWS_7)
     {
         WinHttpSetOption(
-            httpRequestHandle, 
-            WINHTTP_OPTION_DISABLE_FEATURE, 
+            httpRequestHandle,
+            WINHTTP_OPTION_DISABLE_FEATURE,
             &(ULONG) { WINHTTP_DISABLE_KEEP_ALIVE },
             sizeof(ULONG)
             );
@@ -558,7 +558,7 @@ BOOLEAN UpdateDownloadUpdateData(
                 goto CleanupExit;
 
             PhQuerySystemTime(&timeNow);
-            
+
             timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
             timeBitsPerSecond = downloadedBytes / __max(timeTicks, 1);
 
@@ -608,6 +608,6 @@ CleanupExit:
     PhClearReference(&downloadUrlPath);
     PhClearReference(&userAgentString);
     PhClearReference(&downloadFileName);
-    
+
     return downloadSuccess;
 }

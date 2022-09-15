@@ -120,7 +120,7 @@ VOID PluginsLoadSettingsTreeList(
     )
 {
     PPH_STRING settings;
-    
+
     settings = PhGetStringSetting(L"PluginManagerTreeListColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
     PhDereferenceObject(settings);
@@ -401,7 +401,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
-            
+
             SendMessage(context->WindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenuEvent);
         }
         return TRUE;
@@ -413,7 +413,7 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     //        data.MouseEvent = Parameter1;
     //        data.DefaultSortColumn = 0;
     //        data.DefaultSortOrder = AscendingSortOrder;
-    //        PhInitializeTreeNewColumnMenu(&data);
+    //        PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
     //
     //        data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
     //            PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
@@ -777,7 +777,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         case PH_PLUGIN_TREE_ITEM_MENU_DISABLE:
                             {
                                 PPH_STRING baseName = PhpGetPluginBaseName(selectedNode->PluginInstance);
-          
+
                                 PhSetPluginDisabled(&baseName->sr, TRUE);
 
                                 RemovePluginsNode(context, selectedNode);
@@ -790,9 +790,9 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                         case PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES:
                             {
                                 DialogBoxParam(
-                                    PhInstanceHandle, 
-                                    MAKEINTRESOURCE(IDD_PLUGINPROPERTIES), 
-                                    hwndDlg, 
+                                    PhInstanceHandle,
+                                    MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
+                                    hwndDlg,
                                     PhpPluginPropertiesDlgProc,
                                     (LPARAM)selectedNode->PluginInstance
                                     );
@@ -907,7 +907,7 @@ INT_PTR CALLBACK PhPluginsDlgProc(
 //    else
 //    {
 //        PhShowInformation2(
-//            ParentWindowHandle, 
+//            ParentWindowHandle,
 //            L"Plugins are not enabled.",
 //            L"%s",
 //            L"To use plugins enable them in Options and restart System Informer."

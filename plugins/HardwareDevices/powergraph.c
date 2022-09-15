@@ -451,7 +451,7 @@ VOID RaplDeviceNotifyProcessorGraph(
                     PhInitFormatF(&format[0], value, 2);
                     PhInitFormatS(&format[1], L" W\n");
                     PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-                    
+
                     PhMoveReference(&Context->ProcessorGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                 }
 
@@ -983,7 +983,7 @@ VOID RaplDeviceSysInfoInitializing(
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_RAPL_SYSINFO_CONTEXT));
-    context->DeviceEntry = DeviceEntry;
+    context->DeviceEntry = PhReferenceObject(DeviceEntry);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;

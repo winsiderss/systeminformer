@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -27,10 +27,31 @@
 typedef struct _SERVICE_PROPERTIES_CONTEXT
 {
     PPH_SERVICE_ITEM ServiceItem;
-    BOOLEAN Ready;
-    BOOLEAN Dirty;
 
-    BOOLEAN OldDelayedStart;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN Ready : 1;
+            BOOLEAN Dirty : 1;
+            BOOLEAN OldDelayedStart : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
+
+    HWND WindowHandle;
+    HWND TypeWindowHandle;
+    HWND StartTypeWindowHandle;
+    HWND ErrorControlWindowHandle;
+    HWND DelayedStartWindowHandle;
+    HWND DescriptionWindowHandle;
+    HWND GroupWindowHandle;
+    HWND BinaryPathWindowHandle;
+    HWND UserNameWindowHandle;
+    HWND PassBoxWindowHandle;
+    HWND PassCheckBoxWindowHandle;
+    HWND ServiceDllWindowHandle;
 } SERVICE_PROPERTIES_CONTEXT, *PSERVICE_PROPERTIES_CONTEXT;
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(
@@ -53,7 +74,7 @@ static NTSTATUS PhpOpenService(
         return STATUS_UNSUCCESSFUL;
 
     if (serviceHandle = PhOpenService(
-        serviceItem->Name->Buffer,
+        PhGetString(serviceItem->Name),
         DesiredAccess
         ))
     {
@@ -99,7 +120,7 @@ static _Callback_ NTSTATUS PhpSetServiceSecurity(
         if (PhUiConnectToPhSvc(NULL, FALSE))
         {
             status = PhSvcCallSetServiceSecurity(
-                ((PPH_SERVICE_ITEM)stdObjectSecurity->Context)->Name->Buffer,
+                PhGetString(((PPH_SERVICE_ITEM)stdObjectSecurity->Context)->Name),
                 SecurityInformation,
                 SecurityDescriptor
                 );
@@ -136,7 +157,7 @@ NTSTATUS PhpShowServicePropertiesThread(
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
- 
+
     {
         if (serviceItem->IconEntry && serviceItem->IconEntry->SmallIconIndex)
         {
@@ -201,32 +222,34 @@ VOID PhShowServiceProperties(
 }
 
 static VOID PhpRefreshControls(
-    _In_ HWND hwndDlg
+    _In_ PSERVICE_PROPERTIES_CONTEXT Context
     )
 {
-    if (PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_STARTTYPE), L"Auto start", FALSE))
-    {
-        EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), TRUE);
-    }
-    else
-    {
-        EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), FALSE);
-    }
+    PPH_STRING serviceStartTypeString;
+    PPH_STRING serviceTypeString;
 
-    if (PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_TYPE), L"Driver", FALSE) ||
-        PhEqualString2(PhaGetDlgItemText(hwndDlg, IDC_TYPE), L"FS driver", FALSE))
+    serviceStartTypeString = PH_AUTO(PhGetWindowText(Context->StartTypeWindowHandle));
+    serviceTypeString = PH_AUTO(PhGetWindowText(Context->TypeWindowHandle));
+
+    if (PhEqualString2(serviceStartTypeString, L"Auto start", FALSE))
+        EnableWindow(Context->DelayedStartWindowHandle, TRUE);
+    else
+        EnableWindow(Context->DelayedStartWindowHandle, FALSE);
+
+    if (PhEqualString2(serviceTypeString, L"Driver", FALSE) ||
+        PhEqualString2(serviceTypeString, L"FS driver", FALSE))
     {
-        EnableWindow(GetDlgItem(hwndDlg, IDC_USERACCOUNT), FALSE);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), FALSE);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), FALSE);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_SERVICEDLL), FALSE);
+        EnableWindow(Context->UserNameWindowHandle, FALSE);
+        EnableWindow(Context->PassBoxWindowHandle, FALSE);
+        EnableWindow(Context->PassCheckBoxWindowHandle, FALSE);
+        EnableWindow(Context->ServiceDllWindowHandle, FALSE);
     }
     else
     {
-        EnableWindow(GetDlgItem(hwndDlg, IDC_USERACCOUNT), TRUE);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), TRUE);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), TRUE);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_SERVICEDLL), TRUE);
+        EnableWindow(Context->UserNameWindowHandle, TRUE);
+        EnableWindow(Context->PassBoxWindowHandle, TRUE);
+        EnableWindow(Context->PassCheckBoxWindowHandle, TRUE);
+        EnableWindow(Context->ServiceDllWindowHandle, TRUE);
     }
 }
 
@@ -264,22 +287,35 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             ULONG errorControl;
             PPH_STRING serviceDll;
 
+            context->WindowHandle = hwndDlg;
+            context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_TYPE);
+            context->StartTypeWindowHandle = GetDlgItem(hwndDlg, IDC_STARTTYPE);
+            context->ErrorControlWindowHandle = GetDlgItem(hwndDlg, IDC_ERRORCONTROL);
+            context->DelayedStartWindowHandle = GetDlgItem(hwndDlg, IDC_DELAYEDSTART);
+            context->DescriptionWindowHandle = GetDlgItem(hwndDlg, IDC_DESCRIPTION);
+            context->GroupWindowHandle = GetDlgItem(hwndDlg, IDC_GROUP);
+            context->BinaryPathWindowHandle = GetDlgItem(hwndDlg, IDC_BINARYPATH);
+            context->UserNameWindowHandle = GetDlgItem(hwndDlg, IDC_USERACCOUNT);
+            context->PassBoxWindowHandle = GetDlgItem(hwndDlg, IDC_PASSWORD);
+            context->PassCheckBoxWindowHandle = GetDlgItem(hwndDlg, IDC_PASSWORDCHECK);
+            context->ServiceDllWindowHandle = GetDlgItem(hwndDlg, IDC_SERVICEDLL);
+
             // HACK
             if (PhGetIntegerPairSetting(L"ServiceWindowPosition").X == 0)
                 PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
             else
                 PhLoadWindowPlacementFromSetting(L"ServiceWindowPosition", NULL, GetParent(hwndDlg));
 
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
-            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
+            PhAddComboBoxStrings(context->TypeWindowHandle, PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
+            PhAddComboBoxStrings(context->StartTypeWindowHandle, PhServiceStartTypeStrings, RTL_NUMBER_OF(PhServiceStartTypeStrings));
+            PhAddComboBoxStrings(context->ErrorControlWindowHandle, PhServiceErrorControlStrings, RTL_NUMBER_OF(PhServiceErrorControlStrings));
 
-            PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, PhGetStringOrEmpty(serviceItem->DisplayName));
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_TYPE), PhGetServiceTypeString(serviceItem->Type)->Buffer, FALSE);
+            PhSetWindowText(context->DescriptionWindowHandle, PhGetStringOrEmpty(serviceItem->DisplayName));
+            PhSelectComboBoxString(context->TypeWindowHandle, PhGetServiceTypeString(serviceItem->Type)->Buffer, FALSE);
 
             startType = serviceItem->StartType;
             errorControl = serviceItem->ErrorControl;
-            serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG);
+            serviceHandle = PhOpenService(PhGetString(serviceItem->Name), SERVICE_QUERY_CONFIG);
 
             if (serviceHandle)
             {
@@ -289,9 +325,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                 if (config = PhGetServiceConfig(serviceHandle))
                 {
-                    PhSetDialogItemText(hwndDlg, IDC_GROUP, config->lpLoadOrderGroup);
-                    PhSetDialogItemText(hwndDlg, IDC_BINARYPATH, config->lpBinaryPathName);
-                    PhSetDialogItemText(hwndDlg, IDC_USERACCOUNT, config->lpServiceStartName);
+                    PhSetWindowText(context->GroupWindowHandle, config->lpLoadOrderGroup);
+                    PhSetWindowText(context->BinaryPathWindowHandle, config->lpBinaryPathName);
+                    PhSetWindowText(context->UserNameWindowHandle, config->lpServiceStartName);
 
                     if (startType != config->dwStartType || errorControl != config->dwErrorControl)
                     {
@@ -305,7 +341,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                 if (description = PhGetServiceDescription(serviceHandle))
                 {
-                    PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, description->Buffer);
+                    PhSetWindowText(context->DescriptionWindowHandle, PhGetString(description));
                     PhDereferenceObject(description);
                 }
 
@@ -314,21 +350,21 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     context->OldDelayedStart = delayedStart;
 
                     if (delayedStart)
-                        Button_SetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), BST_CHECKED);
+                        Button_SetCheck(context->DelayedStartWindowHandle, BST_CHECKED);
                 }
 
                 CloseServiceHandle(serviceHandle);
             }
 
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhGetServiceStartTypeString(startType)->Buffer, FALSE);
-            PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhGetServiceErrorControlString(errorControl)->Buffer, FALSE);
+            PhSelectComboBoxString(context->StartTypeWindowHandle, PhGetServiceStartTypeString(startType)->Buffer, FALSE);
+            PhSelectComboBoxString(context->ErrorControlWindowHandle, PhGetServiceErrorControlString(errorControl)->Buffer, FALSE);
 
-            PhSetDialogItemText(hwndDlg, IDC_PASSWORD, L"password");
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
+            PhSetWindowText(context->PassBoxWindowHandle, L"password");
+            Button_SetCheck(context->PassCheckBoxWindowHandle, BST_UNCHECKED);
 
             if (NT_SUCCESS(PhGetServiceDllParameter(serviceItem->Type, &serviceItem->Name->sr, &serviceDll)))
             {
-                PhSetDialogItemText(hwndDlg, IDC_SERVICEDLL, serviceDll->Buffer);
+                PhSetDialogItemText(hwndDlg, IDC_SERVICEDLL, PhGetString(serviceDll));
                 PhDereferenceObject(serviceDll);
             }
             else
@@ -336,7 +372,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 PhSetDialogItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
             }
 
-            PhpRefreshControls(hwndDlg);
+            PhpRefreshControls(context);
 
             context->Ready = TRUE;
 
@@ -366,7 +402,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 {
                     if (HIWORD(wParam) == EN_CHANGE)
                     {
-                        Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_CHECKED);
+                        Button_SetCheck(context->PassCheckBoxWindowHandle, BST_CHECKED);
                     }
                 }
                 break;
@@ -387,9 +423,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PPH_STRING fileName;
 
                     fileDialog = PhCreateOpenFileDialog();
-                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                    PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
 
-                    commandLine = PhaGetDlgItemText(hwndDlg, IDC_BINARYPATH);
+                    commandLine = PH_AUTO_T(PH_STRING, PhGetWindowText(context->BinaryPathWindowHandle));
 
                     if (context->ServiceItem->Type & SERVICE_WIN32)
                     {
@@ -407,13 +443,13 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         fileName = PhGetFileName(commandLine);
                     }
 
-                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
+                    PhSetFileDialogFileName(fileDialog, PhGetString(fileName));
                     PhDereferenceObject(fileName);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        PhSetDialogItemText(hwndDlg, IDC_BINARYPATH, fileName->Buffer);
+                        PhSetWindowText(context->BinaryPathWindowHandle, PhGetString(fileName));
                         PhDereferenceObject(fileName);
                     }
 
@@ -441,7 +477,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             case EN_CHANGE:
             case CBN_SELCHANGE:
                 {
-                    PhpRefreshControls(hwndDlg);
+                    PhpRefreshControls(context);
 
                     if (context->Ready)
                         context->Dirty = TRUE;
@@ -458,7 +494,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             {
             case PSN_QUERYINITIALFOCUS:
                 {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_STARTTYPE));
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)context->StartTypeWindowHandle);
                 }
                 return TRUE;
             //case PSN_KILLACTIVE:
@@ -489,24 +525,31 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         return TRUE;
                     }
 
-                    newServiceTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
-                    newServiceStartTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
-                    newServiceErrorControlString = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
+                    newServiceTypeString = PH_AUTO(PhGetWindowText(context->TypeWindowHandle));
+                    newServiceStartTypeString = PH_AUTO(PhGetWindowText(context->StartTypeWindowHandle));
+                    newServiceErrorControlString = PH_AUTO(PhGetWindowText(context->ErrorControlWindowHandle));
                     newServiceType = PhGetServiceTypeInteger(&newServiceTypeString->sr);
                     newServiceStartType = PhGetServiceStartTypeInteger(&newServiceStartTypeString->sr);
                     newServiceErrorControl = PhGetServiceErrorControlInteger(&newServiceErrorControlString->sr);
 
-                    if (PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_GROUP)))
-                        newServiceGroup = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
-                    if (PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_BINARYPATH)))
-                        newServiceBinaryPath = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
-                    if (PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_USERACCOUNT)))
-                        newServiceUserAccount = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_USERACCOUNT)));
-                    
-                    if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK)) == BST_CHECKED)
-                        newServicePassword = PhGetWindowText(GetDlgItem(hwndDlg, IDC_PASSWORD));
+                    if (PhEqualStringRef(PhGetServiceTypeString(serviceItem->Type), &newServiceTypeString->sr, TRUE))
+                        newServiceType = SERVICE_NO_CHANGE;
+                    if (PhEqualStringRef(PhGetServiceStartTypeString(serviceItem->StartType), &newServiceStartTypeString->sr, TRUE))
+                        newServiceStartType = SERVICE_NO_CHANGE;
+                    if (PhEqualStringRef(PhGetServiceErrorControlString(serviceItem->ErrorControl), &newServiceErrorControlString->sr, TRUE))
+                        newServiceErrorControl = SERVICE_NO_CHANGE;
 
-                    serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_CHANGE_CONFIG);
+                    if (PhGetWindowTextLength(context->GroupWindowHandle))
+                        newServiceGroup = PH_AUTO(PhGetWindowText(context->GroupWindowHandle));
+                    if (PhGetWindowTextLength(context->BinaryPathWindowHandle))
+                        newServiceBinaryPath = PH_AUTO(PhGetWindowText(context->BinaryPathWindowHandle));
+                    if (PhGetWindowTextLength(context->UserNameWindowHandle))
+                        newServiceUserAccount = PH_AUTO(PhGetWindowText(context->UserNameWindowHandle));
+
+                    if (Button_GetCheck(context->PassCheckBoxWindowHandle) == BST_CHECKED)
+                        newServicePassword = PhGetWindowText(context->PassBoxWindowHandle);
+
+                    serviceHandle = PhOpenService(PhGetString(serviceItem->Name), SERVICE_CHANGE_CONFIG);
 
                     if (serviceHandle)
                     {
@@ -526,7 +569,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         {
                             BOOLEAN newDelayedStart;
 
-                            newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
+                            newDelayedStart = Button_GetCheck(context->DelayedStartWindowHandle) == BST_CHECKED;
 
                             if (newDelayedStart != context->OldDelayedStart)
                             {
@@ -551,7 +594,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             if (PhUiConnectToPhSvc(hwndDlg, FALSE))
                             {
                                 if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig(
-                                    serviceItem->Name->Buffer,
+                                    PhGetString(serviceItem->Name),
                                     newServiceType,
                                     newServiceStartType,
                                     newServiceErrorControl,
@@ -566,7 +609,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                                 {
                                     BOOLEAN newDelayedStart;
 
-                                    newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
+                                    newDelayedStart = Button_GetCheck(context->DelayedStartWindowHandle) == BST_CHECKED;
 
                                     if (newDelayedStart != context->OldDelayedStart)
                                     {
@@ -574,7 +617,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                                         info.fDelayedAutostart = newDelayedStart;
                                         PhSvcCallChangeServiceConfig2(
-                                            serviceItem->Name->Buffer,
+                                            PhGetString(serviceItem->Name),
                                             SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
                                             &info
                                             );

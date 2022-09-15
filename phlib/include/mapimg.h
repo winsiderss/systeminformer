@@ -14,11 +14,11 @@ typedef struct _PH_MAPPED_IMAGE
     PVOID ViewBase;
     SIZE_T Size;
 
-    union 
+    union
     {
-        struct 
+        struct
         {
-            union 
+            union
             {
                 PIMAGE_NT_HEADERS32 NtHeaders32;
                 PIMAGE_NT_HEADERS NtHeaders;
@@ -31,7 +31,7 @@ typedef struct _PH_MAPPED_IMAGE
         struct
         {
             struct _ELF_IMAGE_HEADER *Header;
-            union 
+            union
             {
                 struct _ELF_IMAGE_HEADER32 *Headers32;
                 struct _ELF_IMAGE_HEADER64 *Headers64;
@@ -765,7 +765,7 @@ typedef struct _PH_MAPPED_IMAGE_EH_CONT
     PULONGLONG EhContTable;
     ULONGLONG NumberOfEhContEntries;
     ULONG EntrySize;
-} PH_MAPPED_IMAGE_EH_CONT, * PPH_MAPPED_IMAGE_EH_CONT;
+} PH_MAPPED_IMAGE_EH_CONT, *PPH_MAPPED_IMAGE_EH_CONT;
 
 PHLIBAPI
 NTSTATUS

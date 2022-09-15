@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2013-2015
+ *     dmex    2013-2022
  *
  */
 
@@ -67,7 +67,6 @@ VOID WaitChainCheckThread(
 
     memset(nodeInfoArray, 0, sizeof(nodeInfoArray));
 
-    // Retrieve the thread wait chain.
     if (!GetThreadWaitChain(
         Context->WctSessionHandle,
         0,
@@ -81,10 +80,8 @@ VOID WaitChainCheckThread(
         return;
     }
 
-    // Check if the wait chain is too big for the array we passed in.
     if (nodeInfoLength > WCT_MAX_NODE_COUNT)
         nodeInfoLength = WCT_MAX_NODE_COUNT;
-
 
     for (ULONG i = 0; i < nodeInfoLength; i++)
     {
@@ -93,17 +90,16 @@ VOID WaitChainCheckThread(
         if (wctNode->ObjectType == WctThreadType)
         {
             rootNode = WeAddWindowNode(&Context->TreeContext);
-
             rootNode->ObjectType = wctNode->ObjectType;
             rootNode->ObjectStatus = wctNode->ObjectStatus;
             rootNode->Alertable = wctNode->LockObject.Alertable;
             rootNode->ThreadId = UlongToHandle(wctNode->ThreadObject.ThreadId);
             rootNode->ProcessId = UlongToHandle(wctNode->ThreadObject.ProcessId);
-            rootNode->ThreadIdString = PhFormatString(L"%lu", wctNode->ThreadObject.ThreadId);
-            rootNode->ProcessIdString = PhFormatString(L"%lu", wctNode->ThreadObject.ProcessId);
-            rootNode->WaitTimeString = PhFormatString(L"%lu", wctNode->ThreadObject.WaitTime);
-            rootNode->ContextSwitchesString = PhFormatString(L"%lu", wctNode->ThreadObject.ContextSwitches);
-            rootNode->TimeoutString = PhFormatString(L"%I64d", wctNode->LockObject.Timeout.QuadPart);
+            rootNode->ThreadIdString = PhFormatUInt64(wctNode->ThreadObject.ThreadId, TRUE);
+            rootNode->ProcessIdString = PhFormatUInt64(wctNode->ThreadObject.ProcessId, TRUE);
+            rootNode->WaitTimeString = PhFormatUInt64(wctNode->ThreadObject.WaitTime, TRUE);
+            rootNode->ContextSwitchesString = PhFormatUInt64(wctNode->ThreadObject.ContextSwitches, TRUE);
+            rootNode->TimeoutString = PhFormatUInt64(wctNode->LockObject.Timeout.QuadPart, TRUE);
 
             if (wctNode->LockObject.ObjectName[0] != '\0')
             {
@@ -157,7 +153,7 @@ NTSTATUS WaitChainCallbackThread(
         return NTSTATUS_FROM_WIN32(GetLastError());
 
     //TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
-    
+
     if (context->IsProcessItem)
     {
         NTSTATUS status;
@@ -182,11 +178,11 @@ NTSTATUS WaitChainCallbackThread(
             }
 
             status = NtGetNextThread(
-                context->ProcessItem->QueryHandle, 
-                threadHandle, 
+                context->ProcessItem->QueryHandle,
+                threadHandle,
                 THREAD_QUERY_LIMITED_INFORMATION,
-                0, 
-                0, 
+                0,
+                0,
                 &newThreadHandle
                 );
 
@@ -232,17 +228,6 @@ INT_PTR CALLBACK WaitChainDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhUnregisterDialog(hwndDlg);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, hwndDlg);
-            PhDeleteLayoutManager(&context->LayoutManager);
-            WtcDeleteWindowTree(&context->TreeContext);
-
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
-        }
     }
 
     if (context == NULL)
@@ -254,7 +239,8 @@ INT_PTR CALLBACK WaitChainDlgProc(
         {
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_WCT_TREE);
 
-            PhRegisterDialog(hwndDlg);
+            PhSetApplicationWindowIcon(hwndDlg);
+
             WtcInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
@@ -263,7 +249,18 @@ INT_PTR CALLBACK WaitChainDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            PhCreateThread2(WaitChainCallbackThread, (PVOID)context);
+            PhCreateThread2(WaitChainCallbackThread, context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, hwndDlg);
+            PhDeleteLayoutManager(&context->LayoutManager);
+
+            WtcDeleteWindowTree(&context->TreeContext);
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SIZE:
@@ -302,8 +299,8 @@ INT_PTR CALLBACK WaitChainDlgProc(
                             PhSetFlagsEMenuItem(menu, ID_WCT_MENU_GOTOTHREAD, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                             PhSetFlagsEMenuItem(menu, ID_WCT_MENU_GOTOPROCESS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                         }
-                       
-                        PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);                       
+
+                        PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
                         PhDestroyEMenu(menu);
                     }
                 }
@@ -395,9 +392,7 @@ VOID NTAPI WctProcessMenuInitializingCallback(
     if (processItem == NULL)
         return;
 
-    context = (PWCT_CONTEXT)PhAllocate(sizeof(WCT_CONTEXT));
-    memset(context, 0, sizeof(WCT_CONTEXT));
-
+    context = PhAllocateZero(sizeof(WCT_CONTEXT));
     context->IsProcessItem = TRUE;
     context->ProcessItem = processItem;
 
@@ -436,16 +431,14 @@ VOID NTAPI WctThreadMenuInitializingCallback(
     else
         threadItem = NULL;
 
-    context = (PWCT_CONTEXT)PhAllocate(sizeof(WCT_CONTEXT));
-    memset(context, 0, sizeof(WCT_CONTEXT));
-
+    context = PhAllocateZero(sizeof(WCT_CONTEXT));
     context->IsProcessItem = FALSE;
     context->ThreadItem = threadItem;
 
     if (miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Analyze", 0))
         indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, miscMenuItem) + 1;
     else
-        indexOfMenuItem = -1;
+        indexOfMenuItem = ULONG_MAX;
 
     menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_WCT_MENUITEM, L"Wait Chain Tra&versal", context);
     PhInsertEMenuItem(menuInfo->Menu, menuItem, indexOfMenuItem);

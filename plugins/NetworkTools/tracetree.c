@@ -261,7 +261,7 @@ VOID UpdateTracertNode(
 }
 
 VOID UpdateTracertNodePingText(
-    _In_ PTRACERT_ROOT_NODE Node, 
+    _In_ PTRACERT_ROOT_NODE Node,
     _In_ PPH_TREENEW_GET_CELL_TEXT CellText,
     _In_ ULONG Index
     )
@@ -440,8 +440,8 @@ BOOLEAN NTAPI TracertTreeNewCallback(
 
             SendMessage(
                 context->WindowHandle,
-                WM_COMMAND, 
-                TRACERT_SHOWCONTEXTMENU, 
+                WM_COMMAND,
+                TRACERT_SHOWCONTEXTMENU,
                 (LPARAM)contextMenuEvent
                 );
         }
@@ -454,7 +454,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(
                 data.Menu,
@@ -471,7 +471,7 @@ BOOLEAN NTAPI TracertTreeNewCallback(
         return TRUE;
     case TreeNewCustomDraw:
         {
-            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;  
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             HDC hdc;
             RECT rect;
 

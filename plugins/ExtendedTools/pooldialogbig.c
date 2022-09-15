@@ -18,10 +18,10 @@ VOID UpdateBigPoolTable(
 {
     PSYSTEM_BIGPOOL_INFORMATION bigPoolTable;
     ULONG i;
-    
+
     if (!NT_SUCCESS(EnumBigPoolTable(&bigPoolTable)))
         return;
-    
+
     for (i = 0; i < bigPoolTable->Count; i++)
     {
         INT itemIndex;

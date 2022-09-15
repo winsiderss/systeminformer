@@ -55,7 +55,7 @@ VOID PmSaveSettingsTreeList(
     PH_INTEGER_PAIR sortSettings;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
-        
+
     settings = PhCmSaveSettings(Context->TreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_POOL_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
@@ -319,7 +319,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
 
             switch (getCellText->Id)
             {
-            case TREE_COLUMN_ITEM_TAG:    
+            case TREE_COLUMN_ITEM_TAG:
                 PhInitializeStringRefLongHint(&getCellText->Text, poolItem->TagString);
                 break;
             case TREE_COLUMN_ITEM_DRIVER:
@@ -419,7 +419,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
             //    break;
             //case TPOOLTAG_TREE_ITEM_TYPE_DRIVER:
             //    getNodeColor->BackColor = RGB(170, 204, 255);
-            //    break; 
+            //    break;
             //}
 
             //getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -437,9 +437,9 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
             SendMessage(
-                context->ParentWindowHandle, 
-                WM_COMMAND, 
-                POOL_TABLE_SHOWCONTEXTMENU, 
+                context->ParentWindowHandle,
+                WM_COMMAND,
+                WM_PH_UPDATE_DIALOG,
                 (LPARAM)contextMenuEvent
                 );
         }

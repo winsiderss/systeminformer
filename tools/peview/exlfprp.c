@@ -380,8 +380,8 @@ PPH_STRING PvpGetWslImageSectionFlagsString(
     else
         PhAppendStringBuilder2(&sb, L"(None)");
 
-    // TODO: The "objdump -h /bin/su --wide" command shows section flags 
-    // such as CONTENT which appears to be based on ElfSectionType != SHT_NOBITS 
+    // TODO: The "objdump -h /bin/su --wide" command shows section flags
+    // such as CONTENT which appears to be based on ElfSectionType != SHT_NOBITS
     // but I can't find the relevant source-code and check.
 
     return PhFinalStringBuilderString(&sb);

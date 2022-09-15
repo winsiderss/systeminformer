@@ -287,7 +287,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphInitializeDynamicConfiguration(
-    _Out_ PKPH_DYN_CONFIGURATION Configuration 
+    _Out_ PKPH_DYN_CONFIGURATION Configuration
     );
 
 #ifdef __cplusplus

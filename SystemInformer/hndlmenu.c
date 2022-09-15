@@ -246,7 +246,7 @@ VOID PhShowHandleObjectProperties1(
                     0,
                     NULL,
                     &viewSize,
-                    ViewShare,
+                    ViewUnmap,
                     0,
                     readOnly ? PAGE_READONLY : PAGE_READWRITE
                     );
@@ -261,7 +261,7 @@ VOID PhShowHandleObjectProperties1(
                         0,
                         NULL,
                         &viewSize,
-                        ViewShare,
+                        ViewUnmap,
                         0,
                         PAGE_READONLY
                         );

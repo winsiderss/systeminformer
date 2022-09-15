@@ -26,20 +26,28 @@
 #define SETTING_NAME_DISK_COUNTERS_COLUMNS (PLUGIN_NAME L".DiskListColumns")
 #define SETTING_NAME_SMART_COUNTERS_COLUMNS (PLUGIN_NAME L".SmartListColumns")
 #define SETTING_NAME_RAPL_LIST (PLUGIN_NAME L".RaplList")
+#define SETTING_NAME_GRAPHICS_LIST (PLUGIN_NAME L".GraphicsList")
+#define SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION (PLUGIN_NAME L".GraphicsNodesWindowPosition")
+#define SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE (PLUGIN_NAME L".GraphicsNodesWindowSize")
+
+#define UM_NDIS687
+#define UM_NDIS60
 
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
+#include <math.h>
 
 #include <cfgmgr32.h>
 #include <nldef.h>
 #include <netioapi.h>
 
+#include <dxmini.h>
+#include <d3dkmddi.h>
+#include <d3dkmthk.h>
+
 #include "resource.h"
 #include "prpsh.h"
-
-#define WM_SHOWDIALOG (WM_APP + 1)
-#define UPDATE_MSG (WM_APP + 2)
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
@@ -55,6 +63,10 @@ extern PH_QUEUED_LOCK DiskDrivesListLock;
 extern PPH_OBJECT_TYPE RaplDeviceEntryType;
 extern PPH_LIST RaplDevicesList;
 extern PH_QUEUED_LOCK RaplDevicesListLock;
+
+extern PPH_OBJECT_TYPE GraphicsDeviceEntryType;
+extern PPH_LIST GraphicsDevicesList;
+extern PH_QUEUED_LOCK GraphicsDevicesListLock;
 
 // main.c
 
@@ -73,7 +85,8 @@ typedef struct _DV_NETADAPTER_ID
 {
     NET_IFINDEX InterfaceIndex;
     IF_LUID InterfaceLuid; // NET_LUID
-    PPH_STRING InterfaceGuid;
+    GUID InterfaceGuid;
+    PPH_STRING InterfaceGuidString;
     PPH_STRING InterfacePath;
 } DV_NETADAPTER_ID, *PDV_NETADAPTER_ID;
 
@@ -171,8 +184,19 @@ typedef struct _DV_NETADAPTER_DETAILS_CONTEXT
 typedef struct _DV_NETADAPTER_CONTEXT
 {
     HWND ListViewHandle;
-    BOOLEAN OptionsChanged;
-    BOOLEAN UseAlternateMethod;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN OptionsChanged : 1;
+            BOOLEAN UseAlternateMethod : 1;
+            BOOLEAN ShowHardwareAdapters : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
+
     PH_LAYOUT_MANAGER LayoutManager;
 } DV_NETADAPTER_CONTEXT, *PDV_NETADAPTER_CONTEXT;
 
@@ -204,7 +228,7 @@ VOID InitializeNetAdapterId(
     _Out_ PDV_NETADAPTER_ID Id,
     _In_ NET_IFINDEX InterfaceIndex,
     _In_ IF_LUID InterfaceLuid,
-    _In_ PPH_STRING InterfaceGuid
+    _In_ PPH_STRING InterfaceGuidString
     );
 
 VOID CopyNetAdapterId(
@@ -308,11 +332,11 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     );
 
 PPH_STRING NetworkAdapterQueryNameFromInterfaceGuid(
-    _In_ PPH_STRING InterfaceGuid
+    _In_ PGUID InterfaceGuid
     );
 
 PPH_STRING NetworkAdapterQueryNameFromDeviceGuid(
-    _In_ PPH_STRING DeviceGuid
+    _In_ PGUID InterfaceGuid
     );
 
 PPH_STRING NetworkAdapterGetInterfaceAliasFromLuid(
@@ -358,6 +382,11 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
 
 PWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
+    );
+
+_Success_(return)
+BOOLEAN NetworkAdapterQueryWlanConfig(
+    _In_ PGUID InterfaceGuid
     );
 
 // netoptions.c
@@ -1050,6 +1079,360 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
 VOID RaplDeviceSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
     _In_ _Assume_refs_(1) PDV_RAPL_ENTRY DiskEntry
+    );
+
+// gpu.c
+
+// Undocumented device properties (Win10 only)
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
+DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
+
+typedef struct _DV_GPU_ID
+{
+    PPH_STRING DevicePath;
+} DV_GPU_ID, *PDV_GPU_ID;
+
+typedef struct _DV_GPU_ENTRY
+{
+    DV_GPU_ID Id;
+
+    ULONG64 CommitLimit;
+    ULONG64 DedicatedLimit;
+    ULONG64 SharedLimit;
+    ULONG NumberOfSegments;
+    ULONG NumberOfNodes;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN UserReference : 1;
+            BOOLEAN DeviceSupported : 1;
+            BOOLEAN DevicePresent : 1;
+            BOOLEAN Spare : 5;
+        };
+    };
+
+    PH_UINT64_DELTA TotalRunningTimeDelta;
+    PPH_UINT64_DELTA TotalRunningTimeNodesDelta;
+    PPH_CIRCULAR_BUFFER_FLOAT GpuNodesHistory;
+
+    FLOAT CurrentGpuUsage;
+    ULONG64 CurrentDedicatedUsage;
+    ULONG64 CurrentSharedUsage;
+    ULONG64 CurrentCommitUsage;
+    FLOAT CurrentPowerUsage;
+    FLOAT CurrentTemperature;
+    ULONG CurrentFanRPM;
+
+    PH_CIRCULAR_BUFFER_FLOAT GpuUsageHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 DedicatedHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 SharedHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 CommitHistory;
+    PH_CIRCULAR_BUFFER_FLOAT PowerHistory;
+    PH_CIRCULAR_BUFFER_FLOAT TemperatureHistory;
+    PH_CIRCULAR_BUFFER_ULONG FanHistory;
+} DV_GPU_ENTRY, *PDV_GPU_ENTRY;
+
+typedef struct _DV_GPU_NODES_WINDOW_CONTEXT
+{
+    HWND WindowHandle;
+    HWND ParentWindowHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
+    RECT LayoutMargin;
+    RECT MinimumSize;
+    HWND* GraphHandle;
+    PPH_GRAPH_STATE GraphState;
+    PPH_LIST NodeNameList;
+    ULONG NumberOfNodes;
+    PPH_STRING Description;
+    PDV_GPU_ENTRY DeviceEntry;
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+} DV_GPU_NODES_WINDOW_CONTEXT, *PDV_GPU_NODES_WINDOW_CONTEXT;
+
+typedef struct _DV_GPU_SYSINFO_CONTEXT
+{
+    PDV_GPU_ENTRY DeviceEntry;
+
+    HWND WindowHandle;
+
+    PPH_SYSINFO_SECTION SysinfoSection;
+    PH_LAYOUT_MANAGER LayoutManager;
+    RECT GraphMargin;
+
+    PPH_STRING Description;
+
+    HWND NodeWindowHandle;
+    HANDLE NodeWindowThreadHandle;
+    PH_EVENT NodeWindowInitializedEvent;
+
+    HWND GpuDialog;
+    PH_LAYOUT_MANAGER GpuLayoutManager;
+    RECT GpuGraphMargin;
+    HWND GpuGraphHandle;
+    PH_GRAPH_STATE GpuGraphState;
+    HWND DedicatedGraphHandle;
+    PH_GRAPH_STATE DedicatedGraphState;
+    HWND SharedGraphHandle;
+    PH_GRAPH_STATE SharedGraphState;
+    HWND PowerUsageGraphHandle;
+    PH_GRAPH_STATE PowerUsageGraphState;
+    HWND TemperatureGraphHandle;
+    PH_GRAPH_STATE TemperatureGraphState;
+    HWND FanRpmGraphHandle;
+    PH_GRAPH_STATE FanRpmGraphState;
+    HWND GpuPanel;
+    HWND GpuPanelDedicatedUsageLabel;
+    HWND GpuPanelDedicatedLimitLabel;
+    HWND GpuPanelSharedUsageLabel;
+    HWND GpuPanelSharedLimitLabel;
+} DV_GPU_SYSINFO_CONTEXT, *PDV_GPU_SYSINFO_CONTEXT;
+
+typedef struct _DV_GPU_OPTIONS_CONTEXT
+{
+    HWND ListViewHandle;
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN OptionsChanged : 1;
+            BOOLEAN UseAlternateMethod : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
+    PH_LAYOUT_MANAGER LayoutManager;
+} DV_GPU_OPTIONS_CONTEXT, *PDV_GPU_OPTIONS_CONTEXT;
+
+extern BOOLEAN GraphicsGraphShowText;
+extern BOOLEAN GraphicsEnableScaleGraph;
+extern BOOLEAN GraphicsEnableScaleText;
+extern BOOLEAN GraphicsPropagateCpuUsage;
+
+VOID GraphicsDeviceInitialize(
+    VOID
+    );
+
+VOID GraphicsDevicesLoadList(
+    VOID
+    );
+
+VOID GraphicsDevicesUpdate(
+    VOID
+    );
+
+VOID InitializeGraphicsDeviceId(
+    _Out_ PDV_GPU_ID Id,
+    _In_ PPH_STRING DevicePath
+    );
+
+VOID CopyGraphicsDeviceId(
+    _Out_ PDV_GPU_ID Destination,
+    _In_ PDV_GPU_ID Source
+    );
+
+VOID DeleteGraphicsDeviceId(
+    _Inout_ PDV_GPU_ID Id
+    );
+
+BOOLEAN EquivalentGraphicsDeviceId(
+    _In_ PDV_GPU_ID Id1,
+    _In_ PDV_GPU_ID Id2
+    );
+
+PDV_GPU_ENTRY CreateGraphicsDeviceEntry(
+    _In_ PDV_GPU_ID Id
+    );
+
+FLOAT GraphicsDevicePluginInterfaceGetGpuAdapterUtilization(
+    _In_ LUID AdapterLuid
+    );
+
+ULONG64 GraphicsDevicePluginInterfaceGetGpuAdapterDedicated(
+    _In_ LUID AdapterLuid
+    );
+
+ULONG64 GraphicsDevicePluginInterfaceGetGpuAdapterShared(
+    _In_ LUID AdapterLuid
+    );
+
+FLOAT GraphicsDevicePluginInterfaceGetGpuAdapterEngineUtilization(
+    _In_ LUID AdapterLuid,
+    _In_ ULONG EngineId
+    );
+
+// gpuoptions.c
+
+INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+// gpugraph.c
+
+#define GPU_GRAPH_PADDING 3
+
+VOID GraphicsDeviceSysInfoInitializing(
+    _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
+    _In_ PDV_GPU_ENTRY DiskEntry
+    );
+
+BOOLEAN GraphicsDeviceSectionCallback(
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ PH_SYSINFO_SECTION_MESSAGE Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
+    );
+
+INT_PTR CALLBACK GraphicsDeviceDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK GraphicsDevicePanelDialogProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID GraphicsDeviceUpdateGraphs(
+    _In_ PDV_GPU_SYSINFO_CONTEXT Context
+    );
+
+VOID GraphicsDeviceUpdatePanel(
+    _In_ PDV_GPU_SYSINFO_CONTEXT Context
+    );
+
+PPH_STRING GraphicsDeviceGetMaxNodeString(
+    _In_ PDV_GPU_SYSINFO_CONTEXT Context,
+    _In_ LONG Index
+    );
+
+_Success_(return)
+BOOLEAN GraphicsQueryDeviceInterfaceDescription(
+    _In_ PWSTR DeviceInterface,
+    _Out_ PPH_STRING* DeviceDescription,
+    _Out_ LUID* AdapterLuid
+    );
+
+PPH_STRING GraphicsQueryDevicePropertyString(
+    _In_ DEVINST DeviceHandle,
+    _In_ CONST DEVPROPKEY* DeviceProperty
+    );
+
+_Success_(return)
+BOOLEAN GraphicsQueryDeviceInterfaceLuid(
+    _In_ PCWSTR DeviceInterface,
+    _Out_ LUID* AdapterLuid
+    );
+
+_Success_(return)
+BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
+    _In_ PCWSTR DeviceInterface,
+    _Out_ PULONG PhysicalAdapterIndex
+    );
+
+PPH_LIST GraphicsQueryDeviceNodeList(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ ULONG NodeCount
+    );
+
+// graphics.c
+
+typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
+{
+    ULONG CommitLimit;
+    ULONG BytesCommitted;
+    ULONG BytesResident;
+    D3DKMT_QUERYSTATISTICS_MEMORY Memory;
+    ULONG Aperture; // boolean
+    ULONGLONG TotalBytesEvictedByPriority[D3DKMT_MaxAllocationPriorityClass];
+    ULONG64 SystemMemoryEndAddress;
+    struct
+    {
+        ULONG64 PreservedDuringStandby : 1;
+        ULONG64 PreservedDuringHibernate : 1;
+        ULONG64 PartiallyPreservedDuringHibernate : 1;
+        ULONG64 Reserved : 61;
+    } PowerFlags;
+    ULONG64 Reserved[7];
+} D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1, *PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1;
+
+_Success_(return)
+NTSTATUS GraphicsOpenAdapterFromDeviceName(
+    _Out_ D3DKMT_HANDLE* AdapterHandle,
+    _Out_opt_ PLUID AdapterLuid,
+    _In_ PWSTR DeviceName
+    );
+
+BOOLEAN GraphicsCloseAdapterHandle(
+    _In_ D3DKMT_HANDLE AdapterHandle
+    );
+
+NTSTATUS GraphicsQueryAdapterInformation(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ KMTQUERYADAPTERINFOTYPE InformationClass,
+    _Out_writes_bytes_opt_(InformationLength) PVOID Information,
+    _In_ UINT32 InformationLength
+    );
+
+NTSTATUS GraphicsQueryAdapterNodeInformation(
+    _In_ LUID AdapterLuid,
+    _Out_ PULONG NumberOfSegments,
+    _Out_ PULONG NumberOfNodes
+    );
+
+NTSTATUS GraphicsQueryAdapterSegmentLimits(
+    _In_ LUID AdapterLuid,
+    _In_ ULONG NumberOfSegments,
+    _Out_opt_ PULONG64 SharedUsage,
+    _Out_opt_ PULONG64 SharedCommit,
+    _Out_opt_ PULONG64 SharedLimit,
+    _Out_opt_ PULONG64 DedicatedUsage,
+    _Out_opt_ PULONG64 DedicatedCommit,
+    _Out_opt_ PULONG64 DedicatedLimit
+    );
+
+NTSTATUS GraphicsQueryAdapterNodeRunningTime(
+    _In_ LUID AdapterLuid,
+    _In_ ULONG NodeId,
+    _Out_ PULONG64 RunningTime
+    );
+
+NTSTATUS GraphicsQueryAdapterDevicePerfData(
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _Out_ PFLOAT PowerUsage,
+    _Out_ PFLOAT Temperature,
+    _Out_ PULONG FanRPM
+    );
+
+_Success_(return)
+BOOLEAN GraphicsQueryDeviceProperties(
+    _In_ PCWSTR DeviceInterface,
+    _Out_opt_ PPH_STRING* Description,
+    _Out_opt_ PPH_STRING* DriverDate,
+    _Out_opt_ PPH_STRING* DriverVersion,
+    _Out_opt_ PPH_STRING* LocationInfo,
+    _Out_opt_ ULONG64* InstalledMemory,
+    _Out_opt_ LUID* AdapterLuid
+    );
+
+// gpunodes.c
+
+VOID GraphicsDeviceShowNodesDialog(
+    _In_ PDV_GPU_SYSINFO_CONTEXT Context,
+    _In_ HWND ParentWindowHandle
+    );
+
+VOID GraphicsDeviceShowDetailsDialog(
+    _In_ PDV_GPU_SYSINFO_CONTEXT Context,
+    _In_ HWND ParentWindowHandle
     );
 
 #endif _DEVICES_H_

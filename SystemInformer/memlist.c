@@ -862,12 +862,12 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             memoryItem = node->MemoryItem;
 
             if (!memoryItem)
-                NOTHING; 
+                NOTHING;
             else if (
                 context->HighlightExecutePages && (
-                memoryItem->Protect & PAGE_EXECUTE || 
-                memoryItem->Protect & PAGE_EXECUTE_READ || 
-                memoryItem->Protect & PAGE_EXECUTE_READWRITE || 
+                memoryItem->Protect & PAGE_EXECUTE ||
+                memoryItem->Protect & PAGE_EXECUTE_READ ||
+                memoryItem->Protect & PAGE_EXECUTE_READWRITE ||
                 memoryItem->Protect & PAGE_EXECUTE_WRITECOPY
                 ))
             {
@@ -896,7 +896,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             //    memoryItem->RegionType == StackRegion || memoryItem->RegionType == Stack32Region ||
             //    memoryItem->RegionType == HeapRegion || memoryItem->RegionType == Heap32Region ||
             //    memoryItem->RegionType == HeapSegmentRegion || memoryItem->RegionType == HeapSegment32Region
-            //    ((memoryItem->Protect & PAGE_EXECUTE_WRITECOPY || memoryItem->Protect & PAGE_EXECUTE_READWRITE || 
+            //    ((memoryItem->Protect & PAGE_EXECUTE_WRITECOPY || memoryItem->Protect & PAGE_EXECUTE_READWRITE ||
             //    memoryItem->Protect & PAGE_READWRITE) && !(memoryItem->Type & SEC_IMAGE))
             //    )
             //{

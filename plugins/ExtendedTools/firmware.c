@@ -5,13 +5,15 @@
  *
  * Authors:
  *
- *     dmex    2016-2017
+ *     dmex    2016-2022
  *
  */
 
 #include "exttools.h"
 #include "firmware.h"
 #include "efi_guid_list.h"
+#include "Efi\EfiTypes.h"
+#include "Efi\EfiDevicePath.h"
 
 PPH_STRING FirmwareAttributeToString(
     _In_ ULONG Attribute
@@ -65,7 +67,7 @@ VOID FreeListViewFirmwareEntries(
     _In_ PUEFI_WINDOW_CONTEXT Context
     )
 {
-    ULONG index = -1;
+    ULONG index = ULONG_MAX;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
@@ -84,6 +86,47 @@ VOID FreeListViewFirmwareEntries(
     }
 }
 
+NTSTATUS EnumerateFirmwareValues(
+    _Out_ PVOID *Values
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferLength;
+
+    bufferLength = PAGE_SIZE;
+    buffer = PhAllocate(bufferLength);
+
+    while (TRUE)
+    {
+        status = NtEnumerateSystemEnvironmentValuesEx(
+            SystemEnvironmentValueInformation,
+            buffer,
+            &bufferLength
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferLength);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Values = buffer;
+
+    return status;
+}
+
 NTSTATUS EnumerateFirmwareEntries(
     _In_ PUEFI_WINDOW_CONTEXT Context
     )
@@ -100,15 +143,15 @@ NTSTATUS EnumerateFirmwareEntries(
         PVARIABLE_NAME_AND_VALUE i;
 
         for (i = PH_FIRST_EFI_VARIABLE(variables); i; i = PH_NEXT_EFI_VARIABLE(i))
-        {       
+        {
             INT index;
             PEFI_ENTRY entry;
-            
-            entry = PhAllocate(sizeof(EFI_ENTRY));
+
+            entry = PhAllocateZero(sizeof(EFI_ENTRY));
             entry->Length = i->ValueLength;
             entry->Name = PhCreateString(i->Name);
             entry->GuidString = PhFormatGuid(&i->VendorGuid);
-            
+
             index = PhAddListViewItem(
                 Context->ListViewHandle,
                 MAXINT,
@@ -136,8 +179,8 @@ NTSTATUS EnumerateFirmwareEntries(
             PhSetListViewSubItem(
                 Context->ListViewHandle,
                 index,
-                4, 
-                PhaFormatSize(entry->Length, -1)->Buffer
+                4,
+                PhaFormatSize(entry->Length, ULONG_MAX)->Buffer
                 );
         }
 
@@ -150,16 +193,16 @@ NTSTATUS EnumerateFirmwareEntries(
     return status;
 }
 
-VOID ShowBootEntryMenu(
+VOID ShowFirmwareMenu(
     _In_ PUEFI_WINDOW_CONTEXT Context,
     _In_ HWND hwndDlg
     )
 {
-    PPH_STRING bootEntryName;
+    PPH_STRING name;
 
-    if (bootEntryName = PhGetSelectedListViewItemText(Context->ListViewHandle))
+    if (name = PhGetSelectedListViewItemText(Context->ListViewHandle))
     {
-        PhDereferenceObject(bootEntryName);
+        PhDereferenceObject(name);
     }
 }
 
@@ -240,7 +283,7 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
             PhLoadWindowPlacementFromSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, hwndDlg);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
-            
+
             EnumerateFirmwareEntries(context);
         }
         break;
@@ -286,7 +329,7 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
             case NM_RCLICK:
                 {
                     if (hdr->hwndFrom == context->ListViewHandle)
-                        ShowBootEntryMenu(context, hwndDlg);
+                        ShowFirmwareMenu(context, hwndDlg);
                 }
                 break;
             case NM_DBLCLK:

@@ -695,7 +695,7 @@ VOID PhLoadSettingsSectionList(
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
-    
+
     settings = PhGetStringSetting(L"ImageSectionsTreeListColumns");
     sortSettings = PhGetStringSetting(L"ImageSectionsTreeListSort");
     Context->Flags = PhGetIntegerSetting(L"ImageSectionsTreeListFlags");
@@ -712,13 +712,13 @@ VOID PhSaveSettingsSectionList(
 {
     PPH_STRING settings;
     PPH_STRING sortSettings;
-    
+
     settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, 0, &sortSettings);
-    
+
     PhSetIntegerSetting(L"ImageSectionsTreeListFlags", Context->Flags);
     PhSetStringSetting2(L"ImageSectionsTreeListColumns", &settings->sr);
     PhSetStringSetting2(L"ImageSectionsTreeListSort", &sortSettings->sr);
-    
+
     PhDereferenceObject(settings);
     PhDereferenceObject(sortSettings);
 }
@@ -1170,7 +1170,7 @@ BOOLEAN NTAPI PvSectionTreeNewCallback(
             SendMessage(context->ParentWindowHandle, WM_PV_SEARCH_SHOWMENU, 0, (LPARAM)contextMenu);
         }
         return TRUE;
-    case TreeNewHeaderRightClick: 
+    case TreeNewHeaderRightClick:
         {
             PH_TN_COLUMN_MENU_DATA data;
 
