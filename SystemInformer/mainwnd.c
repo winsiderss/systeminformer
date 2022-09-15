@@ -298,6 +298,11 @@ LRESULT CALLBACK PhMwpWndProc(
             TreeNew_SetImageList(PhMwpNetworkTreeNewHandle, PhProcessSmallImageList);
 
             PhMwpOnSettingChange(hWnd);
+
+            PhMwpInvokeUpdateWindowFont(NULL);
+            if (PhGetIntegerSetting(L"EnableMonospaceFont"))
+                PhMwpInvokeUpdateWindowFontMonospace(hWnd, NULL);
+            InvalidateRect(hWnd, NULL, TRUE);
         }
         break;
     case WM_ENDSESSION:
