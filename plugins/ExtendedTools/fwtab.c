@@ -460,13 +460,34 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalAddress)
 {
-    sortResult = PhCompareStringZ(node1->LocalAddressString, node2->LocalAddressString, TRUE);
+    SOCKADDR_IN6 localAddress1 = { 0 };
+    SOCKADDR_IN6 localAddress2 = { 0 };
+
+    if (node1->LocalEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    {
+        IN6ADDR_SETV4MAPPED(&localAddress1, &node1->LocalEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+    }
+    else if (node1->LocalEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
+    {
+        IN6ADDR_SETSOCKADDR(&localAddress1, &node1->LocalEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = node1->ScopeId }, 0);
+    }
+
+    if (node2->LocalEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    {
+        IN6ADDR_SETV4MAPPED(&localAddress2, &node2->LocalEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+    }
+    else if (node2->LocalEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
+    {
+        IN6ADDR_SETSOCKADDR(&localAddress2, &node2->LocalEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = node2->ScopeId }, 0);
+    }
+
+    sortResult = memcmp(&localAddress1, &localAddress2, sizeof(SOCKADDR_IN6));
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(LocalPort)
 {
-    sortResult = PhCompareStringZ(node1->LocalPortString, node2->LocalPortString, TRUE);
+    sortResult = uintcmp(node1->LocalEndpoint.Port, node2->LocalEndpoint.Port);
 }
 END_SORT_FUNCTION
 
@@ -478,13 +499,34 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemoteAddress)
 {
-    sortResult = PhCompareStringZ(node1->RemoteAddressString, node2->RemoteAddressString, TRUE);
+    SOCKADDR_IN6 remoteAddress1 = { 0 };
+    SOCKADDR_IN6 remoteAddress2 = { 0 };
+
+    if (node1->RemoteEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    {
+        IN6ADDR_SETV4MAPPED(&remoteAddress1, &node1->RemoteEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+    }
+    else if (node1->RemoteEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
+    {
+        IN6ADDR_SETSOCKADDR(&remoteAddress1, &node1->RemoteEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = node1->ScopeId }, 0);
+    }
+
+    if (node2->RemoteEndpoint.Address.Type & PH_IPV4_NETWORK_TYPE)
+    {
+        IN6ADDR_SETV4MAPPED(&remoteAddress2, &node2->RemoteEndpoint.Address.InAddr, (SCOPE_ID)SCOPEID_UNSPECIFIED_INIT, 0);
+    }
+    else if (node2->RemoteEndpoint.Address.Type & PH_IPV6_NETWORK_TYPE)
+    {
+        IN6ADDR_SETSOCKADDR(&remoteAddress2, &node2->RemoteEndpoint.Address.In6Addr, (SCOPE_ID){ .Value = node2->ScopeId }, 0);
+    }
+
+    sortResult = memcmp(&remoteAddress1, &remoteAddress2, sizeof(SOCKADDR_IN6));
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(RemotePort)
 {
-    sortResult = PhCompareStringZ(node1->RemotePortString, node2->RemotePortString, TRUE);
+    sortResult = uintcmp(node1->RemoteEndpoint.Port, node2->RemoteEndpoint.Port);
 }
 END_SORT_FUNCTION
 
