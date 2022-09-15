@@ -851,6 +851,8 @@ INT_PTR CALLBACK TracertDlgProc(
     {
     case WM_INITDIALOG:
         {
+            LONG dpiValue;
+
             PhSetWindowText(hwndDlg,
                 PhaFormatString(L"Tracing %s...", context->IpAddressString)->Buffer
                 );
@@ -858,9 +860,11 @@ INT_PTR CALLBACK TracertDlgProc(
                 PhaFormatString(L"Tracing route to %s with %lu bytes of data...", context->IpAddressString, PhGetIntegerSetting(SETTING_NAME_PING_SIZE))->Buffer
                 );
 
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             context->WindowHandle = hwndDlg;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST_TRACERT);
-            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, GetDlgItem(hwndDlg, IDC_STATUS));
+            context->FontHandle = PhCreateCommonFont(-15, FW_MEDIUM, GetDlgItem(hwndDlg, IDC_STATUS), dpiValue);
             context->Timeout = PhGetIntegerSetting(SETTING_NAME_PING_TIMEOUT);
 
             PhSetApplicationWindowIcon(hwndDlg);

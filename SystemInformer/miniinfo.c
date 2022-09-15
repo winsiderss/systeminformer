@@ -438,11 +438,14 @@ VOID PhMipOnInitDialog(
     HICON cog;
     HICON pin;
     WNDPROC oldWndProc;
+    LONG dpiValue;
 
-    cog = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG));
+    dpiValue = PhGetWindowDpi(PhMipWindow);
+
+    cog = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), dpiValue);
     SET_BUTTON_ICON(PhMipWindow, IDC_OPTIONS, cog);
 
-    pin = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PIN));
+    pin = PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_PIN), dpiValue);
     SET_BUTTON_ICON(PhMipWindow, IDC_PINWINDOW, pin);
 
     PhInitializeLayoutManager(&PhMipLayoutManager, PhMipWindow);
@@ -748,13 +751,16 @@ VOID PhMipInitializeParameters(
     HDC hdc;
     TEXTMETRIC textMetrics;
     HFONT originalFont;
+    LONG dpiValue;
 
     memset(&CurrentParameters, 0, sizeof(PH_MINIINFO_PARAMETERS));
 
     CurrentParameters.ContainerWindowHandle = PhMipContainerWindow;
     CurrentParameters.MiniInfoWindowHandle = PhMipWindow;
 
-    if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+    dpiValue = PhGetWindowDpi(PhMipWindow);
+
+    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
     {
         CurrentParameters.Font = CreateFontIndirect(&logFont);
     }
@@ -766,7 +772,7 @@ VOID PhMipInitializeParameters(
 
     hdc = GetDC(PhMipWindow);
 
-    logFont.lfHeight -= PhMultiplyDivide(2, PhGlobalDpi, 72);
+    logFont.lfHeight -= PhMultiplyDivide(2, dpiValue, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
     originalFont = SelectFont(hdc, CurrentParameters.Font);
@@ -1335,7 +1341,7 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
 
             PhSetControlTheme(listSection->TreeNewHandle, L"explorer");
             TreeNew_SetCallback(listSection->TreeNewHandle, PhMipListSectionTreeNewCallback, listSection);
-            TreeNew_SetRowHeight(listSection->TreeNewHandle, PhMipCalculateRowHeight());
+            TreeNew_SetRowHeight(listSection->TreeNewHandle, PhMipCalculateRowHeight(hwndDlg));
             PhAddTreeNewColumnEx2(listSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TRUE, L"Process", 1,
                 PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
 
@@ -1433,15 +1439,18 @@ VOID PhMipClearListSection(
 }
 
 LONG PhMipCalculateRowHeight(
-    VOID
+    _In_ HWND hwnd
     )
 {
     LONG iconHeight;
     LONG titleAndSubtitleHeight;
+    LONG dpiValue;
 
-    iconHeight = MIP_ICON_PADDING + PhLargeIconSize.Y + MIP_CELL_PADDING;
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    iconHeight = PhGetDpi(MIP_ICON_PADDING + MIP_CELL_PADDING, dpiValue) + PhGetSystemMetrics(SM_CXICON, dpiValue);
     titleAndSubtitleHeight =
-        MIP_CELL_PADDING * 2 + CurrentParameters.FontHeight + MIP_INNER_PADDING + CurrentParameters.FontHeight;
+        PhGetDpi(MIP_CELL_PADDING, dpiValue) * 2 + CurrentParameters.FontHeight + PhGetDpi(MIP_INNER_PADDING, dpiValue) + CurrentParameters.FontHeight;
 
     return max(iconHeight, titleAndSubtitleHeight);
 }
@@ -1531,18 +1540,31 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             ULONG usageTextTopWidth = 0;
             ULONG usageTextBottomWidth = 0;
             PH_MINIINFO_LIST_SECTION_GET_TITLE_TEXT getTitleText;
+            LONG dpiValue;
+            LONG width;
+            LONG height;
+            LONG iconPadding;
+            LONG cellPadding;
 
-            rect.left += MIP_ICON_PADDING;
-            rect.top += MIP_ICON_PADDING;
-            rect.right -= MIP_CELL_PADDING;
-            rect.bottom -= MIP_CELL_PADDING;
+            dpiValue = PhGetWindowDpi(hwnd);
+
+            width = PhGetSystemMetrics(SM_CXICON, dpiValue);
+            height = PhGetSystemMetrics(SM_CYICON, dpiValue);
+
+            iconPadding = PhGetDpi(MIP_ICON_PADDING, dpiValue);
+            cellPadding = PhGetDpi(MIP_CELL_PADDING, dpiValue);
+
+            rect.left += iconPadding;
+            rect.top += iconPadding;
+            rect.right -= cellPadding;
+            rect.bottom -= cellPadding;
 
             icon = PhGetImageListIcon(processItem->LargeIconIndex, TRUE);
-            DrawIconEx(hdc, rect.left, rect.top, icon, PhLargeIconSize.X, PhLargeIconSize.Y,0, NULL, DI_NORMAL);
+            DrawIconEx(hdc, rect.left, rect.top, icon, width, height, 0, NULL, DI_NORMAL);
             DestroyIcon(icon);
 
-            rect.left += (MIP_CELL_PADDING - MIP_ICON_PADDING) + PhLargeIconSize.X + MIP_CELL_PADDING;
-            rect.top += MIP_CELL_PADDING - MIP_ICON_PADDING;
+            rect.left += (cellPadding - iconPadding) + width + cellPadding;
+            rect.top += cellPadding - iconPadding;
             SelectFont(hdc, CurrentParameters.Font);
 
             // This color changes depending on whether the node is selected, etc.

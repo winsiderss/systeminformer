@@ -2634,6 +2634,41 @@ CleanupExit:
     return status;
 }
 
+VOID PhSetImagelistR(
+    _In_ HWND hwnd,
+    _Inout_ PPHP_RUNFILEDLG context
+    )
+{
+    HICON shieldIcon;
+    LONG dpiValue;
+
+    if(context->ImageListHandle)
+        PhImageListDestroy (context->ImageListHandle);
+
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if (shieldIcon = PhLoadIcon(
+        NULL,
+        IDI_SHIELD,
+        PH_LOAD_ICON_SIZE_SMALL,
+        0,
+        0,
+        dpiValue
+        ))
+    {
+        context->ImageListHandle = PhImageListCreate(
+            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+            ILC_MASK | ILC_COLOR32,
+            1,
+            1
+            );
+
+        PhImageListAddIcon(context->ImageListHandle, shieldIcon);
+        DestroyIcon(shieldIcon);
+    }
+}
+
 INT_PTR CALLBACK PhpRunFileWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2691,30 +2726,10 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
-                HICON shieldIcon;
-
                 Button_Enable(context->RunAsInstallerCheckboxHandle, FALSE);
                 context->RunAsInstallerCheckboxDisabled = TRUE;
 
-                if (shieldIcon = PhLoadIcon(
-                    NULL,
-                    IDI_SHIELD,
-                    PH_LOAD_ICON_SIZE_SMALL,
-                    PhSmallIconSize.X,
-                    PhSmallIconSize.Y
-                    ))
-                {
-                    context->ImageListHandle = PhImageListCreate(
-                        PhSmallIconSize.X,
-                        PhSmallIconSize.Y,
-                        ILC_MASK | ILC_COLOR32,
-                        1,
-                        1
-                        );
-
-                    PhImageListAddIcon(context->ImageListHandle, shieldIcon);
-                    DestroyIcon(shieldIcon);
-                }
+                PhSetImagelistR(hwndDlg, context);
             }
         }
         break;
@@ -2726,6 +2741,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 PhImageListDestroy(context->ImageListHandle);
 
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhSetImagelistR(hwndDlg, context);
         }
         break;
     case WM_CTLCOLORSTATIC:
@@ -2815,17 +2835,20 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         {
             HDC hdc = (HDC)wParam;
             RECT clientRect;
+            LONG dpiValue;
 
             if (!GetClientRect(hwndDlg, &clientRect))
                 break;
 
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             SetBkMode(hdc, TRANSPARENT);
 
-            clientRect.bottom -= PH_SCALE_DPI(60);
+            clientRect.bottom -= PhGetDpi(60, dpiValue);
             FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PH_SCALE_DPI(60);
+            clientRect.bottom = clientRect.top + PhGetDpi(60, dpiValue);
             FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
@@ -2859,6 +2882,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                             case CDDS_PREPAINT:
                                 {
                                     PPH_STRING buttonText;
+                                    LONG dpiValue;
+                                    LONG width;
 
                                     SetTextColor(customDraw->hdc, RGB(0, 0, 0));
                                     SetDCBrushColor(customDraw->hdc, RGB(0xff, 0xff, 0xff));
@@ -2866,7 +2891,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                                     if (buttonText = PhGetWindowText(customDraw->hdr.hwndFrom))
                                     {
-                                        customDraw->rc.left += PhSmallIconSize.X;
+                                        dpiValue = PhGetWindowDpi (hwndDlg);
+
+                                        width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+
+                                        customDraw->rc.left += width;
                                         DrawText(
                                             customDraw->hdc,
                                             buttonText->Buffer,
@@ -2874,7 +2903,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                                             &customDraw->rc,
                                             DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_HIDEPREFIX
                                             );
-                                        customDraw->rc.left -= PhSmallIconSize.X;
+                                        customDraw->rc.left -= width;
 
                                         PhDereferenceObject(buttonText);
                                     }

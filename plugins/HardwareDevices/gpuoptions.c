@@ -593,6 +593,7 @@ VOID LoadGraphicsDeviceImages(
     DEVPROPTYPE devicePropertyType;
     ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
     WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+    LONG dpiValue;
 
     bufferSize = 0x40;
     deviceIconPath = PhCreateStringEx(NULL, bufferSize);
@@ -625,7 +626,9 @@ VOID LoadGraphicsDeviceImages(
     PhStringToInteger64(&indexPartSr, 10, &index);
     PhMoveReference(&deviceIconPath, PhExpandEnvironmentStrings(&dllPartSr));
 
-    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL))
+    dpiValue = PhGetWindowDpi(Context->ListViewHandle);
+
+    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
     {
         HIMAGELIST imageList = PhImageListCreate(
             24, // GetSystemMetrics(SM_CXSMICON)

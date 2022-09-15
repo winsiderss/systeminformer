@@ -243,7 +243,6 @@ BOOLEAN PhProcessProviderInitialization(
     PhProcessRecordList = PhCreateList(40);
 
     PhEnableProcessExtension = WindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64();
-    PhProcessImageListInitialization();
 
     RtlInitializeSListHead(&PhProcessQueryDataListHead);
 
@@ -711,13 +710,16 @@ VOID PhpProcessQueryStage1(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
+    LONG dpiValue;
 
     // Version info
     if (!processItem->IsSubsystemProcess)
     {
         if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(&processItem->FileName->sr))
         {
-            Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE);
+            dpiValue = PhGetSystemDpi();
+
+            Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue);
 
             PhInitializeImageVersionInfoCached(
                 &Data->VersionInfo,
@@ -3401,16 +3403,40 @@ VOID PhpImageListItemDeleteProcedure(
 }
 
 VOID PhProcessImageListInitialization(
-    VOID
+    _In_ HWND hwnd
     )
 {
     HICON iconSmall;
     HICON iconLarge;
+    LONG dpiValue;
 
-    PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
+    if(PhProcessLargeImageList)
+        PhImageListDestroy(PhProcessLargeImageList);
+        
+    if(PhProcessSmallImageList)
+        PhImageListDestroy(PhProcessSmallImageList);
 
-    PhProcessLargeImageList = PhImageListCreate(PhLargeIconSize.X, PhLargeIconSize.Y, ILC_MASK | ILC_COLOR32, 100, 100);
-    PhProcessSmallImageList = PhImageListCreate(PhSmallIconSize.X, PhSmallIconSize.Y, ILC_MASK | ILC_COLOR32, 100, 100);
+    if(!PhImageListItemType)
+        PhImageListItemType = PhCreateObjectType (L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
+
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    PhProcessLargeImageList = PhImageListCreate(
+        PhGetSystemMetrics(SM_CXICON, dpiValue),
+        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        ILC_MASK | ILC_COLOR32,
+        100,
+        100
+        );
+
+    PhProcessSmallImageList = PhImageListCreate(
+        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+        ILC_MASK | ILC_COLOR32,
+        100,
+        100
+        );
+
     PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
     PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
 
@@ -3418,8 +3444,8 @@ VOID PhProcessImageListInitialization(
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
 
-    iconLarge = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_LARGE, 0, 0);
-    iconSmall = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_SMALL, 0, 0);
+    iconLarge = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
+    iconSmall = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
     DestroyIcon(iconLarge);
@@ -3448,7 +3474,8 @@ ULONG PhImageListCacheHashtableHashFunction(
 
 PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     _In_ PPH_STRING FileName,
-    _In_ BOOLEAN NativeFileName
+    _In_ BOOLEAN NativeFileName,
+    _In_ LONG dpiValue
     )
 {
     HICON largeIcon = NULL;
@@ -3486,7 +3513,8 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
         NativeFileName,
         0,
         &largeIcon,
-        &smallIcon
+        &smallIcon,
+        dpiValue
         );
 
     PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);

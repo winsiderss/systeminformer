@@ -105,12 +105,15 @@ BOOLEAN PhSipIoSectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
             FLOAT max;
+            LONG dpiValue;
 
             if (!drawInfo)
                 break;
 
+            dpiValue = PhGetWindowDpi(Section->DialogHandle);
+
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, dpiValue);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhIoReadHistory.Count);
 
             if (!Section->GraphState.Valid)
@@ -260,8 +263,12 @@ INT_PTR CALLBACK PhSipIoDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
+            RECT margin;
+            LONG dpiValue;
 
             PhSipInitializeIoDialog();
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
 
             IoDialog = hwndDlg;
             PhInitializeLayoutManager(&IoLayoutManager, hwndDlg);
@@ -269,11 +276,23 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             panelItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             IoGraphMargin = graphItem->Margin;
 
+            PhGetSizeDpiValue(&IoGraphMargin, dpiValue, TRUE);
+
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), IoSection->Parameters->LargeFont, FALSE);
 
             IoPanel = PhCreateDialog(PhInstanceHandle, MAKEINTRESOURCE(IDD_SYSINFO_IOPANEL), hwndDlg, PhSipIoPanelDialogProc, NULL);
             ShowWindow(IoPanel, SW_SHOW);
-            PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, panelItem->Margin);
+
+            margin = panelItem->Margin;
+            PhGetSizeDpiValue(&margin, dpiValue, TRUE);
+
+            PhAddLayoutItemEx(
+                &IoLayoutManager,
+                IoPanel,
+                NULL,
+                PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM,
+                margin
+                );
 
             PhSipCreateIoGraph();
             PhSipUpdateIoGraph();
@@ -383,9 +402,12 @@ VOID PhSipNotifyIoGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, dpiValue);
 
             PhGraphStateGetDrawInfo(
                 &IoGraphState,

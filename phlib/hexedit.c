@@ -112,7 +112,26 @@ LRESULT CALLBACK PhpHexEditWndProc(
     {
     case WM_CREATE:
         {
-            context->Font = CreateFont(-(LONG)PhMultiplyDivide(12, PhGlobalDpi, 96), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, L"Courier New");
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwnd);
+
+            context->Font = CreateFont(
+                -(LONG)PhGetDpi(12, dpiValue),
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                L"Courier New"
+                );
         }
         break;
     case WM_DESTROY:
@@ -250,9 +269,12 @@ LRESULT CALLBACK PhpHexEditWndProc(
             if (context->Data)
             {
                 ULONG wheelScrollLines;
+                LONG dpiValue;
 
-                if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
-                    wheelScrollLines = 3;
+                dpiValue = PhGetWindowDpi(hwnd);
+
+                if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, dpiValue))
+                    wheelScrollLines = PhGetDpi(3, dpiValue);
 
                 context->TopIndex += context->BytesPerRow * (LONG)wheelScrollLines * -wheelDelta / WHEEL_DELTA;
 

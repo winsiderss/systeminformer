@@ -343,7 +343,7 @@ VOID PhSipCreateMemoryGraphs(
     );
 
 VOID PhSipLayoutMemoryGraphs(
-    VOID
+    _In_ HWND hwnd
     );
 
 VOID PhSipNotifyCommitGraph(

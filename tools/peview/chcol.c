@@ -112,13 +112,16 @@ static ULONG IndexOfStringInList(
 }
 
 static HFONT PvColumnsGetCurrentFont(
-    VOID
+    _In_ HWND hwnd
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
     HFONT font;
+	LONG dpiValue;
 
-    if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
         font = CreateFontIndirect(&metrics.lfMessageFont);
     else
         font = NULL;
@@ -192,6 +195,19 @@ VOID PvColumnsResetListBox(
     SendMessage(ListBoxHandle, WM_SETREDRAW, TRUE, 0);
 }
 
+VOID PvSetListHeight(
+    _In_ PCOLUMNS_DIALOG_CONTEXT context,
+    _In_ HWND hwndDlg
+)
+{
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwndDlg);
+
+    ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+    ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+}
+
 INT_PTR CALLBACK PvColumnsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -233,15 +249,14 @@ INT_PTR CALLBACK PvColumnsDlgProc(
             context->SearchActiveHandle = GetDlgItem(hwndDlg, IDC_FILTER);
             context->InactiveListArray = PhCreateList(1);
             context->ActiveListArray = PhCreateList(1);
-            context->ControlFont = PvColumnsGetCurrentFont();
+            context->ControlFont = PvColumnsGetCurrentFont(hwndDlg);
             context->InactiveSearchboxText = PhReferenceEmptyString();
             context->ActiveSearchboxText = PhReferenceEmptyString();
 
             PvCreateSearchControl(context->SearchInactiveHandle, L"Inactive columns...");
             PvCreateSearchControl(context->SearchActiveHandle, L"Active columns...");
 
-            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PV_SCALE_DPI(16));
-            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PV_SCALE_DPI(16));
+            PvSetListHeight(context, hwndDlg);
 
             Button_Enable(GetDlgItem(hwndDlg, IDC_HIDE), FALSE);
             Button_Enable(GetDlgItem(hwndDlg, IDC_SHOW), FALSE);
@@ -358,6 +373,11 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                 PhDereferenceObject(context->ActiveSearchboxText);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvSetListHeight (context, hwndDlg);
         }
         break;
     case WM_COMMAND:

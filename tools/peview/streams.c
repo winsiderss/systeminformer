@@ -154,6 +154,27 @@ VOID PvpPeEnumerateFileStreams(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
+VOID PvpSetImagelistS(
+    _In_ PPVP_PE_STREAMS_CONTEXT context
+    )
+{
+    HIMAGELIST listViewImageList;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(context->WindowHandle);
+
+    listViewImageList = PhImageListCreate (
+        2,
+        PhGetDpi(20, dpiValue),
+        ILC_MASK | ILC_COLOR,
+        1,
+        1
+        );
+
+    if (listViewImageList)
+        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+}
+
 INT_PTR CALLBACK PvpPeStreamsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -186,8 +207,6 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HIMAGELIST listViewImageList;
-
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -204,8 +223,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            if (listViewImageList = PhImageListCreate(2, 20, ILC_MASK | ILC_COLOR, 1, 1))
-                ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
+            PvpSetImagelistS(context);
 
             PvpPeEnumerateFileStreams(context->ListViewHandle);
 
@@ -217,6 +235,11 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
             PhSaveListViewColumnsToSetting(L"ImageStreamsListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhFree(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PvpSetImagelistS(context);
         }
         break;
     case WM_SHOWWINDOW:

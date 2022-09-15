@@ -62,6 +62,7 @@ BOOLEAN PhSettingFromString(
     _In_ PH_SETTING_TYPE Type,
     _In_ PPH_STRINGREF StringRef,
     _In_opt_ PPH_STRING String,
+    _In_ LONG dpiValue,
     _Inout_ PPH_SETTING Setting
     );
 
@@ -99,7 +100,8 @@ PH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairStringRefSetting(
     _In_ PPH_STRINGREF Name,
-    _In_ BOOLEAN ScaleToCurrent
+    _In_ BOOLEAN ScaleToCurrent,
+    _In_ LONG dpiValue
     );
 
 _May_raise_
@@ -143,7 +145,8 @@ VOID
 NTAPI
 PhSetScalableIntegerPairStringRefSetting2(
     _In_ PPH_STRINGREF Name,
-    _In_ PH_INTEGER_PAIR Value
+    _In_ PH_INTEGER_PAIR Value,
+    _In_ LONG dpiValue
     );
 
 _May_raise_
@@ -188,14 +191,15 @@ PH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairSetting(
     _In_ PWSTR Name,
-    _In_ BOOLEAN ScaleToCurrent
+    _In_ BOOLEAN ScaleToCurrent,
+    _In_ LONG dpiValue
     )
 {
     PH_STRINGREF name;
 
     PhInitializeStringRef(&name, Name);
 
-    return PhGetScalableIntegerPairStringRefSetting(&name, ScaleToCurrent);
+    return PhGetScalableIntegerPairStringRefSetting(&name, ScaleToCurrent, dpiValue);
 }
 
 FORCEINLINE
@@ -314,14 +318,15 @@ VOID
 NTAPI
 PhSetScalableIntegerPairSetting2(
     _In_ PWSTR Name,
-    _In_ PH_INTEGER_PAIR Value
+    _In_ PH_INTEGER_PAIR Value,
+    _In_ LONG dpiValue
     )
 {
     PH_STRINGREF name;
 
     PhInitializeStringRef(&name, Name);
 
-    PhSetScalableIntegerPairStringRefSetting2(&name, Value);
+    PhSetScalableIntegerPairStringRefSetting2(&name, Value, dpiValue);
 }
 
 // end_phapppub
@@ -343,7 +348,7 @@ NTSTATUS PhSaveSettings(
     );
 
 VOID PhResetSettings(
-    VOID
+    _In_ HWND hwnd
     );
 
 // begin_phapppub

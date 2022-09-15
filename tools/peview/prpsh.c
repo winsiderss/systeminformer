@@ -229,11 +229,12 @@ static HWND PvpCreateSecurityButton(
 static HFONT PvpCreateFont(
     _In_ PWSTR Name,
     _In_ ULONG Size,
-    _In_ ULONG Weight
+    _In_ ULONG Weight,
+    _In_ LONG dpiValue
     )
 {
     return CreateFont(
-        -(LONG)PhMultiplyDivide(Size, PhGlobalDpi, 72),
+        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
         0,
         0,
         0,
@@ -251,20 +252,23 @@ static HFONT PvpCreateFont(
 }
 
 VOID PvpInitializeFont(
-    VOID
+    _In_ HWND hwnd
 )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwnd);
 
     if (PhApplicationFont)
         DeleteObject(PhApplicationFont);
 
     if (
-        !(PhApplicationFont = PvpCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
-        !(PhApplicationFont = PvpCreateFont(L"Tahoma", 8, FW_NORMAL))
+        !(PhApplicationFont = PvpCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, dpiValue)) &&
+        !(PhApplicationFont = PvpCreateFont(L"Tahoma", 8, FW_NORMAL, dpiValue))
         )
     {
-        if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+        if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
             PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
         else
             PhApplicationFont = NULL;
@@ -302,7 +306,7 @@ INT CALLBACK PvpPropSheetProc(
             HICON smallIcon;
             HICON largeIcon;
 
-            PvpInitializeFont();
+            PvpInitializeFont(hwndDlg);
 
             PhGetStockApplicationIcon(&smallIcon, &largeIcon);
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
@@ -394,6 +398,11 @@ LRESULT CALLBACK PvpPropSheetWndProc(
             PhFree(propSheetContext);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PvpInitializeFont(hWnd);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
@@ -463,9 +472,12 @@ VOID PhpInitializePropSheetLayoutStage2(
     )
 {
     PH_RECTANGLE windowRectangle;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(hwnd);
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE).Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue).Pair;
 
     if (!windowRectangle.Position.X)
         return;

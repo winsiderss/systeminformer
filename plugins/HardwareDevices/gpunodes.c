@@ -333,12 +333,15 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+                    LONG dpiValue;
 
                     if (context->NumberOfNodes != context->DeviceEntry->NumberOfNodes)
                         break;
 
+                    dpiValue = PhGetWindowDpi(context->WindowHandle);
+                    
                     drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
 
                     for (i = 0; i < context->NumberOfNodes; i++)
                     {

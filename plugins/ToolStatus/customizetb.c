@@ -485,6 +485,10 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
     {
     case WM_INITDIALOG:
         {
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, PhMainWndHandle);
@@ -498,7 +502,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
             context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
 
-            context->CXWidth = PH_SCALE_DPI(16);
+            context->CXWidth = PhGetDpi(16, dpiValue);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -543,6 +547,14 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
             if (context->FontHandle)
                 DeleteFont(context->FontHandle);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            context->CXWidth = PhGetDpi(16, LOWORD(wParam));
+
+            ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
+            ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
         }
         break;
     case WM_NCDESTROY:

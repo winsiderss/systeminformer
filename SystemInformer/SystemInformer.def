@@ -37,7 +37,6 @@ EXPORTS
     PhfWakeForReleaseQueuedLock
 
 ; phconfig
-    PhGlobalDpi DATA
     PhIsExecutingInWow64
     PhSystemBasicInformation DATA
 
@@ -347,6 +346,15 @@ EXPORTS
     PhAdjustRectangleToWorkingArea
     PhCenterRectangle
     PhCenterWindow
+    PhGetDpi
+    PhGetMonitorDpi
+    PhGetSystemDpi
+    PhGetTaskbarDpi
+    PhGetWindowDpi
+    PhGetDpiValue
+    PhGetSystemMetrics
+    PhGetSystemParametersInfo
+    PhGetSizeDpiValue
     PhCompareUnicodeStringZIgnoreMenuPrefix
     PhCreateOpenFileDialog
     PhCreateProcess

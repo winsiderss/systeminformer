@@ -293,9 +293,20 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+                    RECT margin;
+                    RECT padding;
+                    LONG dpiValue;
+
+                    margin = NormalGraphTextMargin;
+                    padding = NormalGraphTextPadding;
+
+                    dpiValue = PhGetWindowDpi(hwndDlg);
+
+                    PhGetSizeDpiValue(&margin, dpiValue, TRUE);
+                    PhGetSizeDpiValue(&padding, dpiValue, TRUE);
 
                     drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
-                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0);
+                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
 
                     for (i = 0; i < EtGpuTotalNodeCount; i++)
                     {
@@ -381,8 +392,8 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                     hdc,
                                     drawInfo,
                                     &GraphState[i].Text->sr,
-                                    &NormalGraphTextMargin,
-                                    &NormalGraphTextPadding,
+                                    &margin,
+                                    &padding,
                                     PH_ALIGN_TOP | PH_ALIGN_LEFT
                                     );
                             }

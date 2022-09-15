@@ -305,6 +305,7 @@ BOOLEAN PvGetListViewContextMenuPoint(
     INT selectedIndex;
     RECT bounds;
     RECT clientRect;
+    LONG dpiValue;
 
     // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
@@ -312,8 +313,10 @@ BOOLEAN PvGetListViewContextMenuPoint(
     {
         if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
         {
-            Point->x = bounds.left + PhSmallIconSize.X / 2;
-            Point->y = bounds.top + PhSmallIconSize.Y / 2;
+            dpiValue = PhGetWindowDpi(ListViewHandle);
+
+            Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
+            Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
 
             GetClientRect(ListViewHandle, &clientRect);
 

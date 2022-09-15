@@ -534,6 +534,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     UCHAR priorityClass;
     PROCESS_HANDLE_INFORMATION handleInfo;
     HANDLE processHandle2;
+    LONG dpiValue;
 
     if (Entry->Type == NormalProcess)
     {
@@ -633,8 +634,10 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
 
     if (processItem->FileName)
     {
+        dpiValue = PhGetWindowDpi(PhGetMainWindowHandle());
+
         // Small icon, large icon.
-        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE))
+        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue))
         {
             processItem->SmallIconIndex = processItem->IconEntry->SmallIconIndex;
             processItem->LargeIconIndex = processItem->IconEntry->LargeIconIndex;

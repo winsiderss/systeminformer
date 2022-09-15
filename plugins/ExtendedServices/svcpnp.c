@@ -351,6 +351,7 @@ VOID EspLoadDeviceInstanceImage(
     ULONG deviceIconPathLength;
     DEVPROPTYPE deviceIconPathPropertyType;
     PPH_STRING deviceIconPath;
+    LONG dpiValue;
 
     deviceIconPathLength = 0x40;
     deviceIconPath = PhCreateStringEx(NULL, deviceIconPathLength);
@@ -398,7 +399,9 @@ VOID EspLoadDeviceInstanceImage(
         {
             if (dllIconPath = PhExpandEnvironmentStrings(&dllPartSr))
             {
-                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL))
+                dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+                if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     UINT imageIndex = PhImageListAddIcon(Context->ImageList, smallIcon);
                     PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
@@ -752,6 +755,10 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
     {
     case WM_INITDIALOG:
         {
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -768,8 +775,8 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
             context->ImageList = PhImageListCreate(
-                24, // GetSystemMetrics(SM_CXSMICON)
-                24, // GetSystemMetrics(SM_CYSMICON)
+                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
                 ILC_MASK | ILC_COLOR32, 1, 1);
             ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
 

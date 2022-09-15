@@ -39,8 +39,6 @@ extern HICON PvImageSmallIcon;
 extern HICON PvImageLargeIcon;
 extern PH_IMAGE_VERSION_INFO PvImageVersionInfo;
 
-#define PV_SCALE_DPI(Value) PhMultiplyDivide(Value, PhGlobalDpi, 96) // phapppub
-
 FORCEINLINE PWSTR PvpGetStringOrNa(
     _In_ PPH_STRING String
     )

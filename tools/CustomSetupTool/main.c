@@ -116,7 +116,28 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
     {
     case TDN_CREATED:
         {
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwndDlg);
+
             context->DialogHandle = hwndDlg;
+
+            context->IconLargeHandle = PhLoadIcon(
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDI_ICON),
+                PH_LOAD_ICON_SIZE_LARGE,
+                PhGetSystemMetrics(SM_CXICON, dpiValue),
+                PhGetSystemMetrics(SM_CYICON, dpiValue),
+                dpiValue
+                );
+            context->IconSmallHandle = PhLoadIcon(
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDI_ICON),
+                PH_LOAD_ICON_SIZE_LARGE,
+                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                dpiValue
+                );
 
             SendMessage(context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)context->IconSmallHandle);
             SendMessage(context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)context->IconLargeHandle);
@@ -158,21 +179,6 @@ VOID SetupShowDialog(
 
     context = PhCreateAlloc(sizeof(PH_SETUP_CONTEXT));
     memset(context, 0, sizeof(PH_SETUP_CONTEXT));
-
-    context->IconLargeHandle = PhLoadIcon(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDI_ICON),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXICON),
-        GetSystemMetrics(SM_CYICON)
-        );
-    context->IconSmallHandle = PhLoadIcon(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDI_ICON),
-        PH_LOAD_ICON_SIZE_LARGE,
-        GetSystemMetrics(SM_CXSMICON),
-        GetSystemMetrics(SM_CYSMICON)
-        );
 
     SetupParseCommandLine(context);
 

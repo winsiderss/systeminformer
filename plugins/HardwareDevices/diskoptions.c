@@ -600,9 +600,12 @@ VOID LoadDiskDriveImages(
     DEVPROPTYPE devicePropertyType;
     ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
     WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+    LONG dpiValue;
 
     bufferSize = 0x40;
     deviceIconPath = PhCreateStringEx(NULL, bufferSize);
+
+    dpiValue = PhGetWindowDpi(Context->ListViewHandle);
 
     if ((result = CM_Get_Class_Property(
         &GUID_DEVCLASS_DISKDRIVE,
@@ -633,11 +636,11 @@ VOID LoadDiskDriveImages(
     PhStringToInteger64(&indexPartSr, 10, &index);
     PhMoveReference(&deviceIconPath, PhExpandEnvironmentStrings(&dllPartSr));
 
-    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL))
+    if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
     {
         HIMAGELIST imageList = PhImageListCreate(
-            24, // GetSystemMetrics(SM_CXSMICON)
-            24, // GetSystemMetrics(SM_CYSMICON)
+            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
             ILC_MASK | ILC_COLOR32,
             1,
             1

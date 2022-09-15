@@ -41,7 +41,7 @@ VOID EtpCreateGpuGraphs(
     );
 
 VOID EtpLayoutGpuGraphs(
-    VOID
+    _In_ HWND hwnd
     );
 
 VOID EtpNotifyGpuGraph(

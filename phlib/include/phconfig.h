@@ -9,7 +9,6 @@ extern "C" {
 
 extern _User_set_ PVOID PhInstanceHandle;
 extern _User_set_ PWSTR PhApplicationName;
-PHLIBAPI extern _User_set_ ULONG PhGlobalDpi;
 extern PVOID PhHeapHandle;
 extern RTL_OSVERSIONINFOEXW PhOsVersion;
 extern ULONG WindowsVersion;
