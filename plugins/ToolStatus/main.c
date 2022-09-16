@@ -612,7 +612,48 @@ LRESULT CALLBACK MainWndSubclassProc(
         SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)MainWindowHookProc);
         break;
     case WM_DPICHANGED:
-        ToolbarLoadSettings();
+        {
+            HFONT oldFont = ToolbarWindowFont;
+
+            // Let Process Hacker perform the default processing.
+            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+
+            ToolbarWindowFont = ProcessHacker_GetFont();
+
+            // Update fonts/sizes for new DPI.
+            if (ToolBarHandle)
+            {
+                LONG toolbarButtonHeight;
+
+                SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
+
+                toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
+                toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
+
+                RebarAdjustBandHeightLayout(toolbarButtonHeight);
+                SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+            }
+
+            if (StatusBarHandle)
+            {
+                LONG statusbarButtonHeight;
+
+                SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
+
+                statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
+                statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
+
+                SendMessage(StatusBarHandle, SB_SETMINHEIGHT, statusbarButtonHeight, 0);
+                //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
+                StatusBarUpdate(TRUE);
+            }
+
+            ToolbarLoadSettings();
+
+            if (oldFont) DeleteFont(oldFont);
+
+            goto DefaultWndProc;
+        }
         break;
     case WM_COMMAND:
         {
