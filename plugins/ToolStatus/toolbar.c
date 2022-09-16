@@ -97,22 +97,42 @@ VOID RebarCreateOrUpdateWindow(
     VOID
     )
 {
-    LONG dpiValue;
-
-    ToolbarWindowFont = ProcessHacker_GetFont();
-
-    if (ToolStatusConfig.ToolBarEnabled && !ToolBarImageList)
+    if (ToolStatusConfig.ToolBarEnabled)
     {
-        dpiValue = PhGetWindowDpi(PhMainWndHandle);
+        LONG dpiValue;
 
+        dpiValue = PhGetWindowDpi(PhMainWndHandle);
         ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
         ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
-        ToolBarImageList = PhImageListCreate(ToolBarImageSize.cx, ToolBarImageSize.cy, ILC_MASK | ILC_COLOR32, 0, 0);
+        if (ToolBarImageList) PhImageListDestroy(ToolBarImageList);
+        ToolBarImageList = PhImageListCreate(
+            ToolBarImageSize.cx,
+            ToolBarImageSize.cy,
+            ILC_MASK | ILC_COLOR32,
+            0, 0
+            );
+
+        // Note: If ToolBarHandle is valid then we're processing WM_DPICHANGED. (dmex)
+        if (ToolBarHandle)
+        {
+            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+
+            // Remove all buttons.
+            INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+            while (buttonCount--)
+                SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+
+            // Re-add/update buttons.
+            ToolbarLoadButtonSettings();
+        }
     }
 
     if (ToolStatusConfig.ToolBarEnabled && !RebarHandle)
     {
+        ToolbarWindowFont = ProcessHacker_GetFont();
+
         RebarHandle = CreateWindowEx(
             WS_EX_TOOLWINDOW,
             REBARCLASSNAME,
@@ -247,14 +267,16 @@ VOID RebarCreateOrUpdateWindow(
     if (ToolStatusConfig.SearchBoxEnabled && RebarHandle && SearchboxHandle)
     {
         UINT height = (UINT)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
-        LONG dpiValue;
 
         // Add the Searchbox band into the rebar control.
         if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
         {
+            LONG dpiValue;
+
             dpiValue = PhGetWindowDpi(RebarHandle);
+
             RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhGetDpi(180, dpiValue), height);
-            }
+        }
 
         if (!IsWindowVisible(SearchboxHandle))
             ShowWindow(SearchboxHandle, SW_SHOW);
