@@ -533,7 +533,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
     case WM_DESTROY:
         {
             ToolbarSaveButtonSettings();
-            ToolbarLoadSettings();
+            ToolbarLoadSettings(FALSE);
             CustomizeFreeToolbarItems(context);
 
             if (context->BrushNormal)
@@ -732,7 +732,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                     // Reset the Toolbar buttons to default settings.
                     ToolbarResetSettings();
                     // Re-load the settings.
-                    ToolbarLoadSettings();
+                    ToolbarLoadSettings(FALSE);
                     // Save as the new defaults.
                     ToolbarSaveButtonSettings();
 
@@ -746,7 +746,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                         PhSetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE,
                             (DisplayStyle = (TOOLBAR_DISPLAY_STYLE)ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam))));
 
-                        ToolbarLoadSettings();
+                        ToolbarLoadSettings(FALSE);
                     }
                 }
                 break;
@@ -757,7 +757,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                         PhSetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE,
                             (SearchBoxDisplayMode = (SEARCHBOX_DISPLAY_MODE)ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam))));
 
-                        ToolbarLoadSettings();
+                        ToolbarLoadSettings(FALSE);
                     }
                 }
                 break;
@@ -800,7 +800,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                         PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                        ToolbarLoadSettings();
+                        ToolbarLoadSettings(FALSE);
 
                         CustomizeResetImages(context);
                         CustomizeResetToolbarImages();

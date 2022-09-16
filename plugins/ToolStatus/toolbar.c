@@ -94,7 +94,7 @@ BOOLEAN RebarBandExists(
 }
 
 VOID RebarCreateOrUpdateWindow(
-    VOID
+    _In_ BOOLEAN DpiChanged
     )
 {
     if (ToolStatusConfig.ToolBarEnabled)
@@ -113,8 +113,7 @@ VOID RebarCreateOrUpdateWindow(
             0, 0
             );
 
-        // Note: If ToolBarHandle is valid then we're processing WM_DPICHANGED. (dmex)
-        if (ToolBarHandle)
+        if (DpiChanged)
         {
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
@@ -317,10 +316,10 @@ VOID RebarCreateOrUpdateWindow(
 }
 
 VOID ToolbarLoadSettings(
-    VOID
+    _In_ BOOLEAN DpiChanged
     )
 {
-    RebarCreateOrUpdateWindow();
+    RebarCreateOrUpdateWindow(DpiChanged);
 
     if (ToolStatusConfig.ToolBarEnabled && ToolBarHandle)
     {

@@ -163,7 +163,7 @@ BOOLEAN RebarBandExists(
     );
 
 VOID ToolbarLoadSettings(
-    VOID
+    _In_ BOOLEAN DpiChanged
     );
 
 VOID ToolbarResetSettings(
