@@ -263,7 +263,7 @@ VOID ShowCustomizeMenu(
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                ToolbarLoadSettings();
+                ToolbarLoadSettings(FALSE);
                 ReBarSaveLayoutSettings();
 
                 if (ToolStatusConfig.SearchBoxEnabled) // && !ToolStatusConfig.SearchAutoFocus)
@@ -319,7 +319,7 @@ VOID ShowCustomizeMenu(
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                ToolbarLoadSettings();
+                ToolbarLoadSettings(FALSE);
             }
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
@@ -648,7 +648,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 StatusBarUpdate(TRUE);
             }
 
-            ToolbarLoadSettings();
+            ToolbarLoadSettings(TRUE);
 
             if (oldFont) DeleteFont(oldFont);
 
@@ -1476,7 +1476,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 StatusBarUpdate(TRUE);
             }
 
-            ToolbarLoadSettings();
+            ToolbarLoadSettings(FALSE);
 
             goto DefaultWndProc;
         }
@@ -1568,7 +1568,7 @@ VOID NTAPI MainWindowShowingCallback(
     MainWindowHookProc = (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
     SetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC, (LONG_PTR)MainWndSubclassProc);
 
-    ToolbarLoadSettings();
+    ToolbarLoadSettings(FALSE);
     ToolbarCreateGraphs();
     ReBarLoadLayoutSettings();
     StatusBarLoadSettings();
@@ -1676,7 +1676,7 @@ VOID NTAPI MenuItemCallback(
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                ToolbarLoadSettings();
+                ToolbarLoadSettings(FALSE);
                 ReBarSaveLayoutSettings();
 
                 if (ToolStatusConfig.SearchBoxEnabled)
@@ -1732,7 +1732,7 @@ VOID NTAPI MenuItemCallback(
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                ToolbarLoadSettings();
+                ToolbarLoadSettings(FALSE);
             }
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
