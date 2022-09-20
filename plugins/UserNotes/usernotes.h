@@ -96,6 +96,11 @@ typedef struct _SERVICE_COMMENT_PAGE_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } SERVICE_COMMENT_PAGE_CONTEXT, *PSERVICE_COMMENT_PAGE_CONTEXT;
 
+VOID SearchChangedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    );
+
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
