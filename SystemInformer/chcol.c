@@ -116,8 +116,11 @@ static HFONT PhpColumnsGetCurrentFont(
 {
     NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
     HFONT font;
+    LONG dpiValue;
 
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+    dpiValue = PhGetWindowDpi(hwnd);
+
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
         font = CreateFontIndirect(&metrics.lfMessageFont);
     else
         font = NULL;
