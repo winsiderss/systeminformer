@@ -621,6 +621,14 @@ PhSetWindowText(
 PHLIBAPI
 VOID
 NTAPI
+PhSetGroupBoxText(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR WindowText
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhSetWindowAlwaysOnTop(
     _In_ HWND WindowHandle,
     _In_ BOOLEAN AlwaysOnTop

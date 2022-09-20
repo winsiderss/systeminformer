@@ -401,7 +401,7 @@ VOID FramesPropUpdatePanel(
     PhInitFormatC(&format[4], L')');
 
     string = PhFormat(format, RTL_NUMBER_OF(format), 0);
-    PhSetWindowText(Context->FramesPerSecondGroupBox, PhGetString(string));
+    PhSetGroupBoxText(Context->FramesPerSecondGroupBox, PhGetString(string));
     PhDereferenceObject(string);
 }
 

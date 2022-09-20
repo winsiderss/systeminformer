@@ -1659,6 +1659,21 @@ VOID PhSetWindowText(
     SendMessage(WindowHandle, WM_SETTEXT, 0, (LPARAM)WindowText); // TODO: DefWindowProc (dmex)
 }
 
+VOID PhSetGroupBoxText(
+    _In_ HWND WindowHandle,
+    _In_ PCWSTR WindowText
+    )
+{
+    // Suspend the groupbox when setting the text otherwise
+    // the groupbox doesn't paint the text with dark theme colors. (dmex)
+
+    SendMessage(WindowHandle, WM_SETREDRAW, FALSE, 0);
+    PhSetWindowText(WindowHandle, WindowText);
+    SendMessage(WindowHandle, WM_SETREDRAW, TRUE, 0);
+
+    InvalidateRect(WindowHandle, NULL, FALSE);
+}
+
 VOID PhSetWindowAlwaysOnTop(
     _In_ HWND WindowHandle,
     _In_ BOOLEAN AlwaysOnTop
