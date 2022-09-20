@@ -271,6 +271,7 @@ VOID CustomizeLoadToolbarItems(
     INT index = 0;
     INT count = 0;
     PBUTTON_CONTEXT context;
+    LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     CustomizeFreeToolbarItems(Context);
 
@@ -298,7 +299,7 @@ VOID CustomizeLoadToolbarItems(
             }
             else
             {
-                context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand);
+                context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand, dpiValue);
             }
 
             ListBox_AddItemData(Context->CurrentListHandle, context);
@@ -318,7 +319,7 @@ VOID CustomizeLoadToolbarItems(
         context = PhAllocateZero(sizeof(BUTTON_CONTEXT));
         context->IsRemovable = TRUE;
         context->IdCommand = button.idCommand;
-        context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand);
+        context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand, dpiValue);
 
         ListBox_AddItemData(Context->AvailableListHandle, context);
     }
@@ -388,6 +389,7 @@ VOID CustomizeResetImages(
     INT index = 0;
     INT count = 0;
     PBUTTON_CONTEXT button;
+    LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     if ((count = ListBox_GetCount(Context->CurrentListHandle)) != LB_ERR)
     {
@@ -395,7 +397,16 @@ VOID CustomizeResetImages(
         {
             if (button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->CurrentListHandle, index))
             {
-                button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand);
+                if (button->IdCommand != 0)
+                {
+                    if (button->IconHandle)
+                    {
+                        DestroyIcon(button->IconHandle);
+                        button->IconHandle = NULL;
+                    }
+
+                    button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand, dpiValue);
+                }
             }
         }
     }
@@ -406,7 +417,16 @@ VOID CustomizeResetImages(
         {
             if (button = (PBUTTON_CONTEXT)ListBox_GetItemData(Context->AvailableListHandle, index))
             {
-                button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand);
+                if (button->IdCommand != 0)
+                {
+                    if (button->IconHandle)
+                    {
+                        DestroyIcon(button->IconHandle);
+                        button->IconHandle = NULL;
+                    }
+
+                    button->IconHandle = CustomizeGetToolbarIcon(Context, button->IdCommand, dpiValue);
+                }
             }
         }
     }
@@ -417,16 +437,19 @@ VOID CustomizeResetImages(
 
 HICON CustomizeGetToolbarIcon(
     _In_ PCUSTOMIZE_CONTEXT Context,
-    _In_ INT CommandID
+    _In_ INT CommandID,
+    _In_ LONG DpiValue
     )
 {
+    HICON iconHandle = NULL;
     HBITMAP bitmapHandle;
-    HICON iconHandle;
 
-    bitmapHandle = ToolbarGetImage(CommandID);
-    iconHandle = CommonBitmapToIcon(bitmapHandle, Context->CXWidth, Context->CXWidth);
+    if (bitmapHandle = ToolbarGetImage(CommandID, DpiValue))
+    {
+        iconHandle = CommonBitmapToIcon(bitmapHandle, ToolBarImageSize.cx, ToolBarImageSize.cy);
+        DeleteBitmap(bitmapHandle);
+    }
 
-    DeleteBitmap(bitmapHandle);
     return iconHandle;
 }
 
@@ -434,15 +457,17 @@ VOID CustomizeResetToolbarImages(
     VOID
     )
 {
+    LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
     // Reset the image cache with the new icons.
     // TODO: Move function to Toolbar.c
     for (UINT index = 0; index < RTL_NUMBER_OF(ToolbarButtons); index++)
     {
-        if (ToolbarButtons[index].iBitmap != I_IMAGECALLBACK)
+        if (ToolbarButtons[index].iBitmap != I_IMAGECALLBACK && !FlagOn(ToolbarButtons[index].fsStyle, BTNS_SEP))
         {
             HBITMAP bitmap;
 
-            if (bitmap = ToolbarGetImage(ToolbarButtons[index].idCommand))
+            if (bitmap = ToolbarGetImage(ToolbarButtons[index].idCommand, dpiValue))
             {
                 PhImageListReplace(
                     ToolBarImageList,
@@ -555,6 +580,14 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
+
+            {
+                LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+            }
+
+            CustomizeResetImages(context);
         }
         break;
     case WM_NCDESTROY:

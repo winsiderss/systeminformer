@@ -99,19 +99,22 @@ VOID RebarCreateOrUpdateWindow(
 {
     if (ToolStatusConfig.ToolBarEnabled)
     {
-        LONG dpiValue;
+        if (!ToolBarImageList || DpiChanged)
+        {
+            LONG dpiValue;
 
-        dpiValue = PhGetWindowDpi(PhMainWndHandle);
-        ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-        ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+            dpiValue = PhGetWindowDpi(PhMainWndHandle);
+            ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+            ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
-        if (ToolBarImageList) PhImageListDestroy(ToolBarImageList);
-        ToolBarImageList = PhImageListCreate(
-            ToolBarImageSize.cx,
-            ToolBarImageSize.cy,
-            ILC_MASK | ILC_COLOR32,
-            0, 0
-            );
+            if (ToolBarImageList) PhImageListDestroy(ToolBarImageList);
+            ToolBarImageList = PhImageListCreate(
+                ToolBarImageSize.cx,
+                ToolBarImageSize.cy,
+                ILC_MASK | ILC_COLOR32,
+                0, 0
+                );
+        }
 
         if (DpiChanged)
         {
@@ -487,17 +490,19 @@ PWSTR ToolbarGetText(
 HBITMAP ToolbarLoadImageFromIcon(
     _In_ ULONG Width,
     _In_ ULONG Height,
-    _In_ PWSTR Name
+    _In_ PWSTR Name,
+    _In_ LONG DpiValue
     )
 {
-    HICON icon = PhLoadIcon(PluginInstance->DllBase, Name, 0, Width, Height, 0);
+    HICON icon = PhLoadIcon(PluginInstance->DllBase, Name, 0, Width, Height, DpiValue);
     HBITMAP bitmap = PhIconToBitmap(icon, Width, Height);
     DestroyIcon(icon);
     return bitmap;
 }
 
 HBITMAP ToolbarGetImage(
-    _In_ INT CommandID
+    _In_ INT CommandID,
+    _In_ LONG DpiValue
     )
 {
     switch (CommandID)
@@ -516,7 +521,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH), DpiValue);
         }
         break;
     case PHAPP_ID_HACKER_OPTIONS:
@@ -533,7 +538,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_COG_EDIT));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_COG_EDIT), DpiValue);
         }
         break;
     case PHAPP_ID_HACKER_FINDHANDLESORDLLS:
@@ -550,7 +555,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_FIND));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_FIND), DpiValue);
         }
         break;
     case PHAPP_ID_VIEW_SYSTEMINFORMATION:
@@ -567,7 +572,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CHART_LINE));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CHART_LINE), DpiValue);
         }
         break;
     case TIDC_FINDWINDOW:
@@ -584,7 +589,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_TBAPPLICATION));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_TBAPPLICATION), DpiValue);
         }
         break;
     case TIDC_FINDWINDOWTHREAD:
@@ -601,7 +606,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GO));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GO), DpiValue);
         }
         break;
     case TIDC_FINDWINDOWKILL:
@@ -618,7 +623,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CROSS));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CROSS), DpiValue);
         }
         break;
     case PHAPP_ID_VIEW_ALWAYSONTOP:
@@ -635,7 +640,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GET));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GET), DpiValue);
         }
         break;
     case TIDC_POWERMENUDROPDOWN:
@@ -652,7 +657,7 @@ HBITMAP ToolbarGetImage(
                 return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
             }
 
-            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF));
+            return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF), DpiValue);
         }
         break;
     case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
@@ -661,12 +666,12 @@ HBITMAP ToolbarGetImage(
             HBITMAP toolbarBitmap = NULL;
 
             shieldIcon = PhLoadIcon(
-                NtCurrentPeb()->ImageBaseAddress,
+                NtCurrentPeb()->ImageBaseAddress, // HACK
                 MAKEINTRESOURCE(PHAPP_IDI_UACSHIELD),
                 PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
                 0,
                 0,
-                0
+                DpiValue
                 );
 
             if (!shieldIcon)
@@ -677,7 +682,7 @@ HBITMAP ToolbarGetImage(
                     PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
                     0,
                     0,
-                    0
+                    DpiValue
                     );
             }
 
@@ -699,6 +704,8 @@ VOID ToolbarLoadDefaultButtonSettings(
     VOID
     )
 {
+    LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
     // Pre-cache the images in the Toolbar array
     for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
     {
@@ -707,7 +714,7 @@ VOID ToolbarLoadDefaultButtonSettings(
         if (ToolbarButtons[i].fsStyle & BTNS_SEP)
             continue;
 
-        if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand))
+        if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
         {
             // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
             ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
@@ -738,9 +745,11 @@ VOID ToolbarLoadButtonSettings(
     PTBBUTTON buttonArray;
     PH_STRINGREF remaining;
     PH_STRINGREF part;
+    LONG dpiValue;
 
     settingsString = PhaGetStringSetting(SETTING_NAME_TOOLBAR_CONFIG);
     remaining = settingsString->sr;
+    dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     if (remaining.Length == 0)
     {
@@ -804,7 +813,7 @@ VOID ToolbarLoadButtonSettings(
                 if (buttonArray[index].fsStyle & BTNS_SEP)
                     continue;
 
-                if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand))
+                if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
                 {
                     // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
                     buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
