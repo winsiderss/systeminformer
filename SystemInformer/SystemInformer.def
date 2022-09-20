@@ -576,6 +576,7 @@ EXPORTS
     PhGetDialogItemValue
     PhSetDialogItemValue
     PhSetDialogItemText
+    PhSetGroupBoxText
     PhSetWindowText
     PhApplicationFont
     PhTreeWindowFont
