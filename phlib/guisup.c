@@ -2600,6 +2600,15 @@ BOOLEAN PhImageListDrawEx(
     return SUCCEEDED(IImageList2_Draw((IImageList2*)ImageListHandle, &imagelistDraw));
 }
 
+BOOLEAN PhImageListSetIconSize(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ INT cx,
+    _In_ INT cy
+    )
+{
+    return SUCCEEDED(IImageList2_SetIconSize((IImageList2*)ImageListHandle, cx, cy));
+}
+
 static BOOLEAN CALLBACK PhpDpiChangedForwardEnumChildWindows(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
