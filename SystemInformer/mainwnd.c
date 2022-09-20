@@ -303,6 +303,8 @@ LRESULT CALLBACK PhMwpWndProc(
             if (PhGetIntegerSetting(L"EnableMonospaceFont"))
                 PhMwpInvokeUpdateWindowFontMonospace(hWnd, NULL);
             InvalidateRect(hWnd, NULL, TRUE);
+
+            PhDpiChangedForwardChildWindows(hWnd);
         }
         break;
     case WM_ENDSESSION:

@@ -1131,6 +1131,13 @@ PhImageListDrawEx(
     _In_ DWORD State
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhDpiChangedForwardChildWindows(
+    _In_ HWND WindowHandle
+    );
+
 #define PH_DRAW_TIMELINE_OVERFLOW 0x1
 #define PH_DRAW_TIMELINE_DARKTHEME 0x2
 
