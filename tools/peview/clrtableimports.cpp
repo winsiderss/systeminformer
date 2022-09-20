@@ -5,13 +5,35 @@
  *
  * Authors:
  *
- *     dmex    2021
+ *     dmex    2021-2022
  *
  */
 
 #include <peview.h>
+
+#ifdef __has_include
+#if __has_include (<metahost.h>)
 #include <metahost.h>
+#else
+#include "metahost/metahost.h"
+#endif
+#else
+#include "metahost/metahost.h"
+#endif
+
+#ifdef __has_include
+#if __has_include (<cor.h>)
 #include <cor.h>
+#else
+#define _WINDOWS_UPDATES_
+#include "metahost/corhdr.h"
+#include "metahost/cor.h"
+#endif
+#else
+#define _WINDOWS_UPDATES_
+#include "metahost/corhdr.h"
+#include "metahost/cor.h"
+#endif
 
 // metamodelpub.h
 #define TBL_Method 6UL

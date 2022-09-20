@@ -17,7 +17,16 @@
 #include <verify.h>
 #include <json.h>
 #include "clrsup.h"
-#include "corsym.h"
+
+#ifdef __has_include
+#if __has_include (<corsym.h>)
+#include <corsym.h>
+#else
+#include "clr/corsym.h"
+#endif
+#else
+#include "clr/corsym.h"
+#endif
 
 static ICLRDataTargetVtbl DnCLRDataTarget_VTable =
 {
