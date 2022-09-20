@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2012-2021
+ *     dmex    2012-2022
  *
  */
 
@@ -116,24 +116,22 @@ VOID PhpSearchInitializeTheme(
 }
 
 VOID PhpSearchInitializeImages(
-    _In_ HWND hwnd,
-    _Inout_ PEDIT_CONTEXT Context
+    _Inout_ PEDIT_CONTEXT Context,
+    _In_ HWND WindowHandle
     )
 {
     HBITMAP bitmap;
     LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
-
-    if(Context->ImageListHandle)
-        PhImageListDestroy (Context->ImageListHandle);
-
+    dpiValue = PhGetWindowDpi(WindowHandle);
     Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(4, dpiValue);
     Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, dpiValue) + PhGetDpi(4, dpiValue);
+
+    if (Context->ImageListHandle) PhImageListDestroy(Context->ImageListHandle);
     Context->ImageListHandle = PhImageListCreate(
         Context->ImageWidth,
         Context->ImageHeight,
-        ILC_MASK | ILC_COLOR32,
+        ILC_COLOR32,
         2,
         0
         );
@@ -328,8 +326,8 @@ VOID PhpSearchDrawButton(
             Context->ImageListHandle,
             0,
             Hdc,
-            ButtonRect.left + 1, // offset
-            ButtonRect.top,
+            ButtonRect.left + 1 /*offset*/ + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
+            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - Context->ImageHeight) / 2,
             ILD_TRANSPARENT,
             FALSE
             );
@@ -340,8 +338,8 @@ VOID PhpSearchDrawButton(
             Context->ImageListHandle,
             1,
             Hdc,
-            ButtonRect.left + 2, // offset
-            ButtonRect.top + 1, // offset
+            ButtonRect.left + 2 /*offset*/ + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
+            ButtonRect.top + 1 /*offset*/ + ((ButtonRect.bottom - ButtonRect.top) - Context->ImageHeight) / 2,
             ILD_TRANSPARENT,
             FALSE
             );
@@ -396,7 +394,16 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         return 1;
     case WM_DPICHANGED:
         {
-            PhpSearchInitializeImages(hWnd, context);
+            PhpSearchFreeTheme(context);
+            PhpSearchInitializeTheme(context, hWnd);
+            PhpSearchInitializeFont(context, hWnd);
+            PhpSearchInitializeImages(context, hWnd);
+
+            // Refresh the non-client area.
+            SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+
+            // Force the edit control to update its non-client area.
+            RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
     case WM_NCCALCSIZE:
@@ -854,7 +861,7 @@ VOID PhCreateSearchControl(
     context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
 
     //PhpSearchInitializeTheme(context);
-    PhpSearchInitializeImages(WindowHandle, context);
+    PhpSearchInitializeImages(context, WindowHandle);
 
     // Set initial text
     if (BannerText)
