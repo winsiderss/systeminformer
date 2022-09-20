@@ -1140,6 +1140,15 @@ PhImageListDrawEx(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListSetIconSize(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ INT cx,
+    _In_ INT cy
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhDpiChangedForwardChildWindows(
