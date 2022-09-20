@@ -1011,10 +1011,10 @@ VOID PhpSetDefaultTaskManager(
                     quotedFileName = PH_AUTO(PhConcatStringRef3(&seperator, &applicationFileName->sr, &seperator));
 
                     status = PhSetValueKey(
-                        taskmgrKeyHandle, 
-                        &valueName, 
-                        REG_SZ, 
-                        quotedFileName->Buffer, 
+                        taskmgrKeyHandle,
+                        &valueName,
+                        REG_SZ,
+                        quotedFileName->Buffer,
                         (ULONG)quotedFileName->Length + sizeof(UNICODE_NULL)
                         );
 
@@ -1913,21 +1913,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             {
                                 switch (listView->iItem)
                                 {
-                                case PHP_OPTIONS_INDEX_ENABLE_DRIVER:
-                                    {
-                                        if (PhShowMessage2(
-                                            PhOptionsWindowHandle,
-                                            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-                                            TD_WARNING_ICON,
-                                            L"Are you sure you want to disable the kernel-mode driver?",
-                                            L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                                            ) == IDNO)
-                                        {
-                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-                                            return TRUE;
-                                        }
-                                    }
-                                    break;
                                 case PHP_OPTIONS_INDEX_ENABLE_MITIGATION:
                                     {
                                         if (!PhGetOwnTokenAttributes().Elevated)
