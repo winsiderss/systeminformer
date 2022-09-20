@@ -126,6 +126,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE, GraphTypeGetTypeInteger(graphTypeString->Buffer));
             TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
             TaskbarIsDirty = TRUE;
+
+            TaskbarInitialize();
         }
         break;
     case WM_CTLCOLORBTN:

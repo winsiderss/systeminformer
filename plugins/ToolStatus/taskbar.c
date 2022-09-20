@@ -5,37 +5,56 @@
  *
  * Authors:
  *
- *     dmex    2020
+ *     dmex    2020-2022
  *
  */
 
 #include "toolstatus.h"
-#include <malloc.h>
-#include <shobjidl.h>
-
-HICON PhUpdateIconCpuHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
-    );
-
-HICON PhUpdateIconIoHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
-    );
-
-HICON PhUpdateIconCommitHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
-    );
-
-HICON PhUpdateIconPhysicalHistory(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
-    );
-
-HICON PhUpdateIconCpuUsage(
-    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
-    );
 
 PH_TASKBAR_ICON TaskbarListIconType = TASKBAR_ICON_NONE;
 BOOLEAN TaskbarIsDirty = FALSE;
+BOOLEAN TaskbarMainWndExiting = FALSE;
 static ITaskbarList3* TaskbarListClass = NULL;
+static HANDLE TaskbarThreadHandle = NULL;
+static HANDLE TaskbarEventHandle = NULL;
+
+VOID NTAPI TaskbarInitialize(
+    VOID
+    )
+{
+    if (TaskbarListIconType != TASKBAR_ICON_NONE)
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            if (NT_SUCCESS(NtCreateEvent(
+                &TaskbarEventHandle,
+                EVENT_ALL_ACCESS,
+                NULL,
+                SynchronizationEvent,
+                FALSE
+                )))
+            {
+                // Use a separate thread so we don't block the main GUI or
+                // the provider threads when explorer is not responding. (dmex)
+                PhCreateThreadEx(&TaskbarThreadHandle, TaskbarIconUpdateThread, NULL);
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+    }
+}
+
+VOID NTAPI TaskbarUpdateEvents(
+    VOID
+    )
+{
+    if (TaskbarEventHandle)
+    {
+        NtSetEvent(TaskbarEventHandle, NULL);
+    }
+}
 
 VOID NTAPI TaskbarUpdateGraphs(
     VOID
@@ -47,7 +66,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         {
             if (TaskbarListClass)
             {
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWindowHandle, NULL, NULL);
+                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
                 ITaskbarList3_Release(TaskbarListClass);
                 TaskbarListClass = NULL;
             }
@@ -74,7 +93,7 @@ VOID NTAPI TaskbarUpdateGraphs(
         if (TaskbarIsDirty)
         {
             if (TaskbarListClass)
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWindowHandle, NULL, NULL);
+                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, NULL, NULL);
             TaskbarIsDirty = FALSE;
         }
 
@@ -100,10 +119,36 @@ VOID NTAPI TaskbarUpdateGraphs(
         if (overlayIcon)
         {
             if (TaskbarListClass)
-                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWindowHandle, overlayIcon, NULL);
+                ITaskbarList3_SetOverlayIcon(TaskbarListClass, PhMainWndHandle, overlayIcon, NULL);
             DestroyIcon(overlayIcon);
         }
     }
+}
+
+NTSTATUS TaskbarIconUpdateThread(
+    _In_opt_ PVOID Context
+    )
+{
+    PhSetThreadName(NtCurrentThread(), L"TaskbarIconUpdateThread");
+
+    while (TRUE)
+    {
+        if (TaskbarMainWndExiting)
+            break;
+
+        if (!TaskbarEventHandle)
+        {
+            PhDelayExecution(1000);
+            continue;
+        }
+
+        if (NT_SUCCESS(NtWaitForSingleObject(TaskbarEventHandle, FALSE, NULL)))
+        {
+            TaskbarUpdateGraphs();
+        }
+    }
+
+    return STATUS_SUCCESS;
 }
 
 typedef struct _PH_NF_BITMAP
@@ -127,7 +172,7 @@ static VOID PhBeginBitmap2(
     _Out_ HBITMAP *Bitmap,
     _Out_opt_ PVOID *Bits,
     _Out_ HDC *Hdc,
-    _Out_opt_ HBITMAP *OldBitmap
+    _Out_ HBITMAP *OldBitmap
     )
 {
     if (!Context->Initialized)
@@ -248,8 +293,11 @@ HICON PhUpdateIconCpuHistory(
     // Icon
     PhBeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
-    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
-    lineData2 = _alloca(maxDataCount * sizeof(FLOAT));
+
+    if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
+        return NULL;
+    if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
+        return NULL;
 
     lineDataCount = min(maxDataCount, Statistics.CpuKernelHistory->Count);
     PhCopyCircularBuffer_FLOAT(Statistics.CpuKernelHistory, lineData1, lineDataCount);
@@ -268,6 +316,9 @@ HICON PhUpdateIconCpuHistory(
 
     SelectObject(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
+
+    _freea(lineData2);
+    _freea(lineData1);
 
     return icon;
 }
@@ -306,8 +357,11 @@ HICON PhUpdateIconIoHistory(
     // Icon
     PhBeginBitmap(&drawInfo.Width, &drawInfo.Height, &bitmap, &bits, &hdc, &oldBitmap);
     maxDataCount = drawInfo.Width / 2 + 1;
-    lineData1 = _alloca(maxDataCount * sizeof(FLOAT));
-    lineData2 = _alloca(maxDataCount * sizeof(FLOAT));
+
+    if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
+        return NULL;
+    if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
+        return NULL;
 
     lineDataCount = min(maxDataCount, Statistics.IoReadHistory->Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
@@ -338,6 +392,9 @@ HICON PhUpdateIconIoHistory(
 
     SelectObject(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
+
+    _freea(lineData2);
+    _freea(lineData1);
 
     return icon;
 }
