@@ -11,7 +11,16 @@
  */
 
 #include <peview.h>
+
+#ifdef __has_include
+#if __has_include (<metahost.h>)
 #include <metahost.h>
+#else
+#include "metahost/metahost.h"
+#endif
+#else
+#include "metahost/metahost.h"
+#endif
 
 typedef struct _PVP_PE_CLR_CONTEXT
 {
