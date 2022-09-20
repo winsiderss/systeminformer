@@ -633,7 +633,7 @@ VOID LoadGraphicsDeviceImages(
         HIMAGELIST imageList = PhImageListCreate(
             24, // GetSystemMetrics(SM_CXSMICON)
             24, // GetSystemMetrics(SM_CYSMICON)
-            ILC_MASK | ILC_COLOR32,
+            ILC_COLOR32,
             1,
             1
             );
@@ -658,9 +658,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocate(sizeof(DV_GPU_OPTIONS_CONTEXT));
-        memset(context, 0, sizeof(DV_GPU_OPTIONS_CONTEXT));
-
+        context = PhAllocateZero(sizeof(DV_GPU_OPTIONS_CONTEXT));
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else

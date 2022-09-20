@@ -823,9 +823,9 @@ VOID LoadNetworkAdapterImages(
                 if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
-                        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-                        ILC_MASK | ILC_COLOR32,
+                        24, // GetSystemMetrics(SM_CXSMICON)
+                        24, // GetSystemMetrics(SM_CYSMICON)
+                        ILC_COLOR32,
                         1,
                         1
                         );
@@ -855,7 +855,6 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(DV_NETADAPTER_CONTEXT));
-
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else

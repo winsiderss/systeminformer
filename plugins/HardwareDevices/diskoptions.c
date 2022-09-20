@@ -639,9 +639,9 @@ VOID LoadDiskDriveImages(
     if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
     {
         HIMAGELIST imageList = PhImageListCreate(
-            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-            ILC_MASK | ILC_COLOR32,
+            24, // GetSystemMetrics(SM_CXSMICON)
+            24, // GetSystemMetrics(SM_CYSMICON)
+            ILC_COLOR32,
             1,
             1
             );
@@ -666,9 +666,7 @@ INT_PTR CALLBACK DiskDriveOptionsDlgProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocate(sizeof(DV_DISK_OPTIONS_CONTEXT));
-        memset(context, 0, sizeof(DV_DISK_OPTIONS_CONTEXT));
-
+        context = PhAllocateZero(sizeof(DV_DISK_OPTIONS_CONTEXT));
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
