@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2011-2020
+ *     dmex    2011-2022
  *
  */
 
@@ -18,6 +18,7 @@
 #include <phappresource.h>
 #include <settings.h>
 
+#include <shobjidl.h>
 #include <uxtheme.h>
 #include <vssym32.h>
 
@@ -465,9 +466,38 @@ typedef enum _PH_TASKBAR_ICON
 
 extern PH_TASKBAR_ICON TaskbarListIconType;
 extern BOOLEAN TaskbarIsDirty;
+extern BOOLEAN TaskbarMainWndExiting;
 
-VOID NTAPI TaskbarUpdateGraphs(
+VOID NTAPI TaskbarInitialize(
     VOID
+    );
+
+VOID NTAPI TaskbarUpdateEvents(
+    VOID
+    );
+
+NTSTATUS TaskbarIconUpdateThread(
+    _In_opt_ PVOID Context
+    );
+
+HICON PhUpdateIconCpuHistory(
+    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    );
+
+HICON PhUpdateIconIoHistory(
+    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    );
+
+HICON PhUpdateIconCommitHistory(
+    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    );
+
+HICON PhUpdateIconPhysicalHistory(
+    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
+    );
+
+HICON PhUpdateIconCpuUsage(
+    _In_ PH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
 #endif

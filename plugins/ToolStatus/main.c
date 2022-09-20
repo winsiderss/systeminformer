@@ -108,7 +108,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     if (ToolStatusConfig.StatusBarEnabled)
         StatusBarUpdate(FALSE);
 
-    TaskbarUpdateGraphs();
+    TaskbarUpdateEvents();
 }
 
 VOID NTAPI TreeNewInitializingCallback(
@@ -609,7 +609,16 @@ LRESULT CALLBACK MainWndSubclassProc(
     switch (uMsg)
     {
     case WM_DESTROY:
-        SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)MainWindowHookProc);
+        {
+            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)MainWindowHookProc);
+
+            TaskbarMainWndExiting = TRUE;
+        }
+        break;
+    case WM_ENDSESSION:
+        {
+            TaskbarMainWndExiting = TRUE;
+        }
         break;
     case WM_DPICHANGED:
         {
@@ -1579,6 +1588,7 @@ VOID NTAPI MainWindowShowingCallback(
     ToolbarCreateGraphs();
     ReBarLoadLayoutSettings();
     StatusBarLoadSettings();
+    TaskbarInitialize();
 
     MainMenu = GetMenu(PhMainWndHandle);
     if (ToolStatusConfig.AutoHideMenu)
