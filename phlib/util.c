@@ -166,7 +166,7 @@ LONG PhGetDpi(
     _In_ LONG DpiValue
     )
 {
-    return PhMultiplyDivideSigned (Number, DpiValue, USER_DEFAULT_SCREEN_DPI);
+    return PhMultiplyDivideSigned(Number, DpiValue, USER_DEFAULT_SCREEN_DPI);
 }
 
 LONG PhGetMonitorDpi(
@@ -187,12 +187,10 @@ LONG PhGetTaskbarDpi(
     VOID
     )
 {
-    APPBARDATA taskbar_rect = {0};
+    APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
 
-    taskbar_rect.cbSize = sizeof (APPBARDATA);
-
-    if (SHAppBarMessage (ABM_GETTASKBARPOS, &taskbar_rect))
-        return PhGetMonitorDpi (&taskbar_rect.rc);
+    if (SHAppBarMessage(ABM_GETTASKBARPOS, &taskbarRect))
+        return PhGetMonitorDpi(&taskbarRect.rc);
 
     return PhGetDpiValue(NULL, NULL);
 }
@@ -203,7 +201,7 @@ LONG PhGetWindowDpi(
 {
     RECT rect;
 
-    if (!GetWindowRect (hwnd, &rect))
+    if (!GetWindowRect(hwnd, &rect))
         return PhGetDpiValue(hwnd, NULL);
 
     return PhGetDpiValue(NULL, &rect);
@@ -215,51 +213,49 @@ LONG PhGetDpiValue(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI *_GetDpiForMonitor)(
+    static HRESULT (WINAPI *GetDpiForMonitor_I)(
         _In_ HMONITOR hmonitor,
         _In_ MONITOR_DPI_TYPE dpiType,
         _Out_ PUINT dpiX,
         _Out_ PUINT dpiY
         );  // win81+
-    static UINT (WINAPI *_GetDpiForWindow)(
+    static UINT (WINAPI *GetDpiForWindow_I)(
         _In_ HWND hwnd
         );  // win10rs1+
-    static UINT (WINAPI *_GetDpiForSystem)(
+    static UINT (WINAPI *GetDpiForSystem_I)(
         VOID
         );  // win10rs1+
-
-    HMONITOR hmonitor;
-    PVOID hshcore;
-    PVOID huser32;
     HDC hdc;
-    LONG dpi_value;
     UINT dpi_x;
     UINT dpi_y;
-    HRESULT hr;
 
-    // initialize library calls
     if (PhBeginInitOnce(&initOnce))
     {
-        hshcore = PhLoadLibrary(L"shcore.dll");
-        huser32 = PhLoadLibrary(L"user32.dll");
-
-        if (hshcore)
+        if (WindowsVersion >= WINDOWS_8_1)
         {
-            // win81+
-            _GetDpiForMonitor = PhGetProcedureAddress(hshcore, "GetDpiForMonitor", 0);
+            PVOID baseAddress;
 
-            //FreeLibrary(hshcore);
+            if (!(baseAddress = PhGetLoaderEntryDllBase(L"shcore.dll")))
+                baseAddress = PhLoadLibrary(L"shcore.dll");
+
+            if (baseAddress)
+            {
+                GetDpiForMonitor_I = PhGetProcedureAddress(baseAddress, "GetDpiForMonitor", 0);
+            }
         }
 
-        if (huser32)
+        if (WindowsVersion >= WINDOWS_10_RS1)
         {
-            // win10rs1+
-            _GetDpiForWindow = PhGetProcedureAddress(huser32, "GetDpiForWindow", 0);
+            PVOID baseAddress;
 
-            // win10rs1+
-            _GetDpiForSystem = PhGetProcedureAddress(huser32, "GetDpiForSystem", 0);
+            if (!(baseAddress = PhGetLoaderEntryDllBase(L"user32.dll")))
+                baseAddress = PhLoadLibrary(L"user32.dll");
 
-            //FreeLibrary(huser32);
+            if (baseAddress)
+            {
+                GetDpiForWindow_I = PhGetProcedureAddress(baseAddress, "GetDpiForWindow", 0);
+                GetDpiForSystem_I = PhGetProcedureAddress(baseAddress, "GetDpiForSystem", 0);
+            }
         }
 
         PhEndInitOnce(&initOnce);
@@ -268,47 +264,43 @@ LONG PhGetDpiValue(
     if (rect || hwnd)
     {
         // win10rs1+
-        if (_GetDpiForWindow)
+        if (GetDpiForWindow_I && hwnd)
         {
-            if (hwnd)
-            {
-                dpi_x = _GetDpiForWindow(hwnd);
-
-                if (dpi_x)
-                    return dpi_x;
-            }
+            if (dpi_x = GetDpiForWindow_I(hwnd))
+                return dpi_x;
         }
 
         // win81+
-        if (_GetDpiForMonitor)
+        if (GetDpiForMonitor_I)
         {
+            HMONITOR monitor;
+
             if (rect)
             {
-                hmonitor = MonitorFromRect(rect, MONITOR_DEFAULTTONEAREST);
+                monitor = MonitorFromRect(rect, MONITOR_DEFAULTTONEAREST);
             }
             else
             {
-                hmonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
             }
 
-            hr = _GetDpiForMonitor(hmonitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y);
-
-            if (SUCCEEDED (hr))
+            if (SUCCEEDED(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
                 return dpi_x;
         }
     }
 
     // win10rs1+
-    if (_GetDpiForSystem)
-        return _GetDpiForSystem();
+    if (GetDpiForSystem_I)
+    {
+        return GetDpiForSystem_I();
+    }
 
     // win8 and lower fallback
-    hdc = GetDC(NULL);
-
-    if (hdc)
+    if (hdc = GetDC(NULL))
     {
-        dpi_value = GetDeviceCaps(hdc, LOGPIXELSX);
+        LONG dpi_value;
 
+        dpi_value = GetDeviceCaps(hdc, LOGPIXELSX);
         ReleaseDC(NULL, hdc);
 
         return dpi_value;
@@ -317,85 +309,84 @@ LONG PhGetDpiValue(
     return USER_DEFAULT_SCREEN_DPI;
 }
 
-LONG PhGetSystemMetrics (
+LONG PhGetSystemMetrics(
     _In_ INT Index,
-    _In_opt_ LONG dpiValue
+    _In_opt_ LONG DpiValue
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static INT (WINAPI *_GetSystemMetricsForDpi)(
-        _In_ INT nIndex,
+    static INT (WINAPI *GetSystemMetricsForDpi_I)(
+        _In_ INT Index,
         _In_ UINT dpi
         );
 
-    PVOID huser32;
-
-    // initialize library calls
     if (PhBeginInitOnce(&initOnce))
     {
-        huser32 = PhLoadLibrary(L"user32.dll");
-
-        if (huser32)
+        if (WindowsVersion >= WINDOWS_10_RS1)
         {
-            // win10rs1+
-            _GetSystemMetricsForDpi = PhGetProcedureAddress(huser32, "GetSystemMetricsForDpi", 0);
+            PVOID baseAddress;
 
-            //FreeLibrary(huser32);
+            if (!(baseAddress = PhGetLoaderEntryDllBase(L"user32.dll")))
+                baseAddress = PhLoadLibrary(L"user32.dll");
+
+            if (baseAddress)
+            {
+                GetSystemMetricsForDpi_I = PhGetProcedureAddress(baseAddress, "GetSystemMetricsForDpi", 0);
+            }
         }
 
         PhEndInitOnce(&initOnce);
     }
 
-    if (!dpiValue || !_GetSystemMetricsForDpi)
+    if (!DpiValue || !GetSystemMetricsForDpi_I)
         return GetSystemMetrics(Index);
 
-    // win10rs1+
-    return _GetSystemMetricsForDpi(Index, dpiValue);
+    return GetSystemMetricsForDpi_I(Index, DpiValue);
 }
 
-BOOL PhGetSystemParametersInfo (
+BOOL PhGetSystemParametersInfo(
     _In_ INT Action,
 	_In_ UINT Param1,
 	_Pre_maybenull_ _Post_valid_ PVOID Param2,
-    _In_opt_ LONG dpiValue
+    _In_opt_ LONG DpiValue
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *_SystemParametersInfoForDpi)(
-            _In_ UINT uiAction,
-            _In_ UINT uiParam,
-            _Pre_maybenull_ _Post_valid_ PVOID pvParam,
-            _In_ UINT fWinIni,
-            _In_ UINT dpi);
+    static BOOL (WINAPI *SystemParametersInfoForDpi_I)(
+        _In_ UINT uiAction,
+        _In_ UINT uiParam,
+        _Pre_maybenull_ _Post_valid_ PVOID pvParam,
+        _In_ UINT fWinIni,
+        _In_ UINT dpi
+        );
 
-    PVOID huser32;
-
-    // initialize library calls
     if (PhBeginInitOnce(&initOnce))
     {
-        huser32 = PhLoadLibrary(L"user32.dll");
-
-        if (huser32)
+        if (WindowsVersion >= WINDOWS_10_RS1)
         {
-            // win10rs1+
-            _SystemParametersInfoForDpi = PhGetProcedureAddress(huser32, "SystemParametersInfoForDpi", 0);
+            PVOID baseAddress;
 
-            //FreeLibrary(huser32);
+            if (!(baseAddress = PhGetLoaderEntryDllBase(L"user32.dll")))
+                baseAddress = PhLoadLibrary(L"user32.dll");
+
+            if (baseAddress)
+            {
+                SystemParametersInfoForDpi_I = PhGetProcedureAddress(baseAddress, "SystemParametersInfoForDpi", 0);
+            }
         }
 
         PhEndInitOnce(&initOnce);
     }
 
-    if (!dpiValue || !_SystemParametersInfoForDpi)
+    if (!DpiValue || !SystemParametersInfoForDpi_I)
         return SystemParametersInfo(Action, Param1, Param2, 0);
 
-    // win10rs1+
-    return _SystemParametersInfoForDpi(Action, Param1, Param2, 0, dpiValue);
+    return SystemParametersInfoForDpi_I(Action, Param1, Param2, 0, DpiValue);
 }
 
 VOID PhGetSizeDpiValue(
     _Inout_ PRECT rect,
-    _In_ LONG dpiValue,
+    _In_ LONG DpiValue,
     _In_ BOOLEAN isUnpack
     )
 {
@@ -403,18 +394,18 @@ VOID PhGetSizeDpiValue(
     LONG numerator;
     LONG denominator;
 
-    if (dpiValue == USER_DEFAULT_SCREEN_DPI)
+    if (DpiValue == USER_DEFAULT_SCREEN_DPI)
         return;
 
     if (isUnpack)
     {
-        numerator = dpiValue;
+        numerator = DpiValue;
         denominator = USER_DEFAULT_SCREEN_DPI;
     }
     else
     {
         numerator = USER_DEFAULT_SCREEN_DPI;
-        denominator = dpiValue;
+        denominator = DpiValue;
     }
 
     rectangle.Left = rect->left;

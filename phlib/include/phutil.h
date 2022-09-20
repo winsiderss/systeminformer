@@ -192,19 +192,19 @@ PhGetDpiValue(
 PHLIBAPI
 LONG
 NTAPI
-PhGetSystemMetrics (
+PhGetSystemMetrics(
     _In_ INT Index,
-    _In_opt_ LONG dpiValue
+    _In_opt_ LONG DpiValue
     );
 
 PHLIBAPI
 BOOL
 NTAPI
-PhGetSystemParametersInfo (
+PhGetSystemParametersInfo(
     _In_ INT Action,
 	_In_ UINT Param1,
 	_Pre_maybenull_ _Post_valid_ PVOID Param2,
-    _In_opt_ LONG dpiValue
+    _In_opt_ LONG DpiValue
     );
 
 PHLIBAPI
@@ -212,7 +212,7 @@ VOID
 NTAPI
 PhGetSizeDpiValue(
     _Inout_ PRECT rect,
-    _In_ LONG dpiValue,
+    _In_ LONG DpiValue,
     _In_ BOOLEAN isUnpack
     );
 
