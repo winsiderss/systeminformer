@@ -2634,18 +2634,14 @@ CleanupExit:
     return status;
 }
 
-VOID PhSetImagelistR(
-    _In_ HWND hwnd,
-    _Inout_ PPHP_RUNFILEDLG context
+static VOID PhpRunFileSetImageList(
+    _Inout_ PPHP_RUNFILEDLG Context
     )
 {
     HICON shieldIcon;
     LONG dpiValue;
 
-    if(context->ImageListHandle)
-        PhImageListDestroy (context->ImageListHandle);
-
-    dpiValue = PhGetWindowDpi(hwnd);
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
     if (shieldIcon = PhLoadIcon(
         NULL,
@@ -2656,7 +2652,8 @@ VOID PhSetImagelistR(
         dpiValue
         ))
     {
-        context->ImageListHandle = PhImageListCreate(
+        if (Context->ImageListHandle) PhImageListDestroy(Context->ImageListHandle);
+        Context->ImageListHandle = PhImageListCreate(
             PhGetSystemMetrics(SM_CXSMICON, dpiValue),
             PhGetSystemMetrics(SM_CYSMICON, dpiValue),
             ILC_MASK | ILC_COLOR32,
@@ -2664,7 +2661,7 @@ VOID PhSetImagelistR(
             1
             );
 
-        PhImageListAddIcon(context->ImageListHandle, shieldIcon);
+        PhImageListAddIcon(Context->ImageListHandle, shieldIcon);
         DestroyIcon(shieldIcon);
     }
 }
@@ -2729,7 +2726,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 Button_Enable(context->RunAsInstallerCheckboxHandle, FALSE);
                 context->RunAsInstallerCheckboxDisabled = TRUE;
 
-                PhSetImagelistR(hwndDlg, context);
+                PhpRunFileSetImageList(context);
             }
         }
         break;
@@ -2745,7 +2742,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PhSetImagelistR(hwndDlg, context);
+            PhpRunFileSetImageList(context);
         }
         break;
     case WM_CTLCOLORSTATIC:
