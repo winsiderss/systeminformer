@@ -465,20 +465,20 @@ namespace CustomBuildTool
                     {
                         files.Add("bin\\Debug32\\SystemInformer.exe");
 
-                        if (Directory.Exists("bin\\Debug32\\plugins"))
-                        {
-                            files.AddRange(Directory.GetFiles("bin\\Debug32\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
-                        }
+                        //if (Directory.Exists("bin\\Debug32\\plugins"))
+                        //{
+                        //    files.AddRange(Directory.GetFiles("bin\\Debug32\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
+                        //}
                     }
 
                     if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
                         files.Add("bin\\Debug64\\SystemInformer.exe");
 
-                        if (Directory.Exists("bin\\Debug64\\plugins"))
-                        {
-                            files.AddRange(Directory.GetFiles("bin\\Debug64\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
-                        }
+                        //if (Directory.Exists("bin\\Debug64\\plugins"))
+                        //{
+                        //    files.AddRange(Directory.GetFiles("bin\\Debug64\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
+                        //}
                     }
                 }
 
@@ -488,20 +488,20 @@ namespace CustomBuildTool
                     {
                         files.Add("bin\\Release32\\SystemInformer.exe");
 
-                        if (Directory.Exists("bin\\Release32\\plugins"))
-                        {
-                            files.AddRange(Directory.GetFiles("bin\\Release32\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
-                        }
+                        //if (Directory.Exists("bin\\Release32\\plugins"))
+                        //{
+                        //    files.AddRange(Directory.GetFiles("bin\\Release32\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
+                        //}
                     }
 
                     if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
                         files.Add("bin\\Release64\\SystemInformer.exe");
 
-                        if (Directory.Exists("bin\\Release64\\plugins"))
-                        {
-                            files.AddRange(Directory.GetFiles("bin\\Release64\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
-                        }
+                        //if (Directory.Exists("bin\\Release64\\plugins"))
+                        //{
+                        //    files.AddRange(Directory.GetFiles("bin\\Release64\\plugins", "*.dll", SearchOption.TopDirectoryOnly));
+                        //}
                     }
                 }
 
@@ -514,6 +514,48 @@ namespace CustomBuildTool
                         Win32.ShellExecute(CustomSignToolPath, $"sign -k {Verify.GetPath("kph.key")} {file} -s {outfile}");
                     }
                 }
+            }
+
+            if (BuildNightly)
+            {
+                if (File.Exists(Verify.GetPath("kph.key")))
+                    File.Delete(Verify.GetPath("kph.key"));
+            }
+
+            return true;
+        }
+        
+        public static bool SignPlugin(string PluginName)
+        {
+            if (!File.Exists(PluginName))
+            {
+                Program.PrintColorMessage("[SKIPPED] Plugin not found: " + PluginName, ConsoleColor.Yellow);
+                return true;
+            }
+
+            string CustomSignToolPath = Verify.GetCustomSignToolFilePath();
+
+            if (BuildNightly && !File.Exists(Verify.GetPath("kph.key")))
+            {
+                string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
+
+                if (!string.IsNullOrWhiteSpace(kphKey))
+                {
+                    Verify.Decrypt(Verify.GetPath("kph.s"), Verify.GetPath("kph.key"), kphKey);
+                }
+
+                if (!File.Exists(Verify.GetPath("kph.key")))
+                {
+                    Program.PrintColorMessage("[SKIPPED] kph.key not found.", ConsoleColor.Yellow);
+                    return true;
+                }
+            }
+
+            if (File.Exists(CustomSignToolPath))
+            {
+                var outfile = Path.ChangeExtension(PluginName, ".sig");
+                File.WriteAllText(outfile, string.Empty);
+                Win32.ShellExecute(CustomSignToolPath, $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {outfile}");
             }
 
             if (BuildNightly)

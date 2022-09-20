@@ -134,6 +134,10 @@ namespace CustomBuildTool
                     Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease);
                 }
             }
+            else if (ProgramArgs.ContainsKey("-sign_plugin"))
+            {
+                Build.SignPlugin(ProgramArgs["-sign_plugin"]);
+            }
             else if (ProgramArgs.ContainsKey("-cleansdk"))
             {
                 if (!Build.BuildSolution("SystemInformer.sln",
