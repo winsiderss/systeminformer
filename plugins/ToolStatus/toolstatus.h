@@ -132,6 +132,7 @@ extern HACCEL AcceleratorTable;
 extern PPH_STRING SearchboxText;
 extern PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics;
 
+extern SIZE ToolBarImageSize;
 extern HIMAGELIST ToolBarImageList;
 extern TBBUTTON ToolbarButtons[MAX_TOOLBAR_ITEMS];
 extern HFONT ToolbarWindowFont;
@@ -175,7 +176,8 @@ PWSTR ToolbarGetText(
     );
 
 HBITMAP ToolbarGetImage(
-    _In_ INT CommandID
+    _In_ INT CommandID,
+    _In_ LONG DpiValue
     );
 
 VOID ToolbarLoadDefaultButtonSettings(
@@ -439,7 +441,8 @@ typedef struct _CUSTOMIZE_CONTEXT
 
 HICON CustomizeGetToolbarIcon(
     _In_ PCUSTOMIZE_CONTEXT Context,
-    _In_ INT CommandID
+    _In_ INT CommandID,
+    _In_ LONG DpiValue
     );
 
 // searchbox.c

@@ -871,13 +871,16 @@ LRESULT CALLBACK MainWndSubclassProc(
                             else
                             {
                                 PPH_EMENU_ITEM menuItem;
+                                LONG dpiValue;
+
+                                dpiValue = PhGetWindowDpi(hWnd);
 
                                 // Add toolbar buttons to the context menu.
                                 menuItem = PhCreateEMenuItem(0, buttonInfo.idCommand, ToolbarGetText(buttonInfo.idCommand), NULL, NULL);
 
                                 // Add the button image to the context menu.
                                 menuItem->Flags |= PH_EMENU_BITMAP_OWNED;
-                                menuItem->Bitmap = ToolbarGetImage(buttonInfo.idCommand);
+                                menuItem->Bitmap = ToolbarGetImage(buttonInfo.idCommand, dpiValue);
 
                                 switch (buttonInfo.idCommand)
                                 {
@@ -1004,6 +1007,10 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                             if (toolbarDisplayInfo->iImage == I_IMAGECALLBACK)
                             {
+                                LONG dpiValue;
+
+                                dpiValue = PhGetWindowDpi(hWnd);
+
                                 // We didn't find a cached bitmap index...
                                 // Load the button bitmap and cache the index.
                                 for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
@@ -1012,7 +1019,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                                     {
                                         HBITMAP buttonImage;
 
-                                        if (buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand))
+                                        if (buttonImage = ToolbarGetImage(toolbarDisplayInfo->idCommand, dpiValue))
                                         {
                                             // Cache the bitmap index.
                                             toolbarDisplayInfo->dwMask |= TBNF_DI_SETITEM;
