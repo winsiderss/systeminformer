@@ -2585,6 +2585,22 @@ BOOLEAN PhImageListDrawEx(
     return SUCCEEDED(IImageList2_Draw((IImageList2*)ImageListHandle, &imagelistDraw));
 }
 
+static BOOLEAN CALLBACK PhpDpiChangedForwardEnumChildWindows(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    SendMessage(WindowHandle, WM_DPICHANGED, 0, 0);
+    return TRUE;
+}
+
+VOID PhDpiChangedForwardChildWindows(
+    _In_ HWND WindowHandle
+    )
+{
+    PhEnumChildWindows(WindowHandle, 0x1000, PhpDpiChangedForwardEnumChildWindows, NULL);
+}
+
 VOID PhCustomDrawTreeTimeLine(
     _In_ HDC Hdc,
     _In_ RECT CellRect,
