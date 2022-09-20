@@ -117,11 +117,8 @@ static HFONT PvColumnsGetCurrentFont(
 {
     NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
     HFONT font;
-	LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
-
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
         font = CreateFontIndirect(&metrics.lfMessageFont);
     else
         font = NULL;

@@ -1447,7 +1447,7 @@ BOOLEAN PhThemeWindowMeasureItem(
             {
                 NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
 
-                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
+                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
                     PhpMenuFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
                 }
@@ -2038,7 +2038,7 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
             {
                 NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
 
-                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
+                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
                     metrics.lfMessageFont.lfHeight = PhGetDpi(-11, dpiValue);
                     metrics.lfMessageFont.lfWeight = FW_BOLD;
@@ -2267,7 +2267,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             {
                 NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
 
-                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
+                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
                 {
                     metrics.lfMessageFont.lfHeight = PhGetDpi(-11, dpiValue);
                     metrics.lfMessageFont.lfWeight = FW_BOLD;

@@ -268,7 +268,7 @@ VOID PvpInitializeFont(
         !(PhApplicationFont = PvpCreateFont(L"Tahoma", 8, FW_NORMAL, dpiValue))
         )
     {
-        if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, dpiValue))
+        if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
             PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
         else
             PhApplicationFont = NULL;
