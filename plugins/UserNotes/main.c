@@ -15,11 +15,6 @@
 #include <commdlg.h>
 #include <mapimg.h>
 
-VOID SearchChangedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
-    );
-
 static PPH_PLUGIN PluginInstance;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -41,16 +36,15 @@ static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION SearchChangedRegistration;
 
 static PTOOLSTATUS_INTERFACE ToolStatusInterface = NULL;
+static COLORREF ProcessCustomColors[16] = { 0 };
 
-HWND ProcessTreeNewHandle;
+HWND ProcessTreeNewHandle = NULL;
 LIST_ENTRY ProcessListHead = { &ProcessListHead, &ProcessListHead };
 PH_QUEUED_LOCK ProcessListLock = PH_QUEUED_LOCK_INIT;
 
-HWND ServiceTreeNewHandle;
+HWND ServiceTreeNewHandle = NULL;
 LIST_ENTRY ServiceListHead = { &ServiceListHead, &ServiceListHead };
 PH_QUEUED_LOCK ServiceListLock = PH_QUEUED_LOCK_INIT;
-
-static COLORREF ProcessCustomColors[16] = { 0 };
 
 BOOLEAN MatchDbObjectIntent(
     _In_ PDB_OBJECT Object,
