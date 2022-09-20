@@ -119,11 +119,21 @@ VOID PhShowThreadAffinityDialog(
     // reassigned to a different process after the thread exits. (dmex)
     for (ULONG i = 0; i < NumberOfThreads; i++)
     {
-        PhOpenThread(
+        if (!NT_SUCCESS(PhOpenThread(
             &context.ThreadHandles[i],
-            THREAD_QUERY_LIMITED_INFORMATION | THREAD_SET_LIMITED_INFORMATION,
+            THREAD_QUERY_LIMITED_INFORMATION | THREAD_SET_LIMITED_INFORMATION | THREAD_SET_INFORMATION,
             Threads[i]->ThreadId
-            );
+            )))
+        {
+            if (!NT_SUCCESS(PhOpenThread(
+                &context.ThreadHandles[i],
+                THREAD_QUERY_LIMITED_INFORMATION | THREAD_SET_LIMITED_INFORMATION,
+                Threads[i]->ThreadId
+                )))
+            {
+                context.ThreadHandles[i] = INVALID_HANDLE_VALUE;
+            }
+        }
     }
 
     DialogBoxParam(
@@ -182,15 +192,11 @@ VOID PhpShowThreadErrorAffinityList(
 
     for (ULONG i = 0; i < AffinityErrorsList->Count; i++)
     {
-        PPH_STRING statusMessage = AffinityErrorsList->Items[i];
-
         PhAppendFormatStringBuilder(
             &stringBuilder,
             L"%s\n",
-            PhGetStringOrDefault(statusMessage, L"An unknown error occurred.")
+            PhGetStringOrDefault(AffinityErrorsList->Items[i], L"An unknown error occurred.")
             );
-
-        PhDereferenceObject(statusMessage);
     }
 
     if (PhEndsWithStringRef2(&stringBuilder.String->sr, L"\n", FALSE))
@@ -217,14 +223,17 @@ BOOLEAN PhpCheckThreadsHaveSameAffinity(
     KAFFINITY lastAffinityMask = 0;
     KAFFINITY affinityMask = 0;
 
-    if (NT_SUCCESS(PhGetThreadGroupAffinity(Context->ThreadHandles[0], &groupAffinity)))
+    if (Context->ThreadHandles[0] != INVALID_HANDLE_VALUE)
     {
-        lastAffinityMask = groupAffinity.Mask;
+        if (NT_SUCCESS(PhGetThreadGroupAffinity(Context->ThreadHandles[0], &groupAffinity)))
+        {
+            lastAffinityMask = groupAffinity.Mask;
+        }
     }
 
     for (ULONG i = 0; i < Context->NumberOfThreads; i++)
     {
-        if (!Context->ThreadHandles[i])
+        if (Context->ThreadHandles[i] == INVALID_HANDLE_VALUE)
             continue;
 
         if (NT_SUCCESS(PhGetThreadGroupAffinity(Context->ThreadHandles[i], &groupAffinity)))
@@ -395,16 +404,28 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
                 differentAffinity = !PhpCheckThreadsHaveSameAffinity(context);
 
-                // Use affinity from the first thread when all threads are identical (dmex)
-                status = PhGetThreadGroupAffinity(
-                    context->ThreadHandles[0],
-                    &groupAffinity
-                    );
+                if (context->ThreadHandles[0] != INVALID_HANDLE_VALUE)
+                {
+                    // Use affinity from the first thread when all threads are identical (dmex)
+                    status = PhGetThreadGroupAffinity(
+                        context->ThreadHandles[0],
+                        &groupAffinity
+                        );
+                }
+                else
+                {
+                    status = STATUS_UNSUCCESSFUL;
+                }
 
                 if (NT_SUCCESS(status))
                 {
                     context->AffinityMask = groupAffinity.Mask;
                     context->AffinityGroup = groupAffinity.Group;
+
+                    if (context->GroupComboHandle)
+                    {
+                        ComboBox_SetCurSel(context->GroupComboHandle, groupAffinity.Group);
+                    }
 
                     if (NT_SUCCESS(PhGetThreadBasicInformation(
                         context->ThreadHandles[0],
@@ -488,7 +509,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             {
                 for (ULONG i = 0; i < context->NumberOfThreads; i++)
                 {
-                    if (context->ThreadHandles[i])
+                    if (context->ThreadHandles[i] != INVALID_HANDLE_VALUE)
                     {
                         NtClose(context->ThreadHandles[i]);
                         context->ThreadHandles[i] = NULL;
@@ -567,19 +588,38 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     }
                     else if (context->ThreadItem)
                     {
-                        HANDLE threadHandle;
-
-                        if (NT_SUCCESS(status = PhOpenThread(
-                            &threadHandle,
-                            THREAD_SET_LIMITED_INFORMATION,
-                            context->ThreadItem->ThreadId
-                            )))
+                        if (PhSystemProcessorInformation.SingleProcessorGroup)
                         {
-                            if (PhSystemProcessorInformation.SingleProcessorGroup)
+                            HANDLE threadHandle;
+
+                            status = PhOpenThread(
+                                &threadHandle,
+                                THREAD_SET_LIMITED_INFORMATION,
+                                context->ThreadItem->ThreadId
+                                );
+
+                            if (NT_SUCCESS(status))
                             {
                                 status = PhSetThreadAffinityMask(threadHandle, affinityMask);
+                                NtClose(threadHandle);
                             }
-                            else
+
+                            if (!NT_SUCCESS(status))
+                            {
+                                PhpShowThreadErrorAffinity(hwndDlg, context->ThreadItem, status, 0);
+                            }
+                        }
+                        else
+                        {
+                            HANDLE threadHandle;
+
+                            status = PhOpenThread(
+                                &threadHandle,
+                                THREAD_SET_INFORMATION,
+                                context->ThreadItem->ThreadId
+                                );
+
+                            if (NT_SUCCESS(status))
                             {
                                 GROUP_AFFINITY groupAffinity;
 
@@ -588,9 +628,8 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                                 groupAffinity.Mask = affinityMask;
 
                                 status = PhSetThreadGroupAffinity(threadHandle, groupAffinity);
+                                NtClose(threadHandle);
                             }
-
-                            NtClose(threadHandle);
 
                             if (!NT_SUCCESS(status))
                             {
@@ -604,7 +643,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
                         for (ULONG i = 0; i < context->NumberOfThreads; i++)
                         {
-                            if (!context->ThreadHandles[i])
+                            if (context->ThreadHandles[i] == INVALID_HANDLE_VALUE)
                                 continue;
 
                             if (PhSystemProcessorInformation.SingleProcessorGroup)
