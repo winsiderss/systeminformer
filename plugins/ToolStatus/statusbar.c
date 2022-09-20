@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2011-2021
+ *     dmex    2011-2022
  *
  */
 
@@ -14,7 +14,6 @@
 
 HWND StatusBarHandle = NULL;
 ULONG StatusBarMaxWidths[MAX_STATUSBAR_ITEMS];
-// Note: no lock is needed because we only ever modify the list on this same thread.
 PPH_LIST StatusBarItemList = NULL;
 ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
 {
@@ -231,9 +230,6 @@ VOID StatusBarUpdate(
     ULONG widths[MAX_STATUSBAR_ITEMS];
     SIZE_T textLength[MAX_STATUSBAR_ITEMS];
     WCHAR text[MAX_STATUSBAR_ITEMS][0x80];
-
-    if (ProcessesUpdatedCount != 3)
-        return;
 
     if (ResetMaxWidths)
         resetMaxWidths = TRUE;
