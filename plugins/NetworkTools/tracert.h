@@ -85,7 +85,7 @@ PTRACERT_ROOT_NODE AddTracertNode(
 
 VOID UpdateTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context,
-    _In_ PTRACERT_ROOT_NODE WindowNode
+    _In_ PTRACERT_ROOT_NODE Node
     );
 
 struct _PH_TN_FILTER_SUPPORT*
