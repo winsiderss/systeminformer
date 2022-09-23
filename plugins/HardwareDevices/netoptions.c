@@ -823,9 +823,9 @@ VOID LoadNetworkAdapterImages(
                 if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
                     HIMAGELIST imageList = PhImageListCreate(
-                        24, // GetSystemMetrics(SM_CXSMICON)
-                        24, // GetSystemMetrics(SM_CYSMICON)
-                        ILC_COLOR32,
+                        PhGetDpi(24, dpiValue), // GetSystemMetrics(SM_CXSMICON)
+                        PhGetDpi(24, dpiValue), // GetSystemMetrics(SM_CYSMICON)
+                        ILC_MASK | ILC_COLOR32,
                         1,
                         1
                         );
