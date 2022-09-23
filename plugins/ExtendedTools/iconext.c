@@ -291,12 +291,6 @@ VOID EtpGpuIconUpdateCallback(
     HANDLE maxGpuProcessId;
     PPH_PROCESS_ITEM maxGpuProcessItem;
     PH_FORMAT format[8];
-    LONG dpiValue;
-
-    dpiValue = PhGetTaskbarDpi();
-
-    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -334,7 +328,7 @@ VOID EtpGpuIconUpdateCallback(
     else
         maxGpuProcessItem = NULL;
 
-    PhInitFormatS(&format[0], L"GPU Usage: ");
+    PhInitFormatS(&format[0], L"GPU usage: ");
     PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
     PhInitFormatC(&format[2], '%');
 
@@ -411,12 +405,6 @@ VOID EtpDiskIconUpdateCallback(
     HANDLE maxDiskProcessId;
     PPH_PROCESS_ITEM maxDiskProcessItem;
     PH_FORMAT format[6];
-    LONG dpiValue;
-
-    dpiValue = PhGetTaskbarDpi();
-
-    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -543,12 +531,6 @@ VOID EtpNetworkIconUpdateCallback(
     HANDLE maxNetworkProcessId;
     PPH_PROCESS_ITEM maxNetworkProcessItem;
     PH_FORMAT format[6];
-    LONG dpiValue;
-
-    dpiValue = PhGetTaskbarDpi();
-
-    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -699,7 +681,7 @@ VOID EtpGpuTextIconUpdateCallback(
     else
         maxGpuProcessItem = NULL;
 
-    PhInitFormatS(&format[0], L"GPU Usage: ");
+    PhInitFormatS(&format[0], L"GPU usage: ");
     PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
     PhInitFormatC(&format[2], '%');
 
@@ -747,13 +729,7 @@ VOID EtpDiskTextIconUpdateCallback(
     PPH_PROCESS_ITEM maxDiskProcessItem;
     PH_FORMAT format[6];
     PPH_STRING text;
-    LONG dpiValue;
     static ULONG64 maxValue = 100000 * 1024; // minimum scaling of 100 MB.
-
-    dpiValue = PhGetTaskbarDpi();
-
-    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
@@ -831,13 +807,7 @@ VOID EtpNetworkTextIconUpdateCallback(
     PPH_PROCESS_ITEM maxNetworkProcessItem;
     PH_FORMAT format[6];
     PPH_STRING text;
-    LONG dpiValue;
     static ULONG64 maxValue = 1024 * 1024; // minimum scaling of 1 MB.
-
-    dpiValue = PhGetTaskbarDpi();
-
-    drawInfo.Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    drawInfo.Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     // Icon
 
