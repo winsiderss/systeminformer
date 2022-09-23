@@ -102,6 +102,8 @@ extern BOOLEAN EtPropagateCpuUsage;
 #define SETTING_NAME_POOL_WINDOW_SIZE (PLUGIN_NAME L".PoolWindowSize")
 #define SETTING_NAME_POOL_TREE_LIST_COLUMNS (PLUGIN_NAME L".PoolTreeViewColumns")
 #define SETTING_NAME_POOL_TREE_LIST_SORT (PLUGIN_NAME L".PoolTreeViewSort")
+#define SETTING_NAME_BIGPOOL_WINDOW_POSITION (PLUGIN_NAME L".BigPoolWindowPosition")
+#define SETTING_NAME_BIGPOOL_WINDOW_SIZE (PLUGIN_NAME L".BigPoolWindowSize")
 
 VOID EtLoadSettings(
     VOID
@@ -1176,7 +1178,7 @@ VOID NTAPI WctThreadMenuInitializingCallback(
 
 // reparse
 
-INT_PTR CALLBACK ReparseDlgProc(
+INT_PTR CALLBACK EtReparseDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1185,7 +1187,7 @@ INT_PTR CALLBACK ReparseDlgProc(
 
 // pipe_enum
 
-INT_PTR CALLBACK PipeEnumDlgProc(
+INT_PTR CALLBACK EtPipeEnumDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1194,7 +1196,7 @@ INT_PTR CALLBACK PipeEnumDlgProc(
 
 // firmware
 
-INT_PTR CALLBACK UefiEntriesDlgProc(
+INT_PTR CALLBACK EtFirmwareDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1212,7 +1214,7 @@ INT_PTR CALLBACK WinObjDlgProc(
 
 // poolmon
 
-VOID ShowPoolMonDialog(
+VOID EtShowPoolMonDialog(
     VOID
     );
 

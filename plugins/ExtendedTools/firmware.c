@@ -15,7 +15,7 @@
 #include "Efi\EfiTypes.h"
 #include "Efi\EfiDevicePath.h"
 
-PPH_STRING FirmwareAttributeToString(
+PPH_STRING EtFirmwareAttributeToString(
     _In_ ULONG Attribute
     )
 {
@@ -50,7 +50,7 @@ PPH_STRING FirmwareAttributeToString(
     return PhFinalStringBuilderString(&sb);
 }
 
-PWSTR FirmwareGuidToNameString(
+PWSTR EtFirmwareGuidToNameString(
     _In_ PGUID VendorGuid
     )
 {
@@ -86,7 +86,7 @@ VOID FreeListViewFirmwareEntries(
     }
 }
 
-NTSTATUS EnumerateFirmwareValues(
+NTSTATUS EtEnumerateFirmwareValues(
     _Out_ PVOID *Values
     )
 {
@@ -127,7 +127,7 @@ NTSTATUS EnumerateFirmwareValues(
     return status;
 }
 
-NTSTATUS EnumerateFirmwareEntries(
+NTSTATUS EtEnumerateFirmwareEntries(
     _In_ PUEFI_WINDOW_CONTEXT Context
     )
 {
@@ -138,7 +138,11 @@ NTSTATUS EnumerateFirmwareEntries(
     FreeListViewFirmwareEntries(Context);
     ListView_DeleteAllItems(Context->ListViewHandle);
 
-    if (NT_SUCCESS(status = EnumerateFirmwareValues(&variables)))
+    status = EtEnumerateFirmwareValues(
+        &variables
+        );
+
+    if (NT_SUCCESS(status))
     {
         PVARIABLE_NAME_AND_VALUE i;
 
@@ -162,13 +166,13 @@ NTSTATUS EnumerateFirmwareEntries(
                 Context->ListViewHandle,
                 index,
                 1,
-                FirmwareAttributeToString(i->Attributes)->Buffer
+                PH_AUTO_T(PH_STRING, EtFirmwareAttributeToString(i->Attributes))->Buffer
                 );
             PhSetListViewSubItem(
                 Context->ListViewHandle,
                 index,
                 2,
-                FirmwareGuidToNameString(&i->VendorGuid)
+                EtFirmwareGuidToNameString(&i->VendorGuid)
                 );
             PhSetListViewSubItem(
                 Context->ListViewHandle,
@@ -193,7 +197,7 @@ NTSTATUS EnumerateFirmwareEntries(
     return status;
 }
 
-VOID ShowFirmwareMenu(
+VOID EtShowFirmwareMenu(
     _In_ PUEFI_WINDOW_CONTEXT Context,
     _In_ HWND hwndDlg
     )
@@ -202,11 +206,12 @@ VOID ShowFirmwareMenu(
 
     if (name = PhGetSelectedListViewItemText(Context->ListViewHandle))
     {
+        // Nothing
         PhDereferenceObject(name);
     }
 }
 
-INT NTAPI FirmwareNameCompareFunction(
+INT NTAPI EtFirmwareNameCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -218,7 +223,7 @@ INT NTAPI FirmwareNameCompareFunction(
     return PhCompareStringZ(PhGetStringOrEmpty(item1->Name), PhGetStringOrEmpty(item2->Name), TRUE);
 }
 
-INT NTAPI FirmwareEntryLengthCompareFunction(
+INT NTAPI EtFirmwareEntryLengthCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -230,7 +235,7 @@ INT NTAPI FirmwareEntryLengthCompareFunction(
     return uintcmp(item1->Length, item2->Length);
 }
 
-INT_PTR CALLBACK UefiEntriesDlgProc(
+INT_PTR CALLBACK EtFirmwareDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -242,7 +247,6 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(UEFI_WINDOW_CONTEXT));
-
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -271,9 +275,9 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
 
             //ExtendedListView_SetSortFast(context->ListViewHandle, TRUE);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, FirmwareNameCompareFunction);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, FirmwareNameCompareFunction);
-            ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, FirmwareEntryLengthCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, EtFirmwareNameCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, EtFirmwareNameCompareFunction);
+            ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, EtFirmwareEntryLengthCompareFunction);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -284,7 +288,7 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            EnumerateFirmwareEntries(context);
+            EtEnumerateFirmwareEntries(context);
         }
         break;
     case WM_DESTROY:
@@ -308,7 +312,7 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
             {
             case IDC_FIRMWARE_BOOT_REFRESH:
                 {
-                    EnumerateFirmwareEntries(context);
+                    EtEnumerateFirmwareEntries(context);
                 }
                 break;
             case IDCANCEL:
@@ -329,7 +333,7 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
             case NM_RCLICK:
                 {
                     if (hdr->hwndFrom == context->ListViewHandle)
-                        ShowFirmwareMenu(context, hwndDlg);
+                        EtShowFirmwareMenu(context, hwndDlg);
                 }
                 break;
             case NM_DBLCLK:
@@ -348,6 +352,12 @@ INT_PTR CALLBACK UefiEntriesDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

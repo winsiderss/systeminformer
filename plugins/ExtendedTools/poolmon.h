@@ -13,18 +13,6 @@
 #ifndef POOLMON_H
 #define POOLMON_H
 
-#define CINTERFACE
-#define COBJMACROS
-#include <phdk.h>
-#include <phappresource.h>
-#include <settings.h>
-#include <shlobj.h>
-#include <symprv.h>
-#include <windowsx.h>
-#include <workqueue.h>
-
-#include "resource.h"
-
 typedef enum _POOLTAG_TREE_ITEM_TYPE
 {
     TPOOLTAG_TREE_ITEM_TYPE_NONE,
@@ -130,7 +118,7 @@ typedef struct _POOLTAG_CONTEXT
 typedef struct _BIGPOOLTAG_CONTEXT
 {
     HWND WindowHandle;
-    HWND ListviewHandle;
+    HWND ListViewHandle;
     PH_LAYOUT_MANAGER LayoutManager;
 
     union
@@ -142,72 +130,66 @@ typedef struct _BIGPOOLTAG_CONTEXT
 
 } BIGPOOLTAG_CONTEXT, *PBIGPOOLTAG_CONTEXT;
 
-VOID ShowBigPoolDialog(
+VOID EtShowBigPoolDialog(
     _In_ PPOOL_ITEM PoolItem
     );
 
-VOID PmLoadSettingsTreeList(
+VOID EtLoadSettingsTreeList(
     _Inout_ PPOOLTAG_CONTEXT Context
     );
 
-VOID PmSaveSettingsTreeList(
+VOID EtSaveSettingsTreeList(
     _Inout_ PPOOLTAG_CONTEXT Context
     );
 
-VOID PmInitializePoolTagTree(
+VOID EtInitializePoolTagTree(
     _Inout_ PPOOLTAG_CONTEXT Context
     );
 
-VOID PmDeletePoolTagTree(
+VOID EtDeletePoolTagTree(
     _In_ PPOOLTAG_CONTEXT Context
     );
 
-PPOOLTAG_ROOT_NODE PmFindPoolTagNode(
+PPOOLTAG_ROOT_NODE EtFindPoolTagNode(
     _In_ PPOOLTAG_CONTEXT Context,
     _In_ ULONG PoolTag
     );
 
-PPOOLTAG_ROOT_NODE PmAddPoolTagNode(
+PPOOLTAG_ROOT_NODE EtAddPoolTagNode(
     _Inout_ PPOOLTAG_CONTEXT Context,
     _In_ PPOOL_ITEM PoolItem
     );
 
-VOID PmUpdatePoolTagNode(
+VOID EtUpdatePoolTagNode(
     _In_ PPOOLTAG_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE WindowNode
+    _In_ PPOOLTAG_ROOT_NODE Node
     );
 
 struct _PH_TN_FILTER_SUPPORT*
 NTAPI
-PmGetFilterSupportTreeList(
+EtGetFilterSupportTreeList(
     VOID
     );
 
-PPOOLTAG_ROOT_NODE PmGetSelectedPoolTagNode(
+VOID EtCopyPoolTagTree(
     _In_ PPOOLTAG_CONTEXT Context
     );
 
-// pooltable.c
-
-NTSTATUS EnumPoolTagTable(
-    _Out_ PVOID* Buffer
-    );
-
-NTSTATUS EnumBigPoolTable(
-    _Out_ PVOID* Buffer
+PPOOLTAG_ROOT_NODE EtGetSelectedPoolTagNode(
+    _In_ PPOOLTAG_CONTEXT Context
     );
 
 // pooldb.c
 
-VOID LoadPoolTagDatabase(
+VOID EtLoadPoolTagDatabase(
     _In_ PPOOLTAG_CONTEXT Context
     );
 
-VOID FreePoolTagDatabase(
+VOID EtFreePoolTagDatabase(
     _In_ PPOOLTAG_CONTEXT Context
     );
 
-VOID UpdatePoolTagBinaryName(
+VOID EtUpdatePoolTagBinaryName(
     _In_ PPOOLTAG_CONTEXT Context,
     _In_ PPOOL_ITEM PoolEntry,
     _In_ ULONG TagUlong

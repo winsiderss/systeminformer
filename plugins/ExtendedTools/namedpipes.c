@@ -18,7 +18,7 @@ typedef struct _PIPE_ENUM_DIALOG_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } PIPE_ENUM_DIALOG_CONTEXT, *PPIPE_ENUM_DIALOG_CONTEXT;
 
-BOOLEAN NTAPI NamedPipeDirectoryCallback(
+BOOLEAN NTAPI EtNamedPipeDirectoryCallback(
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_ PVOID Context
     )
@@ -27,14 +27,14 @@ BOOLEAN NTAPI NamedPipeDirectoryCallback(
     return TRUE;
 }
 
-VOID EnumerateNamedPipeDirectory(
+VOID EtEnumerateNamedPipeDirectory(
     _In_ PPIPE_ENUM_DIALOG_CONTEXT Context
     )
 {
     NTSTATUS status;
     HANDLE pipeDirectoryHandle;
     OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectNameUs;
+    UNICODE_STRING objectName;
     IO_STATUS_BLOCK isb;
     PPH_LIST pipeList;
     ULONG count = 0;
@@ -42,10 +42,10 @@ VOID EnumerateNamedPipeDirectory(
     ExtendedListView_SetRedraw(Context->ListViewWndHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewWndHandle);
 
-    RtlInitUnicodeString(&objectNameUs, DEVICE_NAMED_PIPE);
+    RtlInitUnicodeString(&objectName, DEVICE_NAMED_PIPE);
     InitializeObjectAttributes(
         &objectAttributes,
-        &objectNameUs,
+        &objectName,
         OBJ_CASE_INSENSITIVE,
         NULL,
         NULL
@@ -64,7 +64,7 @@ VOID EnumerateNamedPipeDirectory(
         return;
 
     pipeList = PhCreateList(1);
-    PhEnumDirectoryFile(pipeDirectoryHandle, NULL, NamedPipeDirectoryCallback, pipeList);
+    PhEnumDirectoryFile(pipeDirectoryHandle, NULL, EtNamedPipeDirectoryCallback, pipeList);
 
     for (ULONG i = 0; i < pipeList->Count; i++)
     {
@@ -74,10 +74,10 @@ VOID EnumerateNamedPipeDirectory(
         HANDLE processID;
         INT lvItemIndex;
 
-        PhStringRefToUnicodeString(&pipeName->sr, &objectNameUs);
+        PhStringRefToUnicodeString(&pipeName->sr, &objectName);
         InitializeObjectAttributes(
             &objectAttributes,
-            &objectNameUs,
+            &objectName,
             OBJ_CASE_INSENSITIVE,
             pipeDirectoryHandle,
             NULL
@@ -130,7 +130,7 @@ VOID EnumerateNamedPipeDirectory(
     ExtendedListView_SetRedraw(Context->ListViewWndHandle, TRUE);
 }
 
-INT_PTR CALLBACK PipeEnumDlgProc(
+INT_PTR CALLBACK EtPipeEnumDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -159,6 +159,7 @@ INT_PTR CALLBACK PipeEnumDlgProc(
             context->ListViewWndHandle = GetDlgItem(hwndDlg, IDC_ATOMLIST);
 
             PhCenterWindow(hwndDlg, PhMainWndHandle);
+
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -177,11 +178,13 @@ INT_PTR CALLBACK PipeEnumDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            EnumerateNamedPipeDirectory(context);
+            EtEnumerateNamedPipeDirectory(context);
         }
         break;
     case WM_DESTROY:
         {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+
             PhSaveWindowPlacementToSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, context->ListViewWndHandle);
 
@@ -201,11 +204,17 @@ INT_PTR CALLBACK PipeEnumDlgProc(
                 EndDialog(hwndDlg, IDOK);
                 break;
             case IDRETRY:
-                EnumerateNamedPipeDirectory(context);
+                EtEnumerateNamedPipeDirectory(context);
                 break;
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

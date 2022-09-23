@@ -142,12 +142,11 @@
     <ClCompile Include="gpusys.c" />
     <ClCompile Include="iconext.c" />
     <ClCompile Include="framemon.cpp" />
-    <ClCompile Include="pipe_enum.c" />
+    <ClCompile Include="namedpipes.c" />
     <ClCompile Include="objmgr.c" />
     <ClCompile Include="pooldb.c" />
     <ClCompile Include="pooldialog.c" />
     <ClCompile Include="pooldialogbig.c" />
-    <ClCompile Include="pooltable.c" />
     <ClCompile Include="pooltree.c" />
     <ClCompile Include="PresentMon\PresentMon.cpp" />
     <ClCompile Include="PresentMon\PresentMonTraceConsumer.cpp" />
@@ -166,8 +165,7 @@
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />
     <ClCompile Include="utils.c" />
-    <ClCompile Include="wct.c" />
-    <ClCompile Include="wndtree.c" />
+    <ClCompile Include="waitchain.c" />
     <ClCompile Include="wswatch.c" />
   </ItemGroup>
   <ItemGroup>
@@ -194,7 +192,6 @@
     <ClInclude Include="PresentMon\PresentMonTraceConsumer.hpp" />
     <ClInclude Include="PresentMon\TraceConsumer.hpp" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="wndtree.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />

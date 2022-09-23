@@ -11,7 +11,7 @@
 
 #include "exttools.h"
 
-static PH_STRINGREF RootDirectoryObject = PH_STRINGREF_INIT(L"\\");
+static PH_STRINGREF RootDirectoryObject = PH_STRINGREF_INIT(L"\\"); // RtlNtPathSeperatorString
 
 typedef struct _OBJECT_ENTRY
 {
@@ -67,14 +67,14 @@ PPH_STRING GetSelectedTreeViewPath(
             break;
 
         if (treePath)
-            treePath = PhaConcatStrings(3, buffer, L"\\", treePath->Buffer);
+            treePath = PhaConcatStrings(3, buffer, RtlNtPathSeperatorString.Buffer, treePath->Buffer);
         else
             treePath = PhaCreateString(buffer);
 
         treeItem = TreeView_GetParent(Context->TreeViewHandle, treeItem);
     }
 
-    return PhConcatStrings(2, L"\\", PhGetStringOrEmpty(treePath));
+    return PhConcatStrings2(RtlNtPathSeperatorString.Buffer, PhGetStringOrEmpty(treePath));
 }
 
 HTREEITEM TreeViewAddItem(
@@ -143,26 +143,6 @@ HTREEITEM TreeViewFindItem(
     return NULL;
 }
 
-INT AddListViewItem(
-    _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT Image,
-    _In_ PWSTR Text,
-    _In_opt_ PVOID Param
-    )
-{
-    LVITEM item;
-
-    item.mask = LVIF_TEXT | LVIF_PARAM | LVIF_IMAGE;
-    item.iItem = Index;
-    item.iSubItem = 0;
-    item.iImage = Image;
-    item.pszText = Text;
-    item.lParam = (LPARAM)Param;
-
-    return ListView_InsertItem(ListViewHandle, &item);
-}
-
 VOID InitializeTreeImages(
     _In_ POBJ_CONTEXT Context
     )
@@ -172,24 +152,25 @@ VOID InitializeTreeImages(
 
     dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
 
-    Context->TreeImageList = ImageList_Create(
-        PhGetDpi(22, dpiValue),
-        PhGetDpi(22, dpiValue),
-        ILC_COLOR32,
+    Context->TreeImageList = PhImageListCreate(
+        PhGetDpi(24, dpiValue),
+        PhGetDpi(24, dpiValue),
+        ILC_MASK | ILC_COLOR32,
         1, 1
         );
 
-    icon = PhLoadIcon(
+    if (icon = PhLoadIcon(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDI_FOLDER),
         PH_LOAD_ICON_SIZE_LARGE,
         PhGetDpi(16, dpiValue),
         PhGetDpi(16, dpiValue),
         dpiValue
-        );
-    ImageList_AddIcon(Context->TreeImageList, icon);
-
-    DestroyIcon(icon);
+        ))
+    {
+        PhImageListAddIcon(Context->TreeImageList, icon);
+        DestroyIcon(icon);
+    }
 }
 
 VOID InitializeListImages(
@@ -198,62 +179,63 @@ VOID InitializeListImages(
 {
     HICON icon;
     LONG dpiValue;
+    LONG size;
 
     dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
+    size = PhGetDpi(24, dpiValue);
     
-    Context->ListImageList = ImageList_Create(
-        PhGetDpi(22, dpiValue), 
-        PhGetDpi(22, dpiValue), 
-        ILC_COLOR32, 
+    Context->ListImageList = PhImageListCreate(
+        size,
+        size,
+        ILC_MASK | ILC_COLOR32,
         10, 10
         );
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_UNKNOWN), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_UNKNOWN), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MUTANT), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_MUTANT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DRIVER), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DRIVER), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SECTION), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SECTION), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_LINK), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_LINK), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEY), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_KEY), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_PORT), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_PORT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SESSION), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_SESSION), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_EVENT), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_EVENT), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 
-    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DEVICE), PH_LOAD_ICON_SIZE_LARGE, PhGetDpi(22, dpiValue), PhGetDpi(22, dpiValue), dpiValue);
-    ImageList_AddIcon(Context->ListImageList, icon);
-
+    icon = PhLoadIcon(PluginInstance->DllBase, MAKEINTRESOURCE(IDI_DEVICE), PH_LOAD_ICON_SIZE_LARGE, size, size, dpiValue);
+    PhImageListAddIcon(Context->ListImageList, icon);
     DestroyIcon(icon);
 }
 
 static BOOLEAN NTAPI EnumDirectoryObjectsCallback(
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PDIRECTORY_ENUM_CONTEXT context = (PDIRECTORY_ENUM_CONTEXT)Context;
@@ -265,11 +247,19 @@ static BOOLEAN NTAPI EnumDirectoryObjectsCallback(
 
         if (PhEqualStringRef(&context->DirectoryPath, &RootDirectoryObject, TRUE))
         {
-            childDirectoryPath = PhConcatStringRef2(&context->DirectoryPath, Name);
+            childDirectoryPath = PhConcatStringRef2(
+                &context->DirectoryPath,
+                Name
+                );
         }
         else
         {
-            childDirectoryPath = PhConcatStrings(3, context->DirectoryPath.Buffer, L"\\", Name->Buffer);
+            childDirectoryPath = PhConcatStrings(
+                3,
+                context->DirectoryPath.Buffer,
+                RtlNtPathSeperatorString.Buffer,
+                Name->Buffer
+                );
         }
 
         currentItem = TreeViewAddItem(
@@ -295,7 +285,7 @@ static BOOLEAN NTAPI EnumDirectoryObjectsCallback(
 static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
     _In_ PPH_STRINGREF Name,
     _In_ PPH_STRINGREF TypeName,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     POBJ_CONTEXT context = (POBJ_CONTEXT)Context;
@@ -313,9 +303,7 @@ static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
         INT imageIndex;
         POBJECT_ENTRY entry;
 
-        entry = PhAllocate(sizeof(OBJECT_ENTRY));
-        memset(entry, 0, sizeof(OBJECT_ENTRY));
-
+        entry = PhAllocateZero(sizeof(OBJECT_ENTRY));
         entry->Name = PhCreateString2(Name);
         entry->TypeName = PhCreateString2(TypeName);
 
@@ -360,12 +348,17 @@ static BOOLEAN NTAPI EnumCurrentDirectoryObjectsCallback(
             imageIndex = 0;
         }
 
-        index = AddListViewItem(
+        index = PhAddListViewItem(
             context->ListViewHandle,
             MAXINT,
-            imageIndex,
             Name->Buffer,
             entry
+            );
+
+        PhSetListViewItemImageIndex(
+            context->ListViewHandle,
+            index,
+            imageIndex
             );
 
         PhSetListViewSubItem(
@@ -386,13 +379,13 @@ NTSTATUS EnumDirectoryObjects(
     )
 {
     HANDLE directoryHandle;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING name;
 
     PhStringRefToUnicodeString(&DirectoryPath, &name);
 
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &name,
         0,
         NULL,
@@ -402,7 +395,7 @@ NTSTATUS EnumDirectoryObjects(
     if (NT_SUCCESS(NtOpenDirectoryObject(
         &directoryHandle,
         DIRECTORY_QUERY,
-        &oa
+        &objectAttributes
         )))
     {
         DIRECTORY_ENUM_CONTEXT enumContext;
@@ -431,13 +424,13 @@ NTSTATUS EnumCurrentDirectoryObjects(
     )
 {
     HANDLE directoryHandle;
-    OBJECT_ATTRIBUTES oa;
+    OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING name;
 
     PhStringRefToUnicodeString(&DirectoryPath, &name);
 
     InitializeObjectAttributes(
-        &oa,
+        &objectAttributes,
         &name,
         0,
         NULL,
@@ -447,7 +440,7 @@ NTSTATUS EnumCurrentDirectoryObjects(
     if (NT_SUCCESS(NtOpenDirectoryObject(
         &directoryHandle,
         DIRECTORY_QUERY,
-        &oa
+        &objectAttributes
         )))
     {
         PhEnumDirectoryObjects(
@@ -560,10 +553,10 @@ INT_PTR CALLBACK WinObjDlgProc(
         break;
     case WM_DESTROY:
         {
-            //if (context->TreeImageList)
-            //   PhImageListDestroy(context->TreeImageList);
-            //if (context->ListImageList)
-            //    PhImageListDestroy(context->ListImageList);
+            if (context->TreeImageList)
+                PhImageListDestroy(context->TreeImageList);
+            if (context->ListImageList)
+                PhImageListDestroy(context->ListImageList);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
             PhSaveListViewColumnsToSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
@@ -644,6 +637,12 @@ INT_PTR CALLBACK WinObjDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
