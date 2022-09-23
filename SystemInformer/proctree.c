@@ -3194,8 +3194,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 switch (node->DpiAwareness)
                 {
-                case 0:
-                    break;
                 case 1:
                     PhInitializeStringRef(&getCellText->Text, L"Unaware");
                     break;
@@ -3204,6 +3202,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     break;
                 case 3:
                     PhInitializeStringRef(&getCellText->Text, L"Per-monitor aware");
+                    break;
+                case 4:
+                    PhInitializeStringRef(&getCellText->Text, L"Per-monitor V2");
+                    break;
+                case 5:
+                    PhInitializeStringRef(&getCellText->Text, L"Unaware (GDI scaled)");
                     break;
                 }
                 break;
