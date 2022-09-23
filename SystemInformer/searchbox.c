@@ -131,7 +131,7 @@ VOID PhpSearchInitializeImages(
     Context->ImageListHandle = PhImageListCreate(
         Context->ImageWidth,
         Context->ImageHeight,
-        ILC_COLOR32,
+        ILC_MASK | ILC_COLOR32,
         2,
         0
         );
@@ -981,7 +981,7 @@ HBITMAP PhLoadPngImageFromResource(
 
     screenHdc = GetDC(NULL);
     bufferDc = CreateCompatibleDC(screenHdc);
-    bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
+    bitmapHandle = CreateDIBSection(screenHdc, (BITMAPINFO*)&bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
 
     // Check if it's the same rect as the requested size.
     //if (width != rect.Width || height != rect.Height)
@@ -989,7 +989,7 @@ HBITMAP PhLoadPngImageFromResource(
         goto CleanupExit;
     if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
         goto CleanupExit;
-    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, (PBYTE)bitmapBuffer)))
+    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * sizeof(RGBQUAD), rect.Width * rect.Height * sizeof(RGBQUAD), (PBYTE)bitmapBuffer)))
         goto CleanupExit;
 
     success = TRUE;
@@ -1117,7 +1117,7 @@ HBITMAP PhLoadPngImageFromFile(
         goto CleanupExit;
     if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
         goto CleanupExit;
-    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, (PBYTE)bitmapBuffer)))
+    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * sizeof(RGBQUAD), rect.Width * rect.Height * sizeof(RGBQUAD), (PBYTE)bitmapBuffer)))
         goto CleanupExit;
 
     success = TRUE;

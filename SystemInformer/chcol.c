@@ -344,6 +344,9 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            if (context->ControlFont) DeleteFont(context->ControlFont);
+            context->ControlFont = PhpColumnsGetCurrentFont(hwndDlg);
+
             ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
             ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
         }

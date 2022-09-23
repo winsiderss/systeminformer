@@ -571,7 +571,7 @@ VOID PvpSetImagelistP(
     hImageList = PhImageListCreate (
         2,
         PhGetDpi(24, dpiValue),
-        ILC_MASK | ILC_COLOR,
+        ILC_MASK | ILC_COLOR32,
         1,
         1
         );

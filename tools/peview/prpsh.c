@@ -261,7 +261,7 @@ VOID PvpInitializeFont(
     dpiValue = PhGetWindowDpi(hwnd);
 
     if (PhApplicationFont)
-        DeleteObject(PhApplicationFont);
+        DeleteFont(PhApplicationFont);
 
     if (
         !(PhApplicationFont = PvpCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, dpiValue)) &&

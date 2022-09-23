@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -830,10 +830,13 @@ static VOID PhpTokenSetImageList(
 
     dpiValue = PhGetWindowDpi(WindowHandle);
 
-    if (!TokenPageContext->ListViewImageList)
-        TokenPageContext->ListViewImageList = PhImageListCreate(2, PhGetDpi(20, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
-    else
-        ImageList_SetIconSize(TokenPageContext->ListViewImageList, 2, PhGetDpi(20, dpiValue));
+    if (TokenPageContext->ListViewImageList) PhImageListDestroy(TokenPageContext->ListViewImageList);
+    TokenPageContext->ListViewImageList = PhImageListCreate(
+        2,
+        PhGetDpi(20, dpiValue),
+        ILC_MASK | ILC_COLOR32,
+        1, 1
+        );
 
     ListView_SetImageList(TokenPageContext->ListViewHandle, TokenPageContext->ListViewImageList, LVSIL_SMALL);
 }
@@ -1021,12 +1024,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhSaveListViewGroupStatesToSetting(L"TokenGroupsListViewStates", tokenPageContext->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"TokenGroupsListViewColumns", tokenPageContext->ListViewHandle);
 
-            // Note: Don't destroy the imagelist here unless we're using LVS_SHAREIMAGELISTS. (dmex)
-            //if (tokenPageContext->ListViewImageList)
-            //    PhImageListDestroy(tokenPageContext->ListViewImageList);
-
             PhpTokenPageFreeListViewEntries(tokenPageContext);
 
+            if (tokenPageContext->ListViewImageList) PhImageListDestroy(tokenPageContext->ListViewImageList);
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->RestrictedSids) PhFree(tokenPageContext->RestrictedSids);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
