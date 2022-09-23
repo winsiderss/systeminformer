@@ -1839,25 +1839,75 @@ BOOLEAN PhGetProcessDpiAwareness(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *GetProcessDpiAwarenessInternal_I)(
+    static DPI_AWARENESS_CONTEXT (WINAPI* GetDpiAwarenessContextForProcess_I)(
+        _In_ HANDLE hprocess) = NULL;
+    static BOOL (WINAPI* AreDpiAwarenessContextsEqual_I)(
+        _In_ DPI_AWARENESS_CONTEXT dpiContextA,
+        _In_ DPI_AWARENESS_CONTEXT dpiContextB) = NULL;
+    static BOOL (WINAPI* GetProcessDpiAwarenessInternal_I)(
         _In_ HANDLE hprocess,
-        _Out_ ULONG *value
-        );
-    ULONG dpiAwareness = 0;
+        _Out_ ULONG* value) = NULL;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        GetProcessDpiAwarenessInternal_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
+        if (WindowsVersion >= WINDOWS_10_RS1)
+        {
+            GetDpiAwarenessContextForProcess_I = PhGetDllProcedureAddress(L"user32.dll", "GetDpiAwarenessContextForProcess", 0);
+            AreDpiAwarenessContextsEqual_I = PhGetDllProcedureAddress(L"user32.dll", "AreDpiAwarenessContextsEqual", 0);
+        }
+
+        if (!(GetDpiAwarenessContextForProcess_I && AreDpiAwarenessContextsEqual_I))
+        {
+            GetProcessDpiAwarenessInternal_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
+        }
+
         PhEndInitOnce(&initOnce);
     }
 
-    if (!GetProcessDpiAwarenessInternal_I)
-        return FALSE;
-
-    if (GetProcessDpiAwarenessInternal_I(ProcessHandle, &dpiAwareness))
+    if (GetDpiAwarenessContextForProcess_I && AreDpiAwarenessContextsEqual_I)
     {
-        *ProcessDpiAwareness = dpiAwareness;
-        return TRUE;
+        DPI_AWARENESS_CONTEXT context = GetDpiAwarenessContextForProcess_I(ProcessHandle);
+
+        if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_UNAWARE))
+        {
+            *ProcessDpiAwareness = PROCESS_DPI_UNAWARE;
+            return TRUE;
+        }
+
+        if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_SYSTEM_AWARE))
+        {
+            *ProcessDpiAwareness = PROCESS_SYSTEM_DPI_AWARE;
+            return TRUE;
+        }
+
+        if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
+        {
+            *ProcessDpiAwareness = PROCESS_PER_MONITOR_DPI_AWARE;
+            return TRUE;
+        }
+
+        if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+        {
+            *ProcessDpiAwareness = 3;
+            return TRUE;
+        }
+
+        if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED))
+        {
+            *ProcessDpiAwareness = 4;
+            return TRUE;
+        }
+    }
+
+    if (GetProcessDpiAwarenessInternal_I)
+    {
+        ULONG dpiAwareness = 0;
+
+        if (GetProcessDpiAwarenessInternal_I(ProcessHandle, &dpiAwareness))
+        {
+            *ProcessDpiAwareness = dpiAwareness;
+            return TRUE;
+        }
     }
 
     return FALSE;
@@ -1870,7 +1920,7 @@ BOOLEAN PhGetPhysicallyInstalledSystemMemory(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static BOOL (WINAPI *GetPhysicallyInstalledSystemMemory_I)(_Out_ PULONGLONG TotalMemoryInKilobytes);
+    static BOOL (WINAPI *GetPhysicallyInstalledSystemMemory_I)(_Out_ PULONGLONG TotalMemoryInKilobytes) = NULL;
     ULONGLONG physicallyInstalledSystemMemory = 0;
 
     if (PhBeginInitOnce(&initOnce))
