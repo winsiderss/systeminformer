@@ -799,6 +799,14 @@ VOID PhTnpGetMessagePos(
     _Out_ PPOINT ClientPoint
     );
 
+BOOLEAN PhTnpGetColumnHeaderText(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ PWSTR TextCache,
+    _In_ ULONG TextCacheSize,
+    _Out_ PPH_STRINGREF Text
+    );
+
 // Macros
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
