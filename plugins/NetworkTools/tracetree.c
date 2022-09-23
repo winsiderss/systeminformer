@@ -545,15 +545,15 @@ PTRACERT_ROOT_NODE GetSelectedTracertNode(
     _In_ PNETWORK_TRACERT_CONTEXT Context
     )
 {
-    PTRACERT_ROOT_NODE windowNode = NULL;
+    PTRACERT_ROOT_NODE node = NULL;
     ULONG i;
 
     for (i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        node = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (node->Node.Selected)
+            return node;
     }
 
     return NULL;
