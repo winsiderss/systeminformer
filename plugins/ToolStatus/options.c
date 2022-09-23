@@ -15,21 +15,21 @@
 static PH_KEY_VALUE_PAIR GraphTypePairs[] =
 {
     { L"None", (PVOID)TASKBAR_ICON_NONE },
-    { L"CPU History", (PVOID)TASKBAR_ICON_CPU_HISTORY },
-    { L"CPU Usage", (PVOID)TASKBAR_ICON_CPU_USAGE },
-    { L"I/O History", (PVOID)TASKBAR_ICON_IO_HISTORY },
-    { L"Commit History", (PVOID)TASKBAR_ICON_COMMIT_HISTORY },
-    { L"Physical Memory History", (PVOID)TASKBAR_ICON_PHYSICAL_HISTORY },
+    { L"CPU usage", (PVOID)TASKBAR_ICON_CPU_USAGE },
+    { L"CPU history", (PVOID)TASKBAR_ICON_CPU_HISTORY },
+    { L"I/O history", (PVOID)TASKBAR_ICON_IO_HISTORY },
+    { L"Commit charge history", (PVOID)TASKBAR_ICON_COMMIT_HISTORY },
+    { L"Physical memory history", (PVOID)TASKBAR_ICON_PHYSICAL_HISTORY },
 };
 
 static PWSTR GraphTypeStrings[] =
 {
     L"None",
-    L"CPU History",
-    L"CPU Usage",
-    L"I/O History",
-    L"Commit History",
-    L"Physical Memory History"
+    L"CPU usage",
+    L"CPU history",
+    L"I/O history",
+    L"Commit charge history",
+    L"Physical memory history"
 };
 
 PWSTR GraphTypeGetTypeString(
