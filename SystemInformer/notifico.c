@@ -849,6 +849,44 @@ HICON PhNfpGetBlackIcon(
     return PhNfpBlackIcon;
 }
 
+HFONT PhNfGetTrayIconFont(
+    _In_opt_ LONG DpiValue
+    )
+{
+    if (DpiValue != 0 && PhNfpTrayIconFont)
+    {
+        DeleteFont(PhNfpTrayIconFont);
+        PhNfpTrayIconFont = NULL;
+    }
+
+    if (!PhNfpTrayIconFont)
+    {
+        if (DpiValue == 0)
+        {
+            DpiValue = PhGetTaskbarDpi();
+        }
+
+        PhNfpTrayIconFont = CreateFont(
+            PhGetDpi(-11, DpiValue),
+            0,
+            0,
+            0,
+            FW_NORMAL,
+            FALSE,
+            FALSE,
+            FALSE,
+            ANSI_CHARSET,
+            OUT_DEFAULT_PRECIS,
+            CLIP_DEFAULT_PRECIS,
+            ANTIALIASED_QUALITY,
+            DEFAULT_PITCH,
+            L"Tahoma"
+            );
+    }
+
+    return PhNfpTrayIconFont;
+}
+
 BOOLEAN PhNfpAddNotifyIcon(
     _In_ PPH_NF_ICON Icon
     )
@@ -1034,6 +1072,8 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     _In_opt_ PVOID Context
     )
 {
+    PhSetThreadName(NtCurrentThread(), L"TrayIconUpdateThread");
+    
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
@@ -1192,36 +1232,75 @@ VOID PhNfpBeginBitmap2(
     _Out_ HBITMAP *OldBitmap
     )
 {
-    HDC screenHdc;
-    LONG dpiValue;
+    LONG dpiValue = PhGetTaskbarDpi();
 
-    dpiValue = PhGetTaskbarDpi();
+    // Initialize and cache the current system metrics. (dmex)
 
-    *Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    *Height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    if (Context->TaskbarDpi == 0 || Context->TaskbarDpi != dpiValue)
+    {
+        Context->Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+        Context->Height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+
+        // Re-initialize fonts with updated DPI (only when there's an existing handle). (dmex)
+
+        if (PhNfpTrayIconFont)
+        {
+            PhNfGetTrayIconFont(dpiValue);
+        }
+    }
+
+    // Cleanup existing resources when the DPI changes so we're able to re-initialize with updated DPI. (dmex)
+
+    if (Context->TaskbarDpi != 0 && Context->TaskbarDpi != dpiValue)
+    {
+        if (PhNfpBlackIcon)
+        {
+            DestroyIcon(PhNfpBlackIcon);
+            PhNfpBlackIcon = NULL;
+        }
+
+        if (Context->Hdc)
+        {
+            DeleteDC(Context->Hdc);
+            Context->Hdc = NULL;
+        }
+
+        if (Context->Bitmap)
+        {
+            DeleteBitmap(Context->Bitmap);
+            Context->Bitmap = NULL;
+        }
+
+        Context->Initialized = FALSE;
+    }
 
     if (!Context->Initialized)
     {
+        HDC screenHdc;
+
         screenHdc = GetDC(NULL);
         Context->Hdc = CreateCompatibleDC(screenHdc);
 
         memset(&Context->Header, 0, sizeof(BITMAPINFOHEADER));
         Context->Header.biSize = sizeof(BITMAPINFOHEADER);
-        Context->Header.biWidth = *Width;
-        Context->Header.biHeight = *Height;
+        Context->Header.biWidth = Context->Width;
+        Context->Header.biHeight = Context->Height;
         Context->Header.biPlanes = 1;
         Context->Header.biBitCount = 32;
-        Context->Bitmap = CreateDIBSection(screenHdc, (BITMAPINFO *)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
+        Context->Bitmap = CreateDIBSection(screenHdc, (PBITMAPINFO)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
 
         ReleaseDC(NULL, screenHdc);
 
+        Context->TaskbarDpi = dpiValue;
         Context->Initialized = TRUE;
     }
 
+    *Width = Context->Width;
+    *Height = Context->Height;
     *Bitmap = Context->Bitmap;
     if (Bits) *Bits = Context->Bits;
     *Hdc = Context->Hdc;
-    *OldBitmap = SelectBitmap(Context->Hdc, Context->Bitmap);
+    if (Context->Bitmap) *OldBitmap = SelectBitmap(Context->Hdc, Context->Bitmap);
 }
 
 VOID PhNfpCpuHistoryIconUpdateCallback(
@@ -1297,7 +1376,7 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     else
         maxCpuProcessItem = NULL;
 
-    PhInitFormatS(&format[0], L"CPU Usage: ");
+    PhInitFormatS(&format[0], L"CPU history: ");
     PhInitFormatF(&format[1], ((DOUBLE)PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
     PhInitFormatC(&format[2], '%');
 
@@ -1757,6 +1836,7 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
     PhInitFormatF(&format[0], (DOUBLE)(PhCpuKernelUsage + PhCpuUserUsage) * 100, 0);
     text = PhFormat(format, 1, 10);
 
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorCpuKernel;
     if (bits)
         PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
@@ -1925,6 +2005,7 @@ VOID PhNfpCommitTextIconUpdateCallback(
     PhInitFormatF(&format[0], (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit * 100, 0);
     text = PhFormat(format, 1, 10);
 
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorPrivate;
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
@@ -1988,6 +2069,7 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     PhInitFormatF(&format[0], physicalFraction * 100, 0);
     text = PhFormat(format, 1, 10);
 
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorPhysical;
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
