@@ -525,6 +525,7 @@ EXPORTS
     PhGetDrawInfoGraphBuffers
     PhGraphStateGetDrawInfo
     PhInitializeGraphState
+    PhNfGetTrayIconFont
     PhSetGraphText
 
 ; guisup

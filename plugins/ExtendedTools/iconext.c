@@ -661,6 +661,7 @@ VOID EtpGpuTextIconUpdateCallback(
     PhInitFormatF(&format[0], (DOUBLE)EtGpuNodeUsage * 100, 0);
     text = PhFormat(format, 1, 10);
 
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhGetIntegerSetting(L"ColorCpuKernel");
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
@@ -741,6 +742,7 @@ VOID EtpDiskTextIconUpdateCallback(
     PhInitFormatF(&format[0], ((DOUBLE)EtDiskReadDelta.Delta + EtDiskWriteDelta.Delta) / maxValue * 100, 0);
     text = PhFormat(format, 1, 10);
 
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhGetIntegerSetting(L"ColorIoReadOther"); // ColorIoWrite
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
@@ -819,6 +821,7 @@ VOID EtpNetworkTextIconUpdateCallback(
     PhInitFormatF(&format[0], ((DOUBLE)EtNetworkReceiveDelta.Delta + EtNetworkSendDelta.Delta) / maxValue * 100, 0);
     text = PhFormat(format, 1, 10);
 
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhGetIntegerSetting(L"ColorIoReadOther"); // ColorIoWrite
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
