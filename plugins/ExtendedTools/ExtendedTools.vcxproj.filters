@@ -123,16 +123,13 @@
     <ClCompile Include="PresentMon\TraceConsumer.cpp">
       <Filter>Source Files\PresentMon</Filter>
     </ClCompile>
-    <ClCompile Include="wndtree.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="wct.c">
+    <ClCompile Include="waitchain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="reparse.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pipe_enum.c">
+    <ClCompile Include="namedpipes.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="firmware.c">
@@ -151,9 +148,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pooldialogbig.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pooltable.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pooltree.c">
@@ -219,9 +213,6 @@
       <Filter>Header Files\PresentMon</Filter>
     </ClInclude>
     <ClInclude Include="extension\plugin.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="wndtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="firmware.h">

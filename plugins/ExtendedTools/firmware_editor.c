@@ -194,7 +194,6 @@ INT_PTR CALLBACK UefiEditorDlgProc(
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhSaveWindowPlacementToSetting(L"MemEditPosition", L"MemEditSize", hwndDlg);
-            PhUnregisterDialog(hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 

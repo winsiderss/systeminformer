@@ -151,7 +151,7 @@ VOID NTAPI MenuItemCallback(
                 PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_REPARSEDIALOG),
                 NULL,
-                ReparseDlgProc,
+                EtReparseDlgProc,
                 (LPARAM)menuItem->Id
                 );
         }
@@ -173,7 +173,7 @@ VOID NTAPI MenuItemCallback(
                 PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_PIPEDIALOG),
                 NULL,
-                PipeEnumDlgProc
+                EtPipeEnumDlgProc
                 );
         }
         break;
@@ -189,7 +189,7 @@ VOID NTAPI MenuItemCallback(
                 PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_FIRMWARE),
                 NULL,
-                UefiEntriesDlgProc
+                EtFirmwareDlgProc
                 );
         }
         break;
@@ -205,7 +205,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_POOL_TABLE:
         {
-            ShowPoolMonDialog();
+            EtShowPoolMonDialog();
         }
         break;
     }
@@ -1168,6 +1168,8 @@ LOGICAL DllMain(
                 { ScalableIntegerPairSettingType, SETTING_NAME_POOL_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_POOL_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_POOL_TREE_LIST_SORT, L"0,0" },
+                { IntegerPairSettingType, SETTING_NAME_BIGPOOL_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_BIGPOOL_WINDOW_SIZE, L"@96|510,380" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

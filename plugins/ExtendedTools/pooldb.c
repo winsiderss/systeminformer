@@ -62,7 +62,7 @@ PPH_STRING FindPoolTagFilePath(
     return NULL;
 }
 
-BOOLEAN PmPoolTagListHashtableEqualFunction(
+BOOLEAN EtPoolTagListHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -73,36 +73,36 @@ BOOLEAN PmPoolTagListHashtableEqualFunction(
     return poolTagNode1->TagUlong == poolTagNode2->TagUlong;
 }
 
-ULONG PmPoolTagListHashtableHashFunction(
+ULONG EtPoolTagListHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
     return PhHashInt32((*(PPOOL_TAG_LIST_ENTRY*)Entry)->TagUlong);
 }
 
-PPOOL_TAG_LIST_ENTRY FindPoolTagListEntry(
+PPOOL_TAG_LIST_ENTRY EtFindPoolTagListEntry(
     _In_ PPOOLTAG_CONTEXT Context,
     _In_ ULONG PoolTag
     )
 {
-    POOL_TAG_LIST_ENTRY lookupWindowNode;
-    PPOOL_TAG_LIST_ENTRY lookupWindowNodePtr = &lookupWindowNode;
-    PPOOL_TAG_LIST_ENTRY *windowNode;
+    POOL_TAG_LIST_ENTRY lookupNode;
+    PPOOL_TAG_LIST_ENTRY lookupNodePtr = &lookupNode;
+    PPOOL_TAG_LIST_ENTRY *node;
 
-    lookupWindowNode.TagUlong = PoolTag;
+    lookupNode.TagUlong = PoolTag;
 
-    windowNode = (PPOOL_TAG_LIST_ENTRY*)PhFindEntryHashtable(
+    node = (PPOOL_TAG_LIST_ENTRY*)PhFindEntryHashtable(
         Context->PoolTagDbHashtable,
-        &lookupWindowNodePtr
+        &lookupNodePtr
         );
 
-    if (windowNode)
-        return *windowNode;
+    if (node)
+        return *node;
     else
         return NULL;
 }
 
-VOID LoadPoolTagDatabase(
+VOID EtLoadPoolTagDatabase(
     _In_ PPOOLTAG_CONTEXT Context
     )
 {
@@ -119,8 +119,8 @@ VOID LoadPoolTagDatabase(
     Context->PoolTagDbList = PhCreateList(100);
     Context->PoolTagDbHashtable = PhCreateHashtable(
         sizeof(PPOOL_TAG_LIST_ENTRY),
-        PmPoolTagListHashtableEqualFunction,
-        PmPoolTagListHashtableHashFunction,
+        EtPoolTagListHashtableEqualFunction,
+        EtPoolTagListHashtableHashFunction,
         100
         );
 
@@ -258,7 +258,7 @@ VOID LoadPoolTagDatabase(
     }
 }
 
-VOID FreePoolTagDatabase(
+VOID EtFreePoolTagDatabase(
     _In_ PPOOLTAG_CONTEXT Context
     )
 {
@@ -279,7 +279,7 @@ VOID FreePoolTagDatabase(
     PhReleaseQueuedLockExclusive(&Context->PoolTagListLock);
 }
 
-VOID UpdatePoolTagBinaryName(
+VOID EtUpdatePoolTagBinaryName(
     _In_ PPOOLTAG_CONTEXT Context,
     _In_ PPOOL_ITEM PoolEntry,
     _In_ ULONG TagUlong
@@ -287,7 +287,7 @@ VOID UpdatePoolTagBinaryName(
 {
     PPOOL_TAG_LIST_ENTRY client;
 
-    if (client = FindPoolTagListEntry(Context, TagUlong))
+    if (client = EtFindPoolTagListEntry(Context, TagUlong))
     {
         PoolEntry->BinaryNameString = client->BinaryNameString;
         PoolEntry->DescriptionString = client->DescriptionString;

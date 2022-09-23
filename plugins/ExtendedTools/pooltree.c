@@ -5,15 +5,15 @@
  *
  * Authors:
  *
- *     dmex    2016
+ *     dmex    2016-2022
  *
  */
 
 #include "exttools.h"
 #include "poolmon.h"
 
-#define SORT_FUNCTION(Column) PmPoolTreeNewCompare##Column
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PmPoolTreeNewCompare##Column( \
+#define SORT_FUNCTION(Column) EtPoolTreeNewCompare##Column
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl EtPoolTreeNewCompare##Column( \
     _In_ void *_context, \
     _In_ const void *_elem1, \
     _In_ const void *_elem2 \
@@ -32,7 +32,7 @@
     return PhModifySort(sortResult, ((PPOOLTAG_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
-VOID PmLoadSettingsTreeList(
+VOID EtLoadSettingsTreeList(
     _Inout_ PPOOLTAG_CONTEXT Context
     )
 {
@@ -47,7 +47,7 @@ VOID PmLoadSettingsTreeList(
     TreeNew_SetSort(Context->TreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
 }
 
-VOID PmSaveSettingsTreeList(
+VOID EtSaveSettingsTreeList(
     _Inout_ PPOOLTAG_CONTEXT Context
     )
 {
@@ -66,7 +66,7 @@ VOID PmSaveSettingsTreeList(
     PhSetIntegerPairSetting(SETTING_NAME_POOL_TREE_LIST_SORT, sortSettings);
 }
 
-BOOLEAN PmPoolTagNodeHashtableEqualFunction(
+BOOLEAN EtPoolTagNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -77,38 +77,47 @@ BOOLEAN PmPoolTagNodeHashtableEqualFunction(
     return poolTagNode1->TagUlong == poolTagNode2->TagUlong;
 }
 
-ULONG PmPoolTagNodeHashtableHashFunction(
+ULONG EtPoolTagNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return (*(PPOOLTAG_ROOT_NODE*)Entry)->TagUlong;
+    return PhHashInt32((*(PPOOLTAG_ROOT_NODE*)Entry)->TagUlong);
 }
 
-VOID PmDestroyPoolTagNode(
+VOID EtDestroyPoolTagNode(
     _In_ PPOOLTAG_ROOT_NODE PoolTagNode
     )
 {
-   PhClearReference(&PoolTagNode->PagedAllocsDeltaString);
-   PhClearReference(&PoolTagNode->PagedFreesDeltaString);
-   PhClearReference(&PoolTagNode->PagedCurrentDeltaString);
-   PhClearReference(&PoolTagNode->PagedTotalSizeDeltaString);
-   PhClearReference(&PoolTagNode->NonPagedAllocsDeltaString);
-   PhClearReference(&PoolTagNode->NonPagedFreesDeltaString);
-   PhClearReference(&PoolTagNode->NonPagedCurrentDeltaString);
-   PhClearReference(&PoolTagNode->NonPagedTotalSizeDeltaString);
+    if (PoolTagNode->PagedAllocsDeltaString)
+        PhDereferenceObject(PoolTagNode->PagedAllocsDeltaString);
+    if (PoolTagNode->PagedFreesDeltaString)
+        PhDereferenceObject(PoolTagNode->PagedFreesDeltaString);
+    if (PoolTagNode->PagedLiveDeltaString)
+        PhDereferenceObject(PoolTagNode->PagedLiveDeltaString);
+    if (PoolTagNode->PagedCurrentDeltaString)
+        PhDereferenceObject(PoolTagNode->PagedCurrentDeltaString);
+    if (PoolTagNode->PagedTotalSizeDeltaString)
+        PhDereferenceObject(PoolTagNode->PagedTotalSizeDeltaString);
+    if (PoolTagNode->NonPagedAllocsDeltaString)
+        PhDereferenceObject(PoolTagNode->NonPagedAllocsDeltaString);
+    if (PoolTagNode->NonPagedFreesDeltaString)
+        PhDereferenceObject(PoolTagNode->NonPagedFreesDeltaString);
+    if (PoolTagNode->NonPagedCurrentDeltaString)
+        PhDereferenceObject(PoolTagNode->NonPagedCurrentDeltaString);
+    if (PoolTagNode->NonPagedTotalSizeDeltaString)
+        PhDereferenceObject(PoolTagNode->NonPagedTotalSizeDeltaString);
 
-   PhFree(PoolTagNode);
+    PhFree(PoolTagNode);
 }
 
-PPOOLTAG_ROOT_NODE PmAddPoolTagNode(
+PPOOLTAG_ROOT_NODE EtAddPoolTagNode(
     _Inout_ PPOOLTAG_CONTEXT Context,
     _In_ PPOOL_ITEM PoolItem
     )
 {
     PPOOLTAG_ROOT_NODE poolTagNode;
 
-    poolTagNode = PhAllocate(sizeof(POOLTAG_ROOT_NODE));
-    memset(poolTagNode, 0, sizeof(POOLTAG_ROOT_NODE));
+    poolTagNode = PhAllocateZero(sizeof(POOLTAG_ROOT_NODE));
     PhInitializeTreeNewNode(&poolTagNode->Node);
 
     poolTagNode->PoolItem = PoolItem;
@@ -127,56 +136,54 @@ PPOOLTAG_ROOT_NODE PmAddPoolTagNode(
     return poolTagNode;
 }
 
-PPOOLTAG_ROOT_NODE PmFindPoolTagNode(
+PPOOLTAG_ROOT_NODE EtFindPoolTagNode(
     _In_ PPOOLTAG_CONTEXT Context,
     _In_ ULONG PoolTag
     )
 {
-    POOLTAG_ROOT_NODE lookupWindowNode;
-    PPOOLTAG_ROOT_NODE lookupWindowNodePtr = &lookupWindowNode;
-    PPOOLTAG_ROOT_NODE *windowNode;
+    POOLTAG_ROOT_NODE lookupNode;
+    PPOOLTAG_ROOT_NODE lookupNodePtr = &lookupNode;
+    PPOOLTAG_ROOT_NODE *node;
 
-    lookupWindowNode.TagUlong = PoolTag;
+    lookupNode.TagUlong = PoolTag;
 
-    windowNode = (PPOOLTAG_ROOT_NODE*)PhFindEntryHashtable(
+    node = (PPOOLTAG_ROOT_NODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
-        &lookupWindowNodePtr
+        &lookupNodePtr
         );
 
-    if (windowNode)
-        return *windowNode;
+    if (node)
+        return *node;
     else
         return NULL;
 }
 
-VOID PmRemovePoolTagNode(
+VOID EtRemovePoolTagNode(
     _In_ PPOOLTAG_CONTEXT Context,
     _In_ PPOOLTAG_ROOT_NODE PoolTagNode
     )
 {
     ULONG index = 0;
 
-    // Remove from hashtable/list and cleanup.
     PhRemoveEntryHashtable(Context->NodeHashtable, &PoolTagNode);
 
-    if ((index = PhFindItemList(Context->NodeList, PoolTagNode)) != -1)
+    if ((index = PhFindItemList(Context->NodeList, PoolTagNode)) != ULONG_MAX)
     {
         PhRemoveItemList(Context->NodeList, index);
     }
 
-    PmDestroyPoolTagNode(PoolTagNode);
-
+    EtDestroyPoolTagNode(PoolTagNode);
     //TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
-VOID PmUpdatePoolTagNode(
+VOID EtUpdatePoolTagNode(
     _In_ PPOOLTAG_CONTEXT Context,
-    _In_ PPOOLTAG_ROOT_NODE PoolTagNode
+    _In_ PPOOLTAG_ROOT_NODE Node
     )
 {
-    memset(PoolTagNode->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
+    memset(Node->TextCache, 0, sizeof(PH_STRINGREF) * TREE_COLUMN_ITEM_MAXIMUM);
 
-    PhInvalidateTreeNewNode(&PoolTagNode->Node, TN_CACHE_COLOR);
+    PhInvalidateTreeNewNode(&Node->Node, TN_CACHE_COLOR);
     //TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
@@ -246,25 +253,22 @@ BEGIN_SORT_FUNCTION(NonPagedTotal)
 }
 END_SORT_FUNCTION
 
-BOOLEAN NTAPI PmPoolTagTreeNewCallback(
+BOOLEAN NTAPI EtPoolTagTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    PPOOLTAG_CONTEXT context;
+    PPOOLTAG_CONTEXT context = Context;
     PPOOLTAG_ROOT_NODE node;
-
-    context = Context;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
             node = (PPOOLTAG_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -303,7 +307,6 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
             node = (PPOOLTAG_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -359,7 +362,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
                 {
                     if (poolItem->PagedTotalSizeDelta.Value != 0)
                     {
-                        PhMoveReference(&node->PagedTotalSizeDeltaString, PhFormatSize(poolItem->PagedTotalSizeDelta.Value, -1));
+                        PhMoveReference(&node->PagedTotalSizeDeltaString, PhFormatSize(poolItem->PagedTotalSizeDelta.Value, ULONG_MAX));
                         getCellText->Text = node->PagedTotalSizeDeltaString->sr;
                     }
                 }
@@ -395,7 +398,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
                 {
                     if (poolItem->NonPagedTotalSizeDelta.Value != 0)
                     {
-                        PhMoveReference(&node->NonPagedTotalSizeDeltaString, PhFormatSize(poolItem->NonPagedTotalSizeDelta.Value, -1));
+                        PhMoveReference(&node->NonPagedTotalSizeDeltaString, PhFormatSize(poolItem->NonPagedTotalSizeDelta.Value, ULONG_MAX));
                         getCellText->Text = node->NonPagedTotalSizeDeltaString->sr;
                     }
                 }
@@ -444,6 +447,16 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
                 );
         }
         return TRUE;
+    case TreeNewLeftDoubleClick:
+        {
+            //PPOOLTAG_ROOT_NODE node;
+            //
+            //if (!(node = EtGetSelectedPoolTagNode(Context)))
+            //    break;
+
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, WM_PH_SHOW_DIALOG, 0);
+        }
+        return TRUE;
     case TreeNewHeaderRightClick:
         {
             PH_TN_COLUMN_MENU_DATA data;
@@ -452,7 +465,7 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = 0;
             data.DefaultSortOrder = AscendingSortOrder;
-            PhInitializeTreeNewColumnMenu(&data);
+            PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
             data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
@@ -465,38 +478,46 @@ BOOLEAN NTAPI PmPoolTagTreeNewCallback(
     return FALSE;
 }
 
-VOID PmClearPoolTagTree(
+VOID EtCopyPoolTagTree(
     _In_ PPOOLTAG_CONTEXT Context
     )
 {
-    ULONG i;
+    PPH_STRING text;
 
-    for (i = 0; i < Context->NodeList->Count; i++)
-        PmDestroyPoolTagNode(Context->NodeList->Items[i]);
+    text = PhGetTreeNewText(Context->TreeNewHandle, 0);
+    PhSetClipboardString(Context->TreeNewHandle, &text->sr);
+    PhDereferenceObject(text);
+}
+
+VOID EtClearPoolTagTree(
+    _In_ PPOOLTAG_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+        EtDestroyPoolTagNode(Context->NodeList->Items[i]);
 
     PhClearHashtable(Context->NodeHashtable);
     PhClearList(Context->NodeList);
 }
 
-PPOOLTAG_ROOT_NODE PmGetSelectedPoolTagNode(
+PPOOLTAG_ROOT_NODE EtGetSelectedPoolTagNode(
     _In_ PPOOLTAG_CONTEXT Context
     )
 {
-    PPOOLTAG_ROOT_NODE windowNode = NULL;
-    ULONG i;
+    PPOOLTAG_ROOT_NODE node = NULL;
 
-    for (i = 0; i < Context->NodeList->Count; i++)
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        windowNode = Context->NodeList->Items[i];
+        node = Context->NodeList->Items[i];
 
-        if (windowNode->Node.Selected)
-            return windowNode;
+        if (node->Node.Selected)
+            return node;
     }
 
     return NULL;
 }
 
-VOID PmGetSelectedPoolTagNodes(
+VOID EtGetSelectedPoolTagNodes(
     _In_ PPOOLTAG_CONTEXT Context,
     _Out_ PPOOLTAG_ROOT_NODE **PoolTags,
     _Out_ PULONG NumberOfPoolTags
@@ -523,21 +544,21 @@ VOID PmGetSelectedPoolTagNodes(
     PhDereferenceObject(list);
 }
 
-VOID PmInitializePoolTagTree(
+VOID EtInitializePoolTagTree(
     _Inout_ PPOOLTAG_CONTEXT Context
     )
 {
     Context->NodeList = PhCreateList(100);
     Context->NodeHashtable = PhCreateHashtable(
         sizeof(PPOOLTAG_ROOT_NODE),
-        PmPoolTagNodeHashtableEqualFunction,
-        PmPoolTagNodeHashtableHashFunction,
+        EtPoolTagNodeHashtableEqualFunction,
+        EtPoolTagNodeHashtableHashFunction,
         100
         );
 
     PhSetControlTheme(Context->TreeNewHandle, L"explorer");
 
-    TreeNew_SetCallback(Context->TreeNewHandle, PmPoolTagTreeNewCallback, Context);
+    TreeNew_SetCallback(Context->TreeNewHandle, EtPoolTagTreeNewCallback, Context);
 
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_TAG, TRUE, L"Tag Name", 50, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, TREE_COLUMN_ITEM_DRIVER, TRUE, L"Driver", 82, PH_ALIGN_LEFT, 0, 0);
@@ -554,12 +575,12 @@ VOID PmInitializePoolTagTree(
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, TREE_COLUMN_ITEM_NONPAGEDTOTAL, DescendingSortOrder);
 
-    PmLoadSettingsTreeList(Context);
+    EtLoadSettingsTreeList(Context);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
 }
 
-VOID PmDeletePoolTagTree(
+VOID EtDeletePoolTagTree(
     _In_ PPOOLTAG_CONTEXT Context
     )
 {
@@ -571,7 +592,7 @@ VOID PmDeletePoolTagTree(
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        PmDestroyPoolTagNode(Context->NodeList->Items[i]);
+        EtDestroyPoolTagNode(Context->NodeList->Items[i]);
     }
 
     PhDereferenceObject(Context->NodeHashtable);

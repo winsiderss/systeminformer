@@ -1265,12 +1265,14 @@ BOOLEAN NTAPI FwTreeNewCallback(
             // Padding
             rect.left += TNP_CELL_LEFT_MARGIN;
 
+            LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
+
             PhImageListDrawIcon(
                 PhGetProcessSmallImageList(),
                 (ULONG)(ULONG_PTR)node->ProcessIconIndex, // HACK (dmex)
                 hdc,
                 rect.left,
-                rect.top + ((rect.bottom - rect.top) - 16) / 2,
+                rect.top + ((rect.bottom - rect.top) - PhGetSystemMetrics(SM_CYSMICON, dpiValue)) / 2,
                 ILD_NORMAL | ILD_TRANSPARENT,
                 FALSE
                 );

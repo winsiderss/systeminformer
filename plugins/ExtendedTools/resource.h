@@ -90,12 +90,7 @@
 #define IDC_GROUPFPSLATENCY             1099
 #define IDC_GROUPFPSPRESENT             1100
 #define IDC_GROUPFPSPRESENTINTERVAL     1101
-#define ID_DISK_GOTOPROCESS             40005
-#define ID_DISK_COPY                    40006
-#define ID_DISK_PROPERTIES              40007
-#define ID_DISK_OPENFILELOCATION        40008
-#define ID_DISK_INSPECT                 40009
-
+#define IDC_BUTTON1                     1103
 #define ID_POOL_TABLE                   3000
 #define IDD_POOL                        3001
 #define IDR_TXT_POOLTAGS                3002
@@ -104,7 +99,6 @@
 #define IDC_POOLSEARCH                  3005
 #define IDC_POOLCLEAR                   3006
 #define IDC_BIGPOOLLIST                 3007
-
 #define ID_OBJMGR                       4000
 #define IDD_OBJMGR                      4001
 #define IDI_FOLDER                      4002
@@ -120,7 +114,6 @@
 #define IDI_UNKNOWN                     4012
 #define IDC_OBJMGR_LIST                 4013
 #define IDC_OBJMGR_TREE                 4014
-
 #define ID_FIRMWARE                     5001
 #define IDD_FIRMWARE                    5002
 #define IDD_FIRMWARE_EDITVAR            5003
@@ -131,26 +124,28 @@
 #define IDC_FIRMWARE_BYTESPERROW        5008
 #define IDC_FIRMWARE_BOOT_LIST          5009
 #define IDC_FIRMWARE_BOOT_REFRESH       5010
-
 #define ID_PIPE_ENUM                    6000
 #define IDD_PIPEDIALOG                  6001
 #define IDC_ATOMLIST                    6002
-
 #define ID_REPARSE_POINTS               7000
 #define ID_REPARSE_OBJID                7001
 #define ID_REPARSE_SDDL                 7002
-#define IDD_REPARSEDIALOG               7003 
+#define IDD_REPARSEDIALOG               7003
 #define IDC_REPARSE_LIST                7004
-
 #define ID_WCT_MENUITEM                 8000
 #define ID_WCT_SHOWCONTEXTMENU          8001
-#define IDD_WCT_DIALOG                  8002 
+#define IDD_WCT_DIALOG                  8002
 #define IDR_WCT_MAIN_MENU               8003
 #define IDC_WCT_TREE                    8004
 #define ID_WCT_MENU_GOTOTHREAD          8005
 #define ID_WCT_MENU_GOTOPROCESS         8006
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
+#define ID_DISK_GOTOPROCESS             40005
+#define ID_DISK_COPY                    40006
+#define ID_DISK_PROPERTIES              40007
+#define ID_DISK_OPENFILELOCATION        40008
+#define ID_DISK_INSPECT                 40009
 
 // Next default values for new objects
 // 
@@ -158,7 +153,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1102
+#define _APS_NEXT_CONTROL_VALUE         1104
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif
