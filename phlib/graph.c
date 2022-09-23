@@ -806,7 +806,10 @@ static VOID PhpCreateBufferedContext(
 
     PhpDeleteBufferedContext(Context);
 
-    GetClientRect(Context->Handle, &Context->BufferedContextRect);
+    if (!GetClientRect(Context->Handle, &Context->BufferedContextRect))
+        return;
+    if (!(Context->BufferedContextRect.right && Context->BufferedContextRect.bottom))
+        return;
 
     hdc = GetDC(Context->Handle);
     Context->BufferedContext = CreateCompatibleDC(hdc);
@@ -905,6 +908,9 @@ VOID PhpUpdateDrawInfo(
     )
 {
     PH_GRAPH_GETDRAWINFO getDrawInfo;
+
+    if (!(Context->BufferedContextRect.right && Context->BufferedContextRect.bottom))
+        return;
 
     Context->DrawInfo.Width = Context->BufferedContextRect.right;
     Context->DrawInfo.Height = Context->BufferedContextRect.bottom;
