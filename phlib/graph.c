@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -207,7 +207,7 @@ VOID PhDrawGraphDirect(
 
     if (DrawInfo->BackColor == 0)
     {
-        memset(bits, 0, (size_t)numberOfPixels * 4);
+        memset(bits, 0, numberOfPixels * sizeof(RGBQUAD));
     }
     else
     {
@@ -633,40 +633,7 @@ VOID PhSetGraphText(
     DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
 }
 
-static HFONT PhpTrayIconFont( // dmex
-    VOID
-    )
-{
-    static HFONT iconTextFont = NULL;
-
-    LONG dpiValue;
-
-    if (!iconTextFont)
-    {
-        dpiValue = PhGetTaskbarDpi();
-
-        iconTextFont = CreateFont(
-            PhGetDpi(-11, dpiValue),
-            0,
-            0,
-            0,
-            FW_NORMAL,
-            FALSE,
-            FALSE,
-            FALSE,
-            ANSI_CHARSET,
-            OUT_DEFAULT_PRECIS,
-            CLIP_DEFAULT_PRECIS,
-            ANTIALIASED_QUALITY,
-            DEFAULT_PITCH,
-            L"Tahoma"
-            );
-    }
-
-    return iconTextFont;
-}
-
-VOID PhDrawTrayIconText( // dmex
+VOID PhDrawTrayIconText(
     _In_ HDC hdc,
     _In_ PVOID Bits,
     _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
@@ -685,15 +652,12 @@ VOID PhDrawTrayIconText( // dmex
 
     if (DrawInfo->BackColor == 0)
     {
-        memset(bits, 0, (size_t)numberOfPixels * 4);
+        memset(bits, 0, numberOfPixels * sizeof(RGBQUAD));
     }
     else
     {
         PhFillMemoryUlong(bits, COLORREF_TO_BITS(DrawInfo->BackColor), numberOfPixels);
     }
-
-    if (!DrawInfo->TextFont) // HACK: default font for plugins.
-        DrawInfo->TextFont = PhpTrayIconFont();
 
     if (DrawInfo->TextFont)
         oldFont = SelectFont(hdc, DrawInfo->TextFont);
