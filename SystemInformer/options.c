@@ -260,7 +260,7 @@ static VOID PhpOptionsSetImageList(
 
     dpiValue = PhGetWindowDpi(WindowHandle);
 
-    *Imagelist = PhImageListCreate(2, PhGetDpi(22, dpiValue), ILC_MASK | ILC_COLOR, 1, 1);
+    *Imagelist = PhImageListCreate(2, PhGetDpi(22, dpiValue), ILC_MASK | ILC_COLOR32, 1, 1);
 
     if (Treeview)
         TreeView_SetImageList(WindowHandle, *Imagelist, TVSIL_NORMAL);

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -43,6 +43,7 @@
 #include <vssym32.h>
 
 #include <mainwnd.h>
+#include <guisup.h>
 #include <phplug.h>
 #include <phsettings.h>
 
@@ -184,11 +185,6 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             PhSipOnInitDialog();
         }
         break;
-    case WM_DPICHANGED:
-        {
-            PhSipInitializeParameters();
-        }
-        break;
     case WM_DESTROY:
         {
             PhSipOnDestroy();
@@ -271,6 +267,15 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
+    case WM_DPICHANGED:
+        {
+            PhSipInitializeParameters();
+
+            PhDpiChangedForwardChildWindows(hwndDlg);
+
+            InvalidateRect(hwndDlg, NULL, TRUE);
+        }
+        break;
     }
 
     if (uMsg >= SI_MSG_SYSINFO_FIRST && uMsg <= SI_MSG_SYSINFO_LAST)
@@ -292,15 +297,15 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
     {
     case WM_INITDIALOG:
         {
-            if (WindowsVersion >= WINDOWS_8)
-            {
-                // TODO: The container background is drawn before child controls
-                // causing slight flickering when switching between sysinfo panels.
-                // We need to somehow exclude the container background drawing,
-                // setting the container window as composited works well but has
-                // slower drawing and should be considered a temporary workaround. (dmex)
-                PhSetWindowExStyle(hwndDlg, WS_EX_COMPOSITED, WS_EX_COMPOSITED);
-            }
+            //if (WindowsVersion >= WINDOWS_8)
+            //{
+            //    // TODO: The container background is drawn before child controls
+            //    // causing slight flickering when switching between sysinfo panels.
+            //    // We need to somehow exclude the container background drawing,
+            //    // setting the container window as composited works well but has
+            //    // slower drawing and should be considered a temporary workaround. (dmex)
+            //    PhSetWindowExStyle(hwndDlg, WS_EX_COMPOSITED, WS_EX_COMPOSITED);
+            //}
         }
         break;
     case WM_CTLCOLORBTN:
@@ -841,7 +846,7 @@ VOID PhSipOnUserMessage(
                     PhSipRestoreSummaryView();
             }
 
-            if (IsIconic(PhSipWindow))
+            if (IsMinimized(PhSipWindow))
                 ShowWindow(PhSipWindow, SW_RESTORE);
             else
                 ShowWindow(PhSipWindow, SW_SHOW);
@@ -1064,14 +1069,7 @@ VOID PhSipInitializeParameters(
     HFONT originalFont;
     LONG dpiValue;
 
-    if(CurrentParameters.Font)
-        DeleteObject(CurrentParameters.Font);
-
-    if(CurrentParameters.MediumFont)
-        DeleteObject(CurrentParameters.MediumFont);
-
-    if(CurrentParameters.LargeFont)
-        DeleteObject(CurrentParameters.LargeFont);
+    PhSipDeleteParameters();
 
     memset(&CurrentParameters, 0, sizeof(PH_SYSINFO_PARAMETERS));
 

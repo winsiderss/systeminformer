@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2012-2021
+ *     dmex    2012-2022
  *
  */
 
@@ -250,7 +250,7 @@ HBITMAP PhLoadPngImageFromResource(
         goto CleanupExit;
     if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
         goto CleanupExit;
-    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * 4, rect.Width * rect.Height * 4, (PBYTE)bitmapBuffer)))
+    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * sizeof(RGBQUAD), rect.Width * rect.Height * sizeof(RGBQUAD), (PBYTE)bitmapBuffer)))
         goto CleanupExit;
 
     success = TRUE;
@@ -286,17 +286,19 @@ CleanupExit:
 }
 
 VOID PhpSearchInitializeImages(
-    _In_ HWND hwnd,
-    _Inout_ PEDIT_CONTEXT Context
+    _Inout_ PEDIT_CONTEXT Context,
+    _In_ HWND WindowHandle
     )
 {
     HBITMAP bitmap;
     LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
+    dpiValue = PhGetWindowDpi(WindowHandle);
 
-    Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + 4; //GetSystemMetrics(SM_CXSMICON) + 4;
-    Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, dpiValue) + 4; //GetSystemMetrics(SM_CYSMICON) + 4;
+    Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(4, dpiValue);
+    Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, dpiValue) + PhGetDpi(4, dpiValue);
+
+    if (Context->ImageListHandle) PhImageListDestroy(Context->ImageListHandle);
     Context->ImageListHandle = PhImageListCreate(
         Context->ImageWidth,
         Context->ImageHeight,
@@ -495,8 +497,8 @@ VOID PhpSearchDrawButton(
             Context->ImageListHandle,
             0,
             Hdc,
-            ButtonRect.left + 1, // offset
-            ButtonRect.top,
+            ButtonRect.left + 1 /*offset*/ + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
+            ButtonRect.top + ((ButtonRect.bottom - ButtonRect.top) - Context->ImageHeight) / 2,
             ILD_TRANSPARENT,
             FALSE
             );
@@ -507,8 +509,8 @@ VOID PhpSearchDrawButton(
             Context->ImageListHandle,
             1,
             Hdc,
-            ButtonRect.left + 2, // offset
-            ButtonRect.top + 1, // offset
+            ButtonRect.left + 2 /*offset*/ + ((ButtonRect.right - ButtonRect.left) - Context->ImageWidth) / 2,
+            ButtonRect.top + 1 /*offset*/ + ((ButtonRect.bottom - ButtonRect.top) - Context->ImageHeight) / 2,
             ILD_TRANSPARENT,
             FALSE
             );
@@ -561,6 +563,20 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     case WM_ERASEBKGND:
         return 1;
+    case WM_DPICHANGED:
+        {
+            PhpSearchFreeTheme(context);
+            PhpSearchInitializeTheme(context, hWnd);
+            PhpSearchInitializeFont(context, hWnd);
+            PhpSearchInitializeImages(context, hWnd);
+
+            // Refresh the non-client area.
+            SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+
+            // Force the edit control to update its non-client area.
+            RedrawWindow(hWnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        }
+        break;
     case WM_NCCALCSIZE:
         {
             LPNCCALCSIZE_PARAMS ncCalcSize = (NCCALCSIZE_PARAMS*)lParam;
@@ -1015,7 +1031,7 @@ VOID PvCreateSearchControl(
     context->ColorMode = PhGetIntegerSetting(L"GraphColorMode");
 
     //PhpSearchInitializeTheme(context);
-    PhpSearchInitializeImages(WindowHandle, context);
+    PhpSearchInitializeImages(context, WindowHandle);
 
     // Set initial text
     if (BannerText)

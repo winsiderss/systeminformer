@@ -3411,7 +3411,7 @@ VOID PhProcessImageListInitialization(
     LONG dpiValue;
 
     if (!PhImageListItemType)
-        PhImageListItemType = PhCreateObjectType (L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
+        PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
 
     dpiValue = PhGetWindowDpi(hwnd);
 

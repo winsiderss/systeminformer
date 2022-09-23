@@ -1043,7 +1043,7 @@ BOOLEAN PvpPeFillNodeCertificateInfo(
 
     for (ULONG i = 0; i < CertificateContext->pCertInfo->cExtension; i++)
     {
-        dprintf("%s\n", CertificateContext->pCertInfo->rgExtension[i].pszObjId);
+        //dprintf("%s\n", CertificateContext->pCertInfo->rgExtension[i].pszObjId);
     }
 
     //if (CertificateContext->pCertInfo && CertificateContext->pCertInfo->SignatureAlgorithm.pszObjId)

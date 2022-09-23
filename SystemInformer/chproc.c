@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2016-2021
+ *     dmex    2016-2022
  *
  */
 
@@ -138,7 +138,7 @@ static VOID PhpRefreshProcessList(
         // Icon
         if (!PhIsNullOrEmptyString(fileName))
         {
-            PhExtractIcon(PhGetString(fileName), NULL, &icon);
+            PhExtractIcon(PhGetString(fileName), &icon, NULL);
         }
 
         if (icon)
@@ -179,10 +179,13 @@ static VOID PhpChooseProcessSetImagelist(
 
     dpiValue = PhGetWindowDpi(context->ListViewHandle);
 
-    if(!context->ImageList)
-        context->ImageList = PhImageListCreate(PhGetSystemMetrics(SM_CXSMICON, dpiValue), PhGetSystemMetrics(SM_CYSMICON, dpiValue), ILC_COLOR32 | ILC_MASK, 0, 40);
-    else
-        ImageList_SetIconSize(context->ImageList, PhGetSystemMetrics(SM_CXSMICON, dpiValue), PhGetSystemMetrics(SM_CYSMICON, dpiValue));
+    if (context->ImageList) PhImageListDestroy(context->ImageList);
+    context->ImageList = PhImageListCreate(
+        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+        ILC_MASK | ILC_COLOR32,
+        0, 40
+        );
 
     ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
 }
@@ -204,11 +207,6 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
     else
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
-        if (uMsg == WM_DESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-        }
     }
 
     if (!context)
@@ -258,13 +256,22 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_DESTROY:
         {
-            //PhImageListDestroy(context->ImageList);
             PhDeleteLayoutManager(&context->LayoutManager);
+
+            if (context->ImageList)
+            {
+                PhImageListDestroy(context->ImageList);
+                context->ImageList = NULL;
+            }
+
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_DPICHANGED:
         {
             PhpChooseProcessSetImagelist(context);
+
+            PhpRefreshProcessList(hwndDlg, context);
         }
         break;
     case WM_COMMAND:

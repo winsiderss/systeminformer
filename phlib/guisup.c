@@ -97,8 +97,9 @@ INT PhAddListViewColumn(
     LVCOLUMN column;
     LONG dpiValue;
 
-    dpiValue = GetDpiForWindow(ListViewHandle);
+    dpiValue = PhGetDpiValue(ListViewHandle, NULL);
 
+    memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
     column.cx = Width < 0 ? -Width : PhGetDpi(Width, dpiValue);
@@ -768,8 +769,6 @@ VOID PhGetStockApplicationIcon(
     static HICON smallIcon = NULL;
     static HICON largeIcon = NULL;
 
-    LONG dpiValue;
-
     // This no longer uses SHGetFileInfo because it is *very* slow and causes many other DLLs to be
     // loaded, increasing memory usage. The worst thing about it, however, is that it is horribly
     // incompatible with multi-threading. The first time it is called, it tries to perform some
@@ -777,10 +776,10 @@ VOID PhGetStockApplicationIcon(
     // the function at the same time, instead of waiting for initialization to finish it simply
     // fails the other threads.
 
-    dpiValue = PhGetSystemDpi();
-
     if (PhBeginInitOnce(&initOnce))
     {
+        LONG dpiValue = PhGetSystemDpi();
+
         if (WindowsVersion < WINDOWS_10)
         {
             PPH_STRING systemDirectory;

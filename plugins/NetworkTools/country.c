@@ -82,7 +82,6 @@ VOID FreeGeoLiteDb(
 {
     if (GeoImageList)
     {
-        PhImageListRemoveAll(GeoImageList);
         PhImageListDestroy(GeoImageList);
     }
 
