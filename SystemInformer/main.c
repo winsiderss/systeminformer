@@ -638,7 +638,7 @@ VOID PhInitializeMonospaceFont(
         !(PhMonospaceFont = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN, dpiValue))
         )
     {
-        PhMonospaceFont = GetStockObject(SYSTEM_FIXED_FONT);
+        PhMonospaceFont = GetStockFont(SYSTEM_FIXED_FONT);
     }
 
     if (oldFont) DeleteFont(oldFont);

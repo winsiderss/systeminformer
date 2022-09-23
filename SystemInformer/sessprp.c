@@ -13,7 +13,6 @@
 #include <phapp.h>
 #include <emenu.h>
 #include <phsettings.h>
-
 #include <winsta.h>
 
 INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
@@ -515,6 +514,12 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
