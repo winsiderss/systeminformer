@@ -1946,8 +1946,12 @@ NTSTATUS PhRunAsServiceStart(
     _In_ PPH_STRING ServiceName
     )
 {
+    SERVICE_TABLE_ENTRY serviceDispatchTable[] =
+    {
+        { PhGetString(ServiceName), RunAsServiceMain },
+        { NULL, NULL }
+    };
     HANDLE tokenHandle;
-    SERVICE_TABLE_ENTRY entry;
 
     // Enable some required privileges.
 
@@ -1967,10 +1971,7 @@ NTSTATUS PhRunAsServiceStart(
 
     RunAsServiceName = ServiceName;
 
-    entry.lpServiceName = ServiceName->Buffer;
-    entry.lpServiceProc = RunAsServiceMain;
-
-    StartServiceCtrlDispatcher(&entry);
+    StartServiceCtrlDispatcher(serviceDispatchTable);
 
     return STATUS_SUCCESS;
 }
