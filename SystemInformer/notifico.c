@@ -36,6 +36,7 @@ PH_NF_BITMAP PhNfpDefaultBitmapContext = { 0 };
 PH_NF_BITMAP PhNfpBlackBitmapContext = { 0 };
 HBITMAP PhNfpBlackBitmap = NULL;
 HICON PhNfpBlackIcon = NULL;
+HFONT PhNfpTrayIconFont = NULL;
 GUID PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_MAXIMUM];
 
 static POINT IconClickLocation;
