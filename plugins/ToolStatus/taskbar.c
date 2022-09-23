@@ -155,7 +155,6 @@ typedef struct _PH_NF_BITMAP
 {
     BOOLEAN Initialized;
     HDC Hdc;
-    BITMAPINFOHEADER Header;
     HBITMAP Bitmap;
     PVOID Bits;
     LONG Width;
@@ -216,18 +215,19 @@ static VOID PhBeginBitmap2(
     if (!Context->Initialized)
     {
         HDC screenHdc;
+        BITMAPINFO bitmapInfo;
+
+        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+        bitmapInfo.bmiHeader.biWidth = Context->Width;
+        bitmapInfo.bmiHeader.biHeight = Context->Height;
+        bitmapInfo.bmiHeader.biBitCount = 32;
 
         screenHdc = GetDC(NULL);
         Context->Hdc = CreateCompatibleDC(screenHdc);
-
-        memset(&Context->Header, 0, sizeof(BITMAPINFOHEADER));
-        Context->Header.biSize = sizeof(BITMAPINFOHEADER);
-        Context->Header.biWidth = Context->Width;
-        Context->Header.biHeight = Context->Height;
-        Context->Header.biPlanes = 1;
-        Context->Header.biBitCount = 32;
-        Context->Bitmap = CreateDIBSection(screenHdc, (PBITMAPINFO)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
-
+        Context->Bitmap = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
         ReleaseDC(NULL, screenHdc);
 
         Context->TaskbarDpi = dpiValue;

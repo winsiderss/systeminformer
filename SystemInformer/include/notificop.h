@@ -24,7 +24,6 @@ typedef struct _PH_NF_BITMAP
 {
     BOOLEAN Initialized;
     HDC Hdc;
-    BITMAPINFOHEADER Header;
     HBITMAP Bitmap;
     PVOID Bits;
     LONG Width;

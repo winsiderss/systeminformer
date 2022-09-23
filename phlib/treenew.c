@@ -5215,10 +5215,8 @@ VOID PhTnpPaint(
         if (Context->ThemeSupport)
         {
             HDC tempDc;
-            BITMAPINFOHEADER header;
             HBITMAP bitmap;
             HBITMAP oldBitmap;
-            PVOID bits;
             RECT tempRect;
             BLENDFUNCTION blendFunction;
 
@@ -5228,15 +5226,16 @@ VOID PhTnpPaint(
 
             if (tempDc = CreateCompatibleDC(hdc))
             {
-                memset(&header, 0, sizeof(BITMAPINFOHEADER));
-                header.biSize = sizeof(BITMAPINFOHEADER);
-                header.biWidth = 1;
-                header.biHeight = 1;
-                header.biPlanes = 1;
-                header.biBitCount = 24;
-                bitmap = CreateDIBSection(tempDc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &bits, NULL, 0);
+                //BITMAPINFO bitmapInfo;
+                //memset(&bitmapInfo, 0, sizeof(BITMAPINFOHEADER));
+                //bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+                //bitmapInfo.bmiHeader.biWidth = 1;
+                //bitmapInfo.bmiHeader.biHeight = 1;
+                //bitmapInfo.bmiHeader.biPlanes = 1;
+                //bitmapInfo.bmiHeader.biBitCount = 24;
+                //bitmap = CreateDIBSection(tempDc, &bitmapInfo, DIB_RGB_COLORS, NULL, NULL, 0);
 
-                if (bitmap)
+                if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
                 {
                     // Draw the outline of the selection rectangle.
                     //FrameRect(hdc, &rowRect, GetSysColorBrush(COLOR_HIGHLIGHT));
@@ -5993,32 +5992,28 @@ VOID PhTnpDrawSelectionRectangle(
     if (Context->SelectionRectangleAlpha)
     {
         HDC tempDc;
-        BITMAPINFOHEADER header;
         HBITMAP bitmap;
         HBITMAP oldBitmap;
-        PVOID bits;
         RECT tempRect;
         BLENDFUNCTION blendFunction;
 
-        tempDc = CreateCompatibleDC(hdc);
-
-        if (tempDc)
+        if (tempDc = CreateCompatibleDC(hdc))
         {
-            memset(&header, 0, sizeof(BITMAPINFOHEADER));
-            header.biSize = sizeof(BITMAPINFOHEADER);
-            header.biWidth = 1;
-            header.biHeight = 1;
-            header.biPlanes = 1;
-            header.biBitCount = 24;
-            bitmap = CreateDIBSection(tempDc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &bits, NULL, 0);
+            //BITMAPINFO bitmapInfo;
+            //memset(&bitmapInfo, 0, sizeof(BITMAPINFOHEADER));
+            //bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            //bitmapInfo.bmiHeader.biWidth = 1;
+            //bitmapInfo.bmiHeader.biHeight = 1;
+            //bitmapInfo.bmiHeader.biPlanes = 1;
+            //bitmapInfo.bmiHeader.biBitCount = 24;
+            //bitmap = CreateDIBSection(tempDc, &bitmapInfo, DIB_RGB_COLORS, NULL, NULL, 0);
 
-            if (bitmap)
+            if (bitmap = CreateCompatibleBitmap(hdc, 1, 1))
             {
                 // Draw the outline of the selection rectangle.
                 FrameRect(hdc, &rect, GetSysColorBrush(COLOR_HIGHLIGHT));
 
                 // Fill in the selection rectangle.
-
                 oldBitmap = SelectBitmap(tempDc, bitmap);
                 tempRect.left = 0;
                 tempRect.top = 0;

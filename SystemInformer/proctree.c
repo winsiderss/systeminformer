@@ -721,7 +721,7 @@ static VOID PhpNeedGraphContext(
     _In_ ULONG Height
     )
 {
-    BITMAPINFOHEADER header;
+    BITMAPINFO bitmapInfo;
 
     // If we already have a graph context and it's the right size, then return immediately.
     if (GraphContextWidth == Width && GraphContextHeight == Height)
@@ -731,10 +731,8 @@ static VOID PhpNeedGraphContext(
     {
         // The original bitmap must be selected back into the context, otherwise
         // the bitmap can't be deleted. (wj32)
-        if (GraphOldBitmap)
-            SelectBitmap(GraphContext, GraphOldBitmap);
-        if (GraphBitmap)
-            DeleteBitmap(GraphBitmap);
+        SelectBitmap(GraphContext, GraphOldBitmap);
+        DeleteBitmap(GraphBitmap);
         DeleteDC(GraphContext);
 
         GraphContext = NULL;
@@ -742,21 +740,20 @@ static VOID PhpNeedGraphContext(
         GraphBits = NULL;
     }
 
-    GraphContext = CreateCompatibleDC(hdc);
     GraphContextWidth = Width;
     GraphContextHeight = Height;
 
-    memset(&header, 0, sizeof(BITMAPINFOHEADER));
-    header.biSize = sizeof(BITMAPINFOHEADER);
-    header.biWidth = Width;
-    header.biHeight = Height;
-    header.biPlanes = 1;
-    header.biBitCount = 32;
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    bitmapInfo.bmiHeader.biWidth = Width;
+    bitmapInfo.bmiHeader.biHeight = Height;
+    bitmapInfo.bmiHeader.biBitCount = 32;
 
-    if (GraphBitmap = CreateDIBSection(hdc, (BITMAPINFO*)&header, DIB_RGB_COLORS, &GraphBits, NULL, 0))
-    {
-        GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
-    }
+    GraphContext = CreateCompatibleDC(hdc);
+    GraphBitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, &GraphBits, NULL, 0);
+    GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
 }
 
 _Success_(return)
