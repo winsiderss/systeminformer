@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     wj32    2011-2013
- *
+ *     wj32    2011-2016
+ *     dmex    2017-2022
  */
 
 #include <phapp.h>
 #include <settings.h>
-
 #include <winsta.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
@@ -225,6 +224,12 @@ INT_PTR CALLBACK PhpSessionShadowDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -52,7 +52,7 @@ VOID PhShowMemoryResultsDialog(
     PMEMORY_RESULTS_CONTEXT context;
     ULONG i;
 
-    context = PhAllocate(sizeof(MEMORY_RESULTS_CONTEXT));
+    context = PhAllocateZero(sizeof(MEMORY_RESULTS_CONTEXT));
     context->ProcessId = ProcessId;
     context->Results = Results;
 
@@ -743,6 +743,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
