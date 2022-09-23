@@ -766,7 +766,7 @@ static VOID PhpCreateBufferedContext(
     )
 {
     HDC hdc;
-    BITMAPINFOHEADER header;
+    BITMAPINFO bitmapInfo;
 
     PhpDeleteBufferedContext(Context);
 
@@ -775,20 +775,19 @@ static VOID PhpCreateBufferedContext(
     if (!(Context->BufferedContextRect.right && Context->BufferedContextRect.bottom))
         return;
 
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    bitmapInfo.bmiHeader.biWidth = Context->BufferedContextRect.right;
+    bitmapInfo.bmiHeader.biHeight = Context->BufferedContextRect.bottom;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+
     hdc = GetDC(Context->Handle);
     Context->BufferedContext = CreateCompatibleDC(hdc);
-
-    memset(&header, 0, sizeof(BITMAPINFOHEADER));
-    header.biSize = sizeof(BITMAPINFOHEADER);
-    header.biWidth = Context->BufferedContextRect.right;
-    header.biHeight = Context->BufferedContextRect.bottom;
-    header.biPlanes = 1;
-    header.biBitCount = 32;
-
-    Context->BufferedBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &Context->BufferedBits, NULL, 0);
-
-    ReleaseDC(Context->Handle, hdc);
+    Context->BufferedBitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, &Context->BufferedBits, NULL, 0);
     Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
+    ReleaseDC(Context->Handle, hdc);
 }
 
 static VOID PhpDeleteFadeOutContext(
@@ -812,7 +811,7 @@ static VOID PhpCreateFadeOutContext(
     )
 {
     HDC hdc;
-    BITMAPINFOHEADER header;
+    BITMAPINFO bitmapInfo;
     ULONG i;
     ULONG j;
     ULONG height;
@@ -827,20 +826,19 @@ static VOID PhpCreateFadeOutContext(
     GetClientRect(Context->Handle, &Context->FadeOutContextRect);
     Context->FadeOutContextRect.right = Context->Options.FadeOutWidth;
 
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    bitmapInfo.bmiHeader.biWidth = Context->BufferedContextRect.right;
+    bitmapInfo.bmiHeader.biHeight = Context->BufferedContextRect.bottom;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+
     hdc = GetDC(Context->Handle);
     Context->FadeOutContext = CreateCompatibleDC(hdc);
-
-    memset(&header, 0, sizeof(BITMAPINFOHEADER));
-    header.biSize = sizeof(BITMAPINFOHEADER);
-    header.biWidth = Context->FadeOutContextRect.right;
-    header.biHeight = Context->FadeOutContextRect.bottom;
-    header.biPlanes = 1;
-    header.biBitCount = 32;
-
-    Context->FadeOutBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &Context->FadeOutBits, NULL, 0);
-
-    ReleaseDC(Context->Handle, hdc);
+    Context->FadeOutBitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, &Context->FadeOutBits, NULL, 0);
     Context->FadeOutOldBitmap = SelectBitmap(Context->FadeOutContext, Context->FadeOutBitmap);
+    ReleaseDC(Context->Handle, hdc);
 
     if (!Context->FadeOutBits)
         return;

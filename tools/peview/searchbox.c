@@ -233,12 +233,13 @@ HBITMAP PhLoadPngImageFromResource(
         IWICBitmapFrameDecode_Release(wicFrame);
     }
 
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
     bitmapInfo.bmiHeader.biWidth = rect.Width;
     bitmapInfo.bmiHeader.biHeight = -((LONG)rect.Height);
-    bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biBitCount = 32;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
     screenHdc = GetDC(NULL);
     bufferDc = CreateCompatibleDC(screenHdc);

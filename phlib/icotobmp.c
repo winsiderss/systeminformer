@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2016-2022
+ *
+ */
+
 #include <ph.h>
 #include <uxtheme.h>
 #include <guisup.h>
@@ -8,7 +20,7 @@ static HBITMAP PhpCreateBitmap32(
     _In_ HDC hdc,
     _In_ ULONG Width,
     _In_ ULONG Height,
-    _Outptr_opt_ PVOID *Bits
+    _Out_ PVOID *Bits
     )
 {
     BITMAPINFO bitmapInfo;
@@ -17,7 +29,6 @@ static HBITMAP PhpCreateBitmap32(
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
-
     bitmapInfo.bmiHeader.biWidth = Width;
     bitmapInfo.bmiHeader.biHeight = Height;
     bitmapInfo.bmiHeader.biBitCount = 32;
@@ -68,12 +79,11 @@ static VOID PhpConvertToPArgb32(
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
-
     bitmapInfo.bmiHeader.biWidth = Width;
     bitmapInfo.bmiHeader.biHeight = Height;
     bitmapInfo.bmiHeader.biBitCount = 32;
 
-    bits = PhAllocate(Width * sizeof(ULONG) * Height);
+    bits = PhAllocate(Width * sizeof(RGBQUAD) * Height);
 
     if (GetDIBits(hdc, Bitmap, 0, Height, bits, &bitmapInfo, DIB_RGB_COLORS) == Height)
     {
@@ -130,10 +140,10 @@ static VOID PhpConvertToPArgb32IfNeeded(
                 if (iconInfo.hbmMask)
                 {
                     PhpConvertToPArgb32(hdc, argb, iconInfo.hbmMask, Width, Height, rowWidth);
+                    DeleteBitmap(iconInfo.hbmMask);
                 }
 
                 DeleteBitmap(iconInfo.hbmColor);
-                DeleteBitmap(iconInfo.hbmMask);
             }
         }
     }
@@ -148,6 +158,7 @@ HBITMAP PhIconToBitmap(
     HBITMAP bitmap;
     RECT iconRectangle;
     HDC screenHdc;
+    PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
     BLENDFUNCTION blendFunction = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
@@ -162,7 +173,7 @@ HBITMAP PhIconToBitmap(
 
     screenHdc = GetDC(NULL);
     hdc = CreateCompatibleDC(screenHdc);
-    bitmap = PhpCreateBitmap32(screenHdc, Width, Height, NULL);
+    bitmap = PhpCreateBitmap32(screenHdc, Width, Height, &bits);
     ReleaseDC(NULL, screenHdc);
     oldBitmap = SelectBitmap(hdc, bitmap);
 
