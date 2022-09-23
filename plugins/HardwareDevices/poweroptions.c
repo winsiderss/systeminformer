@@ -672,9 +672,9 @@ VOID LoadRaplDeviceImages(
     if (PhExtractIconEx(deviceIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
     {
         HIMAGELIST imageList = PhImageListCreate(
-            24, // GetSystemMetrics(SM_CXSMICON)
-            24, // GetSystemMetrics(SM_CYSMICON)
-            ILC_COLOR32,
+            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON)
+            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON)
+            ILC_MASK | ILC_COLOR32,
             1,
             1
             );
