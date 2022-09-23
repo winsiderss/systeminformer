@@ -100,6 +100,10 @@ VOID PhDrawTrayIconText(
     _In_ PPH_STRINGREF Text
     );
 
+PHLIBAPI
+HFONT PhNfGetTrayIconFont( // Note: Exported from notifico.c (dmex)
+    _In_opt_ LONG DpiValue
+    );
 
 // Configuration
 
