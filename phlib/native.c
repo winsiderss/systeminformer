@@ -3449,46 +3449,31 @@ NTSTATUS PhDeleteFile(
     _In_ HANDLE FileHandle
     )
 {
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
-        NTSTATUS status;
-        FILE_DISPOSITION_INFO_EX dispositionInfoEx;
+        FILE_DISPOSITION_INFO_EX dispositionInfo;
         IO_STATUS_BLOCK isb;
 
-        dispositionInfoEx.Flags = FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE;
+        dispositionInfo.Flags = FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_POSIX_SEMANTICS | FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE;
         status = NtSetInformationFile(
             FileHandle,
             &isb,
-            &dispositionInfoEx,
+            &dispositionInfo,
             sizeof(FILE_DISPOSITION_INFO_EX),
             FileDispositionInformationEx
             );
-
-        if (!NT_SUCCESS(status))
-        {
-            FILE_DISPOSITION_INFORMATION dispositionInfo;
-
-            dispositionInfo.DeleteFile = TRUE;
-
-            status = NtSetInformationFile(
-                FileHandle,
-                &isb,
-                &dispositionInfo,
-                sizeof(FILE_DISPOSITION_INFORMATION),
-                FileDispositionInformation
-                );
-        }
-
-        return status;
     }
-    else
+
+    if (!NT_SUCCESS(status))
     {
         FILE_DISPOSITION_INFORMATION dispositionInfo;
         IO_STATUS_BLOCK isb;
 
         dispositionInfo.DeleteFile = TRUE;
 
-        return NtSetInformationFile(
+        status = NtSetInformationFile(
             FileHandle,
             &isb,
             &dispositionInfo,
@@ -3496,6 +3481,8 @@ NTSTATUS PhDeleteFile(
             FileDispositionInformation
             );
     }
+
+    return status;
 }
 
 NTSTATUS PhGetFileHandleName(
