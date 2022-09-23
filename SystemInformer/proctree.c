@@ -91,7 +91,7 @@ static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need
 static HDC GraphContext = NULL;
 static ULONG GraphContextWidth = 0;
 static ULONG GraphContextHeight = 0;
-static HBITMAP GraphOldBitmap;
+static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
 
@@ -730,9 +730,11 @@ static VOID PhpNeedGraphContext(
     if (GraphContext)
     {
         // The original bitmap must be selected back into the context, otherwise
-        // the bitmap can't be deleted.
-        SelectBitmap(GraphContext, GraphBitmap);
-        DeleteBitmap(GraphBitmap);
+        // the bitmap can't be deleted. (wj32)
+        if (GraphOldBitmap)
+            SelectBitmap(GraphContext, GraphOldBitmap);
+        if (GraphBitmap)
+            DeleteBitmap(GraphBitmap);
         DeleteDC(GraphContext);
 
         GraphContext = NULL;
@@ -741,6 +743,8 @@ static VOID PhpNeedGraphContext(
     }
 
     GraphContext = CreateCompatibleDC(hdc);
+    GraphContextWidth = Width;
+    GraphContextHeight = Height;
 
     memset(&header, 0, sizeof(BITMAPINFOHEADER));
     header.biSize = sizeof(BITMAPINFOHEADER);
