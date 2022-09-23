@@ -3231,6 +3231,41 @@ VOID PhTnpAutoSizeColumnHeader(
                 ReleaseDC(Context->Handle, hdc);
             }
         }
+
+        // Check the custom header text width. (dmex)
+        if (Context->HeaderCustomDraw)
+        {
+            PH_STRINGREF headerString;
+            WCHAR headerText[0x50];
+
+            if (PhTnpGetColumnHeaderText(
+                Context,
+                Column,
+                headerText,
+                sizeof(headerText),
+                &headerString
+                ))
+            {
+                HDC hdc;
+                SIZE textSize;
+                LONG dpiValue;
+
+                if (hdc = GetDC(Context->Handle))
+                {
+                    SelectFont(hdc, Context->HeaderBoldFontHandle);
+
+                    if (GetTextExtentPoint32(hdc, headerString.Buffer, (ULONG)headerString.Length / sizeof(WCHAR), &textSize))
+                    {
+                        dpiValue = PhGetWindowDpi(Context->Handle);
+
+                        if (newWidth < textSize.cx + PhGetDpi(6 + 6, dpiValue)) // HACK: Magic values (same as our cell margins?)
+                            newWidth = textSize.cx + PhGetDpi(6 + 6, dpiValue);
+                    }
+
+                    ReleaseDC(Context->Handle, hdc);
+                }
+            }
+        }
     }
 
     item.mask = HDI_WIDTH;
