@@ -775,9 +775,11 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
             context->ImageList = PhImageListCreate(
-                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-                ILC_MASK | ILC_COLOR32, 1, 1);
+                PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
+                PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
+                ILC_MASK | ILC_COLOR32,
+                1, 1
+                );
             ListView_SetImageList(context->ListViewHandle, context->ImageList, LVSIL_SMALL);
 
             if (context->ServiceItem->Type & SERVICE_DRIVER)
