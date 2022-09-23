@@ -158,6 +158,9 @@ typedef struct _PH_NF_BITMAP
     BITMAPINFOHEADER Header;
     HBITMAP Bitmap;
     PVOID Bits;
+    LONG Width;
+    LONG Height;
+    LONG TaskbarDpi;
 } PH_NF_BITMAP, *PPH_NF_BITMAP;
 
 static PH_NF_BITMAP PhDefaultBitmapContext = { 0 };
@@ -175,28 +178,64 @@ static VOID PhBeginBitmap2(
     _Out_ HBITMAP *OldBitmap
     )
 {
+    LONG dpiValue = PhGetTaskbarDpi();
+
+    // Initialize and cache the current system metrics. (dmex)
+
+    if (Context->TaskbarDpi == 0 || Context->TaskbarDpi != dpiValue)
+    {
+        Context->Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+        Context->Height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+    }
+
+    // Cleanup existing resources when the DPI changes so we're able to re-initialize with updated DPI. (dmex)
+
+    if (Context->TaskbarDpi != 0 && Context->TaskbarDpi != dpiValue)
+    {
+        if (PhBlackIcon)
+        {
+            DestroyIcon(PhBlackIcon);
+            PhBlackIcon = NULL;
+        }
+
+        if (Context->Hdc)
+        {
+            DeleteDC(Context->Hdc);
+            Context->Hdc = NULL;
+        }
+
+        if (Context->Bitmap)
+        {
+            DeleteBitmap(Context->Bitmap);
+            Context->Bitmap = NULL;
+        }
+
+        Context->Initialized = FALSE;
+    }
+
     if (!Context->Initialized)
     {
-        HDC hdc;
+        HDC screenHdc;
 
-        hdc = GetDC(NULL);
-        Context->Hdc = CreateCompatibleDC(hdc);
+        screenHdc = GetDC(NULL);
+        Context->Hdc = CreateCompatibleDC(screenHdc);
 
         memset(&Context->Header, 0, sizeof(BITMAPINFOHEADER));
         Context->Header.biSize = sizeof(BITMAPINFOHEADER);
-        Context->Header.biWidth = 16;
-        Context->Header.biHeight = 16;
+        Context->Header.biWidth = Context->Width;
+        Context->Header.biHeight = Context->Height;
         Context->Header.biPlanes = 1;
         Context->Header.biBitCount = 32;
-        Context->Bitmap = CreateDIBSection(hdc, (BITMAPINFO*)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
+        Context->Bitmap = CreateDIBSection(screenHdc, (PBITMAPINFO)&Context->Header, DIB_RGB_COLORS, &Context->Bits, NULL, 0);
 
-        ReleaseDC(NULL, hdc);
+        ReleaseDC(NULL, screenHdc);
 
+        Context->TaskbarDpi = dpiValue;
         Context->Initialized = TRUE;
     }
 
-    *Width = 16;
-    *Height = 16;
+    *Width = Context->Width;
+    *Height = Context->Height;
     *Bitmap = Context->Bitmap;
     if (Bits) *Bits = Context->Bits;
     *Hdc = Context->Hdc;
@@ -229,7 +268,7 @@ HICON PhGetBlackIcon(
         ICONINFO iconInfo;
 
         PhBeginBitmap2(&PhBlackBitmapContext, &width, &height, &PhBlackBitmap, &bits, &hdc, &oldBitmap);
-        memset(bits, 0, width * height * sizeof(ULONG));
+        memset(bits, 0, width * height * sizeof(RGBQUAD));
 
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
@@ -238,7 +277,7 @@ HICON PhGetBlackIcon(
         iconInfo.hbmColor = PhBlackBitmap;
         PhBlackIcon = CreateIconIndirect(&iconInfo);
 
-        SelectObject(hdc, oldBitmap);
+        SelectBitmap(hdc, oldBitmap);
     }
 
     return PhBlackIcon;
@@ -310,11 +349,9 @@ HICON PhUpdateIconCpuHistory(
     drawInfo.LineColor2 = PhGetIntegerSetting(L"ColorCpuUser");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
-
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
 
     _freea(lineData2);
@@ -386,11 +423,9 @@ HICON PhUpdateIconIoHistory(
     drawInfo.LineColor2 = PhGetIntegerSetting(L"ColorIoWrite");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
-
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
 
     _freea(lineData2);
@@ -446,11 +481,9 @@ HICON PhUpdateIconCommitHistory(
     drawInfo.LineData1 = lineData1;
     drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorPrivate");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
-
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
 
     _freea(lineData1);
@@ -505,11 +538,9 @@ HICON PhUpdateIconPhysicalHistory(
     drawInfo.LineData1 = lineData1;
     drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorPhysical");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
-
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
 
     _freea(lineData1);
@@ -524,12 +555,13 @@ HICON PhUpdateIconCpuUsage(
     ULONG width;
     ULONG height;
     HBITMAP bitmap;
+    PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
     HICON icon;
 
     // Icon
-    PhBeginBitmap(&width, &height, &bitmap, NULL, &hdc, &oldBitmap);
+    PhBeginBitmap(&width, &height, &bitmap, &bits, &hdc, &oldBitmap);
 
     // This stuff is copied from CpuUsageIcon.cs (PH 1.x).
     {
@@ -543,11 +575,11 @@ HICON PhUpdateIconCpuUsage(
         LONG ul = (LONG)(u * height);
         RECT rect;
         HBRUSH dcBrush;
-        HBRUSH dcPen;
+        HPEN dcPen;
         POINT points[2];
 
-        dcBrush = GetStockObject(DC_BRUSH);
-        dcPen = GetStockObject(DC_PEN);
+        dcBrush = GetStockBrush(DC_BRUSH);
+        dcPen = GetStockPen(DC_PEN);
         rect.left = 0;
         rect.top = 0;
         rect.right = width;
@@ -558,7 +590,7 @@ HICON PhUpdateIconCpuUsage(
         // Draw the base line.
         if (kl + ul == 0)
         {
-            SelectObject(hdc, dcPen);
+            SelectPen(hdc, dcPen);
             SetDCPenColor(hdc, uColor);
             points[0].x = 0;
             points[0].y = height - 1;
@@ -580,7 +612,7 @@ HICON PhUpdateIconCpuUsage(
             if (points[0].y < 0) points[0].y = 0;
             points[1].x = width;
             points[1].y = points[0].y;
-            SelectObject(hdc, dcPen);
+            SelectPen(hdc, dcPen);
             SetDCPenColor(hdc, uColor);
             Polyline(hdc, points, 2);
 
@@ -598,14 +630,14 @@ HICON PhUpdateIconCpuUsage(
                 if (points[0].y < 0) points[0].y = 0;
                 points[1].x = width;
                 points[1].y = points[0].y;
-                SelectObject(hdc, dcPen);
+                SelectPen(hdc, dcPen);
                 SetDCPenColor(hdc, kColor);
                 Polyline(hdc, points, 2);
             }
         }
     }
 
-    SelectObject(hdc, oldBitmap);
+    SelectBitmap(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
 
     return icon;
