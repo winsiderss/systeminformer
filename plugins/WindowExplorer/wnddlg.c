@@ -665,8 +665,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
             TreeNew_SetEmptyText(context->TreeNewHandle, &WepEmptyWindowsText, 0);
 
-            PhRegisterDialog(hwndDlg);
-
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SEARCHEDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
@@ -693,8 +691,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
-
-            PhUnregisterDialog(hwndDlg);
 
             WeDeleteWindowTree(&context->TreeContext);
             WepDeleteWindowSelector(&context->Selector);
