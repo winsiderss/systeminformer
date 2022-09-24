@@ -31,7 +31,6 @@ PTOOLSTATUS_INTERFACE EtFwToolStatusInterface;
 PH_CALLBACK_REGISTRATION EtFwSearchChangedRegistration;
 BOOLEAN EtFwEnabled = FALSE;
 ULONG EtFwStatus = ERROR_SUCCESS;
-ULONG EtFwIconWidth = 16;
 PPH_STRING EtFwStatusText = NULL;
 PPH_LIST FwNodeList = NULL;
 
@@ -50,7 +49,6 @@ BOOLEAN FwTabPageCallback(
             ULONG treelistBorder;
             ULONG treelistCustomColors;
             PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
-			LONG dpiValue;
 
             thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
             treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhGetIntegerSetting(L"EnableThemeSupport")) ? WS_BORDER : 0;
@@ -80,10 +78,7 @@ BOOLEAN FwTabPageCallback(
             if (!hwnd)
                 return FALSE;
 
-            dpiValue = PhGetWindowDpi(PhMainWndHandle);
-
             FwTreeNewCreated = TRUE;
-            EtFwIconWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -1222,6 +1217,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             HDC hdc;
             RECT rect;
+            LONG dpiValue;
 
             if (!customDraw)
                 break;
@@ -1229,6 +1225,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             hdc = customDraw->Dc;
             rect = customDraw->CellRect;
             node = (PFW_EVENT_ITEM)customDraw->Node;
+            dpiValue = PhGetWindowDpi(WindowHandle);
 
             if (customDraw->Column->Id == FW_COLUMN_COUNTRY)
             {
@@ -1236,9 +1233,9 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 {
                     if (node->CountryIconIndex != INT_MAX)
                     {
-                        rect.left += TNP_CELL_LEFT_MARGIN;
+                        rect.left += PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
                         EtFwDrawCountryIcon(hdc, rect, node->CountryIconIndex);
-                        rect.left += 16 + TNP_ICON_RIGHT_PADDING;
+                        rect.left += PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(TNP_ICON_RIGHT_PADDING, dpiValue);
                     }
 
                     DrawText(
@@ -1263,9 +1260,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             }
 
             // Padding
-            rect.left += TNP_CELL_LEFT_MARGIN;
-
-            LONG dpiValue = PhGetWindowDpi(PhMainWndHandle);
+            rect.left += PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
 
             PhImageListDrawIcon(
                 PhGetProcessSmallImageList(),
@@ -1278,7 +1273,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                 );
 
             // Padding
-            rect.left += EtFwIconWidth + TNP_ICON_RIGHT_PADDING;
+            rect.left += PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhGetDpi(TNP_ICON_RIGHT_PADDING, dpiValue);
 
             if (PhIsNullOrEmptyString(node->ProcessBaseString))
             {
