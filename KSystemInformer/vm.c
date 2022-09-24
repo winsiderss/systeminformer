@@ -11,6 +11,7 @@
  */
 
 #include <kph.h>
+#include <dyndata.h>
 
 #include <trace.h>
 
@@ -356,13 +357,18 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
 {
     NTSTATUS status;
     PEPROCESS process;
-    SIZE_T numberOfBytesRead = 0;
+    SIZE_T numberOfBytesRead;
+    BOOLEAN releaseModuleLock;
 
     PAGED_PASSIVE();
 
+    numberOfBytesRead = 0;
+    releaseModuleLock = FALSE;
+
     if (!Buffer)
     {
-        return STATUS_INVALID_PARAMETER_3;
+        status = STATUS_INVALID_PARAMETER_3;
+        goto Exit;
     }
 
     if (AccessMode != KernelMode)
@@ -371,7 +377,8 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
             (Add2Ptr(Buffer, BufferSize) < Buffer) ||
             (Add2Ptr(Buffer, BufferSize) > MmHighestUserAddress))
         {
-            return STATUS_ACCESS_VIOLATION;
+            status = STATUS_ACCESS_VIOLATION;
+            goto Exit;
         }
 
         if (NumberOfBytesRead)
@@ -382,7 +389,8 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                return GetExceptionCode();
+                status = GetExceptionCode();
+                goto Exit;
             }
         }
     }
@@ -397,12 +405,32 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
             ULONG_PTR page;
             ULONG_PTR pageEnd;
 
+            if (KphDynPsLoadedModuleResource)
+            {
+                //
+                // Prevent TOCTOU between checking the system module list and
+                // copying memory.
+                //
+                if (!ExAcquireResourceSharedLite(KphDynPsLoadedModuleResource,
+                                                 TRUE))
+                {
+                    KphTracePrint(TRACE_LEVEL_ERROR,
+                                  GENERAL,
+                                  "Failed to acquire PsLoadedModuleResource");
+
+                    status = STATUS_RESOURCE_NOT_OWNED;
+                    goto Exit;
+                }
+
+                releaseModuleLock = TRUE;
+            }
+
             status = KphValidateAddressForSystemModules(BaseAddress,
                                                         BufferSize);
 
             if (!NT_SUCCESS(status))
             {
-                return status;
+                goto Exit;
             }
 
             //
@@ -426,7 +454,8 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
-                return GetExceptionCode();
+                status = GetExceptionCode();
+                goto Exit;
             }
 
             numberOfBytesRead = BufferSize;
@@ -440,7 +469,8 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
 
             if (!ProcessHandle)
             {
-                return STATUS_INVALID_PARAMETER_1;
+                status = STATUS_INVALID_PARAMETER_1;
+                goto Exit;
             }
 
             status = ObReferenceObjectByHandle(ProcessHandle,
@@ -466,6 +496,14 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
     {
         numberOfBytesRead = 0;
         status = STATUS_SUCCESS;
+    }
+
+Exit:
+
+    if (releaseModuleLock)
+    {
+        NT_ASSERT(KphDynPsLoadedModuleResource);
+        ExReleaseResourceLite(KphDynPsLoadedModuleResource);
     }
 
     if (NumberOfBytesRead)
