@@ -1064,7 +1064,7 @@ BOOLEAN PhLoadListViewColumnSettings(
         PH_STRINGREF widthPart;
         ULONG64 integer;
         ULONG order;
-        ULONG width;
+        LONG width;
         LVCOLUMN lvColumn;
 
         PhSplitStringRefAtChar(&remainingPart, L'|', &columnPart, &remainingPart);
@@ -1097,10 +1097,10 @@ BOOLEAN PhLoadListViewColumnSettings(
         if (!PhStringToInteger64(&widthPart, 10, &integer))
             return FALSE;
 
-        width = (ULONG)integer;
+        width = (LONG)integer;
 
         if (scale != dpiValue && scale != 0)
-            width = PhMultiplyDivide(width, dpiValue, scale);
+            width = PhMultiplyDivideSigned(width, dpiValue, scale);
 
         lvColumn.mask = LVCF_WIDTH;
         lvColumn.cx = width;
