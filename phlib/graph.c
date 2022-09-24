@@ -830,8 +830,8 @@ static VOID PhpCreateFadeOutContext(
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
-    bitmapInfo.bmiHeader.biWidth = Context->BufferedContextRect.right;
-    bitmapInfo.bmiHeader.biHeight = Context->BufferedContextRect.bottom;
+    bitmapInfo.bmiHeader.biWidth = Context->FadeOutContextRect.right;
+    bitmapInfo.bmiHeader.biHeight = Context->FadeOutContextRect.bottom;
     bitmapInfo.bmiHeader.biBitCount = 32;
 
     hdc = GetDC(Context->Handle);
