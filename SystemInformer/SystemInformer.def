@@ -535,6 +535,7 @@ EXPORTS
     PhAddListViewColumn
     PhAddListViewItem
     PhAddTabControlTab
+    PhBitmapSetAlpha
     PhCreateDialog
     PhDeleteLayoutManager
     PhEnumWindows
