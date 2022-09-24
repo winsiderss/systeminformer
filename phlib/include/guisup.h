@@ -706,6 +706,15 @@ PhIconToBitmap(
     _In_ ULONG Height
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhBitmapSetAlpha(
+    _In_ PVOID Bits,
+    _In_ ULONG Width,
+    _In_ ULONG Height
+    );
+
 // extlv
 
 #define PH_ALIGN_CENTER 0x0
