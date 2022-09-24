@@ -27,7 +27,7 @@
 
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
 BOOLEAN PhNfMiniInfoPinned = FALSE;
-// Note: no lock is needed because we only ever modify the list on this same thread.
+BOOLEAN PhNfTransparencyEnabled = FALSE;
 PPH_LIST PhTrayIconItemList = NULL;
 
 PH_NF_POINTERS PhNfpPointers;
@@ -337,6 +337,7 @@ VOID PhNfLoadStage2(
     )
 {
     PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
+    PhNfTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
     PhNfLoadGuids();
 
     PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_USAGE, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_USAGE], NULL, L"CPU &usage", 0, PhNfpCpuUsageIconUpdateCallback, NULL);
@@ -749,77 +750,77 @@ VOID PhNfNotifyMiniInfoPinned(
     }
 }
 
-VOID PhpNfCreateTransparentHdc(
-    _Inout_ PRECT Rect,
-    _Out_ HDC *Hdc,
-    _Out_ HDC *MaskDc,
-    _Out_ HBITMAP *Bitmap,
-    _Out_ HBITMAP *MaskBitmap,
-    _Out_ HBITMAP *OldBitmap,
-    _Out_ HBITMAP *OldMaskBitmap
-    )
-{
-    HDC hdc;
-    HDC bufferDc;
-    HDC bufferMaskDc;
-    HBITMAP bufferBitmap;
-    HBITMAP bufferMaskBitmap;
-    HBITMAP oldBufferBitmap;
-    HBITMAP oldBufferMaskBitmap;
-
-    hdc = GetDC(NULL);
-    bufferDc = CreateCompatibleDC(hdc);
-    bufferBitmap = CreateCompatibleBitmap(hdc, Rect->right, Rect->bottom);
-    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-
-    bufferMaskDc = CreateCompatibleDC(hdc);
-    bufferMaskBitmap = CreateBitmap(Rect->right, Rect->bottom, 1, 1, NULL);
-    oldBufferMaskBitmap = SelectBitmap(bufferMaskDc, bufferMaskBitmap);
-
-    *Hdc = bufferDc;
-    *MaskDc = bufferMaskDc;
-    *Bitmap = bufferBitmap;
-    *MaskBitmap = bufferMaskBitmap;
-    *OldBitmap = oldBufferBitmap;
-    *OldMaskBitmap = oldBufferMaskBitmap;
-}
-
-HICON PhpNfTransparentHdcToIcon(
-    _Inout_ PRECT Rect,
-    _In_ HDC Hdc,
-    _In_ HDC MaskDc,
-    _In_ HBITMAP Bitmap,
-    _In_ HBITMAP MaskBitmap,
-    _In_ HBITMAP OldBitmap,
-    _In_ HBITMAP OldMaskBitmap
-    )
-{
-    HICON iconHandle;
-    ICONINFO iconInfo;
-
-    SetBkColor(Hdc, RGB(0, 0, 0)); // Set transparent color and draw the mask
-    BitBlt(MaskDc, 0, 0, Rect->right, Rect->bottom, Hdc, 0, 0, SRCCOPY);
-
-    SelectBitmap(Hdc, Bitmap);
-    SelectBitmap(MaskDc, MaskBitmap);
-
-    DeleteDC(Hdc);
-    DeleteDC(MaskDc);
-    ReleaseDC(NULL, Hdc);
-
-    iconInfo.fIcon = TRUE;
-    iconInfo.xHotspot = 0;
-    iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = MaskBitmap;
-    iconInfo.hbmColor = Bitmap;
-
-    iconHandle = CreateIconIndirect(&iconInfo); // Create transparent icon
-
-    DeleteBitmap(MaskBitmap);
-    DeleteBitmap(Bitmap);
-
-    return iconHandle;
-}
+//VOID PhpNfCreateTransparentHdc(
+//    _Inout_ PRECT Rect,
+//    _Out_ HDC *Hdc,
+//    _Out_ HDC *MaskDc,
+//    _Out_ HBITMAP *Bitmap,
+//    _Out_ HBITMAP *MaskBitmap,
+//    _Out_ HBITMAP *OldBitmap,
+//    _Out_ HBITMAP *OldMaskBitmap
+//    )
+//{
+//    HDC hdc;
+//    HDC bufferDc;
+//    HDC bufferMaskDc;
+//    HBITMAP bufferBitmap;
+//    HBITMAP bufferMaskBitmap;
+//    HBITMAP oldBufferBitmap;
+//    HBITMAP oldBufferMaskBitmap;
+//
+//    hdc = GetDC(NULL);
+//    bufferDc = CreateCompatibleDC(hdc);
+//    bufferBitmap = CreateCompatibleBitmap(hdc, Rect->right, Rect->bottom);
+//    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+//
+//    bufferMaskDc = CreateCompatibleDC(hdc);
+//    bufferMaskBitmap = CreateBitmap(Rect->right, Rect->bottom, 1, 1, NULL);
+//    oldBufferMaskBitmap = SelectBitmap(bufferMaskDc, bufferMaskBitmap);
+//
+//    *Hdc = bufferDc;
+//    *MaskDc = bufferMaskDc;
+//    *Bitmap = bufferBitmap;
+//    *MaskBitmap = bufferMaskBitmap;
+//    *OldBitmap = oldBufferBitmap;
+//    *OldMaskBitmap = oldBufferMaskBitmap;
+//}
+//
+//HICON PhpNfTransparentHdcToIcon(
+//    _Inout_ PRECT Rect,
+//    _In_ HDC Hdc,
+//    _In_ HDC MaskDc,
+//    _In_ HBITMAP Bitmap,
+//    _In_ HBITMAP MaskBitmap,
+//    _In_ HBITMAP OldBitmap,
+//    _In_ HBITMAP OldMaskBitmap
+//    )
+//{
+//    HICON iconHandle;
+//    ICONINFO iconInfo;
+//
+//    SetBkColor(Hdc, RGB(0, 0, 0)); // Set transparent color and draw the mask
+//    BitBlt(MaskDc, 0, 0, Rect->right, Rect->bottom, Hdc, 0, 0, SRCCOPY);
+//
+//    SelectBitmap(Hdc, Bitmap);
+//    SelectBitmap(MaskDc, MaskBitmap);
+//
+//    DeleteDC(Hdc);
+//    DeleteDC(MaskDc);
+//    ReleaseDC(NULL, Hdc);
+//
+//    iconInfo.fIcon = TRUE;
+//    iconInfo.xHotspot = 0;
+//    iconInfo.yHotspot = 0;
+//    iconInfo.hbmMask = MaskBitmap;
+//    iconInfo.hbmColor = Bitmap;
+//
+//    iconHandle = CreateIconIndirect(&iconInfo); // Create transparent icon
+//
+//    DeleteBitmap(MaskBitmap);
+//    DeleteBitmap(Bitmap);
+//
+//    return iconHandle;
+//}
 
 HICON PhNfpGetBlackIcon(
     VOID
@@ -835,7 +836,7 @@ HICON PhNfpGetBlackIcon(
         ICONINFO iconInfo;
 
         PhNfpBeginBitmap2(&PhNfpBlackBitmapContext, &width, &height, &PhNfpBlackBitmap, &bits, &hdc, &oldBitmap);
-        memset(bits, 0, width * height * sizeof(ULONG));
+        memset(bits, PhNfTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
 
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
@@ -1358,9 +1359,12 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     drawInfo.LineColor2 = PhCsColorCpuUser;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -1467,9 +1471,12 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     drawInfo.LineColor2 = PhCsColorIoWrite;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -1558,9 +1565,12 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     drawInfo.LineData1 = lineData1;
     drawInfo.LineColor1 = PhCsColorPrivate;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -1633,9 +1643,12 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     drawInfo.LineData1 = lineData1;
     drawInfo.LineColor1 = PhCsColorPhysical;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPhysical);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -1668,6 +1681,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
     ULONG width;
     ULONG height;
     HBITMAP bitmap;
+    PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
     PH_FORMAT format[5];
@@ -1677,7 +1691,7 @@ VOID PhNfpCpuUsageIconUpdateCallback(
 
     // Icon
 
-    Icon->Pointers->BeginBitmap(&width, &height, &bitmap, NULL, &hdc, &oldBitmap);
+    Icon->Pointers->BeginBitmap(&width, &height, &bitmap, &bits, &hdc, &oldBitmap);
 
     // This stuff is copied from CpuUsageIcon.cs (PH 1.x).
     {
@@ -1751,6 +1765,11 @@ VOID PhNfpCpuUsageIconUpdateCallback(
                 Polyline(hdc, points, 2);
             }
         }
+    }
+
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, width, height);
     }
 
     SelectBitmap(hdc, oldBitmap);
@@ -1840,9 +1859,13 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
 
     drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorCpuKernel;
-    if (bits)
-        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
+
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -1931,10 +1954,15 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     PhInitFormatF(&format[0], (DOUBLE)(PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta) / maxValue * 100, 0);
     text = PhFormat(format, 1, 10);
 
+    drawInfo.TextFont = PhNfGetTrayIconFont(0);
     drawInfo.TextColor = PhCsColorIoReadOther;
-    if (bits)
-        PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
+    PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
+
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -2012,6 +2040,11 @@ VOID PhNfpCommitTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
@@ -2075,6 +2108,11 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     drawInfo.TextColor = PhCsColorPhysical;
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
+
+    if (PhNfTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;

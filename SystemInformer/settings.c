@@ -111,6 +111,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
+    PhpAddIntegerSetting(L"IconTransparencyEnabled", L"1");
+    //PhpAddIntegerSetting(L"IconTransparency", L"255");
     PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
     //PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
@@ -214,8 +216,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"TokenGroupsListViewColumns", L"");
     PhpAddStringSetting(L"TokenGroupsListViewStates", L"");
     PhpAddStringSetting(L"TokenGroupsListViewSort", L"1,2");
-    PhpAddIntegerSetting(L"TokenSplitterEnable", L"0");
-    PhpAddIntegerSetting(L"TokenSplitterPosition", L"150");
     PhpAddStringSetting(L"TokenPrivilegesListViewColumns", L"");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
     PhpAddIntegerSetting(L"TreeListCustomColorsEnable", L"0");
