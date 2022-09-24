@@ -187,29 +187,52 @@ LONG PhGetTaskbarDpi(
     VOID
     )
 {
-    APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
+    UINT dpi = 0;
+    HWND shellWindow;
 
-    if (SHAppBarMessage(ABM_GETTASKBARPOS, &taskbarRect))
-        return PhGetMonitorDpi(&taskbarRect.rc);
+    // GetShellWindow is cached in TEB (dmex)
+    if (shellWindow = GetShellWindow())
+    {
+        dpi = PhGetDpiValue(shellWindow, NULL);
+    }
 
-    return PhGetDpiValue(NULL, NULL);
+    // SHAppBarMessage requires SendMessage and very slow (dmex0
+    //if (dpi == 0)
+    //{
+    //    APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
+    //
+    //    if (SHAppBarMessage(ABM_GETTASKBARPOS, &taskbarRect))
+    //    {
+    //        dpi = PhGetMonitorDpi(&taskbarRect.rc);
+    //    }
+    //}
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(NULL, NULL);
+    }
+
+    return dpi;
 }
 
 LONG PhGetWindowDpi(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
-    RECT rect;
+    if (WindowsVersion < WINDOWS_10_RS1)
+    {
+        RECT rect;
 
-    if (!GetWindowRect(hwnd, &rect))
-        return PhGetDpiValue(hwnd, NULL);
+        if (GetWindowRect(WindowHandle, &rect))
+            return PhGetDpiValue(NULL, &rect);
+    }
 
-    return PhGetDpiValue(NULL, &rect);
+    return PhGetDpiValue(WindowHandle, NULL);
 }
 
 LONG PhGetDpiValue(
-    _In_opt_ HWND hwnd,
-    _In_opt_ LPCRECT rect
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ LPCRECT Rect
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -218,16 +241,16 @@ LONG PhGetDpiValue(
         _In_ MONITOR_DPI_TYPE dpiType,
         _Out_ PUINT dpiX,
         _Out_ PUINT dpiY
-        );  // win81+
+        ) = NULL; // win81+
     static UINT (WINAPI *GetDpiForWindow_I)(
         _In_ HWND hwnd
-        );  // win10rs1+
+        ) = NULL; // win10rs1+
     static UINT (WINAPI *GetDpiForSystem_I)(
         VOID
-        );  // win10rs1+
-    HDC hdc;
-    UINT dpi_x;
-    UINT dpi_y;
+        ) = NULL; // win10rs1+
+    static UINT (WINAPI *GetDpiForSession_I)(
+        VOID
+        ) = NULL; // ordinal 2713
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -261,49 +284,51 @@ LONG PhGetDpiValue(
         PhEndInitOnce(&initOnce);
     }
 
-    if (rect || hwnd)
+    if (Rect || WindowHandle)
     {
-        // win10rs1+
-        if (GetDpiForWindow_I && hwnd)
+        if (GetDpiForWindow_I && WindowHandle) // Win10 RS1
         {
-            if (dpi_x = GetDpiForWindow_I(hwnd))
-                return dpi_x;
+            UINT dpi;
+
+            if (dpi = GetDpiForWindow_I(WindowHandle))
+            {
+                return dpi;
+            }
         }
 
-        // win81+
-        if (GetDpiForMonitor_I)
+        if (GetDpiForMonitor_I) // Win81
         {
             HMONITOR monitor;
+            UINT dpi_x;
+            UINT dpi_y;
 
-            if (rect)
-            {
-                monitor = MonitorFromRect(rect, MONITOR_DEFAULTTONEAREST);
-            }
+            if (Rect)
+                monitor = MonitorFromRect(Rect, MONITOR_DEFAULTTONEAREST);
             else
-            {
-                monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-            }
+                monitor = MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST);
 
             if (SUCCEEDED(GetDpiForMonitor_I(monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)))
+            {
                 return dpi_x;
+            }
         }
     }
 
-    // win10rs1+
-    if (GetDpiForSystem_I)
+    if (GetDpiForSystem_I) // Win10 RS1
     {
         return GetDpiForSystem_I();
     }
 
-    // win8 and lower fallback
-    if (hdc = GetDC(NULL))
-    {
-        LONG dpi_value;
+    { // Win8 and lower fallback
+        HDC screenHdc;
+        LONG dpi_x;
 
-        dpi_value = GetDeviceCaps(hdc, LOGPIXELSX);
-        ReleaseDC(NULL, hdc);
-
-        return dpi_value;
+        if (screenHdc = GetDC(NULL))
+        {          
+            dpi_x = GetDeviceCaps(screenHdc, LOGPIXELSX);
+            ReleaseDC(NULL, screenHdc);
+            return dpi_x;
+        }
     }
 
     return USER_DEFAULT_SCREEN_DPI;

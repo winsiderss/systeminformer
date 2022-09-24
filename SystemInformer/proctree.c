@@ -3646,7 +3646,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
             node = (PPH_PROCESS_NODE)getNodeIcon->Node;
             getNodeIcon->Icon = (HICON)(ULONG_PTR)node->ProcessItem->SmallIconIndex;
-            getNodeIcon->Flags = TN_CACHE;
+            //getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewGetCellTooltip:
