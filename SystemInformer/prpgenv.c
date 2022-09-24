@@ -1280,7 +1280,7 @@ VOID PhpInitializeEnvironmentTree(
     Context->NodeList = PhCreateList(100);
     Context->NodeRootList = PhCreateList(30);
     Context->NodeHashtable = PhCreateHashtable(
-        sizeof(PHP_PROCESS_ENVIRONMENT_TREENODE),
+        sizeof(PPHP_PROCESS_ENVIRONMENT_TREENODE),
         PhpEnvironmentNodeHashtableEqualFunction,
         PhpEnvironmentNodeHashtableHashFunction,
         100
