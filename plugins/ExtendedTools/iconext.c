@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2016-2020
+ *     dmex    2016-2022
  *
  */
 
@@ -108,7 +108,8 @@ VOID EtpNetworkTextIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
-GUID EtpTrayIconGuids[ETP_TRAY_ICON_GUID_MAXIMUM];
+static BOOLEAN EtTrayIconTransparencyEnabled = FALSE;
+static GUID EtpTrayIconGuids[ETP_TRAY_ICON_GUID_MAXIMUM];
 
 VOID EtLoadTrayIconGuids(
     VOID
@@ -174,6 +175,8 @@ VOID EtLoadTrayIconGuids(
 
         PhDereferenceObject(settingsString);
     }
+
+    EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
 }
 
 VOID EtRegisterNotifyIcons(
@@ -308,9 +311,12 @@ VOID EtpGpuIconUpdateCallback(
     drawInfo.LineData1 = lineData1;
     drawInfo.LineColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -435,9 +441,9 @@ VOID EtpDiskIconUpdateCallback(
     drawInfo.LineColor2 = PhGetIntegerSetting(L"ColorIoWrite");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
+    PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -561,9 +567,12 @@ VOID EtpNetworkIconUpdateCallback(
     drawInfo.LineColor2 = PhGetIntegerSetting(L"ColorIoWrite");
     drawInfo.LineBackColor1 = PhHalveColorBrightness(drawInfo.LineColor1);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
+    PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    if (bits)
-        PhDrawGraphDirect(hdc, bits, &drawInfo);
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -666,6 +675,11 @@ VOID EtpGpuTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
@@ -747,6 +761,11 @@ VOID EtpDiskTextIconUpdateCallback(
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
 
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
+
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
     *Flags = PH_NF_UPDATE_IS_BITMAP;
@@ -825,6 +844,11 @@ VOID EtpNetworkTextIconUpdateCallback(
     drawInfo.TextColor = PhGetIntegerSetting(L"ColorIoReadOther"); // ColorIoWrite
     PhDrawTrayIconText(hdc, bits, &drawInfo, &text->sr);
     PhDereferenceObject(text);
+
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
