@@ -200,3 +200,31 @@ HBITMAP PhIconToBitmap(
 
     return bitmap;
 }
+
+// based on BufferedPaintSetAlpha/BufferedPaintMakeOpaque (dmex)
+VOID PhBitmapSetAlpha(
+    _In_ PVOID Bits,
+    _In_ ULONG Width,
+    _In_ ULONG Height
+    )
+{
+    ULONG count = Width * Height;
+
+    //RGBQUAD* quad = (RGBQUAD*)Bits;
+    //
+    //for (ULONG i = 0; i < count; i++)
+    //{
+    //    if (quad[i].rgbBlue != 0 || quad[i].rgbGreen != 0 || quad[i].rgbRed != 0)
+    //    {
+    //        quad[i].rgbReserved = 255; // opaque
+    //    }
+    //}
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        if (((PULONG)Bits)[i] != 0)
+        {
+            ((PULONG)Bits)[i] |= 0xff000000; // opaque
+        }
+    }
+}
