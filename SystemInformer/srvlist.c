@@ -823,7 +823,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     getNodeIcon->Icon = (HICON)(ULONG_PTR)0;//ServiceApplicationIcon;
             }
 
-            getNodeIcon->Flags = TN_CACHE;
+            //getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewGetNodeColor:

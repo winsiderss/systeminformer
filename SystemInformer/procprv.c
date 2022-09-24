@@ -710,14 +710,13 @@ VOID PhpProcessQueryStage1(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
     HANDLE processHandleLimited = processItem->QueryHandle;
-    LONG dpiValue;
 
     // Version info
     if (!processItem->IsSubsystemProcess)
     {
         if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(&processItem->FileName->sr))
         {
-            dpiValue = PhGetSystemDpi();
+            LONG dpiValue = PhGetSystemDpi();
 
             Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue);
 
@@ -3415,23 +3414,44 @@ VOID PhProcessImageListInitialization(
 
     dpiValue = PhGetWindowDpi(hwnd);
 
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_IMAGELIST_ITEM* entry;
+    PPH_LIST fileNames = NULL;
+
+    if (PhImageListCacheHashtable)
+    {
+        fileNames = PhCreateList(PhImageListCacheHashtable->Count);
+
+        PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
+        PhBeginEnumHashtable(PhImageListCacheHashtable, &enumContext);
+
+        while (entry = PhNextEnumHashtable(&enumContext))
+        {
+            PPH_IMAGELIST_ITEM item = *entry;
+            PhAddItemList(fileNames, PhReferenceObject(item->FileName));
+            PhDereferenceObject(item);
+        }
+
+        PhDereferenceObject(PhImageListCacheHashtable);
+        PhImageListCacheHashtable = NULL;
+
+        PhReleaseQueuedLockExclusive(&PhImageListCacheHashtableLock);
+    }
+
     if (PhProcessLargeImageList) PhImageListDestroy(PhProcessLargeImageList);
+    if (PhProcessSmallImageList) PhImageListDestroy(PhProcessSmallImageList);
     PhProcessLargeImageList = PhImageListCreate(
         PhGetSystemMetrics(SM_CXICON, dpiValue),
         PhGetSystemMetrics(SM_CYICON, dpiValue),
         ILC_MASK | ILC_COLOR32,
         100,
-        100
-        );
-
-    if (PhProcessSmallImageList) PhImageListDestroy(PhProcessSmallImageList);
+        100);
     PhProcessSmallImageList = PhImageListCreate(
         PhGetSystemMetrics(SM_CXSMICON, dpiValue),
         PhGetSystemMetrics(SM_CYSMICON, dpiValue),
         ILC_MASK | ILC_COLOR32,
         100,
-        100
-        );
+        100);
 
     PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
     PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
@@ -3446,6 +3466,46 @@ VOID PhProcessImageListInitialization(
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
     DestroyIcon(iconLarge);
     DestroyIcon(iconSmall);
+
+    if (fileNames)
+    {
+        for (ULONG i = 0; i < fileNames->Count; i++)
+        {
+            PPH_STRING filename = fileNames->Items[i];
+            PPH_IMAGELIST_ITEM iconEntry;
+
+            dpiValue = PhGetSystemDpi();
+            iconEntry = PhImageListExtractIcon(filename, TRUE, dpiValue);
+
+            if (iconEntry)
+            {
+                PPH_PROCESS_ITEM* processes;
+                ULONG numberOfProcesses;
+
+                PhEnumProcessItems(&processes, &numberOfProcesses);
+
+                for (ULONG i = 0; i < numberOfProcesses; i++)
+                {
+                    PPH_PROCESS_ITEM process = processes[i];
+
+                    if (process->FileName && PhEqualString(process->FileName, filename, TRUE))
+                    {
+                        process->IconEntry = PhReferenceObject(iconEntry);
+                        process->SmallIconIndex = iconEntry->SmallIconIndex;
+                        process->LargeIconIndex = iconEntry->LargeIconIndex;
+                    }
+                }
+
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+
+                PhDereferenceObject(iconEntry);
+            }
+        }
+
+        PhDereferenceObjects(fileNames->Items, fileNames->Count);
+        PhDereferenceObject(fileNames);
+    }
 }
 
 BOOLEAN PhImageListCacheHashtableEqualFunction(

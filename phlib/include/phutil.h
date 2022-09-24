@@ -178,15 +178,15 @@ PHLIBAPI
 LONG
 NTAPI
 PhGetWindowDpi(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI
 LONG
 NTAPI
 PhGetDpiValue(
-    _In_opt_ HWND hwnd,
-    _In_opt_ LPCRECT rect
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ LPCRECT Rect
     );
 
 PHLIBAPI
