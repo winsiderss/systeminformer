@@ -2250,7 +2250,6 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
             HDC hdc;
             PAINTSTRUCT ps;
             SIZE nameSize;
-            RECT clientRect;
             RECT textRect;
             ULONG returnLength;
             WCHAR text[MAX_PATH];
@@ -2258,8 +2257,6 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
 
             if (!(hdc = BeginPaint(WindowHandle, &ps)))
                 break;
-
-            GetClientRect(WindowHandle, &clientRect);
 
             dpiValue = PhGetWindowDpi(WindowHandle);
 
@@ -2307,7 +2304,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
 
                 textRect.left = 0;
                 textRect.top = 0;
-                textRect.right = clientRect.right;
+                textRect.right = ps.rcPaint.right;
                 textRect.bottom = nameSize.cy;
 
                 SetTextColor(hdc, PhThemeWindowTextColor); // RGB(255, 69, 0)
@@ -3186,21 +3183,19 @@ LRESULT CALLBACK PhpThemeWindowStaticControlSubclassProc(
 
             if (hdc = BeginPaint(WindowHandle, &ps))
             {
-                RECT clientRect;
                 HICON iconHandle;
 
-                GetClientRect(WindowHandle, &clientRect);
                 SetDCBrushColor(hdc, RGB(42, 42, 42));
-                FillRect(hdc, &clientRect, GetStockBrush(DC_BRUSH));
+                FillRect(hdc, &ps.rcPaint, GetStockBrush(DC_BRUSH));
 
                 iconHandle = Static_GetIcon(WindowHandle, 0);
                 DrawIconEx(
                     hdc,
-                    clientRect.left,
-                    clientRect.top,
+                    ps.rcPaint.left,
+                    ps.rcPaint.top,
                     iconHandle,
-                    clientRect.right - clientRect.left,
-                    clientRect.bottom - clientRect.top,
+                    ps.rcPaint.right - ps.rcPaint.left,
+                    ps.rcPaint.bottom - ps.rcPaint.top,
                     0,
                     NULL,
                     DI_NORMAL
@@ -3327,7 +3322,7 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
                 if (updateRegion != (HRGN)1)
                     CombineRgn(rectregion, rectregion, updateRegion, RGN_AND);
                 DefWindowProc(WindowHandle, WM_NCPAINT, (WPARAM)rectregion, 0);
-                DeleteObject(rectregion);
+                DeleteRgn(rectregion);
             }
 
             if (updateRegion == (HRGN)1) // HRGN_FULL
