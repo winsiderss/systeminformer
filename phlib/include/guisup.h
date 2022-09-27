@@ -1066,6 +1066,14 @@ PhImageListSetImageCount(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhImageListGetImageCount(
+    _In_ HIMAGELIST ImageListHandle,
+    _Out_ PUINT Count
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhImageListSetBkColor(
     _In_ HIMAGELIST ImageListHandle,
     _In_ COLORREF BackgroundColor
