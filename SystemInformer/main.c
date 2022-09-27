@@ -1587,7 +1587,7 @@ VOID PhpInitializeSettings(
     {
         ULONG sampleCount;
 
-        sampleCount = (GetSystemMetrics(SM_CXVIRTUALSCREEN) + 1) / 2;
+        sampleCount = (PhGetSystemMetrics(SM_CXVIRTUALSCREEN, 0) + 1) / 2;
 
         if (sampleCount > 2048)
             sampleCount = 2048;
