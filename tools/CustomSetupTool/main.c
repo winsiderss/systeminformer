@@ -11,20 +11,6 @@
 
 #include <setup.h>
 
-VOID PhAddDefaultSettings(
-    VOID
-    )
-{
-    NOTHING;
-}
-
-VOID PhUpdateCachedSettings(
-    VOID
-    )
-{
-    NOTHING;
-}
-
 LRESULT CALLBACK SetupTaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
