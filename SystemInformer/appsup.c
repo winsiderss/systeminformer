@@ -2221,17 +2221,30 @@ HICON PhGetApplicationIcon(
 {
     static HICON smallIcon = NULL;
     static HICON largeIcon = NULL;
+    static LONG systemDpi = 0;
 
-    LONG dpiValue;
+    if (systemDpi != PhGetSystemDpi())
+    {
+        if (smallIcon)
+        {
+            DestroyIcon(smallIcon);
+            smallIcon = NULL;
+        }
+        if (largeIcon)
+        {
+            DestroyIcon(largeIcon);
+            largeIcon = NULL;
+        }
+
+        systemDpi = PhGetSystemDpi();
+    }
 
     if (!smallIcon || !largeIcon)
     {
-        dpiValue = PhGetSystemDpi();
-
         if (!smallIcon)
-            smallIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
+            smallIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
+            largeIcon = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
     }
 
     return SmallIcon ? smallIcon : largeIcon;
