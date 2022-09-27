@@ -17,22 +17,87 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     { IDOK, L"Next" },
 };
 
+static BOOLEAN SetupCheckDirectoryCallback(
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PH_STRINGREF baseName;
+
+    baseName.Buffer = Information->FileName;
+    baseName.Length = Information->FileNameLength;
+
+    if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
+        return TRUE;
+
+    (*(PULONG)Context) += 1;
+    return FALSE;
+}
+
+BOOLEAN SetupShowDirectoryWarningPrompt(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    if (PhDoesFileExistWin32(PhGetString(Context->SetupInstallPath)))
+    {
+        HANDLE directoryHandle;
+        ULONG count = 0;
+
+        if (NT_SUCCESS(PhCreateFileWin32(
+            &directoryHandle,
+            PhGetString(Context->SetupInstallPath),
+            FILE_LIST_DIRECTORY | SYNCHRONIZE,
+            FILE_ATTRIBUTE_DIRECTORY,
+            FILE_SHARE_READ,
+            FILE_OPEN,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            PhEnumDirectoryFile(directoryHandle, NULL, SetupCheckDirectoryCallback, &count);
+            NtClose(directoryHandle);
+        }
+
+        if (count != 0)
+        {
+            INT result;
+
+            result = PhShowMessage2(
+                Context->DialogHandle,
+                TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_WARNING_ICON,
+                L"WARNING",
+                L"The installation directory already contains files and data. Please select a different directory"
+                L"or click Yes to continue and existing data will be deleted. Are you sure you want to continue?"
+                );
+
+            if (result == IDNO)
+            {
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
 VOID SetupShowBrowseDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
     PVOID fileDialog;
 
-    fileDialog = PhCreateOpenFileDialog();
-    PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_PICKFOLDERS);
-
-    if (PhShowFileDialog(Context->DialogHandle, fileDialog))
+    if (fileDialog = PhCreateOpenFileDialog())
     {
-        PPH_STRING fileDialogFolderPath;
+        PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_PICKFOLDERS);
 
-        fileDialogFolderPath = PH_AUTO(PhGetFileDialogFileName(fileDialog));
-        PhTrimToNullTerminatorString(fileDialogFolderPath);
-        PhSwapReference(&Context->SetupInstallPath, fileDialogFolderPath);
+        if (PhShowFileDialog(Context->DialogHandle, fileDialog))
+        {
+            PPH_STRING fileDialogFolderPath;
+
+            fileDialogFolderPath = PH_AUTO(PhGetFileDialogFileName(fileDialog));
+            PhTrimToNullTerminatorString(fileDialogFolderPath);
+            PhSwapReference(&Context->SetupInstallPath, fileDialogFolderPath);
+        }
 
         PhFreeFileDialog(fileDialog);
     }
@@ -96,6 +161,9 @@ HRESULT CALLBACK SetupConfigPageCallbackProc(
             if ((INT)wParam == IDOK)
             {
                 if (PhIsNullOrEmptyString(context->SetupInstallPath))
+                    return S_FALSE;
+
+                if (SetupShowDirectoryWarningPrompt(context))
                     return S_FALSE;
 
 #ifdef PH_BUILD_API
