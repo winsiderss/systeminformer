@@ -364,7 +364,6 @@ BOOLEAN PhCmLoadSettingsEx(
             PPH_TREENEW_COLUMN column;
             ULONG id;
             ULONG displayIndex;
-            ULONG width;
 
             PhSplitStringRefAtChar(&remainingColumnPart, L'|', &columnPart, &remainingColumnPart);
 
@@ -432,7 +431,7 @@ BOOLEAN PhCmLoadSettingsEx(
                 width = (ULONG)integer;
 
                 if (scale != dpiValue && scale != 0)
-                    width = PhMultiplyDivide(width, dpiValue, scale);
+                    width = PhMultiplyDivideSigned(width, dpiValue, scale);
 
                 column = PhAllocate(sizeof(PH_TREENEW_COLUMN));
                 column->Id = id;
