@@ -180,7 +180,19 @@ LONG PhGetSystemDpi(
     VOID
     )
 {
-    return PhGetDpiValue(NULL, NULL);
+    UINT dpi;
+
+    // Try avoid calling GetDpiForSystem since it'll return incorrect DPI
+    // when the user changes the display settings. GetDpiForWindow doesn't have
+    // this same limitation and always returns the correct DPI. (dmex)
+    dpi = PhGetTaskbarDpi();
+
+    if (dpi == 0)
+    {
+        dpi = PhGetDpiValue(NULL, NULL);
+    }
+
+    return dpi;
 }
 
 LONG PhGetTaskbarDpi(
@@ -190,13 +202,13 @@ LONG PhGetTaskbarDpi(
     UINT dpi = 0;
     HWND shellWindow;
 
-    // GetShellWindow is cached in TEB (dmex)
+    // Note: GetShellWindow is cached in TEB (dmex)
     if (shellWindow = GetShellWindow())
     {
         dpi = PhGetDpiValue(shellWindow, NULL);
     }
 
-    // SHAppBarMessage requires SendMessage and very slow (dmex0
+    // SHAppBarMessage requires SendMessage and very slow (dmex)
     //if (dpi == 0)
     //{
     //    APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
@@ -219,13 +231,10 @@ LONG PhGetWindowDpi(
     _In_ HWND WindowHandle
     )
 {
-    if (WindowsVersion < WINDOWS_10_RS1)
-    {
-        RECT rect;
-
-        if (GetWindowRect(WindowHandle, &rect))
-            return PhGetDpiValue(NULL, &rect);
-    }
+    //RECT rect;
+    //
+    //if (GetWindowRect(WindowHandle, &rect))
+    //    return PhGetDpiValue(NULL, &rect);
 
     return PhGetDpiValue(WindowHandle, NULL);
 }
@@ -263,7 +272,7 @@ LONG PhGetDpiValue(
 
             if (baseAddress)
             {
-                GetDpiForMonitor_I = PhGetProcedureAddress(baseAddress, "GetDpiForMonitor", 0);
+                GetDpiForMonitor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForMonitor", 0);
             }
         }
 
@@ -276,8 +285,8 @@ LONG PhGetDpiValue(
 
             if (baseAddress)
             {
-                GetDpiForWindow_I = PhGetProcedureAddress(baseAddress, "GetDpiForWindow", 0);
-                GetDpiForSystem_I = PhGetProcedureAddress(baseAddress, "GetDpiForSystem", 0);
+                GetDpiForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForWindow", 0);
+                GetDpiForSystem_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForSystem", 0);
             }
         }
 
@@ -356,17 +365,17 @@ LONG PhGetSystemMetrics(
 
             if (baseAddress)
             {
-                GetSystemMetricsForDpi_I = PhGetProcedureAddress(baseAddress, "GetSystemMetricsForDpi", 0);
+                GetSystemMetricsForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "GetSystemMetricsForDpi", 0);
             }
         }
 
         PhEndInitOnce(&initOnce);
     }
 
-    if (!DpiValue || !GetSystemMetricsForDpi_I)
-        return GetSystemMetrics(Index);
+    if (GetSystemMetricsForDpi_I && DpiValue)
+        return GetSystemMetricsForDpi_I(Index, DpiValue);
 
-    return GetSystemMetricsForDpi_I(Index, DpiValue);
+    return GetSystemMetrics(Index);
 }
 
 BOOL PhGetSystemParametersInfo(
@@ -396,7 +405,7 @@ BOOL PhGetSystemParametersInfo(
 
             if (baseAddress)
             {
-                SystemParametersInfoForDpi_I = PhGetProcedureAddress(baseAddress, "SystemParametersInfoForDpi", 0);
+                SystemParametersInfoForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "SystemParametersInfoForDpi", 0);
             }
         }
 
