@@ -620,7 +620,8 @@ static BOOLEAN SharedIconCacheHashtableEqualFunction(
 
     if (entry1->InstanceHandle != entry2->InstanceHandle ||
         entry1->Width != entry2->Width ||
-        entry1->Height != entry2->Height)
+        entry1->Height != entry2->Height ||
+        entry1->DpiValue != entry2->DpiValue)
     {
         return FALSE;
     }
@@ -653,7 +654,7 @@ static ULONG SharedIconCacheHashtableHashFunction(
     else
         nameHash = PhHashBytes((PUCHAR)entry->Name, PhCountStringZ(entry->Name));
 
-    return nameHash ^ (PtrToUlong(entry->InstanceHandle) >> 5) ^ (entry->Width << 3) ^ entry->Height;
+    return nameHash ^ (PtrToUlong(entry->InstanceHandle) >> 5) ^ (entry->Width << 3) ^ entry->Height ^ entry->DpiValue;
 }
 
 HICON PhLoadIcon(
@@ -662,7 +663,7 @@ HICON PhLoadIcon(
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
     _In_opt_ ULONG Height,
-    _In_opt_ LONG dpiValue
+    _In_opt_ LONG DpiValue
     )
 {
     PHP_ICON_ENTRY entry;
@@ -686,6 +687,7 @@ HICON PhLoadIcon(
         entry.Name = Name;
         entry.Width = PhpGetIconEntrySize(Width, Flags);
         entry.Height = PhpGetIconEntrySize(Height, Flags);
+        entry.DpiValue = DpiValue;
         actualEntry = PhFindEntryHashtable(SharedIconCacheHashtable, &entry);
 
         if (actualEntry)
@@ -700,13 +702,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-            height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+            width = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
+            height = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, dpiValue);
-            height = PhGetSystemMetrics(SM_CYICON, dpiValue);
+            width = PhGetSystemMetrics(SM_CXICON, DpiValue);
+            height = PhGetSystemMetrics(SM_CYICON, DpiValue);
         }
 
         if (LoadIconWithScaleDown)
@@ -724,13 +726,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-            height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+            width = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
+            height = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, dpiValue);
-            height = PhGetSystemMetrics(SM_CYICON, dpiValue);
+            width = PhGetSystemMetrics(SM_CXICON, DpiValue);
+            height = PhGetSystemMetrics(SM_CYICON, DpiValue);
         }
 
         icon = LoadImage(ImageBaseAddress, Name, IMAGE_ICON, width, height, 0);

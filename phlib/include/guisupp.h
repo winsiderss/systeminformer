@@ -8,6 +8,7 @@ typedef struct _PHP_ICON_ENTRY
     ULONG Width;
     ULONG Height;
     HICON Icon;
+    LONG DpiValue;
 } PHP_ICON_ENTRY, *PPHP_ICON_ENTRY;
 
 #define PHP_ICON_ENTRY_SIZE_SMALL (-1)
