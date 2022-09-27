@@ -2487,6 +2487,14 @@ BOOLEAN PhImageListSetImageCount(
     return SUCCEEDED(IImageList2_SetImageCount((IImageList2*)ImageListHandle, Count));
 }
 
+BOOLEAN PhImageListGetImageCount(
+    _In_ HIMAGELIST ImageListHandle,
+    _Out_ PUINT Count
+    )
+{
+    return SUCCEEDED(IImageList2_GetImageCount((IImageList2*)ImageListHandle, Count));
+}
+
 BOOLEAN PhImageListSetBkColor(
     _In_ HIMAGELIST ImageListHandle,
     _In_ COLORREF BackgroundColor
