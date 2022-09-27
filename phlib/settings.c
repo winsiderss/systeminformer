@@ -955,8 +955,7 @@ VOID PhLoadWindowPlacementFromSetting(
             position.Y = 0;
         }
 
-        if(!dpiValue)
-            dpiValue = PhGetWindowDpi(WindowHandle);
+        dpiValue = PhGetWindowDpi(WindowHandle);
 
         if (SizeSettingName)
         {
