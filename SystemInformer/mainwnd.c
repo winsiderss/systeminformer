@@ -292,6 +292,11 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
+            if (PhGetIntegerSetting(L"EnableWindowText"))
+            {
+                PhSetApplicationWindowIcon(PhMainWndHandle);
+            }
+
             PhProcessImageListInitialization(hWnd);
             TreeNew_SetImageList(PhMwpProcessTreeNewHandle, PhProcessSmallImageList);
             TreeNew_SetImageList(PhMwpServiceTreeNewHandle, PhProcessSmallImageList);
