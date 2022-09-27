@@ -364,6 +364,7 @@ BOOLEAN PhCmLoadSettingsEx(
             PPH_TREENEW_COLUMN column;
             ULONG id;
             ULONG displayIndex;
+            LONG width;
 
             PhSplitStringRefAtChar(&remainingColumnPart, L'|', &columnPart, &remainingColumnPart);
 
