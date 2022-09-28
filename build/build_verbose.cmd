@@ -7,6 +7,7 @@ for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual S
 )
 
 if not defined VSINSTALLPATH (
+   echo No Visual Studio installation detected.
    goto end
 )
 
