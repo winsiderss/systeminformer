@@ -42,11 +42,11 @@ ServiceBinary  = %12%\systeminformer.sys
 systeminformer.sys
 ksi.dll
 
-[SourceDiskFiles]
+[SourceDisksFiles]
 systeminformer.sys = 1,,
 ksi.dll = 1,,
 
-[SourceDiskNames]
+[SourceDisksNames]
 1 = %DiskId1%,,,""
 
 [Strings]
