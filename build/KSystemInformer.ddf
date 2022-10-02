@@ -20,13 +20,6 @@
 .Set Compress=on
 .Set CabinetNameTemplate=KSystemInformer.cab
 
-.Set DestinationDir=x86
-KSystemInformer.inf
-Release32\systeminformer.sys
-Release32\systeminformer.pdb
-Release32\ksi.dll
-Release32\ksi.pdb
-
 .Set DestinationDir=x64
 KSystemInformer.inf
 Release64\systeminformer.sys
