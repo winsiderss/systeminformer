@@ -237,8 +237,8 @@ VOID PhpUpdateHeapRegions(
     HANDLE clientProcessId = List->ProcessId;
     PROCESS_REFLECTION_INFORMATION reflectionInfo = { 0 };
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
+    PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo = NULL;
     HANDLE powerRequestHandle = NULL;
-    ULONG heapEntrySize;
 
     status = PhOpenProcess(
         &processHandle,
@@ -276,7 +276,7 @@ VOID PhpUpdateHeapRegions(
 
         status = RtlQueryProcessDebugInformation(
             clientProcessId,
-            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_SEGMENTS,
+            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_SEGMENTS | RTL_QUERY_PROCESS_NONINVASIVE,
             debugBuffer
             );
 
@@ -310,20 +310,46 @@ VOID PhpUpdateHeapRegions(
         return;
     }
 
-    heapEntrySize = WindowsVersion > WINDOWS_11 ? sizeof(RTL_HEAP_INFORMATION) : RTL_SIZEOF_THROUGH_FIELD(RTL_HEAP_INFORMATION, Entries);
-
-    for (ULONG i = 0; i < debugBuffer->Heaps->NumberOfHeaps; i++)
+    if (WindowsVersion > WINDOWS_11)
     {
-        PRTL_HEAP_INFORMATION heapInfo = PTR_ADD_OFFSET(debugBuffer->Heaps->Heaps, heapEntrySize * i);
+        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
+        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps;
+    }
+    else
+    {
+        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
+        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
+    }
+
+    for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
+    {
+        RTL_HEAP_INFORMATION_V2 heapInfo = { 0 };
         PPH_MEMORY_ITEM heapMemoryItem;
 
-        if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo->BaseAddress, TRUE, HeapRegion))
+        if (WindowsVersion > WINDOWS_11)
+        {
+            heapInfo = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->Heaps[i];
+        }
+        else
+        {
+            RTL_HEAP_INFORMATION_V1 heapInfoV1 = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->Heaps[i];
+            heapInfo.NumberOfEntries = heapInfoV1.NumberOfEntries;
+            heapInfo.Entries = heapInfoV1.Entries;
+            heapInfo.BytesCommitted = heapInfoV1.BytesCommitted;
+            heapInfo.Flags = heapInfoV1.Flags;
+            heapInfo.BaseAddress = heapInfoV1.BaseAddress;
+        }
+
+        if (!heapInfo.BaseAddress)
+            continue;
+
+        if (heapMemoryItem = PhpSetMemoryRegionType(List, heapInfo.BaseAddress, TRUE, HeapRegion))
         {
             heapMemoryItem->u.Heap.Index = i;
 
-            for (ULONG j = 0; j < heapInfo->NumberOfEntries; j++)
+            for (ULONG j = 0; j < heapInfo.NumberOfEntries; j++)
             {
-                PRTL_HEAP_ENTRY heapEntry = &heapInfo->Entries[j];
+                PRTL_HEAP_ENTRY heapEntry = &heapInfo.Entries[j];
 
                 if (heapEntry->Flags & RTL_HEAP_SEGMENT)
                 {
