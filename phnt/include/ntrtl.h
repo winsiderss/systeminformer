@@ -4006,7 +4006,8 @@ typedef struct _RTL_HEAP_TAG
     WCHAR TagName[24];
 } RTL_HEAP_TAG, *PRTL_HEAP_TAG;
 
-typedef struct _RTL_HEAP_INFORMATION
+// Windows 7/8/10
+typedef struct _RTL_HEAP_INFORMATION_V1
 {
     PVOID BaseAddress;
     ULONG Flags;
@@ -4021,17 +4022,41 @@ typedef struct _RTL_HEAP_INFORMATION
     ULONG Reserved[5];
     PRTL_HEAP_TAG Tags;
     PRTL_HEAP_ENTRY Entries;
-    ULONG64 HeapTag; // Windows 11 > 22000
-} RTL_HEAP_INFORMATION, *PRTL_HEAP_INFORMATION;
+} RTL_HEAP_INFORMATION_V1, *PRTL_HEAP_INFORMATION_V1;
+
+// Windows 11 > 22000
+typedef struct _RTL_HEAP_INFORMATION_V2
+{
+    PVOID BaseAddress;
+    ULONG Flags;
+    USHORT EntryOverhead;
+    USHORT CreatorBackTraceIndex;
+    SIZE_T BytesAllocated;
+    SIZE_T BytesCommitted;
+    ULONG NumberOfTags;
+    ULONG NumberOfEntries;
+    ULONG NumberOfPseudoTags;
+    ULONG PseudoTagGranularity;
+    ULONG Reserved[5];
+    PRTL_HEAP_TAG Tags;
+    PRTL_HEAP_ENTRY Entries;
+    ULONG64 HeapTag;
+} RTL_HEAP_INFORMATION_V2, *PRTL_HEAP_INFORMATION_V2;
 
 #define RTL_HEAP_SIGNATURE 0xFFEEFFEEUL
 #define RTL_HEAP_SEGMENT_SIGNATURE 0xDDEEDDEEUL
 
-typedef struct _RTL_PROCESS_HEAPS
+typedef struct _RTL_PROCESS_HEAPS_V1
 {
     ULONG NumberOfHeaps;
-    RTL_HEAP_INFORMATION Heaps[1];
-} RTL_PROCESS_HEAPS, *PRTL_PROCESS_HEAPS;
+    RTL_HEAP_INFORMATION_V1 Heaps[1];
+} RTL_PROCESS_HEAPS_V1, *PRTL_PROCESS_HEAPS_V1;
+
+typedef struct _RTL_PROCESS_HEAPS_V2
+{
+    ULONG NumberOfHeaps;
+    RTL_HEAP_INFORMATION_V2 Heaps[1];
+} RTL_PROCESS_HEAPS_V2, *PRTL_PROCESS_HEAPS_V2;
 
 typedef NTSTATUS (NTAPI *PRTL_HEAP_COMMIT_ROUTINE)(
     _In_ PVOID Base,
@@ -4781,7 +4806,7 @@ typedef struct _RTL_DEBUG_INFORMATION
         struct _RTL_PROCESS_MODULE_INFORMATION_EX *ModulesEx;
     };
     struct _RTL_PROCESS_BACKTRACES *BackTraces;
-    struct _RTL_PROCESS_HEAPS *Heaps;
+    PVOID Heaps;
     struct _RTL_PROCESS_LOCKS *Locks;
     PVOID SpecificHeap;
     HANDLE TargetProcessHandle;
