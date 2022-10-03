@@ -39,7 +39,7 @@ if not "%1"=="" (
         goto :argloop
     )
     if "%1"=="legacy" (
-        set LEGACY_BUILD=
+        set LEGACY_BUILD=Legacy
         shift
         goto :argloop
     )
@@ -63,7 +63,7 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
     goto end
 )
 
-echo [+] Building... %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS%
+echo [+] Building... %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%
 
 msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=x64 -maxCpuCount -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
 if %ERRORLEVEL% neq 0 goto end
@@ -72,28 +72,11 @@ msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%
 if %ERRORLEVEL% neq 0 goto end
 
 if defined LEGACY_BUILD (
-
-    for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -version "[16.0,17.0)" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
-        set VSINSTALLPATH2019=%%A
-    )
-
-    if not defined VSINSTALLPATH2019 (
-        echo [-] VS2019 is required to build legacy
-        goto end
-    )
-
-    if exist "%VSINSTALLPATH2019%\VC\Auxiliary\Build\vcvarsall.bat" (
-        call "%VSINSTALLPATH2019%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
-    ) else (
-        echo [-] Failed to set up build environment
-        goto end
-    )
-
     msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=Win32 -maxCpuCount -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
     if %ERRORLEVEL% neq 0 goto end
 )
 
-echo [+] Build Complete! %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS%
+echo [+] Build Complete! %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS% %LEGACY_BUILD%
 
 :end
 pause
