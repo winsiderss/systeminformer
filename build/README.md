@@ -27,10 +27,3 @@ mitigation to protect the driver from abuse. Please refer to the
 [kernel driver readme](../KSystemInformer/README.md) for more information. You may also disable 
 the advanced setting for image load denial, but access to the driver will be restricted with 
 unsigned plugins loaded.
-
-### Driver won't build
-
-There are a few ways to build the driver. The reason there are multiple is Microsoft broke support 
-our targeted platforms in VS2022 and the latest WDK. `build_zdriver.cmd` requires VS2019 and builds 
-for all targeted platforms. `build_zdriver_vs22.cmd` or `build_zdriver_vs19.cmd` uses a specific 
-version of Visual Studio but will not build the driver for all platforms.
