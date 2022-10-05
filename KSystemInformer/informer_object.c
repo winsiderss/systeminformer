@@ -150,6 +150,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleCreate(
     msg->Kernel.ProcessHandlePreCreate.ObjectProcessId =
         PsGetProcessId(Info->Object);
 
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
     KphCommsSendMessageAsync(msg);
 
     return OB_PREOP_SUCCESS;
@@ -204,6 +209,11 @@ VOID KphpObPostProcessHandleCreate(
         Info->Parameters->CreateHandleInformation.GrantedAccess;
     msg->Kernel.ProcessHandlePostCreate.ObjectProcessId =
         PsGetProcessId(Info->Object);
+
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
 
     KphCommsSendMessageAsync(msg);
 }
@@ -267,6 +277,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreProcessHandleDuplicate(
     msg->Kernel.ProcessHandlePreDuplicate.ObjectProcessId =
         PsGetProcessId(Info->Object);
 
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
     KphCommsSendMessageAsync(msg);
 
     return OB_PREOP_SUCCESS;
@@ -321,6 +336,11 @@ VOID KphpObPostProcessHandleDuplicate(
         Info->Parameters->CreateHandleInformation.GrantedAccess;
     msg->Kernel.ProcessHandlePostDuplicate.ObjectProcessId =
         PsGetProcessId(Info->Object);
+
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
 
     KphCommsSendMessageAsync(msg);
 }
@@ -380,6 +400,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleCreate(
     msg->Kernel.ThreadHandlePreCreate.ObjectThreadId =
         PsGetThreadId(Info->Object);
 
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
     KphCommsSendMessageAsync(msg);
 
     return OB_PREOP_SUCCESS;
@@ -434,6 +459,11 @@ VOID KphpObPostThreadHandleCreate(
         Info->Parameters->CreateHandleInformation.GrantedAccess;
     msg->Kernel.ThreadHandlePostCreate.ObjectThreadId =
         PsGetThreadId(Info->Object);
+
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
 
     KphCommsSendMessageAsync(msg);
 }
@@ -497,6 +527,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreThreadHandleDuplicate(
     msg->Kernel.ThreadHandlePreDuplicate.ObjectThreadId =
         PsGetThreadId(Info->Object);
 
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
     KphCommsSendMessageAsync(msg);
 
     return OB_PREOP_SUCCESS;
@@ -551,6 +586,11 @@ VOID KphpObPostThreadHandleDuplicate(
         Info->Parameters->CreateHandleInformation.GrantedAccess;
     msg->Kernel.ThreadHandlePostDuplicate.ObjectThreadId =
         PsGetThreadId(Info->Object);
+
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
 
     KphCommsSendMessageAsync(msg);
 }
@@ -608,6 +648,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleCreate(
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
 
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
     KphCommsSendMessageAsync(msg);
 
     return OB_PREOP_SUCCESS;
@@ -662,6 +707,11 @@ VOID KphpObPostDesktopHandleCreate(
         Info->Parameters->CreateHandleInformation.GrantedAccess;
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
+
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
 
     KphCommsSendMessageAsync(msg);
 }
@@ -723,6 +773,11 @@ OB_PREOP_CALLBACK_STATUS KphpObPreDesktopHandleDuplicate(
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
 
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
     KphCommsSendMessageAsync(msg);
 
     return OB_PREOP_SUCCESS;
@@ -777,6 +832,11 @@ VOID KphpObPostDesktopHandleDuplicate(
         Info->Parameters->CreateHandleInformation.GrantedAccess;
 
     KphpPopulateObjectNameInMessage(msg, Info->Object);
+
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
 
     KphCommsSendMessageAsync(msg);
 }

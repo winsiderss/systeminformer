@@ -85,6 +85,7 @@ typedef enum _KPH_MESSAGE_FIELD_ID
     KphMsgFieldCommandLine,
     KphMsgFieldOutput,
     KphMsgFieldObjectName,
+    KphMsgFieldStackTrace,
 
     MaxKphMsgField
 
@@ -99,6 +100,7 @@ typedef enum _KPH_MESSAGE_TYPE_ID
 
     KphMsgTypeUnicodeString,
     KphMsgTypeAnsiString,
+    KphMsgTypeStackTrace,
 
     MaxKphMsgType
 

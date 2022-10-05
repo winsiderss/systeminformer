@@ -222,6 +222,11 @@ VOID KphpCreateThreadNotifyInformer(
         msg->Kernel.ThreadExit.ExitStatus = KphGetThreadExitStatus(Thread->EThread);
     }
 
+    if (KphInformerSettings.EnableStackTraces)
+    {
+        KphCaptureStackInMessage(msg);
+    }
+
     KphCommsSendMessageAsync(msg);
     msg = NULL;
 
