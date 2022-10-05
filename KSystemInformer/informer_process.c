@@ -260,6 +260,11 @@ VOID KphpCreateProcessNotifyInformer(
             }
         }
 
+        if (KphInformerSettings.EnableStackTraces)
+        {
+            KphCaptureStackInMessage(msg);
+        }
+
         status = KphCommsSendMessage(msg, reply, KPH_COMMS_DEFAULT_TIMEOUT);
         if (!NT_SUCCESS(status))
         {
@@ -297,6 +302,11 @@ VOID KphpCreateProcessNotifyInformer(
         msg->Kernel.ProcessExit.ExitingClientId.UniqueProcess = PsGetCurrentProcessId();
         msg->Kernel.ProcessExit.ExitingClientId.UniqueThread = PsGetCurrentThreadId();
         msg->Kernel.ProcessExit.ExitStatus = PsGetProcessExitStatus(Process->EProcess);
+
+        if (KphInformerSettings.EnableStackTraces)
+        {
+            KphCaptureStackInMessage(msg);
+        }
 
         KphCommsSendMessageAsync(msg);
         msg = NULL;

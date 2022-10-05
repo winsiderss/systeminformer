@@ -13,6 +13,7 @@
 #include <comms.h>
 #include <informer.h>
 #include <dyndata.h>
+#include <kphmsgdyn.h>
 
 #include <trace.h>
 
@@ -1409,3 +1410,38 @@ NTSTATUS KphCommsSendMessage(
 
     return status;
 }
+
+/**
+ * \brief Captures the current stack and adds it to the message.
+ *
+ * \param[in,out] Message The message to populate with the current stack.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphCaptureStackInMessage(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    NTSTATUS status;
+    PVOID frames[150];
+    KPH_STACK_TRACE stack;
+
+    PAGED_CODE();
+
+    stack.Count = (USHORT)KphCaptureStack(frames, ARRAYSIZE(frames));
+    if (stack.Count == 0)
+    {
+        return;
+    }
+
+    stack.Frames = frames;
+
+    status = KphMsgDynAddStackTrace(Message, KphMsgFieldStackTrace, &stack);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_WARNING,
+                      COMMS,
+                      "KphMsgDynAddStackTrace failed: %!STATUS!",
+                      status);
+    }
+}
+

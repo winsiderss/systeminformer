@@ -17,6 +17,12 @@ extern "C"
 {
 #endif
 
+typedef struct _KPH_STACK_TRACE
+{
+    PVOID* Frames;
+    USHORT Count;
+} KPH_STACK_TRACE, *PKPH_STACK_TRACE;
+
 VOID KphMsgDynClear(
     _Inout_ PKPH_MESSAGE Message
     );
@@ -54,6 +60,20 @@ NTSTATUS KphMsgDynGetAnsiString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,
     _Out_ PANSI_STRING String
+    );
+
+_Must_inspect_result_
+NTSTATUS KphMsgDynAddStackTrace(
+    _Inout_ PKPH_MESSAGE Message,
+    _In_ KPH_MESSAGE_FIELD_ID FieldId,
+    _In_ PKPH_STACK_TRACE StackTrace 
+    );
+
+_Must_inspect_result_
+NTSTATUS KphMsgDynGetStackTrace(
+    _In_ PCKPH_MESSAGE Message,
+    _In_ KPH_MESSAGE_FIELD_ID FieldId,
+    _Out_ PKPH_STACK_TRACE StackTrace 
     );
 
 #ifdef __cplusplus
