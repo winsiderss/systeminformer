@@ -3,7 +3,7 @@
 
 rmdir /q /s %~dp0\output\cab
 
-call %~dp0\build_zdriver.cmd release
+call %~dp0\build_zdriver.cmd release rebuild
 if %ERRORLEVEL% neq 0 (
     echo [-] Build failed, CAB was not generated. 
     goto end
