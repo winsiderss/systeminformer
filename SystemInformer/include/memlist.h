@@ -36,7 +36,6 @@ typedef struct _PH_MEMORY_NODE
 
     PH_STRINGREF TextCache[PHMMTLC_MAXIMUM];
 
-    WCHAR BaseAddressText[PH_PTR_STR_LEN_1];
     WCHAR TypeText[30];
     PPH_STRING SizeText;
     WCHAR ProtectionText[17];

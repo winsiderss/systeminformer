@@ -237,6 +237,7 @@ PPH_MEMORY_NODE PhpAddAllocationBaseNode(
 
     memoryItem->BaseAddress = AllocationBase;
     memoryItem->AllocationBase = AllocationBase;
+    PhPrintPointer(memoryItem->BaseAddressString, memoryItem->BaseAddress);
 
     memoryNode->Children = PhCreateList(1);
 
@@ -763,18 +764,7 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             switch (getCellText->Id)
             {
             case PHMMTLC_BASEADDRESS:
-                PH_FORMAT format[2];
-                SIZE_T returnLength;
-
-                PhInitFormatS(&format[0], L"0x");
-                PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)memoryItem->BaseAddress);
-
-                if (PhFormatToBuffer(format, 2, node->BaseAddressText, sizeof(node->BaseAddressText), &returnLength))
-                {
-                    getCellText->Text.Buffer = node->BaseAddressText;
-                    getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                }
-
+                PhInitializeStringRefLongHint(&getCellText->Text, memoryItem->BaseAddressString);
                 break;
             case PHMMTLC_TYPE:
                 if (memoryItem->State & MEM_FREE)
