@@ -1121,9 +1121,8 @@ static ULONG StartDotNetTrace(
 
     bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + DotNetLoggerName.Length + sizeof(UNICODE_NULL);
     properties = PhAllocateZero(bufferSize);
-
     properties->Wnode.BufferSize = bufferSize;
-    properties->Wnode.ClientContext = 2; // System time clock resolution
+    properties->Wnode.ClientContext = 1;
     properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
     properties->LogFileMode = EVENT_TRACE_REAL_TIME_MODE | EVENT_TRACE_USE_PAGED_MEMORY;
     properties->EnableFlags = EVENT_TRACE_FLAG_NO_SYSCONFIG;
@@ -1434,7 +1433,7 @@ static ULONG ProcessDotNetTrace(
 
     memset(&logFile, 0, sizeof(EVENT_TRACE_LOGFILE));
     logFile.LoggerName = DotNetLoggerName.Buffer;
-    logFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD;
+    logFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_RAW_TIMESTAMP;
     logFile.BufferCallback = DotNetBufferCallback;
     logFile.EventRecordCallback = DotNetEventCallback;
     logFile.Context = Context;
@@ -1464,7 +1463,6 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     TRACEHANDLE sessionHandle;
     PEVENT_TRACE_PROPERTIES properties;
     PGUID guidToEnable;
-    ENABLE_TRACE_PARAMETERS enableParameters;
 
     context->TraceResult = StartDotNetTrace(&sessionHandle, &properties);
 
@@ -1479,9 +1477,6 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
     else
         guidToEnable = &ClrRundownProviderGuid;
 
-    memset(&enableParameters, 0, sizeof(ENABLE_TRACE_PARAMETERS));
-    enableParameters.Version = ENABLE_TRACE_PARAMETERS_VERSION_2;
-
     context->TraceResult = EnableTraceEx2(
         sessionHandle,
         guidToEnable,
@@ -1489,8 +1484,8 @@ NTSTATUS UpdateDotNetTraceInfoThreadStart(
         TRACE_LEVEL_INFORMATION,
         CLR_LOADER_KEYWORD | CLR_STARTENUMERATION_KEYWORD,
         0,
-        0,
-        &enableParameters
+        INFINITE,
+        NULL
         );
 
     if (context->TraceResult != ERROR_SUCCESS)
