@@ -72,7 +72,7 @@ ULONG EnableFilteredProvider(
         level,
         anyKeywordMask,
         allKeywordMask,
-        0,
+        INFINITE,
         &params
         );
 
@@ -317,10 +317,9 @@ BOOLEAN StartFpsTraceSession(
 
     {
         EVENT_TRACE_LOGFILE traceProps = {};
-        traceProps.ProcessTraceMode = PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_RAW_TIMESTAMP;
+        traceProps.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD | PROCESS_TRACE_MODE_RAW_TIMESTAMP;
         traceProps.EventRecordCallback = EventRecordCallback;
         traceProps.LoggerName = const_cast<LPWSTR>(L"SiPresentTraceSession");
-        traceProps.ProcessTraceMode |= PROCESS_TRACE_MODE_REAL_TIME;
         mTraceHandle = OpenTrace(&traceProps);
 
         if (mTraceHandle == INVALID_PROCESSTRACE_HANDLE)
