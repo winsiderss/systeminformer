@@ -123,7 +123,7 @@ BOOLEAN PhSipMemorySectionCallback(
             if (!drawInfo)
                 break;
 
-            dpiValue = PhGetWindowDpi(Section->DialogHandle);
+            dpiValue = PhGetWindowDpi(Section->GraphHandle);
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {

@@ -138,8 +138,7 @@ BOOLEAN PhSipCpuSectionCallback(
             if (!drawInfo)
                 break;
 
-            dpiValue = PhGetWindowDpi(Section->DialogHandle);
-
+            dpiValue = PhGetWindowDpi(Section->GraphHandle);
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | PH_GRAPH_LABEL_MAX_Y;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
@@ -790,7 +789,6 @@ VOID PhSipNotifyCpuGraph(
             LONG dpiValue;
 
             dpiValue = PhGetWindowDpi(Header->hwndFrom);
-
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
             PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
 

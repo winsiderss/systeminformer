@@ -501,7 +501,6 @@ BOOLEAN DiskDriveSectionCallback(
                 break;
 
             dpiValue = PhGetWindowDpi(Section->GraphHandle);
-
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DiskEntry->ReadBuffer.Count);

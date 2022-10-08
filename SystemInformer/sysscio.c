@@ -110,7 +110,7 @@ BOOLEAN PhSipIoSectionCallback(
             if (!drawInfo)
                 break;
 
-            dpiValue = PhGetWindowDpi(Section->DialogHandle);
+            dpiValue = PhGetWindowDpi(Section->GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorIoReadOther, PhCsColorIoWrite, dpiValue);

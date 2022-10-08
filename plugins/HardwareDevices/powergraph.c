@@ -900,7 +900,6 @@ BOOLEAN RaplDeviceSectionCallback(
                 break;
 
             dpiValue = PhGetWindowDpi(Section->GraphHandle);
-
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
             Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DeviceEntry->TotalBuffer.Count);
