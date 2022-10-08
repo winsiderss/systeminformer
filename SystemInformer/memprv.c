@@ -1048,6 +1048,9 @@ NTSTATUS PhQueryMemoryItemList(
         if (allocationBaseItem && basicInfo.AllocationBase == allocationBaseItem->BaseAddress)
             memoryItem->AllocationBaseItem = allocationBaseItem;
 
+        PhPrintPointer(memoryItem->BaseAddressString, memoryItem->BasicInfo.BaseAddress);
+        //PhPrintPointer(memoryItem->AllocationBaseItem->BaseAddressString, allocationBaseItem->BasicInfo.BaseAddress);
+
         if (basicInfo.State & MEM_COMMIT)
         {
             memoryItem->CommittedSize = memoryItem->RegionSize;
@@ -1107,6 +1110,8 @@ NTSTATUS PhQueryMemoryItemList(
                     otherMemoryItem->AllocationBase = otherMemoryItem->BaseAddress;
                     otherMemoryItem->RegionSize = basicInfo.RegionSize - potentialUnusableSize;
                     otherMemoryItem->AllocationBaseItem = otherMemoryItem;
+                    PhPrintPointer(otherMemoryItem->BaseAddressString, otherMemoryItem->BasicInfo.BaseAddress);
+                    //PhPrintPointer(otherMemoryItem->AllocationBaseItem->BaseAddressString, otherMemoryItem->AllocationBaseItem->BasicInfo.BaseAddress);
 
                     PhAddElementAvlTree(&List->Set, &otherMemoryItem->Links);
                     InsertTailList(&List->ListHead, &otherMemoryItem->ListEntry);

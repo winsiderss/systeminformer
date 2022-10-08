@@ -64,6 +64,8 @@ typedef struct _PH_MEMORY_ITEM
         };
     };
 
+    WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
+
     struct _PH_MEMORY_ITEM *AllocationBaseItem;
 
     SIZE_T CommittedSize;
