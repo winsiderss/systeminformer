@@ -244,9 +244,9 @@ BOOLEAN PhpMemoryTreeFilterCallback(
         }
     }
 
-    if (memoryNode->BaseAddressText[0])
+    if (memoryItem->BaseAddressString[0])
     {
-        if (PhWordMatchStringZ(memoryContext->SearchboxText, memoryNode->BaseAddressText))
+        if (PhWordMatchStringZ(memoryContext->SearchboxText, memoryItem->BaseAddressString))
             return TRUE;
     }
 
