@@ -389,11 +389,7 @@ INT_PTR CALLBACK GraphicsDeviceDetailsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-
-
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
-
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 

@@ -11,6 +11,8 @@
 
 #include "devices.h"
 
+PPH_OBJECT_TYPE GraphicsSysinfoEntryType = NULL;
+
 PPH_STRING GraphicsDeviceGetAdapterDescription(
     _In_ PPH_STRING DevicePath
     )
@@ -54,10 +56,17 @@ VOID GraphicsDeviceSysInfoInitializing(
     _In_ PDV_GPU_ENTRY DeviceEntry
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PDV_GPU_SYSINFO_CONTEXT context;
     PH_SYSINFO_SECTION section;
 
-    context = PhAllocateZero(sizeof(DV_GPU_SYSINFO_CONTEXT));
+    if (PhBeginInitOnce(&initOnce))
+    {
+        GraphicsSysinfoEntryType = PhCreateObjectType(L"GpuSysInfoContext", 0, NULL);
+        PhEndInitOnce(&initOnce);
+    }
+
+    context = PhCreateObjectZero(sizeof(DV_GPU_SYSINFO_CONTEXT), GraphicsSysinfoEntryType);
     context->DeviceEntry = PhReferenceObject(DeviceEntry);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
@@ -1067,7 +1076,7 @@ BOOLEAN GraphicsDeviceSectionCallback(
                 context->DeviceEntry = NULL;
             }
 
-            PhFree(context);
+            PhDereferenceObject(context);
         }
         return TRUE;
     case SysInfoTick:

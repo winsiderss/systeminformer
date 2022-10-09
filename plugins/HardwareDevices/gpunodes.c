@@ -66,6 +66,8 @@ NTSTATUS EtpGpuNodesDialogThreadStart(
 
     PhResetEvent(&Context->NodeWindowInitializedEvent);
 
+    PhDereferenceObject(Context);
+
     return STATUS_SUCCESS;
 }
 
@@ -76,9 +78,12 @@ VOID GraphicsDeviceShowNodesDialog(
 {
     if (!Context->NodeWindowThreadHandle)
     {
+        PhReferenceObject(Context);
+
         if (!NT_SUCCESS(PhCreateThreadEx(&Context->NodeWindowThreadHandle, EtpGpuNodesDialogThreadStart, Context)))
         {
             PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+            PhDereferenceObject(Context);
             return;
         }
 
@@ -191,7 +196,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, context->WindowHandle);
+                PhCenterWindow(hwndDlg, NULL);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
