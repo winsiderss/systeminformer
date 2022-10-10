@@ -680,7 +680,7 @@ VOID PhTickProcessNodes(
         // The DPI awareness defaults to unaware if not set or declared in the manifest in which case
         // it can be changed once, so we can only be sure that it won't be changed again if it is different
         // from Unaware (poizan42).
-        if (node->DpiAwareness != 1)
+        if (node->DpiAwareness != PH_PROCESS_DPI_AWARENESS_UNAWARE + 1)
             node->ValidMask &= ~PHPN_DPIAWARENESS;
 
         // Invalidate graph buffers.
@@ -1260,7 +1260,7 @@ static VOID PhpUpdateProcessNodeDpiAwareness(
     {
         if (ProcessNode->ProcessItem->QueryHandle)
         {
-            ULONG dpiAwareness;
+            PH_PROCESS_DPI_AWARENESS dpiAwareness;
 
             if (PhGetProcessDpiAwareness(ProcessNode->ProcessItem->QueryHandle, &dpiAwareness))
                 ProcessNode->DpiAwareness = dpiAwareness + 1;
@@ -3191,19 +3191,19 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 switch (node->DpiAwareness)
                 {
-                case 1:
+                case PH_PROCESS_DPI_AWARENESS_UNAWARE + 1:
                     PhInitializeStringRef(&getCellText->Text, L"Unaware");
                     break;
-                case 2:
+                case PH_PROCESS_DPI_AWARENESS_SYSTEM_DPI_AWARE + 1:
                     PhInitializeStringRef(&getCellText->Text, L"System aware");
                     break;
-                case 3:
+                case PH_PROCESS_DPI_AWARENESS_PER_MONITOR_DPI_AWARE + 1:
                     PhInitializeStringRef(&getCellText->Text, L"Per-monitor aware");
                     break;
-                case 4:
+                case PH_PROCESS_DPI_AWARENESS_PER_MONITOR_AWARE_V2 + 1:
                     PhInitializeStringRef(&getCellText->Text, L"Per-monitor V2");
                     break;
-                case 5:
+                case PH_PROCESS_DPI_AWARENESS_UNAWARE_GDISCALED + 1:
                     PhInitializeStringRef(&getCellText->Text, L"Unaware (GDI scaled)");
                     break;
                 }
