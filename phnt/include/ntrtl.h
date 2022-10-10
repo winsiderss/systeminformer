@@ -4476,6 +4476,9 @@ typedef struct _SEGMENT_HEAP_PERFORMANCE_COUNTER_INFORMATION
     SIZE_T LargeAllocCommitSize;
 } SEGMENT_HEAP_PERFORMANCE_COUNTER_INFORMATION, *PSEGMENT_HEAP_PERFORMANCE_COUNTER_INFORMATION;
 
+#define HeapPerformanceCountersInformationStandardHeapVersion 0x1
+#define HeapPerformanceCountersInformationSegmentHeapVersion 0x2
+
 typedef struct _HEAP_PERFORMANCE_COUNTERS_INFORMATION
 {
     ULONG Size;
