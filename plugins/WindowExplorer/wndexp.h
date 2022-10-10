@@ -84,7 +84,8 @@ VOID WeShowWindowsPropPage(
 
 VOID WeShowWindowProperties(
     _In_ HWND ParentWindowHandle,
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN MessageOnlyWindow
     );
 
 HICON WepGetInternalWindowIcon(

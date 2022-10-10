@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2013
- *     dmex    2016-2021
+ *     dmex    2016-2022
  *
  */
 
@@ -34,7 +34,8 @@ typedef struct _WE_WINDOW_NODE
         {
             ULONG HasChildren : 1;
             ULONG WindowVisible : 1;
-            ULONG Spare : 30;
+            ULONG WindowMessageOnly : 1;
+            ULONG Spare : 29;
         };
     };
 

@@ -92,9 +92,6 @@ VOID WeInitializeWindowTree(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     HWND hwnd;
     PPH_STRING settings;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(ParentWindowHandle);
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -123,7 +120,9 @@ VOID WeInitializeWindowTree(
     if (WepEnableWindowIcons)
     {
         HICON iconSmall;
+        LONG dpiValue;
 
+        dpiValue = PhGetWindowDpi(ParentWindowHandle);
         Context->NodeImageList = PhImageListCreate(
             PhGetSystemMetrics(SM_CXSMICON, dpiValue),
             PhGetSystemMetrics(SM_CYSMICON, dpiValue),
@@ -484,6 +483,11 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 
             if (!node->WindowVisible)
                 getNodeColor->ForeColor = RGB(0x55, 0x55, 0x55);
+
+            if (node->WindowMessageOnly)
+            {
+                getNodeColor->BackColor = PhGetIntegerSetting(L"ColorServiceProcesses");
+            }
 
             getNodeColor->Flags = TN_CACHE;
         }
