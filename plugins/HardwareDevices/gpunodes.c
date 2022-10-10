@@ -257,6 +257,9 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             ULONG x;
             ULONG i;
 
+            if (!(context->GraphState && context->GraphHandle))
+                break;
+
             for (ULONG i = 0; i < context->NumberOfNodes; i++)
             {
                 context->GraphState[i].Valid = FALSE;
@@ -340,11 +343,12 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
                     LONG dpiValue;
 
+                    if (!(context->GraphState && context->GraphHandle))
+                        break;
                     if (context->NumberOfNodes != context->DeviceEntry->NumberOfNodes)
                         break;
 
                     dpiValue = PhGetWindowDpi(context->WindowHandle);
-                    
                     drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (GraphicsEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
                     PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
 
@@ -362,7 +366,6 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                             {
                                 PhCopyCircularBuffer_FLOAT(&context->DeviceEntry->GpuNodesHistory[i], context->GraphState[i].Data1, drawInfo->LineDataCount);
 
-                                if (GraphicsEnableScaleGraph)
                                 {
                                     FLOAT max = 0;
 
@@ -374,13 +377,16 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                                             max = data;
                                     }
 
-                                    if (max != 0)
+                                    if (GraphicsEnableScaleGraph)
                                     {
-                                        PhDivideSinglesBySingle(
-                                            context->GraphState[i].Data1,
-                                            max,
-                                            drawInfo->LineDataCount
-                                            );
+                                        if (max != 0)
+                                        {
+                                            PhDivideSinglesBySingle(
+                                                context->GraphState[i].Data1,
+                                                max,
+                                                drawInfo->LineDataCount
+                                                );
+                                        }
                                     }
 
                                     if (GraphicsEnableScaleText)
@@ -458,6 +464,8 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                 {
                     PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)header;
 
+                    if (!(context->GraphState && context->GraphHandle))
+                        break;
                     if (context->NumberOfNodes != context->DeviceEntry->NumberOfNodes)
                         break;
 
@@ -549,9 +557,16 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
         {
             for (ULONG i = 0; i < context->NumberOfNodes; i++)
             {
-                context->GraphState[i].Valid = FALSE;
-                context->GraphState[i].TooltipIndex = ULONG_MAX;
-                Graph_Draw(context->GraphHandle[i]);
+                if (context->GraphState)
+                {
+                    context->GraphState[i].Valid = FALSE;
+                    context->GraphState[i].TooltipIndex = ULONG_MAX;
+                }
+
+                if (context->GraphHandle)
+                {
+                    Graph_Draw(context->GraphHandle[i]);
+                }
             }
 
             if (IsMinimized(hwndDlg))
@@ -566,12 +581,19 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
         {
             for (ULONG i = 0; i < context->NumberOfNodes; i++)
             {
-                context->GraphState[i].Valid = FALSE;
-                context->GraphState[i].TooltipIndex = ULONG_MAX;
-                Graph_MoveGrid(context->GraphHandle[i], 1);
-                Graph_Draw(context->GraphHandle[i]);
-                Graph_UpdateTooltip(context->GraphHandle[i]);
-                InvalidateRect(context->GraphHandle[i], NULL, FALSE);
+                if (context->GraphState)
+                {
+                    context->GraphState[i].Valid = FALSE;
+                    context->GraphState[i].TooltipIndex = ULONG_MAX;
+                }
+
+                if (context->GraphHandle)
+                {
+                    Graph_MoveGrid(context->GraphHandle[i], 1);
+                    Graph_Draw(context->GraphHandle[i]);
+                    Graph_UpdateTooltip(context->GraphHandle[i]);
+                    InvalidateRect(context->GraphHandle[i], NULL, FALSE);
+                }
             }
         }
         break;
