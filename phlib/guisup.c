@@ -1837,7 +1837,7 @@ BOOLEAN PhIsImmersiveProcess(
 _Success_(return)
 BOOLEAN PhGetProcessDpiAwareness(
     _In_ HANDLE ProcessHandle,
-    _Out_ PULONG ProcessDpiAwareness
+    _Out_ PPH_PROCESS_DPI_AWARENESS ProcessDpiAwareness
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -1852,15 +1852,20 @@ BOOLEAN PhGetProcessDpiAwareness(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (WindowsVersion >= WINDOWS_10_RS1)
-        {
-            GetDpiAwarenessContextForProcess_I = PhGetDllProcedureAddress(L"user32.dll", "GetDpiAwarenessContextForProcess", 0);
-            AreDpiAwarenessContextsEqual_I = PhGetDllProcedureAddress(L"user32.dll", "AreDpiAwarenessContextsEqual", 0);
-        }
+        PVOID baseAddress;
 
-        if (!(GetDpiAwarenessContextForProcess_I && AreDpiAwarenessContextsEqual_I))
+        if (baseAddress = PhGetLoaderEntryDllBase(L"user32.dll"))
         {
-            GetProcessDpiAwarenessInternal_I = PhGetDllProcedureAddress(L"user32.dll", "GetProcessDpiAwarenessInternal", 0);
+            if (WindowsVersion >= WINDOWS_10_RS1)
+            {
+                GetDpiAwarenessContextForProcess_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiAwarenessContextForProcess", 0);
+                AreDpiAwarenessContextsEqual_I = PhGetDllBaseProcedureAddress(baseAddress, "AreDpiAwarenessContextsEqual", 0);
+            }
+
+            if (!(GetDpiAwarenessContextForProcess_I && AreDpiAwarenessContextsEqual_I))
+            {
+                GetProcessDpiAwarenessInternal_I = PhGetDllBaseProcedureAddress(baseAddress, "GetProcessDpiAwarenessInternal", 0);
+            }
         }
 
         PhEndInitOnce(&initOnce);
@@ -1872,31 +1877,31 @@ BOOLEAN PhGetProcessDpiAwareness(
 
         if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_UNAWARE))
         {
-            *ProcessDpiAwareness = PROCESS_DPI_UNAWARE;
+            *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_UNAWARE;
             return TRUE;
         }
 
         if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_SYSTEM_AWARE))
         {
-            *ProcessDpiAwareness = PROCESS_SYSTEM_DPI_AWARE;
+            *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_SYSTEM_DPI_AWARE;
             return TRUE;
         }
 
         if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
         {
-            *ProcessDpiAwareness = PROCESS_PER_MONITOR_DPI_AWARE;
+            *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_PER_MONITOR_DPI_AWARE;
             return TRUE;
         }
 
         if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
         {
-            *ProcessDpiAwareness = 3;
+            *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_PER_MONITOR_AWARE_V2;
             return TRUE;
         }
 
         if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED))
         {
-            *ProcessDpiAwareness = 4;
+            *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_UNAWARE_GDISCALED;
             return TRUE;
         }
     }
@@ -1907,8 +1912,18 @@ BOOLEAN PhGetProcessDpiAwareness(
 
         if (GetProcessDpiAwarenessInternal_I(ProcessHandle, &dpiAwareness))
         {
-            *ProcessDpiAwareness = dpiAwareness;
-            return TRUE;
+            switch (dpiAwareness)
+            {
+            case PROCESS_DPI_UNAWARE:
+                *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_UNAWARE;
+                return TRUE;
+            case PROCESS_SYSTEM_DPI_AWARE:
+                *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_SYSTEM_DPI_AWARE;
+                return TRUE;
+            case PROCESS_PER_MONITOR_DPI_AWARE:
+                *ProcessDpiAwareness = PH_PROCESS_DPI_AWARENESS_PER_MONITOR_DPI_AWARE;
+                return TRUE;
+            }
         }
     }
 

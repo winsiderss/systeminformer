@@ -188,7 +188,7 @@ typedef struct _PH_PROCESS_NODE
     // App ID
     PPH_STRING AppIdText;
     // DPI awareness
-    ULONG DpiAwareness;
+    PH_PROCESS_DPI_AWARENESS DpiAwareness;
     // File attributes
     LARGE_INTEGER FileLastWriteTime;
     LARGE_INTEGER FileEndOfFile;
