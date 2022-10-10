@@ -5903,7 +5903,20 @@ typedef struct _KUSER_SHARED_DATA
     ULONG NumberOfPhysicalPages;
 
     BOOLEAN SafeBootMode;
-    UCHAR VirtualizationFlags;
+
+    union
+    {
+        UCHAR VirtualizationFlags;
+#if defined(_ARM64_)
+        struct
+        {
+            UCHAR ArchStartedInEl2 : 1;
+            UCHAR QcSlIsSupported : 1;
+            UCHAR : 6;
+        };
+#endif
+    };
+
     UCHAR Reserved12[2];
 
     union
@@ -6000,6 +6013,7 @@ typedef struct _KUSER_SHARED_DATA
     XSTATE_CONFIGURATION XState;
     KSYSTEM_TIME FeatureConfigurationChangeStamp;
     ULONG Spare;
+    ULONG64 UserPointerAuthMask;
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
 #include <poppack.h>
 
