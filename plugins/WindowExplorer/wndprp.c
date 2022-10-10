@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2018-2019
+ *     dmex    2018-2022
  *
  */
 
@@ -27,6 +27,9 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
     HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND ListViewHandle;
+
+    BOOLEAN MessageOnlyWindow;
+
     CLIENT_ID ClientId;
     PH_INITONCE SymbolProviderInitOnce;
     PPH_SYMBOL_PROVIDER SymbolProvider;
@@ -80,6 +83,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_MENUHANDLE,
     WINDOW_PROPERTIES_INDEX_USERDATA,
     WINDOW_PROPERTIES_INDEX_UNICODE,
+    WINDOW_PROPERTIES_INDEX_WNDMSGONLY,
     WINDOW_PROPERTIES_INDEX_WNDEXTRA,
     WINDOW_PROPERTIES_INDEX_WNDPROC,
     WINDOW_PROPERTIES_INDEX_DLGPROC,
@@ -99,6 +103,7 @@ typedef enum _NETADAPTER_DETAILS_INDEX
     WINDOW_PROPERTIES_INDEX_CLASS_CURSOR,
     WINDOW_PROPERTIES_INDEX_CLASS_BACKBRUSH,
     WINDOW_PROPERTIES_INDEX_CLASS_MENUNAME,
+    WINDOW_PROPERTIES_INDEX_CLASS_WNDEXTRA,
     WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC,
 } NETADAPTER_DETAILS_INDEX;
 
@@ -235,7 +240,8 @@ VOID NTAPI WeWindowItemDeleteProcedure(
 
 VOID WeShowWindowProperties(
     _In_ HWND ParentWindowHandle,
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN MessageOnlyWindow
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
@@ -248,6 +254,7 @@ VOID WeShowWindowProperties(
     context = PhCreateObjectZero(sizeof(WINDOW_PROPERTIES_CONTEXT), WeWindowItemType);
     context->WindowHandle = WindowHandle;
     context->ParentWindowHandle = ParentWindowHandle;
+    context->MessageOnlyWindow = MessageOnlyWindow;
 
     PhInitializeInitOnce(&context->SymbolProviderInitOnce);
     InitializeListHead(&context->ResolveListHead);
@@ -523,10 +530,13 @@ VOID WepRefreshWindowGeneralInfo(
     instanceHandle = (PVOID)GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE);
     userdataHandle = (PVOID)GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA);
     windowId = (ULONG)GetWindowLongPtr(Context->WindowHandle, GWLP_ID);
-    windowExtra = (ULONG)GetClassLongPtr(Context->WindowHandle, GCL_CBWNDEXTRA);
+    windowExtra = (ULONG)GetClassLongPtr(Context->WindowHandle, GCL_CBWNDEXTRA); // GetWindowLongPtr
     // TODO: GetWindowLongPtr(Context->WindowHandle, GCLP_WNDPROC);
 
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_TEXT, 1, PhGetStringOrEmpty(PH_AUTO(PhGetWindowText(Context->WindowHandle))));
+    if (Context->MessageOnlyWindow)
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_TEXT, 1, L"N/A");
+    else
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_TEXT, 1, PhGetStringOrEmpty(PH_AUTO(PhGetWindowText(Context->WindowHandle))));
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_THREAD, 1, PH_AUTO_T(PH_STRING, PhGetClientIdName(&Context->ClientId))->Buffer);
 
     if (GetWindowInfo(Context->WindowHandle, &windowInfo))
@@ -589,21 +599,29 @@ VOID WepRefreshWindowGeneralInfo(
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_MENUHANDLE, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)menuHandle)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_USERDATA, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)userdataHandle)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_UNICODE, 1, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
-    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_WNDEXTRA, 1, PhaFormatSize(windowExtra, ULONG_MAX)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_WNDMSGONLY, 1, Context->MessageOnlyWindow ? L"Yes" : L"No");
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_WNDEXTRA, 1, PhaFormatString(L"%lu bytes (%s)", windowExtra, PhaFormatSize(windowExtra, ULONG_MAX)->Buffer)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_DLGCTLID, 1, PhaFormatString(L"%lu", windowId)->Buffer);
 
-    if (fontHandle = (HFONT)SendMessage(Context->WindowHandle, WM_GETFONT, 0, 0))
+    if (Context->MessageOnlyWindow)
     {
-        LOGFONT logFont;
-
-        if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
-            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, logFont.lfFaceName);
-        else
-            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");
+        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");
     }
     else
     {
-        PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");
+        if (fontHandle = (HFONT)SendMessage(Context->WindowHandle, WM_GETFONT, 0, 0))
+        {
+            LOGFONT logFont;
+
+            if (GetObject(fontHandle, sizeof(LOGFONT), &logFont))
+                PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, logFont.lfFaceName);
+            else
+                PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");
+        }
+        else
+        {
+            PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_FONTNAME, 1, L"N/A");
+        }
     }
 
     //ULONG version;
@@ -828,12 +846,14 @@ VOID WepRefreshWindowClassInfo(
     )
 {
     WCHAR className[256];
+    ULONG classExtra;
 
     if (!GetClassName(Context->WindowHandle, className, RTL_NUMBER_OF(className)))
         className[0] = UNICODE_NULL;
 
     Context->ClassInfo.cbSize = sizeof(WNDCLASSEX);
     GetClassInfoEx(NULL, className, &Context->ClassInfo);
+    classExtra = (ULONG)GetClassLongPtr(Context->WindowHandle, GCL_CBCLSEXTRA);
 
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_NAME, 1, className);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_ATOM, 1, PhaFormatString(L"0x%Ix", GetClassLongPtr(Context->WindowHandle, GCW_ATOM))->Buffer);
@@ -842,9 +862,15 @@ VOID WepRefreshWindowClassInfo(
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_MENUNAME, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.lpszMenuName)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_CURSOR, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hCursor)->Buffer);
     PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_BACKBRUSH, 1, PhaFormatString(L"0x%Ix", (ULONG_PTR)Context->ClassInfo.hbrBackground)->Buffer);
+    PhSetListViewSubItem(ListViewHandle, WINDOW_PROPERTIES_INDEX_CLASS_WNDEXTRA, 1, PhaFormatString(L"%lu bytes (%s)", classExtra, PhaFormatSize(classExtra, ULONG_MAX)->Buffer)->Buffer);
 
     WepRefreshClassStyles(ListViewHandle, Context);
     WepRefreshClassModule(ListViewHandle, Context);
+
+    if (!Context->ClassInfo.lpfnWndProc)
+    {
+        Context->ClassInfo.lpfnWndProc = (WNDPROC)GetClassLongPtr(Context->WindowHandle, GCLP_WNDPROC);
+    }
 
     if (Context->ClassInfo.lpfnWndProc)
     {
@@ -866,11 +892,11 @@ static BOOLEAN WepWindowHasAutomationProvider(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        HANDLE moduleHandle;
+        HANDLE baseAddress;
 
-        if (moduleHandle = PhLoadLibrary(L"uiautomationcore.dll"))
+        if (baseAddress = PhLoadLibrary(L"uiautomationcore.dll"))
         {
-            UiaHasServerSideProvider_I = PhGetProcedureAddress(moduleHandle, "UiaHasServerSideProvider", 0);
+            UiaHasServerSideProvider_I = PhGetProcedureAddress(baseAddress, "UiaHasServerSideProvider", 0);
         }
 
         PhEndInitOnce(&initOnce);
@@ -886,10 +912,17 @@ VOID WepRefreshAutomationProvider(
     _In_ PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
-    if (WepWindowHasAutomationProvider(Context->WindowHandle))
-        PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_AUTOMATION, 1, L"Yes");
+    if (Context->MessageOnlyWindow)
+    {
+        PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_AUTOMATION, 1, L"N/A");
+    }
     else
-        PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_AUTOMATION, 1, L"No");
+    {
+        if (WepWindowHasAutomationProvider(Context->WindowHandle))
+            PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_AUTOMATION, 1, L"Yes");
+        else
+            PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_AUTOMATION, 1, L"No");
+    }
 }
 
 VOID WepRefreshDpiContext(
@@ -899,28 +932,28 @@ VOID WepRefreshDpiContext(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static DPI_AWARENESS_CONTEXT (WINAPI* GetWindowDpiAwarenessContext_I)(_In_ HWND hwnd) = NULL;
     static BOOL (WINAPI* AreDpiAwarenessContextsEqual_I)(_In_ DPI_AWARENESS_CONTEXT dpiContextA, _In_ DPI_AWARENESS_CONTEXT dpiContextB) = NULL;
-    DPI_AWARENESS_CONTEXT dpiContext;
-    PVOID moduleHandle;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (moduleHandle = PhLoadLibrary(L"user32.dll"))
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"user32.dll"))
         {
-           GetWindowDpiAwarenessContext_I = PhGetProcedureAddress(moduleHandle, "GetWindowDpiAwarenessContext", 0);
-           AreDpiAwarenessContextsEqual_I = PhGetProcedureAddress(moduleHandle, "AreDpiAwarenessContextsEqual", 0);
+           GetWindowDpiAwarenessContext_I = PhGetProcedureAddress(baseAddress, "GetWindowDpiAwarenessContext", 0);
+           AreDpiAwarenessContextsEqual_I = PhGetProcedureAddress(baseAddress, "AreDpiAwarenessContextsEqual", 0);
         }
 
         PhEndInitOnce(&initOnce);
     }
 
     // Windows 10, version 1607+
-    if(!GetWindowDpiAwarenessContext_I || !AreDpiAwarenessContextsEqual_I)
+    if (!(GetWindowDpiAwarenessContext_I && AreDpiAwarenessContextsEqual_I))
     {
         PhSetListViewSubItem(Context->ListViewHandle, WINDOW_PROPERTIES_INDEX_DPICONTEXT, 1, L"N/A");
     }
     else
     {
-        dpiContext = GetWindowDpiAwarenessContext_I(Context->WindowHandle);
+        DPI_AWARENESS_CONTEXT dpiContext = GetWindowDpiAwarenessContext_I(Context->WindowHandle);
 
         if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_UNAWARE))
         {
@@ -928,7 +961,7 @@ VOID WepRefreshDpiContext(
                 Context->ListViewHandle,
                 WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
-                L"DPI unaware"
+                L"Unaware"
                 );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_SYSTEM_AWARE))
@@ -937,7 +970,7 @@ VOID WepRefreshDpiContext(
                 Context->ListViewHandle,
                 WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
-                L"System DPI aware"
+                L"System aware"
                 );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext,DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE))
@@ -946,7 +979,7 @@ VOID WepRefreshDpiContext(
                 Context->ListViewHandle,
                 WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
-                L"Per monitor v1"
+                L"Per-monitor aware"
                 );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
@@ -955,7 +988,7 @@ VOID WepRefreshDpiContext(
                 Context->ListViewHandle,
                 WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
-                L"Per Monitor v2"
+                L"Per-monitor V2"
                 );
         }
         else if (AreDpiAwarenessContextsEqual_I(dpiContext, DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED))
@@ -964,7 +997,7 @@ VOID WepRefreshDpiContext(
                 Context->ListViewHandle,
                 WINDOW_PROPERTIES_INDEX_DPICONTEXT,
                 1,
-                L"DPI unaware with improved quality of GDI-based content"
+                L"Unaware (GDI scaled)"
                 );
         }
         else
@@ -995,6 +1028,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_MENUHANDLE, L"Menu handle", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_USERDATA, L"User data", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_UNICODE, L"Unicode", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDMSGONLY, L"Window message-only", NULL);   
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDEXTRA, L"Window extra bytes", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_WNDPROC, L"Window procedure", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_GENERAL, WINDOW_PROPERTIES_INDEX_DLGPROC, L"Dialog procedure", NULL);
@@ -1014,6 +1048,7 @@ VOID WepGeneralAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_CURSOR, L"Cursor handle", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_BACKBRUSH, L"Background brush", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_MENUNAME, L"Menu name", NULL);
+    PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_WNDEXTRA, L"Window extra bytes", NULL);
     PhAddListViewGroupItem(ListViewHandle, WINDOW_PROPERTIES_CATEGORY_CLASS, WINDOW_PROPERTIES_INDEX_CLASS_WNDPROC, L"Window procedure", NULL);
 }
 
