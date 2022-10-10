@@ -985,7 +985,8 @@ NTSTATUS PhpGetBestObjectName(
     PPH_STRING bestObjectName = NULL;
     PPH_GET_CLIENT_ID_NAME handleGetClientIdName = PhHandleGetClientIdName;
 
-    if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
+    if (PhEqualString2(TypeName, L"EtwRegistration", TRUE) ||
+        PhEqualString2(TypeName, L"EtwConsumer", TRUE))
     {
         if (KphLevel() >= KphLevelMed)
         {
@@ -1678,7 +1679,7 @@ NTSTATUS PhGetHandleInformationEx(
             &objectName
             );
     }
-    else if (PhEqualString2(typeName, L"EtwRegistration", TRUE) && useKph)
+    else if ((PhEqualString2(typeName, L"EtwRegistration", TRUE) || PhEqualString2(typeName, L"EtwConsumer", TRUE)) && useKph)
     {
         status = PhpGetEtwObjectName(
             ProcessHandle,
