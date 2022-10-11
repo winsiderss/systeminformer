@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2016-2018
+ *     dmex    2016-2022
  *
  */
 
@@ -311,7 +311,7 @@ VOID WepAddEnumChildWindows(
     _In_opt_ HANDLE FilterThreadId
     )
 {
-    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_ALTERNATE))
+    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_ALTERNATE) && WindowHandle != HWND_MESSAGE)
     {
         WE_WINDOW_ENUM_CONTEXT enumContext;
 
@@ -329,7 +329,7 @@ VOID WepAddEnumChildWindows(
 
         // We use FindWindowEx because EnumWindows doesn't return Metro app windows.
         // Set a reasonable limit to prevent infinite loops.
-        while (i < 0x800 && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
+        while (i < 0x4000 && (childWindow = FindWindowEx(WindowHandle, childWindow, NULL, NULL)))
         {
             ULONG processId;
             ULONG threadId;
@@ -342,6 +342,11 @@ VOID WepAddEnumChildWindows(
                 )
             {
                 PWE_WINDOW_NODE childNode = WepAddChildWindowNode(&Context->TreeContext, ParentNode, childWindow);
+
+                if (WindowHandle == HWND_MESSAGE)
+                {
+                    childNode->WindowMessageOnly = TRUE;
+                }
 
                 if (childNode->HasChildren)
                 {
@@ -406,6 +411,14 @@ VOID WepRefreshWindows(
                 NULL
                 );
 
+            WepAddEnumChildWindows(
+                Context,
+                desktopNode,
+                HWND_MESSAGE,
+                NULL,
+                NULL
+                );
+
             desktopNode->HasChildren = TRUE;
         }
         break;
@@ -418,6 +431,14 @@ VOID WepRefreshWindows(
                 NULL,
                 Context->Selector.Thread.ThreadId
                 );
+
+            WepAddEnumChildWindows(
+                Context,
+                NULL,
+                HWND_MESSAGE,
+                NULL,
+                Context->Selector.Thread.ThreadId
+                );
         }
         break;
     case WeWindowSelectorProcess:
@@ -426,6 +447,14 @@ VOID WepRefreshWindows(
                 Context,
                 NULL,
                 GetDesktopWindow(),
+                Context->Selector.Process.ProcessId,
+                NULL
+                );
+
+            WepAddEnumChildWindows(
+                Context,
+                NULL,
+                HWND_MESSAGE,
                 Context->Selector.Process.ProcessId,
                 NULL
                 );
@@ -1102,7 +1131,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle);
+                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly);
                     }
                 }
                 break;
@@ -1751,7 +1780,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     PWE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
-                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle);
+                        WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle, !!selectedNode->WindowMessageOnly);
                 }
                 break;
             case ID_WINDOW_COPY:

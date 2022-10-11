@@ -332,7 +332,8 @@ typedef struct _KPH_INFORMER_SETTINGS
             ULONGLONG DesktopHandlePostCreate : 1;
             ULONGLONG DesktopHandlePreDuplicate : 1;
             ULONGLONG DesktopHandlePostDuplicate : 1;
-            ULONGLONG Reserved : 45;
+            ULONGLONG EnableStackTraces : 1;
+            ULONGLONG Reserved : 44;
         };
     };
 

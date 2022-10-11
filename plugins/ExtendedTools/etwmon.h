@@ -9,10 +9,10 @@ typedef struct
     ULONG IrpFlags;
     ULONG TransferSize;
     ULONG ResponseTime;
-    ULONG64 ByteOffset;
+    ULONGLONG ByteOffset;
     ULONG_PTR FileObject;
     ULONG_PTR Irp;
-    ULONG64 HighResResponseTime;
+    ULONGLONG HighResResponseTime;
     ULONG IssuingThreadId; // since WIN8 (ETW_DISKIO_READWRITE_V3)
 } DiskIo_TypeGroup1;
 
@@ -48,6 +48,9 @@ typedef struct
     USHORT sport;
 } TcpIpOrUdpIp_IPV6_Header;
 
+#define KERNEL_FILE_KEYWORD_FILENAME 0x10
+#define KERNEL_FILE_KEYWORD_FILEIO 0x20
+
 // etwmon
 
 VOID EtEtwMonitorInitialization(
@@ -66,15 +69,20 @@ VOID EtStopEtwSession(
     VOID
     );
 
-VOID EtFlushEtwSession(
-    VOID
-    );
-
 ULONG EtStartEtwRundown(
     VOID
     );
 
 // etwstat
+
+#define EVENT_TRACE_TYPE_TCPIP_SEND_IPV6 0x1A
+#define EVENT_TRACE_TYPE_TCPIP_RECEIVE_IPV6 0x1B
+#define EVENT_TRACE_TYPE_FILENAME 0x0
+#define EVENT_TRACE_TYPE_FILENAME_CREATE 0x20
+#define EVENT_TRACE_TYPE_FILENAME_SAME 0x21
+#define EVENT_TRACE_TYPE_FILENAME_NULL 0x22
+#define EVENT_TRACE_TYPE_FILENAME_DELETE 0x23
+#define EVENT_TRACE_TYPE_FILENAME_RUNDOWN 0x24
 
 typedef enum _ET_ETW_EVENT_TYPE
 {
@@ -95,7 +103,7 @@ typedef struct _ET_ETW_DISK_EVENT
     ULONG IrpFlags;
     ULONG TransferSize;
     PVOID FileObject;
-    ULONG64 HighResResponseTime;
+    ULONGLONG HighResResponseTime;
 } ET_ETW_DISK_EVENT, *PET_ETW_DISK_EVENT;
 
 typedef struct _ET_ETW_FILE_EVENT
@@ -115,6 +123,13 @@ typedef struct _ET_ETW_NETWORK_EVENT
     PH_IP_ENDPOINT RemoteEndpoint;
 } ET_ETW_NETWORK_EVENT, *PET_ETW_NETWORK_EVENT;
 
+typedef struct _ET_ETW_STACKWALK_EVENT
+{
+    ULONGLONG EventTimeStamp;
+    ULONG StackProcess;
+    ULONG StackThread;
+    ULONG_PTR Stack[192];
+} ET_ETW_STACKWALK_EVENT, *PET_ETW_STACKWALK_EVENT;
 // etwstat
 
 VOID EtProcessDiskEvent(

@@ -466,7 +466,6 @@ static VOID PhpAddProgramsToComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
-    static PH_STRINGREF prefixSr = PH_STRINGREF_INIT(L"\\1");
     HANDLE listHandle;
     INT listCount;
 
@@ -484,33 +483,27 @@ static VOID PhpAddProgramsToComboBox(
 
     for (INT i = 0; i < listCount; i++)
     {
-        PPH_STRING programName;
-        PH_STRINGREF nameSr;
-        PH_STRINGREF firstPart;
-        PH_STRINGREF remainingPart;
-        WCHAR entry[MAX_PATH] = L"";
+        INT returnLength;
+        WCHAR buffer[MAX_PATH] = L"";
 
-        if (!EnumMRUList_I(
+        returnLength = EnumMRUList_I(
             listHandle,
             i,
-            entry,
-            RTL_NUMBER_OF(entry)
-            ))
-        {
-            break;
-        }
+            buffer,
+            RTL_NUMBER_OF(buffer)
+            );
 
-        PhInitializeStringRefLongHint(&nameSr, entry);
-
-        if (!PhSplitStringRefAtString(&nameSr, &prefixSr, TRUE, &firstPart, &remainingPart))
-        {
-            ComboBox_AddString(ComboBoxHandle, entry);
+        if (returnLength >= RTL_NUMBER_OF(buffer))
             continue;
-        }
+        if (returnLength < sizeof(UNICODE_NULL))
+            continue;
 
-        programName = PhCreateString2(&firstPart);
-        ComboBox_AddString(ComboBoxHandle, PhGetString(programName));
-        PhDereferenceObject(programName);
+        buffer[returnLength] = UNICODE_NULL;
+
+        if (buffer[returnLength - 1] == L'1' && buffer[returnLength - 2] == L'\\')
+            buffer[returnLength - 2] = UNICODE_NULL; // trim \\1 (dmex)
+
+        ComboBox_AddString(ComboBoxHandle, buffer);
     }
 
     FreeMRUList_I(listHandle);
@@ -2508,7 +2501,7 @@ NTSTATUS RunAsCreateProcessThread(
     if (filePathString = PhSearchFilePath(command->Buffer, L".exe"))
         PhMoveReference(&commandLine, filePathString);
     else
-        commandLine = command; // HACK (dmex)
+        PhSetReference(&commandLine, command);
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -2630,6 +2623,11 @@ CleanupExit:
     if (commandLine)
     {
         PhDereferenceObject(commandLine);
+    }
+
+    if (command)
+    {
+        PhDereferenceObject(command);
     }
 
     return status;
@@ -2771,6 +2769,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     {
                         if (Button_GetCheck(context->RunAsInstallerCheckboxHandle) == BST_CHECKED)
                         {
+                            PhReferenceObject(commandString);
                             status = PhCreateThread2(RunAsCreateProcessThread, commandString);
                         }
                         else

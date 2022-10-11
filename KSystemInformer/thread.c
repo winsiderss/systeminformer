@@ -337,15 +337,16 @@ ULONG KphCaptureStackBackTrace(
         return 0;
     }
 
-    framesFound = RtlWalkFrameChain(backTrace,
-                                    (FramesToCapture + FramesToSkip),
-                                    0);
-
     if (FlagOn(Flags, KPH_STACK_TRACE_CAPTURE_USER_STACK))
     {
-        framesFound += RtlWalkFrameChain(&backTrace[framesFound],
-                                         ((FramesToCapture + FramesToSkip) - framesFound),
-                                         RTL_WALK_USER_MODE_STACK);
+        framesFound = KphCaptureStack(backTrace,
+                                      (FramesToCapture + FramesToSkip));
+    }
+    else
+    {
+        framesFound = RtlWalkFrameChain(backTrace,
+                                        (FramesToCapture + FramesToSkip),
+                                        0);
     }
 
     //

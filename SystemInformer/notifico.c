@@ -28,6 +28,7 @@
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
 BOOLEAN PhNfMiniInfoPinned = FALSE;
 BOOLEAN PhNfTransparencyEnabled = FALSE;
+BOOLEAN PhNfPersistTrayIconPositionEnabled = FALSE;
 PPH_LIST PhTrayIconItemList = NULL;
 
 PH_NF_POINTERS PhNfpPointers;
@@ -338,7 +339,12 @@ VOID PhNfLoadStage2(
 {
     PhNfMiniInfoEnabled = !!PhGetIntegerSetting(L"MiniInfoWindowEnabled");
     PhNfTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
-    PhNfLoadGuids();
+    PhNfPersistTrayIconPositionEnabled = !!PhGetIntegerSetting(L"IconTrayPersistGuidEnabled");
+
+    if (PhNfPersistTrayIconPositionEnabled)
+    {
+        PhNfLoadGuids();
+    }
 
     PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_USAGE, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_USAGE], NULL, L"CPU &usage", 0, PhNfpCpuUsageIconUpdateCallback, NULL);
     PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_HISTORY, PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_HISTORY], NULL, L"CPU &history", 0, PhNfpCpuHistoryIconUpdateCallback, NULL);
@@ -610,11 +616,7 @@ BOOLEAN PhNfShowBalloonTip(
     _In_ ULONG Timeout
     )
 {
-#if (PHNT_VERSION >= PHNT_VISTA)
-    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
-#else
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
-#endif
+    NOTIFYICONDATA notifyIcon;
     PPH_NF_ICON registeredIcon = NULL;
 
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
@@ -631,16 +633,17 @@ BOOLEAN PhNfShowBalloonTip(
     if (!registeredIcon)
         return FALSE;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    notifyIcon.uFlags = NIF_INFO | NIF_GUID;
-    notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = registeredIcon->IconId;
-    notifyIcon.guidItem = registeredIcon->IconGuid;
-#else
+    memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
+    notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
     notifyIcon.uFlags = NIF_INFO;
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = registeredIcon->IconId;
-#endif
+
+    if (PhNfPersistTrayIconPositionEnabled)
+    {
+        notifyIcon.uFlags |= NIF_GUID;
+        notifyIcon.guidItem = registeredIcon->IconGuid;
+    }
 
     wcsncpy_s(notifyIcon.szInfoTitle, RTL_NUMBER_OF(notifyIcon.szInfoTitle), Title, _TRUNCATE);
     wcsncpy_s(notifyIcon.szInfo, RTL_NUMBER_OF(notifyIcon.szInfo), Text, _TRUNCATE);
@@ -893,27 +896,23 @@ BOOLEAN PhNfpAddNotifyIcon(
     _In_ PPH_NF_ICON Icon
     )
 {
-#if (PHNT_VERSION >= PHNT_VISTA)
-    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
-#else
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
-#endif
+    NOTIFYICONDATA notifyIcon;
 
     if (PhMainWndExiting)
         return FALSE;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = Icon->IconId;
-    notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_GUID;
-    notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
-    notifyIcon.guidItem = Icon->IconGuid;
-#else
+    memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
+    notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = Icon->IconId;
     notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
-#endif
+
+    if (PhNfPersistTrayIconPositionEnabled)
+    {
+        notifyIcon.uFlags |= NIF_GUID;
+        notifyIcon.guidItem = Icon->IconGuid;
+    }
 
     wcsncpy_s(
         notifyIcon.szTip, RTL_NUMBER_OF(notifyIcon.szTip),
@@ -926,11 +925,8 @@ BOOLEAN PhNfpAddNotifyIcon(
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
-
-#if (PHNT_VERSION >= PHNT_VISTA)
     notifyIcon.uVersion = NOTIFYICON_VERSION_4;
     Shell_NotifyIcon(NIM_SETVERSION, &notifyIcon);
-#endif
 
     return TRUE;
 }
@@ -939,21 +935,18 @@ BOOLEAN PhNfpRemoveNotifyIcon(
     _In_ PPH_NF_ICON Icon
     )
 {
-#if (PHNT_VERSION >= PHNT_VISTA)
-    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
-#else
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
-#endif
+    NOTIFYICONDATA notifyIcon;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    notifyIcon.uFlags = NIF_GUID;
+    memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
+    notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = Icon->IconId;
-    notifyIcon.guidItem = Icon->IconGuid;
-#else
-    notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = Icon->IconId;
-#endif
+
+    if (PhNfPersistTrayIconPositionEnabled)
+    {
+        notifyIcon.uFlags |= NIF_GUID;
+        notifyIcon.guidItem = Icon->IconGuid;
+    }
 
     Shell_NotifyIcon(NIM_DELETE, &notifyIcon);
 
@@ -967,29 +960,25 @@ BOOLEAN PhNfpModifyNotifyIcon(
     _In_opt_ HICON IconHandle
     )
 {
-#if (PHNT_VERSION >= PHNT_VISTA)
-    NOTIFYICONDATA notifyIcon = { sizeof(NOTIFYICONDATA) };
-#else
-    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
-#endif
+    NOTIFYICONDATA notifyIcon;
 
     if (PhMainWndExiting)
         return FALSE;
     if (Icon->Flags & PH_NF_ICON_UNAVAILABLE)
         return FALSE;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    notifyIcon.uFlags = Flags | NIF_GUID;
-    notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uID = Icon->IconId;
-    notifyIcon.guidItem = Icon->IconGuid;
-    notifyIcon.hIcon = IconHandle;
-#else
+    memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
+    notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
     notifyIcon.uFlags = Flags;
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = Icon->IconId;
     notifyIcon.hIcon = IconHandle;
-#endif
+
+    if (PhNfPersistTrayIconPositionEnabled)
+    {
+        notifyIcon.uFlags |= NIF_GUID;
+        notifyIcon.guidItem = Icon->IconGuid;
+    }
 
     if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
         notifyIcon.uFlags |= NIF_SHOWTIP;

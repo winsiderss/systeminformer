@@ -2,8 +2,9 @@
 @setlocal enableextensions
 
 rmdir /q /s %~dp0\output\cab
+del %~dp0\output\KSystemInformer.cab
 
-call %~dp0\build_zdriver.cmd release
+call %~dp0\build_zdriver.cmd release rebuild
 if %ERRORLEVEL% neq 0 (
     echo [-] Build failed, CAB was not generated. 
     goto end
@@ -23,8 +24,7 @@ if %ERRORLEVEL% neq 0 (
     goto end
 )
 
-pushd
-cd /d %~dp0\output\cab
+pushd %~dp0\output\cab
 makecab /f %~dp0\KSystemInformer.ddf
 if %ERRORLEVEL% neq 0 (
     echo [-] Failed to generate CAB. 
@@ -38,6 +38,8 @@ if %ERRORLEVEL% neq 0 (
     echo [-] Failed to copy CAB to output folder.
     goto end
 )
+
+rmdir /q /s %~dp0\output\cab
 
 echo [+] CAB Complete!
 

@@ -251,6 +251,7 @@ EXPORTS
     PhEnumDirectoryFile
     PhEnumDirectoryObjects
     PhEnumFileStreams
+    PhEnumFirmwareEnvironmentValues
     PhEnumGenericModules
     PhEnumHandles
     PhEnumHandlesEx
@@ -271,6 +272,7 @@ EXPORTS
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize
+    PhGetFirmwareEnvironmentVariable
     PhGetJobProcessIdList
     PhGetKernelFileName
     PhGetObjectSecurity

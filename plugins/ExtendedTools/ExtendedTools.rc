@@ -101,12 +101,12 @@ BEGIN
     RTEXT           "Static",IDC_ZWRITEBYTESDELTA_V,82,44,56,8,SS_ENDELLIPSIS
 END
 
-IDD_OPTIONS DIALOGEX 0, 0, 215, 98
+IDD_OPTIONS DIALOGEX 0, 0, 225, 121
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "Changes to settings will require a restart of System Informer.",IDC_STATIC,7,6,193,8
+    LTEXT           "Changes to settings will require a restart of System Informer.",IDC_STATIC,7,6,211,8
     CONTROL         "Enable Disk and Network monitoring",IDC_ENABLEETWMONITOR,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,130,10
     CONTROL         "Enable GPU monitoring",IDC_ENABLEGPUMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,88,10
@@ -115,6 +115,7 @@ BEGIN
     CONTROL         "Enable GPU fahrenheit temperature",IDC_ENABLEFAHRENHEITTEMP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,130,10
     CONTROL         "Enable FPS monitoring",IDC_ENABLEFPSMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,72,130,10
+    LTEXT           "Note: FPS monitoring requires either administrative privileges or the current user a member of the ""Performance Log Users"" group.",IDC_STATIC,7,91,211,23
 END
 
 IDD_WSWATCH DIALOGEX 0, 0, 325, 266
@@ -409,9 +410,9 @@ BEGIN
     IDD_OPTIONS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 208
+        RIGHTMARGIN, 218
         TOPMARGIN, 7
-        BOTTOMMARGIN, 91
+        BOTTOMMARGIN, 114
     END
 
     IDD_WSWATCH, DIALOG

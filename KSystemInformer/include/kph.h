@@ -519,6 +519,12 @@ typedef EX_RUNDOWN_REF KPH_RUNDOWN;
 typedef KPH_RUNDOWN* PKPH_RUNDOWN;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+ULONG KphCaptureStack(
+    _Out_ PVOID* Frames,
+    _In_ ULONG Count
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 BOOLEAN KphAcquireRundown(
     _Inout_ PKPH_RUNDOWN Rundown

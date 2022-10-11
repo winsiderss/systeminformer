@@ -23,8 +23,8 @@ typedef struct _KPH_DYN_DATA_BUFFER
 /**
  * \brief Finds a dynamic data entry in the table.
  *
- * \param Message Message to get the table entry from.
- * \param FieldId Field identifier to look for.
+ * \param[in] Message Message to get the table entry from.
+ * \param[in] FieldId Field identifier to look for.
  *
  * \return Pointer to table entry on success, null if not found.
  */
@@ -48,11 +48,11 @@ PCKPH_MESSAGE_DYNAMIC_TABLE_ENTRY KphpMsgDynFindEntry(
 /**
  * \brief Claims some data in the dynamic data buffer.
  *
- * \param Message Message to claim dynamic data in.
- * \param FieldId Field identifier of the data to be populated.
- * \param TypeId Type identifier of the data to be populated.
- * \param RequiredSize Required size of the dynamic data.
- * \param DynData Set to pointer to claimed data in buffer on success.
+ * \param[in] Message Message to claim dynamic data in.
+ * \param[in] FieldId Field identifier of the data to be populated.
+ * \param[in] TypeId Type identifier of the data to be populated.
+ * \param[in] RequiredSize Required size of the dynamic data.
+ * \param[out] DynData Set to pointer to claimed data in buffer on success.
  *
  * \return Successful or errant status.
  */
@@ -143,10 +143,10 @@ NTSTATUS KphpMsgDynClaimDynData(
 /**
  * \brief Looks up a dynamic data entry.
  *
- * \param Message Message to look up dynamic data in.
- * \param FieldId Field identifier to look up.
- * \param TypeId Type identifier to look up.
- * \param DynData Set to point to dynamic data in buffer on success.
+ * \param[in] Message Message to look up dynamic data in.
+ * \param[in] FieldId Field identifier to look up.
+ * \param[in] TypeId Type identifier to look up.
+ * \param[out] DynData Set to point to dynamic data in buffer on success.
  *
  * \return Successful or errant status.
  */
@@ -214,9 +214,9 @@ VOID KphMsgDynClear(
 /**
  * \brief Adds a unicode string to the dynamic data.
  *
- * \param Message Message to populate dynamic data of.
- * \param FieldId Field identifier for the data.
- * \param String Unicode string to copy into the dynamic data.
+ * \param[in,out] Message Message to populate dynamic data of.
+ * \param[in] FieldId Field identifier for the data.
+ * \param[in] String Unicode string to copy into the dynamic data.
  *
  * \return Successful or errant status.
  */
@@ -263,9 +263,9 @@ NTSTATUS KphMsgDynAddUnicodeString(
 /**
  * \brief Retrieves a unicode string from the dynamic data of a message.
  *
- * \param Message Message to retrieve the unicode string from.
- * \param FieldId Field identifier for the data.
- * \param String If found populated with a reference to the string data in the
+ * \param[in] Message Message to retrieve the unicode string from.
+ * \param[in] FieldId Field identifier for the data.
+ * \param[out] String If found populated with a reference to the string data in the
  * dynamic data buffer.
  *
  * \return Successful or errant status.
@@ -298,9 +298,9 @@ NTSTATUS KphMsgDynGetUnicodeString(
 /**
  * \brief Adds an ANSI string to the dynamic data buffer.
  *
- * \param Message Message to add the string to.
- * \param FieldId Field identifier for the string.
- * \param String ANSI string to copy into the dynamic data buffer.
+ * \param[in,out] Message Message to add the string to.
+ * \param[in] FieldId Field identifier for the string.
+ * \param[in] String ANSI string to copy into the dynamic data buffer.
  *
  * \return Successful or errant status.
  */
@@ -347,9 +347,9 @@ NTSTATUS KphMsgDynAddAnsiString(
 /**
  * \brief Retrieves an ANSI string from the message.
  *
- * \param Message Message to retrieve the string from.
- * \param FieldId Field identifier of the string.
- * \param String If found populated with a reference to the string data in the
+ * \param[in] Message Message to retrieve the string from.
+ * \param[in] FieldId Field identifier of the string.
+ * \param[out] String If found populated with a reference to the string data in the
  * dynamic data buffer.
  *
  * \return Successful or errant status.
@@ -376,5 +376,85 @@ NTSTATUS KphMsgDynGetAnsiString(
     String->Length = data->Size;
     String->MaximumLength = data->Size;
     String->Buffer = (PCHAR)&data->Buffer[0];
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Adds a stack trace to the dynamic data buffer. 
+ *
+ * \param[in,out] Message Message to add the stack trace to.
+ * \param[in] FieldId Field identifier for the stack trace.
+ * \param[in] StackTrace Stack trace to copy into the dynamic data buffer.
+ *
+ * \return Successful or errant status.
+ */
+_Must_inspect_result_
+NTSTATUS KphMsgDynAddStackTrace(
+    _Inout_ PKPH_MESSAGE Message,
+    _In_ KPH_MESSAGE_FIELD_ID FieldId,
+    _In_ PKPH_STACK_TRACE StackTrace 
+    )
+{
+    NTSTATUS status;
+    PKPH_DYN_DATA_BUFFER data;
+    ULONG requiredSize;
+
+    requiredSize = sizeof(KPH_DYN_DATA_BUFFER);
+    status = RtlULongAdd(requiredSize,
+                         (sizeof(PVOID) * StackTrace->Count),
+                         &requiredSize);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    status = KphpMsgDynClaimDynData(Message,
+                                    FieldId,
+                                    KphMsgTypeStackTrace,
+                                    requiredSize,
+                                    (PVOID*)&data);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    data->Size = StackTrace->Count;
+    RtlCopyMemory(&data->Buffer[0],
+                  StackTrace->Frames,
+                  (sizeof(PVOID) * StackTrace->Count));
+    return STATUS_SUCCESS;
+}
+
+/**
+ * \brief Retrieves a stack trace from the message.
+ *
+ * \param[in] Message Message to retrieve the stack trace from.
+ * \param[in] FieldId Field identifier of the stack trace.
+ * \param[out] StackTrace If found populated with a reference to the stack
+ * trace data in the dynamic data buffer.
+ *
+ * \return Successful or errant status.
+ */
+_Must_inspect_result_
+NTSTATUS KphMsgDynGetStackTrace(
+    _In_ PCKPH_MESSAGE Message,
+    _In_ KPH_MESSAGE_FIELD_ID FieldId,
+    _Out_ PKPH_STACK_TRACE StackTrace 
+    )
+{
+    NTSTATUS status;
+    PKPH_DYN_DATA_BUFFER data;
+
+    status = KphpMsgDynLookupDynData(Message,
+                                     FieldId,
+                                     KphMsgTypeStackTrace,
+                                     (PVOID*)&data);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
+
+    StackTrace->Frames = (PVOID*)&data->Buffer[0];
+    StackTrace->Count = data->Size;
     return STATUS_SUCCESS;
 }

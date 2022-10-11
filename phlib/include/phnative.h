@@ -2135,6 +2135,32 @@ PhIsFirmwareSupported(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFirmwareEnvironmentVariable(
+    _In_ PPH_STRINGREF VariableName,
+    _In_ PPH_STRINGREF VendorGuid,
+    _Out_ PVOID* VariableValueBuffer,
+    _Out_opt_ PULONG VariableValueLength
+    );
+
+#define PH_FIRST_FIRMWARE_VALUE(Variables) ((PVARIABLE_NAME_AND_VALUE)(Variables))
+#define PH_NEXT_FIRMWARE_VALUE(Variables) ( \
+    ((PVARIABLE_NAME_AND_VALUE)(Variables))->NextEntryOffset ? \
+    (PVARIABLE_NAME_AND_VALUE)(PTR_ADD_OFFSET((Variables), \
+    ((PVARIABLE_NAME_AND_VALUE)(Variables))->NextEntryOffset)) : \
+    NULL \
+    )
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumFirmwareEnvironmentValues(
+    _In_ SYSTEM_ENVIRONMENT_INFORMATION_CLASS InformationClass,
+    _Out_ PVOID* Variables
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE PowerRequestHandle

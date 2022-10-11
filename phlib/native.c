@@ -10987,7 +10987,6 @@ NTSTATUS PhQueryProcessHeapInformation(
     NTSTATUS status;
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo = NULL;
-    ULONG heapEntrySize;
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
     {
@@ -10996,7 +10995,7 @@ NTSTATUS PhQueryProcessHeapInformation(
 
         status = RtlQueryProcessDebugInformation(
             ProcessId,
-            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES,
+            RTL_QUERY_PROCESS_HEAP_SUMMARY | RTL_QUERY_PROCESS_HEAP_ENTRIES | RTL_QUERY_PROCESS_NONINVASIVE,
             debugBuffer
             );
 
@@ -11033,22 +11032,44 @@ NTSTATUS PhQueryProcessHeapInformation(
         return STATUS_UNSUCCESSFUL;
     }
 
-    heapEntrySize = WindowsVersion > WINDOWS_11 ? sizeof(RTL_HEAP_INFORMATION) : RTL_SIZEOF_THROUGH_FIELD(RTL_HEAP_INFORMATION, Entries);
-    heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + debugBuffer->Heaps->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
-    heapDebugInfo->NumberOfHeaps = debugBuffer->Heaps->NumberOfHeaps;
+    if (WindowsVersion > WINDOWS_11)
+    {
+        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
+        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps;
+    }
+    else
+    {
+        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
+        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
+    }
+
     heapDebugInfo->DefaultHeap = debugBuffer->ProcessHeap;
 
     for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
     {
-        PRTL_HEAP_INFORMATION heapInfo = PTR_ADD_OFFSET(debugBuffer->Heaps->Heaps, heapEntrySize * i);
+        RTL_HEAP_INFORMATION_V2 heapInfo = { 0 };
         HANDLE processHandle;
         SIZE_T allocated = 0;
         SIZE_T committed = 0;
 
-        // go through all heap entries and compute amount of allocated and committed bytes
-        for (ULONG e = 0; e < heapInfo->NumberOfEntries; e++)
+        if (WindowsVersion > WINDOWS_11)
         {
-            PRTL_HEAP_ENTRY entry = &heapInfo->Entries[e];
+            heapInfo = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->Heaps[i];
+        }
+        else
+        {
+            RTL_HEAP_INFORMATION_V1 heapInfoV1 = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->Heaps[i];
+            heapInfo.NumberOfEntries = heapInfoV1.NumberOfEntries;
+            heapInfo.Entries = heapInfoV1.Entries;
+            heapInfo.BytesCommitted = heapInfoV1.BytesCommitted;
+            heapInfo.Flags = heapInfoV1.Flags;
+            heapInfo.BaseAddress = heapInfoV1.BaseAddress;
+        }
+
+        // go through all heap entries and compute amount of allocated and committed bytes
+        for (ULONG e = 0; e < heapInfo.NumberOfEntries; e++)
+        {
+            PRTL_HEAP_ENTRY entry = &heapInfo.Entries[e];
 
             if (entry->Flags & RTL_HEAP_BUSY)
                 allocated += entry->Size;
@@ -11057,18 +11078,18 @@ NTSTATUS PhQueryProcessHeapInformation(
         }
 
         // sometimes computed number if commited bytes is few pages smaller than the one reported by API, lets use the higher value
-        if (committed < heapInfo->BytesCommitted)
-            committed = heapInfo->BytesCommitted;
+        if (committed < heapInfo.BytesCommitted)
+            committed = heapInfo.BytesCommitted;
 
         // make sure number of allocated bytes is not higher than number of committed bytes (as that would make no sense)
         if (allocated > committed)
             allocated = committed;
 
-        heapDebugInfo->Heaps[i].Flags = heapInfo->Flags;
+        heapDebugInfo->Heaps[i].Flags = heapInfo.Flags;
         heapDebugInfo->Heaps[i].Signature = ULONG_MAX;
         heapDebugInfo->Heaps[i].HeapFrontEndType = UCHAR_MAX;
-        heapDebugInfo->Heaps[i].NumberOfEntries = heapInfo->NumberOfEntries;
-        heapDebugInfo->Heaps[i].BaseAddress = heapInfo->BaseAddress;
+        heapDebugInfo->Heaps[i].NumberOfEntries = heapInfo.NumberOfEntries;
+        heapDebugInfo->Heaps[i].BaseAddress = heapInfo.BaseAddress;
         heapDebugInfo->Heaps[i].BytesAllocated = allocated;
         heapDebugInfo->Heaps[i].BytesCommitted = committed;
 
@@ -11089,7 +11110,7 @@ NTSTATUS PhQueryProcessHeapInformation(
 #endif
             if (NT_SUCCESS(PhGetProcessHeapSignature(
                 processHandle,
-                heapInfo->BaseAddress,
+                heapInfo.BaseAddress,
                 isWow64,
                 &signature
                 )))
@@ -11099,7 +11120,7 @@ NTSTATUS PhQueryProcessHeapInformation(
 
             if (NT_SUCCESS(PhGetProcessHeapFrontEndType(
                 processHandle,
-                heapInfo->BaseAddress,
+                heapInfo.BaseAddress,
                 isWow64,
                 &frontEndType
                 )))
@@ -11979,6 +12000,109 @@ BOOLEAN PhIsFirmwareSupported(
     }
 
     return FALSE;
+}
+
+// rev from GetFirmwareEnvironmentVariableW (dmex)
+NTSTATUS PhGetFirmwareEnvironmentVariable(
+    _In_ PPH_STRINGREF VariableName,
+    _In_ PPH_STRINGREF VendorGuid,
+    _Out_ PVOID* VariableValueBuffer,
+    _Out_opt_ PULONG VariableValueLength
+    )
+{
+    NTSTATUS status;
+    GUID vendorGuid;
+    UNICODE_STRING variableName;
+    PVOID variableValueBuffer = NULL;
+    ULONG variableValueLength = 0;
+
+    PhStringRefToUnicodeString(VariableName, &variableName);
+
+    status = PhStringToGuid(
+        VendorGuid,
+        &vendorGuid
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtQuerySystemEnvironmentValueEx(
+        &variableName,
+        &vendorGuid,
+        variableValueBuffer,
+        &variableValueLength,
+        NULL
+        );
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+        return STATUS_UNSUCCESSFUL;
+
+    variableValueBuffer = PhAllocate(variableValueLength);
+    memset(variableValueBuffer, 0, variableValueLength);
+
+    status = NtQuerySystemEnvironmentValueEx(
+        &variableName,
+        &vendorGuid,
+        variableValueBuffer,
+        &variableValueLength,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (VariableValueLength)
+            *VariableValueLength = variableValueLength;
+        *VariableValueBuffer = variableValueBuffer;
+    }
+    else
+    {
+        PhFree(variableValueBuffer);
+    }
+
+    return status;
+}
+
+NTSTATUS PhEnumFirmwareEnvironmentValues(
+    _In_ SYSTEM_ENVIRONMENT_INFORMATION_CLASS InformationClass,
+    _Out_ PVOID* Variables
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferLength;
+
+    bufferLength = PAGE_SIZE;
+    buffer = PhAllocate(bufferLength);
+
+    while (TRUE)
+    {
+        status = NtEnumerateSystemEnvironmentValuesEx(
+            InformationClass,
+            buffer,
+            &bufferLength
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferLength);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Variables = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
 }
 
 // rev from RtlpCreateExecutionRequiredRequest
