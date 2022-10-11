@@ -133,7 +133,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"MaxPrecisionUnit", L"2");
     PhpAddIntegerSetting(L"MemEditBytesPerRow", L"10"); // 16
     PhpAddStringSetting(L"MemEditGotoChoices", L"");
-    PhpAddIntegerPairSetting(L"MemEditPosition", L"450,450");
+    PhpAddIntegerPairSetting(L"MemEditPosition", L"0,0");
     PhpAddScalableIntegerPairSetting(L"MemEditSize", L"@96|600,500");
     PhpAddStringSetting(L"MemFilterChoices", L"");
     PhpAddStringSetting(L"MemResultsListViewColumns", L"");

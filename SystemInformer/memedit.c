@@ -186,7 +186,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 {
                     PhSetWindowText(hwndDlg, PhaFormatString(L"%s (%u) (0x%Ix - 0x%Ix)",
                         processItem->ProcessName->Buffer, HandleToUlong(context->ProcessId),
-                        context->BaseAddress, (ULONG_PTR)context->BaseAddress + context->RegionSize)->Buffer);
+                        (ULONG_PTR)context->BaseAddress, (ULONG_PTR)context->BaseAddress + context->RegionSize)->Buffer);
                     PhDereferenceObject(processItem);
                 }
             }
@@ -260,27 +260,35 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             HexEdit_SetBuffer(context->HexEditHandle, context->Buffer, (ULONG)context->RegionSize);
 
             {
-                PH_RECTANGLE windowRectangle = {0};
-                RECT rect;
-                LONG dpiValue;
+                PH_RECTANGLE windowRectangle = { 0 };
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
 
-                rect = PhRectangleToRect(windowRectangle);
-                dpiValue = PhGetMonitorDpi(&rect);
+                if (windowRectangle.Position.X == 0)
+                {
+                    PhCenterWindow(hwndDlg, context->OwnerHandle);
+                }
+                else
+                {
+                    RECT rect;
+                    LONG dpiValue;
 
-                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
-                PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
+                    rect = PhRectangleToRect(windowRectangle);
+                    dpiValue = PhGetMonitorDpi(&rect);
 
-                MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
-                    windowRectangle.Width, windowRectangle.Height, FALSE);
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
+                    PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
-                // Implement cascading by saving an offsetted rectangle.
-                windowRectangle.Left += 20;
-                windowRectangle.Top += 20;
+                    MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
+                        windowRectangle.Width, windowRectangle.Height, FALSE);
 
-                PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
-                PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
+                    // Implement cascading by saving an offsetted rectangle.
+                    windowRectangle.Left += 20;
+                    windowRectangle.Top += 20;
+
+                    PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
+                    PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
+                }
             }
 
             {
