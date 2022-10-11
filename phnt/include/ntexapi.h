@@ -72,11 +72,36 @@ NtSetSystemEnvironmentValueEx(
     _In_ ULONG Attributes // EFI_VARIABLE_*
     );
 
+typedef enum _SYSTEM_ENVIRONMENT_INFORMATION_CLASS
+{
+    SystemEnvironmentNameInformation = 1, // q: VARIABLE_NAME
+    SystemEnvironmentValueInformation = 2, // q: VARIABLE_NAME_AND_VALUE
+    MaxSystemEnvironmentInfoClass
+} SYSTEM_ENVIRONMENT_INFORMATION_CLASS;
+
+typedef struct _VARIABLE_NAME
+{
+    ULONG NextEntryOffset;
+    GUID VendorGuid;
+    WCHAR Name[ANYSIZE_ARRAY];
+} VARIABLE_NAME, *PVARIABLE_NAME;
+
+typedef struct _VARIABLE_NAME_AND_VALUE
+{
+    ULONG NextEntryOffset;
+    ULONG ValueOffset;
+    ULONG ValueLength;
+    ULONG Attributes;
+    GUID VendorGuid;
+    WCHAR Name[ANYSIZE_ARRAY];
+    //BYTE Value[ANYSIZE_ARRAY];
+} VARIABLE_NAME_AND_VALUE, *PVARIABLE_NAME_AND_VALUE;
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtEnumerateSystemEnvironmentValuesEx(
-    _In_ ULONG InformationClass,
+    _In_ SYSTEM_ENVIRONMENT_INFORMATION_CLASS InformationClass,
     _Out_ PVOID Buffer,
     _Inout_ PULONG BufferLength
     );
