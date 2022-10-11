@@ -2142,6 +2142,22 @@ PhGetFirmwareEnvironmentVariable(
     _Out_opt_ PULONG VariableValueLength
     );
 
+#define PH_FIRST_FIRMWARE_VALUE(Variables) ((VARIABLE_NAME)(Variables))
+#define PH_NEXT_FIRMWARE_VALUE(Variable) ( \
+    ((VARIABLE_NAME)(Variable))->NextEntryOffset ? \
+    (VARIABLE_NAME)(PTR_ADD_OFFSET((Variable), \
+    ((VARIABLE_NAME)(Variable))->NextEntryOffset)) : \
+    NULL \
+    )
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumFirmwareEnvironmentValues(
+    _In_ SYSTEM_ENVIRONMENT_INFORMATION_CLASS InformationClass,
+    _Out_ PVOID* Variables
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI

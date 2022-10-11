@@ -251,6 +251,7 @@ EXPORTS
     PhEnumDirectoryFile
     PhEnumDirectoryObjects
     PhEnumFileStreams
+    PhEnumFirmwareEnvironmentValues
     PhEnumGenericModules
     PhEnumHandles
     PhEnumHandlesEx
