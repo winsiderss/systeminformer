@@ -2501,7 +2501,7 @@ NTSTATUS RunAsCreateProcessThread(
     if (filePathString = PhSearchFilePath(command->Buffer, L".exe"))
         PhMoveReference(&commandLine, filePathString);
     else
-        commandLine = command; // HACK (dmex)
+        PhSetReference(&commandLine, command);
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -2623,6 +2623,11 @@ CleanupExit:
     if (commandLine)
     {
         PhDereferenceObject(commandLine);
+    }
+
+    if (command)
+    {
+        PhDereferenceObject(command);
     }
 
     return status;
@@ -2764,6 +2769,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     {
                         if (Button_GetCheck(context->RunAsInstallerCheckboxHandle) == BST_CHECKED)
                         {
+                            PhReferenceObject(commandString);
                             status = PhCreateThread2(RunAsCreateProcessThread, commandString);
                         }
                         else
