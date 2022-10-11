@@ -1007,7 +1007,7 @@ VOID PhSaveWindowPlacementToSetting(
 
     rect = PhRectangleToRect(windowRectangle);
 
-    dpiValue = PhGetMonitorDpi(&rect);
+    dpiValue = PhGetWindowDpi(WindowHandle); // PhGetMonitorDpi(&rect);
 
     if (PositionSettingName)
         PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
