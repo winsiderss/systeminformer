@@ -2143,10 +2143,10 @@ PhGetFirmwareEnvironmentVariable(
     );
 
 #define PH_FIRST_FIRMWARE_VALUE(Variables) ((VARIABLE_NAME)(Variables))
-#define PH_NEXT_FIRMWARE_VALUE(Variable) ( \
-    ((VARIABLE_NAME)(Variable))->NextEntryOffset ? \
-    (VARIABLE_NAME)(PTR_ADD_OFFSET((Variable), \
-    ((VARIABLE_NAME)(Variable))->NextEntryOffset)) : \
+#define PH_NEXT_FIRMWARE_VALUE(Variables) ( \
+    ((VARIABLE_NAME)(Variables))->NextEntryOffset ? \
+    (VARIABLE_NAME)(PTR_ADD_OFFSET((Variables), \
+    ((VARIABLE_NAME)(Variables))->NextEntryOffset)) : \
     NULL \
     )
 
