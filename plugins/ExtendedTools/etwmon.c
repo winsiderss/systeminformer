@@ -88,11 +88,6 @@ VOID EtEtwMonitorInitialization(
     if (PhGetOwnTokenAttributes().Elevated && PhGetIntegerSetting(SETTING_NAME_ENABLE_ETW_MONITOR))
     {
         EtStartEtwSession();
-
-        if (EtEtwEnabled)
-        {
-            PhCreateThread2(EtpEtwMonitorThreadStart, NULL);
-        }
     }
 }
 
@@ -236,6 +231,11 @@ VOID EtStartEtwSession(
         EtpEtwActive = FALSE;
         EtpStartedSession = FALSE;
         EtpSessionHandle = INVALID_PROCESSTRACE_HANDLE; // StartTrace set the handle 0 on failure. (dmex)
+    }
+
+    if (EtEtwEnabled)
+    {
+        PhCreateThread2(EtpEtwMonitorThreadStart, NULL);
     }
 }
 
