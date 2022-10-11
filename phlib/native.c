@@ -12062,6 +12062,49 @@ NTSTATUS PhGetFirmwareEnvironmentVariable(
     return status;
 }
 
+NTSTATUS PhEnumFirmwareEnvironmentValues(
+    _In_ SYSTEM_ENVIRONMENT_INFORMATION_CLASS InformationClass,
+    _Out_ PVOID* Variables
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferLength;
+
+    bufferLength = PAGE_SIZE;
+    buffer = PhAllocate(bufferLength);
+
+    while (TRUE)
+    {
+        status = NtEnumerateSystemEnvironmentValuesEx(
+            InformationClass,
+            buffer,
+            &bufferLength
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferLength);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Variables = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
 // rev from RtlpCreateExecutionRequiredRequest
 NTSTATUS PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
