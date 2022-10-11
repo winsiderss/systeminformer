@@ -2142,11 +2142,11 @@ PhGetFirmwareEnvironmentVariable(
     _Out_opt_ PULONG VariableValueLength
     );
 
-#define PH_FIRST_FIRMWARE_VALUE(Variables) ((VARIABLE_NAME)(Variables))
+#define PH_FIRST_FIRMWARE_VALUE(Variables) ((PVARIABLE_NAME_AND_VALUE)(Variables))
 #define PH_NEXT_FIRMWARE_VALUE(Variables) ( \
-    ((VARIABLE_NAME)(Variables))->NextEntryOffset ? \
-    (VARIABLE_NAME)(PTR_ADD_OFFSET((Variables), \
-    ((VARIABLE_NAME)(Variables))->NextEntryOffset)) : \
+    ((PVARIABLE_NAME_AND_VALUE)(Variables))->NextEntryOffset ? \
+    (PVARIABLE_NAME_AND_VALUE)(PTR_ADD_OFFSET((Variables), \
+    ((PVARIABLE_NAME_AND_VALUE)(Variables))->NextEntryOffset)) : \
     NULL \
     )
 
