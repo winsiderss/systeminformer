@@ -161,6 +161,34 @@ VOID PhCenterWindow(
     }
 }
 
+// rev from EtwRundown.dll!EtwpLogDPISettingsInfo (dmex)
+LONG PhGetUserOrMachineDpi(
+    VOID
+    )
+{
+    static PH_STRINGREF machineKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Hardware Profiles\\Current\\Software\\Fonts");
+    static PH_STRINGREF userKeyName = PH_STRINGREF_INIT(L"Control Panel\\Desktop");
+    HANDLE keyHandle;
+    LONG dpi = 0;
+
+    if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_USERS, &userKeyName, 0)))
+    {
+        dpi = PhQueryRegistryUlong(keyHandle, L"LogPixels");
+        NtClose(keyHandle);
+    }
+
+    if (dpi == 0)
+    {
+        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &machineKeyName, 0)))
+        {
+            dpi = PhQueryRegistryUlong(keyHandle, L"LogPixels");
+            NtClose(keyHandle);
+        }
+    }
+
+    return dpi;
+}
+
 LONG PhGetDpi(
     _In_ LONG Number,
     _In_ LONG DpiValue
@@ -180,9 +208,9 @@ LONG PhGetSystemDpi(
     VOID
     )
 {
-    UINT dpi;
+    LONG dpi;
 
-    // Try avoid calling GetDpiForSystem since it'll return incorrect DPI
+    // Note: Avoid calling GetDpiForSystem since it'll return incorrect DPI
     // when the user changes the display settings. GetDpiForWindow doesn't have
     // this same limitation and always returns the correct DPI. (dmex)
     dpi = PhGetTaskbarDpi();
@@ -199,7 +227,7 @@ LONG PhGetTaskbarDpi(
     VOID
     )
 {
-    UINT dpi = 0;
+    LONG dpi = 0;
     HWND shellWindow;
 
     // Note: GetShellWindow is cached in TEB (dmex)
@@ -297,7 +325,7 @@ LONG PhGetDpiValue(
     {
         if (GetDpiForWindow_I && WindowHandle) // Win10 RS1
         {
-            UINT dpi;
+            LONG dpi;
 
             if (dpi = GetDpiForWindow_I(WindowHandle))
             {
@@ -308,8 +336,8 @@ LONG PhGetDpiValue(
         if (GetDpiForMonitor_I) // Win81
         {
             HMONITOR monitor;
-            UINT dpi_x;
-            UINT dpi_y;
+            LONG dpi_x;
+            LONG dpi_y;
 
             if (Rect)
                 monitor = MonitorFromRect(Rect, MONITOR_DEFAULTTONEAREST);
