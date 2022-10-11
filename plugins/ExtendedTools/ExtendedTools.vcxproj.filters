@@ -215,9 +215,6 @@
     <ClInclude Include="extension\plugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="firmware.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="efi_guid_list.h">
       <Filter>Header Files</Filter>
     </ClInclude>

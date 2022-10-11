@@ -10,7 +10,6 @@
  */
 
 #include "exttools.h"
-#include "firmware.h"
 #include "efi_guid_list.h"
 #include "Efi\EfiTypes.h"
 #include "Efi\EfiDevicePath.h"

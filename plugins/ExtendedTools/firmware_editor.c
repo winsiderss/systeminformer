@@ -10,9 +10,9 @@
  */
 
 #include "exttools.h"
-#include "firmware.h"
+#include <hexedit.h>
 
-typedef struct _EFI_EDITOR_CONTEXT
+typedef struct _ET_FIRMWARE_EDITOR_CONTEXT
 {
     HWND WindowHandle;
     HWND ParentWindowHandle;
@@ -27,10 +27,10 @@ typedef struct _EFI_EDITOR_CONTEXT
 
     PVOID VariableValue;
     ULONG VariableValueLength;
-} EFI_EDITOR_CONTEXT, *PEFI_EDITOR_CONTEXT;
+} ET_FIRMWARE_EDITOR_CONTEXT, *PET_FIRMWARE_EDITOR_CONTEXT;
 
-NTSTATUS UefiQueryVariable(
-    _Inout_ PEFI_EDITOR_CONTEXT Context,
+NTSTATUS EtFirmwareQueryVariable(
+    _Inout_ PET_FIRMWARE_EDITOR_CONTEXT Context,
     _In_ PPH_STRING Name,
     _In_ PPH_STRING Guid
     )
@@ -71,18 +71,18 @@ NTSTATUS UefiQueryVariable(
     return status;
 }
 
-INT_PTR CALLBACK UefiEditorDlgProc(
+INT_PTR CALLBACK EtFirmwareEditorDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    PEFI_EDITOR_CONTEXT context;
+    PET_FIRMWARE_EDITOR_CONTEXT context;
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = (PEFI_EDITOR_CONTEXT)lParam;
+        context = (PET_FIRMWARE_EDITOR_CONTEXT)lParam;
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -113,7 +113,7 @@ INT_PTR CALLBACK UefiEditorDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (!NT_SUCCESS(status = UefiQueryVariable(context, context->Name, context->GuidString)))
+            if (!NT_SUCCESS(status = EtFirmwareQueryVariable(context, context->Name, context->GuidString)))
             {
                 PhShowStatus(context->ParentWindowHandle, L"Unable to query the EFI variable.", status, 0);
                 DestroyWindow(hwndDlg);
@@ -257,7 +257,7 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                 {
                     NTSTATUS status;
 
-                    if (!NT_SUCCESS(status = UefiQueryVariable(context, context->Name, context->GuidString)))
+                    if (!NT_SUCCESS(status = EtFirmwareQueryVariable(context, context->Name, context->GuidString)))
                     {
                         PhShowStatus(NULL, L"Unable to query the EFI variable.", status, 0);
                         return TRUE;
@@ -301,11 +301,11 @@ INT_PTR CALLBACK UefiEditorDlgProc(
     return FALSE;
 }
 
-NTSTATUS UefiEditorDialogThreadStart(
+NTSTATUS EtFirmwareEditorDialogThreadStart(
     _In_ PVOID Parameter
     )
 {
-    PEFI_EDITOR_CONTEXT context = Parameter;
+    PET_FIRMWARE_EDITOR_CONTEXT context = Parameter;
     BOOL result;
     MSG message;
     HWND windowHandle;
@@ -317,8 +317,8 @@ NTSTATUS UefiEditorDialogThreadStart(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_FIRMWARE_EDITVAR),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->ParentWindowHandle,
-        UefiEditorDlgProc,
-        (LPARAM)Parameter
+        EtFirmwareEditorDlgProc,
+        (LPARAM)context
         );
 
     ShowWindow(windowHandle, SW_SHOW);
@@ -348,12 +348,12 @@ VOID EtShowFirmwareEditDialog(
     _In_ PEFI_ENTRY Entry
     )
 {
-    PEFI_EDITOR_CONTEXT context;
+    PET_FIRMWARE_EDITOR_CONTEXT context;
 
-    context = PhAllocateZero(sizeof(EFI_EDITOR_CONTEXT));
+    context = PhAllocateZero(sizeof(ET_FIRMWARE_EDITOR_CONTEXT));
     context->ParentWindowHandle = ParentWindowHandle;
     context->Name = PhDuplicateString(Entry->Name);
     context->GuidString = PhDuplicateString(Entry->GuidString);
 
-    PhCreateThread2(UefiEditorDialogThreadStart, context);
+    PhCreateThread2(EtFirmwareEditorDialogThreadStart, context);
 }
