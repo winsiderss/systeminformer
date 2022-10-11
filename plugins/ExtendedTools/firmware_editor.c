@@ -15,11 +15,13 @@
 typedef struct _EFI_EDITOR_CONTEXT
 {
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND HexEditHandle;
+    HWND BytesPerRowHandle;
+
     PH_LAYOUT_MANAGER LayoutManager;
 
     PPH_STRING Title;
-
     PPH_STRING Name;
     PPH_STRING GuidString;
 
@@ -34,49 +36,23 @@ NTSTATUS UefiQueryVariable(
     )
 {
     NTSTATUS status;
-    UNICODE_STRING variableNameUs;
-    UNICODE_STRING guidStringUs;
-    GUID variableGuid;
-    PVOID variableValue = NULL;
-    ULONG variableValueLength = 0;
+    PVOID variableValue;
+    ULONG variableValueLength;
 
-    PhStringRefToUnicodeString(&Name->sr, &variableNameUs);
-    PhStringRefToUnicodeString(&Guid->sr, &guidStringUs);
-
-    status = RtlGUIDFromString(
-        &guidStringUs,
-        &variableGuid
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    status = NtQuerySystemEnvironmentValueEx(
-        &variableNameUs,
-        &variableGuid,
-        variableValue,
-        &variableValueLength,
-        NULL
-        );
-
-    if (status != STATUS_BUFFER_TOO_SMALL)
-        return status;
-
-    variableValue = PhAllocate(variableValueLength);
-    memset(variableValue, 0, variableValueLength);
-
-    status = NtQuerySystemEnvironmentValueEx(
-        &variableNameUs,
-        &variableGuid,
-        variableValue,
-        &variableValueLength,
-        NULL
+    status = PhGetFirmwareEnvironmentVariable(
+        &Name->sr,
+        &Guid->sr,
+        &variableValue,
+        &variableValueLength
         );
 
     if (NT_SUCCESS(status))
     {
         if (Context->VariableValue)
+        {
             PhFree(Context->VariableValue);
+            Context->VariableValue = NULL;
+        }
 
         Context->VariableValue = variableValue;
         Context->VariableValueLength = variableValueLength;
@@ -84,7 +60,11 @@ NTSTATUS UefiQueryVariable(
     else
     {
         if (Context->VariableValue)
+        {
             PhFree(Context->VariableValue);
+            Context->VariableValue = NULL;
+        }
+
         Context->VariableValueLength = 0;
     }
 
@@ -120,48 +100,58 @@ INT_PTR CALLBACK UefiEditorDlgProc(
             NTSTATUS status;
 
             context->HexEditHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_HEXEDITVAR);
+            context->BytesPerRowHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW);
 
             PhSetApplicationWindowIcon(hwndDlg);
             PhSetWindowText(hwndDlg, PhGetString(context->Name));
-
-            if (!NT_SUCCESS(status = UefiQueryVariable(context, context->Name, context->GuidString)))
-            {
-                PhShowStatus(NULL, L"Unable to query the EFI variable.", status, 0);
-                return TRUE;
-            }
-
-            HexEdit_SetData(context->HexEditHandle, context->VariableValue, context->VariableValueLength);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_HEXEDITVAR), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_REREAD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_WRITE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, context->BytesPerRowHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            if (!NT_SUCCESS(status = UefiQueryVariable(context, context->Name, context->GuidString)))
             {
-                PH_RECTANGLE windowRectangle = {0};
-                RECT rect;
-                LONG dpiValue;
+                PhShowStatus(context->ParentWindowHandle, L"Unable to query the EFI variable.", status, 0);
+                DestroyWindow(hwndDlg);
+                return TRUE;
+            }
+
+            HexEdit_SetData(context->HexEditHandle, context->VariableValue, context->VariableValueLength);
+
+            {
+                PH_RECTANGLE windowRectangle = { 0 };
 
                 windowRectangle.Position = PhGetIntegerPairSetting(L"MemEditPosition");
 
-                rect = PhRectangleToRect(windowRectangle);
-                dpiValue = PhGetMonitorDpi(&rect);
+                if (windowRectangle.Position.X == 0)
+                {
+                    PhCenterWindow(hwndDlg, context->ParentWindowHandle);
+                }
+                else
+                {
+                    RECT rect;
+                    LONG dpiValue;
 
-                windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
-                PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
+                    rect = PhRectangleToRect(windowRectangle);
+                    dpiValue = PhGetMonitorDpi(&rect);
 
-                MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
-                    windowRectangle.Width, windowRectangle.Height, FALSE);
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MemEditSize", TRUE, dpiValue).Pair;
+                    PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
-                // Implement cascading by saving an offsetted rectangle.
-                windowRectangle.Left += 20;
-                windowRectangle.Top += 20;
+                    MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
+                        windowRectangle.Width, windowRectangle.Height, FALSE);
 
-                PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
-                PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
+                    // Implement cascading by saving an offsetted rectangle.
+                    windowRectangle.Left += 20;
+                    windowRectangle.Top += 20;
+
+                    PhSetIntegerPairSetting(L"MemEditPosition", windowRectangle.Position);
+                    PhSetScalableIntegerPairSetting2(L"MemEditSize", windowRectangle.Size, dpiValue);
+                }
             }
 
             {
@@ -171,16 +161,15 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                 for (ULONG i = 0; i < ARRAYSIZE(bytesPerRowStrings); i++)
                     bytesPerRowStrings[i] = PhaFormatString(L"%u bytes per row", 1 << (2 + i))->Buffer;
 
-                PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW), bytesPerRowStrings, ARRAYSIZE(bytesPerRowStrings));
+                PhAddComboBoxStrings(context->BytesPerRowHandle, bytesPerRowStrings, ARRAYSIZE(bytesPerRowStrings));
 
                 bytesPerRow = PhGetIntegerSetting(L"MemEditBytesPerRow");
 
                 if (bytesPerRow >= 4)
                 {
                     HexEdit_SetBytesPerRow(context->HexEditHandle, bytesPerRow);
-                    PhSelectComboBoxString(GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW),
-                        PhaFormatString(L"%u bytes per row", bytesPerRow)->Buffer, FALSE
-                        );
+                    PhSelectComboBoxString(context->BytesPerRowHandle, PhaFormatString(
+                        L"%u bytes per row", bytesPerRow)->Buffer, FALSE);
                 }
             }
 
@@ -225,7 +214,6 @@ INT_PTR CALLBACK UefiEditorDlgProc(
                     PVOID fileDialog;
 
                     fileDialog = PhCreateSaveFileDialog();
-
                     PhSetFileDialogFilter(fileDialog, filters, ARRAYSIZE(filters));
                     PhSetFileDialogFileName(fileDialog, PhaFormatString(
                         L"%s.bin",
@@ -317,6 +305,7 @@ NTSTATUS UefiEditorDialogThreadStart(
     _In_ PVOID Parameter
     )
 {
+    PEFI_EDITOR_CONTEXT context = Parameter;
     BOOL result;
     MSG message;
     HWND windowHandle;
@@ -327,7 +316,7 @@ NTSTATUS UefiEditorDialogThreadStart(
     windowHandle = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_FIRMWARE_EDITVAR),
-        NULL,
+        !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->ParentWindowHandle,
         UefiEditorDlgProc,
         (LPARAM)Parameter
         );
@@ -354,13 +343,15 @@ NTSTATUS UefiEditorDialogThreadStart(
     return STATUS_SUCCESS;
 }
 
-VOID ShowUefiEditorDialog(
+VOID EtShowFirmwareEditDialog(
+    _In_ HWND ParentWindowHandle,
     _In_ PEFI_ENTRY Entry
     )
 {
     PEFI_EDITOR_CONTEXT context;
 
     context = PhAllocateZero(sizeof(EFI_EDITOR_CONTEXT));
+    context->ParentWindowHandle = ParentWindowHandle;
     context->Name = PhDuplicateString(Entry->Name);
     context->GuidString = PhDuplicateString(Entry->GuidString);
 

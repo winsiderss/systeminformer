@@ -41,52 +41,12 @@ typedef struct _EFI_ENTRY
     PPH_STRING GuidString;
 } EFI_ENTRY, *PEFI_ENTRY;
 
-VOID ShowUefiEditorDialog(
+VOID EtShowFirmwareEditDialog(
+    _In_ HWND ParentWindowHandle,
     _In_ PEFI_ENTRY Entry
     );
 
 // Windows types
-
-typedef enum _SYSTEM_ENVIRONMENT_INFORMATION_CLASS
-{
-    SystemEnvironmentUnknownInformation,
-    SystemEnvironmentNameInformation, // q: VARIABLE_NAME
-    SystemEnvironmentValueInformation, // q: VARIABLE_NAME_AND_VALUE
-    MaxSystemEnvironmentInfoClass
-} SYSTEM_ENVIRONMENT_INFORMATION_CLASS;
-
-typedef struct _VARIABLE_NAME
-{
-    ULONG NextEntryOffset;
-    GUID VendorGuid;
-    WCHAR Name[ANYSIZE_ARRAY];
-} VARIABLE_NAME, *PVARIABLE_NAME;
-
-#define EFI_VARIABLE_NON_VOLATILE                             0x00000001
-#define EFI_VARIABLE_BOOTSERVICE_ACCESS                       0x00000002
-#define EFI_VARIABLE_RUNTIME_ACCESS                           0x00000004
-#define EFI_VARIABLE_HARDWARE_ERROR_RECORD                    0x00000008
-#define EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS               0x00000010
-#define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS    0x00000020
-#define EFI_VARIABLE_APPEND_WRITE                             0x00000040
-
-typedef struct _VARIABLE_NAME_AND_VALUE
-{
-    ULONG NextEntryOffset;
-    ULONG ValueOffset;
-    ULONG ValueLength;
-    ULONG Attributes;
-    GUID VendorGuid;
-    WCHAR Name[ANYSIZE_ARRAY];
-} VARIABLE_NAME_AND_VALUE, *PVARIABLE_NAME_AND_VALUE;
-
-#define PH_FIRST_EFI_VARIABLE(Variables) ((PVARIABLE_NAME_AND_VALUE)(Variables))
-#define PH_NEXT_EFI_VARIABLE(Variable) ( \
-    ((PVARIABLE_NAME_AND_VALUE)(Variable))->NextEntryOffset ? \
-    (PVARIABLE_NAME_AND_VALUE)((PCHAR)(Variable) + \
-    ((PVARIABLE_NAME_AND_VALUE)(Variable))->NextEntryOffset) : \
-    NULL \
-    )
 
 #define PH_FIRST_BOOT_ENTRY(Variables) ((PBOOT_ENTRY_LIST)(Variables))
 #define PH_NEXT_BOOT_ENTRY(Variable) ( \

@@ -86,47 +86,6 @@ VOID FreeListViewFirmwareEntries(
     }
 }
 
-NTSTATUS EtEnumerateFirmwareValues(
-    _Out_ PVOID *Values
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferLength;
-
-    bufferLength = PAGE_SIZE;
-    buffer = PhAllocate(bufferLength);
-
-    while (TRUE)
-    {
-        status = NtEnumerateSystemEnvironmentValuesEx(
-            SystemEnvironmentValueInformation,
-            buffer,
-            &bufferLength
-            );
-
-        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
-        {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferLength);
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    *Values = buffer;
-
-    return status;
-}
-
 NTSTATUS EtEnumerateFirmwareEntries(
     _In_ PUEFI_WINDOW_CONTEXT Context
     )
@@ -138,7 +97,8 @@ NTSTATUS EtEnumerateFirmwareEntries(
     FreeListViewFirmwareEntries(Context);
     ListView_DeleteAllItems(Context->ListViewHandle);
 
-    status = EtEnumerateFirmwareValues(
+    status = PhEnumFirmwareEnvironmentValues(
+        SystemEnvironmentValueInformation,
         &variables
         );
 
@@ -146,7 +106,7 @@ NTSTATUS EtEnumerateFirmwareEntries(
     {
         PVARIABLE_NAME_AND_VALUE i;
 
-        for (i = PH_FIRST_EFI_VARIABLE(variables); i; i = PH_NEXT_EFI_VARIABLE(i))
+        for (i = PH_FIRST_FIRMWARE_VALUE(variables); i; i = PH_NEXT_FIRMWARE_VALUE(i))
         {
             INT index;
             PEFI_ENTRY entry;
@@ -344,7 +304,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
 
                         if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                         {
-                            ShowUefiEditorDialog(entry);
+                            EtShowFirmwareEditDialog(hwndDlg, entry);
                         }
                     }
                 }
