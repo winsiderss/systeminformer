@@ -473,7 +473,7 @@ typedef struct _CDROM_DEVICE_PATH
 typedef struct _FILEPATH_DEVICE_PATH
 {
     EFI_DEVICE_PATH_PROTOCOL        Header;
-    CHAR16                          PathName[1];
+    WCHAR                           PathName[1];
 } FILEPATH_DEVICE_PATH;
 
 #define SIZE_OF_FILEPATH_DEVICE_PATH EFI_FIELD_OFFSET(FILEPATH_DEVICE_PATH,PathName)
@@ -517,7 +517,7 @@ typedef struct _BBS_BBS_DEVICE_PATH
     EFI_DEVICE_PATH_PROTOCOL        Header;
     UINT16                          DeviceType;
     UINT16                          StatusFlag;
-    CHAR8                           String[ANYSIZE_ARRAY];
+    UCHAR                           String[ANYSIZE_ARRAY];
 } BBS_BBS_DEVICE_PATH;
 
 //
@@ -647,5 +647,29 @@ typedef union _EFI_DEV_PATH_PTR
 
 #pragma pack()
 
+// Windows types (dmex)
+
+#define PH_FIRST_BOOT_ENTRY(Variables) ((PBOOT_ENTRY_LIST)(Variables))
+#define PH_NEXT_BOOT_ENTRY(Variable) ( \
+    ((PBOOT_ENTRY_LIST)(Variable))->NextEntryOffset ? \
+    (PBOOT_ENTRY_LIST)((PCHAR)(Variable) + \
+    ((PBOOT_ENTRY_LIST)(Variable))->NextEntryOffset) : \
+    NULL \
+    )
+
+#define FILE_PATH_TYPE_MIN FILE_PATH_TYPE_ARC
+#define FILE_PATH_TYPE_MAX FILE_PATH_TYPE_EFI
+
+#define WINDOWS_OS_OPTIONS_VERSION 1
+#define WINDOWS_OS_OPTIONS_SIGNATURE "WINDOWS"
+
+typedef struct _WINDOWS_OS_OPTIONS
+{
+    UCHAR Signature[8];
+    ULONG Version;
+    ULONG Length;
+    ULONG OsLoadPathOffset; //FILE_PATH OsLoadPath;
+    WCHAR OsLoadOptions[1];
+} WINDOWS_OS_OPTIONS, *PWINDOWS_OS_OPTIONS;
 
 #endif

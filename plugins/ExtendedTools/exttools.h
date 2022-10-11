@@ -1196,6 +1196,24 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
 
 // firmware
 
+typedef struct _UEFI_WINDOW_CONTEXT
+{
+    HWND ListViewHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
+} UEFI_WINDOW_CONTEXT, *PUEFI_WINDOW_CONTEXT;
+
+typedef struct _EFI_ENTRY
+{
+    ULONG Length;
+    PPH_STRING Name;
+    PPH_STRING GuidString;
+} EFI_ENTRY, *PEFI_ENTRY;
+
+VOID EtShowFirmwareEditDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PEFI_ENTRY Entry
+    );
+
 INT_PTR CALLBACK EtFirmwareDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
