@@ -80,7 +80,7 @@ static void AddPresents(
     for (size_t n = presentEvents.size(); i < n; ++i)
     {
         auto presentEvent = presentEvents[i];
-        assert(presentEvent->Completed);
+        assert(presentEvent->IsCompleted);
 
         // Stop processing events if we hit the next stop time.
         if (checkStopQpc && presentEvent->QpcTime >= stopQpc)

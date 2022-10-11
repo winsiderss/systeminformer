@@ -33,13 +33,9 @@ enum class Runtime
 
 struct PresentEvent
 {
-    // Initial event information (might be a kernel event if not presented
-    // through DXGI or D3D9)
-    ULONGLONG QpcTime;
-    ULONG ProcessId;
-    ULONG ThreadId;
-
-    // Timestamps observed during present pipeline
+    ULONGLONG QpcTime;       // QPC value of the first event related to the Present (D3D9, DXGI, or DXGK Present_Start)
+    ULONG ProcessId;     // ID of the process that presented
+    ULONG ThreadId;      // ID of the thread that presented
     ULONGLONG TimeTaken;     // QPC duration between runtime present start and end
     ULONGLONG ReadyTime;     // QPC value when the last GPU commands completed prior to presentation
     ULONGLONG ScreenTime;    // QPC value when the present was displayed on screen
@@ -49,24 +45,31 @@ struct PresentEvent
     LONG SyncInterval;
     ULONG PresentFlags;
 
+    // Keys used to index into PMTraceConsumer's tracking data structures:
+    uint64_t CompositionSurfaceLuid;      // mPresentByWin32KPresentHistoryToken
+    uint64_t Win32KPresentCount;          // mPresentByWin32KPresentHistoryToken
+    uint64_t Win32KBindId;                // mPresentByWin32KPresentHistoryToken
+    uint64_t DxgkPresentHistoryToken;     // mPresentByDxgkPresentHistoryToken
+    uint64_t DxgkPresentHistoryTokenData; // mPresentByDxgkPresentHistoryTokenData
+    uint64_t DxgkContext;                 // mPresentByDxgkContext
+    uint64_t Hwnd;                        // mLastPresentByWindow
+    uint32_t mAllPresentsTrackingIndex;   // mAllPresents.
+    uint32_t QueueSubmitSequence;         // mPresentBySubmitSequence
+    // Note: the following index tracking structures, but are also considered useful data:
+    //       ProcessId : mOrderedPresentsByProcessId
+    //       ThreadId  : mPresentByThreadId
+
+    // How many PresentStop events from the thread to wait for before
+    // enqueueing this present.
+    uint32_t DeferredCompletionWaitCount;
+
     // Properties deduced by watching events through present pipeline
-    ULONGLONG Hwnd;
-    ULONGLONG TokenPtr;
-    ULONGLONG CompositionSurfaceLuid;
-    ULONG QueueSubmitSequence;    // Submit sequence for the Present packet
-    //ULONG DestWidth;
-    //ULONG DestHeight;
-    ULONG DriverBatchThreadId;
+    uint32_t DestWidth;
+    uint32_t DestHeight;
+    uint32_t DriverBatchThreadId;
     Runtime Runtime;
     PresentMode PresentMode;
     PresentResult FinalState;
-    //bool SupportsTearing;
-    //bool MMIO;
-    //bool SeenDxgkPresent;
-    //bool SeenWin32KEvents;
-    //bool DwmNotified;
-    //bool SeenInFrameEvent;
-    //bool Completed;
 
     union
     {
@@ -78,30 +81,28 @@ struct PresentEvent
             ULONG SeenDxgkPresent : 1;
             ULONG SeenWin32KEvents : 1;
             ULONG DwmNotified : 1;
-            ULONG SeenInFrameEvent : 1;
-            ULONG Completed : 1;
-            ULONG IsLost : 1;
+            ULONG SeenInFrameEvent : 1; // This present has gotten a Win32k TokenStateChanged event into InFrame state
+            ULONG IsCompleted : 1; // All expected events have been observed
+            ULONG IsLost : 1; // This PresentEvent was found in an unexpected state or is too old
             ULONG PresentInDwmWaitingStruct : 1;
             ULONG Spare : 23;
         };
     };
 
     // Additional transient tracking state
-    //bool IsLost;                        // Whether this present has been timed-out, unlikely to ever complete.
-    ULONG mAllPresentsTrackingIndex; // Index in PMTraceConsumer's mAllPresents.
-    ULONGLONG DxgKrnlHContext;           // Key for mBltsByDxgContext
-    ULONGLONG Win32KPresentCount;        // Combine with CompositionSurfaceLuid and Win32KBindId as key into mWin32KPresentHistoryTokens
-    ULONGLONG Win32KBindId;              // Combine with CompositionSurfaceLuid and Win32KPresentCount as key into mWin32KPresentHistoryTokens
-    ULONGLONG LegacyBlitTokenData;       // Key for mPresentsByLegacyBlitToken
     std::deque<std::shared_ptr<PresentEvent>> DependentPresents;
-
-    // We need a signal to prevent us from looking fruitlessly through the WaitingForDwm list
-    //bool PresentInDwmWaitingStruct;
 
     PresentEvent(EVENT_HEADER const& hdr, ::Runtime runtime);
 
 private:
     PresentEvent(PresentEvent const& copy); // dne
+};
+
+using OrderedPresents = std::map<uint64_t, std::shared_ptr<PresentEvent>>;
+
+struct DeferredCompletions {
+    OrderedPresents mOrderedPresents;
+    uint64_t mLastEnqueuedQpcTime;
 };
 
 // A high-level description of the sequence of events for each present type,
@@ -151,18 +152,31 @@ private:
 //   SubmitPresentHistory (use model field for classification, get token ptr) -> DxgKrnl_PresentHistory (by token ptr) ->
 //   Assume DWM will compose this buffer on next present (missing InFrame event), follow windowed blit paths to screen time
 
-void HandleDxgkBlt(EVENT_HEADER const& hdr, ULONGLONG hwnd, bool redirectedPresent);
+void HandleDxgkBlt(EVENT_HEADER const& hdr, uint64_t hwnd, bool redirectedPresent);
 void HandleDxgkBltCancel(EVENT_HEADER const& hdr);
-void HandleDxgkFlip(EVENT_HEADER const& hdr, ULONG flipInterval, bool mmio);
-void HandleDxgkQueueSubmit(EVENT_HEADER const& hdr, ULONG packetType, ULONG submitSequence, ULONGLONG context, bool present, bool supportsDxgkPresentEvent);
-void HandleDxgkQueueComplete(EVENT_HEADER const& hdr, ULONG submitSequence);
-void HandleDxgkMMIOFlip(EVENT_HEADER const& hdr, ULONG flipSubmitSequence, ULONG flags);
-void HandleDxgkMMIOFlipMPO(EVENT_HEADER const& hdr, ULONG flipSubmitSequence, ULONG flipEntryStatusAfterFlip, bool flipEntryStatusAfterFlipValid);
-void HandleDxgkSyncDPC(EVENT_HEADER const& hdr, ULONG flipSubmitSequence);
-void HandleDxgkSyncDPCMPO(EVENT_HEADER const& hdr, ULONG flipSubmitSequence, bool isMultiplane);
-void HandleDxgkPresentHistory(EVENT_HEADER const& hdr, ULONGLONG token, ULONGLONG tokenData, PresentMode knownPresentMode);
-void HandleDxgkPresentHistoryInfo(EVENT_HEADER const& hdr, ULONGLONG token);
+void HandleDxgkFlip(EVENT_HEADER const& hdr, int32_t flipInterval, bool mmio);
+template<bool Win7>
+void HandleDxgkQueueSubmit(EVENT_HEADER const& hdr, uint32_t packetType, uint32_t submitSequence, uint64_t context, bool isPresentPacket);
+void HandleDxgkQueueComplete(EVENT_HEADER const& hdr, uint32_t submitSequence);
+void HandleDxgkMMIOFlip(EVENT_HEADER const& hdr, uint32_t flipSubmitSequence, uint32_t flags);
+void HandleDxgkMMIOFlipMPO(EVENT_HEADER const& hdr, uint32_t flipSubmitSequence, uint32_t flipEntryStatusAfterFlip, bool flipEntryStatusAfterFlipValid);
+void HandleDxgkSyncDPC(EVENT_HEADER const& hdr, uint32_t flipSubmitSequence);
+void HandleDxgkSyncDPCMPO(EVENT_HEADER const& hdr, uint32_t flipSubmitSequence, bool isMultiplane);
+void HandleDxgkPresentHistory(EVENT_HEADER const& hdr, uint64_t token, uint64_t tokenData, uint32_t presentModel);
+void HandleDxgkPresentHistoryInfo(EVENT_HEADER const& hdr, uint64_t token);
 
+void CompletePresent(std::shared_ptr<PresentEvent> const& p);
+void CompletePresentHelper(std::shared_ptr<PresentEvent> const& p);
+void EnqueueDeferredCompletions(DeferredCompletions* deferredCompletions);
+void EnqueueDeferredPresent(std::shared_ptr<PresentEvent> const& p);
+std::shared_ptr<PresentEvent> FindOrCreatePresent(EVENT_HEADER const& hdr);
+void TrackPresent(std::shared_ptr<PresentEvent> present, OrderedPresents* presentsByThisProcess);
+void RemoveLostPresent(std::shared_ptr<PresentEvent> present);
+void RemovePresentFromTemporaryTrackingCollections(std::shared_ptr<PresentEvent> present);
+void RuntimePresentStart(Runtime runtime, EVENT_HEADER const& hdr, uint64_t swapchainAddr, uint32_t dxgiPresentFlags, int32_t syncInterval);
+void RuntimePresentStop(Runtime runtime, EVENT_HEADER const& hdr, uint32_t result);
+
+//void HandleNTProcessEvent(EVENT_RECORD* pEventRecord);
 void HandleDXGIEvent(EVENT_RECORD* pEventRecord);
 void HandleD3D9Event(EVENT_RECORD* pEventRecord);
 void HandleDXGKEvent(EVENT_RECORD* pEventRecord);
