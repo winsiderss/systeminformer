@@ -368,6 +368,95 @@ PPH_STRING PhpGetCurrentDesktopInfo(
     return desktopInfo;
 }
 
+BOOLEAN PhIsAppExecutionAliasTarget(
+    _In_ PPH_STRING FileName
+    )
+{
+    PPH_STRING targetFileName = NULL;
+    PREPARSE_DATA_BUFFER reparseBuffer;
+    ULONG reparseLength;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK isb;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return FALSE;
+
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_REPARSE_POINT
+        )))
+    {
+        return FALSE;
+    }
+
+    reparseLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
+    reparseBuffer = PhAllocateZero(reparseLength);
+
+    if (NT_SUCCESS(NtFsControlFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_GET_REPARSE_POINT,
+        NULL,
+        0,
+        reparseBuffer,
+        reparseLength
+        )))
+    {
+        if (
+            IsReparseTagMicrosoft(reparseBuffer->ReparseTag) &&
+            reparseBuffer->ReparseTag == IO_REPARSE_TAG_APPEXECLINK
+            )
+        {
+            typedef struct _AppExecLinkReparseBuffer
+            {
+                ULONG StringCount;
+                WCHAR StringList[1];
+            } AppExecLinkReparseBuffer, *PAppExecLinkReparseBuffer;
+
+            PAppExecLinkReparseBuffer appexeclink;
+            PWSTR string;
+
+            appexeclink = (PAppExecLinkReparseBuffer)reparseBuffer->GenericReparseBuffer.DataBuffer;
+            string = (PWSTR)appexeclink->StringList;
+
+            for (ULONG i = 0; i < appexeclink->StringCount; i++)
+            {
+                if (i == 2 && PhDoesFileExistWin32(string))
+                {
+                    targetFileName = PhCreateString(string);
+                    break;
+                }
+
+                string += PhCountStringZ(string) + 1;
+            }
+        }
+    }
+
+    PhFree(reparseBuffer);
+    NtClose(fileHandle);
+
+    if (targetFileName)
+    {
+        if (PhDoesFileExistWin32(targetFileName->Buffer))
+        {
+            PhDereferenceObject(targetFileName);
+            return TRUE;
+        }
+
+        PhDereferenceObject(targetFileName);
+    }
+
+    return FALSE;
+}
+
 BOOLEAN PhpInitializeNetApi(VOID)
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -1289,13 +1378,53 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             {
                                 HANDLE processHandle = NULL;
                                 HANDLE newProcessHandle;
-                                STARTUPINFOEX startupInfo;
+                                STARTUPINFOEX startupInfo = { 0 };
                                 SIZE_T attributeListLength = 0;
                                 PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
                                 PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
                                 PVOID environment = NULL;
                                 HANDLE tokenHandle;
                                 ULONG flags = 0;
+
+                                {
+                                    PPH_STRING commandString;
+                                    PPH_STRING fullFileName = NULL;
+                                    PH_STRINGREF fileName;
+                                    PH_STRINGREF arguments;
+
+                                    if (!(commandString = PhExpandEnvironmentStrings(&program->sr)))
+                                        commandString = PhCreateString2(&program->sr);
+
+                                    PhParseCommandLineFuzzy(&commandString->sr, &fileName, &arguments, &fullFileName);
+
+                                    if (PhIsNullOrEmptyString(fullFileName))
+                                        PhMoveReference(&fullFileName, PhCreateString2(&fileName));
+
+                                    if (PhIsNullOrEmptyString(fullFileName))
+                                    {
+                                        if (fullFileName) PhDereferenceObject(fullFileName);
+                                        if (commandString) PhDereferenceObject(commandString);
+                                        status = STATUS_NOT_IMPLEMENTED;
+                                        goto CleanupExit;
+                                    }
+
+                                    // NOTE: CreateProcess has an issue when launching processes with execution aliases
+                                    // where they ignore PROCESS_CREATE_PROCESS and inherit our elevated token instead
+                                    // of the parents non-elevated process token.
+                                    // So we need to make sure they're created with WdcRunTaskAsInteractiveUser otherwise
+                                    // we'll end up incorrectly resetting their process token and current directory. (dmex)
+
+                                    if (PhIsAppExecutionAliasTarget(fullFileName))
+                                    {
+                                        if (fullFileName) PhDereferenceObject(fullFileName);
+                                        if (commandString) PhDereferenceObject(commandString);
+                                        status = STATUS_NOT_IMPLEMENTED;
+                                        goto CleanupExit;
+                                    }
+
+                                    if (fullFileName) PhDereferenceObject(fullFileName);
+                                    if (commandString) PhDereferenceObject(commandString);
+                                }
 
                                 memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
                                 startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -1480,7 +1609,16 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     if (!NT_SUCCESS(status))
                     {
                         if (status != STATUS_CANCELLED)
-                            PhShowStatus(hwndDlg, L"Unable to start the program.", status, 0);
+                        {
+                            if (status == STATUS_NOT_IMPLEMENTED)
+                            {
+                                PhShowError2(hwndDlg, L"Unable to start the program.", L"Unable to start the execution alias with custom tokens.", "");
+                            }
+                            else
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to start the program.", status, 0);
+                            }
+                        }
                     }
                     else if (status != STATUS_TIMEOUT)
                     {
@@ -2296,7 +2434,12 @@ NTSTATUS PhpRunFileProgram(
         startupInfo.StartupInfo.wShowWindow = SW_SHOWDEFAULT;
         parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
 
-        if (!(shellWindow = GetShellWindow()))
+        // NOTE: CreateProcess has an issue when launching processes with execution aliases
+        // where they ignore PROCESS_CREATE_PROCESS and inherit our elevated token instead
+        // of the parents non-elevated process token.
+        // So we need to make sure they're created with WdcRunTaskAsInteractiveUser otherwise
+        // we'll end up incorrectly resetting their process token and current directory. (dmex)
+        if (PhIsAppExecutionAliasTarget(fullFileName) || !(shellWindow = GetShellWindow()))
         {
             if (PhpRunFileAsInteractiveUser(Context, commandString))
                 status = STATUS_SUCCESS;
