@@ -12002,6 +12002,66 @@ BOOLEAN PhIsFirmwareSupported(
     return FALSE;
 }
 
+// rev from GetFirmwareEnvironmentVariableW (dmex)
+NTSTATUS PhGetFirmwareEnvironmentVariable(
+    _In_ PPH_STRINGREF VariableName,
+    _In_ PPH_STRINGREF VendorGuid,
+    _Out_ PVOID* VariableValueBuffer,
+    _Out_opt_ PULONG VariableValueLength
+    )
+{
+    NTSTATUS status;
+    GUID vendorGuid;
+    UNICODE_STRING variableName;
+    PVOID variableValueBuffer = NULL;
+    ULONG variableValueLength = 0;
+
+    PhStringRefToUnicodeString(VariableName, &variableName);
+
+    status = PhStringToGuid(
+        VendorGuid,
+        &vendorGuid
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtQuerySystemEnvironmentValueEx(
+        &variableName,
+        &vendorGuid,
+        variableValueBuffer,
+        &variableValueLength,
+        NULL
+        );
+
+    if (status != STATUS_BUFFER_TOO_SMALL)
+        return STATUS_UNSUCCESSFUL;
+
+    variableValueBuffer = PhAllocate(variableValueLength);
+    memset(variableValueBuffer, 0, variableValueLength);
+
+    status = NtQuerySystemEnvironmentValueEx(
+        &variableName,
+        &vendorGuid,
+        variableValueBuffer,
+        &variableValueLength,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (VariableValueLength)
+            *VariableValueLength = variableValueLength;
+        *VariableValueBuffer = variableValueBuffer;
+    }
+    else
+    {
+        PhFree(variableValueBuffer);
+    }
+
+    return status;
+}
+
 // rev from RtlpCreateExecutionRequiredRequest
 NTSTATUS PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,

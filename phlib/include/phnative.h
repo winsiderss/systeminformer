@@ -2135,6 +2135,16 @@ PhIsFirmwareSupported(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFirmwareEnvironmentVariable(
+    _In_ PPH_STRINGREF VariableName,
+    _In_ PPH_STRINGREF VendorGuid,
+    _Out_ PVOID* VariableValueBuffer,
+    _Out_opt_ PULONG VariableValueLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE PowerRequestHandle
