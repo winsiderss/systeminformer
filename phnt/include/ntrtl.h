@@ -4546,17 +4546,26 @@ typedef struct _HEAP_EXTENDED_INFORMATION
 
 // rev
 typedef NTSTATUS (NTAPI *RTL_HEAP_STACK_WRITE_ROUTINE)(
-    _In_ PVOID Information, // TODO: 2 missing structures (dmex)
+    _In_ PVOID Information, // TODO: 1 missing structure (dmex)
     _In_ ULONG Size,
     _In_ PVOID Context
     );
 
 // rev
-typedef struct _HEAP_STACK_TRACE_SERIALIZE_INIT
+typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT
 {
-    ULONG Unknown[2];
-    ULONG Magic;
-} HEAP_STACK_TRACE_SERIALIZE_INIT, *PHEAP_STACK_TRACE_SERIALIZE_INIT;
+    ULONG Unknown[3];
+} RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT;
+
+// rev
+typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER
+{
+    USHORT Version;
+    USHORT PointerSize;
+    PVOID Heap;
+    SIZE_T TotalCommit;
+    SIZE_T TotalReserve;
+} RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER;
 
 #define HEAP_STACK_QUERY_VERSION 0x2
 
