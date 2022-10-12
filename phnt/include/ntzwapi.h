@@ -1615,7 +1615,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwEnumerateSystemEnvironmentValuesEx(
-    _In_ ULONG InformationClass,
+    _In_ ULONG InformationClass, // SYSTEM_ENVIRONMENT_INFORMATION_CLASS
     _Out_ PVOID Buffer,
     _Inout_ PULONG BufferLength
     );
@@ -3210,7 +3210,7 @@ NTSTATUS
 NTAPI
 ZwQuerySystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
-    _In_ LPGUID VendorGuid,
+    _In_ PGUID VendorGuid,
     _Out_writes_bytes_opt_(*ValueLength) PVOID Value,
     _Inout_ PULONG ValueLength,
     _Out_opt_ PULONG Attributes // EFI_VARIABLE_*
@@ -3352,7 +3352,7 @@ NTAPI
 ZwQueueApcThreadEx2(
     _In_ HANDLE ThreadHandle,
     _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject
-    _In_ QUEUE_USER_APC_FLAGS ApcFlags,
+    _In_ ULONG ApcFlags, // QUEUE_USER_APC_FLAGS
     _In_ PPS_APC_ROUTINE ApcRoutine,
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
@@ -4140,7 +4140,7 @@ NTSTATUS
 NTAPI
 ZwSetSystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
-    _In_ LPGUID VendorGuid,
+    _In_ PGUID VendorGuid,
     _In_reads_bytes_opt_(ValueLength) PVOID Value,
     _In_ ULONG ValueLength, // 0 = delete variable
     _In_ ULONG Attributes // EFI_VARIABLE_*
