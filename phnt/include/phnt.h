@@ -51,6 +51,7 @@
 #define PHNT_21H1 111
 #define PHNT_21H2 112
 #define PHNT_WIN11 113
+#define PHNT_WIN11_22H2 114
 
 #ifndef PHNT_MODE
 #define PHNT_MODE PHNT_MODE_USER

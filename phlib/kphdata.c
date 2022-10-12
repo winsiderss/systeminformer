@@ -187,6 +187,10 @@ NTSTATUS KphInitializeDynamicConfiguration(
             Configuration->BuildNumber = 22000;
             Configuration->ResultingNtVersion = PHNT_WIN11;
             break;
+        case 22621:
+            Configuration->BuildNumber = 22621;
+            Configuration->ResultingNtVersion = PHNT_WIN11_22H2;
+            break;
         default:
             return STATUS_NOT_SUPPORTED;
         }

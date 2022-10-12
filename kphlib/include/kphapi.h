@@ -287,7 +287,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     SHORT EpObjectTable;            // dt nt!_EPROCESS ObjectTable
     SHORT EreGuidEntry;             // dt nt!_ETW_REG_ENTRY GuidEntry
     SHORT HtHandleContentionEvent;  // dt nt!_HANDLE_TABLE HandleContentionEvent
-    SHORT OtName;                   // dt nt!_OBJECT_ATTRIBUTES ObjectName
+    SHORT OtName;                   // dt nt!_OBJECT_TYPE ObjectName
     SHORT OtIndex;                  // dt nt!_OBJECT_TYPE Index
     SHORT ObDecodeShift;            // dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
     SHORT ObAttributesShift;        // dt nt!_HANDLE_TABLE_ENTRY Attributes

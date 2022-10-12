@@ -50,6 +50,7 @@ namespace CustomBuildTool
             "sdk\\include",
             "sdk\\dbg\\amd64",
             "sdk\\dbg\\i386",
+            "sdk\\dbg\\arm64",
             "sdk\\lib\\amd64",
             "sdk\\lib\\i386",
             //"sdk\\samples\\SamplePlugin",
