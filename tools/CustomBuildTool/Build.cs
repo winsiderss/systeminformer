@@ -409,13 +409,28 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.Build32bit))
                     {
                         if (Directory.Exists("bin\\Debug32") && Directory.Exists("bin\\Debug32"))
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Debug32\\SystemInformer.sys");
+                        {
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Debug32\\SystemInformer.sys");
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Debug32\\ksi.dll");
+                        }
                     }
 
                     if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
                         if (Directory.Exists("bin\\Debug64") && Directory.Exists("bin\\Debug64"))
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Debug64\\SystemInformer.sys");
+                        {
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Debug64\\SystemInformer.sys");
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Debug64\\ksi.dll");
+                        }
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("bin\\DebugARM64") && Directory.Exists("bin\\DebugARM64"))
+                        {
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\DebugARM64\\SystemInformer.sys");
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\DebugARM64\\ksi.dll");
+                        }
                     }
                 }
 
@@ -424,13 +439,28 @@ namespace CustomBuildTool
                     if (Flags.HasFlag(BuildFlags.Build32bit))
                     {
                         if (Directory.Exists("bin\\Release32") && Directory.Exists("bin\\Release32"))
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\kprocesshacker.sys", "bin\\Release32\\SystemInformer.sys");
+                        {
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\systeminformer.sys", "bin\\Release32\\SystemInformer.sys");
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\i386\\ksi.dll", "bin\\Release32\\ksi.dll");
+                        }
                     }
 
                     if (Flags.HasFlag(BuildFlags.Build64bit))
                     {
                         if (Directory.Exists("bin\\Release64") && Directory.Exists("bin\\Release64"))
-                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\kprocesshacker.sys", "bin\\Release64\\SystemInformer.sys");
+                        {
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\systeminformer.sys", "bin\\Release64\\SystemInformer.sys");
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\amd64\\ksi.dll", "bin\\Release64\\ksi.dll");
+                        }
+                    }
+
+                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    {
+                        if (Directory.Exists("bin\\ReleaseARM64") && Directory.Exists("bin\\ReleaseARM64"))
+                        {
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\systeminformer.sys", "bin\\ReleaseARM64\\SystemInformer.sys");
+                            Win32.CopyIfNewer("KSystemInformer\\bin-signed\\arm64\\ksi.dll", "bin\\ReleaseARM64\\ksi.dll");
+                        }
                     }
                 }
             }
@@ -616,8 +646,12 @@ namespace CustomBuildTool
                 // Copy symbols
                 Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "sdk\\dbg\\i386\\SystemInformer.pdb");
                 Win32.CopyIfNewer("bin\\Release64\\SystemInformer.pdb", "sdk\\dbg\\amd64\\SystemInformer.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\kprocesshacker.pdb", "sdk\\dbg\\i386\\ksysteminformer.pdb");
-                Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\kprocesshacker.pdb", "sdk\\dbg\\amd64\\ksysteminformer.pdb");
+                Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\systeminformer.pdb", "sdk\\dbg\\i386\\ksysteminformer.pdb");
+                Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\systeminformer.pdb", "sdk\\dbg\\amd64\\ksysteminformer.pdb");
+                Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\systeminformer.pdb", "sdk\\dbg\\arm64\\ksysteminformer.pdb");
+                Win32.CopyIfNewer("KSystemInformer\\bin\\i386\\ksi.pdb", "sdk\\dbg\\i386\\ksi.pdb");
+                Win32.CopyIfNewer("KSystemInformer\\bin\\amd64\\ksi.pdb", "sdk\\dbg\\amd64\\ksi.pdb");
+                Win32.CopyIfNewer("KSystemInformer\\bin\\arm64\\ksi.pdb", "sdk\\dbg\\arm64\\ksi.pdb");
                 // Copy sample plugin
                 //Win32.CopyIfNewer("plugins\\SamplePlugin\\main.c", "sdk\\samples\\SamplePlugin\\main.c");
                 //Win32.CopyIfNewer("plugins\\SamplePlugin\\SamplePlugin.sln", "sdk\\samples\\SamplePlugin\\SamplePlugin.sln");
