@@ -645,7 +645,19 @@ VOID PhModuleProviderUpdate(
             if (module->OriginalBaseAddress && module->OriginalBaseAddress != module->BaseAddress)
                 moduleItem->ImageNotAtBase = TRUE;
 
-            PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
+            if (moduleProvider->ZeroPadAddresses)
+            {
+                PhPrintPointerPadZeros(moduleItem->BaseAddressString, moduleItem->BaseAddress);
+                PhPrintPointerPadZeros(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
+                PhPrintPointerPadZeros(moduleItem->ParentBaseAddressString, moduleItem->ParentBaseAddress);
+            }
+            else
+            {
+                PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
+                PhPrintPointer(moduleItem->EntryPointAddressString, moduleItem->EntryPoint);
+                PhPrintPointer(moduleItem->ParentBaseAddressString, moduleItem->ParentBaseAddress);
+            }
+
             PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, PhEnableVersionShortText);
 
             if (moduleProvider->IsSubsystemProcess)

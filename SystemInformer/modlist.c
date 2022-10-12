@@ -249,6 +249,9 @@ VOID PhSetOptionsModuleList(
     case PH_MODULE_FLAGS_HIGHLIGHT_IMAGEKNOWNDLL:
         Context->HighlightImageKnownDll = !Context->HighlightImageKnownDll;
         break;
+    case PH_MODULE_FLAGS_ZERO_PAD_ADDRESSES:
+        Context->ZeroPadAddresses = !Context->ZeroPadAddresses;
+        break;
     }
 }
 
@@ -1035,35 +1038,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_ENTRYPOINT:
                 if (moduleItem->EntryPoint != 0)
-                {
-                    PH_FORMAT format[2];
-                    SIZE_T returnLength;
-
-                    PhInitFormatS(&format[0], L"0x");
-                    PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)moduleItem->EntryPoint);
-
-                    if (PhFormatToBuffer(format, 2, moduleItem->EntryPointAddressString, sizeof(moduleItem->EntryPointAddressString), &returnLength))
-                    {
-                        getCellText->Text.Buffer = moduleItem->EntryPointAddressString;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
-                }
+                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->EntryPointAddressString);
                 break;
             case PHMOTLC_PARENTBASEADDRESS:
                 if (moduleItem->ParentBaseAddress != 0)
-                {
-                    PH_FORMAT format[2];
-                    SIZE_T returnLength;
-
-                    PhInitFormatS(&format[0], L"0x");
-                    PhInitFormatIXPadZeros(&format[1], (ULONG_PTR)moduleItem->ParentBaseAddress);
-
-                    if (PhFormatToBuffer(format, 2, moduleItem->ParentBaseAddressString, sizeof(moduleItem->ParentBaseAddressString), &returnLength))
-                    {
-                        getCellText->Text.Buffer = moduleItem->ParentBaseAddressString;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
-                }
+                    PhInitializeStringRefLongHint(&getCellText->Text, moduleItem->ParentBaseAddressString);
                 break;
             case PHMOTLC_CET:
                 if (moduleItem->ImageDllCharacteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
