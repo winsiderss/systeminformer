@@ -4485,7 +4485,7 @@ typedef struct _HEAP_PERFORMANCE_COUNTERS_INFORMATION
     ULONG Version;
     ULONG HeapIndex;
     ULONG LastHeapIndex;
-    PVOID HeapHandle; // BaseAddress
+    PVOID BaseAddress;
     SIZE_T ReserveSize;
     SIZE_T CommitSize;
     ULONG SegmentCount;
@@ -4546,7 +4546,7 @@ typedef struct _HEAP_EXTENDED_INFORMATION
 
 // rev
 typedef NTSTATUS (NTAPI *RTL_HEAP_STACK_WRITE_ROUTINE)(
-    _In_ PVOID Information, // TODO: 1 missing structure (dmex)
+    _In_ PVOID Information, // TODO: 3 missing structures (dmex)
     _In_ ULONG Size,
     _In_ PVOID Context
     );
@@ -4566,6 +4566,20 @@ typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER
     SIZE_T TotalCommit;
     SIZE_T TotalReserve;
 } RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER;
+
+// rev
+typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION
+{
+    PVOID Address;
+    ULONG Flags;
+    SIZE_T DataSize;
+} RTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION;
+
+// rev
+typedef struct _RTLP_HEAP_STACK_TRACE_SERIALIZATION_STACKFRAME
+{
+    PVOID StackFrame[8];
+} RTLP_HEAP_STACK_TRACE_SERIALIZATION_STACKFRAME, *PRTLP_HEAP_STACK_TRACE_SERIALIZATION_STACKFRAME;
 
 #define HEAP_STACK_QUERY_VERSION 0x2
 
