@@ -798,27 +798,37 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
                     }
                 }
                 break;
-            //case NM_SETCURSOR:
-            //    {
-            //        if (header->hwndFrom == OptionsTreeControl)
-            //        {
-            //            HCURSOR cursor = (HCURSOR)LoadImage(
-            //                NULL,
-            //                IDC_ARROW,
-            //                IMAGE_CURSOR,
-            //                0,
-            //                0,
-            //                LR_SHARED
-            //                );
-            //            if (cursor != GetCursor())
-            //            {
-            //                SetCursor(cursor);
-            //            }
-            //            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-            //            return TRUE;
-            //        }
-            //    }
-            //    break;
+            case NM_SETCURSOR:
+                {
+                    if (header->hwndFrom == PvTabTreeControl)
+                    {
+                        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+                        static HCURSOR cursorHandle = NULL;
+
+                        if (PhBeginInitOnce(&initOnce))
+                        {
+                            cursorHandle = (HCURSOR)LoadImage(
+                                NULL,
+                                IDC_ARROW,
+                                IMAGE_CURSOR,
+                                0,
+                                0,
+                                LR_SHARED
+                                );
+
+                            PhEndInitOnce(&initOnce);
+                        }
+
+                        if (cursorHandle)
+                        {
+                            SetCursor(cursorHandle);
+                        }
+
+                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                        return TRUE;
+                    }
+                }
+                break;
             }
         }
         break;

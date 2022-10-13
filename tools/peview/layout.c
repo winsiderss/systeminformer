@@ -144,7 +144,7 @@ ULONG PvLayoutNodeHashtableHashFunction(
 PPV_LAYOUT_NODE PvAddLayoutNode(
     _Inout_ PPV_PE_LAYOUT_CONTEXT Context,
     _In_ PWSTR Name,
-    _In_ PPH_STRING Value
+    _In_opt_ PPH_STRING Value
     )
 {
     static ULONG64 index = 0;
@@ -175,7 +175,7 @@ PPV_LAYOUT_NODE PvAddChildLayoutNode(
     _In_ PPV_PE_LAYOUT_CONTEXT Context,
     _In_opt_ PPV_LAYOUT_NODE ParentNode,
     _In_ PWSTR Name,
-    _In_ PPH_STRING Value
+    _In_opt_ PPH_STRING Value
     )
 {
     PPV_LAYOUT_NODE childNode;
@@ -455,6 +455,7 @@ PPV_LAYOUT_NODE PvGetSelectedLayoutNode(
     return NULL;
 }
 
+_Success_(return)
 BOOLEAN PvGetSelectedLayoutNodes(
     _In_ PPV_PE_LAYOUT_CONTEXT Context,
     _Out_ PPV_LAYOUT_NODE** Nodes,
@@ -740,7 +741,7 @@ BOOLEAN PvLayoutWordMatchStringZ(
 
 BOOLEAN PvLayoutTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPV_PE_LAYOUT_CONTEXT context = Context;
@@ -766,8 +767,13 @@ BOOLEAN PvLayoutTreeFilterCallback(
 
 #define FILE_LAYOUT_ENTRY_VERSION 0x1
 #define STREAM_LAYOUT_ENTRY_VERSION 0x1
-#define FIRST_LAYOUT_ENTRY(LayoutEntry) ((LayoutEntry) ? PTR_ADD_OFFSET(LayoutEntry, (LayoutEntry)->FirstFileOffset) : NULL)
-#define NEXT_LAYOUT_ENTRY(LayoutEntry) (((LayoutEntry))->NextFileOffset ? PTR_ADD_OFFSET((LayoutEntry), (LayoutEntry)->NextFileOffset) : NULL)
+#define PH_FIRST_LAYOUT_ENTRY(LayoutEntry) ((PFILE_LAYOUT_ENTRY)(LayoutEntry))
+#define PH_NEXT_LAYOUT_ENTRY(LayoutEntry) ( \
+    ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset ? \
+    (PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET((LayoutEntry), \
+    ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset)) : \
+    NULL \
+    )
 
 typedef enum _FILE_METADATA_OPTIMIZATION_STATE
 {
@@ -1115,7 +1121,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
         if (!NT_SUCCESS(status))
             break;
 
-        for (fileLayoutEntry = FIRST_LAYOUT_ENTRY(output); fileLayoutEntry; fileLayoutEntry = NEXT_LAYOUT_ENTRY(fileLayoutEntry))
+        for (fileLayoutEntry = PH_FIRST_LAYOUT_ENTRY(output); fileLayoutEntry; fileLayoutEntry = PH_NEXT_LAYOUT_ENTRY(fileLayoutEntry))
         {
             if (fileLayoutEntry->Version != FILE_LAYOUT_ENTRY_VERSION)
             {
@@ -1123,7 +1129,6 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
                 break;
             }
 
-            fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstNameOffset);
             fileLayoutSteamEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstStreamOffset);
             fileLayoutInfoEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->ExtraInfoOffset);
 
@@ -1145,19 +1150,30 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
             PvAddChildLayoutNode(Context, NULL, L"Number of resident attributes", PhFormatUInt64(fileMetadataOptimization.NumberOfResidentAttributes, TRUE));
             PvAddChildLayoutNode(Context, NULL, L"Number of nonresident attributes", PhFormatUInt64(fileMetadataOptimization.NumberOfNonresidentAttributes, TRUE));
 
-            while (TRUE)
+            if (fileLayoutEntry->FirstNameOffset)
             {
-                PPV_LAYOUT_NODE parentNode;
+                fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstNameOffset);
 
-                parentNode = PvAddChildLayoutNode(Context, NULL, L"Filename", NULL);
-                PvAddChildLayoutNode(Context, parentNode, PvLayoutNameFlagsToString(fileLayoutNameEntry->Flags), PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength));
-                //PvAddChildLayoutNode(Context, parentNode, L"Parent Name", PvLayoutGetParentIdName(fileHandle, fileLayoutNameEntry->ParentFileReferenceNumber));
-                PvAddChildLayoutNode(Context, parentNode, L"Parent ID", PhFormatString(L"%I64u (0x%I64x)", fileLayoutNameEntry->ParentFileReferenceNumber, fileLayoutNameEntry->ParentFileReferenceNumber));
+                while (TRUE)
+                {
+                    PPV_LAYOUT_NODE parentNode;
+                    PPH_STRING layoutFileName;
 
-                if (fileLayoutNameEntry->NextNameOffset == 0)
-                    break;
+                    if (fileLayoutNameEntry->FileNameLength >= sizeof(UNICODE_NULL))
+                        layoutFileName = PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength);
+                    else
+                        layoutFileName = PhReferenceEmptyString();
 
-                fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutNameEntry, fileLayoutNameEntry->NextNameOffset);
+                    parentNode = PvAddChildLayoutNode(Context, NULL, L"Filename", NULL);
+                    PvAddChildLayoutNode(Context, parentNode, PvLayoutNameFlagsToString(fileLayoutNameEntry->Flags), layoutFileName);
+                    //PvAddChildLayoutNode(Context, parentNode, L"Parent Name", PvLayoutGetParentIdName(fileHandle, fileLayoutNameEntry->ParentFileReferenceNumber));
+                    PvAddChildLayoutNode(Context, parentNode, L"Parent ID", PhFormatString(L"%I64u (0x%I64x)", fileLayoutNameEntry->ParentFileReferenceNumber, fileLayoutNameEntry->ParentFileReferenceNumber));
+
+                    if (fileLayoutNameEntry->NextNameOffset == 0)
+                        break;
+
+                    fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutNameEntry, fileLayoutNameEntry->NextNameOffset);
+                }
             }
 
             while (TRUE)

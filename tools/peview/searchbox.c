@@ -149,9 +149,8 @@ HBITMAP PhLoadPngImageFromResource(
     UINT frameCount = 0;
     ULONG resourceLength = 0;
     WICInProcPointer resourceBuffer = NULL;
-    HDC screenHdc = NULL;
-    HDC bufferDc = NULL;
-    BITMAPINFO bitmapInfo = { 0 };
+    HDC screenHdc;
+    BITMAPINFO bitmapInfo;
     HBITMAP bitmapHandle = NULL;
     PVOID bitmapBuffer = NULL;
     IWICStream* wicStream = NULL;
@@ -242,8 +241,8 @@ HBITMAP PhLoadPngImageFromResource(
     bitmapInfo.bmiHeader.biBitCount = 32;
 
     screenHdc = GetDC(NULL);
-    bufferDc = CreateCompatibleDC(screenHdc);
     bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
+    ReleaseDC(NULL, screenHdc);
 
     // Check if it's the same rect as the requested size.
     //if (width != rect.Width || height != rect.Height)
@@ -260,12 +259,6 @@ CleanupExit:
 
     if (wicScaler)
         IWICBitmapScaler_Release(wicScaler);
-
-    if (bufferDc)
-        DeleteDC(bufferDc);
-
-    if (screenHdc)
-        ReleaseDC(NULL, screenHdc);
 
     if (wicBitmapSource)
         IWICBitmapSource_Release(wicBitmapSource);
