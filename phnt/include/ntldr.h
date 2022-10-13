@@ -772,7 +772,7 @@ LdrFindEntryForAddress(
     _Out_ PLDR_DATA_TABLE_ENTRY *Entry
     );
 
-// rev - Win10 type
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -783,7 +783,7 @@ LdrLoadAlternateResourceModule(
     _In_ ULONG Flags
     );
 
-// rev - Win10 type
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
