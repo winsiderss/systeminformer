@@ -795,6 +795,23 @@ LdrLoadAlternateResourceModuleEx(
     _In_ ULONG Flags
     );
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrUnloadAlternateResourceModule(
+    _In_ PVOID DllHandle
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrUnloadAlternateResourceModuleEx(
+    _In_ PVOID DllHandle,
+    _In_ ULONG Flags
+    );
+
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Module information
