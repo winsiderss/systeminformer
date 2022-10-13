@@ -1223,17 +1223,14 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
 
 // objmgr
 
-INT_PTR CALLBACK WinObjDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+VOID EtShowObjectManagerDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 // poolmon
 
-VOID EtShowPoolMonDialog(
-    VOID
+VOID EtShowPoolTableDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 #endif
