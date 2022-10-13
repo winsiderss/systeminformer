@@ -319,7 +319,7 @@ PPH_STRING EtPoolFormatDeltaValue(
     _In_ ULONG64 DeltaValue
     )
 {
-    LONG_PTR delta = DeltaValue;
+    LONG_PTR delta = (LONG_PTR)DeltaValue;
     PH_FORMAT format[2];
 
     if (delta == 0)
@@ -347,7 +347,7 @@ PPH_STRING EtPoolFormatDeltaSize(
     _In_ ULONG64 DeltaValue
     )
 {
-    LONG_PTR delta = DeltaValue;
+    LONG_PTR delta = (LONG_PTR)DeltaValue;
     PH_FORMAT format[2];
 
     if (delta == 0)
