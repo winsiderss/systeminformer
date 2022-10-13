@@ -676,6 +676,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhLoadSettingsModuleList(&modulesContext->ListContext);
 
+            if (modulesContext->ListContext.ZeroPadAddresses)
+                modulesContext->Provider->ZeroPadAddresses = TRUE;
+
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
 
@@ -845,6 +848,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM systemHighlightItem;
                     PPH_EMENU_ITEM coherencyHighlightItem;
                     PPH_EMENU_ITEM knowndllsHighlightItem;
+                    PPH_EMENU_ITEM zeroPadItem;
                     PPH_EMENU_ITEM selectedItem;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect);
@@ -865,6 +869,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, systemHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_SYSTEM_OPTION, L"Highlight system modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, coherencyHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_LOWIMAGECOHERENCY_OPTION, L"Highlight low image coherency", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, knowndllsHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_IMAGEKNOWNDLL, L"Highlight knowndlls images", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, zeroPadItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_ZERO_PAD_ADDRESSES, L"Zero pad addresses", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module...", NULL, NULL), ULONG_MAX);
                     //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -899,6 +905,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         coherencyHighlightItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.HighlightImageKnownDll)
                         knowndllsHighlightItem->Flags |= PH_EMENU_CHECKED;
+                    if (modulesContext->ListContext.ZeroPadAddresses)
+                        zeroPadItem->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -935,6 +943,20 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         else if (selectedItem->Id == PH_MODULE_FLAGS_SAVE_OPTION)
                         {
                             PhpProcessModulesSave(modulesContext);
+                        }
+                        else if (selectedItem->Id == PH_MODULE_FLAGS_ZERO_PAD_ADDRESSES)
+                        {
+                            PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
+                            PhSaveSettingsModuleList(&modulesContext->ListContext);
+
+                            // TODO reload list instead of asking user to reopen
+                            PhShowMessage2(
+                                hwndDlg,
+                                TDCBF_OK_BUTTON,
+                                TD_INFORMATION_ICON,
+                                L"Reopen the process window to refresh the modules list.",
+                                L""
+                                );
                         }
                         else
                         {
