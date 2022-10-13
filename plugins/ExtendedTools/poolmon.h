@@ -13,13 +13,6 @@
 #ifndef POOLMON_H
 #define POOLMON_H
 
-typedef enum _POOLTAG_TREE_ITEM_TYPE
-{
-    TPOOLTAG_TREE_ITEM_TYPE_NONE,
-    TPOOLTAG_TREE_ITEM_TYPE_OBJECT,
-    TPOOLTAG_TREE_ITEM_TYPE_DRIVER,
-} POOLTAG_TREE_ITEM_TYPE;
-
 typedef struct _POOL_TAG_LIST_ENTRY
 {
     LIST_ENTRY ListEntry;
@@ -36,12 +29,13 @@ typedef struct _POOL_TAG_LIST_ENTRY
 
 typedef struct _POOL_ITEM
 {
+    ULONG HaveFirstSample;
+
     ULONG TagUlong;
     WCHAR TagString[5];
 
     PPH_STRING BinaryNameString;
     PPH_STRING DescriptionString;
-    POOLTAG_TREE_ITEM_TYPE Type;
 
     PH_UINT64_DELTA PagedAllocsDelta;
     PH_UINT64_DELTA PagedFreesDelta;
@@ -58,6 +52,7 @@ typedef enum _POOLTAG_TREE_COLUMN_ITEM_NAME
     TREE_COLUMN_ITEM_TAG,
     TREE_COLUMN_ITEM_DRIVER,
     TREE_COLUMN_ITEM_DESCRIPTION,
+
     TREE_COLUMN_ITEM_PAGEDALLOC,
     TREE_COLUMN_ITEM_PAGEDFREE,
     TREE_COLUMN_ITEM_PAGEDCURRENT,
@@ -66,6 +61,16 @@ typedef enum _POOLTAG_TREE_COLUMN_ITEM_NAME
     TREE_COLUMN_ITEM_NONPAGEDFREE,
     TREE_COLUMN_ITEM_NONPAGEDCURRENT,
     TREE_COLUMN_ITEM_NONPAGEDTOTAL,
+
+    TREE_COLUMN_ITEM_PAGEDALLOCDELTA,
+    TREE_COLUMN_ITEM_PAGEDFREEDELTA,
+    TREE_COLUMN_ITEM_PAGEDCURRENTDELTA,
+    TREE_COLUMN_ITEM_PAGEDTOTALDELTA,
+    TREE_COLUMN_ITEM_NONPAGEDALLOCDELTA,
+    TREE_COLUMN_ITEM_NONPAGEDFREEDELTA,
+    TREE_COLUMN_ITEM_NONPAGEDCURRENTDELTA,
+    TREE_COLUMN_ITEM_NONPAGEDTOTALDELTA,
+
     TREE_COLUMN_ITEM_MAXIMUM
 } POOLTAG_TREE_COLUMN_ITEM_NAME;
 
@@ -77,20 +82,28 @@ typedef struct _POOLTAG_ROOT_NODE
     ULONG TagUlong;
     PPOOL_ITEM PoolItem;
 
+    PPH_STRING PagedAllocsValueString;
+    PPH_STRING PagedFreesValueString;
+    PPH_STRING PagedCurrentValueString;
+    PPH_STRING PagedTotalSizeValueString;
+    PPH_STRING NonPagedAllocsValueString;
+    PPH_STRING NonPagedFreesValueString;
+    PPH_STRING NonPagedCurrentValueString;
+    PPH_STRING NonPagedTotalSizeValueString;
+
     PPH_STRING PagedAllocsDeltaString;
     PPH_STRING PagedFreesDeltaString;
-    PPH_STRING PagedLiveDeltaString;
     PPH_STRING PagedCurrentDeltaString;
     PPH_STRING PagedTotalSizeDeltaString;
     PPH_STRING NonPagedAllocsDeltaString;
     PPH_STRING NonPagedFreesDeltaString;
-    PPH_STRING NonPagedLiveDeltaString;
     PPH_STRING NonPagedCurrentDeltaString;
     PPH_STRING NonPagedTotalSizeDeltaString;
 } POOLTAG_ROOT_NODE, *PPOOLTAG_ROOT_NODE;
 
 typedef struct _POOLTAG_CONTEXT
 {
+    HWND WindowHandle;
     HWND ParentWindowHandle;
     HWND SearchboxHandle;
     HWND TreeNewHandle;
@@ -106,6 +119,7 @@ typedef struct _POOLTAG_CONTEXT
     PPH_LIST PoolTagDbList;
     PPH_HASHTABLE PoolTagDbHashtable;
 
+    ULONG TreeNewAutoSize;
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
     PPH_HASHTABLE NodeHashtable;
@@ -134,11 +148,11 @@ VOID EtShowBigPoolDialog(
     _In_ PPOOL_ITEM PoolItem
     );
 
-VOID EtLoadSettingsTreeList(
+VOID EtLoadSettingsPoolTagTreeList(
     _Inout_ PPOOLTAG_CONTEXT Context
     );
 
-VOID EtSaveSettingsTreeList(
+VOID EtSaveSettingsPoolTagTreeList(
     _Inout_ PPOOLTAG_CONTEXT Context
     );
 

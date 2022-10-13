@@ -91,6 +91,7 @@
 #define IDC_GROUPFPSPRESENT             1100
 #define IDC_GROUPFPSPRESENTINTERVAL     1101
 #define IDC_BUTTON1                     1103
+#define IDC_POOL_AUTOSIZE_COLUMNS       1104
 #define ID_POOL_TABLE                   3000
 #define IDD_POOL                        3001
 #define IDR_TXT_POOLTAGS                3002
@@ -153,7 +154,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         40009
-#define _APS_NEXT_CONTROL_VALUE         1104
+#define _APS_NEXT_CONTROL_VALUE         1105
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

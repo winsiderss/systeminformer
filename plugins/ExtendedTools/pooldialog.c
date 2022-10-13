@@ -85,6 +85,7 @@ VOID EtUpdatePoolTagTable(
             PhUpdateDelta(&node->PoolItem->NonPagedFreesDelta, poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&node->PoolItem->NonPagedCurrentDelta, poolTagInfo.NonPagedAllocs - poolTagInfo.NonPagedFrees);
             PhUpdateDelta(&node->PoolItem->NonPagedTotalSizeDelta, poolTagInfo.NonPagedUsed);
+            node->PoolItem->HaveFirstSample = TRUE;
 
             EtUpdatePoolTagNode(Context, node);
         }
@@ -190,21 +191,22 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context->ParentWindowHandle = hwndDlg;
+            context->WindowHandle = hwndDlg;
+            context->ParentWindowHandle = (HWND)lParam;
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_POOLTREE);
             context->SearchboxHandle = GetDlgItem(hwndDlg, IDC_POOLSEARCH);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
-
             PhCreateSearchControl(hwndDlg, context->SearchboxHandle, L"Search Pool Tags (Ctrl+K)");
-
             EtInitializePoolTagTree(context);
+
+            PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, context->SearchboxHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_POOL_AUTOSIZE_COLUMNS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhLoadWindowPlacementFromSetting(SETTING_NAME_POOL_WINDOW_POSITION, SETTING_NAME_POOL_WINDOW_SIZE, hwndDlg);
 
@@ -218,7 +220,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             EtLoadPoolTagDatabase(context);
             EtUpdatePoolTagTable(context);
 
-            TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_DESCRIPTION, TN_AUTOSIZE_REMAINING_SPACE);
+            //TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_DESCRIPTION, TN_AUTOSIZE_REMAINING_SPACE);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -235,7 +237,11 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&context->LayoutManager);
-            TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_DESCRIPTION, TN_AUTOSIZE_REMAINING_SPACE);
+
+            if (context->TreeNewAutoSize)
+            {
+                TreeNew_AutoSizeColumn(context->TreeNewHandle, TREE_COLUMN_ITEM_DESCRIPTION, TN_AUTOSIZE_REMAINING_SPACE);
+            }
         }
         break;
     case WM_DESTROY:
@@ -246,13 +252,16 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_POOL_WINDOW_POSITION, SETTING_NAME_POOL_WINDOW_SIZE, hwndDlg);
 
-            EtSaveSettingsTreeList(context);
+            EtSaveSettingsPoolTagTreeList(context);
 
             PhDeleteLayoutManager(&context->LayoutManager);
             PhDeleteTreeNewFilterSupport(&context->FilterSupport);
 
             EtDeletePoolTagTree(context);
             EtFreePoolTagDatabase(context);
+
+            if (context->SearchboxText)
+                PhDereferenceObject(context->SearchboxText);
 
             PhFree(context);
 
@@ -298,6 +307,11 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
 
                         PhApplyTreeNewFilters(&context->FilterSupport);
                     }
+                }
+                break;
+            case IDC_POOL_AUTOSIZE_COLUMNS:
+                {
+                    context->TreeNewAutoSize = !context->TreeNewAutoSize;
                 }
                 break;
             case WM_PH_UPDATE_DIALOG:
@@ -378,11 +392,12 @@ NTSTATUS EtShowPoolMonDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtPoolTagDialogHandle = CreateDialog(
+    EtPoolTagDialogHandle = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_POOL),
         NULL,
-        EtPoolMonDlgProc
+        EtPoolMonDlgProc,
+        (LPARAM)Parameter
         );
 
     PhSetEvent(&EtPoolTagDialogInitializedEvent);
@@ -416,15 +431,15 @@ NTSTATUS EtShowPoolMonDialogThread(
     return STATUS_SUCCESS;
 }
 
-VOID EtShowPoolMonDialog(
-    VOID
+VOID EtShowPoolTableDialog(
+    _In_ HWND ParentWindowHandle
     )
 {
     if (!EtPoolTagDialogThreadHandle)
     {
-        if (!NT_SUCCESS(PhCreateThreadEx(&EtPoolTagDialogThreadHandle, EtShowPoolMonDialogThread, NULL)))
+        if (!NT_SUCCESS(PhCreateThreadEx(&EtPoolTagDialogThreadHandle, EtShowPoolMonDialogThread, ParentWindowHandle)))
         {
-            PhShowError(PhMainWndHandle, L"%s", L"Unable to create the window.");
+            PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
             return;
         }
 
