@@ -425,6 +425,68 @@ VOID PhUpdateMemoryNode(
     TreeNew_InvalidateNode(Context->TreeNewHandle, &MemoryNode->Node);
 }
 
+VOID PhInvalidateAllMemoryNodes(
+    _In_ PPH_MEMORY_LIST_CONTEXT Context
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE memoryNode = Context->AllocationBaseNodeList->Items[i];
+
+        memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
+        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+    }
+
+    for (i = 0; i < Context->RegionNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE memoryNode = Context->RegionNodeList->Items[i];
+
+        memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
+        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+    }
+
+    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID PhInvalidateAllMemoryBaseAddressNodes(
+    _In_ PPH_MEMORY_LIST_CONTEXT Context
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Context->AllocationBaseNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE memoryNode = Context->AllocationBaseNodeList->Items[i];
+
+        if (Context->ZeroPadAddresses)
+            PhPrintPointerPadZeros(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
+        else
+            PhPrintPointer(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
+
+        memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
+        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+    }
+
+    for (i = 0; i < Context->RegionNodeList->Count; i++)
+    {
+        PPH_MEMORY_NODE memoryNode = Context->RegionNodeList->Items[i];
+
+        if (Context->ZeroPadAddresses)
+            PhPrintPointerPadZeros(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
+        else
+            PhPrintPointer(memoryNode->MemoryItem->BaseAddressString, memoryNode->MemoryItem->BaseAddress);
+
+        memset(memoryNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMMTLC_MAXIMUM);
+        TreeNew_InvalidateNode(Context->TreeNewHandle, &memoryNode->Node);
+    }
+
+    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
 VOID PhExpandAllMemoryNodes(
     _In_ PPH_MEMORY_LIST_CONTEXT Context,
     _In_ BOOLEAN Expand
