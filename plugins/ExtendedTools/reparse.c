@@ -1048,7 +1048,9 @@ PPH_LIST EtFindVolumeFilesWithSecurityId(
                 break;
             }
 
-            fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstNameOffset);
+            if (!fileLayoutEntry->ExtraInfoOffset)
+                continue;
+
             fileLayoutInfoEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->ExtraInfoOffset);
 
             if (fileLayoutInfoEntry->SecurityId == SecurityId)
@@ -1058,26 +1060,31 @@ PPH_LIST EtFindVolumeFilesWithSecurityId(
                     volumeFileList = PhCreateList(10);
                 }
 
-                while (TRUE)
+                if (fileLayoutEntry->FirstNameOffset)
                 {
-                    PPH_STRING fileName = PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength);
-                    PhMoveReference(&fileName, PhConcatStrings(2, PhGetString(VolumeDeviceName), PhGetString(fileName)));
-                    PhMoveReference(&fileName, PhGetFileName(fileName));
-                    if (volumeFileList) PhAddItemList(volumeFileList, fileName);
+                    fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstNameOffset);
 
-                    //if (fileLayoutNameEntry->Flags == 0 || fileLayoutNameEntry->Flags == FILE_LAYOUT_NAME_ENTRY_PRIMARY)
-                    //{
-                    //    PPH_STRING fileName = PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength);
-                    //    PhMoveReference(&fileName, PhConcatStrings(2, PhGetString(VolumeDeviceName), PhGetString(fileName)));
-                    //    PhMoveReference(&fileName, PhGetFileName(fileName));
-                    //    PhAddItemList(volumeFileList, fileName);
-                    //    break;
-                    //}
+                    while (TRUE)
+                    {
+                        PPH_STRING fileName = PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength);
+                        PhMoveReference(&fileName, PhConcatStrings(2, PhGetString(VolumeDeviceName), PhGetString(fileName)));
+                        PhMoveReference(&fileName, PhGetFileName(fileName));
+                        if (volumeFileList) PhAddItemList(volumeFileList, fileName);
 
-                    if (fileLayoutNameEntry->NextNameOffset == 0)
-                        break;
+                        //if (fileLayoutNameEntry->Flags == 0 || fileLayoutNameEntry->Flags == FILE_LAYOUT_NAME_ENTRY_PRIMARY)
+                        //{
+                        //    PPH_STRING fileName = PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength);
+                        //    PhMoveReference(&fileName, PhConcatStrings(2, PhGetString(VolumeDeviceName), PhGetString(fileName)));
+                        //    PhMoveReference(&fileName, PhGetFileName(fileName));
+                        //    PhAddItemList(volumeFileList, fileName);
+                        //    break;
+                        //}
 
-                    fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutNameEntry, fileLayoutNameEntry->NextNameOffset);
+                        if (fileLayoutNameEntry->NextNameOffset == 0)
+                            break;
+
+                        fileLayoutNameEntry = PTR_ADD_OFFSET(fileLayoutNameEntry, fileLayoutNameEntry->NextNameOffset);
+                    }
                 }
             }
         }
