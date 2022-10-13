@@ -45,6 +45,16 @@ typedef struct _REPARSE_LISTVIEW_ENTRY
     PPH_STRING RootDirectory;
 } REPARSE_LISTVIEW_ENTRY, *PREPARSE_LISTVIEW_ENTRY;
 
+#define FILE_LAYOUT_ENTRY_VERSION 0x1
+#define STREAM_LAYOUT_ENTRY_VERSION 0x1
+#define PH_FIRST_LAYOUT_ENTRY(LayoutEntry) ((PFILE_LAYOUT_ENTRY)(LayoutEntry))
+#define PH_NEXT_LAYOUT_ENTRY(LayoutEntry) ( \
+    ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset ? \
+    (PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET((LayoutEntry), \
+    ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset)) : \
+    NULL \
+    )
+
 NTSTATUS EtGetFileHandleName(
     _In_ HANDLE FileHandle,
     _Out_ PPH_STRING *FileName
@@ -101,14 +111,14 @@ NTSTATUS EtEnumerateVolumeReparsePoints(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
-    UNICODE_STRING fileInfoUs;
-    PPH_STRING volumeName;
+    PPH_STRING streamName;
 
-    volumeName = PhFormatString(L"\\Device\\HarddiskVolume%I64u\\$Extend\\$Reparse:$R:$INDEX_ALLOCATION", VolumeIndex);
-    PhStringRefToUnicodeString(&volumeName->sr, &fileInfoUs);
-    InitializeObjectAttributes(&objectAttributes, &fileInfoUs, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    streamName = PhFormatString(L"\\Device\\HarddiskVolume%I64u\\$Extend\\$Reparse:$R:$INDEX_ALLOCATION", VolumeIndex);
+    PhStringRefToUnicodeString(&streamName->sr, &objectName);
+    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
 
     status = NtOpenFile(
         &fileHandle,
@@ -187,7 +197,7 @@ NTSTATUS EtEnumerateVolumeReparsePoints(
         NtClose(fileHandle);
     }
 
-    PhDereferenceObject(volumeName);
+    PhDereferenceObject(streamName);
 
     return status;
 }
@@ -200,14 +210,14 @@ NTSTATUS EtEnumerateVolumeObjectIds(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
-    UNICODE_STRING fileInfoUs;
-    PPH_STRING volumeName;
+    PPH_STRING streamName;
 
-    volumeName = PhFormatString(L"\\Device\\HarddiskVolume%I64u\\$Extend\\$ObjId:$O:$INDEX_ALLOCATION", VolumeIndex);
-    PhStringRefToUnicodeString(&volumeName->sr, &fileInfoUs);
-    InitializeObjectAttributes(&objectAttributes, &fileInfoUs, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    streamName = PhFormatString(L"\\Device\\HarddiskVolume%I64u\\$Extend\\$ObjId:$O:$INDEX_ALLOCATION", VolumeIndex);
+    PhStringRefToUnicodeString(&streamName->sr, &objectName);
+    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
 
     status = NtOpenFile(
         &fileHandle,
@@ -289,7 +299,7 @@ NTSTATUS EtEnumerateVolumeObjectIds(
         NtClose(fileHandle);
     }
 
-    PhDereferenceObject(volumeName);
+    PhDereferenceObject(streamName);
 
     return status;
 }
@@ -302,14 +312,14 @@ NTSTATUS EtEnumerateVolumeSecurityDescriptors(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK isb = { 0 };
-    UNICODE_STRING fileInfoUs;
+    IO_STATUS_BLOCK isb;
     PPH_STRING volumeName;
 
     volumeName = PhFormatString(L"\\Device\\HarddiskVolume%I64u", VolumeIndex);
-    PhStringRefToUnicodeString(&volumeName->sr, &fileInfoUs);
-    InitializeObjectAttributes(&objectAttributes, &fileInfoUs, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    PhStringRefToUnicodeString(&volumeName->sr, &objectName);
+    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
 
     status = NtOpenFile(
         &fileHandle,
@@ -391,14 +401,14 @@ NTSTATUS EtDeleteFileReparsePoint(
     NTSTATUS status;
     HANDLE directoryHandle;
     HANDLE fileHandle;
-    UNICODE_STRING fileNameUs;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
     PREPARSE_DATA_BUFFER reparseBuffer;
     ULONG reparseLength;
 
-    PhStringRefToUnicodeString(&Entry->RootDirectory->sr, &fileNameUs);
-    InitializeObjectAttributes(&objectAttributes, &fileNameUs, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    PhStringRefToUnicodeString(&Entry->RootDirectory->sr, &objectName);
+    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
 
     status = NtOpenFile(
         &directoryHandle,
@@ -412,13 +422,13 @@ NTSTATUS EtDeleteFileReparsePoint(
     if (!NT_SUCCESS(status))
         return status;
 
-    fileNameUs.Length = sizeof(LONGLONG);
-    fileNameUs.MaximumLength = sizeof(LONGLONG);
-    fileNameUs.Buffer = (PWSTR)&Entry->FileReference;
+    objectName.Length = sizeof(LONGLONG);
+    objectName.MaximumLength = sizeof(LONGLONG);
+    objectName.Buffer = (PWSTR)&Entry->FileReference;
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &fileNameUs,
+        &objectName,
         OBJ_CASE_INSENSITIVE,
         directoryHandle,
         NULL
@@ -490,12 +500,12 @@ NTSTATUS EtDeleteFileObjectId(
     NTSTATUS status;
     HANDLE directoryHandle;
     HANDLE fileHandle;
-    UNICODE_STRING fileNameUs;
+    UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
-    PhStringRefToUnicodeString(&Entry->RootDirectory->sr, &fileNameUs);
-    InitializeObjectAttributes(&objectAttributes, &fileNameUs, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    PhStringRefToUnicodeString(&Entry->RootDirectory->sr, &objectName);
+    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
 
     status = NtOpenFile(
         &directoryHandle,
@@ -509,13 +519,13 @@ NTSTATUS EtDeleteFileObjectId(
     if (!NT_SUCCESS(status))
         return status;
 
-    fileNameUs.Length = sizeof(LONGLONG);
-    fileNameUs.MaximumLength = sizeof(LONGLONG);
-    fileNameUs.Buffer = (PWSTR)&Entry->FileReference;
+    objectName.Length = sizeof(LONGLONG);
+    objectName.MaximumLength = sizeof(LONGLONG);
+    objectName.Buffer = (PWSTR)&Entry->FileReference;
 
     InitializeObjectAttributes(
         &objectAttributes,
-        &fileNameUs,
+        &objectName,
         OBJ_CASE_INSENSITIVE,
         directoryHandle,
         NULL
@@ -962,11 +972,6 @@ BOOLEAN NTAPI EtEnumVolumeSecurityDescriptorsCallback(
     return TRUE;
 }
 
-#define FILE_LAYOUT_ENTRY_VERSION 0x1
-#define STREAM_LAYOUT_ENTRY_VERSION 0x1
-#define FIRST_LAYOUT_ENTRY(LayoutEntry) ((LayoutEntry) ? PTR_ADD_OFFSET(LayoutEntry, (LayoutEntry)->FirstFileOffset) : NULL)
-#define NEXT_LAYOUT_ENTRY(LayoutEntry) (((LayoutEntry))->NextFileOffset ? PTR_ADD_OFFSET((LayoutEntry), (LayoutEntry)->NextFileOffset) : NULL)
-
 PPH_LIST EtFindVolumeFilesWithSecurityId(
     _In_ PPH_STRING VolumeDeviceName,
     _In_ ULONG SecurityId
@@ -1035,7 +1040,7 @@ PPH_LIST EtFindVolumeFilesWithSecurityId(
         if (!NT_SUCCESS(status))
             break;
 
-        for (fileLayoutEntry = FIRST_LAYOUT_ENTRY(output); fileLayoutEntry; fileLayoutEntry = NEXT_LAYOUT_ENTRY(fileLayoutEntry))
+        for (fileLayoutEntry = PH_FIRST_LAYOUT_ENTRY(output); fileLayoutEntry; fileLayoutEntry = PH_NEXT_LAYOUT_ENTRY(fileLayoutEntry))
         {
             if (fileLayoutEntry->Version != FILE_LAYOUT_ENTRY_VERSION)
             {
@@ -1058,7 +1063,7 @@ PPH_LIST EtFindVolumeFilesWithSecurityId(
                     PPH_STRING fileName = PhCreateStringEx(fileLayoutNameEntry->FileName, fileLayoutNameEntry->FileNameLength);
                     PhMoveReference(&fileName, PhConcatStrings(2, PhGetString(VolumeDeviceName), PhGetString(fileName)));
                     PhMoveReference(&fileName, PhGetFileName(fileName));
-                    PhAddItemList(volumeFileList, fileName);
+                    if (volumeFileList) PhAddItemList(volumeFileList, fileName);
 
                     //if (fileLayoutNameEntry->Flags == 0 || fileLayoutNameEntry->Flags == FILE_LAYOUT_NAME_ENTRY_PRIMARY)
                     //{
@@ -1472,7 +1477,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                         GetCursorPos(&point);
                         selectedItem = PhShowEMenu(
                             menu,
-                            PhMainWndHandle,
+                            hwndDlg,
                             PH_EMENU_SHOW_LEFTRIGHT,
                             PH_ALIGN_LEFT | PH_ALIGN_TOP,
                             point.x,
