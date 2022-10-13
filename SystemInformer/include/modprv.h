@@ -80,7 +80,8 @@ typedef struct _PH_MODULE_PROVIDER
             BOOLEAN IsSubsystemProcess : 1;
             BOOLEAN CetEnabled : 1;
             BOOLEAN CetStrictModeEnabled : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN ZeroPadAddresses : 1;
+            BOOLEAN Spare : 2;
         };
     };
     UCHAR ImageCoherencyScanLevel;

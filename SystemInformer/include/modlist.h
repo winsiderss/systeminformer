@@ -83,6 +83,7 @@ typedef struct _PH_MODULE_NODE
 #define PH_MODULE_FLAGS_HIGHLIGHT_LOWIMAGECOHERENCY_OPTION 14
 #define PH_MODULE_FLAGS_IMAGEKNOWNDLL_OPTION 15
 #define PH_MODULE_FLAGS_HIGHLIGHT_IMAGEKNOWNDLL 16
+#define PH_MODULE_FLAGS_ZERO_PAD_ADDRESSES 17
 #define PH_MODULE_FLAGS_SAVE_OPTION 40 // Always last (dmex)
 
 typedef struct _PH_MODULE_LIST_CONTEXT
@@ -119,7 +120,8 @@ typedef struct _PH_MODULE_LIST_CONTEXT
             ULONG HighlightLowImageCoherency : 1;
             ULONG HideImageKnownDll : 1;
             ULONG HighlightImageKnownDll : 1;
-            ULONG Spare : 17;
+            ULONG ZeroPadAddresses : 1;
+            ULONG Spare : 16;
         };
     };
 

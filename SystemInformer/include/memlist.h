@@ -58,6 +58,7 @@ typedef struct _PH_MEMORY_NODE
 #define PH_MEMORY_FLAGS_CFG_OPTION 5
 #define PH_MEMORY_FLAGS_EXECUTE_OPTION 6
 #define PH_MEMORY_FLAGS_GUARD_OPTION 7
+#define PH_MEMORY_FLAGS_ZERO_PAD_ADDRESSES 12
 
 typedef struct _PH_MEMORY_LIST_CONTEXT
 {
@@ -81,7 +82,8 @@ typedef struct _PH_MEMORY_LIST_CONTEXT
             ULONG HighlightCfgPages : 1;
             ULONG HighlightExecutePages : 1;
             ULONG HideGuardRegions : 1;
-            ULONG Spare : 25;
+            ULONG ZeroPadAddresses : 1;
+            ULONG Spare : 24;
         };
     };
 

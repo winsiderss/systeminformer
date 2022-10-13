@@ -183,6 +183,9 @@ VOID PhSetOptionsMemoryList(
     case PH_MEMORY_FLAGS_GUARD_OPTION:
         Context->HideGuardRegions = !Context->HideGuardRegions;
         break;
+    case PH_MEMORY_FLAGS_ZERO_PAD_ADDRESSES:
+        Context->ZeroPadAddresses = !Context->ZeroPadAddresses;
+        break;
     }
 }
 
@@ -237,7 +240,11 @@ PPH_MEMORY_NODE PhpAddAllocationBaseNode(
 
     memoryItem->BaseAddress = AllocationBase;
     memoryItem->AllocationBase = AllocationBase;
-    PhPrintPointer(memoryItem->BaseAddressString, memoryItem->BaseAddress);
+
+    if (Context->ZeroPadAddresses)
+        PhPrintPointerPadZeros(memoryItem->BaseAddressString, memoryItem->BaseAddress);
+    else
+        PhPrintPointer(memoryItem->BaseAddressString, memoryItem->BaseAddress);
 
     memoryNode->Children = PhCreateList(1);
 
