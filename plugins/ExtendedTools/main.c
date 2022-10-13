@@ -195,17 +195,12 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_OBJMGR:
         {
-            DialogBox(
-                PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_OBJMGR),
-                NULL,
-                WinObjDlgProc
-                );
+            EtShowObjectManagerDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_POOL_TABLE:
         {
-            EtShowPoolMonDialog();
+            EtShowPoolTableDialog(menuItem->OwnerWindow);
         }
         break;
     }
