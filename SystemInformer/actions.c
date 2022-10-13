@@ -595,15 +595,7 @@ BOOLEAN PhUiRestartComputer(
                 FALSE
                 ))
             {
-                ULONG status;
-
-                status = InitiateShutdown(
-                    NULL,
-                    NULL,
-                    0,
-                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART | Flags,
-                    SHTDN_REASON_FLAG_PLANNED
-                    );
+                ULONG status = PhInitiateShutdown(PH_SHUTDOWN_RESTART | Flags);
 
                 if (status == ERROR_SUCCESS)
                     return TRUE;
@@ -703,18 +695,10 @@ BOOLEAN PhUiRestartComputer(
 
                 if (NT_SUCCESS(status))
                 {
-                    status = InitiateShutdown(
-                        NULL,
-                        NULL,
-                        0,
-                        SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
-                        SHTDN_REASON_FLAG_PLANNED
-                        );
+                    status = PhInitiateShutdown(PH_SHUTDOWN_RESTART);
 
                     if (status == ERROR_SUCCESS)
-                    {
                         return TRUE;
-                    }
 
                     PhShowStatus(WindowHandle, L"Unable to configure the advanced boot options.", 0, status);
                 }
@@ -756,13 +740,7 @@ BOOLEAN PhUiRestartComputer(
                 //
                 //    if (success)
                 //    {
-                //        ULONG status = InitiateShutdown(
-                //            NULL,
-                //            NULL,
-                //            0,
-                //            SHUTDOWN_RESTART,
-                //            SHTDN_REASON_FLAG_PLANNED
-                //            );
+                //        ULONG status = PhInitiateShutdown(PH_SHUTDOWN_RESTART);
                 //
                 //        if (status != ERROR_SUCCESS)
                 //        {
@@ -891,18 +869,10 @@ BOOLEAN PhUiRestartComputer(
 
                 if (NT_SUCCESS(status))
                 {
-                    status = InitiateShutdown(
-                        NULL,
-                        NULL,
-                        0,
-                        SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
-                        SHTDN_REASON_FLAG_PLANNED
-                        );
+                    status = PhInitiateShutdown(PH_SHUTDOWN_RESTART);
 
                     if (status == ERROR_SUCCESS)
-                    {
                         return TRUE;
-                    }
 
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
                 }
@@ -923,15 +893,7 @@ BOOLEAN PhUiRestartComputer(
                 FALSE
                 ))
             {
-                ULONG status;
-
-                status = InitiateShutdown(
-                    NULL,
-                    NULL,
-                    0,
-                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART | SHUTDOWN_INSTALL_UPDATES,
-                    SHTDN_REASON_FLAG_PLANNED
-                    );
+                ULONG status = PhInitiateShutdown(PH_SHUTDOWN_RESTART | PH_SHUTDOWN_INSTALL_UPDATES);
 
                 if (status == ERROR_SUCCESS)
                     return TRUE;
@@ -950,9 +912,7 @@ BOOLEAN PhUiRestartComputer(
                 FALSE
                 ))
             {
-                HRESULT status;
-
-                status = PhRestartDefenderOfflineScan();
+                HRESULT status = PhRestartDefenderOfflineScan();
 
                 if (status == S_OK)
                     return TRUE;
@@ -991,15 +951,7 @@ BOOLEAN PhUiShutdownComputer(
                 FALSE
                 ))
             {
-                ULONG status;
-
-                status = InitiateShutdown(
-                    NULL,
-                    NULL,
-                    0,
-                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_POWEROFF | Flags,
-                    SHTDN_REASON_FLAG_PLANNED
-                    );
+                ULONG status = PhInitiateShutdown(PH_SHUTDOWN_POWEROFF | Flags);
 
                 if (status == ERROR_SUCCESS)
                     return TRUE;
@@ -1093,15 +1045,7 @@ BOOLEAN PhUiShutdownComputer(
                 FALSE
                 ))
             {
-                ULONG status;
-
-                status = InitiateShutdown(
-                    NULL,
-                    NULL,
-                    0,
-                    SHUTDOWN_FORCE_OTHERS | SHUTDOWN_POWEROFF | SHUTDOWN_INSTALL_UPDATES,
-                    SHTDN_REASON_FLAG_PLANNED
-                    );
+                ULONG status = PhInitiateShutdown(PH_SHUTDOWN_POWEROFF | PH_SHUTDOWN_INSTALL_UPDATES);
 
                 if (status == ERROR_SUCCESS)
                     return TRUE;
@@ -1239,13 +1183,7 @@ VOID PhUiHandleComputerBootApplicationMenu(
 
     if (NT_SUCCESS(status))
     {
-        status = InitiateShutdown(
-            NULL,
-            NULL,
-            0,
-            SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
-            SHTDN_REASON_FLAG_PLANNED
-            );
+        status = PhInitiateShutdown(PH_SHUTDOWN_RESTART);
 
         if (status != ERROR_SUCCESS)
         {
@@ -1291,13 +1229,7 @@ VOID PhUiHandleComputerFirmwareApplicationMenu(
 
     if (NT_SUCCESS(status))
     {
-        status = InitiateShutdown(
-            NULL,
-            NULL,
-            0,
-            SHUTDOWN_FORCE_OTHERS | SHUTDOWN_RESTART,
-            SHTDN_REASON_FLAG_PLANNED
-            );
+        status = PhInitiateShutdown(PH_SHUTDOWN_RESTART);
 
         if (status != ERROR_SUCCESS)
         {

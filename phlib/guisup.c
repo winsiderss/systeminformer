@@ -2699,6 +2699,37 @@ VOID PhDpiChangedForwardChildWindows(
     PhEnumChildWindows(WindowHandle, 0x1000, PhpDpiChangedForwardEnumChildWindows, NULL);
 }
 
+static const PH_FLAG_MAPPING PhpInitiateShutdownMappings[] =
+{
+    { PH_SHUTDOWN_RESTART, SHUTDOWN_RESTART },
+    { PH_SHUTDOWN_POWEROFF, SHUTDOWN_POWEROFF },
+    { PH_SHUTDOWN_INSTALL_UPDATES, SHUTDOWN_INSTALL_UPDATES },
+    { PH_SHUTDOWN_HYBRID, SHUTDOWN_HYBRID },
+    { PH_SHUTDOWN_RESTART_BOOTOPTIONS, SHUTDOWN_RESTART_BOOTOPTIONS },
+    { PH_CREATE_PROCESS_EXTENDED_STARTUPINFO, EXTENDED_STARTUPINFO_PRESENT },
+};
+
+ULONG PhInitiateShutdown(
+    _In_ ULONG Flags
+    )
+{
+    ULONG status;
+    ULONG newFlags;
+
+    newFlags = 0;
+    PhMapFlags1(&newFlags, Flags, PhpInitiateShutdownMappings, ARRAYSIZE(PhpInitiateShutdownMappings));
+
+    status = InitiateShutdown(
+        NULL,
+        NULL,
+        0,
+        SHUTDOWN_FORCE_OTHERS | newFlags,
+        SHTDN_REASON_FLAG_PLANNED
+        );
+
+    return status;
+}
+
 VOID PhCustomDrawTreeTimeLine(
     _In_ HDC Hdc,
     _In_ RECT CellRect,
