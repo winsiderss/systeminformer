@@ -930,7 +930,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
                             PhSaveSettingsMemoryList(&memoryContext->ListContext);
 
-                            PhpRefreshProcessMemoryList(propPageContext);
+                            PhInvalidateAllMemoryBaseAddressNodes(&memoryContext->ListContext);
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_STRINGS)
                         {

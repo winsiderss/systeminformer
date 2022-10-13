@@ -458,6 +458,53 @@ VOID PhUpdateModuleNode(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+VOID PhInvalidateAllModuleNodes(
+    _In_ PPH_MODULE_LIST_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_MODULE_NODE moduleNode = Context->NodeList->Items[i];
+
+        memset(moduleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
+        moduleNode->ValidMask = 0;
+        PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR);
+    }
+
+    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
+VOID PhInvalidateAllModuleBaseAddressNodes(
+    _In_ PPH_MODULE_LIST_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPH_MODULE_NODE moduleNode = Context->NodeList->Items[i];
+
+        if (Context->ZeroPadAddresses)
+        {
+            PhPrintPointerPadZeros(moduleNode->ModuleItem->BaseAddressString, moduleNode->ModuleItem->BaseAddress);
+            PhPrintPointerPadZeros(moduleNode->ModuleItem->EntryPointAddressString, moduleNode->ModuleItem->EntryPoint);
+            PhPrintPointerPadZeros(moduleNode->ModuleItem->ParentBaseAddressString, moduleNode->ModuleItem->ParentBaseAddress);
+        }
+        else
+        {
+            PhPrintPointer(moduleNode->ModuleItem->BaseAddressString, moduleNode->ModuleItem->BaseAddress);
+            PhPrintPointer(moduleNode->ModuleItem->EntryPointAddressString, moduleNode->ModuleItem->EntryPoint);
+            PhPrintPointer(moduleNode->ModuleItem->ParentBaseAddressString, moduleNode->ModuleItem->ParentBaseAddress);
+        }
+
+        memset(moduleNode->TextCache, 0, sizeof(PH_STRINGREF) * PHMOTLC_MAXIMUM);
+        moduleNode->ValidMask = 0;
+        PhInvalidateTreeNewNode(&moduleNode->Node, TN_CACHE_COLOR);
+    }
+
+    InvalidateRect(Context->TreeNewHandle, NULL, FALSE);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
+}
+
 VOID PhExpandAllModuleNodes(
     _In_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ BOOLEAN Expand

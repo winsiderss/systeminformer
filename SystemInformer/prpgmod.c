@@ -949,14 +949,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                             PhSetOptionsModuleList(&modulesContext->ListContext, selectedItem->Id);
                             PhSaveSettingsModuleList(&modulesContext->ListContext);
 
-                            // TODO reload list instead of asking user to reopen
-                            PhShowMessage2(
-                                hwndDlg,
-                                TDCBF_OK_BUTTON,
-                                TD_INFORMATION_ICON,
-                                L"Reopen the process window to refresh the modules list.",
-                                L""
-                                );
+                            PhInvalidateAllModuleBaseAddressNodes(&modulesContext->ListContext);
                         }
                         else
                         {

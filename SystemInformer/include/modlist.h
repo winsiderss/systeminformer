@@ -177,6 +177,14 @@ VOID PhUpdateModuleNode(
     _In_ PPH_MODULE_NODE ModuleNode
     );
 
+VOID PhInvalidateAllModuleNodes(
+    _In_ PPH_MODULE_LIST_CONTEXT Context
+    );
+
+VOID PhInvalidateAllModuleBaseAddressNodes(
+    _In_ PPH_MODULE_LIST_CONTEXT Context
+    );
+
 VOID PhExpandAllModuleNodes(
     _In_ PPH_MODULE_LIST_CONTEXT Context,
     _In_ BOOLEAN Expand
