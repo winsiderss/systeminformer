@@ -2282,7 +2282,7 @@ BOOLEAN PhMwpExecuteComputerCommand(
         PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_ADVANCEDBOOT, 0);
         return TRUE;
     case ID_COMPUTER_RESTARTBOOTOPTIONS:
-        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, SHUTDOWN_RESTART_BOOTOPTIONS);
+        PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, PH_SHUTDOWN_RESTART_BOOTOPTIONS);
         return TRUE;
     case ID_COMPUTER_RESTARTFWOPTIONS:
         PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_FIRMWAREBOOT, 0);
@@ -2291,7 +2291,7 @@ BOOLEAN PhMwpExecuteComputerCommand(
         PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, 0);
         return TRUE;
     case ID_COMPUTER_SHUTDOWNHYBRID:
-        PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, SHUTDOWN_HYBRID);
+        PhUiShutdownComputer(WindowHandle, PH_POWERACTION_TYPE_WIN32, PH_SHUTDOWN_HYBRID);
         return TRUE;
     case ID_COMPUTER_RESTART_NATIVE:
         PhUiRestartComputer(WindowHandle, PH_POWERACTION_TYPE_NATIVE, 0);

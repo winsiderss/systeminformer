@@ -1182,6 +1182,19 @@ PhDpiChangedForwardChildWindows(
     _In_ HWND WindowHandle
     );
 
+#define PH_SHUTDOWN_RESTART 0x1
+#define PH_SHUTDOWN_POWEROFF 0x2
+#define PH_SHUTDOWN_INSTALL_UPDATES 0x4
+#define PH_SHUTDOWN_HYBRID 0x8
+#define PH_SHUTDOWN_RESTART_BOOTOPTIONS 0x10
+
+PHLIBAPI
+ULONG
+NTAPI
+PhInitiateShutdown(
+    _In_ ULONG Flags
+    );
+
 #define PH_DRAW_TIMELINE_OVERFLOW 0x1
 #define PH_DRAW_TIMELINE_DARKTHEME 0x2
 
