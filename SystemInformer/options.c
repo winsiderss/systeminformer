@@ -1537,11 +1537,11 @@ static VOID PhpAdvancedPageSave(
     PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
     PhSetIntegerSetting(L"IconProcesses", PhGetDialogItemValue(hwndDlg, IDC_ICONPROCESSES));
 
-    //if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
-    //{
-    //    PhSetStringSetting2(L"DbgHelpSearchPath", &PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH))->sr);
-    //    RestartRequired = TRUE;
-    //}
+    if (!PhEqualString(PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH), PhaGetStringSetting(L"DbgHelpSearchPath"), TRUE))
+    {
+        PhSetStringSetting2(L"DbgHelpSearchPath", &PhaGetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr);
+        RestartRequired = TRUE;
+    }
 
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_SINGLE_INSTANCE, L"AllowOnlyOneInstance");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_HIDE_WHENCLOSED, L"HideOnClose");
