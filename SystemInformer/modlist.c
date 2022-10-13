@@ -746,6 +746,12 @@ BEGIN_SORT_FUNCTION(OriginalName)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ServiceName)
+{
+    sortResult = PhCompareStringWithNull(node1->ServiceText, node2->ServiceText, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -813,7 +819,8 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     SORT_FUNCTION(Cet),
                     SORT_FUNCTION(ImageCoherency),
                     SORT_FUNCTION(LoadTime), // Timeline
-                    SORT_FUNCTION(OriginalName)
+                    SORT_FUNCTION(OriginalName),
+                    SORT_FUNCTION(ServiceName),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
