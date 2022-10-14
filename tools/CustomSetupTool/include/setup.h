@@ -104,6 +104,8 @@ typedef struct _PH_SETUP_CONTEXT
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
     ULONG CurrentRevisionVersion;
+
+    BOOLEAN NeedsReboot;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupParseCommandLine(

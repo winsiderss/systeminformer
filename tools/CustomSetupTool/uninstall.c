@@ -33,7 +33,24 @@ NTSTATUS SetupUninstallBuild(
     SetupDeleteUninstallKey();
 
     // Remove the previous installation.
-    PhDeleteDirectoryWin32(Context->SetupInstallPath);
+    if (!NT_SUCCESS(PhDeleteDirectoryWin32(Context->SetupInstallPath)))
+    {
+        static PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
+        PPH_STRING ksiFile;
+
+        ksiFile = PhConcatStringRef3(
+            &Context->SetupInstallPath->sr,
+            &PhNtPathSeperatorString,
+            &ksiFileName
+            );
+
+        MoveFileExW(PhGetString(ksiFile), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+        MoveFileExW(PhGetString(Context->SetupInstallPath), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+
+        PhDereferenceObject(ksiFile);
+
+        Context->NeedsReboot = TRUE;
+    }
 
     // Remove the application data.
     if (Context->SetupRemoveAppData)
@@ -166,7 +183,10 @@ VOID ShowUninstallCompletedPageDialog(
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"System Informer has been uninstalled.";
-    config.pszContent = L"Click close to exit setup.";
+    if (Context->NeedsReboot)
+        config.pszContent = L"A reboot is required to complete the uninstall.";
+    else
+        config.pszContent = L"Click close to exit setup.";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }

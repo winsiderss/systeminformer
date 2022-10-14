@@ -1326,6 +1326,30 @@ NTSTATUS PhRestartSelf(
     return status;
 }
 
+BOOLEAN PhDoesNewKsiExist(
+    VOID
+    )
+{
+    static PH_STRINGREF ksiNew = PH_STRINGREF_INIT(L"ksi.dll-new");
+    BOOLEAN result = FALSE;
+    PPH_STRING applicationDir = NULL;
+    PPH_STRING fileName = NULL;
+
+    if (!(applicationDir = PhGetApplicationDirectory()))
+        goto CleanupExit;
+
+    fileName = PhConcatStringRef2(&applicationDir->sr, &ksiNew);
+
+    result = PhDoesFileExist(&fileName->sr);
+
+CleanupExit:
+
+    if (applicationDir)
+        PhDereferenceObject(applicationDir);
+
+    return result;
+}
+
 VOID PhInitializeKph(
     VOID
     )
@@ -1337,6 +1361,18 @@ VOID PhInitializeKph(
     PPH_STRING kphServiceName = NULL;
     ULONG_PTR indexOfBackslash;
     ULONG_PTR indexOfLastDot;
+
+    if (PhDoesNewKsiExist())
+    {
+        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
+        {
+            PhpShowKphError(
+                L"Unable to load kernel driver, the last System Informer update requires a reboot.",
+                STATUS_PENDING 
+                );
+        }
+        return;
+    }
 
     kphServiceName = PhGetStringSetting(L"KphServiceName");
     if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
@@ -1443,7 +1479,6 @@ VOID PhInitializeKph(
     else
     {
         if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-
             PhpShowKphError(L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
     }
 
