@@ -12,6 +12,202 @@
 #include <setup.h>
 #include "..\thirdparty\miniz\miniz.h"
 
+BOOLEAN SetupOverwriteFile(
+    _In_ PPH_STRING FileName,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength 
+    )
+{
+    BOOLEAN result;
+    HANDLE fileHandle;
+    LARGE_INTEGER allocationSize;
+    IO_STATUS_BLOCK isb;
+
+    allocationSize.QuadPart = BufferLength;
+
+    if (!NT_SUCCESS(PhCreateFileWin32Ex(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_GENERIC_WRITE,
+        &allocationSize,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        )))
+    {
+        fileHandle = NULL;
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(NtWriteFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        Buffer,
+        BufferLength,
+        NULL,
+        NULL
+        )))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    if (isb.Information != BufferLength)
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    result = TRUE;
+
+CleanupExit:
+
+    if (fileHandle)
+        NtClose(fileHandle);
+
+    return result;
+}
+
+BOOLEAN SetupHashFile(
+    _In_ PPH_STRING FileName,
+    _Out_writes_all_(256 / 8) PBYTE Buffer
+    )
+{
+    BOOLEAN result;
+    NTSTATUS status;
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK iosb;
+    PH_HASH_CONTEXT hashContext;
+    LARGE_INTEGER fileSize;
+    ULONG64 bytesRemaining;
+    BYTE buffer[PAGE_SIZE];
+
+    RtlZeroMemory(Buffer, 256 / 8);
+
+    status = PhCreateFileWin32Ex(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_GENERIC_READ,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+    if (!NT_SUCCESS(status))
+    {
+        fileHandle = NULL;
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    status = PhGetFileSize(fileHandle, &fileSize);
+    if (!NT_SUCCESS(status))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    bytesRemaining = fileSize.QuadPart;
+
+    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+
+    while (bytesRemaining)
+    {
+        status = NtReadFile(
+            fileHandle,
+            NULL,
+            NULL,
+            NULL,
+            &iosb,
+            buffer,
+            sizeof(buffer),
+            NULL,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            result = FALSE;
+            goto CleanupExit;
+        }
+
+        PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
+        bytesRemaining -= (ULONG)iosb.Information;
+    }
+
+    result = PhFinalHash(&hashContext, Buffer, 256 / 8, NULL);
+
+CleanupExit:
+
+    if (fileHandle)
+        NtClose(fileHandle);
+
+    return result;
+}
+
+BOOLEAN SetupUpdateKsi(
+    _Inout_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FileName,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    BOOLEAN result;
+    PH_HASH_CONTEXT hashContext;
+    BYTE inputHash[256/ 8];
+    BYTE existingHash[256/ 8];
+    PPH_STRING newFile = NULL;
+
+    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
+    PhUpdateHash(&hashContext, Buffer, BufferLength);
+    if (!PhFinalHash(&hashContext, inputHash, ARRAYSIZE(inputHash), NULL))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    if (!SetupHashFile(FileName, existingHash))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    if (RtlEqualMemory(inputHash, existingHash, ARRAYSIZE(inputHash)))
+    {
+        result = TRUE;
+        goto CleanupExit;
+    }
+
+    MoveFileExW(PhGetString(FileName), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+
+    Context->NeedsReboot = TRUE;
+
+    newFile = PhConcatStringRefZ(&FileName->sr, L"-new");
+
+    if (!SetupOverwriteFile(newFile, Buffer, BufferLength))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    result = MoveFileExW(PhGetString(newFile), PhGetString(FileName), MOVEFILE_DELAY_UNTIL_REBOOT);
+
+CleanupExit:
+
+    if (newFile)
+        PhDereferenceObject(newFile);
+
+    return result;
+}
+
 BOOLEAN SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -119,9 +315,6 @@ BOOLEAN SetupExtractBuild(
 
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
     {
-        IO_STATUS_BLOCK isb;
-        HANDLE fileHandle = NULL;
-        LARGE_INTEGER allocationSize;
         PVOID buffer = NULL;
         ULONG bufferLength = 0;
         PPH_STRING fileName = NULL;
@@ -229,51 +422,17 @@ BOOLEAN SetupExtractBuild(
         //    PhDereferenceObject(backupFilePath);
         //}
 
-        allocationSize.QuadPart = bufferLength;
-
-        if (!NT_SUCCESS(PhCreateFileWin32Ex(
-            &fileHandle,
-            PhGetString(extractPath),
-            FILE_GENERIC_WRITE,
-            &allocationSize,
-            FILE_ATTRIBUTE_NORMAL,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            FILE_OVERWRITE_IF,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-            NULL
-            )))
+        if (!SetupOverwriteFile(extractPath, buffer, bufferLength))
         {
-            Context->ErrorCode = ERROR_FILE_CORRUPT;
-            goto CleanupExit;
-        }
-
-        if (!NT_SUCCESS(NtWriteFile(
-            fileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
-            buffer,
-            bufferLength,
-            NULL,
-            NULL
-            )))
-        {
-            Context->ErrorCode = ERROR_FILE_CORRUPT;
-            NtClose(fileHandle);
-            goto CleanupExit;
-        }
-
-        if (isb.Information != bufferLength)
-        {
-            Context->ErrorCode = ERROR_FILE_CORRUPT;
-            NtClose(fileHandle);
-            goto CleanupExit;
+            if (!PhEndsWithString2(extractPath, L"\\ksi.dll", FALSE) ||
+                !SetupUpdateKsi(Context, extractPath, buffer, bufferLength))
+            {
+                Context->ErrorCode = ERROR_FILE_CORRUPT;
+                goto CleanupExit;
+            }
         }
 
         currentLength += bufferLength;
-
-        NtClose(fileHandle);
 
         {
             FLOAT percent = ((FLOAT)((double)currentLength / (double)totalLength) * 100);
