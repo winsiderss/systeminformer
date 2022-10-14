@@ -1044,9 +1044,6 @@ namespace CustomBuildTool
         public static bool BuildDeployUpdateConfig()
         {
             string buildBuildId;
-            //string buildJobId;
-            string buildPostUrl;
-            string buildPostApiKey;
             string buildPostSfUrl;
             string buildPostSfApiKey;
             string buildFilename;
@@ -1061,9 +1058,6 @@ namespace CustomBuildTool
                 return true;
 
             buildBuildId = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_ID%");
-            //buildJobId = Win32.GetEnvironmentVariable("%APPVEYOR_JOB_ID%");
-            buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%");
-            buildPostApiKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_KEY%");
             buildPostSfUrl = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_SF_API%");
             buildPostSfApiKey = Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_SF_KEY%");
             buildBinFileLength = 0;
@@ -1074,12 +1068,6 @@ namespace CustomBuildTool
             BuildSetupSig = null;
 
             if (string.IsNullOrWhiteSpace(buildBuildId))
-                return false;
-            //if (string.IsNullOrWhiteSpace(buildJobId))
-            //    return false;
-            if (string.IsNullOrWhiteSpace(buildPostUrl))
-                return false;
-            if (string.IsNullOrWhiteSpace(buildPostApiKey))
                 return false;
             if (string.IsNullOrWhiteSpace(buildPostSfUrl))
                 return false;
@@ -1217,63 +1205,29 @@ namespace CustomBuildTool
 
                     using (HttpClient httpClient = new HttpClient(httpClientHandler))
                     {
-                        httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostApiKey);
-                        //httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                        //httpClient.DefaultRequestVersion = HttpVersion.Version20;
+                        httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
+                        httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
+                        httpClient.DefaultRequestVersion = HttpVersion.Version20;
 
                         using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
                         {
                             httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-                            var httpTask = httpClient.PostAsync(buildPostUrl, httpContent);
+                            var httpTask = httpClient.PostAsync(buildPostSfUrl, httpContent);
                             httpTask.Wait();
 
                             if (!httpTask.Result.IsSuccessStatusCode)
                             {
-                                Program.PrintColorMessage("[UpdateBuildWebService] " + httpTask.Result, ConsoleColor.Red);
+                                Program.PrintColorMessage("[UpdateBuildWebService-SF] " + httpTask.Result, ConsoleColor.Red);
                                 return false;
                             }
                         }
                     }
                 }
-
-                try
-                {
-                    using (HttpClientHandler httpClientHandler = new HttpClientHandler())
-                    {
-                        httpClientHandler.AutomaticDecompression = DecompressionMethods.All;
-
-                        using (HttpClient httpClient = new HttpClient(httpClientHandler))
-                        {
-                            httpClient.DefaultRequestHeaders.Add("X-ApiKey", buildPostSfApiKey);
-                            httpClient.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
-                            httpClient.DefaultRequestVersion = HttpVersion.Version20;
-
-                            using (ByteArrayContent httpContent = new ByteArrayContent(buildPostString))
-                            {
-                                httpContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-
-                                var httpTask = httpClient.PostAsync(buildPostSfUrl, httpContent);
-                                httpTask.Wait();
-
-                                if (!httpTask.Result.IsSuccessStatusCode)
-                                {
-                                    Program.PrintColorMessage("[UpdateBuildWebService-SF] " + httpTask.Result, ConsoleColor.Red);
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Program.PrintColorMessage("[UpdateBuildWebService-SF] " + ex, ConsoleColor.Red);
-                    return false;
-                }
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[UpdateBuildWebService] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage("[UpdateBuildWebService-SF] " + ex, ConsoleColor.Red);
                 return false;
             }
 
