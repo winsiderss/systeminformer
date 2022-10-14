@@ -299,6 +299,43 @@ namespace CustomBuildTool
             return true;
         }
 
+        private static Aes GetRijndaelLegacy(string secret)
+        {
+            using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
+                secret,
+                Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="),
+                10000))
+            {
+                Aes rijndael = Aes.Create();
+
+                rijndael.Key = rfc2898DeriveBytes.GetBytes(32);
+                rijndael.IV = rfc2898DeriveBytes.GetBytes(16);
+
+                return rijndael;
+            }
+        }
+
+        public static bool DecryptLegacy(string FileName, string outFileName, string secret)
+        {
+            try
+            {
+                using (FileStream fileOutStream = File.Create(outFileName))
+                using (Aes rijndael = GetRijndaelLegacy(secret))
+                using (FileStream fileStream = File.OpenRead(FileName))
+                using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
+                {
+                    fileStream.CopyTo(cryptoStream);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+
         public static string HashFile(string FileName)
         {
             //using (HashAlgorithm algorithm = new SHA256CryptoServiceProvider())

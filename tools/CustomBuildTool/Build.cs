@@ -1087,7 +1087,7 @@ namespace CustomBuildTool
                     if (!string.IsNullOrWhiteSpace(buildKey))
                     {
                         //Verify.Decrypt(Verify.GetPath("nightly.s"), Verify.GetPath("nightly.key"), buildKey);
-                        Verify.Decrypt(Verify.GetPath("nightly-legacy.s"), Verify.GetPath("nightly.key"), buildKey);
+                        Verify.DecryptLegacy(Verify.GetPath("nightly-legacy.s"), Verify.GetPath("nightly.key"), buildKey);
                     }
 
                     if (!File.Exists(Verify.GetPath("nightly.key")))
