@@ -10,6 +10,7 @@
     <Version>1.0</Version>
     <CodePage>65001</CodePage>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
+    <PdbFile>$(AssemblyName).pdb</PdbFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <PlatformTarget>x86</PlatformTarget>
