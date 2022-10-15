@@ -190,7 +190,7 @@ typedef struct _KPH_PROCESS_HANDLE
 typedef struct _KPH_PROCESS_HANDLE_INFORMATION
 {
     ULONG HandleCount;
-    KPH_PROCESS_HANDLE Handles[1];
+    _Field_size_(HandleCount) KPH_PROCESS_HANDLE Handles[1];
 } KPH_PROCESS_HANDLE_INFORMATION, *PKPH_PROCESS_HANDLE_INFORMATION;
 
 // Object information
