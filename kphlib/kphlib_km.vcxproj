@@ -211,6 +211,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -230,7 +231,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -253,6 +254,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
