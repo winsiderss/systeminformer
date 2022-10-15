@@ -208,7 +208,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -217,6 +217,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <GuardEHContMetadata>true</GuardEHContMetadata>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -245,6 +246,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -264,7 +266,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
@@ -276,7 +278,7 @@
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
@@ -301,6 +303,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>

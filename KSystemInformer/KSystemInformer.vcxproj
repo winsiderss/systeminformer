@@ -206,7 +206,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -216,11 +216,12 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <GuardEHContMetadata>true</GuardEHContMetadata>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -243,6 +244,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -260,7 +262,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
@@ -274,7 +276,7 @@
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -297,6 +299,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
