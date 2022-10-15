@@ -33,6 +33,7 @@ KPHM_DEFINE_HANDLER(KphpCommsQueryInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationThread);
 KPHM_DEFINE_HANDLER(KphpCommsSystemControl);
+KPHM_DEFINE_HANDLER(KphpCommsAlpcQueryInformation);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -66,6 +67,7 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgSetInformationProcess,       KphpCommsSetInformationProcess,       KphpCommsRequireMaximum },
 { KphMsgSetInformationThread,        KphpCommsSetInformationThread,        KphpCommsRequireMaximum },
 { KphMsgSystemControl,               KphpCommsSystemControl,               KphpCommsRequireMaximum },
+{ KphMsgAlpcQueryInformation,        KphpCommsAlpcQueryInformation,        KphpCommsRequireMedium },
 };
 
 ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -706,6 +708,32 @@ NTSTATUS KSIAPI KphpCommsSystemControl(
                                    msg->SystemControlInfo,
                                    msg->SystemControlInfoLength,
                                    UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsAlpcQueryInformation(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_ALPC_QUERY_INFORMATION msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgAlpcQueryInformation);
+
+    msg = &Message->User.AlpcQueryInformation;
+
+    msg->Status = KphAlpcQueryInformation(msg->ProcessHandle,
+                                          msg->PortHandle,
+                                          msg->AlpcInformationClass,
+                                          msg->AlpcInformation,
+                                          msg->AlpcInformationLength,
+                                          msg->ReturnLength,
+                                          UserMode);
 
     return STATUS_SUCCESS;
 }

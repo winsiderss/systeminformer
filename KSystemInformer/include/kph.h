@@ -751,6 +751,18 @@ BOOLEAN KphSinglePrivilegeCheck(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+_IRQL_requires_max_(APC_LEVEL)
+BOOLEAN KphSuffixUnicodeString(
+    _In_ PUNICODE_STRING Suffix,
+    _In_ PUNICODE_STRING String,
+    _In_ BOOLEAN CaseInSensitive
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphProcessIsLsass(
+    _In_ PEPROCESS Process
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1040,7 +1052,8 @@ typedef struct _KPH_PROCESS_CONTEXT
             ULONG VerifiedProcess : 1;
             ULONG SecurelyCreated : 1;
             ULONG Protected : 1;
-            ULONG Reserved : 27;
+            ULONG IsLsass : 1;
+            ULONG Reserved : 26;
         };
     };
 
@@ -1366,5 +1379,19 @@ NTSTATUS KphSystemControl(
     _In_ KPH_SYSTEM_CONTROL_CLASS SystemControlClass,
     _In_reads_bytes_(SystemControlInfoLength) PVOID SystemControlInfo,
     _In_ ULONG SystemControlInfoLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+// alpc
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphAlpcQueryInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE PortHandle,
+    _In_ KPH_ALPC_INFORMATION_CLASS AlpcInformationClass,
+    _Out_writes_bytes_opt_(AlpcInformationLength) PVOID AlpcInformation,
+    _In_ ULONG AlpcInformationLength,
+    _Out_opt_ PULONG ReturnLength,
     _In_ KPROCESSOR_MODE AccessMode
     );

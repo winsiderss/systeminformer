@@ -14,6 +14,7 @@
 #include <hndlprv.h>
 #include <phplug.h>
 #include <phsettings.h>
+#include <kphuser.h>
 
 #include <emenu.h>
 #include <settings.h>
@@ -67,6 +68,10 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_MUTANTCOUNT,
     PH_HANDLE_GENERAL_INDEX_MUTANTABANDONED,
     PH_HANDLE_GENERAL_INDEX_MUTANTOWNER,
+
+    PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION,
+    PH_HANDLE_GENERAL_INDEX_ALPCSERVER,
+    PH_HANDLE_GENERAL_INDEX_ALPCCLIENT,
 
     PH_HANDLE_GENERAL_INDEX_PROCESSTHREADNAME,
     PH_HANDLE_GENERAL_INDEX_PROCESSTHREADCREATETIME,
@@ -398,6 +403,33 @@ VOID PhpUpdateHandleGeneralListViewGroups(
                 NULL
                 );
         }
+
+        if (KphLevel() >= KphLevelMed)
+        {
+            Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION] = PhAddListViewGroupItem(
+                Context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_ALPC,
+                PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION,
+                L"Connection",
+                NULL
+                );
+
+            Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCSERVER] = PhAddListViewGroupItem(
+                Context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_ALPC,
+                PH_HANDLE_GENERAL_INDEX_ALPCSERVER,
+                L"Server",
+                NULL
+                );
+
+            Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCLIENT] = PhAddListViewGroupItem(
+                Context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_ALPC,
+                PH_HANDLE_GENERAL_INDEX_ALPCCLIENT,
+                L"Client",
+                NULL
+                );
+        }
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"EtwRegistration", TRUE) || PhEqualString2(Context->HandleItem->TypeName, L"EtwConsumer", TRUE))
     {
@@ -630,7 +662,7 @@ VOID PhpUpdateHandleGeneral(
 
     if (NT_SUCCESS(PhOpenProcess(
         &processHandle,
-        PROCESS_DUP_HANDLE,
+        (KphLevel() >= KphLevelMed ? PROCESS_QUERY_LIMITED_INFORMATION : PROCESS_DUP_HANDLE),
         Context->ProcessId
         )))
     {
@@ -668,7 +700,7 @@ VOID PhpUpdateHandleGeneral(
     {
 #if (PHNT_VERSION >= PHNT_WIN7)
         NTSTATUS status;
-        HANDLE processHandle;
+        HANDLE processHandle = NULL;
         HANDLE alpcPortHandle = NULL;
 
         if (NT_SUCCESS(status = PhOpenProcess(
@@ -813,6 +845,117 @@ VOID PhpUpdateHandleGeneral(
             }
 
             NtClose(alpcPortHandle);
+        }
+
+        if (KphLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                Context->ProcessId
+                )))
+        {
+            PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION connectionNames;
+            KPH_ALPC_COMMUNICATION_INFORMATION connectionInfo;
+
+            if (!NT_SUCCESS(KphAlpcQueryComminicationsNamesInfo(
+                processHandle,
+                Context->HandleItem->Handle,
+                &connectionNames)))
+            {
+                connectionNames = NULL;
+            }
+
+            if (NT_SUCCESS(KphAlpcQueryInformation(
+                processHandle,
+                Context->HandleItem->Handle,
+                KphAlpcCommunicationInformation,
+                &connectionInfo,
+                sizeof(connectionInfo),
+                NULL
+                )))
+            {
+                CLIENT_ID clientId;
+                PPH_STRING name;
+
+                if (connectionInfo.ConnectionPort.OwnerProcessId)
+                {
+                    clientId.UniqueProcess = connectionInfo.ConnectionPort.OwnerProcessId;
+                    clientId.UniqueThread = 0;
+
+                    name = PhStdGetClientIdName(&clientId);
+
+                    if (connectionNames && connectionNames->ConnectionPort.Length > 0)
+                    {
+                        PPH_STRING newName;
+                        PH_FORMAT format[3];
+
+                        PhInitFormatSR(&format[0], name->sr);
+                        PhInitFormatS(&format[1], L" - ");
+                        PhInitFormatUCS(&format[2], &connectionNames->ConnectionPort);
+
+                        newName = PhFormat(format, 3, MAX_PATH);
+                        PhDereferenceObject(name);
+                        name = newName;
+                    }
+
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCONNECTION], 1, name->Buffer);
+                    PhDereferenceObject(name);
+                }
+
+                if (connectionInfo.ServerCommunicationPort.OwnerProcessId)
+                {
+                    clientId.UniqueProcess = connectionInfo.ServerCommunicationPort.OwnerProcessId;
+                    clientId.UniqueThread = 0;
+
+                    name = PhStdGetClientIdName(&clientId);
+
+                    if (connectionNames && connectionNames->ServerCommunicationPort.Length > 0)
+                    {
+                        PPH_STRING newName;
+                        PH_FORMAT format[3];
+
+                        PhInitFormatSR(&format[0], name->sr);
+                        PhInitFormatS(&format[1], L" - ");
+                        PhInitFormatUCS(&format[2], &connectionNames->ServerCommunicationPort);
+
+                        newName = PhFormat(format, 3, MAX_PATH);
+                        PhDereferenceObject(name);
+                        name = newName;
+                    }
+
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCSERVER], 1, name->Buffer);
+                    PhDereferenceObject(name);
+                }
+
+                if (connectionInfo.ClientCommunicationPort.OwnerProcessId)
+                {
+                    clientId.UniqueProcess = connectionInfo.ClientCommunicationPort.OwnerProcessId;
+                    clientId.UniqueThread = 0;
+
+                    name = PhStdGetClientIdName(&clientId);
+
+                    if (connectionNames && connectionNames->ClientCommunicationPort.Length > 0)
+                    {
+                        PPH_STRING newName;
+                        PH_FORMAT format[3];
+
+                        PhInitFormatSR(&format[0], name->sr);
+                        PhInitFormatS(&format[1], L" - ");
+                        PhInitFormatUCS(&format[2], &connectionNames->ClientCommunicationPort);
+
+                        newName = PhFormat(format, 3, MAX_PATH);
+                        PhDereferenceObject(name);
+                        name = newName;
+                    }
+
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_ALPCCLIENT], 1, name->Buffer);
+                    PhDereferenceObject(name);
+                }
+            }
+
+            if (connectionNames)
+                PhFree(connectionNames);
+
+            NtClose(processHandle);
         }
 #endif
     }
