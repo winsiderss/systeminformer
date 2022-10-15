@@ -4049,13 +4049,13 @@ typedef struct _RTL_HEAP_INFORMATION_V2
 typedef struct _RTL_PROCESS_HEAPS_V1
 {
     ULONG NumberOfHeaps;
-    RTL_HEAP_INFORMATION_V1 Heaps[1];
+    _Field_size_(NumberOfHeaps) RTL_HEAP_INFORMATION_V1 Heaps[1];
 } RTL_PROCESS_HEAPS_V1, *PRTL_PROCESS_HEAPS_V1;
 
 typedef struct _RTL_PROCESS_HEAPS_V2
 {
     ULONG NumberOfHeaps;
-    RTL_HEAP_INFORMATION_V2 Heaps[1];
+    _Field_size_(NumberOfHeaps) RTL_HEAP_INFORMATION_V2 Heaps[1];
 } RTL_PROCESS_HEAPS_V2, *PRTL_PROCESS_HEAPS_V2;
 
 typedef NTSTATUS (NTAPI *PRTL_HEAP_COMMIT_ROUTINE)(
