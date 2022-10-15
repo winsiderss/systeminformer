@@ -757,11 +757,11 @@ VOID PhpUpdateHandleGeneral(
 
         if (NT_SUCCESS(status) && fileHandle)
         {
-            BOOLEAN disableFlushButton = FALSE;
+            //BOOLEAN disableFlushButton = FALSE;
             BOOLEAN isFileOrDirectory = FALSE;
             BOOLEAN isConsoleHandle = FALSE;
-            BOOLEAN isPipeHandle = FALSE;
-            BOOLEAN isNetworkHandle = FALSE;
+            //BOOLEAN isPipeHandle = FALSE;
+            //BOOLEAN isNetworkHandle = FALSE;
             FILE_FS_DEVICE_INFORMATION fileDeviceInfo;
             FILE_MODE_INFORMATION fileModeInfo;
             FILE_STANDARD_INFORMATION fileStandardInfo;
@@ -779,11 +779,11 @@ VOID PhpUpdateHandleGeneral(
                 switch (fileDeviceInfo.DeviceType)
                 {
                 case FILE_DEVICE_NAMED_PIPE:
-                    isPipeHandle = TRUE;
+                    //isPipeHandle = TRUE;
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Pipe");
                     break;
                 case FILE_DEVICE_NETWORK:
-                    isNetworkHandle = TRUE;
+                    //isNetworkHandle = TRUE;
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Network");
                     break;
                 case FILE_DEVICE_CD_ROM:
@@ -869,7 +869,7 @@ VOID PhpUpdateHandleGeneral(
                         PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, fileStandardInfo.Directory ? L"Directory" : L"File");
                     }
 
-                    disableFlushButton |= fileStandardInfo.Directory;
+                    //disableFlushButton |= fileStandardInfo.Directory;
                 }
 
                 if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
