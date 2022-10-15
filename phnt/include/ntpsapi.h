@@ -548,7 +548,7 @@ typedef struct _PROCESS_HANDLE_TRACING_QUERY
 {
     HANDLE Handle;
     ULONG TotalTraces;
-    PROCESS_HANDLE_TRACING_ENTRY HandleTrace[1];
+    _Field_size_(TotalTraces) PROCESS_HANDLE_TRACING_ENTRY HandleTrace[1];
 } PROCESS_HANDLE_TRACING_QUERY, *PPROCESS_HANDLE_TRACING_QUERY;
 
 #endif
@@ -578,7 +578,7 @@ typedef struct _PROCESS_TLS_INFORMATION
     ULONG ThreadDataCount;
     ULONG TlsIndex;
     ULONG PreviousCount;
-    THREAD_TLS_INFORMATION ThreadData[1];
+    _Field_size_(ThreadDataCount) THREAD_TLS_INFORMATION ThreadData[1];
 } PROCESS_TLS_INFORMATION, *PPROCESS_TLS_INFORMATION;
 
 // private
@@ -649,7 +649,7 @@ typedef struct _PROCESS_WINDOW_INFORMATION
 {
     ULONG WindowFlags;
     USHORT WindowTitleLength;
-    WCHAR WindowTitle[1];
+    _Field_size_bytes_(WindowTitleLength) WCHAR WindowTitle[1];
 } PROCESS_WINDOW_INFORMATION, *PPROCESS_WINDOW_INFORMATION;
 
 // private
@@ -669,7 +669,7 @@ typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
 {
     ULONG_PTR NumberOfHandles;
     ULONG_PTR Reserved;
-    PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
+    _Field_size_(NumberOfHandles) PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -1761,7 +1761,7 @@ typedef struct _PROC_THREAD_ATTRIBUTE_LIST
     ULONG LastAttribute;
     ULONG SpareUlong0;
     PPROC_THREAD_ATTRIBUTE ExtendedFlagsAttribute;
-    PROC_THREAD_ATTRIBUTE Attributes[1];
+    _Field_size_(AttributeCount) PROC_THREAD_ATTRIBUTE Attributes[1];
 } PROC_THREAD_ATTRIBUTE_LIST, *PPROC_THREAD_ATTRIBUTE_LIST;
 
 // private

@@ -118,7 +118,7 @@ typedef struct _BOOT_ENTRY
     ULONG FriendlyNameOffset;
     ULONG BootFilePathOffset;
     ULONG OsOptionsLength;
-    UCHAR OsOptions[1];
+    _Field_size_bytes_(OsOptionsLength) UCHAR OsOptions[1];
 } BOOT_ENTRY, *PBOOT_ENTRY;
 
 // private
@@ -145,7 +145,7 @@ typedef struct _FILE_PATH
     ULONG Version;
     ULONG Length;
     ULONG Type;
-    UCHAR FilePath[1];
+    _Field_size_bytes_(Length) UCHAR FilePath[1];
 } FILE_PATH, *PFILE_PATH;
 
 // private
@@ -1811,7 +1811,7 @@ typedef struct _RTL_PROCESS_LOCK_INFORMATION
 typedef struct _RTL_PROCESS_LOCKS
 {
     ULONG NumberOfLocks;
-    RTL_PROCESS_LOCK_INFORMATION Locks[1];
+    _Field_size_(NumberOfLocks) RTL_PROCESS_LOCK_INFORMATION Locks[1];
 } RTL_PROCESS_LOCKS, *PRTL_PROCESS_LOCKS;
 
 // private
@@ -1831,7 +1831,7 @@ typedef struct _RTL_PROCESS_BACKTRACES
     ULONG ReservedMemory;
     ULONG NumberOfBackTraceLookups;
     ULONG NumberOfBackTraces;
-    RTL_PROCESS_BACKTRACE_INFORMATION BackTraces[1];
+    _Field_size_(NumberOfBackTraces) RTL_PROCESS_BACKTRACE_INFORMATION BackTraces[1];
 } RTL_PROCESS_BACKTRACES, *PRTL_PROCESS_BACKTRACES;
 
 typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
@@ -1848,7 +1848,7 @@ typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
 typedef struct _SYSTEM_HANDLE_INFORMATION
 {
     ULONG NumberOfHandles;
-    SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
+    _Field_size_(NumberOfHandles) SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
 
 typedef struct _SYSTEM_OBJECTTYPE_INFORMATION
@@ -1973,7 +1973,7 @@ typedef struct _SYSTEM_POOLTAG
 typedef struct _SYSTEM_POOLTAG_INFORMATION
 {
     ULONG Count;
-    SYSTEM_POOLTAG TagInfo[1];
+    _Field_size_(Count) SYSTEM_POOLTAG TagInfo[1];
 } SYSTEM_POOLTAG_INFORMATION, *PSYSTEM_POOLTAG_INFORMATION;
 
 typedef struct _SYSTEM_INTERRUPT_INFORMATION
@@ -3468,7 +3468,7 @@ typedef struct _SYSTEM_HANDLE_INFORMATION_EX
 {
     ULONG_PTR NumberOfHandles;
     ULONG_PTR Reserved;
-    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
+    _Field_size_(NumberOfHandles) SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
 } SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
 typedef struct _SYSTEM_BIGPOOL_ENTRY
@@ -3489,7 +3489,7 @@ typedef struct _SYSTEM_BIGPOOL_ENTRY
 typedef struct _SYSTEM_BIGPOOL_INFORMATION
 {
     ULONG Count;
-    SYSTEM_BIGPOOL_ENTRY AllocatedInfo[1];
+    _Field_size_(Count) SYSTEM_BIGPOOL_ENTRY AllocatedInfo[1];
 } SYSTEM_BIGPOOL_INFORMATION, *PSYSTEM_BIGPOOL_INFORMATION;
 
 typedef struct _SYSTEM_POOL_ENTRY
@@ -3514,7 +3514,7 @@ typedef struct _SYSTEM_POOL_INFORMATION
     BOOLEAN PoolTagPresent;
     BOOLEAN Spare0;
     ULONG NumberOfEntries;
-    SYSTEM_POOL_ENTRY Entries[1];
+    _Field_size_(NumberOfEntries) SYSTEM_POOL_ENTRY Entries[1];
 } SYSTEM_POOL_INFORMATION, *PSYSTEM_POOL_INFORMATION;
 
 typedef struct _SYSTEM_SESSION_POOLTAG_INFORMATION
@@ -3522,7 +3522,7 @@ typedef struct _SYSTEM_SESSION_POOLTAG_INFORMATION
     SIZE_T NextEntryOffset;
     ULONG SessionId;
     ULONG Count;
-    SYSTEM_POOLTAG TagInfo[1];
+    _Field_size_(Count) SYSTEM_POOLTAG TagInfo[1];
 } SYSTEM_SESSION_POOLTAG_INFORMATION, *PSYSTEM_SESSION_POOLTAG_INFORMATION;
 
 typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
@@ -3592,7 +3592,7 @@ typedef struct _SYSTEM_FIRMWARE_TABLE_INFORMATION
     SYSTEM_FIRMWARE_TABLE_ACTION Action;
     ULONG TableID;
     ULONG TableBufferLength;
-    UCHAR TableBuffer[1];
+    _Field_size_bytes_(TableBufferLength) UCHAR TableBuffer[1];
 } SYSTEM_FIRMWARE_TABLE_INFORMATION, *PSYSTEM_FIRMWARE_TABLE_INFORMATION;
 #endif
 
@@ -3837,7 +3837,7 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION
 {
     ULONG ProcessorNumber;
     ULONG StateCount;
-    SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT States[1];
+    _Field_size_(StateCount) SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT States[1];
 } SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION, *PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION;
 
 // private
@@ -5477,7 +5477,7 @@ typedef struct _SYSTEM_POOL_LIMIT_INFORMATION
 {
     ULONG Version;
     ULONG EntryCount;
-    SYSTEM_POOL_LIMIT_INFO LimitEntries[1];
+    _Field_size_(EntryCount) SYSTEM_POOL_LIMIT_INFO LimitEntries[1];
 } SYSTEM_POOL_LIMIT_INFORMATION, *PSYSTEM_POOL_LIMIT_INFORMATION;
 
 // private
@@ -6340,13 +6340,13 @@ typedef struct _ATOM_BASIC_INFORMATION
     USHORT UsageCount;
     USHORT Flags;
     USHORT NameLength;
-    WCHAR Name[1];
+    _Field_size_bytes_(NameLength) WCHAR Name[1];
 } ATOM_BASIC_INFORMATION, *PATOM_BASIC_INFORMATION;
 
 typedef struct _ATOM_TABLE_INFORMATION
 {
     ULONG NumberOfAtoms;
-    RTL_ATOM Atoms[1];
+    _Field_size_(NumberOfAtoms) RTL_ATOM Atoms[1];
 } ATOM_TABLE_INFORMATION, *PATOM_TABLE_INFORMATION;
 
 NTSYSCALLAPI

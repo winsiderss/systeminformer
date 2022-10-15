@@ -52,7 +52,7 @@ typedef struct _PORT_DATA_ENTRY
 typedef struct _PORT_DATA_INFORMATION
 {
     ULONG CountDataEntries;
-    PORT_DATA_ENTRY DataEntries[1];
+    _Field_size_(CountDataEntries) PORT_DATA_ENTRY DataEntries[1];
 } PORT_DATA_INFORMATION, *PPORT_DATA_INFORMATION;
 
 #define LPC_REQUEST 1
