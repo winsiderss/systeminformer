@@ -10594,6 +10594,7 @@ NTSTATUS PhGetThreadName(
 
     if (NT_SUCCESS(status))
     {
+        // Note: Some threads have UNICODE_NULL as their name. (dmex)
         if (buffer->ThreadName.Length == 0)
         {
             PhFree(buffer);
