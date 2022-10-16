@@ -511,7 +511,76 @@ NTSTATUS EtObjectManagerOpenHandle(
 
     status = STATUS_UNSUCCESSFUL;
 
-    if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Event", TRUE))
+    if (PhEqualString2(Context->Object->TypeName, L"ALPC Port", TRUE))
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        NTSTATUS (NTAPI* NtAlpcConnectPortEx_I)(
+            _Out_ PHANDLE PortHandle,
+            _In_ POBJECT_ATTRIBUTES ConnectionPortObjectAttributes,
+            _In_opt_ POBJECT_ATTRIBUTES ClientPortObjectAttributes,
+            _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
+            _In_ ULONG Flags,
+            _In_opt_ PSECURITY_DESCRIPTOR ServerSecurityRequirements,
+            _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
+            _Inout_opt_ PSIZE_T BufferLength,
+            _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
+            _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
+            _In_opt_ PLARGE_INTEGER Timeout
+            ) = NULL;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            NtAlpcConnectPortEx_I = PhGetModuleProcAddress(L"ntdll.dll", "NtAlpcConnectPortEx");
+            PhEndInitOnce(&initOnce);
+        }
+
+        if (NtAlpcConnectPortEx_I)
+        {
+            status = NtAlpcConnectPortEx_I(
+                Handle,
+                &objectAttributes,
+                NULL,
+                NULL,
+                0,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                PhTimeoutFromMillisecondsEx(1000)
+                );
+        }
+        else
+        {
+            PPH_STRING clientName;
+
+            if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
+                clientName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
+            else
+                clientName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
+            PhStringRefToUnicodeString(&clientName->sr, &objectName);
+
+            status = NtAlpcConnectPort(
+                Handle,
+                &objectName,
+                NULL,
+                NULL,
+                0,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                PhTimeoutFromMillisecondsEx(1000)
+                );
+            PhDereferenceObject(clientName);
+        }
+    }
+    else if (PhEqualString2(Context->Object->TypeName, L"Driver", TRUE))
+    {
+        status = PhOpenDriver(Handle, DesiredAccess, directoryHandle, &Context->Object->Name->sr);
+    }
+    else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Event", TRUE))
     {
         status = NtOpenEvent(Handle, DesiredAccess, &objectAttributes);
     }
@@ -522,6 +591,10 @@ NTSTATUS EtObjectManagerOpenHandle(
     else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Key", TRUE))
     {
         status = NtOpenKey(Handle, DesiredAccess, &objectAttributes);
+    }
+    else if (PhEqualString2(Context->Object->TypeName, L"KeyedEvent", TRUE))
+    {
+        status = NtOpenKeyedEvent(Handle, DesiredAccess, &objectAttributes);
     }
     else if (PhEqualStringRef2(&Context->Object->TypeName->sr, L"Mutant", TRUE))
     {
@@ -566,31 +639,6 @@ NTSTATUS EtObjectManagerOpenHandle(
                 status = PhGetLastWin32ErrorAsNtStatus();
             }
         }
-    }
-    else if (PhEqualString2(Context->Object->TypeName, L"ALPC Port", TRUE))
-    {
-        PPH_STRING clientName;
-
-        if (PhEqualStringRef(&Context->CurrentPath->sr, &EtObjectManagerRootDirectoryObject, TRUE))
-            clientName = PhFormatString(L"%s%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
-        else
-            clientName = PhFormatString(L"%s\\%s", PhGetString(Context->CurrentPath), PhGetString(Context->Object->Name));
-        PhStringRefToUnicodeString(&clientName->sr, &objectName);
-
-        status = NtAlpcConnectPort(
-            Handle,
-            &objectName,
-            NULL,
-            NULL,
-            0,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            PhTimeoutFromMillisecondsEx(1000)
-            );
-        PhDereferenceObject(clientName);
     }
     //else if (PhEqualString2(Context->Object->TypeName, L"FilterConnectionPort", TRUE))
     //{
