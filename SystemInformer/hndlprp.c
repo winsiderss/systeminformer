@@ -18,6 +18,7 @@
 #include <emenu.h>
 #include <settings.h>
 #include <hndlinfo.h>
+#include <procprv.h>
 #include <secedit.h>
 
 typedef enum _PHP_HANDLE_GENERAL_CATEGORY
@@ -763,8 +764,13 @@ VOID PhpUpdateHandleGeneral(
                 if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
                     PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-                PhPrintPointer(string, UlongToPtr(basicInfo.Flags));
-                PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", string);
+                if (basicInfo.Flags == 0)
+                    PhAppendStringBuilder2(&stringBuilder, L"None ");
+                else
+                {
+                    PhPrintPointer(string, UlongToPtr(basicInfo.Flags));
+                    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", string);
+                }
 
                 if (remainingFlags)
                 {
@@ -800,7 +806,7 @@ VOID PhpUpdateHandleGeneral(
                     clientId.UniqueProcess = UlongToHandle(serverInfo.ProcessId);
                     clientId.UniqueThread = 0;
 
-                    name = PhStdGetClientIdName(&clientId);
+                    name = PhGetClientIdName(&clientId);
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MUTANTOWNER], 1, name->Buffer);
                     PhDereferenceObject(name);
                 }
@@ -1112,7 +1118,7 @@ VOID PhpUpdateHandleGeneral(
 
                 if (ownerInfo.ClientId.UniqueProcess)
                 {
-                    name = PhStdGetClientIdName(&ownerInfo.ClientId);
+                    name = PhGetClientIdName(&ownerInfo.ClientId);
                     PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MUTANTOWNER], 1, name->Buffer);
                     PhDereferenceObject(name);
                 }
