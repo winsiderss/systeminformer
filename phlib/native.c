@@ -4088,6 +4088,39 @@ NTSTATUS PhOpenDriverByBaseAddress(
     return context.Status;
 }
 
+NTSTATUS PhOpenDriver(
+    _Out_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF ObjectName
+    )
+{
+    if (KphLevel() == KphLevelMax)
+    {
+        UNICODE_STRING objectName;
+        OBJECT_ATTRIBUTES objectAttributes;
+
+        PhStringRefToUnicodeString(ObjectName, &objectName);
+        InitializeObjectAttributes(
+            &objectAttributes,
+            &objectName,
+            OBJ_CASE_INSENSITIVE,
+            RootDirectory,
+            NULL
+            );
+
+        return KphOpenDriver(
+            DriverHandle,
+            DesiredAccess,
+            &objectAttributes
+            );
+    }
+    else
+    {
+        return STATUS_NOT_IMPLEMENTED;
+    }
+}
+
 /**
  * Queries variable-sized information for a driver. The function allocates a buffer to contain the
  * information.

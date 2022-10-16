@@ -309,8 +309,9 @@ EXPORTS
     PhIsFirmwareSupported
     PhImpersonateToken
     PhListenNamedPipe
-    PhOpenKey
     PhLoadAppKey
+    PhOpenKey
+    PhOpenDriver
     PhOpenProcess
     PhOpenThread
     PhOpenThreadProcess
