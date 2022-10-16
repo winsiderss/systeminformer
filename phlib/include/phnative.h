@@ -766,6 +766,16 @@ PhOpenDriverByBaseAddress(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhOpenDriver(
+    _Out_ PHANDLE DriverHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF ObjectName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetDriverName(
     _In_ HANDLE DriverHandle,
     _Out_ PPH_STRING *Name
