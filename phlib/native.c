@@ -10841,6 +10841,32 @@ NTSTATUS PhSetThreadGroupAffinity(
     return status;
 }
 
+NTSTATUS PhGetThreadLastSystemCall(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
+    )
+{
+    if (WindowsVersion < WINDOWS_8)
+    {
+        return NtQueryInformationThread(
+            ThreadHandle,
+            ThreadLastSystemCall,
+            LastSystemCall,
+            RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad),
+            NULL
+            );
+    }
+    else
+    {
+        return NtQueryInformationThread(
+            ThreadHandle,
+            ThreadLastSystemCall,
+            LastSystemCall,
+            sizeof(THREAD_LAST_SYSCALL_INFORMATION),
+            NULL
+            );
+    }
+}
 
 NTSTATUS PhImpersonateToken(
     _In_ HANDLE ThreadHandle,

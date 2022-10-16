@@ -1930,6 +1930,14 @@ PhSetThreadGroupAffinity(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetThreadLastSystemCall(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhImpersonateToken(
     _In_ HANDLE ThreadHandle,
     _In_ HANDLE TokenHandle
