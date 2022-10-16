@@ -1270,7 +1270,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     if (NT_SUCCESS(status))
                     {
                         PPH_STRING systemCallName;
-                        PH_FORMAT format[6];
+                        PH_FORMAT format[8];
 
                         if (lastSystemCall.SystemCallNumber == 0 && !lastSystemCall.FirstArgument)
                         {
@@ -1287,9 +1287,24 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                                 PhInitFormatX(&format[2], lastSystemCall.SystemCallNumber);
                                 PhInitFormatS(&format[3], L") (Arg0: 0x");
                                 PhInitFormatI64X(&format[4], (ULONG64)lastSystemCall.FirstArgument);
-                                PhInitFormatC(&format[5], L')');
 
-                                PhMoveReference(&node->LastSystemCallText, PhFormat(format, 6, 0x40));
+                                if (WindowsVersion < WINDOWS_8)
+                                {
+                                    PhInitFormatC(&format[5], L')');
+                                    PhMoveReference(&node->LastSystemCallText, PhFormat(format, 6, 0x40));
+                                }
+                                else
+                                {
+                                    PPH_STRING waitTime;
+
+                                    waitTime = PhFormatTimeSpanRelative(lastSystemCall.WaitTime);
+                                    PhInitFormatS(&format[5], L") [");
+                                    PhInitFormatSR(&format[6], waitTime->sr);
+                                    PhInitFormatC(&format[7], L']');
+                                    PhMoveReference(&node->LastSystemCallText, PhFormat(format, 8, 0x40));
+                                    PhDereferenceObject(waitTime);
+                                }
+
                                 PhDereferenceObject(systemCallName);
                             }
                             else
@@ -1298,9 +1313,23 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                                 PhInitFormatX(&format[1], lastSystemCall.SystemCallNumber);
                                 PhInitFormatS(&format[2], L" (Arg0: 0x");
                                 PhInitFormatI64X(&format[3], (ULONG64)lastSystemCall.FirstArgument);
-                                PhInitFormatC(&format[4], L')');
 
-                                PhMoveReference(&node->LastSystemCallText, PhFormat(format, 5, 0x40));
+                                if (WindowsVersion < WINDOWS_8)
+                                {
+                                    PhInitFormatC(&format[4], L')');
+                                    PhMoveReference(&node->LastSystemCallText, PhFormat(format, 5, 0x40));
+                                }
+                                else
+                                {
+                                    PPH_STRING waitTime;
+
+                                    waitTime = PhFormatTimeSpanRelative(lastSystemCall.WaitTime);
+                                    PhInitFormatS(&format[4], L") [");
+                                    PhInitFormatSR(&format[5], waitTime->sr);
+                                    PhInitFormatC(&format[6], L']');
+                                    PhMoveReference(&node->LastSystemCallText, PhFormat(format, 7, 0x40));
+                                    PhDereferenceObject(systemCallName);
+                                }
                             }
                         }
 
