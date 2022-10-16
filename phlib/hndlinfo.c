@@ -852,19 +852,35 @@ PPH_STRING PhStdGetClientIdNameEx(
     }
     else
     {
-        // Determine the name of the process ourselves
-        if (NT_SUCCESS(PhGetProcessImageFileNameById(
-            ClientId->UniqueProcess,
-            NULL,
-            &processName
-            )))
+        if (ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
         {
-            processNameRef.Length = processName->Length;
-            processNameRef.Buffer = processName->Buffer;
+            if (processName = PhGetKernelFileName())
+            {
+                PhMoveReference(&processName, PhGetBaseName(processName));
+                processNameRef.Length = processName->Length;
+                processNameRef.Buffer = processName->Buffer;
+            }
+            else
+            {
+                PhInitializeStringRef(&processNameRef, L"Unknown process");
+            }
         }
         else
         {
-            PhInitializeStringRef(&processNameRef, L"Unknown process");
+            // Determine the name of the process ourselves (diversenok)
+            if (NT_SUCCESS(PhGetProcessImageFileNameById(
+                ClientId->UniqueProcess,
+                NULL,
+                &processName
+                )))
+            {
+                processNameRef.Length = processName->Length;
+                processNameRef.Buffer = processName->Buffer;
+            }
+            else
+            {
+                PhInitializeStringRef(&processNameRef, L"Unknown process");
+            }
         }
     }
 
@@ -901,7 +917,7 @@ PPH_STRING PhStdGetClientIdNameEx(
                 );
 
             // Use the name of the thread if available
-            if (NT_SUCCESS(PhGetThreadName(threadHandle, &threadName)) && threadName->Length)
+            if (NT_SUCCESS(PhGetThreadName(threadHandle, &threadName)))
             {
                 threadNameRef.Length = threadName->Length;
                 threadNameRef.Buffer = threadName->Buffer;
