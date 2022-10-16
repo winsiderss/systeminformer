@@ -50,6 +50,7 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_PAGED,
     PH_HANDLE_GENERAL_INDEX_NONPAGED,
 
+    PH_HANDLE_GENERAL_INDEX_FLAGS,
     PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER,
     PH_HANDLE_GENERAL_INDEX_PORTCONTEXT,
 
@@ -364,6 +365,13 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     else if (PhEqualString2(Context->HandleItem->TypeName, L"ALPC Port", TRUE))
     {
         PhAddListViewGroup(Context->ListViewHandle, PH_HANDLE_GENERAL_CATEGORY_ALPC, L"ALPC Port");
+        Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FLAGS] = PhAddListViewGroupItem(
+            Context->ListViewHandle,
+            PH_HANDLE_GENERAL_CATEGORY_ALPC,
+            PH_HANDLE_GENERAL_INDEX_FLAGS,
+            L"Flags",
+            NULL
+            );
         Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER] = PhAddListViewGroupItem(
             Context->ListViewHandle,
             PH_HANDLE_GENERAL_CATEGORY_ALPC,
@@ -692,6 +700,81 @@ VOID PhpUpdateHandleGeneral(
                 NULL
                 )))
             {
+                ULONG remainingFlags = basicInfo.Flags;
+                PH_STRING_BUILDER stringBuilder;
+
+                PhInitializeStringBuilder(&stringBuilder, 0x100);
+
+                if (basicInfo.Flags & ALPC_PORFLG_LPC_MODE)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"LPC mode, ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_LPC_MODE);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_IMPERSONATION)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Allow impersonation, ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_IMPERSONATION);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_LPC_REQUESTS)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Allow LPC requests, ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_LPC_REQUESTS);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_WAITABLE_PORT)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Waitable, ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_WAITABLE_PORT);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_DUP_OBJECT)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Allow object duplication, ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_DUP_OBJECT);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_SYSTEM_PROCESS)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"System process only, ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_SYSTEM_PROCESS);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY1)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Wake policy (1), ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY1);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY2)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Wake policy (2), ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY2);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_WAKE_POLICY3)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Wake policy (3), ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_WAKE_POLICY3);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_DIRECT_MESSAGE)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"No shared section (direct), ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_DIRECT_MESSAGE);
+                }
+                if (basicInfo.Flags & ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE)
+                {
+                    PhAppendStringBuilder2(&stringBuilder, L"Allow multi-handle attributes, ");
+                    ClearFlag(remainingFlags, ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE);
+                }
+                if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                    PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+                PhPrintPointer(string, UlongToPtr(basicInfo.Flags));
+                PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", string);
+
+                if (remainingFlags)
+                {
+                    PhPrintPointer(string, UlongToPtr(remainingFlags));
+                    PhAppendFormatStringBuilder(&stringBuilder, L" (UNKNOWN: %s)", string);
+                }
+
+                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FLAGS], 1, PhFinalStringBuilderString(&stringBuilder)->Buffer);
+                PhDeleteStringBuilder(&stringBuilder);
+
                 PhPrintUInt32(string, basicInfo.SequenceNo);
                 PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER], 1, string);
 
