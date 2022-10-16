@@ -1005,22 +1005,6 @@ PhGetThreadSuspendCount(
 
 FORCEINLINE
 NTSTATUS
-PhGetThreadLastSystemCall(
-    _In_ HANDLE ThreadHandle,
-    _Out_ PTHREAD_LAST_SYSCALL_INFORMATION LastSystemCall
-    )
-{
-    return NtQueryInformationThread(
-        ThreadHandle,
-        ThreadLastSystemCall,
-        LastSystemCall,
-        RTL_SIZEOF_THROUGH_FIELD(THREAD_LAST_SYSCALL_INFORMATION, Pad), // HACK: Win7 requires exact size. (dmex)
-        NULL
-        );
-}
-
-FORCEINLINE
-NTSTATUS
 PhGetThreadWow64Context(
     _In_ HANDLE ThreadHandle,
     _Out_ PWOW64_CONTEXT Context
