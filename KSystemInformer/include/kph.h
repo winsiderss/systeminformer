@@ -1357,3 +1357,14 @@ KsiInsertQueueApc(
     _In_opt_ PVOID SystemArgument2,
     _In_ KPRIORITY PriorityBoost
     );
+
+// system
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphSystemControl(
+    _In_ KPH_SYSTEM_CONTROL_CLASS SystemControlClass,
+    _In_reads_bytes_(SystemControlInfoLength) PVOID SystemControlInfo,
+    _In_ ULONG SystemControlInfoLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    );

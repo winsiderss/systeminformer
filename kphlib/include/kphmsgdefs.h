@@ -195,6 +195,15 @@ typedef struct _KPHM_SET_INFORMATION_THREAD
 
 } KPHM_SET_INFORMATION_THREAD, *PKPHM_SET_INFORMATION_THREAD;
 
+typedef struct _KPHM_SYSTEM_CONTROL
+{
+    NTSTATUS Status;
+    KPH_SYSTEM_CONTROL_CLASS SystemControlClass;
+    PVOID SystemControlInfo;
+    ULONG SystemControlInfoLength;
+
+} KPHM_SYSTEM_CONTROL, *PKPHM_SYSTEM_CONTROL;
+
 //
 // KPH -> PH
 //

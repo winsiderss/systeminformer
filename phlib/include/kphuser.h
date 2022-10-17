@@ -281,6 +281,15 @@ KphSetInformationThread(
     _In_ ULONG ThreadInformationLength
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSystemControl(
+    _In_ KPH_SYSTEM_CONTROL_CLASS SystemControlClass,
+    _In_reads_bytes_(SystemControlInfoLength) PVOID SystemControlInfo,
+    _In_ ULONG SystemControlInfoLength
+    );
+
 // kphdata
 
 PHLIBAPI

@@ -1265,3 +1265,35 @@ NTSTATUS KphSetInformationThread(
 
     return status;
 }
+
+NTSTATUS KphSystemControl(
+    _In_ KPH_SYSTEM_CONTROL_CLASS SystemControlClass,
+    _In_reads_bytes_(SystemControlInfoLength) PVOID SystemControlInfo,
+    _In_ ULONG SystemControlInfoLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = PhAllocate(sizeof(KPH_MESSAGE));
+
+    KphMsgInit(msg, KphMsgSystemControl);
+
+    msg->User.SystemControl.SystemControlClass = SystemControlClass;
+    msg->User.SystemControl.SystemControlInfo = SystemControlInfo;
+    msg->User.SystemControl.SystemControlInfoLength = SystemControlInfoLength;
+
+    status = KphCommsSendMessage(msg);
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(msg);
+        return status;
+    }
+
+    status = msg->User.SystemControl.Status;
+
+    PhFree(msg);
+
+    return status;
+
+}

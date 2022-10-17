@@ -3,7 +3,7 @@
 
 #define PH_KPH_ERROR_TITLE (L"KSystemInformer could not be loaded.")
 #define PH_KPH_ERROR_MESSAGE (L"KSystemInformer does not support your operating system " \
-    L"or could not be loaded. Make sure Process Hacker is running " \
+    L"or could not be loaded. Make sure System Informer is running " \
     L"with administrative privileges.")
 
 typedef enum _PH_ACTION_ELEVATION_LEVEL
