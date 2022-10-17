@@ -5133,16 +5133,17 @@ NTSTATUS PhGetProcessQuotaLimits(
         NULL
         );
 
-    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
-    {
-        status = KphQueryInformationProcess(
-            ProcessHandle,
-            KphProcessQuotaLimits,
-            &QuotaLimits,
-            sizeof(QUOTA_LIMITS),
-            NULL
-            );
-    }
+    // Not implemented (dmex)
+    //if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    //{
+    //    status = KphQueryInformationProcess(
+    //        ProcessHandle,
+    //        KphProcessQuotaLimits,
+    //        &QuotaLimits,
+    //        sizeof(QUOTA_LIMITS),
+    //        NULL
+    //        );
+    //}
 
     return status;
 }
