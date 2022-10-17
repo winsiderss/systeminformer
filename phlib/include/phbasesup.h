@@ -3695,6 +3695,7 @@ typedef struct _PH_FORMAT
 #define PhInitFormatC(f, v) do { (f)->Type = CharFormatType; (f)->u.Char = (v); } while (0)
 #define PhInitFormatS(f, v) do { (f)->Type = StringFormatType; PhInitializeStringRef(&(f)->u.String, (v)); } while (0)
 #define PhInitFormatSR(f, v) do { (f)->Type = StringFormatType; (f)->u.String = (v); } while (0)
+#define PhInitFormatUCS(f, v) do { (f)->Type = StringFormatType; PhUnicodeStringToStringRef((v), &(f)->u.String); } while (0)
 #define PhInitFormatMultiByteS(f, v) do { (f)->Type = MultiByteStringFormatType; PhInitializeBytesRef(&(f)->u.MultiByteString, (v)); } while (0)
 #define PhInitFormatD(f, v) do { (f)->Type = Int32FormatType; (f)->u.Int32 = (v); } while (0)
 #define PhInitFormatU(f, v) do { (f)->Type = UInt32FormatType; (f)->u.UInt32 = (v); } while (0)

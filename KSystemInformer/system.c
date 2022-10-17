@@ -79,6 +79,16 @@ NTSTATUS KphSystemControl(
                 goto Exit;
             }
 
+            if (compressionInfo.CompressionPid == 0)
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "Compression PID is zero");
+
+                status = STATUS_INVALID_CID;
+                goto Exit;
+            }
+
             InitializeObjectAttributes(&objectAttributes,
                                        NULL,
                                        OBJ_KERNEL_HANDLE,
