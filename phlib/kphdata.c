@@ -89,6 +89,13 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->EreGuidEntry = revisionNumber >= 19160 ? 0x20 : 0x10;
         Configuration->OtName = 0x10;
         Configuration->OtIndex = 0x28; // now only a UCHAR, not a ULONG
+        Configuration->AlpcCommunicationInfo = 0x10;
+        Configuration->AlpcOwnerProcess = 0x18;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x8;
+        Configuration->AlpcClientCommunicationPort = 0x10;
+        Configuration->AlpcHandleTable = 0x28;
+        Configuration->AlpcHandleTableLock = 0x10;
     }
     // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2 && buildNumber == 9200)
@@ -105,6 +112,13 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->ObDecodeShift = 19;
         Configuration->ObAttributesShift = 20;
         Configuration->CiVersion = KPH_DYN_CI_V2;
+        Configuration->AlpcCommunicationInfo = 0x10;
+        Configuration->AlpcOwnerProcess = 0x18;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x8;
+        Configuration->AlpcClientCommunicationPort = 0x10;
+        Configuration->AlpcHandleTable = 0x28;
+        Configuration->AlpcHandleTableLock = 0x10;
     }
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3 && buildNumber == 9600)
@@ -123,6 +137,13 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->ObDecodeShift = 16;
         Configuration->ObAttributesShift = 17;
         Configuration->CiVersion = KPH_DYN_CI_V2;
+        Configuration->AlpcCommunicationInfo = 0x10;
+        Configuration->AlpcOwnerProcess = 0x18;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x8;
+        Configuration->AlpcClientCommunicationPort = 0x10;
+        Configuration->AlpcHandleTable = 0x28;
+        Configuration->AlpcHandleTableLock = 0x10;
     }
     // Windows 10, Windows Server 2016, Windows 11, Windows Server 2022
     else if (majorVersion == 10 && minorVersion == 0)
@@ -207,6 +228,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         else
             Configuration->EpObjectTable = 0x418;
 
+        if (buildNumber >= 22621)
+            Configuration->AlpcHandleTableLock = 0x8;
+        else
+            Configuration->AlpcHandleTableLock = 0x10;
+
         Configuration->EreGuidEntry = 0x20;
         Configuration->HtHandleContentionEvent = 0x30;
         Configuration->OtName = 0x10;
@@ -214,6 +240,12 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->ObDecodeShift = 16;
         Configuration->ObAttributesShift = 17;
         Configuration->CiVersion = KPH_DYN_CI_V2;
+        Configuration->AlpcCommunicationInfo = 0x10;
+        Configuration->AlpcOwnerProcess = 0x18;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x8;
+        Configuration->AlpcClientCommunicationPort = 0x10;
+        Configuration->AlpcHandleTable = 0x28;
     }
     else
     {
@@ -273,6 +305,13 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->EreGuidEntry = 0x8;
         Configuration->OtName = 0x8;
         Configuration->OtIndex = 0x14; // now only a UCHAR, not a ULONG
+        Configuration->AlpcCommunicationInfo = 0x8;
+        Configuration->AlpcOwnerProcess = 0xc;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x4;
+        Configuration->AlpcClientCommunicationPort = 0x8;
+        Configuration->AlpcHandleTable = 0x14;
+        Configuration->AlpcHandleTableLock = 0xc;
     }
     // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2)
@@ -295,6 +334,13 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->OtName = 0x8;
         Configuration->OtIndex = 0x14;
         Configuration->CiVersion = KPH_DYN_CI_V2;
+        Configuration->AlpcCommunicationInfo = 0x8;
+        Configuration->AlpcOwnerProcess = 0xc;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x4;
+        Configuration->AlpcClientCommunicationPort = 0x8;
+        Configuration->AlpcHandleTable = 0x14;
+        Configuration->AlpcHandleTableLock = 0xc;
     }
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3)
@@ -317,6 +363,13 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->OtName = 0x8;
         Configuration->OtIndex = 0x14;
         Configuration->CiVersion = KPH_DYN_CI_V2;
+        Configuration->AlpcCommunicationInfo = 0x8;
+        Configuration->AlpcOwnerProcess = 0xc;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x4;
+        Configuration->AlpcClientCommunicationPort = 0x8;
+        Configuration->AlpcHandleTable = 0x14;
+        Configuration->AlpcHandleTableLock = 0xc;
     }
     // Windows 10
     else if (majorVersion == 10 && minorVersion == 0)
@@ -400,6 +453,13 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->OtName = 0x8;
         Configuration->OtIndex = 0x14;
         Configuration->CiVersion = KPH_DYN_CI_V2;
+        Configuration->AlpcCommunicationInfo = 0x8;
+        Configuration->AlpcOwnerProcess = 0xc;
+        Configuration->AlpcConnectionPort = 0x0;
+        Configuration->AlpcServerCommunicationPort = 0x4;
+        Configuration->AlpcClientCommunicationPort = 0x8;
+        Configuration->AlpcHandleTable = 0x14;
+        Configuration->AlpcHandleTableLock = 0xc;
     }
     else
     {

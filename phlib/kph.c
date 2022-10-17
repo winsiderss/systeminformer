@@ -1294,3 +1294,82 @@ NTSTATUS KphSystemControl(
     return status;
 
 }
+
+NTSTATUS KphAlpcQueryInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE PortHandle,
+    _In_ KPH_ALPC_INFORMATION_CLASS AlpcInformationClass,
+    _Out_writes_bytes_opt_(AlpcInformationLength) PVOID AlpcInformation,
+    _In_ ULONG AlpcInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = PhAllocate(sizeof(KPH_MESSAGE));
+
+    KphMsgInit(msg, KphMsgAlpcQueryInformation);
+
+    msg->User.AlpcQueryInformation.ProcessHandle = ProcessHandle;
+    msg->User.AlpcQueryInformation.PortHandle = PortHandle;
+    msg->User.AlpcQueryInformation.AlpcInformationClass = AlpcInformationClass;
+    msg->User.AlpcQueryInformation.AlpcInformation = AlpcInformation;
+    msg->User.AlpcQueryInformation.AlpcInformationLength = AlpcInformationLength;
+    msg->User.AlpcQueryInformation.ReturnLength = ReturnLength;
+
+    status = KphCommsSendMessage(msg);
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(msg);
+        return status;
+    }
+
+    status = msg->User.AlpcQueryInformation.Status;
+
+    PhFree(msg);
+
+    return status;
+}
+
+NTSTATUS KphAlpcQueryComminicationsNamesInfo(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE PortHandle,
+    _Out_ PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION* Names
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = MAX_PATH;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphAlpcQueryInformation(ProcessHandle,
+                                         PortHandle,
+                                         KphAlpcCommunicationNamesInformation,
+                                         buffer,
+                                         bufferSize,
+                                         &bufferSize);
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Names = buffer;
+
+    return status;
+}
