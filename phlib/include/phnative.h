@@ -612,6 +612,14 @@ PhGetFileStandardInformation(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetFileCompletionNotificationMode(
+    _In_ HANDLE FileHandle,
+    _In_ ULONG Flags
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetFileSize(
     _In_ HANDLE FileHandle,
     _Out_ PLARGE_INTEGER Size
