@@ -553,7 +553,7 @@ typedef enum _ALPC_PORT_INFORMATION_CLASS
     AlpcRegisterCompletionListInformation, // s: in ALPC_PORT_COMPLETION_LIST_INFORMATION
     AlpcUnregisterCompletionListInformation, // s: VOID
     AlpcAdjustCompletionListConcurrencyCountInformation, // s: in ULONG
-    AlpcRegisterCallbackInformation, // s: PVOID (PCALLBACK_OBJECT/ExCreateCallback) // kernel-mode only
+    AlpcRegisterCallbackInformation, // s: ALPC_REGISTER_CALLBACK // kernel-mode only
     AlpcCompletionListRundownInformation, // s: VOID // 10
     AlpcWaitForPortReferences,
     AlpcServerSessionInformation // q: ALPC_SERVER_SESSION_INFORMATION // since 19H2
@@ -607,6 +607,13 @@ typedef struct _ALPC_PORT_COMPLETION_LIST_INFORMATION
     ULONG ConcurrencyCount;
     ULONG AttributeFlags;
 } ALPC_PORT_COMPLETION_LIST_INFORMATION, *PALPC_PORT_COMPLETION_LIST_INFORMATION;
+
+// private
+typedef struct _ALPC_REGISTER_CALLBACK
+{
+    PVOID CallbackObject; // PCALLBACK_OBJECT
+    PVOID CallbackContext;
+} ALPC_REGISTER_CALLBACK, *PALPC_REGISTER_CALLBACK;
 
 // private
 typedef struct _ALPC_SERVER_SESSION_INFORMATION
