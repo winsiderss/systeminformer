@@ -1,24 +1,31 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     jxy-s   2022
+ *     dmex    2022
+ *
+ */
+
 #include <kphcomms.h>
 #include <settings.h>
-#include <fltUser.h>
-#include <threadpoolapiset.h>
+
+#include <fltuser.h>
 
 typedef struct _KPH_UMESSAGE
 {
     FILTER_MESSAGE_HEADER MessageHeader;
-
     KPH_MESSAGE Message;
-
     OVERLAPPED Overlapped;
-
 } KPH_UMESSAGE, *PKPH_UMESSAGE;
 
 typedef struct _KPH_UREPLY
 {
     FILTER_REPLY_HEADER ReplyHeader;
-
     KPH_MESSAGE Message;
-
 } KPH_UREPLY, *PKPH_UREPLY;
 
 PKPH_COMMS_CALLBACK KphpCommsRegisteredCallback = NULL;
@@ -405,10 +412,9 @@ PPH_STRING KphCommGetMessagePortName(
 VOID WINAPI KphpCommsIoCallback(
     _Inout_ PTP_CALLBACK_INSTANCE Instance,
     _Inout_opt_ PVOID Context,
-    _Inout_opt_ PVOID Overlapped,
-    _In_ ULONG IoResult,
-    _In_ ULONG_PTR NumberOfBytesTransferred,
-    _Inout_ PTP_IO Io
+    _In_ PVOID ApcContext,
+    _In_ PIO_STATUS_BLOCK IoSB,
+    _In_ PTP_IO Io
     )
 {
     NTSTATUS status;
@@ -423,14 +429,14 @@ VOID WINAPI KphpCommsIoCallback(
         return;
     }
 
-    msg = CONTAINING_RECORD(Overlapped, KPH_UMESSAGE, Overlapped);
+    msg = CONTAINING_RECORD(ApcContext, KPH_UMESSAGE, Overlapped);
 
-    if (IoResult != ERROR_SUCCESS)
+    if (IoSB->Status != STATUS_SUCCESS)
     {
         goto Exit;
     }
 
-    if (NumberOfBytesTransferred < KPH_MESSAGE_MIN_SIZE)
+    if (IoSB->Information < KPH_MESSAGE_MIN_SIZE)
     {
         assert(FALSE);
         goto Exit;
@@ -453,7 +459,7 @@ Exit:
 
     RtlZeroMemory(&msg->Overlapped, FIELD_OFFSET(OVERLAPPED, hEvent));
 
-    StartThreadpoolIo(KphpCommsThreadPoolIo);
+    TpStartAsyncIoOperation(KphpCommsThreadPoolIo);
 
     status = KphpFilterGetMessage(KphpCommsFltPortHandle,
                                   &msg->MessageHeader,
@@ -475,7 +481,7 @@ Exit:
             assert(FALSE);
         }
 
-        CancelThreadpoolIo(KphpCommsThreadPoolIo);
+        TpCancelAsyncIoOperation(KphpCommsThreadPoolIo);
     }
 
     PhReleaseRundownProtection(&KphpCommsRundown);
@@ -499,7 +505,6 @@ NTSTATUS KphCommsStart(
     NTSTATUS status;
     ULONG numberOfThreads;
     ULONG numberOfMessages;
-    SYSTEM_BASIC_INFORMATION sysInfo;
 
     if (KphpCommsFltPortHandle)
     {
@@ -523,22 +528,13 @@ NTSTATUS KphCommsStart(
 
     PhInitializeRundownProtection(&KphpCommsRundown);
 
-    status = ZwQuerySystemInformation(SystemBasicInformation,
-                                      &sysInfo,
-                                      sizeof(sysInfo),
-                                      NULL);
-    if (!NT_SUCCESS(status))
-    {
-        goto Exit;
-    }
-
-    if (sysInfo.NumberOfProcessors < KPH_COMMS_MIN_THREADS)
+    if (PhSystemProcessorInformation.NumberOfProcessors < KPH_COMMS_MIN_THREADS)
     {
         numberOfThreads = KPH_COMMS_MIN_THREADS;
     }
     else
     {
-        numberOfThreads = (sysInfo.NumberOfProcessors * KPH_COMMS_THREAD_SCALE);
+        numberOfThreads = (PhSystemProcessorInformation.NumberOfProcessors * KPH_COMMS_THREAD_SCALE);
     }
 
     numberOfMessages = numberOfThreads * KPH_COMMS_MESSAGE_SCALE;
@@ -547,33 +543,27 @@ NTSTATUS KphCommsStart(
         numberOfMessages = KPH_COMMS_MAX_MESSAGES;
     }
 
-    KphpCommsThreadPool = CreateThreadpool(NULL);
-    if (!KphpCommsThreadPool)
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    status = TpAllocPool(&KphpCommsThreadPool, NULL);
+    if (!NT_SUCCESS(status))
         goto Exit;
-    }
 
-    InitializeThreadpoolEnvironment(&KphpCommsThreadPoolEnv);
+    TpInitializeCallbackEnviron(&KphpCommsThreadPoolEnv);
+    TpSetPoolMinThreads(KphpCommsThreadPool, KPH_COMMS_MIN_THREADS);
+    TpSetPoolMaxThreads(KphpCommsThreadPool, numberOfThreads);
+    TpSetCallbackThreadpool(&KphpCommsThreadPoolEnv, KphpCommsThreadPool);
+    //TpSetCallbackLongFunction(&PiCommsThreadPoolEnv);
 
-    SetThreadpoolThreadMinimum(KphpCommsThreadPool, KPH_COMMS_MIN_THREADS);
-    SetThreadpoolThreadMaximum(KphpCommsThreadPool, numberOfThreads);
+    PhSetFileCompletionNotificationMode(KphpCommsFltPortHandle,
+                                        FILE_SKIP_SET_EVENT_ON_HANDLE);
 
-    SetThreadpoolCallbackPool(&KphpCommsThreadPoolEnv, KphpCommsThreadPool);
-    //SetThreadpoolCallbackRunsLong(&PiCommsThreadPoolEnv);
-
-    SetFileCompletionNotificationModes(KphpCommsFltPortHandle,
-                                       FILE_SKIP_SET_EVENT_ON_HANDLE);
-
-    KphpCommsThreadPoolIo = CreateThreadpoolIo(KphpCommsFltPortHandle,
-                                               KphpCommsIoCallback,
-                                               NULL,
-                                               &KphpCommsThreadPoolEnv);
-    if (!KphpCommsThreadPoolIo)
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    status = TpAllocIoCompletion(&KphpCommsThreadPoolIo,
+                                 KphpCommsFltPortHandle,
+                                 KphpCommsIoCallback,
+                                 NULL,
+                                 &KphpCommsThreadPoolEnv
+                                 );
+    if (!NT_SUCCESS(status))
         goto Exit;
-    }
 
     KphpCommsMessages = PhAllocateExSafe(sizeof(KPH_UMESSAGE) * numberOfMessages,
                                          HEAP_ZERO_MEMORY);
@@ -585,20 +575,7 @@ NTSTATUS KphCommsStart(
 
     for (ULONG i = 0; i < numberOfMessages; i++)
     {
-        status = NtCreateEvent(&KphpCommsMessages[i].Overlapped.hEvent,
-                               EVENT_ALL_ACCESS,
-                               NULL,
-                               NotificationEvent,
-                               FALSE);
-        if (!NT_SUCCESS(status))
-        {
-            goto Exit;
-        }
-
-        RtlZeroMemory(&KphpCommsMessages[i].Overlapped,
-                      FIELD_OFFSET(OVERLAPPED, hEvent));
-
-        StartThreadpoolIo(KphpCommsThreadPoolIo);
+        TpStartAsyncIoOperation(KphpCommsThreadPoolIo);
 
         status = KphpFilterGetMessage(KphpCommsFltPortHandle,
                                       &KphpCommsMessages[i].MessageHeader,
@@ -643,16 +620,16 @@ VOID KphCommsStop(
 
     if (KphpCommsThreadPoolIo)
     {
-        WaitForThreadpoolIoCallbacks(KphpCommsThreadPoolIo, TRUE);
-        CloseThreadpoolIo(KphpCommsThreadPoolIo);
+        TpWaitForIoCompletion(KphpCommsThreadPoolIo, TRUE);
+        TpReleaseIoCompletion(KphpCommsThreadPoolIo);
         KphpCommsThreadPoolIo = NULL;
     }
 
-    DestroyThreadpoolEnvironment(&KphpCommsThreadPoolEnv);
+    TpDestroyCallbackEnviron(&KphpCommsThreadPoolEnv);
 
     if (KphpCommsThreadPool)
     {
-        CloseThreadpool(KphpCommsThreadPool);
+        TpReleasePool(KphpCommsThreadPool);
         KphpCommsThreadPool = NULL;
     }
 

@@ -14,8 +14,6 @@
 #include <kphuser.h>
 #include <settings.h>
 
-#define KPH_RAND_OBJNAME_LEN 64
-
 PPH_STRING KphpGetObjectName(
     VOID
     )
@@ -51,7 +49,6 @@ NTSTATUS KphConnect(
     PPH_STRING objectName = NULL;
 
     portName = KphCommGetMessagePortName();
-
 
     status = KphCommsStart(portName, Callback);
     if (NT_SUCCESS(status) || (status == STATUS_ALREADY_INITIALIZED))
