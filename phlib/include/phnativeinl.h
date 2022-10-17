@@ -470,42 +470,6 @@ PhGetProcessProtection(
 
 FORCEINLINE
 NTSTATUS
-PhGetProcessQuotaLimits(
-    _In_ HANDLE ProcessHandle,
-    _Out_ PQUOTA_LIMITS QuotaLimits
-    )
-{
-    return NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessQuotaLimits,
-        QuotaLimits,
-        sizeof(QUOTA_LIMITS),
-        NULL
-        );
-}
-
-FORCEINLINE
-NTSTATUS
-PhSetProcessEmptyWorkingSet(
-    _In_ HANDLE ProcessHandle
-    )
-{
-    QUOTA_LIMITS_EX quotaLimits;
-
-    memset(&quotaLimits, 0, sizeof(QUOTA_LIMITS_EX));
-    quotaLimits.MinimumWorkingSetSize = SIZE_MAX;
-    quotaLimits.MaximumWorkingSetSize = SIZE_MAX;
-
-    return NtSetInformationProcess(
-        ProcessHandle,
-        ProcessQuotaLimits,
-        &quotaLimits,
-        sizeof(QUOTA_LIMITS_EX)
-        );
-}
-
-FORCEINLINE
-NTSTATUS
 PhGetProcessAffinityMask(
     _In_ HANDLE ProcessHandle,
     _Out_ PKAFFINITY AffinityMask

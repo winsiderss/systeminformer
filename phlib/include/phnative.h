@@ -877,9 +877,24 @@ PhSetProcessModuleLoadCount32(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetProcessQuotaLimits(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PQUOTA_LIMITS QuotaLimits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhSetProcessQuotaLimits(
     _In_ HANDLE ProcessHandle,
     _In_ QUOTA_LIMITS QuotaLimits
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessEmptyWorkingSet(
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI

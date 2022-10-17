@@ -5118,6 +5118,35 @@ NTSTATUS PhSetProcessModuleLoadCount32(
     return context.Status;
 }
 
+NTSTATUS PhGetProcessQuotaLimits(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PQUOTA_LIMITS QuotaLimits
+    )
+{
+    NTSTATUS status;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessQuotaLimits,
+        &QuotaLimits,
+        sizeof(QUOTA_LIMITS),
+        NULL
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphQueryInformationProcess(
+            ProcessHandle,
+            KphProcessQuotaLimits,
+            &QuotaLimits,
+            sizeof(QUOTA_LIMITS),
+            NULL
+            );
+    }
+
+    return status;
+}
+
 NTSTATUS PhSetProcessQuotaLimits(
     _In_ HANDLE ProcessHandle,
     _In_ QUOTA_LIMITS QuotaLimits
@@ -5139,6 +5168,37 @@ NTSTATUS PhSetProcessQuotaLimits(
             KphProcessQuotaLimits,
             &QuotaLimits,
             sizeof(QUOTA_LIMITS)
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhSetProcessEmptyWorkingSet(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+    QUOTA_LIMITS_EX quotaLimits;
+
+    memset(&quotaLimits, 0, sizeof(QUOTA_LIMITS_EX));
+    quotaLimits.MinimumWorkingSetSize = SIZE_MAX;
+    quotaLimits.MaximumWorkingSetSize = SIZE_MAX;
+
+    status = NtSetInformationProcess(
+        ProcessHandle,
+        ProcessQuotaLimits,
+        &quotaLimits,
+        sizeof(QUOTA_LIMITS_EX)
+        );
+
+    if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+    {
+        status = KphSetInformationProcess(
+            ProcessHandle,
+            KphProcessQuotaLimits,
+            &quotaLimits,
+            sizeof(QUOTA_LIMITS_EX)
             );
     }
 
