@@ -271,28 +271,16 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                         case ID_EMPTY_COMPRESSIONSTORE:
                             {
                                 NTSTATUS status;
-                                HANDLE processHandle;
-                                PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
 
-                                if (KphLevel() < KphLevelMax) // required for CompressionPid (dmex)
+                                if (KphLevel() < KphLevelMax)
                                 {
                                     PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
                                     break;
                                 }
 
-                                status = PhGetSystemCompressionStoreInformation(&compressionInfo);
-
-                                if (NT_SUCCESS(status))
-                                {
-                                    status = PhOpenProcess(&processHandle, PROCESS_SET_QUOTA, UlongToHandle(compressionInfo.CompressionPid));
-
-                                    if (NT_SUCCESS(status))
-                                    {
-                                        status = PhSetProcessEmptyWorkingSet(processHandle);
-                                        NtClose(processHandle);
-                                    }
-                                }
-
+                                status = KphSystemControl(KphSystemControlEmptyCompressionStore,
+                                                          NULL,
+                                                          0);
                                 if (!NT_SUCCESS(status))
                                 {
                                     PhShowStatus(hwndDlg, L"Unable to empty compression stores", status, 0);

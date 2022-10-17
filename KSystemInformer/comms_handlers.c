@@ -32,6 +32,7 @@ KPHM_DEFINE_HANDLER(KphpCommsQueryInformationDriver);
 KPHM_DEFINE_HANDLER(KphpCommsQueryInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationThread);
+KPHM_DEFINE_HANDLER(KphpCommsSystemControl);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -64,6 +65,7 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgQueryInformationProcess,     KphpCommsQueryInformationProcess,     KphpCommsQueryInformationProcessRequires },
 { KphMsgSetInformationProcess,       KphpCommsSetInformationProcess,       KphpCommsRequireMaximum },
 { KphMsgSetInformationThread,        KphpCommsSetInformationThread,        KphpCommsRequireMaximum },
+{ KphMsgSystemControl,               KphpCommsSystemControl,               KphpCommsRequireMaximum },
 };
 
 ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -681,6 +683,29 @@ NTSTATUS KSIAPI KphpCommsSetInformationThread(
                                           msg->ThreadInformation,
                                           msg->ThreadInformationLength,
                                           UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsSystemControl(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_SYSTEM_CONTROL msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgSystemControl);
+
+    msg = &Message->User.SystemControl;
+
+    msg->Status = KphSystemControl(msg->SystemControlClass,
+                                   msg->SystemControlInfo,
+                                   msg->SystemControlInfoLength,
+                                   UserMode);
 
     return STATUS_SUCCESS;
 }

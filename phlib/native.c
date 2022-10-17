@@ -5197,9 +5197,9 @@ NTSTATUS PhSetProcessEmptyWorkingSet(
     {
         status = KphSetInformationProcess(
             ProcessHandle,
-            KphProcessQuotaLimits,
-            &quotaLimits,
-            sizeof(QUOTA_LIMITS_EX)
+            KphProcessEmptyWorkingSet,
+            NULL,
+            0
             );
     }
 

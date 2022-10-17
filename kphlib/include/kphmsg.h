@@ -42,6 +42,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgQueryInformationProcess,
     KphMsgSetInformationProcess,
     KphMsgSetInformationThread,
+    KphMsgSystemControl,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -156,6 +157,7 @@ typedef struct _KPH_MESSAGE
             KPHM_QUERY_INFORMATION_PROCESS QueryInformationProcess;
             KPHM_SET_INFORMATION_PROCESS SetInformationProcess;
             KPHM_SET_INFORMATION_THREAD SetInformationThread;
+            KPHM_SYSTEM_CONTROL SystemControl;
 
         } User;
 

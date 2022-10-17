@@ -886,17 +886,41 @@ NTSTATUS KphSetInformationProcess(
         goto Exit;
     }
 
-    status = KphDominationCheck(PsGetCurrentProcess(),
-                                process,
-                                AccessMode);
-    if (!NT_SUCCESS(status))
+    switch (ProcessInformationClass)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "KphDominationCheck failed: %!STATUS!",
-                      status);
+        case KphProcessEmptyWorkingSet:
+        {
+            //
+            // Permitted across PPL boundaries.
+            //
+            break;
+        }
+        case KphProcessQuotaLimits:
+        case KphProcessBasePriority:
+        case KphProcessRaisePriority:
+        case KphProcessPriorityClass:
+        case KphProcessAffinityMask:
+        case KphProcessPriorityBoost:
+        case KphProcessIoPriority:
+        case KphProcessPagePriority:
+        case KphProcessPowerThrottlingState:
+        case KphProcessPriorityClassEx:
+        default:
+        {
+            status = KphDominationCheck(PsGetCurrentProcess(),
+                                        process,
+                                        AccessMode);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "KphDominationCheck failed: %!STATUS!",
+                              status);
 
-        goto Exit;
+                goto Exit;
+            }
+            break;
+        }
     }
 
     status = ObOpenObjectByPointer(process,
@@ -968,6 +992,23 @@ NTSTATUS KphSetInformationProcess(
         {
             processInformationClass = ProcessPriorityClassEx;
             break;
+        }
+        case KphProcessEmptyWorkingSet:
+        {
+            QUOTA_LIMITS_EX quotaLimits;
+
+            RtlZeroMemory(&quotaLimits, sizeof(quotaLimits));
+            quotaLimits.MinimumWorkingSetSize = SIZE_T_MAX;
+            quotaLimits.MaximumWorkingSetSize = SIZE_T_MAX;
+
+            status = ZwSetInformationProcess(processHandle,
+                                             ProcessQuotaLimits,
+                                             &quotaLimits,
+                                             sizeof(quotaLimits));
+            //
+            // Bypass generic call to exit immediately.
+            //
+            goto Exit;
         }
         default:
         {
