@@ -3314,6 +3314,26 @@ NTSTATUS PhGetFileStandardInformation(
     return status;
 }
 
+// rev from SetFileCompletionNotificationModes (dmex)
+NTSTATUS PhSetFileCompletionNotificationMode(
+    _In_ HANDLE FileHandle,
+    _In_ ULONG Flags
+    )
+{
+    FILE_IO_COMPLETION_NOTIFICATION_INFORMATION completionMode;
+    IO_STATUS_BLOCK isb;
+
+    completionMode.Flags = Flags;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &isb,
+        &completionMode,
+        sizeof(FILE_IO_COMPLETION_NOTIFICATION_INFORMATION),
+        FileIoCompletionNotificationInformation
+        );
+}
+
 NTSTATUS PhGetFileSize(
     _In_ HANDLE FileHandle,
     _Out_ PLARGE_INTEGER Size
