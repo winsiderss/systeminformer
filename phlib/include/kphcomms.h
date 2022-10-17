@@ -1,4 +1,17 @@
-#pragma once
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     jxy-s   2022
+ *
+ */
+
+#ifndef _PH_KPHCOMMS_H
+#define _PH_KPHCOMMS_H
+
 #include <ph.h>
 #include <kphmsg.h>
 
@@ -35,3 +48,5 @@ _Must_inspect_result_
 NTSTATUS KphCommsSendMessage(
     _Inout_ PKPH_MESSAGE Message
     );
+
+#endif
