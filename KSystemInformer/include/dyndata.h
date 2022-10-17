@@ -29,17 +29,6 @@
 
 EXT ULONG KphDynNtVersion;
 
-// Structures
-// Ege: ETW_GUID_ENTRY
-// Ep: EPROCESS
-// Ere: ETW_REG_ENTRY
-// Et: ETHREAD
-// Ht: HANDLE_TABLE
-// Oh: OBJECT_HEADER
-// Ot: OBJECT_TYPE
-// Oti: OBJECT_TYPE_INITIALIZER, offset measured from an OBJECT_TYPE
-// ObDecodeShift: shift value in ObpDecodeObject
-// ObAttributesShift: shift value in ObpGetHandleAttributes
 EXT ULONG KphDynEgeGuid OFFDEFAULT;
 EXT ULONG KphDynEpObjectTable OFFDEFAULT;
 EXT ULONG KphDynEreGuidEntry OFFDEFAULT;
@@ -48,6 +37,13 @@ EXT ULONG KphDynOtName OFFDEFAULT;
 EXT ULONG KphDynOtIndex OFFDEFAULT;
 EXT ULONG KphDynObDecodeShift OFFDEFAULT;
 EXT ULONG KphDynObAttributesShift OFFDEFAULT;
+EXT ULONG KphDynAlpcCommunicationInfo OFFDEFAULT;
+EXT ULONG KphDynAlpcOwnerProcess OFFDEFAULT;
+EXT ULONG KphDynAlpcConnectionPort OFFDEFAULT;
+EXT ULONG KphDynAlpcServerCommunicationPort OFFDEFAULT;
+EXT ULONG KphDynAlpcClientCommunicationPort OFFDEFAULT;
+EXT ULONG KphDynAlpcHandleTable OFFDEFAULT;
+EXT ULONG KphDynAlpcHandleTableLock OFFDEFAULT;
 
 EXT PLIST_ENTRY KphDynPsLoadedModuleList DYNIMPORTDEFAULT;
 EXT PERESOURCE KphDynPsLoadedModuleResource DYNIMPORTDEFAULT;

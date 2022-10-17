@@ -290,6 +290,27 @@ KphSystemControl(
     _In_ ULONG SystemControlInfoLength
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphAlpcQueryInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE PortHandle,
+    _In_ KPH_ALPC_INFORMATION_CLASS AlpcInformationClass,
+    _Out_writes_bytes_opt_(AlpcInformationLength) PVOID AlpcInformation,
+    _In_ ULONG AlpcInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphAlpcQueryComminicationsNamesInfo(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE PortHandle,
+    _Out_ PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION* Names
+    );
+
 // kphdata
 
 PHLIBAPI

@@ -716,6 +716,7 @@ extern POBJECT_TYPE *MmSectionObjectType;
 // SE
 
 #define SeDebugPrivilege RtlConvertUlongToLuid(SE_DEBUG_PRIVILEGE)
+#define SeCreateTokenPrivilege RtlConvertUlongToLuid(SE_CREATE_TOKEN_PRIVILEGE)
 
 // CI
 
@@ -1019,3 +1020,102 @@ CI_VERIFY_HASH_IN_CATALOG_EX(
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     );
 typedef CI_VERIFY_HASH_IN_CATALOG_EX* PCI_VERIFY_HASH_IN_CATALOG_EX;
+
+// alpc
+
+extern POBJECT_TYPE *LpcPortObjectType;
+#define AlpcPortObjectType LpcPortObjectType
+
+#define PORT_CONNECT 0x0001
+#define PORT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1)
+
+typedef struct _PORT_MESSAGE
+{
+    union
+    {
+        struct
+        {
+            CSHORT DataLength;
+            CSHORT TotalLength;
+        } s1;
+        ULONG Length;
+    } u1;
+    union
+    {
+        struct
+        {
+            CSHORT Type;
+            CSHORT DataInfoOffset;
+        } s2;
+        ULONG ZeroInit;
+    } u2;
+    union
+    {
+        CLIENT_ID ClientId;
+        double DoNotUseThisField;
+    };
+    ULONG MessageId;
+    union
+    {
+        SIZE_T ClientViewSize; // only valid for LPC_CONNECTION_REQUEST messages
+        ULONG CallbackId; // only valid for LPC_REQUEST messages
+    };
+} PORT_MESSAGE, *PPORT_MESSAGE;
+
+typedef HANDLE ALPC_HANDLE, *PALPC_HANDLE;
+
+#define ALPC_PORFLG_ALLOW_LPC_REQUESTS 0x20000 // rev
+#define ALPC_PORFLG_WAITABLE_PORT 0x40000 // dbg
+#define ALPC_PORFLG_SYSTEM_PROCESS 0x100000 // dbg
+
+typedef struct _ALPC_PORT_ATTRIBUTES
+{
+    ULONG Flags;
+    SECURITY_QUALITY_OF_SERVICE SecurityQos;
+    SIZE_T MaxMessageLength;
+    SIZE_T MemoryBandwidth;
+    SIZE_T MaxPoolUsage;
+    SIZE_T MaxSectionSize;
+    SIZE_T MaxViewSize;
+    SIZE_T MaxTotalSectionSize;
+    ULONG DupObjectTypes;
+#ifdef _WIN64
+    ULONG Reserved;
+#endif
+} ALPC_PORT_ATTRIBUTES, *PALPC_PORT_ATTRIBUTES;
+
+#define ALPC_MESSAGE_SECURITY_ATTRIBUTE 0x80000000
+#define ALPC_MESSAGE_VIEW_ATTRIBUTE 0x40000000
+#define ALPC_MESSAGE_CONTEXT_ATTRIBUTE 0x20000000
+#define ALPC_MESSAGE_HANDLE_ATTRIBUTE 0x10000000
+
+typedef struct _ALPC_MESSAGE_ATTRIBUTES
+{
+    ULONG AllocatedAttributes;
+    ULONG ValidAttributes;
+} ALPC_MESSAGE_ATTRIBUTES, *PALPC_MESSAGE_ATTRIBUTES;
+
+#define ALPC_MSGFLG_REPLY_MESSAGE 0x1
+#define ALPC_MSGFLG_LPC_MODE 0x2 // ?
+#define ALPC_MSGFLG_RELEASE_MESSAGE 0x10000 // dbg
+#define ALPC_MSGFLG_SYNC_REQUEST 0x20000 // dbg
+#define ALPC_MSGFLG_WAIT_USER_MODE 0x100000
+#define ALPC_MSGFLG_WAIT_ALERTABLE 0x200000
+#define ALPC_MSGFLG_WOW64_CALL 0x80000000 // dbg
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAlpcConnectPort(
+    _Out_ PHANDLE PortHandle,
+    _In_ PUNICODE_STRING PortName,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PALPC_PORT_ATTRIBUTES PortAttributes,
+    _In_ ULONG Flags,
+    _In_opt_ PSID RequiredServerSid,
+    _Inout_updates_bytes_to_opt_(*BufferLength, *BufferLength) PPORT_MESSAGE ConnectionMessage,
+    _Inout_opt_ PULONG BufferLength,
+    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
+    _Inout_opt_ PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );

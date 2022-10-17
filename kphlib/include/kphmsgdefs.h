@@ -204,6 +204,18 @@ typedef struct _KPHM_SYSTEM_CONTROL
 
 } KPHM_SYSTEM_CONTROL, *PKPHM_SYSTEM_CONTROL;
 
+typedef struct _KPHM_ALPC_QUERY_INFORMATION
+{
+    NTSTATUS Status;
+    HANDLE ProcessHandle;
+    HANDLE PortHandle;
+    KPH_ALPC_INFORMATION_CLASS AlpcInformationClass;
+    PVOID AlpcInformation;
+    ULONG AlpcInformationLength;
+    PULONG ReturnLength;
+
+} KPHM_ALPC_QUERY_INFORMATION, *PKPHM_ALPC_QUERY_INFORMATION;
+
 //
 // KPH -> PH
 //
