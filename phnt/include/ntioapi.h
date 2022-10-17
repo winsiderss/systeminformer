@@ -1004,6 +1004,8 @@ typedef struct _FILE_FULL_EA_INFORMATION
     UCHAR EaNameLength;
     USHORT EaValueLength;
     _Field_size_bytes_(EaNameLength) CHAR EaName[1];
+    // ...
+    // UCHAR EaValue[1]
 } FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
 
 typedef struct _FILE_GET_EA_INFORMATION
