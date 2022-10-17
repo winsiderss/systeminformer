@@ -90,6 +90,9 @@
     <ClCompile Include="protection.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="system.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">

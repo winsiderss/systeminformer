@@ -111,6 +111,7 @@ typedef enum _KPH_PROCESS_INFORMATION_CLASS
     KphProcessPagePriority,          // s: PAGE_PRIORITY_INFORMATION
     KphProcessPowerThrottlingState,  // s: POWER_THROTTLING_PROCESS_STATE
     KphProcessPriorityClassEx,       // s: PROCESS_PRIORITY_CLASS_EX
+    KphProcessEmptyWorkingSet,       // s
 
 } KPH_PROCESS_INFORMATION_CLASS;
 
@@ -265,6 +266,14 @@ typedef struct _ETWREG_BASIC_INFORMATION
     GUID Guid;
     ULONG_PTR SessionId;
 } ETWREG_BASIC_INFORMATION, *PETWREG_BASIC_INFORMATION;
+
+// System control
+
+typedef enum _KPH_SYSTEM_CONTROL_CLASS
+{
+    KphSystemControlEmptyCompressionStore
+
+} KPH_SYSTEM_CONTROL_CLASS;
 
 // Dynamic Configuration
 
