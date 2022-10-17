@@ -89,6 +89,8 @@ VOID KphReleaseRundown(
 
 PAGED_FILE();
 
+static UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
+
 /**
  * \brief Initializes rundown object.
  *
@@ -1422,7 +1424,7 @@ NTSTATUS KphGetThreadExitStatus(
 
     //
     // Win7 doesn't export PsGetThreadExitStatus. Take this path instead.
-    // If we fail (practially shouldn't) we will assume the thread is still
+    // If we fail (practically shouldn't) we will assume the thread is still
     // active.
     //
 
@@ -1471,4 +1473,162 @@ Exit:
     }
 
     return exitStatus;
+}
+
+/**
+ * \brief Compares two Unicode strings to determine whether one string is a
+ * suffix of the other.
+ *
+ * \param[in] Suffix The string which might be a suffix of the other.
+ * \param[in] String The string to check.
+ * \param[in] CaseInSensitive If TRUE, case should be ignored when doing the
+ * comparison.
+ *
+ * \return TRUE if the string suffixed by the other. 
+ */
+_IRQL_requires_max_(APC_LEVEL)
+BOOLEAN KphSuffixUnicodeString(
+    _In_ PUNICODE_STRING Suffix,
+    _In_ PUNICODE_STRING String,
+    _In_ BOOLEAN CaseInSensitive
+    )
+{
+    UNICODE_STRING string;
+
+    PAGED_CODE();
+
+    if (String->Length < Suffix->Length)
+    {
+        return FALSE;
+    }
+
+    string.Length = Suffix->Length;
+    string.MaximumLength = Suffix->Length;
+    string.Buffer = &String->Buffer[(String->Length - Suffix->Length) / sizeof(WCHAR)];
+
+    return RtlEqualUnicodeString(&string, Suffix, CaseInSensitive);
+}
+
+/**
+ * \brief Retrieves the process ID of lsass. 
+ *
+ * \param[out] ProcessId Set to the process ID of lsass.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphpGetLsassProcessId(
+    _Out_ PHANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE portHandle;
+    KAPC_STATE apcState;
+    KPH_ALPC_COMMUNICATION_INFORMATION info;
+
+    PAGED_PASSIVE();
+
+    *ProcessId = NULL;
+
+    //
+    // Attach to system to ensure we get a kernel handle from the following
+    // ZwAlpcConnectPort call. Opening the handle here does not ask for the
+    // object attributes. To keep our imports simple we choose to use this
+    // over the Ex version (might change in the future). Pattern is adopted
+    // from msrpc.sys.
+    //
+
+    KeStackAttachProcess(PsInitialSystemProcess, &apcState);
+
+    status = ZwAlpcConnectPort(&portHandle,
+                               &KphpLsaPortName,
+                               NULL,
+                               NULL,
+                               0,
+                               NULL,
+                               NULL,
+                               NULL,
+                               NULL,
+                               NULL,
+                               NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      UTIL,
+                      "ZwAlpcConnectPort failed: %!STATUS!",
+                      status);
+
+        portHandle = NULL;
+        goto Exit;
+    }
+
+    status = KphAlpcQueryInformation(ZwCurrentProcess(),
+                                     portHandle,
+                                     KphAlpcCommunicationInformation,
+                                     &info,
+                                     sizeof(info),
+                                     NULL,
+                                     KernelMode);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      UTIL,
+                      "ZwAlpcQueryInformation failed: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    *ProcessId = info.ConnectionPort.OwnerProcessId;
+
+Exit:
+
+    if (portHandle)
+    {
+        ObCloseHandle(portHandle, KernelMode);
+    }
+
+    KeUnstackDetachProcess(&apcState);
+
+    return status;
+}
+
+/**
+ * \brief Checks if a given process is lsass. 
+ *
+ * \param[in] Process The process to check.
+ *
+ * \return TRUE if the process is lsass.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN KphProcessIsLsass(
+    _In_ PEPROCESS Process
+    )
+{
+    NTSTATUS status;
+    HANDLE processId;
+    SECURITY_SUBJECT_CONTEXT subjectContext;
+    BOOLEAN result;
+
+    PAGED_PASSIVE();
+
+    status = KphpGetLsassProcessId(&processId);
+    if (!NT_SUCCESS(status))
+    {
+        return FALSE;
+    }
+
+    if (processId != PsGetProcessId(Process))
+    {
+        return FALSE;
+    }
+
+    SeCaptureSubjectContextEx(NULL, Process, &subjectContext);
+
+    result = KphSinglePrivilegeCheckEx(SeCreateTokenPrivilege,
+                                       &subjectContext,
+                                       UserMode);
+
+    SeReleaseSubjectContext(&subjectContext);
+
+    return result;
 }

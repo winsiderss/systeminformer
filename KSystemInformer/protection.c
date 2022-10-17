@@ -205,6 +205,17 @@ BOOLEAN KphpShouldSuppressObjectProtections(
         return TRUE;
     }
 
+    if (Actor->IsLsass)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      PROTECTION,
+                      "Protected process %lu access grated to lsass process %lu",
+                      HandleToULong(Target->ProcessId),
+                      HandleToULong(Actor->ProcessId));
+
+        return TRUE;
+    }
+
     if (KphDynNtVersion >= PHNT_WINBLUE)
     {
         return FALSE;

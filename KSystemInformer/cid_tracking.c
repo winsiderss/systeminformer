@@ -28,6 +28,8 @@ static PKPH_PAGED_LOOKASIDE_OBJECT KphpThreadContextLookaside = NULL;
 PKPH_OBJECT_TYPE KphProcessContextType = NULL;
 PKPH_OBJECT_TYPE KphThreadContextType = NULL;
 
+static volatile LONG KphpLsassIsKnown = 0;
+
 PAGED_FILE();
 
 /**
@@ -188,6 +190,12 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
         }
     }
 
+    if (!KphpLsassIsKnown && KphProcessIsLsass(process->EProcess))
+    {
+        InterlockedExchange(&KphpLsassIsKnown, 1);
+        process->IsLsass = TRUE;
+    }
+
     return STATUS_SUCCESS;
 }
 
@@ -207,6 +215,11 @@ VOID KSIAPI KphpDeleteProcessContext(
     PAGED_CODE();
 
     process = Object;
+
+    if (process->IsLsass)
+    {
+        InterlockedExchange(&KphpLsassIsKnown, 0);
+    }
 
     if (process->Protected)
     {

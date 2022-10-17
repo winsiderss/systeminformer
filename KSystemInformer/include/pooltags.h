@@ -88,3 +88,7 @@
 // protection
 
 #define KPH_TAG_IMAGE_LOAD_APC                  '0ppK'
+
+// alpc
+
+#define KPH_TAG_ALPC_NAME_QUERY                 '0ApK'

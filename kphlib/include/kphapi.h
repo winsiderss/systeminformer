@@ -198,15 +198,15 @@ typedef struct _KPH_PROCESS_HANDLE_INFORMATION
 
 typedef enum _KPH_OBJECT_INFORMATION_CLASS
 {
-    KphObjectBasicInformation, // q: OBJECT_BASIC_INFORMATION
-    KphObjectNameInformation, // q: OBJECT_NAME_INFORMATION
-    KphObjectTypeInformation, // q: OBJECT_TYPE_INFORMATION
-    KphObjectHandleFlagInformation, // qs: OBJECT_HANDLE_FLAG_INFORMATION
-    KphObjectProcessBasicInformation, // q: PROCESS_BASIC_INFORMATION
-    KphObjectThreadBasicInformation, // q: THREAD_BASIC_INFORMATION
-    KphObjectEtwRegBasicInformation, // q: ETWREG_BASIC_INFORMATION
-    KphObjectFileObjectInformation, // q: KPH_FILE_OBJECT_INFORMATION
-    KphObjectFileObjectDriver, // q: KPH_FILE_OBJECT_DRIVER
+    KphObjectBasicInformation,         // q: OBJECT_BASIC_INFORMATION
+    KphObjectNameInformation,          // q: OBJECT_NAME_INFORMATION
+    KphObjectTypeInformation,          // q: OBJECT_TYPE_INFORMATION
+    KphObjectHandleFlagInformation,    // qs: OBJECT_HANDLE_FLAG_INFORMATION
+    KphObjectProcessBasicInformation,  // q: PROCESS_BASIC_INFORMATION
+    KphObjectThreadBasicInformation,   // q: THREAD_BASIC_INFORMATION
+    KphObjectEtwRegBasicInformation,   // q: ETWREG_BASIC_INFORMATION
+    KphObjectFileObjectInformation,    // q: KPH_FILE_OBJECT_INFORMATION
+    KphObjectFileObjectDriver,         // q: KPH_FILE_OBJECT_DRIVER
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
 
@@ -267,6 +267,34 @@ typedef struct _ETWREG_BASIC_INFORMATION
     ULONG_PTR SessionId;
 } ETWREG_BASIC_INFORMATION, *PETWREG_BASIC_INFORMATION;
 
+// ALPC ojbect information
+
+typedef enum _KPH_ALPC_INFORMATION_CLASS
+{
+    KphAlpcBasicInformation,               // q: KPH_ALPC_BASIC_INFORMATION
+    KphAlpcCommunicationInformation,       // q: KPH_ALPC_COMMUNICATION_INFORMATION
+    KphAlpcCommunicationNamesInformation,  // q: KPH_ALPC_COMMUNICATION_NAMES_INFORMATION
+} KPH_ALPC_INFORMATION_CLASS;
+
+typedef struct _KPH_ALPC_BASIC_INFORMATION
+{
+    HANDLE OwnerProcessId;
+} KPH_ALPC_BASIC_INFORMATION, *PKPH_ALPC_BASIC_INFORMATION;
+
+typedef struct _KPH_ALPC_COMMUNICATION_INFORMATION
+{
+    KPH_ALPC_BASIC_INFORMATION ConnectionPort;
+    KPH_ALPC_BASIC_INFORMATION ServerCommunicationPort;
+    KPH_ALPC_BASIC_INFORMATION ClientCommunicationPort;
+} KPH_ALPC_COMMUNICATION_INFORMATION, *PKPH_ALPC_COMMUNICATION_INFORMATION;
+
+typedef struct _KPH_ALPC_COMMUNICATION_NAMES_INFORMATION
+{
+    UNICODE_STRING ConnectionPort;
+    UNICODE_STRING ServerCommunicationPort;
+    UNICODE_STRING ClientCommunicationPort;
+} KPH_ALPC_COMMUNICATION_NAMES_INFORMATION, *PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION;
+
 // System control
 
 typedef enum _KPH_SYSTEM_CONTROL_CLASS
@@ -288,19 +316,26 @@ typedef struct _KPH_DYN_CONFIGURATION
     ULONG Version;
     USHORT MajorVersion;
     USHORT MinorVersion;
-    USHORT ServicePackMajor;        // -1 to ignore
-    USHORT BuildNumber;             // -1 to ignore
-    ULONG ResultingNtVersion;       // PHNT_*
+    USHORT ServicePackMajor;            // -1 to ignore
+    USHORT BuildNumber;                 // -1 to ignore
+    ULONG ResultingNtVersion;           // PHNT_*
 
-    SHORT EgeGuid;                  // dt nt!_ETW_GUID_ENTRY Guid
-    SHORT EpObjectTable;            // dt nt!_EPROCESS ObjectTable
-    SHORT EreGuidEntry;             // dt nt!_ETW_REG_ENTRY GuidEntry
-    SHORT HtHandleContentionEvent;  // dt nt!_HANDLE_TABLE HandleContentionEvent
-    SHORT OtName;                   // dt nt!_OBJECT_TYPE Name
-    SHORT OtIndex;                  // dt nt!_OBJECT_TYPE Index
-    SHORT ObDecodeShift;            // dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
-    SHORT ObAttributesShift;        // dt nt!_HANDLE_TABLE_ENTRY Attributes
-    USHORT CiVersion;               // ci.dll exports version
+    SHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
+    SHORT EpObjectTable;                // dt nt!_EPROCESS ObjectTable
+    SHORT EreGuidEntry;                 // dt nt!_ETW_REG_ENTRY GuidEntry
+    SHORT HtHandleContentionEvent;      // dt nt!_HANDLE_TABLE HandleContentionEvent
+    SHORT OtName;                       // dt nt!_OBJECT_TYPE Name
+    SHORT OtIndex;                      // dt nt!_OBJECT_TYPE Index
+    SHORT ObDecodeShift;                // dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
+    SHORT ObAttributesShift;            // dt nt!_HANDLE_TABLE_ENTRY Attributes
+    USHORT CiVersion;                   // ci.dll exports version
+    SHORT AlpcCommunicationInfo;        // dt nt!_ALPC_PORT CommunicationInfo
+    SHORT AlpcOwnerProcess;             // dt nt!_ALPC_PORT OwnerProcess
+    SHORT AlpcConnectionPort;           // dt nt!_ALPC_COMMUNICATION_INFO ConnectionPort
+    SHORT AlpcServerCommunicationPort;  // dt nt!_ALPC_COMMUNICATION_INFO ServerCommunicationPort
+    SHORT AlpcClientCommunicationPort;  // dt nt!_ALPC_COMMUNICATION_INFO ClientCommunicationPort
+    SHORT AlpcHandleTable;              // dt nt!_ALPC_COMMUNICATION_INFO HandleTable
+    SHORT AlpcHandleTableLock;          // dt nt!_ALPC_HANDLE_TABLE Lock
 
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 

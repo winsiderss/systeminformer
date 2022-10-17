@@ -178,6 +178,14 @@ NTSTATUS KphpSetDynamicConfigiration(
         KphTracePrint(TRACE_LEVEL_ERROR, GENERAL, "CI INVALID");
     }
 
+    KphDynAlpcCommunicationInfo = C_2sTo4(Configuration->AlpcCommunicationInfo);
+    KphDynAlpcOwnerProcess = C_2sTo4(Configuration->AlpcOwnerProcess);
+    KphDynAlpcConnectionPort = C_2sTo4(Configuration->AlpcConnectionPort);
+    KphDynAlpcServerCommunicationPort = C_2sTo4(Configuration->AlpcServerCommunicationPort);
+    KphDynAlpcClientCommunicationPort = C_2sTo4(Configuration->AlpcClientCommunicationPort);
+    KphDynAlpcHandleTable = C_2sTo4(Configuration->AlpcHandleTable);
+    KphDynAlpcHandleTableLock = C_2sTo4(Configuration->AlpcHandleTableLock);
+
     return STATUS_SUCCESS;
 }
 
