@@ -1274,6 +1274,7 @@ VOID NTAPI KphCommsCallback(
     _In_ PCKPH_MESSAGE Message
     )
 {
+    PPH_FREE_LIST freelist;
     PKPH_MESSAGE msg;
 
     if (Message->Header.MessageId != KphMsgProcessCreate)
@@ -1281,15 +1282,15 @@ VOID NTAPI KphCommsCallback(
         return;
     }
 
-    msg = PhAllocate(sizeof(KPH_MESSAGE));
+    freelist = KphGetMessageFreeList();
+    msg = PhAllocateFromFreeList(freelist);
 
     KphMsgInit(msg, KphMsgProcessCreate);
 
     msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
-
     KphCommsReplyMessage(ReplyToken, msg);
 
-    PhFree(msg);
+    PhFreeToFreeList(freelist, msg);
 }
 
 NTSTATUS PhRestartSelf(
@@ -1442,9 +1443,9 @@ VOID PhInitializeKph(
         }
     }
 
-    if (PhDoesFileExistWin32(kphFileName->Buffer))
+    if (kphServiceName && PhDoesFileExistWin32(kphFileName->Buffer))
     {
-        PPH_STRING objectName;
+        PPH_STRING objectName = NULL;
 
         if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KphObjectName")))
             PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));

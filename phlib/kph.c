@@ -538,6 +538,13 @@ NTSTATUS KphUninstall(
     return status;
 }
 
+PPH_FREE_LIST KphGetMessageFreeList(
+    VOID
+    )
+{
+    return &KphMessageFreeList;
+}
+
 NTSTATUS KphGetInformerSettings(
     _Out_ PKPH_INFORMER_SETTINGS Settings
     )
