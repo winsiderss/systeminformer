@@ -316,6 +316,7 @@ PCID_TABLE_ENTRY CidLookupEntry(
     // N.B. Capture the volatile table pointer. This is a lock-free lookup.
     //
     table = Table->Table;
+    MemoryBarrier();
 
     switch (table & CID_TABLE_LEVEL_MASK)
     {
@@ -433,6 +434,8 @@ PCID_TABLE_ENTRY CidExpandTableFor(
     //
 
     table = Table->Table;
+    MemoryBarrier();
+
     level = (table & CID_TABLE_LEVEL_MASK);
 
     if (level == CID_TABLE_L0)
@@ -662,6 +665,7 @@ VOID CidEnumerateInternal(
     PAGED_CODE();
 
     table = Table->Table;
+    MemoryBarrier();
 
     if (!table)
     {
