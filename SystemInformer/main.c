@@ -1378,7 +1378,7 @@ VOID PhInitializeKph(
     if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
     {
         PhClearReference(&kphServiceName);
-        kphServiceName = PhCreateString(L"KSystemInformer");
+        kphServiceName = PhCreateString(KPH_SERVICE_NAME);
     }
 
     if (!(fileName = PhGetApplicationFileNameWin32()))
@@ -1444,8 +1444,14 @@ VOID PhInitializeKph(
 
     if (PhDoesFileExistWin32(kphFileName->Buffer))
     {
+        PPH_STRING objectName;
+
+        if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KphObjectName")))
+            PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
+
         if (!NT_SUCCESS(status = KphConnect(
             &kphServiceName->sr,
+            &objectName->sr,
             &kphFileName->sr,
             KphCommsCallback
             )))
@@ -1475,6 +1481,8 @@ VOID PhInitializeKph(
                 }
             }
         }
+
+        PhClearReference(&objectName);
     }
     else
     {
@@ -1689,9 +1697,11 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             break;
         case PH_ARG_INSTALLKPH:
             PhStartupParameters.InstallKph = TRUE;
+            PhSwapReference(&PhStartupParameters.InstallKphServiceName, Value);
             break;
         case PH_ARG_UNINSTALLKPH:
             PhStartupParameters.UninstallKph = TRUE;
+            PhSwapReference(&PhStartupParameters.InstallKphServiceName, Value);
             break;
         case PH_ARG_DEBUG:
             PhStartupParameters.Debug = TRUE;
@@ -1887,35 +1897,31 @@ VOID PhpProcessStartupParameters(
                 indexOfLastDot > indexOfBackslash
                 )
             {
-                PH_STRINGREF applicationNameSr;
+                PH_STRINGREF applicationName;
 
-                applicationNameSr.Buffer = fileName->Buffer + indexOfBackslash + 1;
-                applicationNameSr.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
+                applicationName.Buffer = fileName->Buffer + indexOfBackslash + 1;
+                applicationName.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
                 fileName->Length = (indexOfBackslash + 1) * sizeof(WCHAR);
 
                 kphFileName = PhConcatStringRef3(
                     &fileName->sr,
-                    &applicationNameSr,
+                    &applicationName,
                     &driverExtension
                     );
 
                 if (kphFileName)
                 {
-                    PPH_STRING kphServiceName;
-
-                    kphServiceName = PhGetStringSetting(L"KphServiceName");
-                    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
+                    if (PhIsNullOrEmptyString(PhStartupParameters.InstallKphServiceName))
                     {
-                        PhClearReference(&kphServiceName);
-                        kphServiceName = PhCreateString(L"KSystemInformer");
+                        static PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
+                        static PH_STRINGREF kphObjectName = PH_STRINGREF_INIT(KPH_OBJECT_NAME);
+                        status = KphInstall(&kphServiceName, &kphObjectName, &kphFileName->sr);
+                    }
+                    else
+                    {
+                        //status = KphInstall(&PhStartupParameters.InstallKphServiceName->sr, &kphFileName->sr);
                     }
 
-                    status = KphInstall(
-                        &kphServiceName->sr,
-                        &kphFileName->sr
-                        );
-
-                    PhDereferenceObject(kphServiceName);
                     PhDereferenceObject(kphFileName);
                 }
             }
@@ -1933,7 +1939,15 @@ VOID PhpProcessStartupParameters(
     {
         NTSTATUS status;
 
-        status = KphUninstall(L"KSystemInformer");
+        if (PhIsNullOrEmptyString(PhStartupParameters.InstallKphServiceName))
+        {
+            static PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
+            status = KphUninstall(&kphServiceName);
+        }
+        else
+        {
+            status = KphUninstall(&PhStartupParameters.InstallKphServiceName->sr);
+        }
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to uninstall KSystemInformer", status, 0);

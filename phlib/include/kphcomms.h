@@ -27,7 +27,7 @@ PPH_STRING KphCommGetMessagePortName(
 
 _Must_inspect_result_
 NTSTATUS KphCommsStart(
-    _In_ PPH_STRING PortName,
+    _In_ PPH_STRINGREF PortName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     );
 
