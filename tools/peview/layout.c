@@ -1129,6 +1129,9 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
                 break;
             }
 
+            if (fileLayoutEntry->Flags == 1 && fileLayoutEntry->FileReferenceNumber == 1)
+                continue;
+
             fileLayoutSteamEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstStreamOffset);
             fileLayoutInfoEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->ExtraInfoOffset);
 
@@ -1139,7 +1142,7 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
             //PvAddChildLayoutNode(Context, NULL, L"Last access time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastAccessTime));
             PvAddChildLayoutNode(Context, NULL, L"Last write time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.LastWriteTime));
             PvAddChildLayoutNode(Context, NULL, L"Change time", PvLayoutGetRelativeTimeString(&fileLayoutInfoEntry->BasicInformation.ChangeTime));
-            PvAddChildLayoutNode(Context, NULL, L"LastUsn", PhFormatUInt64(fileLayoutInfoEntry->Usn, TRUE));
+            PvAddChildLayoutNode(Context, NULL, L"LastUsn", PhFormatUInt64(fileLayoutInfoEntry->Usn, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"OwnerId", PhFormatUInt64(fileLayoutInfoEntry->OwnerId, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"SecurityId", PhFormatUInt64(fileLayoutInfoEntry->SecurityId, FALSE));
             PvAddChildLayoutNode(Context, NULL, L"StorageReserveId", PhFormatUInt64(fileLayoutInfoEntry->StorageReserveId, FALSE));
