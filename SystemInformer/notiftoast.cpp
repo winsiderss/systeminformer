@@ -21,7 +21,7 @@
 
 #ifndef RETURN_IF_FAILED
 #define RETURN_IF_FAILED(_HR_) do { const auto __hr = _HR_; if (FAILED(__hr)) { return __hr; }} while (false)
-#endif RETURN_IF_FAILED
+#endif
 
 using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;
