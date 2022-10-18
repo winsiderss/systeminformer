@@ -185,6 +185,11 @@ NTSTATUS KphpSetDynamicConfigiration(
     KphDynAlpcClientCommunicationPort = C_2sTo4(Configuration->AlpcClientCommunicationPort);
     KphDynAlpcHandleTable = C_2sTo4(Configuration->AlpcHandleTable);
     KphDynAlpcHandleTableLock = C_2sTo4(Configuration->AlpcHandleTableLock);
+    KphDynAlpcAttributes = C_2sTo4(Configuration->AlpcAttributes);
+    KphDynAlpcAttributesFlags = C_2sTo4(Configuration->AlpcAttributesFlags);
+    KphDynAlpcPortContext = C_2sTo4(Configuration->AlpcPortContext);
+    KphDynAlpcSequenceNo = C_2sTo4(Configuration->AlpcSequenceNo);
+    KphDynAlpcState = C_2sTo4(Configuration->AlpcState);
 
     return STATUS_SUCCESS;
 }
