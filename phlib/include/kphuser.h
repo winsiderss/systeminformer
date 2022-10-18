@@ -8,11 +8,16 @@
 extern "C" {
 #endif
 
+#define KPH_SERVICE_NAME __TEXT("KSystemInformer")
+#define KPH_OBJECT_NAME __TEXT("\\Driver\\KSystemInformer") 
+#define KPH_PORT_NAME __TEXT("\\KSystemInformer") 
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect(
     _In_ PPH_STRINGREF ServiceName,
+    _In_ PPH_STRINGREF ObjectName,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     );
@@ -50,6 +55,7 @@ NTSTATUS
 NTAPI
 KphInstall(
     _In_ PPH_STRINGREF ServiceName,
+    _In_ PPH_STRINGREF ObjectName,
     _In_ PPH_STRINGREF FileName
     );
 
@@ -57,7 +63,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphUninstall(
-    _In_z_ PWSTR ServiceName
+    _In_ PPH_STRINGREF ServiceName
     );
 
 PHLIBAPI

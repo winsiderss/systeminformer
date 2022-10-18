@@ -63,7 +63,11 @@ typedef struct _PH_STARTUP_PARAMETERS
         ULONG Flags;
     };
 
-    PPH_STRING RunAsServiceMode;
+    union
+    {
+        PPH_STRING RunAsServiceMode;
+        PPH_STRING InstallKphServiceName;
+    };
 
     HWND WindowHandle;
     POINT Point;

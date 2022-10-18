@@ -14,28 +14,9 @@
 #include <kphuser.h>
 #include <settings.h>
 
-PPH_STRING KphpGetObjectName(
-    VOID
-    )
-{
-    PPH_STRING objectName;
-
-    objectName = PhGetStringSetting(L"KphObjectName");
-    if (PhIsNullOrEmptyString(objectName))
-    {
-        if (objectName)
-        {
-            PhDereferenceObject(objectName);
-        }
-
-        objectName = PhCreateString(L"\\Driver\\KSystemInformer");
-    }
-
-    return objectName;
-}
-
 NTSTATUS KphConnect(
     _In_ PPH_STRINGREF ServiceName,
+    _In_ PPH_STRINGREF ObjectName,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     )
@@ -46,11 +27,11 @@ NTSTATUS KphConnect(
     BOOLEAN started = FALSE;
     BOOLEAN created = FALSE;
     PPH_STRING portName;
-    PPH_STRING objectName = NULL;
+    PWSTR objectName = NULL;
 
     portName = KphCommGetMessagePortName();
 
-    status = KphCommsStart(portName, Callback);
+    status = KphCommsStart(&portName->sr, Callback);
     if (NT_SUCCESS(status) || (status == STATUS_ALREADY_INITIALIZED))
         return status;
 
@@ -84,7 +65,7 @@ NTSTATUS KphConnect(
         if (scmHandle)
         {
             if (WindowsVersion > WINDOWS_7)
-                objectName = KphpGetObjectName();
+                objectName = PhGetStringRefZ(ObjectName);
 
             serviceHandle = CreateService(
                 scmHandle,
@@ -98,7 +79,7 @@ NTSTATUS KphConnect(
                 NULL,
                 NULL,
                 NULL,
-                PhGetString(objectName),
+                objectName,
                 L""
                 );
 
@@ -128,7 +109,7 @@ NTSTATUS KphConnect(
 
     if (started)
     {
-        status = KphCommsStart(portName, Callback);
+        status = KphCommsStart(&portName->sr, Callback);
     }
 
 CreateAndConnectEnd:
@@ -143,11 +124,6 @@ CreateAndConnectEnd:
         //
         DeleteService(serviceHandle);
         CloseServiceHandle(serviceHandle);
-    }
-
-    if (objectName)
-    {
-        PhDereferenceObject(objectName);
     }
 
     PhDereferenceObject(portName);
@@ -353,30 +329,32 @@ NTSTATUS KphResetParameters(
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE parametersKeyHandle = NULL;
-    PH_STRINGREF parametersKeyNameSr;
+    PH_STRINGREF serviceNameSr;
+    PH_STRINGREF parametersKeyName;
     PH_FORMAT format[3];
     SIZE_T returnLength;
-    WCHAR parametersKeyName[MAX_PATH];
+    WCHAR parametersKeyNameBuffer[MAX_PATH];
 
+    PhInitializeStringRefLongHint(&serviceNameSr, ServiceName);
     PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatS(&format[1], ServiceName);
+    PhInitFormatSR(&format[1], serviceNameSr);
     PhInitFormatS(&format[2], L"\\Parameters");
 
     if (!PhFormatToBuffer(
         format,
         RTL_NUMBER_OF(format),
-        parametersKeyName,
-        sizeof(parametersKeyName),
+        parametersKeyNameBuffer,
+        sizeof(parametersKeyNameBuffer),
         &returnLength
         ))
     {
         return STATUS_UNSUCCESSFUL;
     }
 
-    parametersKeyNameSr.Buffer = parametersKeyName;
-    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+    parametersKeyName.Buffer = parametersKeyNameBuffer;
+    parametersKeyName.Length = returnLength - sizeof(UNICODE_NULL);
 
-    status = KphUninstall(ServiceName);
+    status = KphUninstall(&serviceNameSr);
     status = WIN32_FROM_NTSTATUS(status);
 
     if (status == ERROR_SERVICE_DOES_NOT_EXIST)
@@ -388,7 +366,7 @@ NTSTATUS KphResetParameters(
             &parametersKeyHandle,
             DELETE,
             PH_KEY_LOCAL_MACHINE,
-            &parametersKeyNameSr,
+            &parametersKeyName,
             0
             );
     }
@@ -455,13 +433,14 @@ VOID KphSetServiceSecurity(
 
 NTSTATUS KphInstall(
     _In_ PPH_STRINGREF ServiceName,
+    _In_ PPH_STRINGREF ObjectName,
     _In_ PPH_STRINGREF FileName
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
-    PPH_STRING objectName = NULL;
+    PWSTR objectName = NULL;
 
     scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
 
@@ -469,9 +448,7 @@ NTSTATUS KphInstall(
         return PhGetLastWin32ErrorAsNtStatus();
 
     if (WindowsVersion > WINDOWS_7)
-    {
-        objectName = KphpGetObjectName();
-    }
+        objectName = PhGetStringRefZ(ObjectName);
 
     serviceHandle = CreateService(
         scmHandle,
@@ -485,7 +462,7 @@ NTSTATUS KphInstall(
         NULL,
         NULL,
         NULL,
-        PhGetString(objectName),
+        objectName,
         L""
         );
 
@@ -511,18 +488,13 @@ CreateEnd:
         status = PhGetLastWin32ErrorAsNtStatus();
     }
 
-    if (objectName)
-    {
-        PhDereferenceObject(objectName);
-    }
-
     CloseServiceHandle(scmHandle);
 
     return status;
 }
 
 NTSTATUS KphUninstall(
-    _In_z_ PWSTR ServiceName
+    _In_ PPH_STRINGREF ServiceName
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -534,7 +506,7 @@ NTSTATUS KphUninstall(
     if (!scmHandle)
         return PhGetLastWin32ErrorAsNtStatus();
 
-    serviceHandle = OpenService(scmHandle, ServiceName, SERVICE_STOP | DELETE);
+    serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_STOP | DELETE);
 
     if (serviceHandle)
     {
