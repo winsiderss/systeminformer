@@ -35,7 +35,9 @@ PTP_POOL KphpCommsThreadPool = NULL;
 TP_CALLBACK_ENVIRON KphpCommsThreadPoolEnv;
 PTP_IO KphpCommsThreadPoolIo = NULL;
 PKPH_UMESSAGE KphpCommsMessages = NULL;
+ULONG KphpCommsMessageCount = 0;
 PH_RUNDOWN_PROTECT KphpCommsRundown;
+PH_FREE_LIST KphpCommsReplyFreeList;
 
 #define KPH_COMMS_MIN_THREADS   2
 #define KPH_COMMS_MESSAGE_SCALE 2
@@ -49,11 +51,9 @@ typedef struct _FILTER_PORT_EA
     USHORT SizeOfContext;
     BYTE Padding[6];
     BYTE ConnectionContext[ANYSIZE_ARRAY];
-
 } FILTER_PORT_EA, *PFILTER_PORT_EA;
 
-#define KPI_FILTER_EA_NAME "FLTPORT"
-
+#define FLT_PORT_EA_NAME "FLTPORT"
 #define FLT_CTL_SEND_MESSAGE CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 6, METHOD_NEITHER, FILE_WRITE_ACCESS)
 #define FLT_CTL_GET_MESSAGE CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)
 #define FLT_CTL_REPLY_MESSAGE CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)
@@ -276,23 +276,22 @@ NTSTATUS KphpFilterReplyMessage(
  */
 _Must_inspect_result_
 NTSTATUS KphpFilterConnectCommunicationPort(
-    _In_ LPCWSTR PortName,
+    _In_ PPH_STRINGREF PortName,
     _In_ ULONG Options,
-    _In_reads_bytes_opt_(SizeOfContext) LPCVOID ConnectionContext,
+    _In_reads_bytes_opt_(SizeOfContext) PVOID ConnectionContext,
     _In_ USHORT SizeOfContext,
-    _In_opt_ LPSECURITY_ATTRIBUTES SecurityAttributes,
+    _In_opt_ PSECURITY_ATTRIBUTES SecurityAttributes,
     _Outptr_ HANDLE *Port
     )
 {
     NTSTATUS status;
-    OBJECT_ATTRIBUTES oa;
-    UNICODE_STRING fltMgr;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectName;
     UNICODE_STRING portName;
-    ULONG eaLen;
+    ULONG eaLength;
     PFILE_FULL_EA_INFORMATION ea;
     PFILTER_PORT_EA eaValue;
-    IO_STATUS_BLOCK iosb;
-    ULONG createOptions;
+    IO_STATUS_BLOCK isb;
 
     *Port = NULL;
 
@@ -306,26 +305,31 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     // Build the filter EA, this contains the port name and the context.
     //
 
-    eaLen = (sizeof(FILE_FULL_EA_INFORMATION)
+    eaLength = (sizeof(FILE_FULL_EA_INFORMATION)
              + sizeof(FILTER_PORT_EA)
-             + ARRAYSIZE(KPI_FILTER_EA_NAME)
+             + ARRAYSIZE(FLT_PORT_EA_NAME)
              + SizeOfContext);
-    ea = (PFILE_FULL_EA_INFORMATION)PhAllocateZeroSafe(eaLen);
+
+    ea = PhAllocateZeroSafe(eaLength);
     if (!ea)
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    ea->NextEntryOffset = 0;
     ea->Flags = 0;
-    ea->EaNameLength = (ARRAYSIZE(KPI_FILTER_EA_NAME) - 1);
-    RtlCopyMemory(ea->EaName, KPI_FILTER_EA_NAME, ARRAYSIZE(KPI_FILTER_EA_NAME));
-    ea->EaValueLength = (sizeof(FILTER_PORT_EA) + SizeOfContext);
-    eaValue = (PFILTER_PORT_EA)PTR_ADD_OFFSET(ea->EaName, ea->EaNameLength + 1);
-    RtlInitUnicodeString(&portName, PortName);
-    eaValue->PortName = &portName;
+    ea->EaNameLength = ARRAYSIZE(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL);
+    RtlCopyMemory(ea->EaName, FLT_PORT_EA_NAME, ARRAYSIZE(FLT_PORT_EA_NAME));
+    ea->EaValueLength = sizeof(FILTER_PORT_EA) + SizeOfContext;
+    eaValue = PTR_ADD_OFFSET(ea->EaName, ea->EaNameLength + sizeof(ANSI_NULL));
     eaValue->Unknown = NULL;
     eaValue->SizeOfContext = SizeOfContext;
+    eaValue->PortName = &portName;
+
+    if (!PhStringRefToUnicodeString(PortName, &portName))
+    {
+        return STATUS_NAME_TOO_LONG;
+    }
+
     if (SizeOfContext > 0)
     {
         RtlCopyMemory(eaValue->ConnectionContext,
@@ -333,40 +337,32 @@ NTSTATUS KphpFilterConnectCommunicationPort(
                       SizeOfContext);
     }
 
-    RtlInitUnicodeString(&fltMgr, L"\\Global??\\FltMgrMsg");
-    InitializeObjectAttributes(&oa,
-                               &fltMgr,
-                               OBJ_CASE_INSENSITIVE,
+    RtlInitUnicodeString(&objectName, L"\\FileSystem\\Filters\\FltMgrMsg");
+    InitializeObjectAttributes(&objectAttributes,
+                               &objectName,
+                               OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
                                NULL,
                                NULL);
     if (SecurityAttributes)
     {
         if (SecurityAttributes->bInheritHandle)
         {
-            oa.Attributes |= OBJ_INHERIT;
+            objectAttributes.Attributes |= OBJ_INHERIT;
         }
-        oa.SecurityDescriptor = SecurityAttributes->lpSecurityDescriptor;
-    }
-
-    RtlZeroMemory(&iosb, sizeof(iosb));
-
-    createOptions = 0;
-    if (Options & FLT_PORT_FLAG_SYNC_HANDLE)
-    {
-        createOptions = FILE_SYNCHRONOUS_IO_NONALERT;
+        objectAttributes.SecurityDescriptor = SecurityAttributes->lpSecurityDescriptor;
     }
 
     status = NtCreateFile(Port,
                           FILE_READ_ACCESS | FILE_WRITE_ACCESS | SYNCHRONIZE,
-                          &oa,
-                          &iosb,
+                          &objectAttributes,
+                          &isb,
                           NULL,
                           0,
                           0,
                           FILE_OPEN_IF,
-                          createOptions,
+                          Options & FLT_PORT_FLAG_SYNC_HANDLE ? FILE_SYNCHRONOUS_IO_NONALERT : 0,
                           ea,
-                          eaLen);
+                          eaLength);
 
     PhFree(ea);
 
@@ -498,13 +494,12 @@ Exit:
  */
 _Must_inspect_result_
 NTSTATUS KphCommsStart(
-    _In_ PPH_STRING PortName,
+    _In_ PPH_STRINGREF PortName,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     )
 {
     NTSTATUS status;
     ULONG numberOfThreads;
-    ULONG numberOfMessages;
 
     if (KphpCommsFltPortHandle)
     {
@@ -512,7 +507,7 @@ NTSTATUS KphCommsStart(
         goto Exit;
     }
 
-    status = KphpFilterConnectCommunicationPort(PhGetString(PortName),
+    status = KphpFilterConnectCommunicationPort(PortName,
                                                 0,
                                                 NULL,
                                                 0,
@@ -528,20 +523,17 @@ NTSTATUS KphCommsStart(
 
     PhInitializeRundownProtection(&KphpCommsRundown);
 
-    if (PhSystemProcessorInformation.NumberOfProcessors < KPH_COMMS_MIN_THREADS)
-    {
-        numberOfThreads = KPH_COMMS_MIN_THREADS;
-    }
-    else
-    {
-        numberOfThreads = (PhSystemProcessorInformation.NumberOfProcessors * KPH_COMMS_THREAD_SCALE);
-    }
+    PhDeleteFreeList(&KphpCommsReplyFreeList);
+    PhInitializeFreeList(&KphpCommsReplyFreeList, sizeof(KPH_UREPLY), 16);
 
-    numberOfMessages = numberOfThreads * KPH_COMMS_MESSAGE_SCALE;
-    if (numberOfMessages > KPH_COMMS_MAX_MESSAGES)
-    {
-        numberOfMessages = KPH_COMMS_MAX_MESSAGES;
-    }
+    if (PhSystemProcessorInformation.NumberOfProcessors >= KPH_COMMS_MIN_THREADS)
+        numberOfThreads = PhSystemProcessorInformation.NumberOfProcessors * KPH_COMMS_THREAD_SCALE;
+    else
+        numberOfThreads = KPH_COMMS_MIN_THREADS;
+
+    KphpCommsMessageCount = numberOfThreads * KPH_COMMS_MESSAGE_SCALE;
+    if (KphpCommsMessageCount > KPH_COMMS_MAX_MESSAGES)
+        KphpCommsMessageCount = KPH_COMMS_MAX_MESSAGES;
 
     status = TpAllocPool(&KphpCommsThreadPool, NULL);
     if (!NT_SUCCESS(status))
@@ -551,7 +543,7 @@ NTSTATUS KphCommsStart(
     TpSetPoolMinThreads(KphpCommsThreadPool, KPH_COMMS_MIN_THREADS);
     TpSetPoolMaxThreads(KphpCommsThreadPool, numberOfThreads);
     TpSetCallbackThreadpool(&KphpCommsThreadPoolEnv, KphpCommsThreadPool);
-    //TpSetCallbackLongFunction(&PiCommsThreadPoolEnv);
+    //TpSetCallbackLongFunction(&KphpCommsThreadPoolEnv);
 
     PhSetFileCompletionNotificationMode(KphpCommsFltPortHandle,
                                         FILE_SKIP_SET_EVENT_ON_HANDLE);
@@ -565,16 +557,27 @@ NTSTATUS KphCommsStart(
     if (!NT_SUCCESS(status))
         goto Exit;
 
-    KphpCommsMessages = PhAllocateExSafe(sizeof(KPH_UMESSAGE) * numberOfMessages,
-                                         HEAP_ZERO_MEMORY);
+    KphpCommsMessages = PhAllocateZeroSafe(sizeof(KPH_UMESSAGE) * KphpCommsMessageCount);
     if (!KphpCommsMessages)
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
 
-    for (ULONG i = 0; i < numberOfMessages; i++)
+    for (ULONG i = 0; i < KphpCommsMessageCount; i++)
     {
+        status = NtCreateEvent(&KphpCommsMessages[i].Overlapped.hEvent,
+                               EVENT_ALL_ACCESS,
+                               NULL,
+                               NotificationEvent,
+                               FALSE);
+        
+        if (!NT_SUCCESS(status))
+            goto Exit;
+        
+        RtlZeroMemory(&KphpCommsMessages[i].Overlapped,
+            FIELD_OFFSET(OVERLAPPED, hEvent));
+
         TpStartAsyncIoOperation(KphpCommsThreadPoolIo);
 
         status = KphpFilterGetMessage(KphpCommsFltPortHandle,
@@ -595,7 +598,6 @@ NTSTATUS KphCommsStart(
     status = STATUS_SUCCESS;
 
 Exit:
-
     if (!NT_SUCCESS(status))
     {
         KphCommsStop();
@@ -644,6 +646,17 @@ VOID KphCommsStop(
 
     if (KphpCommsMessages)
     {
+        for (ULONG i = 0; i < KphpCommsMessageCount; i++)
+        {
+            if (KphpCommsMessages[i].Overlapped.hEvent)
+            {
+                NtClose(KphpCommsMessages[i].Overlapped.hEvent);
+                KphpCommsMessages[i].Overlapped.hEvent = NULL;
+            }
+        }
+
+        KphpCommsMessageCount = 0;
+
         PhFree(KphpCommsMessages);
         KphpCommsMessages = NULL;
     }
@@ -679,7 +692,7 @@ NTSTATUS KphCommsReplyMessage(
     PFILTER_MESSAGE_HEADER header;
 
     reply = NULL;
-    header = (PFILTER_MESSAGE_HEADER)(ReplyToken);
+    header = (PFILTER_MESSAGE_HEADER)ReplyToken;
 
     if (!KphpCommsFltPortHandle)
     {
@@ -702,13 +715,14 @@ NTSTATUS KphCommsReplyMessage(
         goto Exit;
     }
 
-    reply = PhAllocateSafe(sizeof(KPH_UREPLY));
+    reply = PhAllocateFromFreeList(&KphpCommsReplyFreeList);
     if (!reply)
     {
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
 
+    RtlZeroMemory(&reply, sizeof(KPH_UREPLY));
     RtlCopyMemory(&reply->ReplyHeader, header, sizeof(reply->ReplyHeader));
     RtlCopyMemory(&reply->Message, Message, Message->Header.Size);
 
@@ -730,7 +744,7 @@ Exit:
 
     if (reply)
     {
-        PhFree(reply);
+        PhFreeToFreeList(&KphpCommsReplyFreeList, reply);
     }
 
     return status;
