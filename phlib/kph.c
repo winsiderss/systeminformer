@@ -1010,6 +1010,9 @@ KPH_PROCESS_STATE KphGetProcessState(
 {
     KPH_PROCESS_STATE state;
 
+    if (!KphCommsIsConnected())
+        return 0;
+
     if (!NT_SUCCESS(KphQueryInformationProcess(
         ZwCurrentProcess(),
         KphProcessStateInformation,
@@ -1026,6 +1029,9 @@ KPH_PROCESS_STATE KphGetCurrentProcessState(
     VOID
     )
 {
+    if (!KphCommsIsConnected())
+        return 0;
+
     return KphGetProcessState(NtCurrentProcess());
 }
 
