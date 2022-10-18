@@ -44,6 +44,11 @@ EXT ULONG KphDynAlpcServerCommunicationPort OFFDEFAULT;
 EXT ULONG KphDynAlpcClientCommunicationPort OFFDEFAULT;
 EXT ULONG KphDynAlpcHandleTable OFFDEFAULT;
 EXT ULONG KphDynAlpcHandleTableLock OFFDEFAULT;
+EXT ULONG KphDynAlpcAttributes OFFDEFAULT;
+EXT ULONG KphDynAlpcAttributesFlags OFFDEFAULT;
+EXT ULONG KphDynAlpcPortContext OFFDEFAULT;
+EXT ULONG KphDynAlpcSequenceNo OFFDEFAULT;
+EXT ULONG KphDynAlpcState OFFDEFAULT;
 
 EXT PLIST_ENTRY KphDynPsLoadedModuleList DYNIMPORTDEFAULT;
 EXT PERESOURCE KphDynPsLoadedModuleResource DYNIMPORTDEFAULT;
