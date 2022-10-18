@@ -67,6 +67,13 @@ KphUninstall(
     );
 
 PHLIBAPI
+PPH_FREE_LIST
+NTAPI
+KphGetMessageFreeList(
+    VOID
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 KphGetInformerSettings(
