@@ -101,6 +101,20 @@ typedef struct _KPH_SIZED_BUFFER
 
 extern PDRIVER_OBJECT KphDriverObject;
 extern KPH_INFORMER_SETTINGS KphInformerSettings;
+extern BOOLEAN KphpIgnoreDebuggerPresence;
+
+FORCEINLINE
+BOOLEAN KphKdPresent(
+    VOID
+    )
+{
+    if (KphpIgnoreDebuggerPresence)
+    {
+        return FALSE;
+    }
+
+    return !KD_DEBUGGER_NOT_PRESENT;
+}
 
 // alloc
 
