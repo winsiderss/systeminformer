@@ -9,8 +9,9 @@ extern "C" {
 #endif
 
 #define KPH_SERVICE_NAME __TEXT("KSystemInformer")
-#define KPH_OBJECT_NAME __TEXT("\\Driver\\KSystemInformer") 
-#define KPH_PORT_NAME __TEXT("\\KSystemInformer") 
+#define KPH_OBJECT_NAME __TEXT("\\Driver\\KSystemInformer")
+#define KPH_PORT_NAME __TEXT("\\KSystemInformer")
+#define KPH_ALTITUDE_NAME __TEXT("385400")
 
 PHLIBAPI
 NTSTATUS
@@ -18,7 +19,10 @@ NTAPI
 KphConnect(
     _In_ PPH_STRINGREF ServiceName,
     _In_ PPH_STRINGREF ObjectName,
+    _In_ PPH_STRINGREF PortName,
     _In_ PPH_STRINGREF FileName,
+    _In_ PPH_STRINGREF Altitude,
+    _In_ BOOLEAN DisableImageLoadProtection,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     );
 
@@ -26,7 +30,10 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetParameters(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ PPH_STRINGREF PortName,
+    _In_ PPH_STRINGREF Altitude,
+    _In_ BOOLEAN DisableImageLoadProtection
     );
 
 PHLIBAPI
@@ -56,7 +63,10 @@ NTAPI
 KphInstall(
     _In_ PPH_STRINGREF ServiceName,
     _In_ PPH_STRINGREF ObjectName,
-    _In_ PPH_STRINGREF FileName
+    _In_ PPH_STRINGREF PortName,
+    _In_ PPH_STRINGREF FileName,
+    _In_ PPH_STRINGREF Altitude,
+    _In_ BOOLEAN DisableImageLoadProtection
     );
 
 PHLIBAPI

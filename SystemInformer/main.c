@@ -1446,14 +1446,25 @@ VOID PhInitializeKph(
     if (kphServiceName && PhDoesFileExistWin32(kphFileName->Buffer))
     {
         PPH_STRING objectName = NULL;
+        PPH_STRING portName = NULL;
+        PPH_STRING altitudeName = NULL;
+        BOOLEAN disableImageLoadProtection = FALSE;
 
         if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KphObjectName")))
             PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
+        if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KphPortName")))
+            PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
+        if (PhIsNullOrEmptyString(altitudeName = PhGetStringSetting(L"KphAltitude")))
+            PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
+        disableImageLoadProtection = !!PhGetIntegerSetting(L"KphDisableImageLoadProtection");
 
         if (!NT_SUCCESS(status = KphConnect(
             &kphServiceName->sr,
             &objectName->sr,
+            &portName->sr,
             &kphFileName->sr,
+            &altitudeName->sr,
+            disableImageLoadProtection,
             KphCommsCallback
             )))
         {
@@ -1914,9 +1925,19 @@ VOID PhpProcessStartupParameters(
                 {
                     if (PhIsNullOrEmptyString(PhStartupParameters.InstallKphServiceName))
                     {
-                        static PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
-                        static PH_STRINGREF kphObjectName = PH_STRINGREF_INIT(KPH_OBJECT_NAME);
-                        status = KphInstall(&kphServiceName, &kphObjectName, &kphFileName->sr);
+                        PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
+                        PH_STRINGREF kphObjectName = PH_STRINGREF_INIT(KPH_OBJECT_NAME);
+                        PH_STRINGREF kphPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
+                        PH_STRINGREF kphAltitudeName = PH_STRINGREF_INIT(KPH_ALTITUDE_NAME);
+
+                        status = KphInstall(
+                            &kphServiceName,
+                            &kphObjectName,
+                            &kphPortName,
+                            &kphFileName->sr,
+                            &kphAltitudeName,
+                            FALSE
+                            );
                     }
                     else
                     {
@@ -1942,7 +1963,7 @@ VOID PhpProcessStartupParameters(
 
         if (PhIsNullOrEmptyString(PhStartupParameters.InstallKphServiceName))
         {
-            static PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
+            PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
             status = KphUninstall(&kphServiceName);
         }
         else

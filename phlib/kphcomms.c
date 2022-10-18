@@ -11,8 +11,6 @@
  */
 
 #include <kphcomms.h>
-#include <settings.h>
-
 #include <kphuser.h>
 #include <fltuser.h>
 
@@ -371,31 +369,6 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 }
 
 /**
- * \brief Retrieves the message port name.
- *
- * @return Message port name string.
- */
-PPH_STRING KphCommGetMessagePortName(
-    VOID
-    )
-{
-    PPH_STRING portName;
-
-    portName = PhGetStringSetting(L"KphPortName");
-    if (PhIsNullOrEmptyString(portName))
-    {
-        if (portName)
-        {
-            PhDereferenceObject(portName);
-        }
-
-        portName = PhCreateString(KPH_PORT_NAME);
-    }
-
-    return portName;
-}
-
-/**
  * \brief I/O thread pool callback for filter port.
  *
  * \param[in,out] Instance Unused
@@ -416,10 +389,6 @@ VOID WINAPI KphpCommsIoCallback(
 {
     NTSTATUS status;
     PKPH_UMESSAGE msg;
-
-    UNREFERENCED_PARAMETER(Instance);
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Io);
 
     if (!PhAcquireRundownProtection(&KphpCommsRundown))
     {
@@ -723,7 +692,7 @@ NTSTATUS KphCommsReplyMessage(
         goto Exit;
     }
 
-    RtlZeroMemory(&reply, sizeof(KPH_UREPLY));
+    RtlZeroMemory(reply, sizeof(KPH_UREPLY));
     RtlCopyMemory(&reply->ReplyHeader, header, sizeof(reply->ReplyHeader));
     RtlCopyMemory(&reply->Message, Message, Message->Header.Size);
 

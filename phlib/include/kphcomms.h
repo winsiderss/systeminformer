@@ -21,10 +21,6 @@ VOID (NTAPI *PKPH_COMMS_CALLBACK)(
     _In_ PCKPH_MESSAGE Message
     );
 
-PPH_STRING KphCommGetMessagePortName(
-    VOID
-    );
-
 _Must_inspect_result_
 NTSTATUS KphCommsStart(
     _In_ PPH_STRINGREF PortName,
