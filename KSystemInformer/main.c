@@ -18,6 +18,7 @@
 
 PDRIVER_OBJECT KphDriverObject = NULL;
 KPH_INFORMER_SETTINGS KphInformerSettings;
+BOOLEAN KphpIgnoreDebuggerPresence = FALSE;
 
 PAGED_FILE();
 
