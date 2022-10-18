@@ -488,7 +488,7 @@ FORCEINLINE VOID PhPrintPointerPadZeros(
     *dest++ = PH_HEX_CHARS[ptr & 0x0000000f];
 #endif
 
-    *dest = L'\0';
+    *dest = UNICODE_NULL;
 }
 
 // Misc.
