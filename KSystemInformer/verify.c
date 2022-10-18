@@ -359,7 +359,19 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     PAGED_CODE();
 
-    processState = 0;
+    if (KD_DEBUGGER_NOT_PRESENT)
+    {
+        processState = 0;
+    }
+    else
+    {
+        //
+        // There is an active kernel debugger. This ultimately permits low
+        // state callers into the driver. But still check for verification. 
+        // We still want to exercise the code below, regardless.
+        //
+        processState = ~KPH_PROCESS_VERIFIED_PROCESS;
+    }
 
     if (Process->SecurelyCreated)
     {

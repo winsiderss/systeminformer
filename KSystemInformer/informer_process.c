@@ -143,9 +143,27 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     processState = KphGetProcessState(process);
     if ((processState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
     {
+        ACCESS_MASK processAllowedMask;
+        ACCESS_MASK threadAllowedMask;
+
+        if (KD_DEBUGGER_NOT_PRESENT)
+        {
+            processAllowedMask = KPH_PROTECED_PROCESS_MASK;
+            threadAllowedMask = KPH_PROTECED_THREAD_MASK;
+        }
+        else
+        {
+            //
+            // There is an active kernel debugger. Allow all access, but still
+            // exercise the code by registering.
+            //
+            processAllowedMask = ((ACCESS_MASK)-1);
+            threadAllowedMask = ((ACCESS_MASK)-1);
+        }
+
         status = KphStartProtectingProcess(process,
-                                           KPH_PROTECED_PROCESS_MASK,
-                                           KPH_PROTECED_THREAD_MASK);
+                                           processAllowedMask,
+                                           threadAllowedMask);
         if (!NT_SUCCESS(status))
         {
             KphTracePrint(TRACE_LEVEL_ERROR,
