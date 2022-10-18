@@ -101,14 +101,21 @@ typedef struct _KPH_SIZED_BUFFER
 
 extern PDRIVER_OBJECT KphDriverObject;
 extern KPH_INFORMER_SETTINGS KphInformerSettings;
-extern BOOLEAN KphpIgnoreDebuggerPresence;
+extern BOOLEAN KphIgnoreDebuggerPresence;
+extern SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo;
 
 FORCEINLINE
 BOOLEAN KphKdPresent(
     VOID
     )
 {
-    if (KphpIgnoreDebuggerPresence)
+    if (KphIgnoreDebuggerPresence)
+    {
+        return FALSE;
+    }
+
+    if (KphSecureBootInfo.SecureBootCapable &&
+        KphSecureBootInfo.SecureBootEnabled)
     {
         return FALSE;
     }
