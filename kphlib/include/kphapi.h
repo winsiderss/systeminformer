@@ -207,6 +207,13 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     KphObjectEtwRegBasicInformation,   // q: ETWREG_BASIC_INFORMATION
     KphObjectFileObjectInformation,    // q: KPH_FILE_OBJECT_INFORMATION
     KphObjectFileObjectDriver,         // q: KPH_FILE_OBJECT_DRIVER
+    KphObjectProcessTimes,             // q: KERNEL_USER_TIMES
+    KphObjectThreadTimes,              // q: KERNEL_USER_TIMES
+    KphObjectProcessImageFileName,     // q: UNICODE_STRING
+    KphObjectThreadNameInformation,    // q: THREAD_NAME_INFORMATION
+    KphObjectThreadIsTerminated,       // q: ULONG
+    KphObjectSectionBasicInformation,  // q: SECTION_BASIC_INFORMATION
+    KphObjectSectionFileName,          // q: UNICODE_STRING 
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
 

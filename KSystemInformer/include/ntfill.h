@@ -365,6 +365,20 @@ ObSetHandleAttributes(
     _In_ KPROCESSOR_MODE AccessMode
     );
 
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ObDuplicateObject(
+    _In_ PEPROCESS SourceProcess,
+    _In_ HANDLE SourceHandle,
+    _In_opt_ PEPROCESS TargetProcess,
+    _Out_opt_ PHANDLE TargetHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Options,
+    _In_ KPROCESSOR_MODE PreviousMode
+    );
+
 // PS
 
 typedef struct _KLDR_DATA_TABLE_ENTRY
@@ -646,6 +660,7 @@ ZwSetInformationProcess(
 #define ProcessPriorityClassEx        108
 
 #define ThreadPowerThrottlingState     49
+#define ThreadNameInformation          38
 
 // RTL
 
