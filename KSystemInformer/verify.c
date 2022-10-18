@@ -359,11 +359,7 @@ KPH_PROCESS_STATE KphGetProcessState(
 
     PAGED_CODE();
 
-    if (KD_DEBUGGER_NOT_PRESENT)
-    {
-        processState = 0;
-    }
-    else
+    if (KphKdPresent())
     {
         //
         // There is an active kernel debugger. This ultimately permits low
@@ -371,6 +367,10 @@ KPH_PROCESS_STATE KphGetProcessState(
         // We still want to exercise the code below, regardless.
         //
         processState = ~KPH_PROCESS_VERIFIED_PROCESS;
+    }
+    else
+    {
+        processState = 0;
     }
 
     if (Process->SecurelyCreated)
