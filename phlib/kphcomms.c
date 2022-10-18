@@ -13,6 +13,7 @@
 #include <kphcomms.h>
 #include <settings.h>
 
+#include <kphuser.h>
 #include <fltuser.h>
 
 typedef struct _KPH_UMESSAGE
@@ -388,7 +389,7 @@ PPH_STRING KphCommGetMessagePortName(
             PhDereferenceObject(portName);
         }
 
-        portName = PhCreateString(L"\\KSystemInformer");
+        portName = PhCreateString(KPH_PORT_NAME);
     }
 
     return portName;
@@ -522,8 +523,6 @@ NTSTATUS KphCommsStart(
     KphpCommsRegisteredCallback = Callback;
 
     PhInitializeRundownProtection(&KphpCommsRundown);
-
-    PhDeleteFreeList(&KphpCommsReplyFreeList);
     PhInitializeFreeList(&KphpCommsReplyFreeList, sizeof(KPH_UREPLY), 16);
 
     if (PhSystemProcessorInformation.NumberOfProcessors >= KPH_COMMS_MIN_THREADS)
@@ -660,6 +659,8 @@ VOID KphCommsStop(
         PhFree(KphpCommsMessages);
         KphpCommsMessages = NULL;
     }
+
+    PhDeleteFreeList(&KphpCommsReplyFreeList);
 }
 
 /**
