@@ -96,6 +96,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcClientCommunicationPort = 0x10;
         Configuration->AlpcHandleTable = 0x28;
         Configuration->AlpcHandleTableLock = 0x10;
+        Configuration->AlpcAttributes = 0xd0;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x38;
+        Configuration->AlpcSequenceNo = 0x168;
+        Configuration->AlpcState = 0x16c;
     }
     // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2 && buildNumber == 9200)
@@ -119,6 +124,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcClientCommunicationPort = 0x10;
         Configuration->AlpcHandleTable = 0x28;
         Configuration->AlpcHandleTableLock = 0x10;
+        Configuration->AlpcAttributes = 0xe8;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x38;
+        Configuration->AlpcSequenceNo = 0x180;
+        Configuration->AlpcState = 0x184;
     }
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3 && buildNumber == 9600)
@@ -144,6 +154,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcClientCommunicationPort = 0x10;
         Configuration->AlpcHandleTable = 0x28;
         Configuration->AlpcHandleTableLock = 0x10;
+        Configuration->AlpcAttributes = 0xe8;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x38;
+        Configuration->AlpcSequenceNo = 0x178;
+        Configuration->AlpcState = 0x188;
     }
     // Windows 10, Windows Server 2016, Windows 11, Windows Server 2022
     else if (majorVersion == 10 && minorVersion == 0)
@@ -246,6 +261,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcServerCommunicationPort = 0x8;
         Configuration->AlpcClientCommunicationPort = 0x10;
         Configuration->AlpcHandleTable = 0x28;
+        Configuration->AlpcAttributes = 0x100;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x38;
+        Configuration->AlpcSequenceNo = 0x190;
+        Configuration->AlpcState = 0x1a0;
     }
     else
     {
@@ -312,6 +332,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcClientCommunicationPort = 0x8;
         Configuration->AlpcHandleTable = 0x14;
         Configuration->AlpcHandleTableLock = 0xc;
+        Configuration->AlpcAttributes = 0x80;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x1c;
+        Configuration->AlpcSequenceNo = 0xd4;
+        Configuration->AlpcState = 0xd8;
     }
     // Windows 8, Windows Server 2012
     else if (majorVersion == 6 && minorVersion == 2)
@@ -341,6 +366,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcClientCommunicationPort = 0x8;
         Configuration->AlpcHandleTable = 0x14;
         Configuration->AlpcHandleTableLock = 0xc;
+        Configuration->AlpcAttributes = 0x8c;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x1c;
+        Configuration->AlpcSequenceNo = 0xe0;
+        Configuration->AlpcState = 0xe4;
     }
     // Windows 8.1, Windows Server 2012 R2
     else if (majorVersion == 6 && minorVersion == 3)
@@ -370,6 +400,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcClientCommunicationPort = 0x8;
         Configuration->AlpcHandleTable = 0x14;
         Configuration->AlpcHandleTableLock = 0xc;
+        Configuration->AlpcAttributes = 0x8c;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x1c;
+        Configuration->AlpcSequenceNo = 0xdc;
+        Configuration->AlpcState = 0xe8;
     }
     // Windows 10
     else if (majorVersion == 10 && minorVersion == 0)
@@ -460,6 +495,11 @@ NTSTATUS KphInitializeDynamicConfiguration(
         Configuration->AlpcClientCommunicationPort = 0x8;
         Configuration->AlpcHandleTable = 0x14;
         Configuration->AlpcHandleTableLock = 0xc;
+        Configuration->AlpcAttributes = 0x98;
+        Configuration->AlpcAttributesFlags = 0x0;
+        Configuration->AlpcPortContext = 0x1c;
+        Configuration->AlpcSequenceNo = 0xe8;
+        Configuration->AlpcState = 0xf4;
     }
     else
     {

@@ -198,6 +198,28 @@ NTSTATUS KphpAlpcBasicInfo(
         Info->OwnerProcessId = PsGetProcessId(process);
     }
 
+    if ((KphDynAlpcAttributes != ULONG_MAX) &&
+        (KphDynAlpcAttributesFlags != ULONG_MAX))
+    {
+        Info->Flags = *(PULONG)Add2Ptr(Add2Ptr(Port, KphDynAlpcAttributes),
+                                       KphDynAlpcAttributesFlags);
+    }
+
+    if (KphDynAlpcPortContext != ULONG_MAX)
+    {
+        Info->PortContext = *(PVOID*)Add2Ptr(Port, KphDynAlpcPortContext);
+    }
+
+    if (KphDynAlpcSequenceNo != ULONG_MAX)
+    {
+        Info->SequenceNo = *(PULONG)Add2Ptr(Port, KphDynAlpcSequenceNo);
+    }
+
+    if (KphDynAlpcState != ULONG_MAX)
+    {
+        Info->State = *(PULONG)Add2Ptr(Port, KphDynAlpcState);
+    }
+
     return STATUS_SUCCESS;
 }
 
