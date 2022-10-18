@@ -11,8 +11,8 @@
  */
 
 #include <ph.h>
+#include <svcsup.h>
 #include <kphuser.h>
-#include <settings.h>
 
 static PH_INITONCE KphMessageInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST KphMessageFreeList;
@@ -20,7 +20,10 @@ static PH_FREE_LIST KphMessageFreeList;
 NTSTATUS KphConnect(
     _In_ PPH_STRINGREF ServiceName,
     _In_ PPH_STRINGREF ObjectName,
+    _In_ PPH_STRINGREF PortName,
     _In_ PPH_STRINGREF FileName,
+    _In_ PPH_STRINGREF Altitude,
+    _In_ BOOLEAN DisableImageLoadProtection,
     _In_opt_ PKPH_COMMS_CALLBACK Callback
     )
 {
@@ -29,8 +32,6 @@ NTSTATUS KphConnect(
     SC_HANDLE serviceHandle = NULL;
     BOOLEAN started = FALSE;
     BOOLEAN created = FALSE;
-    PPH_STRING portName;
-    PWSTR objectName = NULL;
 
     if (PhBeginInitOnce(&KphMessageInitOnce))
     {
@@ -38,9 +39,7 @@ NTSTATUS KphConnect(
         PhEndInitOnce(&KphMessageInitOnce);
     }
 
-    portName = KphCommGetMessagePortName();
-
-    status = KphCommsStart(&portName->sr, Callback);
+    status = KphCommsStart(PortName, Callback);
     if (NT_SUCCESS(status) || (status == STATUS_ALREADY_INITIALIZED))
         return status;
 
@@ -48,24 +47,18 @@ NTSTATUS KphConnect(
 
     // Try to start the service, if it exists.
 
-    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-
-    if (scmHandle)
+    if (scmHandle = PhGetServiceManagerHandle())
     {
-        serviceHandle = OpenService(scmHandle, ServiceName->Buffer, SERVICE_START);
-
-        if (serviceHandle)
+        if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_START))
         {
             if (StartService(serviceHandle, 0, NULL))
                 started = TRUE;
 
             CloseServiceHandle(serviceHandle);
         }
-
-        CloseServiceHandle(scmHandle);
     }
 
-    if (!started && PhDoesFileExistWin32(FileName->Buffer))
+    if (!started && PhDoesFileExistWin32(PhGetStringRefZ(FileName)))
     {
         // Try to create the service.
 
@@ -73,22 +66,19 @@ NTSTATUS KphConnect(
 
         if (scmHandle)
         {
-            if (WindowsVersion > WINDOWS_7)
-                objectName = PhGetStringRefZ(ObjectName);
-
             serviceHandle = CreateService(
                 scmHandle,
-                ServiceName->Buffer,
-                ServiceName->Buffer,
+                PhGetStringRefZ(ServiceName),
+                PhGetStringRefZ(ServiceName),
                 SERVICE_ALL_ACCESS,
                 SERVICE_KERNEL_DRIVER,
                 SERVICE_DEMAND_START,
                 SERVICE_ERROR_IGNORE,
-                FileName->Buffer,
+                PhGetStringRefZ(FileName),
                 NULL,
                 NULL,
                 NULL,
-                objectName,
+                WindowsVersion > WINDOWS_7 ? PhGetStringRefZ(ObjectName) : NULL,
                 L""
                 );
 
@@ -98,7 +88,13 @@ NTSTATUS KphConnect(
 
                 KphSetServiceSecurity(serviceHandle);
 
-                status = KphSetParameters(ServiceName);
+                status = KphSetParameters(
+                    ServiceName,
+                    PortName,
+                    Altitude,
+                    DisableImageLoadProtection
+                    );
+
                 if (!NT_SUCCESS(status))
                     goto CreateAndConnectEnd;
 
@@ -118,7 +114,7 @@ NTSTATUS KphConnect(
 
     if (started)
     {
-        status = KphCommsStart(&portName->sr, Callback);
+        status = KphCommsStart(PortName, Callback);
     }
 
 CreateAndConnectEnd:
@@ -135,13 +131,14 @@ CreateAndConnectEnd:
         CloseServiceHandle(serviceHandle);
     }
 
-    PhDereferenceObject(portName);
-
     return status;
 }
 
 NTSTATUS KphSetParameters(
-    _In_ PPH_STRINGREF ServiceName
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ PPH_STRINGREF PortName,
+    _In_ PPH_STRINGREF Altitude,
+    _In_ BOOLEAN DisableImageLoadProtection
     )
 {
     NTSTATUS status;
@@ -152,13 +149,7 @@ NTSTATUS KphSetParameters(
     PH_STRINGREF parametersKeyNameSr;
     PH_FORMAT format[3];
     WCHAR parametersKeyName[MAX_PATH];
-    PPH_STRING portName;
-    PPH_STRING altitude;
     KPH_DYN_CONFIGURATION configuration;
-    ULONG dynULongValue;
-
-    portName = NULL;
-    altitude = NULL;
 
     PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
     PhInitFormatSR(&format[1], *ServiceName);
@@ -191,42 +182,31 @@ NTSTATUS KphSetParameters(
     if (!NT_SUCCESS(status))
         return status;
 
-    portName = KphCommGetMessagePortName();
-
-    altitude = PhGetStringSetting(L"KphAltitude");
-    if (PhIsNullOrEmptyString(portName))
-    {
-        status = STATUS_FLT_INSTANCE_ALTITUDE_COLLISION;
-        goto SetValuesEnd;
-    }
-
     PhInitializeStringRef(&valueNameSr, L"KphPortName");
-    assert(portName->Buffer[portName->Length / sizeof(WCHAR)] == UNICODE_NULL);
     status = PhSetValueKey(
         parametersKeyHandle,
         &valueNameSr,
         REG_SZ,
-        portName->Buffer,
-        (ULONG)(portName->Length + sizeof(UNICODE_NULL))
+        PortName->Buffer,
+        (ULONG)PortName->Length + sizeof(UNICODE_NULL)
         );
     if (!NT_SUCCESS(status))
-        goto SetValuesEnd;
+        goto CleanupExit;
 
     PhInitializeStringRef(&valueNameSr, L"KphAltitude");
-    assert(altitude->Buffer[altitude->Length / sizeof(WCHAR)] == UNICODE_NULL);
     status = PhSetValueKey(
         parametersKeyHandle,
         &valueNameSr,
         REG_SZ,
-        altitude->Buffer,
-        (ULONG)(altitude->Length + sizeof(UNICODE_NULL))
+        Altitude->Buffer,
+        (ULONG)Altitude->Length + sizeof(UNICODE_NULL)
         );
     if (!NT_SUCCESS(status))
-        goto SetValuesEnd;
+        goto CleanupExit;
 
     status = KphInitializeDynamicConfiguration(&configuration);
     if (!NT_SUCCESS(status))
-        goto SetValuesEnd;
+        goto CleanupExit;
 
     PhInitializeStringRef(&valueNameSr, L"DynConfiguration");
     status = PhSetValueKey(
@@ -237,11 +217,11 @@ NTSTATUS KphSetParameters(
         sizeof(configuration)
         );
     if (!NT_SUCCESS(status))
-        goto SetValuesEnd;
+        goto CleanupExit;
 
-    if (PhGetIntegerSetting(L"KphDisableImageLoadProtection"))
+    if (DisableImageLoadProtection)
     {
-        dynULongValue = 1;
+        ULONG dynULongValue = 1;
 
         PhInitializeStringRef(&valueNameSr, L"DisableImageLoadProtection");
         status = PhSetValueKey(
@@ -252,15 +232,14 @@ NTSTATUS KphSetParameters(
             sizeof(dynULongValue)
             );
         if (!NT_SUCCESS(status))
-            goto SetValuesEnd;
+            goto CleanupExit;
     }
 
     // Put more parameters here...
 
-
     status = STATUS_SUCCESS;
 
-SetValuesEnd:
+CleanupExit:
     if (!NT_SUCCESS(status))
     {
         // Delete the key if we created it.
@@ -269,16 +248,6 @@ SetValuesEnd:
     }
 
     NtClose(parametersKeyHandle);
-
-    if (portName)
-    {
-        PhDereferenceObject(portName);
-    }
-
-    if (altitude)
-    {
-        PhDereferenceObject(altitude);
-    }
 
     return status;
 }
@@ -443,35 +412,34 @@ VOID KphSetServiceSecurity(
 NTSTATUS KphInstall(
     _In_ PPH_STRINGREF ServiceName,
     _In_ PPH_STRINGREF ObjectName,
-    _In_ PPH_STRINGREF FileName
+    _In_ PPH_STRINGREF PortName,
+    _In_ PPH_STRINGREF FileName,
+    _In_ PPH_STRINGREF Altitude,
+    _In_ BOOLEAN DisableImageLoadProtection
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
-    PWSTR objectName = NULL;
 
-    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
-
-    if (!scmHandle)
+    if (!(scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
+    {
         return PhGetLastWin32ErrorAsNtStatus();
-
-    if (WindowsVersion > WINDOWS_7)
-        objectName = PhGetStringRefZ(ObjectName);
+    }
 
     serviceHandle = CreateService(
         scmHandle,
-        ServiceName->Buffer,
-        ServiceName->Buffer,
+        PhGetStringRefZ(ServiceName),
+        PhGetStringRefZ(ServiceName),
         SERVICE_ALL_ACCESS,
         SERVICE_KERNEL_DRIVER,
         SERVICE_SYSTEM_START,
         SERVICE_ERROR_IGNORE,
-        FileName->Buffer,
+        PhGetStringRefZ(FileName),
         NULL,
         NULL,
         NULL,
-        objectName,
+        WindowsVersion > WINDOWS_7 ? PhGetStringRefZ(ObjectName) : NULL,
         L""
         );
 
@@ -479,7 +447,13 @@ NTSTATUS KphInstall(
     {
         KphSetServiceSecurity(serviceHandle);
 
-        status = KphSetParameters(ServiceName);
+        status = KphSetParameters(
+            ServiceName,
+            PortName,
+            Altitude,
+            DisableImageLoadProtection
+            );
+
         if (!NT_SUCCESS(status))
         {
             DeleteService(serviceHandle);
@@ -510,14 +484,12 @@ NTSTATUS KphUninstall(
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
 
-    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-
-    if (!scmHandle)
+    if (!(scmHandle = PhGetServiceManagerHandle()))
+    {
         return PhGetLastWin32ErrorAsNtStatus();
+    }
 
-    serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_STOP | DELETE);
-
-    if (serviceHandle)
+    if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_STOP | DELETE))
     {
         SERVICE_STATUS serviceStatus;
 
@@ -533,8 +505,6 @@ NTSTATUS KphUninstall(
         status = PhGetLastWin32ErrorAsNtStatus();
     }
 
-    CloseServiceHandle(scmHandle);
-
     return status;
 }
 
@@ -542,6 +512,12 @@ PPH_FREE_LIST KphGetMessageFreeList(
     VOID
     )
 {
+    if (PhBeginInitOnce(&KphMessageInitOnce))
+    {
+        PhInitializeFreeList(&KphMessageFreeList, sizeof(KPH_MESSAGE), 16);
+        PhEndInitOnce(&KphMessageInitOnce);
+    }
+
     return &KphMessageFreeList;
 }
 
