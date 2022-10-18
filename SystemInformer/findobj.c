@@ -1467,9 +1467,7 @@ INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         if (selectedItem && selectedItem->Id != ULONG_MAX)
                         {
-                            BOOLEAN handled = FALSE;
-
-                            handled = PhHandleCopyCellEMenuItem(selectedItem);
+                            PhHandleCopyCellEMenuItem(selectedItem);
                         }
 
                         PhDestroyEMenu(menu);
