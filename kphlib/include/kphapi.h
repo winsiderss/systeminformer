@@ -279,6 +279,32 @@ typedef enum _KPH_ALPC_INFORMATION_CLASS
 typedef struct _KPH_ALPC_BASIC_INFORMATION
 {
     HANDLE OwnerProcessId;
+    ULONG Flags;
+    LONG SequenceNo;
+    PVOID PortContext;
+    union
+    {
+        ULONG State;
+        struct
+        {
+            ULONG Initialized : 1;
+            ULONG Type : 2;
+            ULONG ConnectionPending : 1;
+            ULONG ConnectionRefused : 1;
+            ULONG Disconnected : 1;
+            ULONG Closed : 1;
+            ULONG NoFlushOnClose : 1;
+            ULONG ReturnExtendedInfo : 1;
+            ULONG Waitable : 1;
+            ULONG DynamicSecurity : 1;
+            ULONG Wow64CompletionList : 1;
+            ULONG Lpc : 1;
+            ULONG LpcToLpc : 1;
+            ULONG HasCompletionList : 1;
+            ULONG HadCompletionList : 1;
+            ULONG EnableCompletionList : 1;
+        };
+    };
 } KPH_ALPC_BASIC_INFORMATION, *PKPH_ALPC_BASIC_INFORMATION;
 
 typedef struct _KPH_ALPC_COMMUNICATION_INFORMATION
@@ -336,6 +362,11 @@ typedef struct _KPH_DYN_CONFIGURATION
     SHORT AlpcClientCommunicationPort;  // dt nt!_ALPC_COMMUNICATION_INFO ClientCommunicationPort
     SHORT AlpcHandleTable;              // dt nt!_ALPC_COMMUNICATION_INFO HandleTable
     SHORT AlpcHandleTableLock;          // dt nt!_ALPC_HANDLE_TABLE Lock
+    SHORT AlpcAttributes;               // dt nt!_ALPC_PORT PortAttributes
+    SHORT AlpcAttributesFlags;          // dt nt!_ALPC_PORT_ATTRIBUTES Flags
+    SHORT AlpcPortContext;              // dt nt!_ALPC_PORT PortContext
+    SHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
+    SHORT AlpcState;                    // dt nt!_ALPC_PORT State
 
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
