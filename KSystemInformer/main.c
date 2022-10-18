@@ -18,7 +18,8 @@
 
 PDRIVER_OBJECT KphDriverObject = NULL;
 KPH_INFORMER_SETTINGS KphInformerSettings;
-BOOLEAN KphpIgnoreDebuggerPresence = FALSE;
+BOOLEAN KphIgnoreDebuggerPresence = FALSE;
+SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 
 PAGED_FILE();
 
@@ -99,6 +100,14 @@ NTSTATUS DriverEntry(
     RtlZeroMemory(&KphInformerSettings, sizeof(KphInformerSettings));
 
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
+
+    if (!NT_SUCCESS(ZwQuerySystemInformation(SystemSecureBootInformation,
+                                             &KphSecureBootInfo,
+                                             sizeof(KphSecureBootInfo),
+                                             NULL)))
+    {
+        RtlZeroMemory(&KphSecureBootInfo, sizeof(KphSecureBootInfo));
+    }
 
     KphInitializeAlloc();
 
