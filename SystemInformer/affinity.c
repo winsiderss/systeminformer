@@ -543,10 +543,12 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
                     if (context->GroupComboHandle)
                     {
-                        affinityGroup = ComboBox_GetCurSel(context->GroupComboHandle);
+                         INT affinityGroupSelection = ComboBox_GetCurSel(context->GroupComboHandle);
 
-                        if (affinityGroup == CB_ERR)
-                            affinityGroup = context->AffinityGroup;
+                         if (affinityGroupSelection == CB_ERR)
+                             affinityGroup = context->AffinityGroup;
+                         else
+                             affinityGroup = (USHORT)affinityGroupSelection;
                     }
 
                     if (context->ProcessItem)
