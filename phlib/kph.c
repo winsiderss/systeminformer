@@ -884,7 +884,6 @@ NTSTATUS KphQueryInformationObject(
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
-
     return status;
 }
 

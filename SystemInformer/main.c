@@ -165,8 +165,7 @@ INT WINAPI wWinMain(
 
     if (PhGetIntegerSetting(L"EnableKph") &&
         !PhStartupParameters.NoKph &&
-        !PhIsExecutingInWow64()
-        )
+        !PhIsExecutingInWow64())
     {
         PhInitializeKph();
     }
@@ -242,7 +241,10 @@ INT WINAPI wWinMain(
 
     PhEnableTerminationPolicy(TRUE);
 
-    if (PhGetIntegerSetting(L"EnableKphWarnings"))
+    if (PhGetIntegerSetting(L"EnableKph") &&
+        PhGetIntegerSetting(L"EnableKphWarnings") &&
+        !PhStartupParameters.NoKph &&
+        !PhIsExecutingInWow64())
     {
         KPH_PROCESS_STATE processState;
 
@@ -1284,7 +1286,6 @@ VOID NTAPI KphCommsCallback(
 
     freelist = KphGetMessageFreeList();
     msg = PhAllocateFromFreeList(freelist);
-
     KphMsgInit(msg, KphMsgProcessCreate);
 
     msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
