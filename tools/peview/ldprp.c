@@ -371,7 +371,7 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 \
                 if (RTL_CONTAINS_FIELD((Config), (Config)->Size, DynamicValueRelocTable)) \
                 { \
-                    ADD_VALUE(L"Dynamic value relocation table", PhaFormatString(L"0x%Ix", (Config)->DynamicValueRelocTable)->Buffer); \
+                    ADD_VALUE(L"DynamicValue relocation table", PhaFormatString(L"0x%Ix", (Config)->DynamicValueRelocTable)->Buffer); \
                     ADD_VALUE(L"Hybrid metadata pointer", PhaFormatString(L"0x%Ix", (Config)->CHPEMetadataPointer)->Buffer); \
                     ADD_VALUE(L"GuardRF failure-function routine", PhaFormatString(L"0x%Ix", (Config)->GuardRFFailureRoutine)->Buffer); \
                     ADD_VALUE(L"GuardRF failure-function pointer", PhaFormatString(L"0x%Ix", (Config)->GuardRFFailureRoutineFunctionPointer)->Buffer); \

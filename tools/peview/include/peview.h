@@ -149,6 +149,16 @@ VOID PvConfigTreeBorders(
     _In_ HWND WindowHandle
     );
 
+VOID PvSetListViewImageList(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListViewHandle
+    );
+
+VOID PvSetTreeViewImageList(
+    _In_ HWND WindowHandle,
+    _In_ HWND TreeViewHandle
+    );
+
 // settings
 
 extern BOOLEAN PeEnableThemeSupport;

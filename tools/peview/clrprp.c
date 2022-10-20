@@ -413,27 +413,6 @@ CleanupExit:
         FreeLibrary(mscoreeHandle);
 }
 
-VOID PvpSetImagelist(
-    _In_ PPVP_PE_CLR_CONTEXT context
-)
-{
-    HIMAGELIST listViewImageList;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(context->ListViewHandle);
-
-    listViewImageList = PhImageListCreate (
-        2,
-        PhGetDpi(20, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1,
-        1
-        );
-
-    if (listViewImageList)
-        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
-}
-
 INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -482,6 +461,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 80, L"Hash");
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageClrListViewColumns", context->ListViewHandle);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_CLRGROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -489,8 +469,6 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_MVIDSTRING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TOKENSTRING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-
-            PvpSetImagelist(context);
 
             if (!context->PdbMetadataAddress)
             {
@@ -529,7 +507,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelist(context);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }
         break;
     case WM_SHOWWINDOW:

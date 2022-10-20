@@ -6,16 +6,15 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2019-2021
+ *     dmex    2019-2022
  *
  */
 
 #include <peview.h>
 #include <emenu.h>
+#include <cpysave.h>
 
 #include <shobjidl.h>
-
-#include <cpysave.h>
 
 static GUID CLSID_ShellLink_I = { 0x00021401, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
 static GUID IID_IShellLinkW_I = { 0x000214f9, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
@@ -876,3 +875,61 @@ BOOLEAN PhHandleCopyCellEMenuItem(
 }
 
 #pragma endregion
+
+VOID PvSetListViewImageList(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListViewHandle
+    )
+{
+    HIMAGELIST listViewImageList;
+    LONG dpiValue;
+
+    if (listViewImageList = ListView_GetImageList(ListViewHandle, LVSIL_SMALL))
+    {
+        PhImageListDestroy(listViewImageList);
+        listViewImageList = NULL;
+    }
+
+    dpiValue = PhGetWindowDpi(WindowHandle);
+    listViewImageList = PhImageListCreate(
+        2,
+        PhGetDpi(20, dpiValue),
+        ILC_MASK | ILC_COLOR32,
+        1,
+        1
+        );
+
+    if (listViewImageList)
+    {
+        ListView_SetImageList(ListViewHandle, listViewImageList, LVSIL_SMALL);
+    }
+}
+
+VOID PvSetTreeViewImageList(
+    _In_ HWND WindowHandle,
+    _In_ HWND TreeViewHandle
+    )
+{
+    HIMAGELIST treeViewImageList;
+    LONG dpiValue;
+
+    if (treeViewImageList = TreeView_GetImageList(TreeViewHandle, TVSIL_NORMAL))
+    {
+        PhImageListDestroy(treeViewImageList);
+        treeViewImageList = NULL;
+    }
+
+    dpiValue = PhGetWindowDpi(WindowHandle);
+    treeViewImageList = PhImageListCreate(
+        2,
+        PhGetDpi(24, dpiValue),
+        ILC_MASK | ILC_COLOR32,
+        1,
+        1
+        );
+
+    if (treeViewImageList)
+    {
+        TreeView_SetImageList(TreeViewHandle, treeViewImageList, TVSIL_NORMAL);
+    }
+}

@@ -198,27 +198,6 @@ VOID PvGeneralPageSave(
     }
 }
 
-VOID PvpSetImagelistO(
-    _In_ PPVP_PE_OPTIONS_CONTEXT context
-    )
-{
-    HIMAGELIST listViewImageList;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(context->WindowHandle);
-
-    listViewImageList = PhImageListCreate (
-        1,
-        PhGetDpi(22, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1,
-        1
-        );
-
-    if (listViewImageList)
-        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
-}
-
 INT_PTR CALLBACK PvOptionsWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -252,8 +231,6 @@ INT_PTR CALLBACK PvOptionsWndProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ComboHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
 
-            PvpSetImagelistO(context);
-
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhGetStockApplicationIcon(&smallIcon, &largeIcon);
@@ -268,6 +245,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -292,7 +270,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelistO(context);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }
         break;
     case WM_COMMAND:
