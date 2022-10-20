@@ -94,27 +94,6 @@ VOID PvEnumerateFileExtendedAttributes(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-VOID PvpSetImagelistA(
-    _In_ PPVP_PE_ATTRIBUTES_CONTEXT context
-    )
-{
-    HIMAGELIST listViewImageList;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(context->WindowHandle);
-
-    listViewImageList = PhImageListCreate (
-        2,
-        PhGetDpi(20, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1,
-        1
-        );
-
-    if (listViewImageList)
-        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
-}
-
 INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -158,11 +137,10 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageAttributesListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-
-            PvpSetImagelistA(context);
 
             PvEnumerateFileExtendedAttributes(context->ListViewHandle);
 
@@ -180,7 +158,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelistA(context);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }
         break;
     case WM_SHOWWINDOW:

@@ -1956,27 +1956,6 @@ static INT NTAPI PvpPeCharacteristicsCompareFunction(
     return uintcmp(entry1->Characteristics, entry2->Characteristics);
 }
 
-VOID PvpSetImagelistPE(
-    _In_ PPVP_PE_GENERAL_CONTEXT context
-    )
-{
-    HIMAGELIST listViewImageList;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(context->WindowHandle);
-
-    listViewImageList = PhImageListCreate (
-        2,
-        PhGetDpi(20, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1,
-        1
-        );
-
-    if (listViewImageList)
-        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
-}
-
 INT_PTR CALLBACK PvPeGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2021,8 +2000,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             //PhLoadListViewSortColumnsFromSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             PvPeAddImagePropertiesGroups(context);
             PhLoadListViewGroupStatesFromSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
-
-            PvpSetImagelistPE(context);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -2054,7 +2032,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelistPE(context);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }
         break;
     case WM_SHOWWINDOW:

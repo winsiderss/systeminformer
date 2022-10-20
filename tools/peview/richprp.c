@@ -385,27 +385,6 @@ VOID PvpPeEnumProdEntries(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
-VOID PvpSetImagelistR(
-    _In_ PPVP_PE_PRODUCTION_ID_CONTEXT context
-    )
-{
-    HIMAGELIST listViewImageList;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(context->WindowHandle);
-
-    listViewImageList = PhImageListCreate (
-        2,
-        PhGetDpi(20, dpiValue),
-        ILC_MASK | ILC_COLOR32,
-        1,
-        1
-        );
-
-    if (listViewImageList)
-        ListView_SetImageList(context->ListViewHandle, listViewImageList, LVSIL_SMALL);
-}
-
 INT_PTR CALLBACK PvpPeProdIdDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -451,6 +430,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(L"ImageProdIdListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODID), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -458,8 +438,6 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH2), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-
-            PvpSetImagelistR(context);
 
             PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle);
 
@@ -475,7 +453,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PvpSetImagelistR(context);
+            PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }
         break;
     case WM_SHOWWINDOW:
