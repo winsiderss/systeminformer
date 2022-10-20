@@ -477,14 +477,13 @@ VOID PvpPeEnumAlternateMappedImageResources(
     _In_ PPH_STRING FileName
     )
 {
-    PVOID baseAddress;
-    PVOID muiBaseAddress;
-    PPH_STRING muiFileName;
-    PH_MAPPED_IMAGE muiMappedImage;
-    ULONG errr = 0;
-
     if (!Context->MuiMappedImage.ViewBase)
     {
+        PVOID baseAddress;
+        PVOID muiBaseAddress;
+        PPH_STRING muiFileName;
+        PH_MAPPED_IMAGE muiMappedImage;
+
         if (NT_SUCCESS(PhLoadLibraryAsImageResourceWin32(&FileName->sr, &baseAddress)))
         {
             if (NT_SUCCESS(LdrLoadAlternateResourceModule(baseAddress, &muiBaseAddress, NULL, 0)))
@@ -504,6 +503,8 @@ VOID PvpPeEnumAlternateMappedImageResources(
 
                 LdrUnloadAlternateResourceModule(muiBaseAddress);
             }
+
+            PhFreeLibraryAsImageResource(baseAddress);
         }
     }
 
