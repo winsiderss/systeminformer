@@ -110,6 +110,67 @@ VOID KphCleanupVerify(
 }
 
 /**
+ * \brief Verifies a buffer matches the provided signature.
+ *
+ * \param[in] Buffer The buffer to verify.
+ * \param[in] BufferLength The length of the buffer.
+ * \param[in] Signature The signature to check.
+ * \param[in] SignatureLength The length of the signature.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyBuffer(
+    _In_ PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_ PUCHAR Signature,
+    _In_ ULONG SignatureLength
+    )
+{
+    NTSTATUS status;
+    KPH_HASH hash;
+
+    PAGED_PASSIVE();
+
+    NT_ASSERT(KphpTrustedPublicKeyHandle);
+
+    status = KphHashBuffer(Buffer, BufferLength, CALG_SHA_256, &hash);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "KphHashBuffer failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = BCryptVerifySignature(KphpTrustedPublicKeyHandle,
+                                   NULL,
+                                   hash.Buffer,
+                                   hash.Size,
+                                   Signature,
+                                   SignatureLength,
+                                   0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "BCryptVerifySignature failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    return status;
+}
+
+/**
  * \brief Verifies that a file matches the provided signature.
  *
  * \param[in] FileName File name of file to verify.

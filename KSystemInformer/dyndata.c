@@ -13,71 +13,41 @@
 #include <kph.h>
 #define _DYNDATA_PRIVATE
 #include <dyndata.h>
+#include <kphdyn.h>
 
 #include <trace.h>
+
+#include <pshpack1.h>
+typedef struct _KPH_DYNDATA
+{
+    ULONG Count;
+    KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
+
+} KPH_DYNDATA, *PKPH_DYNDATA;
+#include <poppack.h>
 
 PAGED_FILE();
 
 static UNICODE_STRING KphpAltitudeValueName = RTL_CONSTANT_STRING(L"KphAltitude");
 static UNICODE_STRING KphpPortNameValueName = RTL_CONSTANT_STRING(L"KphPortName");
-static UNICODE_STRING KphpDynConfigurationValueName = RTL_CONSTANT_STRING(L"DynConfiguration");
+static UNICODE_STRING KphpDynDataValueName = RTL_CONSTANT_STRING(L"DynData");
+static UNICODE_STRING KphpDynDataSigValueName = RTL_CONSTANT_STRING(L"DynDataSig");
 static UNICODE_STRING KphpDisableImageLoadProtectionValueName = RTL_CONSTANT_STRING(L"DisableImageLoadProtection");
 
-/**
- * \brief Verifies the PHNT version from dynamic configuration.
- *
- * \param[in] Version The version reported by OS.
- * \param[in] NtVersion PHNT version from dynamic configuration.
- *
- * \return TRUE if the version makes sense, FALSE otherwise.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-BOOLEAN KphpIsValidNtVersion(
-    _In_ PRTL_OSVERSIONINFOEXW Version,
-    _In_ ULONG NtVersion
-    )
+typedef struct _KPH_ACTIVE_DYNDATA
 {
-    PAGED_PASSIVE();
+    ULONG Version;
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT ServicePackMajor;
+    USHORT BuildNumberMin;
+    USHORT RevisionMin;
+    USHORT BuildNumberMax;
+    USHORT RevisionMax;
 
-    //
-    // N.B. If a piece of the code relies on the PHNT version being accurate
-    // then checks should be added here for it.
-    //
+} KPH_ACTIVE_DYNDATA, *PKPH_ACTIVE_DYNDATA;
 
-    if (Version->dwMajorVersion == 6)
-    {
-        switch (Version->dwMinorVersion)
-        {
-            case 1:
-            {
-                return (NtVersion == PHNT_WIN7);
-            }
-            case 2:
-            {
-                return (NtVersion == PHNT_WIN8);
-            }
-            case 3:
-            {
-                return (NtVersion == PHNT_WINBLUE);
-            }
-            default:
-            {
-                return FALSE;
-            }
-        }
-    }
-
-    if (Version->dwMajorVersion >= 10)
-    {
-        return (NtVersion >= PHNT_THRESHOLD);
-    }
-
-    //
-    // Driver doesn't support pre Win7.
-    //
-    return FALSE;
-}
+static KPH_ACTIVE_DYNDATA KphpActiveDynData = { 0 };
 
 /**
  * \brief Sets the dynamic configuration.
@@ -92,63 +62,86 @@ NTSTATUS KphpSetDynamicConfigiration(
     _In_ PKPH_DYN_CONFIGURATION Configuration
     )
 {
-    NTSTATUS status;
-    RTL_OSVERSIONINFOEXW version;
-
     PAGED_PASSIVE();
 
     if (Configuration->Version != KPH_DYN_CONFIGURATION_VERSION)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Dynamic configuration version mismatch!");
-
         return STATUS_REVISION_MISMATCH;
     }
 
-    RtlZeroMemory(&version, sizeof(RTL_OSVERSIONINFOEXW));
-    version.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
-    status = RtlGetVersion((PRTL_OSVERSIONINFOW)&version);
-    if (!NT_SUCCESS(status))
+    if ((Configuration->MajorVersion != KphOsVersionInfo.dwMajorVersion) ||
+        (Configuration->MinorVersion != KphOsVersionInfo.dwMinorVersion))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "RtlGetVersion failed: %!STATUS!",
-                      status);
-
-        return status;
-    }
-
-    if ((Configuration->MajorVersion != version.dwMajorVersion) ||
-        (Configuration->MinorVersion != version.dwMinorVersion) ||
-        ((Configuration->ServicePackMajor != USHORT_MAX) &&
-         (Configuration->ServicePackMajor != version.wServicePackMajor)) ||
-        ((Configuration->BuildNumber != USHORT_MAX) &&
-         (Configuration->BuildNumber != version.dwBuildNumber)))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Dynamic configuration not supported on this OS!");
-
         return STATUS_NOT_SUPPORTED;
     }
 
-    if (!KphpIsValidNtVersion(&version, Configuration->ResultingNtVersion))
+    if ((Configuration->ServicePackMajor != USHORT_MAX) &&
+        (Configuration->ServicePackMajor != KphOsVersionInfo.wServicePackMajor))
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "ResultingNtVersion is invalid!");
-
-        return STATUS_BAD_DATA;
+        return STATUS_NOT_SUPPORTED;
     }
+
+    if (Configuration->BuildNumberMin != USHORT_MAX)
+    {
+        if (Configuration->BuildNumberMin < KphOsVersionInfo.dwBuildNumber)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        if ((Configuration->RevisionMin != USHORT_MAX) &&
+            (Configuration->RevisionMin < KphOsRevision))
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+
+    if (Configuration->BuildNumberMax != USHORT_MAX)
+    {
+        if (Configuration->BuildNumberMax >= KphOsVersionInfo.dwBuildNumber)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        if ((Configuration->RevisionMax != USHORT_MAX) &&
+            (Configuration->RevisionMax >= KphOsRevision))
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+
+    if ((Configuration->BuildNumberMax == USHORT_MAX) &&
+        (Configuration->BuildNumberMin == USHORT_MAX))
+    {
+        if ((Configuration->RevisionMin != USHORT_MAX) &&
+            (Configuration->RevisionMin < KphOsRevision))
+        {
+            return STATUS_NOT_SUPPORTED;
+
+        }
+
+        if ((Configuration->RevisionMax != USHORT_MAX) &&
+            (Configuration->RevisionMax >= KphOsRevision))
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+
+    KphpActiveDynData.Version = Configuration->Version;
+    KphpActiveDynData.MajorVersion = Configuration->MajorVersion;
+    KphpActiveDynData.MinorVersion = Configuration->MinorVersion;
+    KphpActiveDynData.ServicePackMajor = Configuration->ServicePackMajor;
+    KphpActiveDynData.BuildNumberMin = Configuration->BuildNumberMin;
+    KphpActiveDynData.RevisionMin = Configuration->RevisionMin;
+    KphpActiveDynData.BuildNumberMax = Configuration->BuildNumberMax;
+    KphpActiveDynData.RevisionMax = Configuration->RevisionMax;
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   GENERAL,
-                  "Setting dynamic configuration for Windows %u.%u",
-                  Configuration->MajorVersion,
-                  Configuration->MinorVersion);
-
-    KphDynNtVersion = Configuration->ResultingNtVersion;
+                  "Setting dynamic configuration for Windows %lu.%lu.%lu.%lu",
+                  KphOsVersionInfo.dwMajorVersion,
+                  KphOsVersionInfo.dwMinorVersion,
+                  KphOsVersionInfo.dwBuildNumber,
+                  KphOsRevision);
 
     KphDynEgeGuid = C_2sTo4(Configuration->EgeGuid);
     KphDynEpObjectTable = C_2sTo4(Configuration->EpObjectTable);
@@ -259,7 +252,8 @@ NTSTATUS KphpOpenParametersKey(
  * \brief Reads dynamic configuration from parameters.
  *
  * \param[in] KeyHandle Handle to the parameters registry key.
- * \param[out] Configuration Populated with the dynamic configuration.
+ * \param[out] DynData Set to the dynamic data blob, should be freed with
+ * KphFreeRegistryBinay.
  *
  * \return Successful or errant status.
  */
@@ -267,42 +261,125 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpReadDynamicConfiguration(
     _In_ HANDLE KeyHandle,
-    _Out_ PKPH_DYN_CONFIGURATION Configuration
+    _Out_ PKPH_DYNDATA* DynData 
     )
 {
     NTSTATUS status;
-    PUCHAR buffer;
-    ULONG length;
+    PUCHAR dataBuffer;
+    ULONG dataLength;
+    PUCHAR sigBuffer;
+    ULONG sigLength;
+    ULONG actualLength;
+    PKPH_DYNDATA dynData;
 
     PAGED_PASSIVE();
 
-    buffer = NULL;
+    *DynData = NULL;
 
-    RtlZeroMemory(Configuration, sizeof(*Configuration));
+    dataBuffer = NULL;
+    sigBuffer = NULL;
 
     status = KphQueryRegistryBinary(KeyHandle,
-                                    &KphpDynConfigurationValueName,
-                                    &buffer,
-                                    &length);
+                                    &KphpDynDataValueName,
+                                    &dataBuffer,
+                                    &dataLength);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KphQueryRegistryBinary failed: %!STATUS!",
+                      status);
+
         goto Exit;
     }
 
-    if (length < sizeof(KPH_DYN_CONFIGURATION))
+    if (dataLength < sizeof(KPH_DYNDATA))
     {
-        status = STATUS_INFO_LENGTH_MISMATCH;
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Dynamic data blob is too small");
+
+        status = STATUS_BUFFER_TOO_SMALL;
         goto Exit;
     }
 
-    RtlCopyMemory(Configuration, buffer, sizeof(*Configuration));
+    status = KphQueryRegistryBinary(KeyHandle,
+                                    &KphpDynDataSigValueName,
+                                    &sigBuffer,
+                                    &sigLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KphQueryRegistryBinary failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = KphVerifyBuffer(dataBuffer, dataLength, sigBuffer, sigLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_CRITICAL,
+                      GENERAL,
+                      "KphVerifyBuffer failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    dynData = (PKPH_DYNDATA)dataBuffer;
+
+    status = RtlULongMult(sizeof(KPH_DYN_CONFIGURATION),
+                          dynData->Count,
+                          &actualLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "RtlULongMult failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    status = RtlULongAdd(actualLength,
+                         RTL_SIZEOF_THROUGH_FIELD(KPH_DYNDATA, Count),
+                         &actualLength);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "RtlULongAdd failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (dataLength < actualLength)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Dynamic data buffer overflow");
+
+        status = STATUS_BUFFER_OVERFLOW;
+        goto Exit;
+    }
+
+    *DynData = (PKPH_DYNDATA)dataBuffer;
+    dataBuffer = NULL;
     status = STATUS_SUCCESS;
 
 Exit:
 
-    if (buffer)
+    if (sigBuffer)
     {
-        KphFreeRegistryBinary(buffer);
+        KphFreeRegistryBinary(sigBuffer);
+    }
+
+    if (dataBuffer)
+    {
+        KphFreeRegistryBinary(dataBuffer);
     }
 
     return status;
@@ -323,11 +400,12 @@ NTSTATUS KphDynamicDataInitialization(
 {
     NTSTATUS status;
     HANDLE keyHandle;
-    KPH_DYN_CONFIGURATION configuration;
+    PKPH_DYNDATA dynData;
 
     PAGED_PASSIVE();
 
     keyHandle = NULL;
+    dynData = NULL;
 
     status = KphpOpenParametersKey(RegistryPath, &keyHandle);
     if (!NT_SUCCESS(status))
@@ -376,7 +454,7 @@ NTSTATUS KphDynamicDataInitialization(
         KphDynDisableImageLoadProtection = 0;
     }
 
-    status = KphpReadDynamicConfiguration(keyHandle, &configuration);
+    status = KphpReadDynamicConfiguration(keyHandle, &dynData);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -387,20 +465,29 @@ NTSTATUS KphDynamicDataInitialization(
         goto Exit;
     }
 
-    status = KphpSetDynamicConfigiration(&configuration);
+    for (ULONG i = 0; i < dynData->Count; i++)
+    {
+        status = KphpSetDynamicConfigiration(&dynData->Configs[i]);
+        if (NT_SUCCESS(status))
+        {
+            break;
+        }
+    }
+
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "KphpSetDynamicConfigiration failed: %!STATUS!",
                       status);
-
-        goto Exit;
     }
 
-    status = STATUS_SUCCESS;
-
 Exit:
+
+    if (dynData)
+    {
+        KphFreeRegistryBinary((PUCHAR)dynData);
+    }
 
     if (keyHandle)
     {

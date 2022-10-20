@@ -350,6 +350,7 @@
     <ClInclude Include="include\dyndata.h" />
     <ClInclude Include="include\informer.h" />
     <ClInclude Include="include\kph.h" />
+    <ClInclude Include="include\kphosver.h" />
     <ClInclude Include="include\ntfill.h" />
     <ClInclude Include="include\pooltags.h" />
     <ClInclude Include="include\trace.h" />

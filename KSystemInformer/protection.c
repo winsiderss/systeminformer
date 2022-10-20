@@ -216,7 +216,7 @@ BOOLEAN KphpShouldSuppressObjectProtections(
         return TRUE;
     }
 
-    if (KphDynNtVersion >= PHNT_WINBLUE)
+    if (KphOsVersion >= KphWin81)
     {
         return FALSE;
     }
@@ -1426,7 +1426,7 @@ Exit:
 /**
  * \brief Checks if we should suppress image protections.
  *
- * \param[in] Process The process where the image is being laoded.
+ * \param[in] Process The process where the image is being loaded.
  *
  * \return TRUE if we should suppress image protections, FALSE otherwise.
  */
@@ -1437,7 +1437,7 @@ BOOLEAN KphpShouldSuppressImageProtections(
 {
     PAGED_PASSIVE();
 
-    if (KphDynNtVersion >= PHNT_WIN8)
+    if (KphOsVersion >= KphWin8)
     {
         return FALSE;
     }
@@ -1530,7 +1530,7 @@ VOID KphApplyImageProtections(
     }
 
     //
-    // We have to do a signing check ourselves which involes looking up the
+    // We have to do a signing check ourselves which involves looking up the
     // file name. If we can do it now, do so, otherwise handle it later.
     //
 
