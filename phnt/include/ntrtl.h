@@ -4116,10 +4116,11 @@ RtlDestroyHeap(
     _In_ _Post_invalid_ PVOID HeapHandle
     );
 
+NTSYSAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
-NTSYSAPI
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 RtlAllocateHeap(
@@ -4192,6 +4193,10 @@ RtlUnlockHeap(
     );
 
 NTSYSAPI
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 RtlReAllocateHeap(
