@@ -1057,7 +1057,7 @@ NTSTATUS PhpFindObjectsThreadStart(
             {
                 if (NT_SUCCESS(PhOpenProcess(
                     &processHandle,
-                    PROCESS_DUP_HANDLE,
+                    PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION,
                     (HANDLE)handleInfo->UniqueProcessId
                     )))
                 {
@@ -1069,7 +1069,22 @@ NTSTATUS PhpFindObjectsThreadStart(
                 }
                 else
                 {
-                    continue;
+                    if (NT_SUCCESS(PhOpenProcess(
+                        &processHandle,
+                        PROCESS_QUERY_INFORMATION,
+                        (HANDLE)handleInfo->UniqueProcessId
+                        )))
+                    {
+                        PhAddItemSimpleHashtable(
+                            processHandleHashtable,
+                            (PVOID)handleInfo->UniqueProcessId,
+                            processHandle
+                            );
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
             }
 
