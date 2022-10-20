@@ -569,6 +569,9 @@ PVOID PhReAllocate(
  * \return A pointer to the new block of memory, or NULL if the block could not be allocated. The
  * existing contents of the memory block are copied to the new block.
  */
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
 PVOID PhReAllocateSafe(
     _In_ PVOID Memory,
     _In_ SIZE_T Size
@@ -588,8 +591,9 @@ PVOID PhReAllocateSafe(
  *
  * \return A pointer to the allocated block of memory, or NULL if the block could not be allocated.
  */
-_Check_return_
+_Must_inspect_result_
 _Ret_maybenull_
+_Post_writable_byte_size_(Size)
 _Success_(return != NULL)
 PVOID PhAllocatePage(
     _In_ SIZE_T Size,
