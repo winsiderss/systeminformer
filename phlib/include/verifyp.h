@@ -54,6 +54,16 @@ typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle2)(
     _In_ ULONG dwFlags
     );
 
+#define CRYPTCATADMIN_CALCHASH_FLAG_NONCONFORMANT_FILES_FALLBACK_FLAT 0x1
+
+typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle3)(
+    _In_ HCATADMIN hCatAdmin,
+    _In_ HANDLE hFile,
+    _Out_ PULONG pcbHash,
+    _Out_ PBYTE pbHash,
+    _In_ ULONG dwFlags
+    );
+
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext)(
     _Out_ HCATADMIN *phCatAdmin,
     _In_ PGUID pgSubsystem,
@@ -102,6 +112,21 @@ typedef PCRYPT_PROVIDER_SGNR (WINAPI *_WTHelperGetProvSignerFromChain)(
     _In_ ULONG idxSigner,
     _In_ BOOL fCounterSigner,
     _In_ ULONG idxCounterSigner
+    );
+
+typedef BOOL (WINAPI *_WTHelperIsChainedToMicrosoftFromStateData)(
+    _In_ CRYPT_PROVIDER_DATA *pProvData
+    );
+
+typedef BOOL (WINAPI* _WTHelperIsChainedToMicrosoft)(
+    _In_ PCCERT_CONTEXT pCertContext,
+    _In_ HCERTSTORE hSiblingStore,
+    _In_ BOOL IncludeMicrosoftTestRootCerts
+    );
+
+typedef BOOL (WINAPI* _WTHelperCheckCertUsage)(
+    _In_ PCCERT_CONTEXT pCertContext,
+    _In_ PCSTR pszOID
     );
 
 typedef LONG (WINAPI *_WinVerifyTrust)(
