@@ -815,57 +815,9 @@ BOOLEAN PhUiRestartComputer(
                 FALSE
                 ))
             {
-                static GUID EFI_GLOBAL_VARIABLE_GUID = { 0x8be4df61, 0x93ca, 0x11d2, { 0xaa, 0x0d, 0x00, 0xe0, 0x98, 0x03, 0x2b, 0x8c } };
-                static UNICODE_STRING variableIndicationsSupportedName = RTL_CONSTANT_STRING(L"OsIndicationsSupported");
-                static UNICODE_STRING variableIndicationsName = RTL_CONSTANT_STRING(L"OsIndications");
-                const ULONG64 EFI_OS_INDICATIONS_BOOT_TO_FW_UI = 0x0000000000000001ULL;
-                ULONG osIndicationsLength = sizeof(ULONG64);
-                ULONG osIndicationsAttributes = 0;
-                ULONG64 osIndicationsSupported = 0;
-                ULONG64 osIndicationsValue = 0;
                 NTSTATUS status;
 
-                status = NtQuerySystemEnvironmentValueEx(
-                    &variableIndicationsSupportedName,
-                    &EFI_GLOBAL_VARIABLE_GUID,
-                    &osIndicationsSupported,
-                    &osIndicationsLength,
-                    NULL
-                    );
-
-                if (status == STATUS_VARIABLE_NOT_FOUND || !(osIndicationsSupported & EFI_OS_INDICATIONS_BOOT_TO_FW_UI))
-                {
-                    status = STATUS_NOT_SUPPORTED;
-                }
-
-                if (NT_SUCCESS(status))
-                {
-                    status = NtQuerySystemEnvironmentValueEx(
-                        &variableIndicationsName,
-                        &EFI_GLOBAL_VARIABLE_GUID,
-                        &osIndicationsValue,
-                        &osIndicationsLength,
-                        &osIndicationsAttributes
-                        );
-
-                    if (status == STATUS_VARIABLE_NOT_FOUND)
-                    {
-                        osIndicationsAttributes = EFI_VARIABLE_NON_VOLATILE;
-                    }
-
-                    if (NT_SUCCESS(status) || status == STATUS_VARIABLE_NOT_FOUND)
-                    {
-                        osIndicationsValue |= EFI_OS_INDICATIONS_BOOT_TO_FW_UI;
-
-                        status = NtSetSystemEnvironmentValueEx(
-                            &variableIndicationsName,
-                            &EFI_GLOBAL_VARIABLE_GUID,
-                            &osIndicationsValue,
-                            osIndicationsLength,
-                            osIndicationsAttributes
-                            );
-                    }
-                }
+                status = PhSetSystemEnvironmentBootToFirmware();
 
                 if (NT_SUCCESS(status))
                 {
