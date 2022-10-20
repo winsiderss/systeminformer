@@ -867,7 +867,9 @@ NTSTATUS KphQueryInformationObject(
     PVOID object;
     ULONG returnLength;
     PVOID buffer;
+    UCHAR stackBuffer[64];
     KPROCESSOR_MODE accessMode;
+    PKPH_PROCESS_CONTEXT processContext;
 
     PAGED_PASSIVE();
 
@@ -875,6 +877,7 @@ NTSTATUS KphQueryInformationObject(
     returnLength = 0;
     object = NULL;
     buffer = NULL;
+    processContext = NULL;
 
     if (AccessMode != KernelMode)
     {
@@ -1011,11 +1014,18 @@ NTSTATUS KphQueryInformationObject(
                 allocateSize = sizeof(OBJECT_NAME_INFORMATION);
             }
 
-            buffer = KphAllocatePaged(allocateSize, KPH_TAG_OBJECT_QUERY);
-            if (!buffer)
+            if (allocateSize <= ARRAYSIZE(stackBuffer))
             {
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto Exit;
+                buffer = stackBuffer;
+            }
+            else
+            {
+                buffer = KphAllocatePaged(allocateSize, KPH_TAG_OBJECT_QUERY);
+                if (!buffer)
+                {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                    goto Exit;
+                }
             }
 
             nameInfo = (POBJECT_NAME_INFORMATION)buffer;
@@ -1034,14 +1044,16 @@ NTSTATUS KphQueryInformationObject(
 
                 if (nameInfo->Name.Buffer)
                 {
-                    nameInfo->Name.Buffer =
-                        Add2Ptr(ObjectInformation,
-                                PtrOffset(nameInfo, nameInfo->Name.Buffer));
+                    RebaseUnicodeString(&nameInfo->Name,
+                                        nameInfo,
+                                        ObjectInformation);
                 }
 
                 __try
                 {
-                    RtlCopyMemory(ObjectInformation, nameInfo, returnLength);
+                    RtlCopyMemory(ObjectInformation,
+                                  nameInfo,
+                                  returnLength);
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -1074,11 +1086,18 @@ NTSTATUS KphQueryInformationObject(
             //
             allocateSize += sizeof(ULONGLONG);
 
-            buffer = KphAllocatePaged(allocateSize, KPH_TAG_OBJECT_QUERY);
-            if (!buffer)
+            if (allocateSize <= ARRAYSIZE(stackBuffer))
             {
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                goto Exit;
+                buffer = stackBuffer;
+            }
+            else
+            {
+                buffer = KphAllocatePaged(allocateSize, KPH_TAG_OBJECT_QUERY);
+                if (!buffer)
+                {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                    goto Exit;
+                }
             }
 
             typeInfo = (POBJECT_TYPE_INFORMATION)buffer;
@@ -1100,15 +1119,16 @@ NTSTATUS KphQueryInformationObject(
 
                 if (typeInfo->TypeName.Buffer)
                 {
-                    typeInfo->TypeName.Buffer =
-                        Add2Ptr(ObjectInformation,
-                                PtrOffset(typeInfo, typeInfo->TypeName.Buffer));
-
+                    RebaseUnicodeString(&typeInfo->TypeName,
+                                        typeInfo,
+                                        ObjectInformation);
                 }
 
                 __try
                 {
-                    RtlCopyMemory(ObjectInformation, typeInfo, returnLength);
+                    RtlCopyMemory(ObjectInformation,
+                                  typeInfo,
+                                  returnLength);
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -1453,6 +1473,389 @@ NTSTATUS KphQueryInformationObject(
 
             break;
         }
+        case KphObjectProcessTimes:
+        {
+            KERNEL_USER_TIMES times;
+
+            if (!ObjectInformation ||
+                (ObjectInformationLength != sizeof(times)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(times);
+                goto Exit;
+            }
+
+            KeStackAttachProcess(process, &apcState);
+            status = ZwQueryInformationProcess(Handle,
+                                               ProcessTimes,
+                                               &times,
+                                               sizeof(times),
+                                               NULL);
+            KeUnstackDetachProcess(&apcState);
+            if (NT_SUCCESS(status))
+            {
+                __try
+                {
+                    RtlCopyMemory(ObjectInformation, &times, sizeof(times));
+                    returnLength = sizeof(times);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+
+            break;
+        }
+        case KphObjectThreadTimes:
+        {
+            KERNEL_USER_TIMES times;
+
+            if (!ObjectInformation ||
+                (ObjectInformationLength != sizeof(times)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(times);
+                goto Exit;
+            }
+
+            KeStackAttachProcess(process, &apcState);
+            status = ZwQueryInformationThread(Handle,
+                                              ThreadTimes,
+                                              &times,
+                                              sizeof(times),
+                                              NULL);
+            KeUnstackDetachProcess(&apcState);
+            if (NT_SUCCESS(status))
+            {
+                __try
+                {
+                    RtlCopyMemory(ObjectInformation, &times, sizeof(times));
+                    returnLength = sizeof(times);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+
+            break;
+        }
+        case KphObjectProcessImageFileName:
+        {
+            PEPROCESS targetProcess;
+
+            KeStackAttachProcess(process, &apcState);
+            status = ObReferenceObjectByHandle(Handle,
+                                               0,
+                                               *PsProcessType,
+                                               accessMode,
+                                               &targetProcess,
+                                               NULL);
+            KeUnstackDetachProcess(&apcState);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "ObReferenceObjectByHandle failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            processContext = KphGetProcessContext(PsGetProcessId(targetProcess));
+            if (!processContext || !processContext->ImageFileName)
+            {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                goto Exit;
+            }
+
+            returnLength = sizeof(UNICODE_STRING);
+            returnLength += processContext->ImageFileName->Length;
+
+            if (ObjectInformationLength < returnLength)
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+                goto Exit;
+            }
+
+            if (!ObjectInformation)
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+                goto Exit;
+            }
+
+            __try
+            {
+                PUNICODE_STRING outputString;
+
+                outputString = ObjectInformation;
+                outputString->Length = processContext->ImageFileName->Length;
+                outputString->MaximumLength = processContext->ImageFileName->Length;
+                outputString->Buffer = Add2Ptr(ObjectInformation,
+                                               sizeof(UNICODE_STRING));
+                RtlCopyMemory(outputString->Buffer,
+                              processContext->ImageFileName->Buffer,
+                              processContext->ImageFileName->Length);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+
+            break;
+        }
+        case KphObjectThreadNameInformation:
+        {
+            ULONG allocateSize;
+            PTHREAD_NAME_INFORMATION nameInfo;
+
+            returnLength = sizeof(THREAD_NAME_INFORMATION);
+            allocateSize = ObjectInformationLength;
+            if (allocateSize < sizeof(THREAD_NAME_INFORMATION))
+            {
+                allocateSize = sizeof(THREAD_NAME_INFORMATION);
+            }
+            allocateSize += sizeof(ULONGLONG);
+
+            if (allocateSize <= ARRAYSIZE(stackBuffer))
+            {
+                buffer = stackBuffer;
+            }
+            else
+            {
+                buffer = KphAllocatePaged(allocateSize, KPH_TAG_OBJECT_QUERY);
+                if (!buffer)
+                {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                    goto Exit;
+                }
+            }
+
+            nameInfo = (PTHREAD_NAME_INFORMATION)buffer;
+
+            KeStackAttachProcess(process, &apcState);
+            status = ZwQueryInformationThread(Handle,
+                                              ThreadNameInformation,
+                                              nameInfo,
+                                              ObjectInformationLength,
+                                              &returnLength);
+            KeUnstackDetachProcess(&apcState);
+            if (NT_SUCCESS(status))
+            {
+                if (!ObjectInformation)
+                {
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    goto Exit;
+                }
+
+                if (nameInfo->ThreadName.Buffer)
+                {
+                    RebaseUnicodeString(&nameInfo->ThreadName,
+                                        nameInfo,
+                                        ObjectInformation);
+                }
+
+                __try
+                {
+                    RtlCopyMemory(ObjectInformation, nameInfo, returnLength);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+
+            break;
+        }
+        case KphObjectThreadIsTerminated:
+        {
+            ULONG threadIsTerminated;
+
+            if (!ObjectInformation ||
+                (ObjectInformationLength != sizeof(threadIsTerminated)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(threadIsTerminated);
+                goto Exit;
+            }
+
+            KeStackAttachProcess(process, &apcState);
+            status = ZwQueryInformationThread(Handle,
+                                              ThreadIsTerminated,
+                                              &threadIsTerminated,
+                                              sizeof(threadIsTerminated),
+                                              NULL);
+            KeUnstackDetachProcess(&apcState);
+            if (NT_SUCCESS(status))
+            {
+                __try
+                {
+                    *(PULONG)ObjectInformation = threadIsTerminated;
+                    returnLength = sizeof(threadIsTerminated);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+
+            break;
+        }
+        case KphObjectSectionBasicInformation:
+        {
+            SECTION_BASIC_INFORMATION sectionInfo;
+
+            if (!ObjectInformation ||
+                (ObjectInformationLength != sizeof(sectionInfo)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(sectionInfo);
+                goto Exit;
+            }
+
+            KeStackAttachProcess(process, &apcState);
+            status = ZwQuerySection(Handle,
+                                    SectionBasicInformation,
+                                    &sectionInfo,
+                                    sizeof(sectionInfo),
+                                    NULL);
+            KeUnstackDetachProcess(&apcState);
+            if (NT_SUCCESS(status))
+            {
+                __try
+                {
+                    RtlCopyMemory(ObjectInformation,
+                                  &sectionInfo,
+                                  sizeof(sectionInfo));
+                    returnLength = sizeof(sectionInfo);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+
+            break;
+        }
+        case KphObjectSectionFileName:
+        {
+            PUNICODE_STRING sectionFileName;
+            ULONG allocateSize;
+            HANDLE sectionHandle;
+            PVOID baseAddress;
+            SIZE_T viewSize;
+
+            returnLength = sizeof(UNICODE_STRING);
+            allocateSize = ObjectInformationLength;
+            if (allocateSize < sizeof(UNICODE_STRING))
+            {
+                allocateSize = sizeof(UNICODE_STRING);
+            }
+            allocateSize += sizeof(ULONGLONG);
+
+            if (allocateSize <= ARRAYSIZE(stackBuffer))
+            {
+                buffer = stackBuffer;
+            }
+            else
+            {
+                buffer = KphAllocatePaged(allocateSize, KPH_TAG_OBJECT_QUERY);
+                if (!buffer)
+                {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
+                    goto Exit;
+                }
+            }
+
+            sectionFileName = (PUNICODE_STRING)buffer;
+
+            status = ObDuplicateObject(process,
+                                       Handle,
+                                       PsInitialSystemProcess,
+                                       &sectionHandle,
+                                       SECTION_MAP_READ,
+                                       OBJ_KERNEL_HANDLE,
+                                       0,
+                                       KernelMode);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_ERROR,
+                              GENERAL,
+                              "ObDuplicateObject failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
+
+            KeStackAttachProcess(PsInitialSystemProcess, &apcState);
+
+            baseAddress = NULL;
+            viewSize = 0;
+            status = ZwMapViewOfSection(sectionHandle,
+                                        ZwCurrentProcess(),
+                                        &baseAddress,
+                                        0,
+                                        0,
+                                        NULL,
+                                        &viewSize,
+                                        ViewUnmap,
+                                        0,
+                                        PAGE_READONLY);
+            if (NT_SUCCESS(status))
+            {
+                SIZE_T length;
+                status = ZwQueryVirtualMemory(ZwCurrentProcess(),
+                                              baseAddress,
+                                              MemoryMappedFilenameInformation,
+                                              sectionFileName,
+                                              ObjectInformationLength,
+                                              &length);
+                if (NT_SUCCESS(status) && (length > ULONG_MAX))
+                {
+                    status = STATUS_INTEGER_OVERFLOW;
+                }
+                else
+                {
+                    returnLength = (ULONG)length;
+                }
+
+                ZwUnmapViewOfSection(ZwCurrentProcess(), baseAddress);
+            }
+
+            ObCloseHandle(sectionHandle, KernelMode);
+
+            KeUnstackDetachProcess(&apcState);
+
+            if (NT_SUCCESS(status))
+            {
+                if (!ObjectInformation)
+                {
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    goto Exit;
+                }
+
+                if (sectionFileName->Buffer)
+                {
+                    RebaseUnicodeString(sectionFileName,
+                                        sectionFileName,
+                                        ObjectInformation);
+                }
+
+                __try
+                {
+                    RtlCopyMemory(ObjectInformation,
+                                  sectionFileName,
+                                  returnLength);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+
+            break;
+        }
         default:
         {
             status = STATUS_INVALID_INFO_CLASS;
@@ -1462,7 +1865,12 @@ NTSTATUS KphQueryInformationObject(
 
 Exit:
 
-    if (buffer)
+    if (processContext)
+    {
+        KphDereferenceObject(processContext);
+    }
+
+    if (buffer && (buffer != stackBuffer))
     {
         KphFree(buffer, KPH_TAG_OBJECT_QUERY);
     }
