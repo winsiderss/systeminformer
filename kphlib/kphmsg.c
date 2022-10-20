@@ -6,12 +6,33 @@
  * Authors:
  *
  *     jxy-s   2022
+ *     dmex    2022
  *
  */
 
 #include <kphmsg.h>
 
 #define KPH_MESSAGE_VESRSION 1
+
+/**
+ * Gets the current system time (UTC).
+ *
+ * \remarks Use this function instead of NtQuerySystemTime() because no system calls are involved.
+ */
+VOID KphMsgQuerySystemTime(
+    _Out_ PLARGE_INTEGER SystemTime
+    )
+{
+#if _KERNEL_MODE
+    KeQuerySystemTime(SystemTime);
+#else
+    do
+    {
+        SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
+        SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
+    } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
+#endif
+}
 
 /**
  * \brief Initializes a message.
@@ -27,11 +48,7 @@ VOID KphMsgInit(
     Message->Header.Version = KPH_MESSAGE_VESRSION;
     Message->Header.MessageId = MessageId;
     Message->Header.Size = KPH_MESSAGE_MIN_SIZE;
-#if _KERNEL_MODE
-    KeQuerySystemTime(&Message->Header.TimeStamp);
-#else
-    NtQuerySystemTime(&Message->Header.TimeStamp);
-#endif
+    KphMsgQuerySystemTime(&Message->Header.TimeStamp);
 
     Message->_Dyn.Count = 0;
     RtlZeroMemory(&Message->_Dyn.Entries, sizeof(Message->_Dyn.Entries));
