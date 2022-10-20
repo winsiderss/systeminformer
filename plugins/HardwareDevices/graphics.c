@@ -231,7 +231,7 @@ _Success_(return)
 BOOLEAN GraphicsQueryDeviceInterfaceDescription(
     _In_ PWSTR DeviceInterface,
     _Out_ PPH_STRING *DeviceDescription,
-    _Out_ LUID* AdapterLuid
+    _Out_opt_ LUID* AdapterLuid
     )
 {
     CONFIGRET result;

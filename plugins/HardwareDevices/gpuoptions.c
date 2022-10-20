@@ -32,7 +32,7 @@ typedef struct _GPU_ENUM_ENTRY
 
     PPH_STRING DevicePath;
     PPH_STRING DeviceName;
-    LUID AdapterLuid;
+    //LUID AdapterLuid;
 } GPU_ENUM_ENTRY, *PGPU_ENUM_ENTRY;
 
 static int __cdecl GraphicsDeviceEntryCompareFunction(
@@ -330,29 +330,24 @@ VOID FindGraphicsDevices(
 
     for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
     {
+        D3DKMT_HANDLE adapterHandle;
         PPH_STRING deviceDescription;
         PGPU_ENUM_ENTRY entry;
-        D3DKMT_HANDLE adapterHandle;
-        LUID adapterLuid;
-
-        if (!GraphicsQueryDeviceInterfaceDescription(deviceInterface, &deviceDescription, &adapterLuid))
-            continue;
 
         entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
-        entry->AdapterLuid = adapterLuid;
         entry->DeviceIndex = ++index;
-        entry->DeviceName = PhCreateString2(&deviceDescription->sr);
         entry->DevicePath = PhCreateString(deviceInterface);
+
+        if (GraphicsQueryDeviceInterfaceDescription(deviceInterface, &deviceDescription, NULL))
+            entry->DeviceName = PhCreateString2(&deviceDescription->sr);
+        else
+            entry->DeviceName = PhReferenceEmptyString();
 
         if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
         {
             if (GraphicsDeviceIsSoftwareDevice(adapterHandle))
-            {
                 entry->SoftwareDevice = TRUE;
-            }
-
             entry->DevicePresent = TRUE;
-
             GraphicsCloseAdapterHandle(adapterHandle);
         }
 
