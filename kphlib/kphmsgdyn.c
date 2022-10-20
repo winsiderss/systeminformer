@@ -256,7 +256,7 @@ NTSTATUS KphMsgDynAddUnicodeString(
 
     data->Size = String->Length;
     RtlCopyMemory(&data->Buffer[0], String->Buffer, String->Length);
-    *((PWCHAR)&data->Buffer[String->Length]) = L'\0';
+    *((PWCHAR)&data->Buffer[String->Length]) = UNICODE_NULL;
     return STATUS_SUCCESS;
 }
 
@@ -340,7 +340,7 @@ NTSTATUS KphMsgDynAddAnsiString(
 
     data->Size = String->Length;
     RtlCopyMemory(&data->Buffer[0], String->Buffer, String->Length);
-    data->Buffer[String->Length] = '\0';
+    data->Buffer[String->Length] = ANSI_NULL;
     return STATUS_SUCCESS;
 }
 
