@@ -91,29 +91,32 @@ PhLocalTimeToSystemTime(
 
 // Heap
 
+PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
-PHLIBAPI
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocate(
     _In_ SIZE_T Size
     );
 
+PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
-PHLIBAPI
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocateSafe(
     _In_ SIZE_T Size
     );
 
+PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
-PHLIBAPI
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocateExSafe(
@@ -128,9 +131,10 @@ PhFree(
     _Frees_ptr_opt_ PVOID Memory
     );
 
+PHLIBAPI
 _May_raise_
 _Post_writable_byte_size_(Size)
-PHLIBAPI
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhReAllocate(
@@ -139,6 +143,10 @@ PhReAllocate(
     );
 
 PHLIBAPI
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhReAllocateSafe(
@@ -146,10 +154,12 @@ PhReAllocateSafe(
     _In_ SIZE_T Size
     );
 
-_Check_return_
-_Ret_maybenull_
-_Success_(return != NULL)
 PHLIBAPI
+_Must_inspect_result_
+_Ret_maybenull_
+_Post_writable_byte_size_(Size)
+_Success_(return != NULL)
+DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
 PhAllocatePage(
