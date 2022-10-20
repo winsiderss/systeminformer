@@ -5872,57 +5872,188 @@ typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
 #define NX_SUPPORT_POLICY_OPTIN 2
 #define NX_SUPPORT_POLICY_OPTOUT 3
 
-#include <pshpack4.h>
 typedef struct _KUSER_SHARED_DATA
 {
+    //
+    // Current low 32-bit of tick count and tick count multiplier.
+    //
+    // N.B. The tick count is updated each time the clock ticks.
+    //
+
     ULONG TickCountLowDeprecated;
     ULONG TickCountMultiplier;
 
+    //
+    // Current 64-bit interrupt time in 100ns units.
+    //
+
     volatile KSYSTEM_TIME InterruptTime;
+
+    //
+    // Current 64-bit system time in 100ns units.
+    //
+
     volatile KSYSTEM_TIME SystemTime;
+
+    //
+    // Current 64-bit time zone bias.
+    //
+
     volatile KSYSTEM_TIME TimeZoneBias;
+
+    //
+    // Support image magic number range for the host system.
+    //
+    // N.B. This is an inclusive range.
+    //
 
     USHORT ImageNumberLow;
     USHORT ImageNumberHigh;
 
+    //
+    // Copy of system root in unicode.
+    //
+    // N.B. This field must be accessed via the RtlGetNtSystemRoot API for
+    //      an accurate result.
+    //
+
     WCHAR NtSystemRoot[260];
+
+    //
+    // Maximum stack trace depth if tracing enabled.
+    //
 
     ULONG MaxStackTraceDepth;
 
+    //
+    // Crypto exponent value.
+    //
+
     ULONG CryptoExponent;
+
+    //
+    // Time zone ID.
+    //
 
     ULONG TimeZoneId;
     ULONG LargePageMinimum;
+
+    //
+    // This value controls the AIT Sampling rate.
+    //
+
     ULONG AitSamplingValue;
+
+    //
+    // This value controls switchback processing.
+    //
+
     ULONG AppCompatFlag;
+
+    //
+    // Current Kernel Root RNG state seed version
+    //
+
     ULONGLONG RNGSeedVersion;
+
+    //
+    // This value controls assertion failure handling.
+    //
+
     ULONG GlobalValidationRunlevel;
-    LONG TimeZoneBiasStamp;
+
+    volatile LONG TimeZoneBiasStamp;
+
+    //
+    // The shared collective build number undecorated with C or F.
+    // GetVersionEx hides the real number
+    //
 
     ULONG NtBuildNumber;
+
+    //
+    // Product type.
+    //
+    // N.B. This field must be accessed via the RtlGetNtProductType API for
+    //      an accurate result.
+    //
+
     NT_PRODUCT_TYPE NtProductType;
     BOOLEAN ProductTypeIsValid;
-    UCHAR Reserved0[1];
+    BOOLEAN Reserved0[1];
     USHORT NativeProcessorArchitecture;
+
+    //
+    // The NT Version.
+    //
+    // N. B. Note that each process sees a version from its PEB, but if the
+    //       process is running with an altered view of the system version,
+    //       the following two fields are used to correctly identify the
+    //       version
+    //
 
     ULONG NtMajorVersion;
     ULONG NtMinorVersion;
 
+    //
+    // Processor features.
+    //
+
     BOOLEAN ProcessorFeatures[PROCESSOR_FEATURE_MAX];
+
+    //
+    // Reserved fields - do not use.
+    //
 
     ULONG Reserved1;
     ULONG Reserved3;
 
+    //
+    // Time slippage while in debugger.
+    //
+
     volatile ULONG TimeSlip;
 
+    //
+    // Alternative system architecture, e.g., NEC PC98xx on x86.
+    //
+
     ALTERNATIVE_ARCHITECTURE_TYPE AlternativeArchitecture;
+
+    //
+    // Boot sequence, incremented for each boot attempt by the OS loader.
+    //
+
     ULONG BootId;
+
+    //
+    // If the system is an evaluation unit, the following field contains the
+    // date and time that the evaluation unit expires. A value of 0 indicates
+    // that there is no expiration. A non-zero value is the UTC absolute time
+    // that the system expires.
+    //
 
     LARGE_INTEGER SystemExpirationDate;
 
+    //
+    // Suite support.
+    //
+    // N.B. This field must be accessed via the RtlGetSuiteMask API for
+    //      an accurate result.
+    //
+
     ULONG SuiteMask;
 
+    //
+    // TRUE if a kernel debugger is connected/enabled.
+    //
+
     BOOLEAN KdDebuggerEnabled;
+
+    //
+    // Mitigation policies.
+    //
+
     union
     {
         UCHAR MitigationPolicies;
@@ -5935,40 +6066,111 @@ typedef struct _KUSER_SHARED_DATA
         };
     };
 
+    //
+    // Measured duration of a single processor yield, in cycles. This is used by
+    // lock packages to determine how many times to spin waiting for a state
+    // change before blocking.
+    //
+
     USHORT CyclesPerYield;
+
+    //
+    // Current console session Id. Always zero on non-TS systems.
+    //
+    // N.B. This field must be accessed via the RtlGetActiveConsoleId API for an
+    //      accurate result.
+    //
 
     volatile ULONG ActiveConsoleId;
 
+    //
+    // Force-dismounts cause handles to become invalid. Rather than always
+    // probe handles, a serial number of dismounts is maintained that clients
+    // can use to see if they need to probe handles.
+    //
+
     volatile ULONG DismountCount;
+
+    //
+    // This field indicates the status of the 64-bit COM+ package on the
+    // system. It indicates whether the Itermediate Language (IL) COM+
+    // images need to use the 64-bit COM+ runtime or the 32-bit COM+ runtime.
+    //
 
     ULONG ComPlusPackage;
 
+    //
+    // Time in tick count for system-wide last user input across all terminal
+    // sessions. For MP performance, it is not updated all the time (e.g. once
+    // a minute per session). It is used for idle detection.
+    //
+
     ULONG LastSystemRITEventTickCount;
+
+    //
+    // Number of physical pages in the system. This can dynamically change as
+    // physical memory can be added or removed from a running system.
+    //
 
     ULONG NumberOfPhysicalPages;
 
+    //
+    // True if the system was booted in safe boot mode.
+    //
+
     BOOLEAN SafeBootMode;
+
+    //
+    // Virtualization flags.
+    //
 
     union
     {
         UCHAR VirtualizationFlags;
+
 #if defined(_ARM64_)
+
+        //
+        // N.B. Keep this bitfield in sync with the one in arc.w.
+        //
+
         struct
         {
             UCHAR ArchStartedInEl2 : 1;
             UCHAR QcSlIsSupported : 1;
             UCHAR : 6;
         };
+
 #endif
+
     };
 
+    //
+    // Reserved (available for reuse).
+    //
+
     UCHAR Reserved12[2];
+
+    //
+    // This is a packed bitfield that contains various flags concerning
+    // the system state. They must be manipulated using interlocked
+    // operations.
+    //
+    // N.B. DbgMultiSessionSku must be accessed via the RtlIsMultiSessionSku
+    //      API for an accurate result
+    //
 
     union
     {
         ULONG SharedDataFlags;
         struct
         {
+
+            //
+            // The following bit fields are for the debugger only. Do not use.
+            // Use the bit definitions instead.
+            //
+
             ULONG DbgErrorPortPresent : 1;
             ULONG DbgElevationEnabled : 1;
             ULONG DbgVirtEnabled : 1;
@@ -5981,28 +6183,43 @@ typedef struct _KUSER_SHARED_DATA
             ULONG DbgMultiUsersInSessionSku : 1;
             ULONG DbgStateSeparationEnabled : 1;
             ULONG SpareBits : 21;
-        };
-    };
+        } DUMMYSTRUCTNAME2;
+    } DUMMYUNIONNAME2;
+
     ULONG DataFlagsPad[1];
+
+    //
+    // Depending on the processor, the code for fast system call will differ,
+    // Stub code is provided pointers below to access the appropriate code.
+    //
+    // N.B. The following field is only used on 32-bit systems.
+    //
 
     ULONGLONG TestRetInstruction;
     LONGLONG QpcFrequency;
 
+    //
+    // On AMD64, this value is initialized to a nonzero value if the system
+    // operates with an altered view of the system service call mechanism.
+    //
+
     ULONG SystemCall;
 
-    union
-    {
-        ULONG AllFlags;
-        struct
-        {
-            ULONG Win32Process : 1;
-            ULONG Sgx2Enclave : 1;
-            ULONG VbsBasicEnclave : 1;
-            ULONG SpareBits : 29;
-        };
-    } UserCetAvailableEnvironments;
+    //
+    // Reserved field - do not use. Used to be UserCetAvailableEnvironments.
+    //
+
+    ULONG Reserved2;
+
+    //
+    // Reserved, available for reuse.
+    //
 
     ULONGLONG SystemCallPad[2];
+
+    //
+    // The 64-bit tick count.
+    //
 
     union
     {
@@ -6012,67 +6229,273 @@ typedef struct _KUSER_SHARED_DATA
         {
             ULONG ReservedTickCountOverlay[3];
             ULONG TickCountPad[1];
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME3;
+
+    //
+    // Cookie for encoding pointers system wide.
+    //
 
     ULONG Cookie;
     ULONG CookiePad[1];
 
+    //
+    // Client id of the process having the focus in the current
+    // active console session id.
+    //
+    // N.B. This field must be accessed via the
+    //      RtlGetConsoleSessionForegroundProcessId API for an accurate result.
+    //
+
     LONGLONG ConsoleSessionForegroundProcessId;
+
+    //
+    // N.B. The following data is used to implement the precise time
+    //      services. It is aligned on a 64-byte cache-line boundary and
+    //      arranged in the order of typical accesses.
+    //
+    // Placeholder for the (internal) time update lock.
+    //
+
     ULONGLONG TimeUpdateLock;
+
+    //
+    // The performance counter value used to establish the current system time.
+    //
+
     ULONGLONG BaselineSystemTimeQpc;
+
+    //
+    // The performance counter value used to compute the last interrupt time.
+    //
+
     ULONGLONG BaselineInterruptTimeQpc;
+
+    //
+    // The scaled number of system time seconds represented by a single
+    // performance count (this value may vary to achieve time synchronization).
+    //
+
     ULONGLONG QpcSystemTimeIncrement;
+
+    //
+    // The scaled number of interrupt time seconds represented by a single
+    // performance count (this value is constant after the system is booted).
+    //
+
     ULONGLONG QpcInterruptTimeIncrement;
+
+    //
+    // The scaling shift count applied to the performance counter system time
+    // increment.
+    //
+
     UCHAR QpcSystemTimeIncrementShift;
+
+    //
+    // The scaling shift count applied to the performance counter interrupt time
+    // increment.
+    //
+
     UCHAR QpcInterruptTimeIncrementShift;
 
+    //
+    // The count of unparked processors.
+    //
+
     USHORT UnparkedProcessorCount;
+
+    //
+    // A bitmask of enclave features supported on this system.
+    //
+    // N.B. This field must be accessed via the RtlIsEnclareFeaturePresent API for an
+    //      accurate result.
+    //
+
     ULONG EnclaveFeatureMask[4];
+
+    //
+    // Current coverage round for telemetry based coverage.
+    //
 
     ULONG TelemetryCoverageRound;
 
+    //
+    // The following field is used for ETW user mode global logging
+    // (UMGL).
+    //
+
     USHORT UserModeGlobalLogger[16];
+
+    //
+    // Settings that can enable the use of Image File Execution Options
+    // from HKCU in addition to the original HKLM.
+    //
+
     ULONG ImageFileExecutionOptions;
 
+    //
+    // Generation of the kernel structure holding system language information
+    //
+
     ULONG LangGenerationCount;
+
+    //
+    // Reserved (available for reuse).
+    //
+
     ULONGLONG Reserved4;
-    volatile ULONG64 InterruptTimeBias;
-    volatile ULONG64 QpcBias;
+
+    //
+    // Current 64-bit interrupt time bias in 100ns units.
+    //
+
+    volatile ULONGLONG InterruptTimeBias;
+
+    //
+    // Current 64-bit performance counter bias, in performance counter units
+    // before the shift is applied.
+    //
+
+    volatile ULONGLONG QpcBias;
+
+    //
+    // Number of active processors and groups.
+    //
 
     ULONG ActiveProcessorCount;
     volatile UCHAR ActiveGroupCount;
+
+    //
+    // Reserved (available for re-use).
+    //
+
     UCHAR Reserved9;
+
     union
     {
         USHORT QpcData;
         struct
         {
-            volatile UCHAR QpcBypassEnabled : 1;
-            UCHAR QpcShift : 1;
+
+            //
+            // A boolean indicating whether performance counter queries
+            // can read the counter directly (bypassing the system call).
+            //
+
+            volatile UCHAR QpcBypassEnabled;
+
+            //
+            // Shift applied to the raw counter value to derive the
+            // QPC count.
+            //
+
+            UCHAR QpcShift;
         };
     };
 
     LARGE_INTEGER TimeZoneBiasEffectiveStart;
     LARGE_INTEGER TimeZoneBiasEffectiveEnd;
+
+    //
+    // Extended processor state configuration
+    //
+
     XSTATE_CONFIGURATION XState;
+
     KSYSTEM_TIME FeatureConfigurationChangeStamp;
     ULONG Spare;
-    ULONG64 UserPointerAuthMask;
-} KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
-#include <poppack.h>
 
+    ULONG64 UserPointerAuthMask;
+
+} KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
+
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated) == 0x0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier) == 0x4);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTime) == 0x8);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemTime) == 0x14);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBias) == 0x20);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtSystemRoot) == 0x30);
+C_ASSERT(__alignof(KSYSTEM_TIME) == 4);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTime) == 0x08);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemTime) == 0x014);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBias) == 0x020);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberLow) == 0x02c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ImageNumberHigh) == 0x02e);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtSystemRoot) == 0x030);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, MaxStackTraceDepth) == 0x238);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, CryptoExponent) == 0x23c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneId) == 0x240);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LargePageMinimum) == 0x244);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, AitSamplingValue) == 0x248);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, AppCompatFlag) == 0x24c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, RNGSeedVersion) == 0x250);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, GlobalValidationRunlevel) == 0x258);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasStamp) == 0x25c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtBuildNumber) == 0x260);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtProductType) == 0x264);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ProductTypeIsValid) == 0x268);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NativeProcessorArchitecture) == 0x26a);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtMajorVersion) == 0x26c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NtMinorVersion) == 0x270);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ProcessorFeatures) == 0x274);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved1) == 0x2b4);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved3) == 0x2b8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeSlip) == 0x2bc);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, AlternativeArchitecture) == 0x2c0);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemExpirationDate) == 0x2c8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SuiteMask) == 0x2d0);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, KdDebuggerEnabled) == 0x2d4);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, MitigationPolicies) == 0x2d5);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, CyclesPerYield) == 0x2d6);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveConsoleId) == 0x2d8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, DismountCount) == 0x2dc);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ComPlusPackage) == 0x2e0);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LastSystemRITEventTickCount) == 0x2e4);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, NumberOfPhysicalPages) == 0x2e8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SafeBootMode) == 0x2ec);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, VirtualizationFlags) == 0x2ed);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved12) == 0x2ee);
+#if defined(_MSC_EXTENSIONS)
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SharedDataFlags) == 0x2f0);
+#endif
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TestRetInstruction) == 0x2f8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcFrequency) == 0x300);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x308);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved2) == 0x30c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x310);
+#if defined(_MSC_EXTENSIONS)
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
+#endif
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Cookie) == 0x330);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ConsoleSessionForegroundProcessId) == 0x338);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeUpdateLock) == 0x340);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineSystemTimeQpc) == 0x348);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, BaselineInterruptTimeQpc) == 0x350);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrement) == 0x358);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrement) == 0x360);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcSystemTimeIncrementShift) == 0x368);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcInterruptTimeIncrementShift) == 0x369);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UnparkedProcessorCount) == 0x36a);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, EnclaveFeatureMask) == 0x36c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TelemetryCoverageRound) == 0x37c);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserModeGlobalLogger) == 0x380);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ImageFileExecutionOptions) == 0x3a0);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, LangGenerationCount) == 0x3a4);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved4) == 0x3a8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, InterruptTimeBias) == 0x3b0);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBias) == 0x3b8);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveProcessorCount) == 0x3c0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, ActiveGroupCount) == 0x3c4);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved9) == 0x3c5);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcData) == 0x3c6);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcBypassEnabled) == 0x3c6);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, QpcShift) == 0x3c7);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart) == 0x3c8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd) == 0x3d0);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, XState) == 0x3d8);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp) == 0x720);
+C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask) == 0x730);
+#if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
+C_ASSERT(sizeof(KUSER_SHARED_DATA) == 0x738);
+#endif
 
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 
