@@ -2202,6 +2202,13 @@ PhEnumFirmwareEnvironmentValues(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetSystemEnvironmentBootToFirmware(
+    VOID
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateExecutionRequiredRequest(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE PowerRequestHandle
