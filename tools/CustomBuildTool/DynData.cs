@@ -35,9 +35,9 @@ $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
 #define KPH_DYN_CI_V2      ((SHORT)2)
 
 #include <pshpack1.h>
+
 typedef struct _KPH_DYN_CONFIGURATION
 {{
-    ULONG Version;
     USHORT MajorVersion;
     USHORT MinorVersion;
     USHORT ServicePackMajor;             // -1 to ignore
@@ -69,12 +69,20 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT AlpcState;                    // dt nt!_ALPC_PORT State
 
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
+
+typedef struct _KPH_DYNDATA
+{{
+    ULONG Version;
+    ULONG Count;
+    KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
+
+}} KPH_DYNDATA, *PKPH_DYNDATA;
+
 #include <poppack.h>";
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public class DynConfig 
         {
-            public UInt32 Version = DynData.Version;
             public UInt16 MajorVersion = 0xffff;
             public UInt16 MinorVersion = 0xffff;
             public UInt16 ServicePackMajor = 0xffff;
@@ -259,7 +267,12 @@ typedef struct _KPH_DYN_CONFIGURATION
             using (var file = new FileStream(configFile, FileMode.CreateNew))
             using (var writer = new BinaryWriter(file))
             {
-                writer.Write((UInt32)configs.Count);
+                //
+                // Write the version and count first, then the blocks.
+                // This conforms with KPH_DYNDATA defined above.
+                //
+                writer.Write(Version);
+                writer.Write(configs.Count);
                 foreach (var (configName, config) in configs)
                 {
                     var ptr = Marshal.AllocHGlobal(Marshal.SizeOf(config.GetType()));
