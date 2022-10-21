@@ -415,6 +415,7 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
 
 _Must_inspect_result_
 _Ret_maybenull_
+_Success_(return != NULL)
 PVOID PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
