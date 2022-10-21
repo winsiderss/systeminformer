@@ -105,6 +105,7 @@ PhMappedImageRvaToSection(
 PHLIBAPI
 _Must_inspect_result_
 _Ret_maybenull_
+_Success_(return != NULL)
 PVOID
 NTAPI
 PhMappedImageRvaToVa(

@@ -144,7 +144,7 @@ typedef ULONG (WINAPI *_CertNameToStr)(
     _In_ PCERT_NAME_BLOB pName,
     _In_ ULONG dwStrType,
     _Out_ PWSTR psz,
-    _In_ ULONG csz
+    _In_opt_ ULONG csz
     );
 
 typedef PCCERT_CONTEXT (WINAPI *_CertDuplicateCertificateContext)(
