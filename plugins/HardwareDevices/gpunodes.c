@@ -490,25 +490,14 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                                         engineName = context->NodeNameList->Items[i];
                                     }
 
-                                    if (!context->Description)
+                                    if (PhIsNullOrEmptyString(context->Description))
                                     {
-                                        if (context->DeviceEntry->Id.DevicePath)
-                                        {
-                                            PPH_STRING deviceDescription;
-
-                                            if (GraphicsQueryDeviceInterfaceDescription(PhGetString(context->DeviceEntry->Id.DevicePath), &deviceDescription))
-                                            {
-                                                context->Description = deviceDescription;
-                                            }
-                                        }
+                                        context->Description = GraphicsQueryDeviceInterfaceDescription(
+                                            PhGetString(context->DeviceEntry->Id.DevicePath)
+                                            );
                                     }
 
-                                    if (!context->Description)
-                                    {
-                                        context->Description = PhCreateString(L"Unknown Adapter");
-                                    }
-
-                                    if (!PhIsNullOrEmptyString(engineName))
+                                    if (!PhIsNullOrEmptyString(engineName) && !PhIsNullOrEmptyString(context->Description))
                                     {
                                         PH_FORMAT format[9];
 
@@ -527,16 +516,14 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                                     }
                                     else
                                     {
-                                        PH_FORMAT format[7];
+                                        PH_FORMAT format[5];
 
                                         // %.2f%%\nNode %lu on %s\n%s
                                         PhInitFormatF(&format[0], gpu * 100, 2);
                                         PhInitFormatS(&format[1], L"%\nNode ");
                                         PhInitFormatU(&format[2], i);
-                                        PhInitFormatS(&format[3], L" on ");
-                                        PhInitFormatSR(&format[4], context->Description->sr);
-                                        PhInitFormatC(&format[5], L'\n');
-                                        PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+                                        PhInitFormatC(&format[3], L'\n');
+                                        PhInitFormatSR(&format[4], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
 
                                         PhMoveReference(&context->GraphState[i].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                                     }

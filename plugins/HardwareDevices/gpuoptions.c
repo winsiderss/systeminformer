@@ -330,44 +330,39 @@ VOID FindGraphicsDevices(
 
     for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
     {
-        D3DKMT_HANDLE adapterHandle;
-        PPH_STRING deviceDescription;
-        PGPU_ENUM_ENTRY entry;
+        DEVPROPTYPE devicePropertyType;
+        DEVINST deviceInstanceHandle;
+        ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+        WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
 
-        entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
-        entry->DeviceIndex = ++index;
-        entry->DevicePath = PhCreateString(deviceInterface);
-
-        if (GraphicsQueryDeviceInterfaceDescription(deviceInterface, &deviceDescription))
-            entry->DeviceName = PhCreateString2(&deviceDescription->sr);
-        else
-            entry->DeviceName = PhCreateString(L"Unknown Adapter");
-
-        if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
+        if (CM_Get_Device_Interface_Property(
+            deviceInterface,
+            &DEVPKEY_Device_InstanceId,
+            &devicePropertyType,
+            (PBYTE)deviceInstanceId,
+            &deviceInstanceIdLength,
+            0
+            ) == CR_SUCCESS)
         {
-            if (GraphicsDeviceIsSoftwareDevice(adapterHandle))
-                entry->SoftwareDevice = TRUE;
-            entry->DevicePresent = TRUE;
-            GraphicsCloseAdapterHandle(adapterHandle);
-        }
-
-        if (entry->DevicePresent)
-        {
-            DEVPROPTYPE devicePropertyType;
-            DEVINST deviceInstanceHandle;
-            ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-            WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
-
-            if (CM_Get_Device_Interface_Property(
-                deviceInterface,
-                &DEVPKEY_Device_InstanceId,
-                &devicePropertyType,
-                (PBYTE)deviceInstanceId,
-                &deviceInstanceIdLength,
-                0
-                ) == CR_SUCCESS)
+            if (CM_Locate_DevNode(&deviceInstanceHandle, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL) == CR_SUCCESS)
             {
-                if (CM_Locate_DevNode(&deviceInstanceHandle, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL) == CR_SUCCESS)
+                D3DKMT_HANDLE adapterHandle;
+                PGPU_ENUM_ENTRY entry;
+
+                entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
+                entry->DeviceIndex = ++index;
+                entry->DevicePath = PhCreateString(deviceInterface);
+                entry->DeviceName = GraphicsQueryDeviceDescription(deviceInstanceHandle);
+
+                if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
+                {
+                    if (GraphicsDeviceIsSoftwareDevice(adapterHandle))
+                        entry->SoftwareDevice = TRUE;
+                    entry->DevicePresent = TRUE;
+                    GraphicsCloseAdapterHandle(adapterHandle);
+                }
+     
+                if (entry->DevicePresent)
                 {
                     ULONG deviceIndex;
                     PPH_STRING locationString = NULL;
@@ -404,17 +399,15 @@ VOID FindGraphicsDevices(
                             PhGetString(locationString),
                             PhGetString(entry->DeviceName)
                             ));
-
                         PhDereferenceObject(locationString);
                     }
 
                     PhClearReference(&locationInfoString);
                 }
+
+                PhAddItemList(deviceList, entry);
             }
         }
-
-        PhAddItemList(deviceList, entry);
-        PhDereferenceObject(deviceDescription);
     }
 
     PhFree(deviceInterfaceList);
