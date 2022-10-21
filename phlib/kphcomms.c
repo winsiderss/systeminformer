@@ -517,6 +517,7 @@ NTSTATUS KphCommsStart(
     TpSetPoolMinThreads(KphpCommsThreadPool, KPH_COMMS_MIN_THREADS);
     TpSetPoolMaxThreads(KphpCommsThreadPool, numberOfThreads);
     TpSetCallbackThreadpool(&KphpCommsThreadPoolEnv, KphpCommsThreadPool);
+    TpSetCallbackPriority(&KphpCommsThreadPoolEnv, TP_CALLBACK_PRIORITY_HIGH);
     //TpSetCallbackLongFunction(&KphpCommsThreadPoolEnv);
 
     PhSetFileCompletionNotificationMode(KphpCommsFltPortHandle,
