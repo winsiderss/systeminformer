@@ -3052,6 +3052,31 @@ BOOLEAN PhGetBaseNameComponents(
     return TRUE;
 }
 
+PPH_STRING PhGetBaseNamePathWithExtension(
+    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileExtension
+    )
+{
+    ULONG_PTR indexOfBackslash;
+    ULONG_PTR indexOfLastDot;
+    PH_STRINGREF baseFileName;
+    PH_STRINGREF baseFilePath;
+
+    if ((indexOfBackslash = PhFindLastCharInString(FileName, 0, OBJ_NAME_PATH_SEPARATOR)) == SIZE_MAX)
+        return NULL;
+    if ((indexOfLastDot = PhFindLastCharInString(FileName, 0, L'.')) == SIZE_MAX)
+        return NULL;
+    if (indexOfLastDot < indexOfBackslash)
+        return NULL;
+
+    baseFileName.Buffer = FileName->Buffer + indexOfBackslash + 1;
+    baseFileName.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
+    baseFilePath.Buffer = FileName->Buffer;
+    baseFilePath.Length = (indexOfBackslash + 1) * sizeof(WCHAR);
+
+    return PhConcatStringRef3(&baseFilePath, &baseFileName, FileExtension);
+}
+
 /**
  * Gets the parent directory from a file name.
  *
