@@ -1324,10 +1324,12 @@ VOID GraphicsDeviceUpdatePanel(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context
     );
 
-_Success_(return)
-BOOLEAN GraphicsQueryDeviceInterfaceDescription(
-    _In_ PWSTR DeviceInterface,
-    _Out_ PPH_STRING* DeviceDescription
+PPH_STRING GraphicsQueryDeviceDescription(
+    _In_ DEVINST DeviceHandle
+    );
+
+PPH_STRING GraphicsQueryDeviceInterfaceDescription(
+    _In_opt_ PWSTR DeviceInterface
     );
 
 PPH_STRING GraphicsQueryDevicePropertyString(
@@ -1373,7 +1375,6 @@ typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
     ULONG64 Reserved[7];
 } D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1, *PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1;
 
-_Success_(return)
 NTSTATUS GraphicsOpenAdapterFromDeviceName(
     _Out_ D3DKMT_HANDLE* AdapterHandle,
     _Out_opt_ PLUID AdapterLuid,

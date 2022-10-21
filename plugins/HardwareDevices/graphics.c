@@ -11,7 +11,6 @@
 
 #include "devices.h"
 
-_Success_(return)
 NTSTATUS GraphicsOpenAdapterFromDeviceName(
     _Out_ D3DKMT_HANDLE* AdapterHandle,
     _Out_opt_ PLUID AdapterLuid,
@@ -227,106 +226,54 @@ NTSTATUS GraphicsQueryAdapterDevicePerfData(
     return status;
 }
 
-_Success_(return)
-BOOLEAN GraphicsQueryDeviceInterfaceDescription(
-    _In_ PWSTR DeviceInterface,
-    _Out_ PPH_STRING *DeviceDescription
+PPH_STRING GraphicsQueryDeviceDescription(
+    _In_ DEVINST DeviceHandle
     )
 {
-    CONFIGRET result;
-    DEVPROPTYPE devicePropertyType;
-    DEVINST deviceInstanceHandle;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+    static PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
+    PPH_STRING string;
 
-    if (CM_Get_Device_Interface_Property(
-        DeviceInterface,
-        &DEVPKEY_Device_InstanceId,
-        &devicePropertyType,
-        (PBYTE)deviceInstanceId,
-        &deviceInstanceIdLength,
-        0
-        ) != CR_SUCCESS)
+    string = GraphicsQueryDevicePropertyString(
+        DeviceHandle,
+        &DEVPKEY_Device_DeviceDesc
+        );
+
+    if (PhIsNullOrEmptyString(string))
+        return PhCreateString2(&defaultName);
+    else
+        return string;
+}
+
+PPH_STRING GraphicsQueryDeviceInterfaceDescription(
+    _In_opt_ PWSTR DeviceInterface
+    )
+{
+    static PH_STRINGREF defaultName = PH_STRINGREF_INIT(L"Unknown Adapter");
+
+    if (DeviceInterface)
     {
-        return FALSE;
-    }
+        DEVPROPTYPE devicePropertyType;
+        DEVINST deviceInstanceHandle;
+        ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
+        WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
 
-    if (CM_Locate_DevNode(
-        &deviceInstanceHandle,
-        deviceInstanceId,
-        CM_LOCATE_DEVNODE_PHANTOM
-        ) != CR_SUCCESS)
-    {
-        return FALSE;
-    }
-
-    if (DeviceDescription)
-    {
-        PPH_STRING deviceDescription;
-        ULONG bufferSize = 0x40;
-
-        deviceDescription = PhCreateStringEx(NULL, bufferSize);
-
-        if ((result = CM_Get_DevNode_Property(
-            deviceInstanceHandle,
-            &DEVPKEY_Device_DeviceDesc,
+        if (CM_Get_Device_Interface_Property(
+            DeviceInterface,
+            &DEVPKEY_Device_InstanceId,
             &devicePropertyType,
-            (PBYTE)deviceDescription->Buffer,
-            &bufferSize,
+            (PBYTE)deviceInstanceId,
+            &deviceInstanceIdLength,
             0
-            )) != CR_SUCCESS)
+            ) == CR_SUCCESS)
         {
-            PhDereferenceObject(deviceDescription);
-            deviceDescription = PhCreateStringEx(NULL, bufferSize);
-
-            result = CM_Get_DevNode_Property(
-                deviceInstanceHandle,
-                &DEVPKEY_Device_DeviceDesc,
-                &devicePropertyType,
-                (PBYTE)deviceDescription->Buffer,
-                &bufferSize,
-                0
-                );
-        }
-
-        if (result == CR_SUCCESS)
-        {
-            PhTrimToNullTerminatorString(deviceDescription);
-            *DeviceDescription = deviceDescription;
-        }
-        else
-        {
-            PhDereferenceObject(deviceDescription);
-            return FALSE;
+            if (CM_Locate_DevNode(&deviceInstanceHandle, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL) == CR_SUCCESS)
+            {
+                return GraphicsQueryDeviceDescription(deviceInstanceHandle);
+            }
         }
     }
 
-    //if (AdapterLuid)
-    //{
-    //    LUID buffer = { 0 };
-    //    ULONG bufferSize = sizeof(LUID);
-    //    DEVPROPTYPE propertyType = DEVPROP_TYPE_EMPTY;
-    //
-    //    result = CM_Get_DevNode_Property(
-    //        deviceInstanceHandle,
-    //        &DEVPKEY_Gpu_Luid,
-    //        &propertyType,
-    //        (PBYTE)&buffer,
-    //        &bufferSize,
-    //        0
-    //        );
-    //
-    //    if (result == CR_SUCCESS)
-    //    {
-    //        *AdapterLuid = buffer;
-    //    }
-    //    else
-    //    {
-    //        return FALSE;
-    //    }
-    //}
-
-    return TRUE;
+    return PhCreateString2(&defaultName);
 }
 
 _Success_(return)
