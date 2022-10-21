@@ -1324,16 +1324,10 @@ VOID GraphicsDeviceUpdatePanel(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context
     );
 
-PPH_STRING GraphicsDeviceGetMaxNodeString(
-    _In_ PDV_GPU_SYSINFO_CONTEXT Context,
-    _In_ LONG Index
-    );
-
 _Success_(return)
 BOOLEAN GraphicsQueryDeviceInterfaceDescription(
     _In_ PWSTR DeviceInterface,
-    _Out_ PPH_STRING* DeviceDescription,
-    _Out_opt_ LUID* AdapterLuid
+    _Out_ PPH_STRING* DeviceDescription
     );
 
 PPH_STRING GraphicsQueryDevicePropertyString(

@@ -338,10 +338,10 @@ VOID FindGraphicsDevices(
         entry->DeviceIndex = ++index;
         entry->DevicePath = PhCreateString(deviceInterface);
 
-        if (GraphicsQueryDeviceInterfaceDescription(deviceInterface, &deviceDescription, NULL))
+        if (GraphicsQueryDeviceInterfaceDescription(deviceInterface, &deviceDescription))
             entry->DeviceName = PhCreateString2(&deviceDescription->sr);
         else
-            entry->DeviceName = PhReferenceEmptyString();
+            entry->DeviceName = PhCreateString(L"Unknown Adapter");
 
         if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(entry->DevicePath))))
         {
