@@ -4,7 +4,6 @@ using System.Text;
 using System.Xml;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.ComponentModel.DataAnnotations;
 
 namespace CustomBuildTool
 {
@@ -230,7 +229,7 @@ typedef struct _KPH_DYN_CONFIGURATION
                 {
                     var value = field.Attributes.GetNamedItem("value").Value;
                     var name = field.Attributes.GetNamedItem("name").Value;
-                    var member = config.GetType().GetField(name);
+                    var member = typeof(DynConfig).GetField(name);
 
                     if (value.StartsWith("0x"))
                     {
