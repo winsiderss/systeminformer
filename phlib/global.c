@@ -173,6 +173,10 @@ VOID PhInitializeWindowsVersion(
         {
             WindowsVersion = WINDOWS_11;
         }
+        else if (buildVersion >= 19045)
+        {
+            WindowsVersion = WINDOWS_10_22H2;
+        }
         else if (buildVersion >= 19044)
         {
             WindowsVersion = WINDOWS_10_21H2;
