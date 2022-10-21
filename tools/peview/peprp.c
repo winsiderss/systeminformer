@@ -1117,7 +1117,9 @@ static NTSTATUS PvpEntryPointImageThreadStart(
     PPH_STRING string;
     PPH_STRING symbol = NULL;
     PPH_STRING symbolName = NULL;
+    PPH_STRING fileName = NULL;
     PH_SYMBOL_RESOLVE_LEVEL symbolResolveLevel = PhsrlInvalid;
+    ULONG64 displacement = 0;
 
     if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         addressOfEntryPoint = PvMappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
@@ -1132,9 +1134,9 @@ static NTSTATUS PvpEntryPointImageThreadStart(
                 PvSymbolProvider,
                 (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase, addressOfEntryPoint),
                 &symbolResolveLevel,
-                NULL,
+                &fileName,
                 &symbolName,
-                NULL
+                &displacement
                 );
         }
         else
@@ -1143,31 +1145,36 @@ static NTSTATUS PvpEntryPointImageThreadStart(
                 PvSymbolProvider,
                 (ULONG64)PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, addressOfEntryPoint),
                 &symbolResolveLevel,
-                NULL,
+                &fileName,
                 &symbolName,
-                NULL
+                &displacement
                 );
         }
     }
 
-    if (
-        !PhIsNullOrEmptyString(symbolName) && (
-        symbolResolveLevel == PhsrlFunction ||
-        symbolResolveLevel == PhsrlModule ||
-        symbolResolveLevel == PhsrlAddress
-        ))
+    switch (symbolResolveLevel)
     {
-        string = PhFormatString(L"0x%I32x (%s)", addressOfEntryPoint, PhGetStringOrEmpty(symbolName));
-        PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
-        PhDereferenceObject(string);
-    }
-    else
-    {
+    case PhsrlFunction:
+        {
+            if (displacement)
+                string = PhFormatString(L"0x%I32x (%s+0x%llx)", addressOfEntryPoint, PhGetStringOrEmpty(symbolName), displacement);
+            else
+                string = PhFormatString(L"0x%I32x (%s)", addressOfEntryPoint, PhGetStringOrEmpty(symbolName));
+        }
+        break;
+    case PhsrlModule:
+    case PhsrlAddress:
         string = PhFormatString(L"0x%I32x", addressOfEntryPoint);
-        PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, string->Buffer);
-        PhDereferenceObject(string);
+        break;
+    default:
+    case PhsrlInvalid:
+        string = PhFormatString(L"0x%I32x", addressOfEntryPoint);
+        break;
     }
 
+    PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, PhGetStringOrEmpty(string));
+
+    PhClearReference(&string);
     PhClearReference(&symbolName);
     PhClearReference(&symbol);
     return STATUS_SUCCESS;
