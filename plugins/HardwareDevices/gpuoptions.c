@@ -333,6 +333,7 @@ VOID FindGraphicsDevices(
         D3DKMT_HANDLE adapterHandle;
         PPH_STRING deviceDescription;
         PGPU_ENUM_ENTRY entry;
+        deviceDescription = NULL;
 
         entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
         entry->DeviceIndex = ++index;
