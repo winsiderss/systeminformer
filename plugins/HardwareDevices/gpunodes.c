@@ -496,7 +496,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                                         {
                                             PPH_STRING deviceDescription;
 
-                                            if (GraphicsQueryDeviceInterfaceDescription(PhGetString(context->DeviceEntry->Id.DevicePath), &deviceDescription, NULL))
+                                            if (GraphicsQueryDeviceInterfaceDescription(PhGetString(context->DeviceEntry->Id.DevicePath), &deviceDescription))
                                             {
                                                 context->Description = deviceDescription;
                                             }

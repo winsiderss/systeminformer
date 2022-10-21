@@ -230,8 +230,7 @@ NTSTATUS GraphicsQueryAdapterDevicePerfData(
 _Success_(return)
 BOOLEAN GraphicsQueryDeviceInterfaceDescription(
     _In_ PWSTR DeviceInterface,
-    _Out_ PPH_STRING *DeviceDescription,
-    _Out_opt_ LUID* AdapterLuid
+    _Out_ PPH_STRING *DeviceDescription
     )
 {
     CONFIGRET result;
@@ -302,30 +301,30 @@ BOOLEAN GraphicsQueryDeviceInterfaceDescription(
         }
     }
 
-    if (AdapterLuid)
-    {
-        LUID buffer = { 0 };
-        ULONG bufferSize = sizeof(LUID);
-        DEVPROPTYPE propertyType = DEVPROP_TYPE_EMPTY;
-
-        result = CM_Get_DevNode_Property(
-            deviceInstanceHandle,
-            &DEVPKEY_Gpu_Luid,
-            &propertyType,
-            (PBYTE)&buffer,
-            &bufferSize,
-            0
-            );
-
-        if (result == CR_SUCCESS)
-        {
-            *AdapterLuid = buffer;
-        }
-        else
-        {
-            return FALSE;
-        }
-    }
+    //if (AdapterLuid)
+    //{
+    //    LUID buffer = { 0 };
+    //    ULONG bufferSize = sizeof(LUID);
+    //    DEVPROPTYPE propertyType = DEVPROP_TYPE_EMPTY;
+    //
+    //    result = CM_Get_DevNode_Property(
+    //        deviceInstanceHandle,
+    //        &DEVPKEY_Gpu_Luid,
+    //        &propertyType,
+    //        (PBYTE)&buffer,
+    //        &bufferSize,
+    //        0
+    //        );
+    //
+    //    if (result == CR_SUCCESS)
+    //    {
+    //        *AdapterLuid = buffer;
+    //    }
+    //    else
+    //    {
+    //        return FALSE;
+    //    }
+    //}
 
     return TRUE;
 }
