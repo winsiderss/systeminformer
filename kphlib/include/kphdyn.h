@@ -18,9 +18,9 @@
 #define KPH_DYN_CI_V2      ((SHORT)2)
 
 #include <pshpack1.h>
+
 typedef struct _KPH_DYN_CONFIGURATION
 {
-    ULONG Version;
     USHORT MajorVersion;
     USHORT MinorVersion;
     USHORT ServicePackMajor;             // -1 to ignore
@@ -52,6 +52,15 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT AlpcState;                    // dt nt!_ALPC_PORT State
 
 } KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
+
+typedef struct _KPH_DYNDATA
+{
+    ULONG Version;
+    ULONG Count;
+    KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
+
+} KPH_DYNDATA, *PKPH_DYNDATA;
+
 #include <poppack.h>
 
 extern BYTE KphDynData[];
