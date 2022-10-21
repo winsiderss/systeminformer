@@ -785,16 +785,16 @@ PhGetBaseName(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetBaseDirectory(
-    _In_ PPH_STRING FileName
+PhGetBaseNamePathWithExtension(
+    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileExtension
     );
 
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetBaseNamePathWithExtension(
-    _In_ PPH_STRING FileName,
-    _In_ PPH_STRINGREF FileExtension
+PhGetBaseDirectory(
+    _In_ PPH_STRING FileName
     );
 
 PHLIBAPI
