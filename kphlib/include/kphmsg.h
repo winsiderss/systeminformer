@@ -10,7 +10,7 @@
  */
 
 #pragma once
-#include <kphmsgbase.h>
+#include <kphlibbase.h>
 #include <kphmsgdefs.h>
 
 #pragma warning(push)

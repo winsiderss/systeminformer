@@ -24,6 +24,12 @@
     <ClInclude Include="include\kphapi.h">
       <Filter>HeaderFiles</Filter>
     </ClInclude>
+    <ClInclude Include="include\kphdyn.h">
+      <Filter>HeaderFiles</Filter>
+    </ClInclude>
+    <ClInclude Include="kphdyn.c">
+      <Filter>SourceFiles</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="HeaderFiles">
@@ -32,5 +38,8 @@
     <Filter Include="SourceFiles">
       <UniqueIdentifier>{1d7a73eb-3cee-4ae3-82bc-0846578dc715}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="kphdyn.xml" />
   </ItemGroup>
 </Project>

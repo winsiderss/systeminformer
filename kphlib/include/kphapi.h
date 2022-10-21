@@ -336,47 +336,6 @@ typedef enum _KPH_SYSTEM_CONTROL_CLASS
 
 } KPH_SYSTEM_CONTROL_CLASS;
 
-// Dynamic Configuration
-
-#define KPH_DYN_CONFIGURATION_VERSION 4
-
-#define KPH_DYN_CI_INVALID ((USHORT)0xffff)
-#define KPH_DYN_CI_V1      ((USHORT)0x1)
-#define KPH_DYN_CI_V2      ((USHORT)0x2)
-
-typedef struct _KPH_DYN_CONFIGURATION
-{
-    ULONG Version;
-    USHORT MajorVersion;
-    USHORT MinorVersion;
-    USHORT ServicePackMajor;            // -1 to ignore
-    USHORT BuildNumber;                 // -1 to ignore
-    ULONG ResultingNtVersion;           // PHNT_*
-
-    SHORT EgeGuid;                      // dt nt!_ETW_GUID_ENTRY Guid
-    SHORT EpObjectTable;                // dt nt!_EPROCESS ObjectTable
-    SHORT EreGuidEntry;                 // dt nt!_ETW_REG_ENTRY GuidEntry
-    SHORT HtHandleContentionEvent;      // dt nt!_HANDLE_TABLE HandleContentionEvent
-    SHORT OtName;                       // dt nt!_OBJECT_TYPE Name
-    SHORT OtIndex;                      // dt nt!_OBJECT_TYPE Index
-    SHORT ObDecodeShift;                // dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
-    SHORT ObAttributesShift;            // dt nt!_HANDLE_TABLE_ENTRY Attributes
-    USHORT CiVersion;                   // ci.dll exports version
-    SHORT AlpcCommunicationInfo;        // dt nt!_ALPC_PORT CommunicationInfo
-    SHORT AlpcOwnerProcess;             // dt nt!_ALPC_PORT OwnerProcess
-    SHORT AlpcConnectionPort;           // dt nt!_ALPC_COMMUNICATION_INFO ConnectionPort
-    SHORT AlpcServerCommunicationPort;  // dt nt!_ALPC_COMMUNICATION_INFO ServerCommunicationPort
-    SHORT AlpcClientCommunicationPort;  // dt nt!_ALPC_COMMUNICATION_INFO ClientCommunicationPort
-    SHORT AlpcHandleTable;              // dt nt!_ALPC_COMMUNICATION_INFO HandleTable
-    SHORT AlpcHandleTableLock;          // dt nt!_ALPC_HANDLE_TABLE Lock
-    SHORT AlpcAttributes;               // dt nt!_ALPC_PORT PortAttributes
-    SHORT AlpcAttributesFlags;          // dt nt!_ALPC_PORT_ATTRIBUTES Flags
-    SHORT AlpcPortContext;              // dt nt!_ALPC_PORT PortContext
-    SHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
-    SHORT AlpcState;                    // dt nt!_ALPC_PORT State
-
-} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
-
 // Verification
 
 #define KPH_PROCESS_READ_ACCESS (STANDARD_RIGHTS_READ | SYNCHRONIZE |  PROCESS_QUERY_INFORMATION | \

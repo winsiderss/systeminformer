@@ -127,5 +127,8 @@
     <ClInclude Include="include\cid_table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\kphosver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

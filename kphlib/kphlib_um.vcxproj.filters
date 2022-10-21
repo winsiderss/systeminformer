@@ -21,10 +21,13 @@
     <ClInclude Include="include\kphapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\kphmsgbase.h">
+    <ClInclude Include="include\kphlibbase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphmsgfill.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphdyn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,5 +38,11 @@
     <ClCompile Include="kphmsg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kphdyn.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="kphdyn.xml" />
   </ItemGroup>
 </Project>

@@ -27,8 +27,6 @@
 #define DYNPTRDEFAULT
 #endif
 
-EXT ULONG KphDynNtVersion;
-
 EXT ULONG KphDynEgeGuid OFFDEFAULT;
 EXT ULONG KphDynEpObjectTable OFFDEFAULT;
 EXT ULONG KphDynEreGuidEntry OFFDEFAULT;

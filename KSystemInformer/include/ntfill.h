@@ -8,7 +8,7 @@
  */
 
 #pragma once
-extern ULONG KphDynNtVersion;
+#include <kphosver.h>
 extern ULONG KphDynObDecodeShift;
 extern ULONG KphDynObAttributesShift;
 
@@ -230,7 +230,7 @@ PVOID ObpDecodeObject(
     )
 {
 #if (defined _M_X64) || (defined _M_ARM64)
-    if (KphDynNtVersion >= PHNT_WIN8)
+    if (KphOsVersion >= KphWin8)
     {
         if (KphDynObDecodeShift != ULONG_MAX)
         {
@@ -256,7 +256,7 @@ ULONG ObpGetHandleAttributes(
     )
 {
 #if (defined _M_X64) || (defined _M_ARM64)
-    if (KphDynNtVersion >= PHNT_WIN8)
+    if (KphOsVersion >= KphWin8)
     {
         if (KphDynObAttributesShift != ULONG_MAX)
         {
@@ -379,7 +379,80 @@ ObDuplicateObject(
     _In_ KPROCESSOR_MODE PreviousMode
     );
 
-// PS
+// LDR
+
+#define IS_INTRESOURCE(_r) ((((ULONG_PTR)(_r)) >> 16) == 0)
+#define MAKEINTRESOURCEA(i) ((LPSTR)((ULONG_PTR)((WORD)(i))))
+#define MAKEINTRESOURCEW(i) ((LPWSTR)((ULONG_PTR)((WORD)(i))))
+#ifdef UNICODE
+#define MAKEINTRESOURCE  MAKEINTRESOURCEW
+#else
+#define MAKEINTRESOURCE  MAKEINTRESOURCEA
+#endif
+
+#define RT_VERSION      MAKEINTRESOURCE(16)
+
+#define VS_FILE_INFO            RT_VERSION
+#define VS_VERSION_INFO         1
+
+#define VS_FFI_SIGNATURE        0xFEEF04BDL
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+LdrAccessResource(
+    _In_ PVOID DllHandle,
+    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
+    _Out_opt_ PVOID *ResourceBuffer,
+    _Out_opt_ ULONG *ResourceLength
+    );
+
+typedef struct _LDR_RESOURCE_INFO
+{
+    ULONG_PTR Type;
+    ULONG_PTR Name;
+    ULONG_PTR Language;
+} LDR_RESOURCE_INFO, *PLDR_RESOURCE_INFO;
+
+#define RESOURCE_TYPE_LEVEL 0
+#define RESOURCE_NAME_LEVEL 1
+#define RESOURCE_LANGUAGE_LEVEL 2
+#define RESOURCE_DATA_LEVEL 3
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+LdrFindResource_U(
+    _In_ PVOID DllHandle,
+    _In_ PLDR_RESOURCE_INFO ResourceInfo,
+    _In_ ULONG Level,
+    _Out_ PIMAGE_RESOURCE_DATA_ENTRY *ResourceDataEntry
+    );
+
+typedef struct _VS_VERSION_INFO_STRUCT
+{
+    USHORT Length;
+    USHORT ValueLength;
+    USHORT Type;
+    WCHAR Key[1];
+} VS_VERSION_INFO_STRUCT, *PVS_VERSION_INFO_STRUCT;
+
+typedef struct _FIXEDFILEINFO
+{
+    DWORD   dwSignature;
+    DWORD   dwStrucVersion;
+    DWORD   dwFileVersionMS;
+    DWORD   dwFileVersionLS;
+    DWORD   dwProductVersionMS;
+    DWORD   dwProductVersionLS;
+    DWORD   dwFileFlagsMask;
+    DWORD   dwFileFlags;
+    DWORD   dwFileOS;
+    DWORD   dwFileType;
+    DWORD   dwFileSubtype;
+    DWORD   dwFileDateMS;
+    DWORD   dwFileDateLS;
+} VS_FIXEDFILEINFO, *PVS_FIXEDFILEINFO;
 
 typedef struct _KLDR_DATA_TABLE_ENTRY
 {
@@ -418,6 +491,8 @@ typedef struct _KLDR_DATA_TABLE_ENTRY
     ULONG TimeDateStamp;
 
 } KLDR_DATA_TABLE_ENTRY, *PKLDR_DATA_TABLE_ENTRY;
+
+// PS
 
 NTSYSCALLAPI
 NTSTATUS

@@ -13,6 +13,7 @@
 #include <ph.h>
 #include <svcsup.h>
 #include <kphuser.h>
+#include <kphdyn.h>
 
 static PH_INITONCE KphMessageInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST KphMessageFreeList;
@@ -149,7 +150,6 @@ NTSTATUS KphSetParameters(
     PH_STRINGREF parametersKeyNameSr;
     PH_FORMAT format[3];
     WCHAR parametersKeyName[MAX_PATH];
-    KPH_DYN_CONFIGURATION configuration;
 
     PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
     PhInitFormatSR(&format[1], *ServiceName);
@@ -204,17 +204,24 @@ NTSTATUS KphSetParameters(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = KphInitializeDynamicConfiguration(&configuration);
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    PhInitializeStringRef(&valueNameSr, L"DynConfiguration");
+    PhInitializeStringRef(&valueNameSr, L"DynData");
     status = PhSetValueKey(
         parametersKeyHandle,
         &valueNameSr,
         REG_BINARY,
-        &configuration,
-        sizeof(configuration)
+        KphDynData,
+        KphDynDataLength
+        );
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    PhInitializeStringRef(&valueNameSr, L"DynDataSig");
+    status = PhSetValueKey(
+        parametersKeyHandle,
+        &valueNameSr,
+        REG_BINARY,
+        KphDynDataSig,
+        KphDynDataSigLength
         );
     if (!NT_SUCCESS(status))
         goto CleanupExit;

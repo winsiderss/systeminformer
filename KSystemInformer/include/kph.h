@@ -24,6 +24,7 @@
 #include <ntldr.h>
 #include <ntwow64.h>
 #include <kphapi.h>
+#include <kphosver.h>
 
 #define KSIAPI NTAPI
 
@@ -267,6 +268,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 PVOID KphGetRoutineAddress(
     _In_z_ PCWSTR ModuleName,
     _In_z_ PCSTR RoutineName
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphLocateKernelImage(
+    _Out_ PVOID* ImageBase,
+    _Out_ PSIZE_T ImageSize
     );
 
 // object
@@ -718,10 +725,13 @@ NTSTATUS KphMappedImageRvaToVa(
     _Out_ PVOID* Va
     );
 
+#define KPH_MAP_IMAGE    0x00000001ul
+
 _IRQL_always_function_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphMapViewOfFileInSystemProcess(
     _In_ HANDLE FileHandle,
+    _In_ ULONG Flags,
     _Outptr_result_bytebuffer_(*ViewSize) PVOID *MappedBase,
     _Inout_ PSIZE_T ViewSize,
     _Out_ PKAPC_STATE ApcState
@@ -787,6 +797,11 @@ BOOLEAN KphProcessIsLsass(
     _In_ PEPROCESS Process
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphLocateKernelRevision(
+    _Out_ PUSHORT Revision
+    );
+
 // vm
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -850,6 +865,15 @@ VOID KphReferenceHashingInfrastructure(
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphDereferenceHashingInfrastructure(
     VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHashBuffer(
+    _In_ PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_ ALG_ID AlgorithmId,
+    _Out_ PKPH_HASH Hash
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1293,6 +1317,15 @@ NTSTATUS KphInitializeVerify(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphCleanupVerify(
     VOID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphVerifyBuffer(
+    _In_ PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_ PUCHAR Signature,
+    _In_ ULONG SignatureLength
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

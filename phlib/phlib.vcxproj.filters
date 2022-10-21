@@ -113,9 +113,6 @@
     <ClCompile Include="treenew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="kphdata.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="apiimport.c">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -293,7 +293,6 @@
     <ClCompile Include="json.c" />
     <ClCompile Include="kph.c" />
     <ClCompile Include="kphcomms.c" />
-    <ClCompile Include="kphdata.c" />
     <ClCompile Include="lsasup.c" />
     <ClCompile Include="mapexlf.c" />
     <ClCompile Include="mapimg.c" />

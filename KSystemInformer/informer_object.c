@@ -986,7 +986,7 @@ NTSTATUS KphObjectInformerStart(
 
     operationCount = 2;
 
-    if (KphDynNtVersion >= PHNT_THRESHOLD)
+    if (KphOsVersion >= KphWin10)
     {
         operationRegistration[2].ObjectType = ExDesktopObjectType;
         operationRegistration[2].Operations = OB_OPERATION_HANDLE_CREATE | OB_OPERATION_HANDLE_DUPLICATE;

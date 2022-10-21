@@ -284,6 +284,127 @@ VOID KphDereferenceHashingInfrastructure(
 }
 
 /**
+ * \brief Hashes a buffer.
+ *
+ * \param[in] Buffer The buffer to hash.
+ * \param[in] BufferLength The length of the buffer.
+ * \param[in] AlgorithmId The algorithm to use.
+ * \param[out] Hash Populated with the hash.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphHashBuffer(
+    _In_ PUCHAR Buffer,
+    _In_ ULONG BufferLength,
+    _In_ ALG_ID AlgorithmId,
+    _Out_ PKPH_HASH Hash
+    )
+{
+    NTSTATUS status;
+    BCRYPT_ALG_HANDLE algHandle;
+    BCRYPT_HASH_HANDLE hashHandle;
+
+    PAGED_PASSIVE();
+
+    NT_ASSERT(KphpHashingInfra);
+
+    RtlZeroMemory(Hash, sizeof(*Hash));
+
+    if (AlgorithmId == CALG_SHA1)
+    {
+        algHandle = KphpHashingInfra->BCryptSha1Provider;
+    }
+    else if (AlgorithmId == CALG_SHA_256)
+    {
+        algHandle = KphpHashingInfra->BCryptSha256Provider;
+    }
+    else
+    {
+        return STATUS_INVALID_PARAMETER_2;
+    }
+
+    status = BCryptCreateHash(algHandle, &hashHandle, NULL, 0, NULL, 0, 0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      HASH,
+                      "BCryptCreateHash failed: %!STATUS!",
+                      status);
+
+        hashHandle = NULL;
+        goto Exit;
+    }
+
+    status = BCryptHashData(hashHandle, Buffer, BufferLength, 0);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      HASH,
+                      "BCryptHashData failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (AlgorithmId == CALG_SHA1)
+    {
+        NT_ASSERT(ARRAYSIZE(Hash->Buffer) >= MINCRYPT_SHA1_HASH_LEN);
+
+        status = BCryptFinishHash(hashHandle,
+                                  Hash->Buffer,
+                                  MINCRYPT_SHA1_HASH_LEN,
+                                  0);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          HASH,
+                          "BCryptFinishHash failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        Hash->AlgorithmId = CALG_SHA1;
+        Hash->Size = MINCRYPT_SHA1_HASH_LEN;
+    }
+    else
+    {
+        NT_ASSERT(AlgorithmId == CALG_SHA_256);
+        NT_ASSERT(ARRAYSIZE(Hash->Buffer) >= MINCRYPT_SHA256_HASH_LEN);
+
+        status = BCryptFinishHash(hashHandle,
+                                  Hash->Buffer,
+                                  MINCRYPT_SHA256_HASH_LEN,
+                                  0);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          HASH,
+                          "BCryptFinishHash failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        Hash->AlgorithmId = CALG_SHA_256;
+        Hash->Size = MINCRYPT_SHA256_HASH_LEN;
+    }
+
+    status = STATUS_SUCCESS;
+
+Exit:
+
+    if (hashHandle)
+    {
+        BCryptDestroyHash(hashHandle);
+    }
+
+    return status;
+}
+
+/**he algorithm to use
  * \brief Hashes a file.
  *
  * \param[in] FileHandle Handle to the file to hash.
@@ -336,6 +457,7 @@ NTSTATUS KphHashFile(
 
     viewSize = 0;
     status = KphMapViewOfFileInSystemProcess(FileHandle,
+                                             0,
                                              &mappedBase,
                                              &viewSize,
                                              &apcState);
@@ -596,6 +718,7 @@ NTSTATUS KphGetAuthenticodeInfo(
 
     viewSize = 0;
     status = KphMapViewOfFileInSystemProcess(FileHandle,
+                                             0,
                                              &mappedBase,
                                              &viewSize,
                                              &apcState);
