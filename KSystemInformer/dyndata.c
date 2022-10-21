@@ -17,15 +17,6 @@
 
 #include <trace.h>
 
-#include <pshpack1.h>
-typedef struct _KPH_DYNDATA
-{
-    ULONG Count;
-    KPH_DYN_CONFIGURATION Configs[ANYSIZE_ARRAY];
-
-} KPH_DYNDATA, *PKPH_DYNDATA;
-#include <poppack.h>
-
 PAGED_FILE();
 
 static UNICODE_STRING KphpAltitudeValueName = RTL_CONSTANT_STRING(L"KphAltitude");
@@ -37,6 +28,7 @@ static UNICODE_STRING KphpDisableImageLoadProtectionValueName = RTL_CONSTANT_STR
 typedef struct _KPH_ACTIVE_DYNDATA
 {
     ULONG Version;
+    ULONG Index;
     USHORT MajorVersion;
     USHORT MinorVersion;
     USHORT ServicePackMajor;
@@ -63,11 +55,6 @@ NTSTATUS KphpSetDynamicConfigiration(
     )
 {
     PAGED_PASSIVE();
-
-    if (Configuration->Version != KPH_DYN_CONFIGURATION_VERSION)
-    {
-        return STATUS_REVISION_MISMATCH;
-    }
 
     if ((Configuration->MajorVersion != KphOsVersionInfo.dwMajorVersion) ||
         (Configuration->MinorVersion != KphOsVersionInfo.dwMinorVersion))
@@ -125,15 +112,6 @@ NTSTATUS KphpSetDynamicConfigiration(
             return STATUS_NOT_SUPPORTED;
         }
     }
-
-    KphpActiveDynData.Version = Configuration->Version;
-    KphpActiveDynData.MajorVersion = Configuration->MajorVersion;
-    KphpActiveDynData.MinorVersion = Configuration->MinorVersion;
-    KphpActiveDynData.ServicePackMajor = Configuration->ServicePackMajor;
-    KphpActiveDynData.BuildNumberMin = Configuration->BuildNumberMin;
-    KphpActiveDynData.RevisionMin = Configuration->RevisionMin;
-    KphpActiveDynData.BuildNumberMax = Configuration->BuildNumberMax;
-    KphpActiveDynData.RevisionMax = Configuration->RevisionMax;
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   GENERAL,
@@ -293,16 +271,6 @@ NTSTATUS KphpReadDynamicConfiguration(
         goto Exit;
     }
 
-    if (dataLength < sizeof(KPH_DYNDATA))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Dynamic data blob is too small");
-
-        status = STATUS_BUFFER_TOO_SMALL;
-        goto Exit;
-    }
-
     status = KphQueryRegistryBinary(KeyHandle,
                                     &KphpDynDataSigValueName,
                                     &sigBuffer,
@@ -328,7 +296,27 @@ NTSTATUS KphpReadDynamicConfiguration(
         goto Exit;
     }
 
+    if (dataLength < sizeof(KPH_DYNDATA))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Dynamic data blob is too small");
+
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto Exit;
+    }
+
     dynData = (PKPH_DYNDATA)dataBuffer;
+
+    if (dynData->Version != KPH_DYN_CONFIGURATION_VERSION)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Dynamic configuration version mismatch");
+
+        status = STATUS_REVISION_MISMATCH;
+        goto Exit;
+    }
 
     status = RtlULongMult(sizeof(KPH_DYN_CONFIGURATION),
                           dynData->Count,
@@ -467,9 +455,22 @@ NTSTATUS KphDynamicDataInitialization(
 
     for (ULONG i = 0; i < dynData->Count; i++)
     {
-        status = KphpSetDynamicConfigiration(&dynData->Configs[i]);
+        PKPH_DYN_CONFIGURATION config;
+
+        config = &dynData->Configs[i];
+
+        status = KphpSetDynamicConfigiration(config);
         if (NT_SUCCESS(status))
         {
+            KphpActiveDynData.Version = dynData->Version;
+            KphpActiveDynData.Index = i;
+            KphpActiveDynData.MajorVersion = config->MajorVersion;
+            KphpActiveDynData.MinorVersion = config->MinorVersion;
+            KphpActiveDynData.ServicePackMajor = config->ServicePackMajor;
+            KphpActiveDynData.BuildNumberMin = config->BuildNumberMin;
+            KphpActiveDynData.RevisionMin = config->RevisionMin;
+            KphpActiveDynData.BuildNumberMax = config->BuildNumberMax;
+            KphpActiveDynData.RevisionMax = config->RevisionMax;
             break;
         }
     }

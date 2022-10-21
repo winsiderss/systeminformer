@@ -13,7 +13,29 @@ Major and minor are required. Service pack, builds and revisions are optional.
 Major, minor, and service pack (when specified) are explicit matches.
 Build and revision are a range from a min (inclusive) to a max (exclusive).
 Build and revision have precedence build > revision.
-If no builds are specified a range of revisions by itself is valid. 
+If no builds are specified a revision (or range of) is valid. 
+
+dt nt!_ETW_GUID_ENTRY Guid
+dt nt!_EPROCESS ObjectTable
+dt nt!_ETW_REG_ENTRY GuidEntry
+dt nt!_HANDLE_TABLE HandleContentionEvent
+dt nt!_OBJECT_TYPE Name
+dt nt!_OBJECT_TYPE Index
+dt nt!_HANDLE_TABLE_ENTRY ObjectPointerBits
+dt nt!_HANDLE_TABLE_ENTRY Attributes
+ci.dll exports version
+dt nt!_ALPC_PORT CommunicationInfo
+dt nt!_ALPC_PORT OwnerProcess
+dt nt!_ALPC_COMMUNICATION_INFO ConnectionPort
+dt nt!_ALPC_COMMUNICATION_INFO ServerCommunicationPort
+dt nt!_ALPC_COMMUNICATION_INFO ClientCommunicationPort
+dt nt!_ALPC_COMMUNICATION_INFO HandleTable
+dt nt!_ALPC_HANDLE_TABLE Lock
+dt nt!_ALPC_PORT PortAttributes
+dt nt!_ALPC_PORT_ATTRIBUTES Flags
+dt nt!_ALPC_PORT PortContext
+dt nt!_ALPC_PORT SequenceNo
+dt nt!_ALPC_PORT State
 
 -->
 <dyn>
