@@ -334,15 +334,6 @@ KphAlpcQueryComminicationsNamesInfo(
     _Out_ PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION* Names
     );
 
-// kphdata
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphInitializeDynamicConfiguration(
-    _Out_ PKPH_DYN_CONFIGURATION Configuration
-    );
-
 #ifdef __cplusplus
 }
 #endif

@@ -90,6 +90,7 @@ VOID KphReleaseRundown(
 PAGED_FILE();
 
 static UNICODE_STRING KphpLsaPortName = RTL_CONSTANT_STRING(L"\\SeLsaCommandPort");
+static UNICODE_STRING KphpKernelFileName = RTL_CONSTANT_STRING(L"\\SystemRoot\\System32\\ntoskrnl.exe");
 
 /**
  * \brief Initializes rundown object.
@@ -1093,9 +1094,10 @@ NTSTATUS KphMappedImageRvaToVa(
  * calling KphUnmapViewInSystemProcess.
  *
  * \param[in] FileHandle Handle to file to map.
+ * \param[in] Flags Options for the mapping (see: KPH_MAP..).
  * \param[out] MappedBase Base address of the mapping.
- * \param[out] ViewSize Size of the mapped view. If the view exceeds the file
- * size, it is clamped to the file size.
+ * \param[out] ViewSize Size of the mapped view. If not an image mapping and
+ * if the view exceeds the file size, it is clamped to the file size.
  * \param[out] ApcState APC state to be passed to KphUnmapViewInSystemProcess.
  *
  * \return Successful or errant status.
@@ -1104,6 +1106,7 @@ _IRQL_always_function_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphMapViewOfFileInSystemProcess(
     _In_ HANDLE FileHandle,
+    _In_ ULONG Flags,
     _Outptr_result_bytebuffer_(*ViewSize) PVOID *MappedBase,
     _Inout_ PSIZE_T ViewSize,
     _Out_ PKAPC_STATE ApcState
@@ -1112,9 +1115,9 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
     NTSTATUS status;
     HANDLE sectionHandle;
     OBJECT_ATTRIBUTES objectAttributes;
-    IO_STATUS_BLOCK ioStatusBlock;
-    FILE_STANDARD_INFORMATION fileInfo;
+    ULONG allocationAttributes;
     PVOID mappedEnd;
+    SIZE_T fileSize;
 
     PAGED_PASSIVE();
 
@@ -1123,29 +1126,52 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
 
     KeStackAttachProcess(PsInitialSystemProcess, ApcState);
 
-    status = ZwQueryInformationFile(FileHandle,
-                                    &ioStatusBlock,
-                                    &fileInfo,
-                                    sizeof(fileInfo),
-                                    FileStandardInformation);
-    if (!NT_SUCCESS(status))
+    if (BooleanFlagOn(Flags, KPH_MAP_IMAGE))
     {
-        goto Exit;
-    }
+        if (KphOsVersionInfo.dwBuildNumber >= 9200)
+        {
+            allocationAttributes = SEC_IMAGE_NO_EXECUTE;
+        }
+        else
+        {
+            allocationAttributes = SEC_IMAGE;
+        }
 
-    if (fileInfo.EndOfFile.QuadPart < 0)
-    {
-        status = STATUS_FILE_TOO_LARGE;
-        goto Exit;
+        fileSize = SIZE_T_MAX;
     }
-#pragma warning(suppress : 4127) // conditional is constant
-    if (sizeof(SIZE_T) < sizeof(fileInfo.EndOfFile.QuadPart))
+    else
     {
+        IO_STATUS_BLOCK ioStatusBlock;
+        FILE_STANDARD_INFORMATION fileInfo;
+
+        allocationAttributes = SEC_COMMIT;
+
+        status = ZwQueryInformationFile(FileHandle,
+                                        &ioStatusBlock,
+                                        &fileInfo,
+                                        sizeof(fileInfo),
+                                        FileStandardInformation);
+        if (!NT_SUCCESS(status))
+        {
+            goto Exit;
+        }
+
+        if (fileInfo.EndOfFile.QuadPart < 0)
+        {
+            status = STATUS_FILE_TOO_LARGE;
+            goto Exit;
+        }
+
+#ifdef _WIN64
+        fileSize = (SIZE_T)fileInfo.EndOfFile.QuadPart;
+#else
         if (fileInfo.EndOfFile.HighPart != 0)
         {
             status = STATUS_FILE_TOO_LARGE;
             goto Exit;
         }
+        fileSize = fileInfo.EndOfFile.LowPart;
+#endif
     }
 
     InitializeObjectAttributes(&objectAttributes,
@@ -1159,7 +1185,7 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
                              &objectAttributes,
                              NULL,
                              PAGE_READONLY,
-                             SEC_COMMIT,
+                             allocationAttributes,
                              FileHandle);
     if (!NT_SUCCESS(status))
     {
@@ -1185,9 +1211,9 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
         goto Exit;
     }
 
-    if (*ViewSize > (SIZE_T)fileInfo.EndOfFile.QuadPart)
+    if (*ViewSize > fileSize)
     {
-        *ViewSize = fileInfo.EndOfFile.LowPart;
+        *ViewSize = fileSize;
     }
 
     mappedEnd = Add2Ptr(*MappedBase, *ViewSize);
@@ -1631,4 +1657,234 @@ BOOLEAN KphProcessIsLsass(
     SeReleaseSubjectContext(&subjectContext);
 
     return result;
+}
+
+/**
+ * \brief Locates the revision of the kernel.
+ *
+ * \param[out] Revision Set to the kernel build revision.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphLocateKernelRevision(
+    _Out_ PUSHORT Revision
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    KAPC_STATE apcState;
+    PVOID imageBase;
+    SIZE_T imageSize;
+    PVOID imageEnd;
+    LDR_RESOURCE_INFO resourceInfo;
+    PIMAGE_RESOURCE_DATA_ENTRY resourceData;
+    PVOID resourceBuffer;
+    ULONG resourceLength;
+    PVS_VERSION_INFO_STRUCT versionInfo;
+    UNICODE_STRING keyName;
+    PVS_FIXEDFILEINFO fileInfo;
+
+    PAGED_PASSIVE();
+
+    *Revision = 0;
+
+    imageBase = NULL;
+
+    InitializeObjectAttributes(&objectAttributes,
+                               &KphpKernelFileName,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = IoCreateFileEx(&fileHandle,
+                            FILE_READ_ACCESS,
+                            &objectAttributes,
+                            &ioStatusBlock,
+                            NULL,
+                            FILE_ATTRIBUTE_NORMAL,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                            FILE_OPEN,
+                            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                            NULL,
+                            0,
+                            CreateFileTypeNone,
+                            NULL,
+                            IO_IGNORE_SHARE_ACCESS_CHECK,
+                            NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      HASH,
+                      "IoCreateFileEx failed: %!STATUS!",
+                      status);
+
+        fileHandle = NULL;
+        goto Exit;
+    }
+
+    imageSize = 0;
+    status = KphMapViewOfFileInSystemProcess(fileHandle,
+                                             KPH_MAP_IMAGE,
+                                             &imageBase,
+                                             &imageSize,
+                                             &apcState);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      HASH,
+                      "KphMapViewOfFileInSystemProcess failed: %!STATUS!",
+                      status);
+
+        imageBase = NULL;
+        goto Exit;
+    }
+
+    imageEnd = Add2Ptr(imageBase, imageSize);
+
+    resourceInfo.Type = (ULONG_PTR)VS_FILE_INFO;
+    resourceInfo.Name = (ULONG_PTR)MAKEINTRESOURCEW(VS_VERSION_INFO);
+    resourceInfo.Language = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
+
+    __try
+    {
+        status = LdrFindResource_U(imageBase,
+                                   &resourceInfo,
+                                   RESOURCE_DATA_LEVEL,
+                                   &resourceData);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "LdrFindResource_U failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        status = LdrAccessResource(imageBase,
+                                   resourceData,
+                                   &resourceBuffer,
+                                   &resourceLength);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "LdrAccessResource failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        if (Add2Ptr(resourceBuffer, resourceLength) >= imageEnd)
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Resource buffer overflows mapping");
+
+            status = STATUS_BUFFER_OVERFLOW;
+            goto Exit;
+        }
+
+        if (resourceLength < sizeof(VS_VERSION_INFO_STRUCT))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Resource length insufficient");
+
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto Exit;
+        }
+
+        versionInfo = resourceBuffer;
+
+        if (Add2Ptr(resourceBuffer, versionInfo->Length) >= imageEnd)
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Version info overflows mapping");
+
+            status = STATUS_BUFFER_OVERFLOW;
+            goto Exit;
+        }
+
+        if (versionInfo->ValueLength < sizeof(VS_FIXEDFILEINFO))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Value length insufficient");
+
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto Exit;
+        }
+
+        status = RtlInitUnicodeStringEx(&keyName, versionInfo->Key);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "RtlInitUnicodeStringEx failed: %!STATUS!",
+                          status);
+
+            goto Exit;
+        }
+
+        fileInfo = Add2Ptr(versionInfo, RTL_SIZEOF_THROUGH_FIELD(VS_VERSION_INFO_STRUCT, Type));
+        fileInfo = (PVS_FIXEDFILEINFO)ALIGN_UP(Add2Ptr(fileInfo, keyName.MaximumLength), ULONG);
+
+        if (Add2Ptr(fileInfo, sizeof(VS_FIXEDFILEINFO)) >= imageEnd)
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "File version info overflows mapping");
+
+            status = STATUS_BUFFER_TOO_SMALL;
+            goto Exit;
+        }
+
+        if (fileInfo->dwSignature != VS_FFI_SIGNATURE)
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Invalid file version information signature (0x%08x)",
+                          fileInfo->dwSignature);
+
+            status = STATUS_INVALID_SIGNATURE;
+            goto Exit;
+        }
+
+        if (fileInfo->dwStrucVersion != 0x10000)
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Unknown file version information structure (0x%08x)",
+                          fileInfo->dwStrucVersion);
+
+            status = STATUS_REVISION_MISMATCH;
+            goto Exit;
+        }
+
+        *Revision = LOWORD(fileInfo->dwFileVersionLS);
+        status = STATUS_SUCCESS;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+    }
+
+Exit:
+
+    if (imageBase)
+    {
+        KphUnmapViewInSystemProcess(imageBase, &apcState);
+    }
+
+    if (fileHandle)
+    {
+        ObCloseHandle(fileHandle, KernelMode);
+    }
+
+    return status;
 }

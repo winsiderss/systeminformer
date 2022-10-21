@@ -274,10 +274,15 @@
     <ClInclude Include="include\kphmsgbase.h" />
     <ClInclude Include="include\kphmsgdyn.h" />
     <ClInclude Include="include\kphmsgdefs.h" />
+    <ClInclude Include="include\kphdyn.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kphmsg.c" />
     <ClCompile Include="kphmsgdyn.c" />
+    <ClInclude Include="kphdyn.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="kphdyn.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

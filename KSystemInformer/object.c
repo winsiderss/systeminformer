@@ -229,7 +229,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
 
     PAGED_PASSIVE();
 
-    if ((KphDynNtVersion >= PHNT_WIN8) &&
+    if ((KphOsVersion >= KphWin8) &&
         (KphDynHtHandleContentionEvent == ULONG_MAX) ||
         (KphDynEpObjectTable == ULONG_MAX))
     {
@@ -254,7 +254,7 @@ NTSTATUS KphEnumerateProcessHandlesEx(
     context.Callback = Callback;
     context.Parameter = Parameter;
 
-    if (KphDynNtVersion >= PHNT_WIN8)
+    if (KphOsVersion >= KphWin8)
     {
         ExEnumHandleTable(handleTable,
                           KphEnumerateProcessHandlesExCallback,
