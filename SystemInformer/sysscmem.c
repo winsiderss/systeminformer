@@ -291,7 +291,7 @@ VOID PhSipInitializeMemoryDialog(
 
     MemoryTicked = 0;
 
-    if (!MmAddressesInitialized && (KphLevel() >= KphLevelMed))
+    if (!MmAddressesInitialized)
     {
         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhSipLoadMmAddresses, NULL);
         MmAddressesInitialized = TRUE;
@@ -852,34 +852,36 @@ VOID PhSipUpdateMemoryPanel(
     else
         PhSetDialogItemText(MemoryPanel, IDC_ZNONPAGEDFREESDELTA_V, L"-");
 
-    // Pools (KPH)
+    // Pools
 
-    if (MmAddressesInitialized && (MmSizeOfPagedPoolInBytes || MmMaximumNonPagedPoolInBytes))
+    if (MmAddressesInitialized)
     {
         SIZE_T paged;
         SIZE_T nonPaged;
 
         PhSipGetPoolLimits(&paged, &nonPaged);
 
-        if (paged != -1)
+        if (paged != SIZE_T_MAX)
             pagedLimit = PhaFormatSize(paged, ULONG_MAX)->Buffer;
         else
-            pagedLimit = L"N/A";
+            pagedLimit = KphLevel() ? L"no symbols" : L"no driver";
 
-        if (nonPaged != -1)
+        if (nonPaged != SIZE_T_MAX)
             nonPagedLimit = PhaFormatSize(nonPaged, ULONG_MAX)->Buffer;
         else
             nonPagedLimit = L"N/A";
     }
     else
     {
-        if (!KphLevel())
+        if (KphLevel())
         {
-            pagedLimit = nonPagedLimit = L"no driver";
+            pagedLimit = L"no symbols";
+            nonPagedLimit = L"N/A";
         }
         else
         {
-            pagedLimit = nonPagedLimit = L"no symbols";
+            pagedLimit = L"no driver";
+            nonPagedLimit = L"N/A";
         }
     }
 
@@ -1014,13 +1016,16 @@ NTSTATUS PhSipLoadMmAddresses(
                 MmSizeOfPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
             }
 
-            if (PhGetSymbolFromName(
-                symbolProvider,
-                L"MmMaximumNonPagedPoolInBytes",
-                &symbolInfo
-                ))
+            if (WindowsVersion < WINDOWS_8)
             {
-                MmMaximumNonPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+                if (PhGetSymbolFromName(
+                    symbolProvider,
+                    L"MmMaximumNonPagedPoolInBytes",
+                    &symbolInfo
+                    ))
+                {
+                    MmMaximumNonPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+                }
             }
 
             PhDereferenceObject(symbolProvider);
@@ -1037,10 +1042,10 @@ VOID PhSipGetPoolLimits(
     _Out_ PSIZE_T NonPaged
     )
 {
-    SIZE_T paged = -1;
-    SIZE_T nonPaged = -1;
+    SIZE_T paged = SIZE_T_MAX;
+    SIZE_T nonPaged = SIZE_T_MAX;
 
-    if (MmSizeOfPagedPoolInBytes && WindowsVersion < WINDOWS_8)
+    if (MmSizeOfPagedPoolInBytes && (KphLevel() >= KphLevelMed))
     {
         KphReadVirtualMemoryUnsafe(
             NtCurrentProcess(),
@@ -1051,7 +1056,25 @@ VOID PhSipGetPoolLimits(
             );
     }
 
-    if (MmMaximumNonPagedPoolInBytes)
+    if (WindowsVersion >= WINDOWS_8)
+    {
+        // The maximum nonpaged pool size was fixed on Windows 8 and above? The kernel does use
+        // a function named MmGetMaximumNonPagedPoolInBytes() but it's not exported. We return
+        // the fixed limit value from the documentation here similar to MS tools. (dmex)
+        // https://learn.microsoft.com/en-us/windows/win32/memory/memory-limits-for-windows-releases#memory-and-address-space-limits
+        //
+        // Windows 8.1 and Windows Server 2012 R2: RAM or 16 TB, whichever is smaller:
+
+        if (UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE) <= 16ULL * 1024ULL * 1024ULL * 1024ULL)
+        {
+            nonPaged = UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
+        }
+        else
+        {
+            nonPaged = (SIZE_T)(16ULL * 1024ULL * 1024ULL * 1024ULL);
+        }
+    }
+    else if (WindowsVersion < WINDOWS_8 && MmMaximumNonPagedPoolInBytes && (KphLevel() >= KphLevelMed))
     {
         KphReadVirtualMemoryUnsafe(
             NtCurrentProcess(),
