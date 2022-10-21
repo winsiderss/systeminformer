@@ -1334,21 +1334,19 @@ BOOLEAN PhDoesNewKsiExist(
 {
     static PH_STRINGREF ksiNew = PH_STRINGREF_INIT(L"ksi.dll-new");
     BOOLEAN result = FALSE;
-    PPH_STRING applicationDir = NULL;
-    PPH_STRING fileName = NULL;
+    PPH_STRING applicationDirectory;
+    PPH_STRING fileName;
 
-    if (!(applicationDir = PhGetApplicationDirectory()))
-        goto CleanupExit;
+    if (!(applicationDirectory = PhGetApplicationDirectory()))
+        return FALSE;
 
-    fileName = PhConcatStringRef2(&applicationDir->sr, &ksiNew);
+    if (fileName = PhConcatStringRef2(&applicationDirectory->sr, &ksiNew))
+    {
+        result = PhDoesFileExist(&fileName->sr);
+        PhDereferenceObject(fileName);
+    }
 
-    result = PhDoesFileExist(&fileName->sr);
-
-CleanupExit:
-
-    if (applicationDir)
-        PhDereferenceObject(applicationDir);
-
+    PhDereferenceObject(applicationDirectory);
     return result;
 }
 
@@ -1361,8 +1359,6 @@ VOID PhInitializeKph(
     PPH_STRING fileName = NULL;
     PPH_STRING kphFileName = NULL;
     PPH_STRING kphServiceName = NULL;
-    ULONG_PTR indexOfBackslash;
-    ULONG_PTR indexOfLastDot;
 
     if (PhDoesNewKsiExist())
     {
@@ -1376,36 +1372,17 @@ VOID PhInitializeKph(
         return;
     }
 
+    if (!(fileName = PhGetApplicationFileNameWin32()))
+        goto CleanupExit;
+    if (!(kphFileName = PhGetBaseNamePathWithExtension(fileName, &driverExtension)))
+        goto CleanupExit;
+
     kphServiceName = PhGetStringSetting(L"KphServiceName");
     if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
     {
         PhClearReference(&kphServiceName);
         kphServiceName = PhCreateString(KPH_SERVICE_NAME);
     }
-
-    if (!(fileName = PhGetApplicationFileNameWin32()))
-        goto CleanupExit;
-
-    indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
-    indexOfLastDot = PhFindLastCharInString(fileName, 0, L'.');
-
-    if (
-        indexOfBackslash != SIZE_MAX &&
-        indexOfLastDot != SIZE_MAX &&
-        indexOfLastDot > indexOfBackslash
-        )
-    {
-        PH_STRINGREF applicationNameSr;
-
-        applicationNameSr.Buffer = fileName->Buffer + indexOfBackslash + 1;
-        applicationNameSr.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
-        fileName->Length = (indexOfBackslash + 1) * sizeof(WCHAR);
-
-        kphFileName = PhConcatStringRef3(&fileName->sr, &applicationNameSr, &driverExtension);
-    }
-
-    if (PhIsNullOrEmptyString(kphFileName))
-        goto CleanupExit;
 
     // Reset driver parameters after a Windows build update. (dmex)
     {
@@ -1444,7 +1421,7 @@ VOID PhInitializeKph(
         }
     }
 
-    if (kphServiceName && PhDoesFileExistWin32(kphFileName->Buffer))
+    if (kphServiceName && PhDoesFileExistWin32(PhGetString(kphFileName)))
     {
         PPH_STRING objectName = NULL;
         PPH_STRING portName = NULL;
@@ -1459,7 +1436,7 @@ VOID PhInitializeKph(
             PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
         disableImageLoadProtection = !!PhGetIntegerSetting(L"KphDisableImageLoadProtection");
 
-        if (!NT_SUCCESS(status = KphConnect(
+        status = KphConnect(
             &kphServiceName->sr,
             &objectName->sr,
             &portName->sr,
@@ -1467,16 +1444,11 @@ VOID PhInitializeKph(
             &altitudeName->sr,
             disableImageLoadProtection,
             KphCommsCallback
-            )))
-        {
-            if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
-                PhpShowKphError(L"Unable to load the kernel driver service.", status);
-        }
-        else
-        {
-            KPH_LEVEL level;
+            );
 
-            level = KphLevel();
+        if (NT_SUCCESS(status))
+        {
+            KPH_LEVEL level = KphLevel();
 
             if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
             {
@@ -1493,6 +1465,11 @@ VOID PhInitializeKph(
                     PhRestartSelf(L"-kh");
                 }
             }
+        }
+        else
+        {
+            if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
+                PhpShowKphError(L"Unable to load the kernel driver service.", status);
         }
 
         PhClearReference(&objectName);
