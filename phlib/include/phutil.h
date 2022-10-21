@@ -792,6 +792,14 @@ PhGetBaseDirectory(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhGetBaseNamePathWithExtension(
+    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileExtension
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetSystemDirectory(
     VOID
     );
