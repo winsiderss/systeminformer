@@ -37,7 +37,8 @@ typedef enum _PHP_QUERY_OBJECT_WORK
     NtQueryObjectWork,
     NtQuerySecurityObjectWork,
     NtSetSecurityObjectWork,
-    NtQueryFileInformationWork
+    NtQueryFileInformationWork,
+    KphQueryFileInformationWork
 } PHP_QUERY_OBJECT_WORK;
 
 typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
@@ -76,6 +77,15 @@ typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
             PVOID FileInformation;
             ULONG FileInformationLength;
         } NtQueryFileInformation;
+        struct
+        {
+            HANDLE ProcessHandle;
+            HANDLE Handle;
+            FILE_INFORMATION_CLASS FileInformationClass;
+            PVOID FileInformation;
+            ULONG FileInformationLength;
+        } KphQueryFileInformation;
+
     } u;
 } PHP_QUERY_OBJECT_COMMON_CONTEXT, *PPHP_QUERY_OBJECT_COMMON_CONTEXT;
 
@@ -2272,6 +2282,7 @@ NTSTATUS PhpCommonQueryObjectRoutine(
     )
 {
     PPHP_QUERY_OBJECT_COMMON_CONTEXT context = Parameter;
+    IO_STATUS_BLOCK isb;
 
     switch (context->Work)
     {
@@ -2302,14 +2313,24 @@ NTSTATUS PhpCommonQueryObjectRoutine(
         break;
     case NtQueryFileInformationWork:
         {
-            IO_STATUS_BLOCK isb;
-
             context->Status = NtQueryInformationFile(
                 context->u.NtQueryFileInformation.Handle,
                 &isb,
                 context->u.NtQueryFileInformation.FileInformation,
                 context->u.NtQueryFileInformation.FileInformationLength,
                 context->u.NtQueryFileInformation.FileInformationClass
+                );
+        }
+        break;
+    case KphQueryFileInformationWork:
+        {
+            context->Status = KphQueryInformationFile(
+                context->u.KphQueryFileInformation.ProcessHandle,
+                context->u.KphQueryFileInformation.Handle,
+                context->u.KphQueryFileInformation.FileInformationClass,
+                context->u.KphQueryFileInformation.FileInformation,
+                context->u.KphQueryFileInformation.FileInformationLength,
+                &isb
                 );
         }
         break;
@@ -2420,3 +2441,26 @@ NTSTATUS PhCallNtQueryFileInformationWithTimeout(
 
     return PhpCommonQueryObjectWithTimeout(context);
 }
+
+NTSTATUS PhCallKphQueryFileInformationWithTimeout(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
+    _In_ ULONG FileInformationLength
+    )
+{
+    PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
+
+    context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
+    context->Work = KphQueryFileInformationWork;
+    context->Status = STATUS_UNSUCCESSFUL;
+    context->u.KphQueryFileInformation.ProcessHandle = ProcessHandle;
+    context->u.KphQueryFileInformation.Handle = Handle;
+    context->u.KphQueryFileInformation.FileInformationClass = FileInformationClass;
+    context->u.KphQueryFileInformation.FileInformation = FileInformation;
+    context->u.KphQueryFileInformation.FileInformationLength = FileInformationLength;
+
+    return PhpCommonQueryObjectWithTimeout(context);
+}
+

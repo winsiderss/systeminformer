@@ -1071,45 +1071,28 @@ VOID PhpUpdateHandleGeneral(
     {
         NTSTATUS status;
         HANDLE processHandle;
-        HANDLE fileHandle = NULL;
 
-        if (NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_DUP_HANDLE,
-            Context->ProcessId
-            )))
+        if (KphLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION,
+                Context->ProcessId
+                )))
         {
-            status = NtDuplicateObject(
-                processHandle,
-                Context->HandleItem->Handle,
-                NtCurrentProcess(),
-                &fileHandle,
-                MAXIMUM_ALLOWED,
-                0,
-                0
-                );
-            NtClose(processHandle);
-        }
-
-        if (NT_SUCCESS(status) && fileHandle)
-        {
-            //BOOLEAN disableFlushButton = FALSE;
             BOOLEAN isFileOrDirectory = FALSE;
             BOOLEAN isConsoleHandle = FALSE;
-            //BOOLEAN isPipeHandle = FALSE;
-            //BOOLEAN isNetworkHandle = FALSE;
             FILE_FS_DEVICE_INFORMATION fileDeviceInfo;
             FILE_MODE_INFORMATION fileModeInfo;
             FILE_STANDARD_INFORMATION fileStandardInfo;
             FILE_POSITION_INFORMATION filePositionInfo;
             IO_STATUS_BLOCK isb;
 
-            if (NT_SUCCESS(NtQueryVolumeInformationFile(
-                fileHandle,
-                &isb,
+            if (NT_SUCCESS(KphQueryVolumeInformationFile(
+                processHandle,
+                Context->HandleItem->Handle,
+                FileFsDeviceInformation,
                 &fileDeviceInfo,
                 sizeof(FILE_FS_DEVICE_INFORMATION),
-                FileFsDeviceInformation
+                &isb
                 )))
             {
                 switch (fileDeviceInfo.DeviceType)
@@ -1148,8 +1131,9 @@ VOID PhpUpdateHandleGeneral(
             // 2) \Device\ConDrv\CurrentIn
             // 3) \Device\VolMgrControl
 
-            if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
-                fileHandle,
+            if (NT_SUCCESS(status = PhCallKphQueryFileInformationWithTimeout(
+                processHandle,
+                Context->HandleItem->Handle,
                 FileModeInformation,
                 &fileModeInfo,
                 sizeof(FILE_MODE_INFORMATION)
@@ -1183,8 +1167,9 @@ VOID PhpUpdateHandleGeneral(
 
             if (!isConsoleHandle)
             {
-                if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
-                    fileHandle,
+                if (NT_SUCCESS(status = PhCallKphQueryFileInformationWithTimeout(
+                    processHandle,
+                    Context->HandleItem->Handle,
                     FileStandardInformation,
                     &fileStandardInfo,
                     sizeof(FILE_STANDARD_INFORMATION)
@@ -1208,8 +1193,9 @@ VOID PhpUpdateHandleGeneral(
                     //disableFlushButton |= fileStandardInfo.Directory;
                 }
 
-                if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
-                    fileHandle,
+                if (NT_SUCCESS(status = PhCallKphQueryFileInformationWithTimeout(
+                    processHandle,
+                    Context->HandleItem->Handle,
                     FilePositionInformation,
                     &filePositionInfo,
                     sizeof(FILE_POSITION_INFORMATION)
@@ -1245,7 +1231,186 @@ VOID PhpUpdateHandleGeneral(
                 }
             }
 
-            NtClose(fileHandle);
+            NtClose(processHandle);
+        }
+        else
+        {
+            HANDLE fileHandle = NULL;
+
+            if (NT_SUCCESS(status = PhOpenProcess(
+                &processHandle,
+                PROCESS_DUP_HANDLE,
+                Context->ProcessId
+                )))
+            {
+                status = NtDuplicateObject(
+                    processHandle,
+                    Context->HandleItem->Handle,
+                    NtCurrentProcess(),
+                    &fileHandle,
+                    MAXIMUM_ALLOWED,
+                    0,
+                    0
+                    );
+                NtClose(processHandle);
+            }
+
+            if (NT_SUCCESS(status) && fileHandle)
+            {
+                //BOOLEAN disableFlushButton = FALSE;
+                BOOLEAN isFileOrDirectory = FALSE;
+                BOOLEAN isConsoleHandle = FALSE;
+                //BOOLEAN isPipeHandle = FALSE;
+                //BOOLEAN isNetworkHandle = FALSE;
+                FILE_FS_DEVICE_INFORMATION fileDeviceInfo;
+                FILE_MODE_INFORMATION fileModeInfo;
+                FILE_STANDARD_INFORMATION fileStandardInfo;
+                FILE_POSITION_INFORMATION filePositionInfo;
+                IO_STATUS_BLOCK isb;
+
+                if (NT_SUCCESS(NtQueryVolumeInformationFile(
+                    fileHandle,
+                    &isb,
+                    &fileDeviceInfo,
+                    sizeof(FILE_FS_DEVICE_INFORMATION),
+                    FileFsDeviceInformation
+                    )))
+                {
+                    switch (fileDeviceInfo.DeviceType)
+                    {
+                    case FILE_DEVICE_NAMED_PIPE:
+                        //isPipeHandle = TRUE;
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Pipe");
+                        break;
+                    case FILE_DEVICE_NETWORK:
+                        //isNetworkHandle = TRUE;
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Network");
+                        break;
+                    case FILE_DEVICE_CD_ROM:
+                    case FILE_DEVICE_CD_ROM_FILE_SYSTEM:
+                    case FILE_DEVICE_CONTROLLER:
+                    case FILE_DEVICE_DATALINK:
+                    case FILE_DEVICE_DFS:
+                    case FILE_DEVICE_DISK:
+                    case FILE_DEVICE_DISK_FILE_SYSTEM:
+                    case FILE_DEVICE_VIRTUAL_DISK:
+                        isFileOrDirectory = TRUE;
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"File or directory");
+                        break;
+                    case FILE_DEVICE_CONSOLE:
+                        isConsoleHandle = TRUE;
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Console");
+                        break;
+                    default:
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, L"Other");
+                        break;
+                    }
+                }
+
+                // Note: These devices deadlock without a timeout (dmex)
+                // 1) Named pipes
+                // 2) \Device\ConDrv\CurrentIn
+                // 3) \Device\VolMgrControl
+
+                if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
+                    fileHandle,
+                    FileModeInformation,
+                    &fileModeInfo,
+                    sizeof(FILE_MODE_INFORMATION)
+                    )))
+                {
+                    PH_FORMAT format[5];
+                    PPH_STRING fileModeAccessStr;
+                    WCHAR fileModeString[MAX_PATH];
+
+                    // Since FILE_MODE_INFORMATION has no flag for asynchronous I/O we should use our own flag and set
+                    // it only if none of synchronous flags are present. That's why we need PhFileModeUpdAsyncFlag.
+                    fileModeAccessStr = PhGetAccessString(
+                        PhFileModeUpdAsyncFlag(fileModeInfo.Mode),
+                        FileModeAccessEntries,
+                        RTL_NUMBER_OF(FileModeAccessEntries)
+                        );
+
+                    PhInitFormatS(&format[0], L"0x");
+                    PhInitFormatX(&format[1], fileModeInfo.Mode);
+                    PhInitFormatS(&format[2], L" (");
+                    PhInitFormatSR(&format[3], fileModeAccessStr->sr);
+                    PhInitFormatS(&format[4], L")");
+
+                    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileModeString, sizeof(fileModeString), NULL))
+                    {
+                        PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEMODE], 1, fileModeString);
+                    }
+
+                    PhDereferenceObject(fileModeAccessStr);
+                }
+
+                if (!isConsoleHandle)
+                {
+                    if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
+                        fileHandle,
+                        FileStandardInformation,
+                        &fileStandardInfo,
+                        sizeof(FILE_STANDARD_INFORMATION)
+                        )))
+                    {
+                        PH_FORMAT format[1];
+                        WCHAR fileSizeString[PH_INT64_STR_LEN];
+
+                        PhInitFormatSize(&format[0], fileStandardInfo.EndOfFile.QuadPart);
+
+                        if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), fileSizeString, sizeof(fileSizeString), NULL))
+                        {
+                            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILESIZE], 1, fileSizeString);
+                        }
+
+                        if (isFileOrDirectory)
+                        {
+                            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILETYPE], 1, fileStandardInfo.Directory ? L"Directory" : L"File");
+                        }
+
+                        //disableFlushButton |= fileStandardInfo.Directory;
+                    }
+
+                    if (NT_SUCCESS(status = PhCallNtQueryFileInformationWithTimeout(
+                        fileHandle,
+                        FilePositionInformation,
+                        &filePositionInfo,
+                        sizeof(FILE_POSITION_INFORMATION)
+                        )))
+                    {
+                        if (filePositionInfo.CurrentByteOffset.QuadPart != 0 && fileStandardInfo.EndOfFile.QuadPart != 0)
+                        {
+                            PH_FORMAT format[4];
+                            WCHAR filePositionString[PH_INT64_STR_LEN];
+
+                            PhInitFormatI64UGroupDigits(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
+                            PhInitFormatS(&format[1], L" (");
+                            PhInitFormatF(&format[2], (DOUBLE)filePositionInfo.CurrentByteOffset.QuadPart / (DOUBLE)fileStandardInfo.EndOfFile.QuadPart * 100.0, 1);
+                            PhInitFormatS(&format[3], L"%)");
+
+                            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
+                            {
+                                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEPOSITION], 1, filePositionString);
+                            }
+                        }
+                        else if (filePositionInfo.CurrentByteOffset.QuadPart != 0)
+                        {
+                            PH_FORMAT format[1];
+                            WCHAR filePositionString[PH_INT64_STR_LEN];
+
+                            PhInitFormatI64UGroupDigits(&format[0], filePositionInfo.CurrentByteOffset.QuadPart);
+
+                            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), filePositionString, sizeof(filePositionString), NULL))
+                            {
+                                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEPOSITION], 1, filePositionString);
+                            }
+                        }
+                    }
+                }
+
+                NtClose(fileHandle);
+            }
         }
     }
     else if (PhEqualString2(Context->HandleItem->TypeName, L"Section", TRUE))

@@ -1241,3 +1241,70 @@ NTSTATUS KphAlpcQueryComminicationsNamesInfo(
 
     return status;
 }
+
+NTSTATUS KphQueryInformationFile(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_writes_bytes_(FileInformationLength) PVOID FileInformation,
+    _In_ ULONG FileInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryInformationFile);
+
+    msg->User.QueryInformationFile.ProcessHandle = ProcessHandle;
+    msg->User.QueryInformationFile.FileHandle = FileHandle;
+    msg->User.QueryInformationFile.FileInformationClass = FileInformationClass;
+    msg->User.QueryInformationFile.FileInformation = FileInformation;
+    msg->User.QueryInformationFile.FileInformationLength = FileInformationLength;
+    msg->User.QueryInformationFile.IoStatusBlock = IoStatusBlock;
+
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.AlpcQueryInformation.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
+
+NTSTATUS KphQueryVolumeInformationFile(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FS_INFORMATION_CLASS FsInformationClass,
+    _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
+    _In_ ULONG FsInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryVolumeInformationFile);
+
+    msg->User.QueryVolumeInformationFile.ProcessHandle = ProcessHandle;
+    msg->User.QueryVolumeInformationFile.FileHandle = FileHandle;
+    msg->User.QueryVolumeInformationFile.FsInformationClass = FsInformationClass;
+    msg->User.QueryVolumeInformationFile.FsInformation = FsInformation;
+    msg->User.QueryVolumeInformationFile.FsInformationLength = FsInformationLength;
+    msg->User.QueryVolumeInformationFile.IoStatusBlock = IoStatusBlock;
+
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.AlpcQueryInformation.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+
+}
