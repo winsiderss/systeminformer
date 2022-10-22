@@ -1476,9 +1476,7 @@ NTSTATUS KphQueryInformationObject(
 
             __try
             {
-                RtlCopyMemory(ObjectInformation,
-                              &fileInfo,
-                              sizeof(fileInfo));
+                RtlCopyMemory(ObjectInformation, &fileInfo, sizeof(fileInfo));
                 returnLength = sizeof(fileInfo);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
