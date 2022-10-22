@@ -46,6 +46,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgAlpcQueryInformation,
     KphMsgQueryInformationFile,
     KphMsgQueryVolumeInformationFile,
+    KphMsgDuplicateObject,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -164,6 +165,7 @@ typedef struct _KPH_MESSAGE
             KPHM_ALPC_QUERY_INFORMATION AlpcQueryInformation;
             KPHM_QUERY_INFORMATION_FILE QueryInformationFile;
             KPHM_QUERY_VOLUME_INFORMATION_FILE QueryVolumeInformationFile;
+            KPHM_DUPLICATE_OBJECT DuplicateObject;
 
         } User;
 
