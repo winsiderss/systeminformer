@@ -217,6 +217,27 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
 
+typedef struct _KPH_VPB
+{
+    CSHORT Type;
+    CSHORT Size;
+    USHORT Flags;
+    USHORT VolumeLabelLength;
+    ULONG SerialNumber;
+    ULONG ReferenceCount;
+    WCHAR VolumeLabel[32];
+
+} KPH_VPB, *PKPH_VPB;
+
+typedef struct _KPH_DEVICE_INFO
+{
+    DEVICE_TYPE Type;
+    ULONG Characteristics;
+    ULONG Flags;
+    KPH_VPB Vpb;
+
+} KPH_DEVICE_INFO, *PKPH_DEVICE_INFO;
+
 typedef struct _KPH_FILE_OBJECT_INFORMATION
 {
     BOOLEAN LockOperation;
@@ -232,6 +253,13 @@ typedef struct _KPH_FILE_OBJECT_INFORMATION
     ULONG UserWritableReferences;
     BOOLEAN HasActiveTransaction;
     BOOLEAN IsIgnoringSharing;
+    LONG Waiters;
+    LONG Busy;
+    KPH_VPB Vpb;
+    KPH_DEVICE_INFO Device;
+    KPH_DEVICE_INFO AttachedDevice;
+    KPH_DEVICE_INFO RelatedDevice;
+
 } KPH_FILE_OBJECT_INFORMATION, *PKPH_FILE_OBJECT_INFORMATION;
 
 typedef struct _KPH_FILE_OBJECT_DRIVER

@@ -216,6 +216,30 @@ typedef struct _KPHM_ALPC_QUERY_INFORMATION
 
 } KPHM_ALPC_QUERY_INFORMATION, *PKPHM_ALPC_QUERY_INFORMATION;
 
+typedef struct _KPHM_QUERY_INFORMATION_FILE
+{
+    NTSTATUS Status;
+    HANDLE ProcessHandle;
+    HANDLE FileHandle;
+    FILE_INFORMATION_CLASS FileInformationClass;
+    PVOID FileInformation;
+    ULONG FileInformationLength;
+    PIO_STATUS_BLOCK IoStatusBlock;
+
+} KPHM_QUERY_INFORMATION_FILE, *PKPHM_QUERY_INFORMATION_FILE;
+
+typedef struct _KPHM_QUERY_VOLUME_INFORMATION_FILE
+{
+    NTSTATUS Status;
+    HANDLE ProcessHandle;
+    HANDLE FileHandle;
+    FS_INFORMATION_CLASS FsInformationClass;
+    PVOID FsInformation;
+    ULONG FsInformationLength;
+    PIO_STATUS_BLOCK IoStatusBlock;
+
+} KPHM_QUERY_VOLUME_INFORMATION_FILE, *PKPHM_QUERY_VOLUME_INFORMATION_FILE;
+
 //
 // KPH -> PH
 //

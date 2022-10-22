@@ -163,6 +163,18 @@ PhCallNtQueryFileInformationWithTimeout(
     _In_ ULONG FileInformationLength
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCallKphQueryFileInformationWithTimeout(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
+    _In_ ULONG FileInformationLength
+    );
+
+
 #ifdef __cplusplus
 }
 #endif

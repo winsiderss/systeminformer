@@ -1452,3 +1452,29 @@ NTSTATUS KphAlpcQueryInformation(
     _Out_opt_ PULONG ReturnLength,
     _In_ KPROCESSOR_MODE AccessMode
     );
+
+// file
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationFile(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_writes_bytes_(FileInformationLength) PVOID FileInformation,
+    _In_ ULONG FileInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryVolumeInformationFile(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FS_INFORMATION_CLASS FsInformationClass,
+    _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
+    _In_ ULONG FsInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ KPROCESSOR_MODE AccessMode
+    );

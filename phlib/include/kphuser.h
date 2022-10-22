@@ -334,6 +334,30 @@ KphAlpcQueryComminicationsNamesInfo(
     _Out_ PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION* Names
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryInformationFile(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FILE_INFORMATION_CLASS FileInformationClass,
+    _Out_writes_bytes_(FileInformationLength) PVOID FileInformation,
+    _In_ ULONG FileInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryVolumeInformationFile(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE FileHandle,
+    _In_ FS_INFORMATION_CLASS FsInformationClass,
+    _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
+    _In_ ULONG FsInformationLength,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock
+    );
+
 #ifdef __cplusplus
 }
 #endif

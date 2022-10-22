@@ -658,9 +658,10 @@ VOID PhHandleProviderUpdate(
                         handleItem->FileFlags |= PH_HANDLE_FILE_SHARED_DELETE;
 
                     // TODO add extra info from file objects here (jxy-s)
-                    //objectInfo.HasActiveTransaction;
-                    //objectInfo.UserWritableReferences;
-                    //objectInfo.IsIgnoringSharing;
+                    // objectInfo.HasActiveTransaction;
+                    // objectInfo.UserWritableReferences;
+                    // objectInfo.IsIgnoringSharing;
+                    // ... more 
                 }
             }
 
