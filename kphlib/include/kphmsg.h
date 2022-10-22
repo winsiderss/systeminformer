@@ -44,6 +44,8 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgSetInformationThread,
     KphMsgSystemControl,
     KphMsgAlpcQueryInformation,
+    KphMsgQueryInformationFile,
+    KphMsgQueryVolumeInformationFile,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -160,6 +162,8 @@ typedef struct _KPH_MESSAGE
             KPHM_SET_INFORMATION_THREAD SetInformationThread;
             KPHM_SYSTEM_CONTROL SystemControl;
             KPHM_ALPC_QUERY_INFORMATION AlpcQueryInformation;
+            KPHM_QUERY_INFORMATION_FILE QueryInformationFile;
+            KPHM_QUERY_VOLUME_INFORMATION_FILE QueryVolumeInformationFile;
 
         } User;
 

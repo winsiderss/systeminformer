@@ -34,6 +34,8 @@ KPHM_DEFINE_HANDLER(KphpCommsSetInformationProcess);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformationThread);
 KPHM_DEFINE_HANDLER(KphpCommsSystemControl);
 KPHM_DEFINE_HANDLER(KphpCommsAlpcQueryInformation);
+KPHM_DEFINE_HANDLER(KphpCommsQueryInformationFile);
+KPHM_DEFINE_HANDLER(KphpCommsQueryVolumeInformationFile);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -68,6 +70,8 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgSetInformationThread,        KphpCommsSetInformationThread,        KphpCommsRequireMaximum },
 { KphMsgSystemControl,               KphpCommsSystemControl,               KphpCommsRequireMaximum },
 { KphMsgAlpcQueryInformation,        KphpCommsAlpcQueryInformation,        KphpCommsRequireMedium },
+{ KphMsgQueryInformationFile,        KphpCommsQueryInformationFile,        KphpCommsRequireMedium },
+{ KphMsgQueryVolumeInformationFile,  KphpCommsQueryVolumeInformationFile,  KphpCommsRequireMedium },
 };
 
 ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -737,3 +741,60 @@ NTSTATUS KSIAPI KphpCommsAlpcQueryInformation(
 
     return STATUS_SUCCESS;
 }
+
+KPHM_DEFINE_HANDLER(KphpCommsQueryInformationFile);
+KPHM_DEFINE_HANDLER(KphpCommsQueryVolumeInformationFile);
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsQueryInformationFile(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_QUERY_INFORMATION_FILE msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationFile);
+
+    msg = &Message->User.QueryInformationFile;
+
+    msg->Status = KphQueryInformationFile(msg->ProcessHandle,
+                                          msg->FileHandle,
+                                          msg->FileInformationClass,
+                                          msg->FileInformation,
+                                          msg->FileInformationLength,
+                                          msg->IoStatusBlock,
+                                          UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsQueryVolumeInformationFile(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_QUERY_VOLUME_INFORMATION_FILE msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryVolumeInformationFile);
+
+    msg = &Message->User.QueryVolumeInformationFile;
+
+    msg->Status = KphQueryVolumeInformationFile(msg->ProcessHandle,
+                                                msg->FileHandle,
+                                                msg->FsInformationClass,
+                                                msg->FsInformation,
+                                                msg->FsInformationLength,
+                                                msg->IoStatusBlock,
+                                                UserMode);
+
+    return STATUS_SUCCESS;
+
+}
+

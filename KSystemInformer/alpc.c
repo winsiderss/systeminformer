@@ -607,6 +607,14 @@ NTSTATUS KphAlpcQueryInformation(
         PortHandle = MakeKernelHandle(PortHandle);
         AccessMode = KernelMode;
     }
+    else
+    {
+        if (IsKernelHandle(PortHandle))
+        {
+            status = STATUS_INVALID_HANDLE;
+            goto Exit;
+        }
+    }
 
     KeStackAttachProcess(process, &apcState);
     status = ObReferenceObjectByHandle(PortHandle,

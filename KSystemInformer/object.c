@@ -6,6 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
+ *     jxy-s   2021-2022
  *
  */
 
@@ -916,18 +917,8 @@ NTSTATUS KphQueryInformationObject(
         goto Exit;
     }
 
-    //
-    // To provide the best information to the caller we attach to the target
-    // and query. In some scenarios, this avoids us having to reference objects
-    // and/or open new handles. If we were to it would skew numbers. Also, some
-    // information is not available without DKOM anyway.
-    //
     if (process == PsInitialSystemProcess)
     {
-        //
-        // A check was added in Windows 7 - if we're going to attach to the
-        // System process, the handle must be a kernel handle.
-        //
         Handle = MakeKernelHandle(Handle);
         accessMode = KernelMode;
     }
@@ -1343,13 +1334,17 @@ NTSTATUS KphQueryInformationObject(
         case KphObjectFileObjectInformation:
         {
             PFILE_OBJECT fileObject;
-            KPH_FILE_OBJECT_INFORMATION objectInfo;
+            KPH_FILE_OBJECT_INFORMATION fileInfo;
+            PDEVICE_OBJECT attachedDevice;
+            PDEVICE_OBJECT relatedDevice;
+            PVPB vpb;
+            KIRQL irql;
 
             if (!ObjectInformation ||
-                (ObjectInformationLength != sizeof(objectInfo)))
+                (ObjectInformationLength != sizeof(fileInfo)))
             {
                 status = STATUS_INFO_LENGTH_MISMATCH;
-                returnLength = sizeof(objectInfo);
+                returnLength = sizeof(fileInfo);
                 goto Exit;
             }
 
@@ -1373,35 +1368,118 @@ NTSTATUS KphQueryInformationObject(
             }
 
             fileObject = (PFILE_OBJECT)object;
-            objectInfo.LockOperation = fileObject->LockOperation;
-            objectInfo.DeletePending = fileObject->DeletePending;
-            objectInfo.ReadAccess = fileObject->ReadAccess;
-            objectInfo.WriteAccess = fileObject->WriteAccess;
-            objectInfo.DeleteAccess = fileObject->DeleteAccess;
-            objectInfo.SharedRead = fileObject->SharedRead;
-            objectInfo.SharedWrite = fileObject->SharedWrite;
-            objectInfo.SharedDelete = fileObject->SharedDelete;
-            objectInfo.CurrentByteOffset = fileObject->CurrentByteOffset;
-            objectInfo.Flags = fileObject->Flags;
+            attachedDevice = IoGetAttachedDevice(fileObject->DeviceObject);
+            relatedDevice = IoGetRelatedDeviceObject(fileObject);
+
+            RtlZeroMemory(&fileInfo, sizeof(fileInfo));
+
+            fileInfo.LockOperation = fileObject->LockOperation;
+            fileInfo.DeletePending = fileObject->DeletePending;
+            fileInfo.ReadAccess = fileObject->ReadAccess;
+            fileInfo.WriteAccess = fileObject->WriteAccess;
+            fileInfo.DeleteAccess = fileObject->DeleteAccess;
+            fileInfo.SharedRead = fileObject->SharedRead;
+            fileInfo.SharedWrite = fileObject->SharedWrite;
+            fileInfo.SharedDelete = fileObject->SharedDelete;
+            fileInfo.CurrentByteOffset = fileObject->CurrentByteOffset;
+            fileInfo.Flags = fileObject->Flags;
             if (fileObject->SectionObjectPointer)
             {
-                objectInfo.UserWritableReferences =
+                fileInfo.UserWritableReferences =
                     MmDoesFileHaveUserWritableReferences(fileObject->SectionObjectPointer);
             }
-            else
-            {
-                objectInfo.UserWritableReferences = 0;
-            }
-            objectInfo.HasActiveTransaction =
+            fileInfo.HasActiveTransaction =
                 (IoGetTransactionParameterBlock(fileObject) ? TRUE : FALSE);
-            objectInfo.IsIgnoringSharing = IoIsFileObjectIgnoringSharing(fileObject);
+            fileInfo.IsIgnoringSharing = IoIsFileObjectIgnoringSharing(fileObject);
+            fileInfo.Waiters = fileObject->Waiters;
+            fileInfo.Busy = fileObject->Busy;
+
+            fileInfo.Device.Type = fileObject->DeviceObject->DeviceType;
+            fileInfo.Device.Characteristics = fileObject->DeviceObject->Characteristics;
+            fileInfo.Device.Flags = fileObject->DeviceObject->Flags;
+
+            fileInfo.AttachedDevice.Type = attachedDevice->DeviceType;
+            fileInfo.AttachedDevice.Characteristics = attachedDevice->Characteristics;
+            fileInfo.AttachedDevice.Flags = attachedDevice->Flags;
+
+            fileInfo.RelatedDevice.Type = attachedDevice->DeviceType;
+            fileInfo.RelatedDevice.Characteristics = attachedDevice->Characteristics;
+            fileInfo.RelatedDevice.Flags = attachedDevice->Flags;
+
+            C_ASSERT(ARRAYSIZE(fileInfo.Vpb.VolumeLabel) == ARRAYSIZE(vpb->VolumeLabel));
+
+            IoAcquireVpbSpinLock(&irql);
+
+            //
+            // Accessing the VPB is reserved for "certain classes of drivers".
+            //
+#pragma prefast(push)
+#pragma prefast(disable : 28175)
+            vpb = fileObject->Vpb;
+            if (vpb)
+            {
+                fileInfo.Vpb.Type = vpb->Type;
+                fileInfo.Vpb.Size = vpb->Size;
+                fileInfo.Vpb.Flags = vpb->Flags;
+                fileInfo.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+                fileInfo.Vpb.SerialNumber = vpb->SerialNumber;
+                fileInfo.Vpb.ReferenceCount = vpb->ReferenceCount;
+                RtlCopyMemory(fileInfo.Vpb.VolumeLabel,
+                              vpb->VolumeLabel,
+                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+            }
+
+            vpb = fileObject->DeviceObject->Vpb;
+            if (vpb)
+            {
+                fileInfo.Device.Vpb.Type = vpb->Type;
+                fileInfo.Device.Vpb.Size = vpb->Size;
+                fileInfo.Device.Vpb.Flags = vpb->Flags;
+                fileInfo.Device.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+                fileInfo.Device.Vpb.SerialNumber = vpb->SerialNumber;
+                fileInfo.Device.Vpb.ReferenceCount = vpb->ReferenceCount;
+                RtlCopyMemory(fileInfo.Device.Vpb.VolumeLabel,
+                              vpb->VolumeLabel,
+                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+            }
+
+            vpb = attachedDevice->Vpb;
+            if (vpb)
+            {
+                fileInfo.AttachedDevice.Vpb.Type = vpb->Type;
+                fileInfo.AttachedDevice.Vpb.Size = vpb->Size;
+                fileInfo.AttachedDevice.Vpb.Flags = vpb->Flags;
+                fileInfo.AttachedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+                fileInfo.AttachedDevice.Vpb.SerialNumber = vpb->SerialNumber;
+                fileInfo.AttachedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
+                RtlCopyMemory(fileInfo.AttachedDevice.Vpb.VolumeLabel,
+                              vpb->VolumeLabel,
+                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+            }
+
+            vpb = relatedDevice->Vpb;
+            if (vpb)
+            {
+                fileInfo.RelatedDevice.Vpb.Type = vpb->Type;
+                fileInfo.RelatedDevice.Vpb.Size = vpb->Size;
+                fileInfo.RelatedDevice.Vpb.Flags = vpb->Flags;
+                fileInfo.RelatedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+                fileInfo.RelatedDevice.Vpb.SerialNumber = vpb->SerialNumber;
+                fileInfo.RelatedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
+                RtlCopyMemory(fileInfo.RelatedDevice.Vpb.VolumeLabel,
+                              vpb->VolumeLabel,
+                              ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+            }
+#pragma prefast(pop)
+
+            IoReleaseVpbSpinLock(irql);
 
             __try
             {
                 RtlCopyMemory(ObjectInformation,
-                              &objectInfo,
-                              sizeof(objectInfo));
-                returnLength = sizeof(objectInfo);
+                              &fileInfo,
+                              sizeof(fileInfo));
+                returnLength = sizeof(fileInfo);
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {

@@ -321,6 +321,7 @@
     <ClCompile Include="comms_handlers.c" />
     <ClCompile Include="dyndata.c" />
     <ClCompile Include="dynimp.c" />
+    <ClCompile Include="file.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="informer_debug.c" />
     <ClCompile Include="informer_file.c" />
