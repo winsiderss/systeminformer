@@ -358,6 +358,16 @@ KphQueryVolumeInformationFile(
     _Out_ PIO_STATUS_BLOCK IoStatusBlock
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphDuplicateObject(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TargetHandle
+    );
+
 #ifdef __cplusplus
 }
 #endif

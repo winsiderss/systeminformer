@@ -125,26 +125,46 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     NTSTATUS status;
     HANDLE processHandle;
 
+    *Handle = NULL;
+
     if (!context)
         return STATUS_UNSUCCESSFUL;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(
+    if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_DUP_HANDLE,
         context->ProcessId
         )))
-        return status;
+    {
+        status = NtDuplicateObject(
+            processHandle,
+            context->HandleItem->Handle,
+            NtCurrentProcess(),
+            Handle,
+            DesiredAccess,
+            0,
+            0
+            );
+        NtClose(processHandle);
+    }
 
-    status = NtDuplicateObject(
-        processHandle,
-        context->HandleItem->Handle,
-        NtCurrentProcess(),
-        Handle,
-        DesiredAccess,
-        0,
-        0
-        );
-    NtClose(processHandle);
+    if (!NT_SUCCESS(status) && KphLevel() >= KphLevelMax)
+    {
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            context->ProcessId
+            )))
+        {
+            status = KphDuplicateObject(
+                processHandle,
+                context->HandleItem->Handle,
+                DesiredAccess,
+                Handle
+                );
+            NtClose(processHandle);
+        }
+    }
 
     return status;
 }
@@ -1452,7 +1472,7 @@ VOID PhpUpdateHandleGeneral(
                 bufferSize,
                 &returnLength
                 );
-            if (status == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
+            if (status2 == STATUS_BUFFER_OVERFLOW && returnLength > 0)
             {
                 PhFree(buffer);
                 bufferSize = returnLength;
@@ -1468,7 +1488,7 @@ VOID PhpUpdateHandleGeneral(
                     );
             }
 
-            if (NT_SUCCESS(status))
+            if (NT_SUCCESS(status2))
             {
                 fileName = PhCreateStringFromUnicodeString(buffer);
             }
@@ -1550,10 +1570,9 @@ VOID PhpUpdateHandleGeneral(
                     PhDereferenceObject(fileName);
                     fileName = newFileName;
                 }
-
-                PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SECTIONFILE], 1, PhGetStringOrDefault(fileName, L"N/A"));
             }
 
+            PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SECTIONFILE], 1, PhGetStringOrDefault(fileName, L"N/A"));
             PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SECTIONTYPE], 1, sectionType);
             PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_SECTIONSIZE], 1, PhGetStringOrDefault(sectionSize, L"Unknown"));
         }

@@ -1268,7 +1268,7 @@ NTSTATUS KphQueryInformationFile(
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.AlpcQueryInformation.Status;
+        status = msg->User.QueryInformationFile.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
@@ -1301,10 +1301,38 @@ NTSTATUS KphQueryVolumeInformationFile(
 
     if (NT_SUCCESS(status))
     {
-        status = msg->User.AlpcQueryInformation.Status;
+        status = msg->User.QueryVolumeInformationFile.Status;
     }
 
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
+}
 
+NTSTATUS KphDuplicateObject(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TargetHandle
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgDuplicateObject);
+
+    msg->User.DuplicateObject.ProcessHandle = ProcessHandle;
+    msg->User.DuplicateObject.SourceHandle = SourceHandle;
+    msg->User.DuplicateObject.DesiredAccess = DesiredAccess;
+    msg->User.DuplicateObject.TargetHandle = TargetHandle;
+
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        status = msg->User.DuplicateObject.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
 }

@@ -1215,7 +1215,7 @@ NTSTATUS PhpGetBestObjectName(
                 bufferSize,
                 &returnLength
                 );
-            if (status == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
+            if (status == STATUS_BUFFER_OVERFLOW && returnLength > 0)
             {
                 PhFree(buffer);
                 bufferSize = returnLength;
@@ -1268,7 +1268,7 @@ NTSTATUS PhpGetBestObjectName(
                 status = KphQueryInformationObject(
                     ProcessHandle,
                     Handle,
-                    KphObjectThreadBasicInformation,
+                    KphObjectSectionBasicInformation,
                     &basicInfo,
                     sizeof(basicInfo),
                     NULL
