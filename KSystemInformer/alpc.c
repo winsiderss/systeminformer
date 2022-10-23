@@ -77,7 +77,7 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
 
     typeMismatch = FALSE;
 
-    ExAcquirePushLockShared(handleTableLock);
+    FltAcquirePushLockShared(handleTableLock);
 
     if (KphDynAlpcConnectionPort != ULONG_MAX)
     {
@@ -130,7 +130,7 @@ NTSTATUS KphpReferenceAlpcCommunicationPorts(
         }
     }
 
-    ExReleasePushLockShared(handleTableLock);
+    FltReleasePushLock(handleTableLock);
 
     if (typeMismatch)
     {
