@@ -333,26 +333,46 @@ NTSTATUS PhpProcessHandleOpenCallback(
     NTSTATUS status;
     HANDLE processHandle;
 
+    *Handle = NULL;
+
     if (!context)
         return STATUS_UNSUCCESSFUL;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(
+    if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_DUP_HANDLE,
         context->ProcessId
         )))
-        return status;
+    {
+        status = NtDuplicateObject(
+            processHandle,
+            context->HandleItem->Handle,
+            NtCurrentProcess(),
+            Handle,
+            DesiredAccess,
+            0,
+            0
+            );
+        NtClose(processHandle);
+    }
 
-    status = NtDuplicateObject(
-        processHandle,
-        context->HandleItem->Handle,
-        NtCurrentProcess(),
-        Handle,
-        DesiredAccess,
-        0,
-        0
-        );
-    NtClose(processHandle);
+    if (!NT_SUCCESS(status) && KphLevel() >= KphLevelMax)
+    {
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            context->ProcessId
+            )))
+        {
+            status = KphDuplicateObject(
+                processHandle,
+                context->HandleItem->Handle,
+                DesiredAccess,
+                Handle
+                );
+            NtClose(processHandle);
+        }
+    }
 
     return status;
 }

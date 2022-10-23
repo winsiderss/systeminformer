@@ -13,6 +13,7 @@
 #include <phapp.h>
 #include <procprp.h>
 #include <procprpp.h>
+#include <kphuser.h>
 
 #include <cpysave.h>
 #include <emenu.h>

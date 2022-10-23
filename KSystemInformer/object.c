@@ -1850,7 +1850,7 @@ NTSTATUS KphQueryInformationObject(
                                        Handle,
                                        PsInitialSystemProcess,
                                        &sectionHandle,
-                                       SECTION_MAP_READ,
+                                       SECTION_QUERY | SECTION_MAP_READ,
                                        OBJ_KERNEL_HANDLE,
                                        0,
                                        KernelMode);
@@ -1881,15 +1881,18 @@ NTSTATUS KphQueryInformationObject(
             if (NT_SUCCESS(status))
             {
                 SIZE_T length;
+
+                length = 0;
                 status = ZwQueryVirtualMemory(ZwCurrentProcess(),
                                               baseAddress,
                                               MemoryMappedFilenameInformation,
                                               sectionFileName,
                                               ObjectInformationLength,
                                               &length);
-                if (NT_SUCCESS(status) && (length > ULONG_MAX))
+                if (length > ULONG_MAX)
                 {
                     status = STATUS_INTEGER_OVERFLOW;
+                    returnLength = 0;
                 }
                 else
                 {
@@ -2169,6 +2172,152 @@ NTSTATUS KphOpenNamedObject(
     else
     {
         *ObjectHandle = objectHandle;
+    }
+
+    return status;
+}
+
+/**
+ * \brief Duplicates an object. 
+ *
+ * \param[in] ProcessHandle Handle to process where the source handle exists.
+ * \param[in] SourceHandle Source handle in the target process.
+ * \param[in] DesiredAccess Desired access for duplicated handle.
+ * \param[out] TargetHandle Populated with the duplicated handle.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphDuplicateObject(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE SourceHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Out_ PHANDLE TargetHandle,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PEPROCESS sourceProcess;
+    PEPROCESS targetProcess;
+    HANDLE targetHandle;
+
+    PAGED_PASSIVE();
+
+    targetProcess = NULL;
+    sourceProcess = NULL;
+
+    if (DesiredAccess & ~(READ_CONTROL | ACCESS_SYSTEM_SECURITY | SYNCHRONIZE))
+    {
+        status = STATUS_ACCESS_DENIED;
+        goto Exit;
+    }
+
+    if (!TargetHandle)
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            ProbeOutputType(TargetHandle, HANDLE);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    status = ObReferenceObjectByHandle(ProcessHandle,
+                                       0,
+                                       *PsProcessType,
+                                       AccessMode,
+                                       &sourceProcess,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed %!STATUS!",
+                      status);
+
+        sourceProcess = NULL;
+        goto Exit;
+    }
+
+    if (sourceProcess == PsInitialSystemProcess)
+    {
+        SourceHandle = MakeKernelHandle(SourceHandle);
+    }
+    else
+    {
+        if (IsKernelHandle(SourceHandle))
+        {
+            status = STATUS_INVALID_HANDLE;
+            goto Exit;
+        }
+    }
+
+    status = ObReferenceObjectByHandle(ZwCurrentProcess(),
+                                       0,
+                                       *PsProcessType,
+                                       AccessMode,
+                                       &targetProcess,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed %!STATUS!",
+                      status);
+
+        targetProcess = NULL;
+        goto Exit;
+    }
+
+    status = ObDuplicateObject(sourceProcess,
+                               SourceHandle,
+                               targetProcess,
+                               &targetHandle,
+                               DesiredAccess,
+                               (AccessMode ? 0 : OBJ_KERNEL_HANDLE),
+                               0,
+                               KernelMode);
+    if (NT_SUCCESS(status))
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *TargetHandle = targetHandle;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                ObCloseHandle(targetHandle, UserMode);
+            }
+        }
+        else
+        {
+            *TargetHandle = targetHandle;
+        }
+    }
+
+Exit:
+
+    if (targetProcess)
+    {
+        ObDereferenceObject(targetProcess);
+    }
+
+    if (sourceProcess)
+    {
+        ObDereferenceObject(sourceProcess);
     }
 
     return status;
