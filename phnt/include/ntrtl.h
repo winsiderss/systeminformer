@@ -3280,6 +3280,18 @@ RtlReleaseActivationContext(
     _In_ HANDLE ActCtx
     );
 
+// kernel32!FindActCtxSectionString
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFindActivationContextSectionString(
+    _In_ ULONG Flags,
+    _In_ const GUID* ExtensionGuid,
+    _In_ ULONG SectionId,
+    _In_ const UNICODE_STRING* StringToFind,
+    _Out_ PACTCTX_SECTION_KEYED_DATA ReturnedData
+);
+
 // Images
 
 NTSYSAPI
@@ -3817,6 +3829,22 @@ NTAPI
 RtlDoesFileExists_U(
     _In_ PCWSTR FileName
     );
+
+// ros
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDosApplyFileIsolationRedirection_Ustr(
+    _In_ ULONG                  Flags,
+    _In_ PUNICODE_STRING        OriginalName,
+    _In_ PUNICODE_STRING        Extension,
+    _In_opt_ PUNICODE_STRING    StaticString,
+    _In_opt_ PUNICODE_STRING    DynamicString,
+    _In_opt_ PUNICODE_STRING*   NewName,
+    _In_ PULONG                 NewFlags,
+    _In_ PSIZE_T                FileNameSize,
+    _In_ PSIZE_T                RequiredLength
+);
 
 NTSYSAPI
 NTSTATUS

@@ -301,6 +301,17 @@ LdrGetDllFullName(
 NTSYSAPI
 NTSTATUS
 NTAPI
+LdrGetDllPath(
+    _In_  PCWSTR DllName,
+    _In_  ULONG  Flags, // LOAD_LIBRARY_SEARCH_*
+    _Out_ PWSTR* DllPath,
+    _Out_ PWSTR* SearchPaths
+);
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
 LdrGetDllDirectory(
     _Out_ PUNICODE_STRING DllDirectory
     );
@@ -797,7 +808,7 @@ LdrLoadAlternateResourceModuleEx(
 
 // rev
 NTSYSAPI
-NTSTATUS
+BOOLEAN
 NTAPI
 LdrUnloadAlternateResourceModule(
     _In_ PVOID DllHandle
@@ -805,7 +816,7 @@ LdrUnloadAlternateResourceModule(
 
 // rev
 NTSYSAPI
-NTSTATUS
+BOOLEAN
 NTAPI
 LdrUnloadAlternateResourceModuleEx(
     _In_ PVOID DllHandle,
