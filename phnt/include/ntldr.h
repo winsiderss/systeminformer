@@ -306,7 +306,7 @@ LdrGetDllPath(
     _In_  ULONG  Flags, // LOAD_LIBRARY_SEARCH_*
     _Out_ PWSTR* DllPath,
     _Out_ PWSTR* SearchPaths
-);
+    );
 
 // rev
 NTSYSAPI
