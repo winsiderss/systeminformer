@@ -3844,7 +3844,7 @@ RtlDosApplyFileIsolationRedirection_Ustr(
     _In_ PULONG                 NewFlags,
     _In_ PSIZE_T                FileNameSize,
     _In_ PSIZE_T                RequiredLength
-);
+    );
 
 NTSYSAPI
 NTSTATUS
