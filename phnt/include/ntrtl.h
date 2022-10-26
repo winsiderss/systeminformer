@@ -3290,7 +3290,7 @@ RtlFindActivationContextSectionString(
     _In_ ULONG SectionId,
     _In_ const UNICODE_STRING* StringToFind,
     _Out_ PACTCTX_SECTION_KEYED_DATA ReturnedData
-);
+    );
 
 // Images
 
