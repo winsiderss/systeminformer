@@ -2121,7 +2121,7 @@ BOOLEAN PhShellOpenKey2(
         goto CleanupExit;
 
     memcpy(favoriteName, L"A_SystemInformer", 16 * sizeof(WCHAR));
-    PhGenerateRandomAlphaString(&favoriteName[16], 16);
+    PhGenerateRandomAlphaString(&favoriteName[16], ARRAYSIZE(favoriteName) - 16);
     valueName.Buffer = favoriteName;
     valueName.Length = sizeof(favoriteName) - sizeof(UNICODE_NULL);
 
