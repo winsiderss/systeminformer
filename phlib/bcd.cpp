@@ -480,8 +480,11 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
             &objectFirmwareHandle
             )))
         {
-            BCD_ELEMENT_OBJECT_LIST objectFirmwareList[32] = { 0 }; // dynamic?
-            ULONG objectFirmwareListLength = sizeof(objectFirmwareList);
+            BCD_ELEMENT_OBJECT_LIST objectFirmwareList[32]; // dynamic?
+            ULONG objectFirmwareListLength;
+
+            memset(objectFirmwareList, 0, sizeof(objectFirmwareList));
+            objectFirmwareListLength = sizeof(objectFirmwareList);
 
             if (NT_SUCCESS(PhBcdGetElementData(
                 objectFirmwareHandle,
@@ -491,7 +494,7 @@ NTSTATUS PhBcdSetBootApplicationOneTime(
                 )))
             {
                 // Check if the default entry is some third party application.
-                if (!IsEqualGUID(GUID_WINDOWS_BOOTMGR, objectFirmwareList->ObjectList[0]))
+                if (!IsEqualGUID(objectFirmwareList->ObjectList[0], GUID_WINDOWS_BOOTMGR))
                 {
                     BCD_ELEMENT_OBJECT_LIST firmwareOneTimeBootEntry[1];
 
