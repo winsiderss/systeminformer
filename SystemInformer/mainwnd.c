@@ -2396,8 +2396,8 @@ PPH_EMENU PhpCreateComputerMenu(
     if (PhGetIntegerSetting(L"EnableShutdownBootMenu"))
     {
         PVOID bootApplicationMenu = PhUiCreateComputerBootDeviceMenu(DelayLoadMenu);
-        if (PhGetOwnTokenAttributes().Elevated)
-            PhInsertEMenuItem(bootApplicationMenu, PhCreateEMenuItem(0, ID_COMPUTER_RESTARTWDOSCAN, L"Windows Defender Offline Scan", NULL, NULL), ULONG_MAX);
+        if (WindowsVersion >= WINDOWS_10)
+            PhInsertEMenuItem(bootApplicationMenu, PhCreateEMenuItem(PhGetOwnTokenAttributes().Elevated ? 0 : PH_EMENU_DISABLED, ID_COMPUTER_RESTARTWDOSCAN, L"Windows Defender Offline Scan", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menuItem, bootApplicationMenu, ULONG_MAX);
         PhInsertEMenuItem(menuItem, PhUiCreateComputerFirmwareDeviceMenu(DelayLoadMenu), ULONG_MAX);
     }
