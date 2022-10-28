@@ -322,6 +322,18 @@ PhShowMessage2(
 #define PhShowInformation2(hWnd, Title, Format, ...) PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_INFORMATION_ICON, Title, Format, __VA_ARGS__)
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhShowMessageOneTime(
+    _In_opt_ HWND hWnd,
+    _In_ ULONG Buttons,
+    _In_opt_ PWSTR Icon,
+    _In_opt_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetStatusMessage(
