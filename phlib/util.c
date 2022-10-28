@@ -903,6 +903,55 @@ INT PhShowMessage2(
     }
 }
 
+BOOLEAN PhShowMessageOneTime(
+    _In_opt_ HWND hWnd,
+    _In_ ULONG Buttons,
+    _In_opt_ PWSTR Icon,
+    _In_opt_ PWSTR Title,
+    _In_ PWSTR Format,
+    ...
+    )
+{
+    INT result;
+    va_list argptr;
+    PPH_STRING message;
+    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+    BOOL verificationFlagChecked = FALSE;
+
+    va_start(argptr, Format);
+    message = PhFormatString_V(Format, argptr);
+    va_end(argptr);
+
+    if (!message)
+        return FALSE;
+
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((hWnd && IsWindowVisible(hWnd) && !IsMinimized(hWnd)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
+    config.dwCommonButtons = Buttons;
+    config.hwndParent = hWnd;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = Icon;
+    config.pszMainInstruction = Title;
+    config.pszContent = PhGetString(message);
+    config.pszVerificationText = L"Don't show this message again";
+    config.cxWidth = 200;
+
+    if (SUCCEEDED(TaskDialogIndirect(
+        &config,
+        &result,
+        NULL,
+        &verificationFlagChecked
+        )))
+    {
+        PhDereferenceObject(message);
+        return !!verificationFlagChecked;
+    }
+    else
+    {
+        PhDereferenceObject(message);
+        return FALSE;
+    }
+}
+
 PPH_STRING PhGetStatusMessage(
     _In_ NTSTATUS Status,
     _In_opt_ ULONG Win32Result
