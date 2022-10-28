@@ -120,7 +120,7 @@ VOID PhNfSaveSettings(
     PPH_STRING settingsString;
     PH_STRING_BUILDER iconListBuilder;
 
-    PhInitializeStringBuilder(&iconListBuilder, 100);
+    PhInitializeStringBuilder(&iconListBuilder, 200);
 
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
@@ -154,7 +154,7 @@ VOID PhNfSaveSettings(
                     L"%lu|%lu|%s|",
                     icon->SubId,
                     icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0,
-                    icon->Plugin ? icon->Plugin->Name.Buffer : L""
+                    icon->Plugin ? PhGetStringRefZ(&icon->Plugin->Name) : L""
                     );
             }
         }
