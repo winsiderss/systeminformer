@@ -57,6 +57,10 @@ VOID PhpProcessStartupParameters(
     VOID
     );
 
+VOID PhpShowKphStatus(
+    VOID
+    );
+
 VOID PhpEnablePrivileges(
     VOID
     );
@@ -246,55 +250,7 @@ INT WINAPI wWinMain(
         !PhStartupParameters.NoKph &&
         !PhIsExecutingInWow64())
     {
-        KPH_PROCESS_STATE processState;
-
-        processState = KphGetCurrentProcessState();
-
-        if ((processState != 0) &&
-            (processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
-        {
-            PPH_STRING infoString;
-            PH_STRING_BUILDER stringBuilder;
-
-            PhInitializeStringBuilder(&stringBuilder, 100);
-
-            if (!BooleanFlagOn(processState, KPH_PROCESS_SECURELY_CREATED))
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"    - not securely created\r\n");
-            }
-            if (!BooleanFlagOn(processState, KPH_PROCESS_VERIFIED_PROCESS))
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"    - unverified primary image\r\n");
-            }
-            if (!BooleanFlagOn(processState, KPH_PROCESS_PROTECTED_PROCESS))
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"    - inactive protections\r\n");
-            }
-            if (!BooleanFlagOn(processState, KPH_PROCESS_NO_UNTRUSTED_IMAGES))
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"    - unsigned images (likely an unsigned plugin)\r\n");
-            }
-            if (!BooleanFlagOn(processState, KPH_PROCESS_NOT_BEING_DEBUGGED))
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"    - process is being debugged\r\n");
-            }
-            if ((processState & KPH_PROCESS_STATE_MINIMUM) != KPH_PROCESS_STATE_MINIMUM)
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"    - tampered primary image\r\n");
-            }
-
-            infoString = PhFinalStringBuilderString(&stringBuilder);
-
-            PhShowError(
-                NULL,
-                L"System Informer's access to the kernel driver is restricted.\r\n"
-                L"\r\n"
-                L"%s",
-                infoString->Buffer
-                );
-
-            PhDereferenceObject(infoString);
-        }
+        PhpShowKphStatus();
     }
 
     if (!PhMainWndInitialization(CmdShow))
@@ -1225,6 +1181,69 @@ NTSTATUS PhpReadSignature(
     }
 }
 
+VOID PhpShowKphStatus(
+    VOID
+    )
+{
+    KPH_PROCESS_STATE processState;
+
+    processState = KphGetCurrentProcessState();
+
+    if ((processState != 0) &&
+        (processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
+    {
+        PPH_STRING infoString;
+        PH_STRING_BUILDER stringBuilder;
+
+        PhInitializeStringBuilder(&stringBuilder, 100);
+
+        if (!BooleanFlagOn(processState, KPH_PROCESS_SECURELY_CREATED))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - not securely created\r\n");
+        }
+        if (!BooleanFlagOn(processState, KPH_PROCESS_VERIFIED_PROCESS))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - unverified primary image\r\n");
+        }
+        if (!BooleanFlagOn(processState, KPH_PROCESS_PROTECTED_PROCESS))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - inactive protections\r\n");
+        }
+        if (!BooleanFlagOn(processState, KPH_PROCESS_NO_UNTRUSTED_IMAGES))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - unsigned images (likely an unsigned plugin)\r\n");
+        }
+        if (!BooleanFlagOn(processState, KPH_PROCESS_NOT_BEING_DEBUGGED))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - process is being debugged\r\n");
+        }
+        if ((processState & KPH_PROCESS_STATE_MINIMUM) != KPH_PROCESS_STATE_MINIMUM)
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"    - tampered primary image\r\n");
+        }
+
+        if (PhEndsWithString2(stringBuilder.String, L"\r\n", FALSE))
+            PhRemoveEndStringBuilder(&stringBuilder, 2);
+        PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n"); // String interning optimization (dmex)
+        PhAppendStringBuilder2(&stringBuilder, L"You will be unable to use more advanced features, view details about system processes or terminate malicious software.");
+        infoString = PhFinalStringBuilderString(&stringBuilder);
+
+        if (PhShowMessageOneTime(
+            NULL,
+            TDCBF_OK_BUTTON,
+            TD_ERROR_ICON,
+            L"Access to the kernel driver is restricted.",
+            L"%s",
+            PhGetString(infoString)
+            ))
+        {
+            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+        }
+
+        PhDereferenceObject(infoString);
+    }
+}
+
 VOID PhpShowKphError(
     _In_ PWSTR Message,
     _In_opt_ NTSTATUS Status
@@ -1232,12 +1251,17 @@ VOID PhpShowKphError(
 {
     if (Status == STATUS_NO_SUCH_FILE)
     {
-        PhShowError2(
+        if (PhShowMessageOneTime(
             NULL,
+            TDCBF_OK_BUTTON,
+            TD_ERROR_ICON,
             Message,
             L"%s",
             L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-            );
+            ))
+        {
+            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+        }
     }
     else
     {
@@ -1251,22 +1275,39 @@ VOID PhpShowKphError(
         {
             statusMessage = PhConcatStrings(
                 3,
-                errorMessage->Buffer,
+                PhGetString(errorMessage),
                 L"\r\n\r\n",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
                 );
-            PhShowError2(NULL, Message, L"%s", statusMessage->Buffer);
+
+            if (PhShowMessageOneTime(
+                NULL,
+                TDCBF_OK_BUTTON,
+                TD_ERROR_ICON,
+                Message,
+                L"%s",
+                PhGetString(statusMessage)
+                ))
+            {
+                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+            }
+
             PhDereferenceObject(statusMessage);
             PhDereferenceObject(errorMessage);
         }
         else
         {
-            PhShowError2(
+            if (PhShowMessageOneTime(
                 NULL,
+                TDCBF_OK_BUTTON,
+                TD_ERROR_ICON,
                 Message,
                 L"%s",
                 L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                );
+                ))
+            {
+                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
+            }
         }
     }
 }
