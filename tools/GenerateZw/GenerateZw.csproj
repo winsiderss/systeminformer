@@ -4,10 +4,6 @@
         <OutputType>Exe</OutputType>
         <Platforms>AnyCPU</Platforms>
         <PlatformTarget>AnyCPU</PlatformTarget>
-        <PublishTrimmed>true</PublishTrimmed>
-        <PublishReadyToRun>true</PublishReadyToRun>
-        <PublishSingleFile>true</PublishSingleFile>
-        <PublishReadyToRunShowWarnings>true</PublishReadyToRunShowWarnings>
         <TargetFramework>net6.0</TargetFramework>
         <RuntimeIdentifier>win-x86</RuntimeIdentifier>
         <TrimUnusedDependencies>true</TrimUnusedDependencies>
