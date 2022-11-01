@@ -197,6 +197,18 @@ NTSTATUS KphVerifyFile(
 
     signatureFileHandle = NULL;
 
+    if ((FileName->Length <= KphpSigExtension.Length) ||
+        (FileName->Buffer[0] != L'\\'))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      VERIFY,
+                      "File name is invalid \"%wZ\"",
+                      FileName);
+
+        status = STATUS_OBJECT_NAME_INVALID;
+        goto Exit;
+    }
+
     status = RtlDuplicateUnicodeString(0, FileName, &signatureFileName);
     if (!NT_SUCCESS(status))
     {
