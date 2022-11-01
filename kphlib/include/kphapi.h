@@ -271,9 +271,10 @@ typedef struct _KPH_FILE_OBJECT_DRIVER
 
 typedef enum _DRIVER_INFORMATION_CLASS
 {
-    DriverBasicInformation,
-    DriverNameInformation,
-    DriverServiceKeyNameInformation,
+    DriverBasicInformation,             // q: DRIVER_BASIC_INFORMATION
+    DriverNameInformation,              // q: UNICODE_STRING
+    DriverServiceKeyNameInformation,    // q: UNICODE_STRING
+    DriverImageFileNameInformation,     // q: UNICODE_STRING
     MaxDriverInfoClass
 } DRIVER_INFORMATION_CLASS;
 

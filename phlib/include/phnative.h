@@ -792,6 +792,14 @@ PhGetDriverName(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetDriverImageFileName(
+    _In_ HANDLE DriverHandle,
+    _Out_ PPH_STRING *Name
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetDriverServiceKeyName(
     _In_ HANDLE DriverHandle,
     _Out_ PPH_STRING *ServiceKeyName
