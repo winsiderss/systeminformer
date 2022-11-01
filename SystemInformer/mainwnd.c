@@ -2538,7 +2538,6 @@ PPH_EMENU PhpCreateMainMenu(
     )
 {
     PPH_EMENU menu = PhCreateEMenu();
-    PPH_EMENU_ITEM menuItem;
 
     switch (SubMenuIndex)
     {
@@ -2552,24 +2551,43 @@ PPH_EMENU PhpCreateMainMenu(
         return PhpCreateUsersMenu(menu, FALSE);
     case PH_MENU_ITEM_LOCATION_HELP:
         return PhpCreateHelpMenu(menu);
+    case ULONG_MAX:
+        {
+            PPH_EMENU_ITEM menuItem;
+            menu->Flags |= PH_EMENU_MAINMENU;
+
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HACKER, L"&System", NULL, NULL);
+            // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
+            PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
+            PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+            //PhInsertEMenuItem(menu, PhpCreateHackerMenu(menuItem, TRUE), ULONG_MAX);
+
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, L"&View", NULL, NULL);
+            // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
+            PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
+            PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+            //PhInsertEMenuItem(menu, PhpCreateViewMenu(menuItem), ULONG_MAX);
+
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_TOOLS, L"&Tools", NULL, NULL);
+            // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
+            PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
+            PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+            //PhInsertEMenuItem(menu, PhpCreateToolsMenu(menuItem), ULONG_MAX);
+
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, L"&Users", NULL, NULL);
+            // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
+            PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
+            PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+            //PhInsertEMenuItem(menu, PhpCreateUsersMenu(menuItem, TRUE), ULONG_MAX);
+
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, L"&Help", NULL, NULL);
+            // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
+            PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
+            PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
+            //PhInsertEMenuItem(menu, PhpCreateHelpMenu(menuItem), ULONG_MAX);
+        }
+        break;
     }
-
-    menu->Flags |= PH_EMENU_MAINMENU;
-
-    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HACKER, L"&System", NULL, NULL);
-    PhInsertEMenuItem(menu, PhpCreateHackerMenu(menuItem, TRUE), ULONG_MAX);
-
-    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, L"&View", NULL, NULL);
-    PhInsertEMenuItem(menu, PhpCreateViewMenu(menuItem), ULONG_MAX);
-
-    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_TOOLS, L"&Tools", NULL, NULL);
-    PhInsertEMenuItem(menu, PhpCreateToolsMenu(menuItem), ULONG_MAX);
-
-    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, L"&Users", NULL, NULL);
-    PhInsertEMenuItem(menu, PhpCreateUsersMenu(menuItem, TRUE), ULONG_MAX);
-
-    menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, L"&Help", NULL, NULL);
-    PhInsertEMenuItem(menu, PhpCreateHelpMenu(menuItem), ULONG_MAX);
 
     return menu;
 }
@@ -2877,9 +2895,6 @@ VOID PhMwpInitializeSubMenu(
     )
 {
     PPH_EMENU_ITEM menuItem;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(hwnd);
 
     if (Index == PH_MENU_ITEM_LOCATION_HACKER) // Hacker
     {
@@ -2894,6 +2909,9 @@ VOID PhMwpInitializeSubMenu(
         else
         {
             HBITMAP shieldBitmap;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwnd);
 
             if (shieldBitmap = PhGetShieldBitmap(dpiValue))
             {
@@ -3003,6 +3021,9 @@ VOID PhMwpInitializeSubMenu(
         if (PhGetIntegerSetting(L"EnableBitmapSupport"))
         {
             HBITMAP shieldBitmap;
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(hwnd);
 
             if (shieldBitmap = PhGetShieldBitmap(dpiValue))
             {
@@ -3892,10 +3913,10 @@ BOOLEAN PhGetKernelDriverSystemStart( // TODO: Move and rename (dmex)
     WCHAR parametersKeyName[MAX_PATH];
 
     kphServiceName = PhGetStringSetting(L"KphServiceName");
-    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
+    if (PhIsNullOrEmptyString(kphServiceName))
     {
         PhClearReference(&kphServiceName);
-        kphServiceName = PhCreateString(L"KSystemInformer");
+        kphServiceName = PhCreateString(KPH_SERVICE_NAME);
     }
 
     PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
