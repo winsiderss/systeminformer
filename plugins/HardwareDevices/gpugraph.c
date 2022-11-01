@@ -1450,10 +1450,10 @@ INT_PTR CALLBACK GraphicsDevicePanelDialogProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_NODES:
-                GraphicsDeviceShowNodesDialog(context, hwndDlg);
+                GraphicsDeviceShowNodesDialog(context, context->GpuDialog);
                 break;
             case IDC_DETAILS:
-                GraphicsDeviceShowDetailsDialog(context, hwndDlg);
+                GraphicsDeviceShowDetailsDialog(context, context->GpuDialog);
                 break;
             }
         }
