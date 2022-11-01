@@ -785,18 +785,20 @@ INT_PTR CALLBACK WinObjDlgProc(
             ListView_SetImageList(context->ListViewHandle, context->ListImageList, LVSIL_SMALL);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 620, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 150, L"Type");
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
 
             ExtendedListView_SetSortFast(context->ListViewHandle, TRUE);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 0, WinObjNameCompareFunction);
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 1, WinObjTypeCompareFunction);
 
-            PhCenterWindow(hwndDlg, context->ParentWindowHandle);
-
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->TreeViewHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
-            PhLoadListViewColumnsFromSetting(SETTING_NAME_OBJMGR_COLUMNS, context->ListViewHandle);
+
+            if (PhGetIntegerPairSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_OBJMGR_WINDOW_POSITION, SETTING_NAME_OBJMGR_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             EnumDirectoryObjects(
                 context->TreeViewHandle,
@@ -822,6 +824,8 @@ INT_PTR CALLBACK WinObjDlgProc(
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
+
+            PostQuitMessage(0);
         }
         break;
     case WM_PH_SHOW_DIALOG:
@@ -842,7 +846,7 @@ INT_PTR CALLBACK WinObjDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDOK);
+                DestroyWindow(hwndDlg);
                 break;
             }
         }

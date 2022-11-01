@@ -74,7 +74,8 @@ typedef struct _WCT_TREE_CONTEXT
 
 typedef struct _WCT_CONTEXT
 {
-    HWND DialogHandle;
+    HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND TreeNewHandle;
 
     WCT_TREE_CONTEXT TreeContext;
@@ -85,7 +86,7 @@ typedef struct _WCT_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
 
     HWCT WctSessionHandle;
-    HMODULE Ole32ModuleHandle;
+    PVOID Ole32ModuleHandle;
 } WCT_CONTEXT, *PWCT_CONTEXT;
 
 VOID WctAddChildWaitNode(
@@ -116,6 +117,40 @@ VOID WtcInitializeWaitTree(
     _In_ HWND TreeNewHandle,
     _Out_ PWCT_TREE_CONTEXT Context
     );
+
+VOID NTAPI EtWaitChainContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PWCT_CONTEXT context = Object;
+
+    if (context->ProcessItem)
+    {
+        PhDereferenceObject(context->ProcessItem);
+    }
+
+    if (context->ThreadItem)
+    {
+        PhDereferenceObject(context->ThreadItem);
+    }
+}
+
+PVOID EtWaitChainContextCreate(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_OBJECT_TYPE EtWaitChainContextType = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        EtWaitChainContextType = PhCreateObjectType(L"EtWaitChainContextType", 0, EtWaitChainContextDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    return PhCreateObjectZero(sizeof(WCT_CONTEXT), EtWaitChainContextType);
+}
 
 BOOLEAN WaitChainRegisterCallbacks(
     _Inout_ PWCT_CONTEXT Context
@@ -183,7 +218,7 @@ VOID WaitChainCheckThread(
             rootNode->ContextSwitchesString = PhFormatUInt64(wctNode->ThreadObject.ContextSwitches, TRUE);
             rootNode->TimeoutString = PhFormatUInt64(wctNode->LockObject.Timeout.QuadPart, TRUE);
 
-            if (wctNode->LockObject.ObjectName[0] != '\0')
+            if (wctNode->LockObject.ObjectName[0] != UNICODE_NULL)
             {
                 // -- ProcessID --
                 //wctNode->LockObject.ObjectName[0]
@@ -328,7 +363,11 @@ INT_PTR CALLBACK WaitChainDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, hwndDlg);
+
+            if (PhGetIntegerPairSetting(SETTING_NAME_WCT_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
@@ -343,7 +382,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
             WtcDeleteWaitTree(&context->TreeContext);
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
+            PhDereferenceObject(context);
         }
         break;
     case WM_SIZE:
@@ -465,38 +504,41 @@ INT_PTR CALLBACK WaitChainDlgProc(
     return FALSE;
 }
 
-VOID NTAPI WctProcessMenuInitializingCallback(
-    _In_ PVOID Parameter,
-    _In_ PVOID Context
+static VOID NTAPI EtWctMenuItemDeleteFunction(
+    _In_ PPH_PLUGIN_MENU_ITEM Item
     )
 {
+    PWCT_CONTEXT context = Item->Context;
+
+    PhDereferenceObject(context);
+}
+
+VOID NTAPI WctProcessMenuInitializingCallback(
+    _In_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
     ULONG insertIndex = 0;
     PWCT_CONTEXT context = NULL;
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = NULL;
     PPH_PROCESS_ITEM processItem = NULL;
     PPH_EMENU_ITEM menuItem = NULL;
     PPH_EMENU_ITEM miscMenuItem = NULL;
     PPH_EMENU_ITEM wsMenuItem = NULL;
 
-    menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
-
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
     else
-    {
         processItem = NULL;
-    }
 
-    if (processItem == NULL)
-        return;
-
-    context = PhAllocateZero(sizeof(WCT_CONTEXT));
+    context = EtWaitChainContextCreate();
     context->IsProcessItem = TRUE;
-    context->ProcessItem = processItem;
+    context->ProcessItem = processItem ? PhReferenceObject(processItem) : NULL;
 
     if (miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Miscellaneous", 0))
     {
         menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_WCT_MENUITEM, L"Wait Chain Tra&versal", context);
+        ((PPH_PLUGIN_MENU_ITEM)menuItem->Context)->DeleteFunction = EtWctMenuItemDeleteFunction;
         PhInsertEMenuItem(miscMenuItem, menuItem, ULONG_MAX);
 
         if (!processItem || !processItem->QueryHandle || processItem->ProcessId == NtCurrentProcessId())
@@ -507,32 +549,30 @@ VOID NTAPI WctProcessMenuInitializingCallback(
     }
     else
     {
-        PhFree(context);
+        PhDereferenceObject(context);
     }
 }
 
 VOID NTAPI WctThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
     PWCT_CONTEXT context = NULL;
-    PPH_PLUGIN_MENU_INFORMATION menuInfo = NULL;
     PPH_THREAD_ITEM threadItem = NULL;
     PPH_EMENU_ITEM menuItem = NULL;
     PPH_EMENU_ITEM miscMenuItem = NULL;
     ULONG indexOfMenuItem;
-
-    menuInfo = (PPH_PLUGIN_MENU_INFORMATION)Parameter;
 
     if (menuInfo->u.Thread.NumberOfThreads == 1)
         threadItem = menuInfo->u.Thread.Threads[0];
     else
         threadItem = NULL;
 
-    context = PhAllocateZero(sizeof(WCT_CONTEXT));
+    context = EtWaitChainContextCreate();
     context->IsProcessItem = FALSE;
-    context->ThreadItem = threadItem;
+    context->ThreadItem = threadItem ? PhReferenceObject(threadItem) : NULL;
 
     if (miscMenuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Analyze", 0))
         indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, miscMenuItem) + 1;
@@ -540,6 +580,7 @@ VOID NTAPI WctThreadMenuInitializingCallback(
         indexOfMenuItem = ULONG_MAX;
 
     menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_WCT_MENUITEM, L"Wait Chain Tra&versal", context);
+    ((PPH_PLUGIN_MENU_ITEM)menuItem->Context)->DeleteFunction = EtWctMenuItemDeleteFunction;
     PhInsertEMenuItem(menuInfo->Menu, menuItem, indexOfMenuItem);
 
     // Disable menu if current process selected.
@@ -950,7 +991,7 @@ VOID WctAddChildWaitNode(
     childNode->WaitTimeString = PhFormatUInt64(WctNode->ThreadObject.WaitTime, TRUE);
     childNode->ContextSwitchesString = PhFormatUInt64(WctNode->ThreadObject.ContextSwitches, TRUE);
 
-    if (WctNode->LockObject.ObjectName[0] != L'\0')
+    if (WctNode->LockObject.ObjectName[0] != UNICODE_NULL)
         childNode->ObjectNameString = PhFormatString(L"%s", WctNode->LockObject.ObjectName);
 
     if (WctNode->LockObject.Timeout.QuadPart > 0)
@@ -1021,4 +1062,20 @@ PWCT_ROOT_NODE WtcGetSelectedWaitNode(
     }
 
     return NULL;
+}
+
+VOID EtShowWaitChainDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PVOID Context
+    )
+{
+    PhReferenceObject(Context);
+
+    DialogBoxParam(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_WCT_DIALOG),
+        NULL,
+        WaitChainDlgProc,
+        (LPARAM)Context
+        );
 }

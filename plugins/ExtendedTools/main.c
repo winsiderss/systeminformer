@@ -147,34 +147,17 @@ VOID NTAPI MenuItemCallback(
     case ID_REPARSE_OBJID:
     case ID_REPARSE_SDDL:
         {
-            DialogBoxParam(
-                PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_REPARSEDIALOG),
-                NULL,
-                EtReparseDlgProc,
-                (LPARAM)menuItem->Id
-                );
+            EtShowReparseDialog(menuItem->OwnerWindow, UlongToPtr(menuItem->Id));
         }
         break;
     case ID_WCT_MENUITEM:
         {
-            DialogBoxParam(
-                PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_WCT_DIALOG),
-                NULL,
-                WaitChainDlgProc,
-                (LPARAM)menuItem->Context
-                );
+            EtShowWaitChainDialog(menuItem->OwnerWindow, menuItem->Context);
         }
         break;
     case ID_PIPE_ENUM:
         {
-            DialogBox(
-                PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_PIPEDIALOG),
-                NULL,
-                EtPipeEnumDlgProc
-                );
+            EtShowPipeEnumDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_FIRMWARE:
@@ -185,12 +168,7 @@ VOID NTAPI MenuItemCallback(
                 return;
             }
 
-            DialogBox(
-                PluginInstance->DllBase,
-                MAKEINTRESOURCE(IDD_FIRMWARE),
-                NULL,
-                EtFirmwareDlgProc
-                );
+            EtShowFirmwareDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_OBJMGR:
@@ -330,9 +308,6 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_EMENU_ITEM miscMenu;
 
     WctProcessMenuInitializingCallback(Parameter, Context);
-
-    if (!menuInfo)
-        return;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
@@ -1143,23 +1118,23 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_FW_IGNORE_PORTSCAN, L"0" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { StringSettingType, SETTING_NAME_WCT_TREE_LIST_COLUMNS, L"" },
-                { IntegerPairSettingType, SETTING_NAME_WCT_WINDOW_POSITION, L"100,100" },
+                { IntegerPairSettingType, SETTING_NAME_WCT_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WCT_WINDOW_SIZE, L"@96|690,540" },
-                { IntegerPairSettingType, SETTING_NAME_REPARSE_WINDOW_POSITION, L"350,350" },
+                { IntegerPairSettingType, SETTING_NAME_REPARSE_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_REPARSE_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_REPARSE_LISTVIEW_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_REPARSE_OBJECTID_LISTVIEW_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_REPARSE_SD_LISTVIEW_COLUMNS, L"" },
-                { IntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, L"350,350" },
+                { IntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_PIPE_ENUM_LISTVIEW_COLUMNS, L"" },
-                { IntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_POSITION, L"100,100" },
+                { IntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_FIRMWARE_WINDOW_SIZE, L"@96|490,340" },
                 { StringSettingType, SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, L"" },
-                { IntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_POSITION, L"100,100" },
+                { IntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_OBJMGR_WINDOW_SIZE, L"@96|1065,627" },
                 { StringSettingType, SETTING_NAME_OBJMGR_COLUMNS, L"" },
-                { IntegerPairSettingType, SETTING_NAME_POOL_WINDOW_POSITION, L"350,350" },
+                { IntegerPairSettingType, SETTING_NAME_POOL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_POOL_WINDOW_SIZE, L"@96|510,380" },
                 { StringSettingType, SETTING_NAME_POOL_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_POOL_TREE_LIST_SORT, L"0,0" },
