@@ -279,7 +279,7 @@ NTSTATUS KphQueryInformationDriver(
                 goto Exit;
             }
 
-            RtlZeroBytes(&fullDriverPath, sizeof(fullDriverPath));
+            RtlZeroMemory(&fullDriverPath, sizeof(fullDriverPath));
 
             status = KphDynIoQueryFullDriverPath(driverObject, &fullDriverPath);
             if (!NT_SUCCESS(status))
