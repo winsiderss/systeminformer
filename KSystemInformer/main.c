@@ -18,11 +18,14 @@
 
 PDRIVER_OBJECT KphDriverObject = NULL;
 KPH_INFORMER_SETTINGS KphInformerSettings;
+KPH_PROTECTED_DATA_SECTION_PUSH();
+BYTE KphpProtectedSection = 0;
 BOOLEAN KphIgnoreDebuggerPresence = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
 USHORT KphOsRevision = 0;
 KPH_OSVERSION KphOsVersion = KphWinUnknown;
+KPH_PROTECTED_DATA_SECTION_POP();
 
 PAGED_FILE();
 
@@ -45,7 +48,7 @@ VOID KphpProtectSections(
         return;
     }
 
-    status = KphDynMmProtectDriverSection(&KphProtectedSection,
+    status = KphDynMmProtectDriverSection(&KphpProtectedSection,
                                           0,
                                           MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD);
 
