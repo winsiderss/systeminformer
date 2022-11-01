@@ -38,6 +38,12 @@
     __pragma(data_seg("PAGEDATA"))\
     __pragma(const_seg("PAGERO"))
 
+#define KPH_PROTECTED_DATA_SECTION_PUSH() \
+    __pragma(data_seg(push))\
+    __pragma(data_seg("KsiDS"))
+#define KPH_PROTECTED_DATA_SECTION_POP() \
+    __pragma(data_seg(pop))
+
 #define _Outptr_allocatesMem_ _Outptr_result_nullonfailure_ __drv_allocatesMem(Mem)
 #define _Out_allocatesMem_ _Out_ __drv_allocatesMem(Mem)
 #define _Out_allocatesMem_size_(size) _Out_allocatesMem_ _Post_writable_byte_size_(size)

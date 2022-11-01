@@ -27,6 +27,35 @@ KPH_OSVERSION KphOsVersion = KphWinUnknown;
 PAGED_FILE();
 
 /**
+ * \brief Protects select sections.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpProtectSections(
+    VOID
+    )
+{
+    NTSTATUS status;
+
+    if (!KphDynMmProtectDriverSection)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "MmProtectDriverSection not found");
+
+        return;
+    }
+
+    status = KphDynMmProtectDriverSection(&KphProtectedSection,
+                                          0,
+                                          MM_PROTECT_DRIVER_SECTION_ALLOW_UNLOAD);
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  GENERAL,
+                  "MmProtectDriverSection %!STATUS!",
+                  status);
+}
+
+/**
  * \brief Cleans up the driver state.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -206,6 +235,8 @@ NTSTATUS DriverEntry(
                       status);
         goto Exit;
     }
+
+    KphpProtectSections();
 
     KphInitializeProtection();
     KphInitializeStackBackTrace();

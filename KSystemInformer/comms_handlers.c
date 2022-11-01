@@ -12,8 +12,6 @@
 #include <kph.h>
 #include <comms.h>
 
-PAGED_FILE();
-
 KPHM_DEFINE_HANDLER(KphpCommsGetInformerSettings);
 KPHM_DEFINE_HANDLER(KphpCommsSetInformerSettings);
 KPHM_DEFINE_HANDLER(KphpCommsOpenProcess);
@@ -48,6 +46,8 @@ KPHM_DEFINE_REQUIRED_STATE(KphpCommsOpenThreadRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsOpenThreadProcessRequires);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsQueryInformationProcessRequires);
 
+KPH_PROTECTED_DATA_SECTION_PUSH();
+
 KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 {
 { InvalidKphMsg,                     NULL,                                 NULL },
@@ -77,6 +77,10 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 };
 
 ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
+
+KPH_PROTECTED_DATA_SECTION_POP();
+
+PAGED_FILE();
 
 _Function_class_(KPHM_REQUIRED_STATE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
