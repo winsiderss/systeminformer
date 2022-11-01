@@ -76,6 +76,12 @@ VOID GraphicsDeviceShowNodesDialog(
     _In_ HWND ParentWindowHandle
     )
 {
+    if (Context->DeviceEntry->NumberOfNodes == 0)
+    {
+        PhShowError(ParentWindowHandle, L"%s", L"There are no graphics nodes to display.");
+        return;
+    }
+
     if (!Context->NodeWindowThreadHandle)
     {
         PhReferenceObject(Context);

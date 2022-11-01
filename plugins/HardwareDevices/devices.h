@@ -1170,8 +1170,6 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
 {
     PDV_GPU_ENTRY DeviceEntry;
 
-    HWND WindowHandle;
-
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
