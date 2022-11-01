@@ -158,15 +158,17 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
         {
             context->ListViewWndHandle = GetDlgItem(hwndDlg, IDC_ATOMLIST);
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
-
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewWndHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, hwndDlg);
+
+            if (PhGetIntegerPairSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle); // TODO: Pass ParentWindowHandle from EtShowPipeEnumDialog (dmex)
 
             PhSetListViewStyle(context->ListViewWndHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewWndHandle, L"explorer");
@@ -218,4 +220,17 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
     }
 
     return FALSE;
+}
+
+VOID EtShowPipeEnumDialog(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    DialogBoxParam(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_REPARSEDIALOG),
+        NULL,
+        EtPipeEnumDlgProc,
+        (LPARAM)NULL
+        );
 }

@@ -223,6 +223,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             PhSetApplicationWindowIcon(hwndDlg);
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_BOOT_LIST);
+            context->ParentWindowHandle = (HWND)lParam;
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -243,7 +244,11 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_BOOT_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
-            PhLoadWindowPlacementFromSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, hwndDlg);
+
+            if (PhGetIntegerPairSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION).X != 0)
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
@@ -320,4 +325,17 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
     }
 
     return FALSE;
+}
+
+VOID EtShowFirmwareDialog(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    DialogBoxParam(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_FIRMWARE),
+        NULL,
+        EtFirmwareDlgProc,
+        (LPARAM)ParentWindowHandle
+        );
 }

@@ -1161,39 +1161,35 @@ VOID EtProcessFramesPropertiesInitializing(
 
 // wct
 
-INT_PTR CALLBACK WaitChainDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+PVOID EtWaitChainContextCreate(
+    VOID
+    );
+
+VOID EtShowWaitChainDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PVOID Context
     );
 
 VOID NTAPI WctProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
-
 VOID NTAPI WctThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
 // reparse
 
-INT_PTR CALLBACK EtReparseDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+VOID EtShowReparseDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PVOID Context
     );
 
 // pipe_enum
 
-INT_PTR CALLBACK EtPipeEnumDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+VOID EtShowPipeEnumDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 // firmware
@@ -1201,6 +1197,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
 typedef struct _UEFI_WINDOW_CONTEXT
 {
     HWND ListViewHandle;
+    HWND ParentWindowHandle;
     PH_LAYOUT_MANAGER LayoutManager;
 } UEFI_WINDOW_CONTEXT, *PUEFI_WINDOW_CONTEXT;
 
@@ -1216,11 +1213,8 @@ VOID EtShowFirmwareEditDialog(
     _In_ PEFI_ENTRY Entry
     );
 
-INT_PTR CALLBACK EtFirmwareDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
+VOID EtShowFirmwareDialog(
+    _In_ HWND ParentWindowHandle
     );
 
 // objmgr

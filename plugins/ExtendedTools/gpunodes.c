@@ -103,7 +103,7 @@ static VOID ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    PostMessage((HWND)Context, WM_PH_UPDATE_FONT, 0, 0);
+    PostMessage((HWND)Context, WM_PH_UPDATE_DIALOG, 0, 0);
 }
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
