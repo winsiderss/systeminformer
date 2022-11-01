@@ -474,7 +474,7 @@ NTAPI
 ZwAlpcImpersonateClientContainerOfPort(
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE Message,
-    _In_ ULONG Flags
+    _Reserved_ ULONG Flags
     );
 
 NTSYSCALLAPI
@@ -493,7 +493,7 @@ ZwAlpcOpenSenderProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE PortMessage,
-    _In_ ULONG Flags,
+    _Reserved_ ULONG Flags,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
@@ -505,7 +505,7 @@ ZwAlpcOpenSenderThread(
     _Out_ PHANDLE ThreadHandle,
     _In_ HANDLE PortHandle,
     _In_ PPORT_MESSAGE PortMessage,
-    _In_ ULONG Flags,
+    _Reserved_ ULONG Flags,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
