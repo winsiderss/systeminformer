@@ -305,7 +305,8 @@ ULONG64 ParseVersionString(
 }
 
 BOOLEAN QueryUpdateData(
-    _Inout_ PPH_UPDATER_CONTEXT Context
+    _Inout_ PPH_UPDATER_CONTEXT Context,
+    _In_ PWSTR ServerName
     )
 {
     BOOLEAN success = FALSE;
@@ -326,7 +327,7 @@ BOOLEAN QueryUpdateData(
 
     if (!PhHttpSocketConnect(
         httpContext,
-        L"systeminformer.sourceforge.io",
+        ServerName,
         PH_HTTP_DEFAULT_HTTPS_PORT
         ))
     {
@@ -435,6 +436,26 @@ CleanupExit:
     return success;
 }
 
+BOOLEAN QueryUpdateDataWithFailover(
+    _Inout_ PPH_UPDATER_CONTEXT Context
+    )
+{
+    static PWSTR Servers[] =
+    {
+        L"systeminformer.sourceforge.io",
+        L"system-informer.com",
+        L"systeminformer.com"
+    };
+
+    for (USHORT i = 0; i < ARRAYSIZE(Servers); i++)
+    {
+        if (QueryUpdateData(Context, Servers[i]))
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 NTSTATUS UpdateCheckSilentThread(
     _In_ PVOID Parameter
     )
@@ -451,7 +472,7 @@ NTSTATUS UpdateCheckSilentThread(
     PhDelayExecution(5 * 1000);
 
     // Query latest update information from the server.
-    if (!QueryUpdateData(context))
+    if (!QueryUpdateDataWithFailover(context))
         goto CleanupExit;
 
     // Compare the current version against the latest available version
@@ -500,7 +521,7 @@ NTSTATUS UpdateCheckThread(
     // Check if we have cached update data
     if (!context->HaveData)
     {
-        context->HaveData = QueryUpdateData(context);
+        context->HaveData = QueryUpdateDataWithFailover(context);
     }
 
     if (!context->HaveData)
