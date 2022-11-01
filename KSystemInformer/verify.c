@@ -15,8 +15,7 @@
 
 #include <trace.h>
 
-PAGED_FILE();
-
+KPH_PROTECTED_DATA_SECTION_PUSH();
 static UCHAR KphpTrustedPublicKey[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
@@ -29,6 +28,9 @@ static UCHAR KphpTrustedPublicKey[] =
     0xA2, 0x55, 0x38, 0x71, 0xF0, 0x0F, 0xCC, 0x8F,
     0x84, 0xF4, 0x2B, 0x60, 0x38, 0xA6, 0xE7, 0x37,
 };
+KPH_PROTECTED_DATA_SECTION_POP();
+
+PAGED_FILE();
 
 static UNICODE_STRING KphpSigExtension = RTL_CONSTANT_STRING(L".sig");
 
