@@ -6,10 +6,12 @@
  * Authors:
  *
  *     wj32    2010-2016
+ *     jxy-s   2022
  *
  */
 
 #include <kph.h>
+#include <dyndata.h>
 
 #include <trace.h>
 
@@ -253,6 +255,65 @@ NTSTATUS KphQueryInformationDriver(
                 goto Exit;
             }
 
+            break;
+        }
+        case DriverImageFileNameInformation:
+        {
+            UNICODE_STRING fullDriverPath;
+
+            if (!KphDynIoQueryFullDriverPath)
+            {
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
+            if ((KphOsVersionInfo.dwMajorVersion < 10) ||
+                (KphOsVersionInfo.dwMajorVersion == 10) &&
+                (KphOsVersionInfo.dwBuildNumber < 16299))
+            {
+                //
+                // Per documentation it is not safe to call IoQueryFullDriverPath
+                // on anything but our own driver object.
+                //
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
+            RtlZeroBytes(&fullDriverPath, sizeof(fullDriverPath));
+
+            status = KphDynIoQueryFullDriverPath(driverObject, &fullDriverPath);
+            if (!NT_SUCCESS(status))
+            {
+                goto Exit;
+            }
+
+            returnLength = sizeof(UNICODE_STRING);
+            returnLength += fullDriverPath.Length;
+
+            if (!DriverInformation || (DriverInformationLength < returnLength))
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+            }
+            else
+            {
+                __try
+                {
+                    PUNICODE_STRING string;
+
+                    string = (PUNICODE_STRING)DriverInformation;
+                    string->Length = 0;
+                    string->MaximumLength = (USHORT)(DriverInformationLength - sizeof(UNICODE_STRING));
+                    string->Buffer = (PWSTR)Add2Ptr(DriverInformation, sizeof(UNICODE_STRING));
+                    RtlCopyUnicodeString(string, &fullDriverPath);
+                    status = STATUS_SUCCESS;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+
+            ExFreePool(fullDriverPath.Buffer);
             break;
         }
         default:

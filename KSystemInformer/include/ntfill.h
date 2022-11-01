@@ -115,6 +115,17 @@ ZwQuerySection(
 extern POBJECT_TYPE *IoDriverObjectType;
 extern POBJECT_TYPE *IoDeviceObjectType;
 
+typedef
+_Function_class_(IO_QUERY_FULL_DRIVER_PATH)
+_IRQL_always_function_max_(APC_LEVEL)
+NTSTATUS
+NTAPI
+IO_QUERY_FULL_DRIVER_PATH(
+    _In_ PDRIVER_OBJECT DriverObject,
+    _Out_ PUNICODE_STRING FullPath
+    );
+typedef IO_QUERY_FULL_DRIVER_PATH *PIO_QUERY_FULL_DRIVER_PATH;
+
 // KE
 
 typedef enum _KAPC_ENVIRONMENT

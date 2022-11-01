@@ -60,6 +60,8 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_FILEMODE,
     PH_HANDLE_GENERAL_INDEX_FILEPOSITION,
     PH_HANDLE_GENERAL_INDEX_FILESIZE,
+    PH_HANDLE_GENERAL_INDEX_FILEDRIVER,
+    PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE,
 
     PH_HANDLE_GENERAL_INDEX_SECTIONTYPE,
     PH_HANDLE_GENERAL_INDEX_SECTIONFILE,
@@ -501,6 +503,25 @@ VOID PhpUpdateHandleGeneralListViewGroups(
             L"Size",
             NULL
             );
+
+        if (KphLevel() >= KphLevelMed)
+        {
+            Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVER] = PhAddListViewGroupItem(
+                Context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_FILE,
+                PH_HANDLE_GENERAL_INDEX_FILEDRIVER,
+                L"Driver",
+                NULL
+                );
+
+            Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE] = PhAddListViewGroupItem(
+                Context->ListViewHandle,
+                PH_HANDLE_GENERAL_CATEGORY_FILE,
+                PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE,
+                L"Driver Image",
+                NULL
+                );
+        }
     }
     else if (PhEqualStringRef2(&Context->HandleItem->TypeName->sr, L"Section", TRUE))
     {
@@ -1105,6 +1126,7 @@ VOID PhpUpdateHandleGeneral(
             FILE_STANDARD_INFORMATION fileStandardInfo;
             FILE_POSITION_INFORMATION filePositionInfo;
             IO_STATUS_BLOCK isb;
+            KPH_FILE_OBJECT_DRIVER fileObjectDriver;
 
             if (NT_SUCCESS(KphQueryVolumeInformationFile(
                 processHandle,
@@ -1249,6 +1271,32 @@ VOID PhpUpdateHandleGeneral(
                         }
                     }
                 }
+            }
+
+            if (NT_SUCCESS(KphQueryInformationObject(
+                processHandle,
+                Context->HandleItem->Handle,
+                KphObjectFileObjectDriver,
+                &fileObjectDriver,
+                sizeof(fileObjectDriver),
+                NULL
+                )))
+            {
+                PPH_STRING string;
+
+                if (NT_SUCCESS(PhGetDriverName(fileObjectDriver.DriverHandle, &string)))
+                {
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVER], 1, PhGetString(string));
+                    PhDereferenceObject(string);
+                }
+
+                if (NT_SUCCESS(PhGetDriverImageFileName(fileObjectDriver.DriverHandle, &string)))
+                {
+                    PhSetListViewSubItem(Context->ListViewHandle, Context->ListViewRowCache[PH_HANDLE_GENERAL_INDEX_FILEDRIVERIMAGE], 1, PhGetString(string));
+                    PhDereferenceObject(string);
+                }
+
+                NtClose(fileObjectDriver.DriverHandle);
             }
 
             NtClose(processHandle);
