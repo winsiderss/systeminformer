@@ -148,6 +148,7 @@ BcdExportStore(
     _In_ UNICODE_STRING BcdFilePath
     );
 
+#if (PHNT_VERSION > PHNT_WIN11)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -156,6 +157,7 @@ BcdExportStoreEx(
     _In_ ULONG Flags,
     _In_ UNICODE_STRING BcdFilePath
     );
+#endif
 
 NTSYSAPI
 NTSTATUS
