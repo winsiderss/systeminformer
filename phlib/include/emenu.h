@@ -213,6 +213,14 @@ PPH_EMENU_ITEM PhCreateEMenuSeparator(
 }
 
 FORCEINLINE
+PPH_EMENU_ITEM PhCreateEMenuItemEmpty(
+    VOID
+    )
+{
+    return PhCreateEMenuItem(0, USHRT_MAX, NULL, NULL, NULL);
+}
+
+FORCEINLINE
 BOOLEAN PhEnableEMenuItem(
     _Inout_ PPH_EMENU_ITEM Item,
     _In_ ULONG Id,
