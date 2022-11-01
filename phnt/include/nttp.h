@@ -86,6 +86,17 @@ TpSetPoolStackInformation(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+TpSetPoolThreadBasePriority(
+    _Inout_ PTP_POOL Pool,
+    _In_ ULONG BasePriority
+    );
+#endif
+
 // private
 _Check_return_
 NTSYSAPI
