@@ -239,11 +239,11 @@ typedef struct _KPH_DYNDATA
                     var name = field.Attributes.GetNamedItem("name").Value;
                     var member = typeof(DynConfig).GetField(name);
 
-                    if (value.StartsWith("0x"))
+                    if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
                     {
                         value = Convert.ToUInt64(value, 16).ToString(); 
                     }
-                    else if ((value == "-1") && (member.FieldType == typeof(UInt16)))
+                    else if (value.Equals("-1", StringComparison.OrdinalIgnoreCase) && member.FieldType == typeof(UInt16))
                     {
                         value = ((UInt16)0xffff).ToString();
                     }
