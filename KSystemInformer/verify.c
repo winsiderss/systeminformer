@@ -196,6 +196,7 @@ NTSTATUS KphVerifyFile(
     NT_ASSERT(KphpTrustedPublicKeyHandle);
 
     signatureFileHandle = NULL;
+    RtlZeroMemory(&signatureFileName, sizeof(signatureFileName));
 
     if ((FileName->Length <= KphpSigExtension.Length) ||
         (FileName->Buffer[0] != L'\\'))
