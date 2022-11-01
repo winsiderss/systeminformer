@@ -19,7 +19,7 @@
 PDRIVER_OBJECT KphDriverObject = NULL;
 KPH_INFORMER_SETTINGS KphInformerSettings;
 KPH_PROTECTED_DATA_SECTION_PUSH();
-BYTE KphpProtectedSection = 0;
+static BYTE KphpProtectedSection = 0;
 BOOLEAN KphIgnoreDebuggerPresence = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
 RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
@@ -38,6 +38,8 @@ VOID KphpProtectSections(
     )
 {
     NTSTATUS status;
+
+    PAGED_CODE();
 
     if (!KphDynMmProtectDriverSection)
     {
