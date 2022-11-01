@@ -459,6 +459,35 @@ Exit:
     PhReleaseRundownProtection(&KphpCommsRundown);
 }
 
+static VOID KphpTpSetPoolThreadBasePriority(
+    _Inout_ PTP_POOL Pool,
+    _In_ ULONG BasePriority
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS (NTAPI* TpSetPoolThreadBasePriority_I)(
+        _Inout_ PTP_POOL Pool,
+        _In_ ULONG BasePriority
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhGetLoaderEntryDllBase(L"ntdll.dll"))
+        {
+            TpSetPoolThreadBasePriority_I = PhGetDllBaseProcedureAddress(baseAddress, "TpSetPoolThreadBasePriority", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (TpSetPoolThreadBasePriority_I)
+    {
+        TpSetPoolThreadBasePriority_I(Pool, BasePriority);
+    }
+}
+
 /**
  * \brief Starts the communications infrastructure.
  *
@@ -513,11 +542,14 @@ NTSTATUS KphCommsStart(
     if (!NT_SUCCESS(status))
         goto Exit;
 
-    TpInitializeCallbackEnviron(&KphpCommsThreadPoolEnv);
     TpSetPoolMinThreads(KphpCommsThreadPool, KPH_COMMS_MIN_THREADS);
     TpSetPoolMaxThreads(KphpCommsThreadPool, numberOfThreads);
-    TpSetCallbackThreadpool(&KphpCommsThreadPoolEnv, KphpCommsThreadPool);
+    KphpTpSetPoolThreadBasePriority(KphpCommsThreadPool, THREAD_PRIORITY_HIGHEST);
+
+    TpInitializeCallbackEnviron(&KphpCommsThreadPoolEnv);
+    TpSetCallbackNoActivationContext(&KphpCommsThreadPoolEnv);
     TpSetCallbackPriority(&KphpCommsThreadPoolEnv, TP_CALLBACK_PRIORITY_HIGH);
+    TpSetCallbackThreadpool(&KphpCommsThreadPoolEnv, KphpCommsThreadPool);
     //TpSetCallbackLongFunction(&KphpCommsThreadPoolEnv);
 
     PhSetFileCompletionNotificationMode(KphpCommsFltPortHandle,
