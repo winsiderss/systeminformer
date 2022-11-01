@@ -237,6 +237,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS32
     UNICODE_STRING32 HeapPartitionName; // 19H1
     WOW64_POINTER(ULONG_PTR) DefaultThreadpoolCpuSetMasks;
     ULONG DefaultThreadpoolCpuSetMaskCount;
+    ULONG DefaultThreadpoolThreadMaximum;
 } RTL_USER_PROCESS_PARAMETERS32, *PRTL_USER_PROCESS_PARAMETERS32;
 
 typedef struct _PEB32
