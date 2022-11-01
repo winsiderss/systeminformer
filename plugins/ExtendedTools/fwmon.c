@@ -274,12 +274,12 @@ BOOLEAN FwProcessEventType(
 
             switch (fwDropEvent->msFwpDirection)
             {
-            case FWP_DIRECTION_IN:
             case FWP_DIRECTION_INBOUND:
+            case FWP_DIRECTION_MAP_INBOUND:
                 *Direction = FWP_DIRECTION_INBOUND;
                 break;
-            case FWP_DIRECTION_OUT:
             case FWP_DIRECTION_OUTBOUND:
+            case FWP_DIRECTION_MAP_OUTBOUND:
                 *Direction = FWP_DIRECTION_OUTBOUND;
                 break;
             default:
@@ -304,12 +304,12 @@ BOOLEAN FwProcessEventType(
 
             switch (fwAllowEvent->msFwpDirection)
             {
-            case FWP_DIRECTION_IN:
             case FWP_DIRECTION_INBOUND:
+            case FWP_DIRECTION_MAP_INBOUND:
                 *Direction = FWP_DIRECTION_INBOUND;
                 break;
-            case FWP_DIRECTION_OUT:
             case FWP_DIRECTION_OUTBOUND:
+            case FWP_DIRECTION_MAP_OUTBOUND:
                 *Direction = FWP_DIRECTION_OUTBOUND;
                 break;
             default:
