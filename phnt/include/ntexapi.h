@@ -1457,7 +1457,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemEntropyInterruptTimingInformation, // q; s: SYSTEM_ENTROPY_TIMING_INFORMATION
     SystemConsoleInformation, // q; s: SYSTEM_CONSOLE_INFORMATION
     SystemPlatformBinaryInformation, // q: SYSTEM_PLATFORM_BINARY_INFORMATION (requires SeTcbPrivilege)
-    SystemPolicyInformation, // q: SYSTEM_POLICY_INFORMATION
+    SystemPolicyInformation, // q: SYSTEM_POLICY_INFORMATION (Warbird/Encrypt/Decrypt/Execute)
     SystemHypervisorProcessorCountInformation, // q: SYSTEM_HYPERVISOR_PROCESSOR_COUNT_INFORMATION
     SystemDeviceDataInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
     SystemDeviceDataEnumerationInformation, // q: SYSTEM_DEVICE_DATA_INFORMATION
@@ -1508,7 +1508,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
     SystemCodeIntegrityCertificateInformation, // q: SYSTEM_CODEINTEGRITY_CERTIFICATE_INFORMATION
     SystemPhysicalMemoryInformation, // q: SYSTEM_PHYSICAL_MEMORY_INFORMATION // since REDSTONE2
-    SystemControlFlowTransition,
+    SystemControlFlowTransition, // (Warbird/Encrypt/Decrypt/Execute)
     SystemKernelDebuggingAllowed, // s: ULONG
     SystemActivityModerationExeState, // SYSTEM_ACTIVITY_MODERATION_EXE_STATE
     SystemActivityModerationUserSettings, // SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
@@ -1546,7 +1546,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemDifRemovePluginVerificationOnDriver, // 220
     SystemShadowStackInformation, // SYSTEM_SHADOW_STACK_INFORMATION
     SystemBuildVersionInformation, // SYSTEM_BUILD_VERSION_INFORMATION
-    SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION
+    SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege)
     SystemCodeIntegrityAddDynamicStore,
     SystemCodeIntegrityClearDynamicStores,
     SystemDifPoolTrackingInformation,
