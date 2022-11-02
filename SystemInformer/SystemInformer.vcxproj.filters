@@ -318,6 +318,9 @@
     <ClCompile Include="admintask.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="ksisup.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">
@@ -462,6 +465,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\notiftoast.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ksisup.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
