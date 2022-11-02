@@ -113,20 +113,20 @@ namespace CustomBuildTool
                         Build.CopySidCapsFile(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
                         Build.CopyEtwTraceGuidsFile(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
                         Build.BuildSdk(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
-                        Build.CopyKernelDriver(BuildFlags.Build64bit);
+                        Build.CopyKernelDriver(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
+                        Build.CopyWow64Files(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
                     }
                     else
                     {
                         Build.CopySidCapsFile(BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                         Build.CopyEtwTraceGuidsFile(BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                         Build.BuildSdk(BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
-                        Build.CopyKernelDriver(BuildFlags.Build64bit | BuildFlags.BuildDebug);
+                        Build.CopyKernelDriver(BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.CopyWow64Files(BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                     }
                 }
                 else if (ProgramArgs.ContainsKey("-win32"))
                 {
-                    Build.CopyWow64Files(BuildFlags.None);
-
                     if (ProgramArgs.ContainsKey("-release"))
                     {
                         Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.BuildRelease);
@@ -148,6 +148,7 @@ namespace CustomBuildTool
                     Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease);
                     Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease);
                     Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease);
+                    Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease);
                 }
             }
             else if (ProgramArgs.ContainsKey("-sign_plugin"))
@@ -192,7 +193,7 @@ namespace CustomBuildTool
 
                 if (!Build.CopyTextFiles())
                     return;
-                if (!Build.CopyWow64Files(BuildFlags.None))
+                if (!Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
                 //if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                 //    return;
@@ -234,7 +235,7 @@ namespace CustomBuildTool
                 if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
 
-                if (!Build.CopyWow64Files(BuildFlags.BuildDebug))
+                if (!Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
 
                 //if (!Build.CopySidCapsFile(
@@ -276,7 +277,7 @@ namespace CustomBuildTool
 
                 if (!Build.CopyTextFiles())
                     Environment.Exit(1);
-                if (!Build.CopyWow64Files(BuildFlags.None))
+                if (!Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     Environment.Exit(1);
                 //if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                 //    Environment.Exit(1);
@@ -328,7 +329,7 @@ namespace CustomBuildTool
 
                 if (!Build.CopyTextFiles())
                     return;
-                if (!Build.CopyWow64Files(BuildFlags.None))
+                if (!Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
                 //if (!Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildVerbose))
                 //    return;
