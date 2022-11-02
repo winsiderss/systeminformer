@@ -14,8 +14,6 @@
 #include <colorbox.h>
 #include <hexedit.h>
 #include <hndlinfo.h>
-#include <kphuser.h>
-#include <kphcomms.h>
 
 #include <extmgri.h>
 #include <mainwnd.h>
@@ -26,6 +24,7 @@
 
 #include <shlobj.h>
 
+#include <ksisup.h>
 #include <settings.h>
 #include <srvprv.h>
 
@@ -41,10 +40,6 @@ VOID PhInitializeCommonControls(
     VOID
     );
 
-VOID PhInitializeKph(
-    VOID
-    );
-
 BOOLEAN PhInitializeAppSystem(
     VOID
     );
@@ -54,10 +49,6 @@ VOID PhpInitializeSettings(
     );
 
 VOID PhpProcessStartupParameters(
-    VOID
-    );
-
-VOID PhpShowKphStatus(
     VOID
     );
 
@@ -171,7 +162,7 @@ INT WINAPI wWinMain(
         !PhStartupParameters.NoKph &&
         !PhIsExecutingInWow64())
     {
-        PhInitializeKph();
+        PhInitializeKsi();
     }
 
 #ifdef DEBUG
@@ -250,7 +241,7 @@ INT WINAPI wWinMain(
         !PhStartupParameters.NoKph &&
         !PhIsExecutingInWow64())
     {
-        PhpShowKphStatus();
+        PhShowKsiStatus();
     }
 
     if (!PhMainWndInitialization(CmdShow))
@@ -263,7 +254,7 @@ INT WINAPI wWinMain(
 
     result = PhMainMessageLoop();
 
-    KphCommsStop();
+    PhDestroyKsi();
 
     PhEnableTerminationPolicy(FALSE);
     PhExitApplication(result);
@@ -1181,355 +1172,6 @@ NTSTATUS PhpReadSignature(
     }
 }
 
-VOID PhpShowKphStatus(
-    VOID
-    )
-{
-    KPH_PROCESS_STATE processState;
-
-    processState = KphGetCurrentProcessState();
-
-    if ((processState != 0) &&
-        (processState & KPH_PROCESS_STATE_MAXIMUM) != KPH_PROCESS_STATE_MAXIMUM)
-    {
-        PPH_STRING infoString;
-        PH_STRING_BUILDER stringBuilder;
-
-        PhInitializeStringBuilder(&stringBuilder, 100);
-
-        if (!BooleanFlagOn(processState, KPH_PROCESS_SECURELY_CREATED))
-        {
-            PhAppendStringBuilder2(&stringBuilder, L"    - not securely created\r\n");
-        }
-        if (!BooleanFlagOn(processState, KPH_PROCESS_VERIFIED_PROCESS))
-        {
-            PhAppendStringBuilder2(&stringBuilder, L"    - unverified primary image\r\n");
-        }
-        if (!BooleanFlagOn(processState, KPH_PROCESS_PROTECTED_PROCESS))
-        {
-            PhAppendStringBuilder2(&stringBuilder, L"    - inactive protections\r\n");
-        }
-        if (!BooleanFlagOn(processState, KPH_PROCESS_NO_UNTRUSTED_IMAGES))
-        {
-            PhAppendStringBuilder2(&stringBuilder, L"    - unsigned images (likely an unsigned plugin)\r\n");
-        }
-        if (!BooleanFlagOn(processState, KPH_PROCESS_NOT_BEING_DEBUGGED))
-        {
-            PhAppendStringBuilder2(&stringBuilder, L"    - process is being debugged\r\n");
-        }
-        if ((processState & KPH_PROCESS_STATE_MINIMUM) != KPH_PROCESS_STATE_MINIMUM)
-        {
-            PhAppendStringBuilder2(&stringBuilder, L"    - tampered primary image\r\n");
-        }
-
-        if (PhEndsWithString2(stringBuilder.String, L"\r\n", FALSE))
-            PhRemoveEndStringBuilder(&stringBuilder, 2);
-        PhAppendStringBuilder2(&stringBuilder, L"\r\n\r\n"); // String interning optimization (dmex)
-        PhAppendStringBuilder2(&stringBuilder, L"You will be unable to use more advanced features, view details about system processes or terminate malicious software.");
-        infoString = PhFinalStringBuilderString(&stringBuilder);
-
-        if (PhShowMessageOneTime(
-            NULL,
-            TDCBF_OK_BUTTON,
-            TD_ERROR_ICON,
-            L"Access to the kernel driver is restricted.",
-            L"%s",
-            PhGetString(infoString)
-            ))
-        {
-            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-        }
-
-        PhDereferenceObject(infoString);
-    }
-}
-
-VOID PhpShowKphError(
-    _In_ PWSTR Message,
-    _In_opt_ NTSTATUS Status
-    )
-{
-    if (Status == STATUS_NO_SUCH_FILE)
-    {
-        if (PhShowMessageOneTime(
-            NULL,
-            TDCBF_OK_BUTTON,
-            TD_ERROR_ICON,
-            Message,
-            L"%s",
-            L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-            ))
-        {
-            PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-        }
-    }
-    else
-    {
-        PPH_STRING errorMessage;
-        PPH_STRING statusMessage;
-
-        if (!(errorMessage = PhGetStatusMessage(Status, 0)))
-            errorMessage = PhGetStatusMessage(0, Status);
-
-        if (errorMessage)
-        {
-            statusMessage = PhConcatStrings(
-                3,
-                PhGetString(errorMessage),
-                L"\r\n\r\n",
-                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                );
-
-            if (PhShowMessageOneTime(
-                NULL,
-                TDCBF_OK_BUTTON,
-                TD_ERROR_ICON,
-                Message,
-                L"%s",
-                PhGetString(statusMessage)
-                ))
-            {
-                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-            }
-
-            PhDereferenceObject(statusMessage);
-            PhDereferenceObject(errorMessage);
-        }
-        else
-        {
-            if (PhShowMessageOneTime(
-                NULL,
-                TDCBF_OK_BUTTON,
-                TD_ERROR_ICON,
-                Message,
-                L"%s",
-                L"You will be unable to use more advanced features, view details about system processes or terminate malicious software."
-                ))
-            {
-                PhSetIntegerSetting(L"EnableKphWarnings", FALSE);
-            }
-        }
-    }
-}
-
-VOID NTAPI KphCommsCallback(
-    _In_ ULONG_PTR ReplyToken,
-    _In_ PCKPH_MESSAGE Message
-    )
-{
-    PPH_FREE_LIST freelist;
-    PKPH_MESSAGE msg;
-
-    if (Message->Header.MessageId != KphMsgProcessCreate)
-    {
-        return;
-    }
-
-    freelist = KphGetMessageFreeList();
-    msg = PhAllocateFromFreeList(freelist);
-    KphMsgInit(msg, KphMsgProcessCreate);
-
-    msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
-    KphCommsReplyMessage(ReplyToken, msg);
-
-    PhFreeToFreeList(freelist, msg);
-}
-
-NTSTATUS PhRestartSelf(
-    _In_z_ PWCHAR AdditionalCommandLine
-    )
-{
-    NTSTATUS status;
-    PPH_STRING commandLine;
-
-    commandLine = PhFormatString(
-        L"%wZ %s",
-        &NtCurrentPeb()->ProcessParameters->CommandLine,
-        AdditionalCommandLine
-        );
-
-    status = PhCreateProcessWin32(
-        NULL,
-        commandLine->Buffer,
-        NULL,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        NULL
-        );
-
-    PhDereferenceObject(commandLine);
-
-    if (NT_SUCCESS(status))
-    {
-        PhExitApplication(STATUS_SUCCESS);
-    }
-
-    return status;
-}
-
-BOOLEAN PhDoesNewKsiExist(
-    VOID
-    )
-{
-    static PH_STRINGREF ksiNew = PH_STRINGREF_INIT(L"ksi.dll-new");
-    BOOLEAN result = FALSE;
-    PPH_STRING applicationDirectory;
-    PPH_STRING fileName;
-
-    if (!(applicationDirectory = PhGetApplicationDirectory()))
-        return FALSE;
-
-    if (fileName = PhConcatStringRef2(&applicationDirectory->sr, &ksiNew))
-    {
-        result = PhDoesFileExist(&fileName->sr);
-        PhDereferenceObject(fileName);
-    }
-
-    PhDereferenceObject(applicationDirectory);
-    return result;
-}
-
-VOID PhInitializeKph(
-    VOID
-    )
-{
-    static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
-    NTSTATUS status;
-    PPH_STRING fileName = NULL;
-    PPH_STRING kphFileName = NULL;
-    PPH_STRING kphServiceName = NULL;
-
-    if (PhDoesNewKsiExist())
-    {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-        {
-            PhpShowKphError(
-                L"Unable to load kernel driver, the last System Informer update requires a reboot.",
-                STATUS_PENDING 
-                );
-        }
-        return;
-    }
-
-    if (!(fileName = PhGetApplicationFileNameWin32()))
-        goto CleanupExit;
-    if (!(kphFileName = PhGetBaseNamePathWithExtension(fileName, &driverExtension)))
-        goto CleanupExit;
-
-    kphServiceName = PhGetStringSetting(L"KphServiceName");
-    if (kphServiceName && PhIsNullOrEmptyString(kphServiceName))
-    {
-        PhClearReference(&kphServiceName);
-        kphServiceName = PhCreateString(KPH_SERVICE_NAME);
-    }
-
-    // Reset driver parameters after a Windows build update. (dmex)
-    {
-        ULONG latestBuildNumber = PhGetIntegerSetting(L"KphBuildNumber");
-
-        if (latestBuildNumber == 0)
-        {
-            PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-        }
-        else
-        {
-            if (latestBuildNumber != PhOsVersion.dwBuildNumber)
-            {
-                if (KphParametersExists(PhGetString(kphServiceName)))
-                {
-                    if (PhShowMessage(
-                        NULL,
-                        MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
-                        L"System Informer needs to reset the driver configuration\r\n\r\n%s",
-                        L"Do you want to continue?"
-                        ) != IDYES)
-                    {
-                        return;
-                    }
-
-                    if (NT_SUCCESS(KphResetParameters(PhGetString(kphServiceName))))
-                    {
-                        PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-                    }
-                }
-                else
-                {
-                    PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-                }
-            }
-        }
-    }
-
-    if (kphServiceName && PhDoesFileExistWin32(PhGetString(kphFileName)))
-    {
-        PPH_STRING objectName = NULL;
-        PPH_STRING portName = NULL;
-        PPH_STRING altitudeName = NULL;
-        BOOLEAN disableImageLoadProtection = FALSE;
-
-        if (PhIsNullOrEmptyString(objectName = PhGetStringSetting(L"KphObjectName")))
-            PhMoveReference(&objectName, PhCreateString(KPH_OBJECT_NAME));
-        if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KphPortName")))
-            PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
-        if (PhIsNullOrEmptyString(altitudeName = PhGetStringSetting(L"KphAltitude")))
-            PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
-        disableImageLoadProtection = !!PhGetIntegerSetting(L"KphDisableImageLoadProtection");
-
-        status = KphConnect(
-            &kphServiceName->sr,
-            &objectName->sr,
-            &portName->sr,
-            &kphFileName->sr,
-            &altitudeName->sr,
-            disableImageLoadProtection,
-            KphCommsCallback
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            KPH_LEVEL level = KphLevel();
-
-            if (!NtCurrentPeb()->BeingDebugged && (level != KphLevelMax))
-            {
-                if ((level == KphLevelHigh) &&
-                    !PhStartupParameters.KphStartupMax)
-                {
-                    PhRestartSelf(L"-kx");
-                }
-
-                if ((level < KphLevelHigh) &&
-                    !PhStartupParameters.KphStartupMax &&
-                    !PhStartupParameters.KphStartupHigh)
-                {
-                    PhRestartSelf(L"-kh");
-                }
-            }
-        }
-        else
-        {
-            if (PhGetIntegerSetting(L"EnableKphWarnings") && PhGetOwnTokenAttributes().Elevated && !PhStartupParameters.PhSvc)
-                PhpShowKphError(L"Unable to load the kernel driver service.", status);
-        }
-
-        PhClearReference(&objectName);
-    }
-    else
-    {
-        if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
-            PhpShowKphError(L"The kernel driver was not found.", STATUS_NO_SUCH_FILE);
-    }
-
-CleanupExit:
-    if (kphServiceName)
-        PhDereferenceObject(kphServiceName);
-    if (kphFileName)
-        PhDereferenceObject(kphFileName);
-    if (fileName)
-        PhDereferenceObject(fileName);
-}
-
 BOOLEAN PhInitializeAppSystem(
     VOID
     )
@@ -1910,65 +1552,9 @@ VOID PhpProcessStartupParameters(
 
     if (PhStartupParameters.InstallKph)
     {
-        static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
-        NTSTATUS status = STATUS_UNSUCCESSFUL;
-        PPH_STRING fileName;
-        PPH_STRING kphFileName;
-        ULONG_PTR indexOfBackslash;
-        ULONG_PTR indexOfLastDot;
+        NTSTATUS status;
 
-        if (fileName = PhGetApplicationFileNameWin32())
-        {
-            indexOfBackslash = PhFindLastCharInString(fileName, 0, OBJ_NAME_PATH_SEPARATOR);
-            indexOfLastDot = PhFindLastCharInString(fileName, 0, L'.');
-
-            if (
-                indexOfBackslash != SIZE_MAX &&
-                indexOfLastDot != SIZE_MAX &&
-                indexOfLastDot > indexOfBackslash
-                )
-            {
-                PH_STRINGREF applicationName;
-
-                applicationName.Buffer = fileName->Buffer + indexOfBackslash + 1;
-                applicationName.Length = (indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR);
-                fileName->Length = (indexOfBackslash + 1) * sizeof(WCHAR);
-
-                kphFileName = PhConcatStringRef3(
-                    &fileName->sr,
-                    &applicationName,
-                    &driverExtension
-                    );
-
-                if (kphFileName)
-                {
-                    if (PhIsNullOrEmptyString(PhStartupParameters.InstallKphServiceName))
-                    {
-                        PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
-                        PH_STRINGREF kphObjectName = PH_STRINGREF_INIT(KPH_OBJECT_NAME);
-                        PH_STRINGREF kphPortName = PH_STRINGREF_INIT(KPH_PORT_NAME);
-                        PH_STRINGREF kphAltitudeName = PH_STRINGREF_INIT(KPH_ALTITUDE_NAME);
-
-                        status = KphInstall(
-                            &kphServiceName,
-                            &kphObjectName,
-                            &kphPortName,
-                            &kphFileName->sr,
-                            &kphAltitudeName,
-                            FALSE
-                            );
-                    }
-                    else
-                    {
-                        //status = KphInstall(&PhStartupParameters.InstallKphServiceName->sr, &kphFileName->sr);
-                    }
-
-                    PhDereferenceObject(kphFileName);
-                }
-            }
-
-            PhDereferenceObject(fileName);
-        }
+        status = PhInstallKsi();
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to install KSystemInformer", status, 0);
@@ -1980,15 +1566,7 @@ VOID PhpProcessStartupParameters(
     {
         NTSTATUS status;
 
-        if (PhIsNullOrEmptyString(PhStartupParameters.InstallKphServiceName))
-        {
-            PH_STRINGREF kphServiceName = PH_STRINGREF_INIT(KPH_SERVICE_NAME);
-            status = KphUninstall(&kphServiceName);
-        }
-        else
-        {
-            status = KphUninstall(&PhStartupParameters.InstallKphServiceName->sr);
-        }
+        status = PhUninstallKsi();
 
         if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to uninstall KSystemInformer", status, 0);

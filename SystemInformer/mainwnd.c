@@ -131,9 +131,6 @@ BOOLEAN PhMainWndInitialization(
         case KphLevelMin:
             PhAppendStringBuilder2(&stringBuilder, L"--");
             break;
-        case KphLevelNone:
-        default:
-            break;
         }
 
         if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
@@ -3898,67 +3895,6 @@ ULONG PhGetWindowsVersion(
     )
 {
     return WindowsVersion;
-}
-
-BOOLEAN PhGetKernelDriverSystemStart( // TODO: Move and rename (dmex)
-    VOID
-    )
-{
-    BOOLEAN result = FALSE;
-    PPH_STRING kphServiceName;
-    HANDLE keyHandle = NULL;
-    PH_STRINGREF parametersKeyNameSr;
-    PH_FORMAT format[2];
-    SIZE_T returnLength;
-    WCHAR parametersKeyName[MAX_PATH];
-
-    kphServiceName = PhGetStringSetting(L"KphServiceName");
-    if (PhIsNullOrEmptyString(kphServiceName))
-    {
-        PhClearReference(&kphServiceName);
-        kphServiceName = PhCreateString(KPH_SERVICE_NAME);
-    }
-
-    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatSR(&format[1], kphServiceName->sr);
-
-    result = PhFormatToBuffer(
-        format,
-        RTL_NUMBER_OF(format),
-        parametersKeyName,
-        sizeof(parametersKeyName),
-        &returnLength
-        );
-
-    PhDereferenceObject(kphServiceName);
-
-    if (!result)
-    {
-        return FALSE;
-    }
-
-    parametersKeyNameSr.Buffer = parametersKeyName;
-    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-
-    result = FALSE;
-
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &parametersKeyNameSr,
-        0
-        )))
-    {
-        if (PhQueryRegistryUlong(keyHandle, L"Start") == SERVICE_SYSTEM_START)
-        {
-            result = TRUE;
-        }
-
-        NtClose(keyHandle);
-    }
-
-    return result;
 }
 
 PVOID PhPluginInvokeWindowCallback(
