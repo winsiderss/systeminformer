@@ -3974,7 +3974,7 @@ RtlReplaceSystemDirectoryInPath(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_21H2)
+#if (PHNT_VERSION >= PHNT_WIN10_21H2)
 // rev
 NTSYSAPI
 NTSTATUS
@@ -5629,7 +5629,7 @@ RtlGetSystemTimePrecise(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_21H2)
+#if (PHNT_VERSION >= PHNT_WIN10_21H2)
 NTSYSAPI
 KSYSTEM_TIME
 NTAPI
