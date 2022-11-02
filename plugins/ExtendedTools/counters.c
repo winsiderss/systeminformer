@@ -12,12 +12,24 @@
 #include "exttools.h"
 #include <perflib.h>
 
+typedef struct _ET_GPU_TOTAL_COUNTER
+{
+    ULONG EngineId;
+    ULONG AdapterLuid;
+    //ULONG64 GpuTime;
+    union
+    {
+        ULONG64 Value64;
+        FLOAT ValueF;
+    };
+} ET_GPU_TOTAL_COUNTER, *PET_GPU_TOTAL_COUNTER;
+
 typedef struct _ET_GPU_ENGINE_COUNTER
 {
     ULONG ProcessId;
     ULONG EngineId;
     ULONG AdapterLuid;
-    ULONG64 GpuTime;
+    //ULONG64 GpuTime;
     union
     {
         ULONG64 Value64;
@@ -143,12 +155,34 @@ typedef struct _ET_GPU_ADAPTER_PERF_COUNTER
 PPH_HASHTABLE EtPerfCounterEngineInstanceHashTable = NULL;
 PPH_HASHTABLE EtPerfCounterProcessInstanceHashTable = NULL;
 PPH_HASHTABLE EtPerfCounterAdapterInstanceHashTable = NULL;
+PPH_HASHTABLE EtGpuTotalEngineHashTable = NULL;
 PPH_HASHTABLE EtGpuRunningTimeHashTable = NULL;
 PH_QUEUED_LOCK EtGpuRunningTimeHashTableLock = PH_QUEUED_LOCK_INIT;
 PPH_HASHTABLE EtGpuProcessCounterHashTable = NULL;
 PPH_HASHTABLE EtGpuAdapterDedicatedHashTable = NULL;
 
-static BOOLEAN NTAPI EtpRunningTimeEqualFunction(
+static BOOLEAN NTAPI EtGpuTotalEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PET_GPU_TOTAL_COUNTER entry1 = Entry1;
+    PET_GPU_TOTAL_COUNTER entry2 = Entry2;
+
+    return entry1->EngineId == entry2->EngineId &&
+        entry1->AdapterLuid == entry2->AdapterLuid;
+}
+
+static ULONG NTAPI EtGpuTotalHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PET_GPU_TOTAL_COUNTER entry = Entry;
+
+    return entry->EngineId ^ entry->AdapterLuid;
+}
+
+static BOOLEAN NTAPI EtGpuRunningTimeEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -156,10 +190,12 @@ static BOOLEAN NTAPI EtpRunningTimeEqualFunction(
     PET_GPU_ENGINE_COUNTER entry1 = Entry1;
     PET_GPU_ENGINE_COUNTER entry2 = Entry2;
 
-    return entry1->ProcessId == entry2->ProcessId && entry1->EngineId == entry2->EngineId && entry1->AdapterLuid == entry2->AdapterLuid;
+    return entry1->ProcessId == entry2->ProcessId &&
+        entry1->EngineId == entry2->EngineId &&
+        entry1->AdapterLuid == entry2->AdapterLuid;
 }
 
-static ULONG NTAPI EtpEtpRunningTimeHashFunction(
+static ULONG NTAPI EtGpuRunningTimeHashFunction(
     _In_ PVOID Entry
     )
 {
@@ -168,7 +204,7 @@ static ULONG NTAPI EtpEtpRunningTimeHashFunction(
     return (entry->ProcessId / 4) ^ entry->EngineId ^ entry->AdapterLuid;
 }
 
-static BOOLEAN NTAPI EtpGpuProcessEqualFunction(
+static BOOLEAN NTAPI EtGpuProcessEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -176,10 +212,11 @@ static BOOLEAN NTAPI EtpGpuProcessEqualFunction(
     PET_GPU_PROCESS_COUNTER entry1 = Entry1;
     PET_GPU_PROCESS_COUNTER entry2 = Entry2;
 
-    return entry1->ProcessId == entry2->ProcessId && entry1->AdapterLuid == entry2->AdapterLuid;
+    return entry1->ProcessId == entry2->ProcessId &&
+        entry1->AdapterLuid == entry2->AdapterLuid;
 }
 
-static ULONG NTAPI EtpGpuProcessHashFunction(
+static ULONG NTAPI EtGpuProcessHashFunction(
     _In_ PVOID Entry
     )
 {
@@ -188,7 +225,7 @@ static ULONG NTAPI EtpGpuProcessHashFunction(
     return (entry->ProcessId / 4) ^ entry->AdapterLuid;
 }
 
-static ULONG NTAPI EtAdapterDedicatedHashFunction(
+static ULONG NTAPI EtGpuAdapterDedicatedHashFunction(
     _In_ PVOID Entry
     )
 {
@@ -197,7 +234,7 @@ static ULONG NTAPI EtAdapterDedicatedHashFunction(
     return entry->AdapterLuid;
 }
 
-static BOOLEAN NTAPI EtAdapterDedicatedEqualFunction(
+static BOOLEAN NTAPI EtGpuAdapterDedicatedEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -212,24 +249,31 @@ VOID EtGpuCreatePerfCounterHashTables(
     VOID
     )
 {
+    EtGpuTotalEngineHashTable = PhCreateHashtable(
+        sizeof(ET_GPU_TOTAL_COUNTER),
+        EtGpuTotalEqualFunction,
+        EtGpuTotalHashFunction,
+        10
+        );
+
     EtGpuRunningTimeHashTable = PhCreateHashtable(
         sizeof(ET_GPU_ENGINE_COUNTER),
-        EtpRunningTimeEqualFunction,
-        EtpEtpRunningTimeHashFunction,
+        EtGpuRunningTimeEqualFunction,
+        EtGpuRunningTimeHashFunction,
         10
         );
 
     EtGpuProcessCounterHashTable = PhCreateHashtable(
         sizeof(ET_GPU_PROCESS_COUNTER),
-        EtpGpuProcessEqualFunction,
-        EtpGpuProcessHashFunction,
+        EtGpuProcessEqualFunction,
+        EtGpuProcessHashFunction,
         10
         );
 
     EtGpuAdapterDedicatedHashTable = PhCreateHashtable(
         sizeof(ET_GPU_ADAPTER_COUNTER),
-        EtAdapterDedicatedEqualFunction,
-        EtAdapterDedicatedHashFunction,
+        EtGpuAdapterDedicatedEqualFunction,
+        EtGpuAdapterDedicatedHashFunction,
         2
         );
 }
@@ -238,6 +282,7 @@ VOID EtGpuDeletePerfCounterHashTables(
     VOID
     )
 {
+    PhDereferenceObject(EtGpuTotalEngineHashTable);
     PhDereferenceObject(EtGpuRunningTimeHashTable);
     PhDereferenceObject(EtGpuProcessCounterHashTable);
     PhDereferenceObject(EtGpuAdapterDedicatedHashTable);
@@ -344,6 +389,7 @@ VOID EtGpuResetHashtables(
     }
     else
     {
+        PhClearHashtable(EtGpuTotalEngineHashTable);
         PhClearHashtable(EtGpuRunningTimeHashTable);
         PhClearHashtable(EtGpuProcessCounterHashTable);
         PhClearHashtable(EtGpuAdapterDedicatedHashTable);
@@ -896,34 +942,64 @@ VOID EtPerfCounterProcessGpuEngineUtilizationCounter(
     _In_ PET_GPU_ENGINE_PERFCOUNTER CounterInstance
     )
 {
-    PET_GPU_ENGINE_COUNTER entry;
-    ET_GPU_ENGINE_COUNTER lookupEntry;
-
-    if (!EtGpuRunningTimeHashTable)
-        return;
-
-    lookupEntry.ProcessId = CounterInstance->ProcessId;
-    lookupEntry.EngineId = CounterInstance->EngineId;
-    lookupEntry.AdapterLuid = CounterInstance->AdapterLuid;
-
     PhAcquireQueuedLockExclusive(&EtGpuRunningTimeHashTableLock);
 
-    if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
+    // Engine totals
+    if (EtGpuTotalEngineHashTable)
     {
-        entry->ValueF = (FLOAT)CounterInstance->CounterValue;
-        entry->GpuTime = CounterInstance->InstanceTime;
-    }
-    else
-    {
-        if (CounterInstance->CounterValue != 0)
-        {
-            lookupEntry.ProcessId = CounterInstance->ProcessId;
-            lookupEntry.EngineId = CounterInstance->EngineId;
-            lookupEntry.AdapterLuid = CounterInstance->AdapterLuid;
-            lookupEntry.ValueF = (FLOAT)CounterInstance->CounterValue;
-            lookupEntry.GpuTime = CounterInstance->InstanceTime;
+        PET_GPU_TOTAL_COUNTER entry;
+        ET_GPU_TOTAL_COUNTER lookupEntry;
 
-            PhAddEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry);
+        lookupEntry.EngineId = CounterInstance->EngineId;
+        lookupEntry.AdapterLuid = CounterInstance->AdapterLuid;
+
+        if (entry = PhFindEntryHashtable(EtGpuTotalEngineHashTable, &lookupEntry))
+        {
+            if (CounterInstance->CounterValue != 0)
+            {
+                entry->ValueF += (FLOAT)CounterInstance->CounterValue;
+            }
+        }
+        else
+        {
+            if (CounterInstance->CounterValue != 0)
+            {
+                lookupEntry.EngineId = CounterInstance->EngineId;
+                lookupEntry.AdapterLuid = CounterInstance->AdapterLuid;
+                lookupEntry.ValueF = (FLOAT)CounterInstance->CounterValue;
+
+                PhAddEntryHashtable(EtGpuTotalEngineHashTable, &lookupEntry);
+            }
+        }
+    }
+
+    // Process engine totals
+    if (EtGpuRunningTimeHashTable)
+    {
+        PET_GPU_ENGINE_COUNTER entry;
+        ET_GPU_ENGINE_COUNTER lookupEntry;
+
+        lookupEntry.ProcessId = CounterInstance->ProcessId;
+        lookupEntry.EngineId = CounterInstance->EngineId;
+        lookupEntry.AdapterLuid = CounterInstance->AdapterLuid;
+
+        if (entry = PhFindEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry))
+        {
+            entry->ValueF = (FLOAT)CounterInstance->CounterValue;
+            //entry->GpuTime = CounterInstance->InstanceTime;
+        }
+        else
+        {
+            if (CounterInstance->CounterValue != 0)
+            {
+                lookupEntry.ProcessId = CounterInstance->ProcessId;
+                lookupEntry.EngineId = CounterInstance->EngineId;
+                lookupEntry.AdapterLuid = CounterInstance->AdapterLuid;
+                lookupEntry.ValueF = (FLOAT)CounterInstance->CounterValue;
+                //lookupEntry.GpuTime = CounterInstance->InstanceTime;
+
+                PhAddEntryHashtable(EtGpuRunningTimeHashTable, &lookupEntry);
+            }
         }
     }
 
@@ -1645,16 +1721,16 @@ FLOAT EtLookupTotalGpuUtilization(
 {
     FLOAT value = 0;
     ULONG enumerationKey;
-    PET_GPU_ENGINE_COUNTER entry;
+    PET_GPU_TOTAL_COUNTER entry;
 
-    if (!EtGpuRunningTimeHashTable)
+    if (!EtGpuTotalEngineHashTable)
         return 0;
 
     PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
 
     enumerationKey = 0;
 
-    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
+    while (PhEnumHashtable(EtGpuTotalEngineHashTable, (PVOID*)&entry, &enumerationKey))
     {
         FLOAT usage = entry->ValueF;
 
@@ -1678,7 +1754,7 @@ FLOAT EtLookupTotalGpuEngineUtilization(
     ULONG enumerationKey;
     PET_GPU_ENGINE_COUNTER entry;
 
-    if (!EtGpuRunningTimeHashTable)
+    if (!EtGpuRunningTimeHashTable) // EtGpuTotalEngineHashTable
         return 0;
 
     PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
@@ -1689,11 +1765,12 @@ FLOAT EtLookupTotalGpuEngineUtilization(
     {
         if (entry->EngineId == EngineId)
         {
-            FLOAT usage = entry->ValueF;
-
-            if (usage > value)
-                value = usage;
+            value += entry->ValueF;
         }
+
+        //FLOAT usage = entry->ValueF;
+        //if (usage > value)
+        //    value = usage;
     }
 
     PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
