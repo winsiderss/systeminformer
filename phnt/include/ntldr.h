@@ -978,7 +978,7 @@ typedef PVOID (NTAPI *PDELAYLOAD_FAILURE_SYSTEM_ROUTINE)(
     _In_ PCSTR ProcedureName
     );
 
-#if (PHNT_VERSION >= PHNT_WIN10)
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
 // rev from QueryOptionalDelayLoadedAPI
 NTSYSAPI
 NTSTATUS
