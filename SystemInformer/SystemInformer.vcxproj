@@ -398,6 +398,7 @@
     <ClCompile Include="itemtips.c" />
     <ClCompile Include="jobprp.c" />
     <ClCompile Include="kdump.c" />
+    <ClCompile Include="ksisup.c" />
     <ClCompile Include="log.c" />
     <ClCompile Include="logwnd.c" />
     <ClCompile Include="main.c" />
@@ -482,6 +483,7 @@
     <ClInclude Include="include\hndllist.h" />
     <ClInclude Include="include\hndlmenu.h" />
     <ClInclude Include="include\hndlprv.h" />
+    <ClInclude Include="include\ksisup.h" />
     <ClInclude Include="include\mainwnd.h" />
     <ClInclude Include="include\mainwndp.h" />
     <ClInclude Include="include\memlist.h" />
