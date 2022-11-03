@@ -291,13 +291,12 @@ ULONG ObpGetHandleAttributes(
 
 typedef struct _OBJECT_CREATE_INFORMATION OBJECT_CREATE_INFORMATION, *POBJECT_CREATE_INFORMATION;
 
-// This structure is not correct on Windows 7, but the offsets we need are still correct.
 typedef struct _OBJECT_HEADER
 {
-    LONG PointerCount;
+    LONGLONG PointerCount;
     union
     {
-        LONG HandleCount;
+        LONGLONG HandleCount;
         PVOID NextToFree;
     };
     EX_PUSH_LOCK Lock;
@@ -309,7 +308,6 @@ typedef struct _OBJECT_HEADER
         {
             UCHAR DbgRefTrace : 1;
             UCHAR DbgTracePermanent : 1;
-            UCHAR Reserved : 6;
         };
     };
     UCHAR InfoMask;
@@ -328,6 +326,7 @@ typedef struct _OBJECT_HEADER
             UCHAR DeletedInline : 1;
         };
     };
+    ULONG Reserved;
     union
     {
         POBJECT_CREATE_INFORMATION ObjectCreateInfo;
