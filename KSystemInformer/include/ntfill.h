@@ -293,10 +293,10 @@ typedef struct _OBJECT_CREATE_INFORMATION OBJECT_CREATE_INFORMATION, *POBJECT_CR
 
 typedef struct _OBJECT_HEADER
 {
-    LONGLONG PointerCount;
+    SSIZE_T PointerCount;
     union
     {
-        LONGLONG HandleCount;
+        SSIZE_T HandleCount;
         PVOID NextToFree;
     };
     EX_PUSH_LOCK Lock;
@@ -326,7 +326,9 @@ typedef struct _OBJECT_HEADER
             UCHAR DeletedInline : 1;
         };
     };
+#ifdef _WIN64
     ULONG Reserved;
+#endif
     union
     {
         POBJECT_CREATE_INFORMATION ObjectCreateInfo;
