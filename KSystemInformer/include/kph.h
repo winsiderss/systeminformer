@@ -40,7 +40,7 @@
 
 #define KPH_PROTECTED_DATA_SECTION_PUSH() \
     __pragma(data_seg(push))\
-    __pragma(data_seg("KsiDS"))
+    __pragma(data_seg("KSIDATA"))
 #define KPH_PROTECTED_DATA_SECTION_POP() \
     __pragma(data_seg(pop))
 
