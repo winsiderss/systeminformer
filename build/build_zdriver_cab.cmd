@@ -43,5 +43,29 @@ rmdir /q /s %~dp0\output\cab
 
 echo [+] CAB Complete!
 
+echo [.] Preparing to sign CAB...
+
+for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+    set VSINSTALLPATH=%%A
+)
+
+if not defined VSINSTALLPATH (
+    echo [-] Visual Studio not found
+    goto end
+)
+
+if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
+   call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
+) else (
+    echo [-] Failed to set up build environment
+    goto end
+)
+
+echo [.] Signing: %~dp0\output\KSystemInformer.cab
+signtool sign /fd sha256 /n "Winsider" %~dp0\output\KSystemInformer.cab
+if %ERRORLEVEL% neq 0 goto end
+
+echo [+] CAB Signed!
+
 :end
 pause
