@@ -163,8 +163,8 @@ static VOID NTAPI KsiCommsCallback(
     }
 
     freelist = KphGetMessageFreeList();
-    msg = PhAllocateFromFreeList(freelist);
 
+    msg = PhAllocateFromFreeList(freelist);
     KphMsgInit(msg, KphMsgProcessCreate);
     msg->Reply.ProcessCreate.CreationStatus = STATUS_SUCCESS;
     KphCommsReplyMessage(ReplyToken, msg);
@@ -260,11 +260,8 @@ VOID PhInitializeKsi(
     PPH_STRING ksiFileName = NULL;
     PPH_STRING ksiServiceName = NULL;
 
-    if (WindowsVersion < WINDOWS_10)
-    {
-        PhSetIntegerSetting(L"EnableKph", FALSE);
+    if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
         return;
-    }
 
     if (PhDoesNewKsiExist())
     {
