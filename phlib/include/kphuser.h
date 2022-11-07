@@ -4,14 +4,18 @@
 #include <kphapi.h>
 #include <kphcomms.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define KPH_SERVICE_NAME __TEXT("KSystemInformer")
 #define KPH_OBJECT_NAME __TEXT("\\Driver\\KSystemInformer")
 #define KPH_PORT_NAME __TEXT("\\KSystemInformer")
 #define KPH_ALTITUDE_NAME __TEXT("385400")
+
+#ifdef DEBUG
+#define KSI_COMMS_INIT_ASSERT() assert(KphCommsIsConnected())
+#else
+#define KSI_COMMS_INIT_ASSERT()
+#endif
 
 PHLIBAPI
 NTSTATUS
@@ -57,17 +61,17 @@ KphSetServiceSecurity(
     _In_ SC_HANDLE ServiceHandle
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphInstall(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ PPH_STRINGREF ObjectName,
-    _In_ PPH_STRINGREF PortName,
-    _In_ PPH_STRINGREF FileName,
-    _In_ PPH_STRINGREF Altitude,
-    _In_ BOOLEAN DisableImageLoadProtection
-    );
+//PHLIBAPI
+//NTSTATUS
+//NTAPI
+//KphInstall(
+//    _In_ PPH_STRINGREF ServiceName,
+//    _In_ PPH_STRINGREF ObjectName,
+//    _In_ PPH_STRINGREF PortName,
+//    _In_ PPH_STRINGREF FileName,
+//    _In_ PPH_STRINGREF Altitude,
+//    _In_ BOOLEAN DisableImageLoadProtection
+//    );
 
 PHLIBAPI
 NTSTATUS
@@ -368,8 +372,6 @@ KphDuplicateObject(
     _Out_ PHANDLE TargetHandle
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif
