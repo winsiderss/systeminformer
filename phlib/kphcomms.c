@@ -306,6 +306,11 @@ NTSTATUS KphpFilterConnectCommunicationPort(
         return STATUS_INVALID_PARAMETER;
     }
 
+    if (!PhStringRefToUnicodeString(PortName, &portName))
+    {
+        return STATUS_NAME_TOO_LONG;
+    }
+
     //
     // Build the filter EA, this contains the port name and the context.
     //
@@ -329,11 +334,6 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     eaValue->Unknown = NULL;
     eaValue->SizeOfContext = SizeOfContext;
     eaValue->PortName = &portName;
-
-    if (!PhStringRefToUnicodeString(PortName, &portName))
-    {
-        return STATUS_NAME_TOO_LONG;
-    }
 
     if (SizeOfContext > 0)
     {
@@ -379,10 +379,8 @@ NTSTATUS KphpFilterConnectCommunicationPort(
  *
  * \param[in,out] Instance Unused
  * \param[in,out] Context Unused
- * \param[in,out] Overlapped Pointer to overlapped I/O that was completed.
- * \param[in] IoResult Result of the asynchronous I/O operation.
- * \param[in] NumberOfBytesTransferred Number of bytes transferred from the
- * I/O completion.
+ * \param[in,out] ApcContext Pointer to overlapped I/O that was completed.
+ * \param[in] IoSB Result of the asynchronous I/O operation.
  * \param[in,out] Io Unused
  */
 VOID WINAPI KphpCommsIoCallback(
