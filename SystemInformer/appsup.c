@@ -1257,10 +1257,6 @@ BOOLEAN PhShellProcessHackerEx(
 
         if (PhStartupParameters.NoKph)
             PhAppendStringBuilder2(&sb, L" -nokph");
-        if (PhStartupParameters.InstallKph)
-            PhAppendStringBuilder2(&sb, L" -installkph");
-        if (PhStartupParameters.UninstallKph)
-            PhAppendStringBuilder2(&sb, L" -uninstallkph");
         if (PhStartupParameters.Debug)
             PhAppendStringBuilder2(&sb, L" -debug");
         if (PhStartupParameters.NoPlugins)
