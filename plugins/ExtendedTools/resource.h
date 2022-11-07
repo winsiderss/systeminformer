@@ -136,10 +136,7 @@
 #define ID_WCT_MENUITEM                 8000
 #define ID_WCT_SHOWCONTEXTMENU          8001
 #define IDD_WCT_DIALOG                  8002
-#define IDR_WCT_MAIN_MENU               8003
 #define IDC_WCT_TREE                    8004
-#define ID_WCT_MENU_GOTOTHREAD          8005
-#define ID_WCT_MENU_GOTOPROCESS         8006
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define ID_DISK_GOTOPROCESS             40005

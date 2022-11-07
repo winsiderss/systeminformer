@@ -102,7 +102,7 @@ using OrderedPresents = std::map<uint64_t, std::shared_ptr<PresentEvent>>;
 
 struct DeferredCompletions {
     OrderedPresents mOrderedPresents;
-    uint64_t mLastEnqueuedQpcTime;
+    uint64_t mLastEnqueuedQpcTime = 0;
 };
 
 // A high-level description of the sequence of events for each present type,
