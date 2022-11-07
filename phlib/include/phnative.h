@@ -1095,6 +1095,10 @@ PhGetKernelFileName(
     sizeof(SYSTEM_EXTENDED_THREAD_INFORMATION) * \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NumberOfThreads))
 
+// rev from PsGetProcessStartKey (dmex)
+#define PH_PROCESS_EXTENSION_STARTKEY(SequenceNumber) \
+    ((SequenceNumber) | (((ULONGLONG)USER_SHARED_DATA->BootId) << 0x30)) // SYSTEM_PROCESS_INFORMATION_EXTENSION->ProcessSequenceNumber
+
 PHLIBAPI
 NTSTATUS
 NTAPI
