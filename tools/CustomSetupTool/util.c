@@ -282,67 +282,8 @@ CleanupExit:
     PhDereferenceObject(uninstallFilePath);
 }
 
-VOID SetupStartService(
-    _In_ PWSTR ServiceName
-    )
-{
-    SC_HANDLE serviceHandle;
-
-    serviceHandle = PhOpenService(
-        ServiceName,
-        SERVICE_QUERY_STATUS | SERVICE_START
-        );
-
-    if (serviceHandle)
-    {
-        ULONG statusLength = 0;
-        SERVICE_STATUS_PROCESS status;
-
-        memset(&status, 0, sizeof(SERVICE_STATUS_PROCESS));
-
-        if (QueryServiceStatusEx(
-            serviceHandle,
-            SC_STATUS_PROCESS_INFO,
-            (PBYTE)&status,
-            sizeof(SERVICE_STATUS_PROCESS),
-            &statusLength
-            ))
-        {
-            if (status.dwCurrentState != SERVICE_RUNNING)
-            {
-                ULONG attempts = 10;
-
-                do
-                {
-                    StartService(serviceHandle, 0, NULL);
-
-                    if (QueryServiceStatusEx(
-                        serviceHandle,
-                        SC_STATUS_PROCESS_INFO,
-                        (PBYTE)&status,
-                        sizeof(SERVICE_STATUS_PROCESS),
-                        &statusLength
-                        ))
-                    {
-                        if (status.dwCurrentState == SERVICE_RUNNING)
-                        {
-                            break;
-                        }
-                    }
-
-                    PhDelayExecution(1000);
-
-                } while (--attempts != 0);
-            }
-        }
-
-        CloseServiceHandle(serviceHandle);
-    }
-}
-
-VOID SetupStopService(
-    _In_ PWSTR ServiceName,
-    _In_ BOOLEAN RemoveService
+BOOLEAN SetupUninstallDriver(
+    _In_ PPH_SETUP_CONTEXT Context
     )
 {
     SC_HANDLE serviceHandle;
