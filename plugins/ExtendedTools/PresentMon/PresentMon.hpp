@@ -36,15 +36,15 @@ struct SwapChainData
 {
     enum { PRESENT_HISTORY_MAX_COUNT = 120 }; // 288=144hz (dmex)
     std::shared_ptr<PresentEvent> mPresentHistory[PRESENT_HISTORY_MAX_COUNT];
-    ULONG mPresentHistoryCount;
-    ULONG mNextPresentIndex;
-    ULONG mLastDisplayedPresentIndex;
+    ULONG mPresentHistoryCount = 0;
+    ULONG mNextPresentIndex = 0;
+    ULONG mLastDisplayedPresentIndex = 0;
 };
 
 struct ProcessInfo
 {
     std::unordered_map<uint64_t, SwapChainData> mSwapChain;
-    PPH_PROCESS_ITEM ProcessItem;
+    PPH_PROCESS_ITEM ProcessItem{};
 };
 
 // ConsumerThread.cpp:
