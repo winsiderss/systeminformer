@@ -97,6 +97,16 @@ BOOLEAN PhHttpSocketCreate(
                 sizeof(ULONG)
                 );
         }
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            WinHttpSetOption(
+                httpContext->SessionHandle,
+                WINHTTP_OPTION_DISABLE_GLOBAL_POOLING,
+                &(ULONG){ TRUE },
+                sizeof(ULONG)
+                );
+        }
     }
 
     *HttpContext = httpContext;
@@ -932,6 +942,16 @@ HINTERNET PhpCreateDohConnectionHandle(
                         sizeof(ULONG)
                         );
                 }
+
+                if (WindowsVersion >= WINDOWS_11)
+                {
+                    WinHttpSetOption(
+                        httpSessionHandle,
+                        WINHTTP_OPTION_DISABLE_GLOBAL_POOLING,
+                        &(ULONG){ TRUE },
+                        sizeof(ULONG)
+                        );
+                }
             }
 
             WinHttpSetOption(
@@ -1198,6 +1218,11 @@ PDNS_RECORD PhHttpDnsQuery(
     //        &optionLength
     //        ))
     //    {
+    //        if (option & WINHTTP_PROTOCOL_FLAG_HTTP3)
+    //        {
+    //            dprintf("HTTP3 socket\n");
+    //        }
+    //
     //        if (option & WINHTTP_PROTOCOL_FLAG_HTTP2)
     //        {
     //            dprintf("HTTP2 socket\n");
