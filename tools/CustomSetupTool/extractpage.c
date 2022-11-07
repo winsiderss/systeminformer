@@ -63,10 +63,6 @@ NTSTATUS SetupProgressThread(
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
-    // Setup kernel driver.
-    //if (Context->SetupInstallKphService)
-    //    SetupInstallDriver(Context, TRUE);
-
     PostMessage(Context->DialogHandle, SETUP_SHOWFINAL, 0, 0);
     return STATUS_SUCCESS;
 

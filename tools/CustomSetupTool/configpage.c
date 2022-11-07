@@ -67,7 +67,7 @@ BOOLEAN SetupShowDirectoryWarningPrompt(
                 TD_WARNING_ICON,
                 L"WARNING",
                 L"The installation directory already contains files and data. Please select a different directory"
-                L"or click Yes to continue and existing data will be deleted. Are you sure you want to continue?"
+                L" or click Yes to delete the files and data and continue. Are you sure you want to continue?"
                 );
 
             if (result == IDNO)

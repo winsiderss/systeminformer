@@ -25,16 +25,4 @@ VOID PhDestroyKsi(
     VOID
     );
 
-NTSTATUS PhInstallKsi(
-    VOID
-    );
-
-NTSTATUS PhUninstallKsi(
-    VOID
-    );
-
-BOOLEAN PhGetKsiStartType(
-    VOID
-    );
-
 #endif
