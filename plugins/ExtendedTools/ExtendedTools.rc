@@ -539,21 +539,6 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Menu
-//
-
-IDR_WCT_MAIN_MENU MENU
-BEGIN
-    POPUP "Menu"
-    BEGIN
-        MENUITEM "Go to Process...",            ID_WCT_MENU_GOTOPROCESS
-        MENUITEM "Go to Thread...",             ID_WCT_MENU_GOTOTHREAD
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // AFX_DIALOG_LAYOUT
 //
 

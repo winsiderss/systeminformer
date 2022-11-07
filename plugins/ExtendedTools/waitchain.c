@@ -89,6 +89,9 @@ typedef struct _WCT_CONTEXT
     PVOID Ole32ModuleHandle;
 } WCT_CONTEXT, *PWCT_CONTEXT;
 
+#define ID_WCT_MENU_GOTOTHREAD (WM_APP + 1)
+#define ID_WCT_MENU_GOTOPROCESS (WM_APP + 2)
+
 VOID WctAddChildWaitNode(
     _In_ PWCT_TREE_CONTEXT Context,
     _In_opt_ PWCT_ROOT_NODE ParentNode,
@@ -417,7 +420,8 @@ INT_PTR CALLBACK WaitChainDlgProc(
                     if (selectedNode = WtcGetSelectedWaitNode(&context->TreeContext))
                     {
                         menu = PhCreateEMenu();
-                        PhLoadResourceEMenuItem(menu, PluginInstance->DllBase, MAKEINTRESOURCE(IDR_WCT_MAIN_MENU), 0);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_WCT_MENU_GOTOPROCESS, L"Go to Process...", NULL, NULL), ULONG_MAX);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_WCT_MENU_GOTOTHREAD, L"Go to Thread...", NULL, NULL), ULONG_MAX);
                         PhSetFlagsEMenuItem(menu, ID_WCT_MENU_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
                         if (selectedNode->ThreadId > 0)
