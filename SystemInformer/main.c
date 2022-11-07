@@ -254,9 +254,8 @@ INT WINAPI wWinMain(
 
     result = PhMainMessageLoop();
 
-    PhDestroyKsi();
-
     PhEnableTerminationPolicy(FALSE);
+
     PhExitApplication(result);
 }
 
@@ -1117,61 +1116,6 @@ VOID PhEnableTerminationPolicy(
     }
 }
 
-NTSTATUS PhpReadSignature(
-    _In_ PPH_STRINGREF FileName,
-    _Out_ PUCHAR *Signature,
-    _Out_ PULONG SignatureSize
-    )
-{
-    NTSTATUS status;
-    HANDLE fileHandle;
-    PUCHAR signature;
-    ULONG bufferSize;
-    IO_STATUS_BLOCK iosb;
-
-    status = PhCreateFileWin32(
-        &fileHandle,
-        FileName->Buffer,
-        FILE_GENERIC_READ,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    bufferSize = 1024;
-    signature = PhAllocate(bufferSize);
-
-    status = NtReadFile(
-        fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &iosb,
-        signature,
-        bufferSize,
-        NULL,
-        NULL
-        );
-
-    NtClose(fileHandle);
-
-    if (NT_SUCCESS(status))
-    {
-        *Signature = signature;
-        *SignatureSize = (ULONG)iosb.Information;
-        return status;
-    }
-    else
-    {
-        PhFree(signature);
-        return status;
-    }
-}
-
 BOOLEAN PhInitializeAppSystem(
     VOID
     )
@@ -1320,8 +1264,6 @@ typedef enum _PH_COMMAND_ARG
     PH_ARG_SHOWHIDDEN,
     PH_ARG_RUNASSERVICEMODE,
     PH_ARG_NOKPH,
-    PH_ARG_INSTALLKPH,
-    PH_ARG_UNINSTALLKPH,
     PH_ARG_DEBUG,
     PH_ARG_HWND,
     PH_ARG_POINT,
@@ -1367,14 +1309,6 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             break;
         case PH_ARG_NOKPH:
             PhStartupParameters.NoKph = TRUE;
-            break;
-        case PH_ARG_INSTALLKPH:
-            PhStartupParameters.InstallKph = TRUE;
-            PhSwapReference(&PhStartupParameters.InstallKphServiceName, Value);
-            break;
-        case PH_ARG_UNINSTALLKPH:
-            PhStartupParameters.UninstallKph = TRUE;
-            PhSwapReference(&PhStartupParameters.InstallKphServiceName, Value);
             break;
         case PH_ARG_DEBUG:
             PhStartupParameters.Debug = TRUE;
@@ -1490,8 +1424,6 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType },
         { PH_ARG_RUNASSERVICEMODE, L"ras", MandatoryArgumentType },
         { PH_ARG_NOKPH, L"nokph", NoArgumentType },
-        { PH_ARG_INSTALLKPH, L"installkph", NoArgumentType },
-        { PH_ARG_UNINSTALLKPH, L"uninstallkph", NoArgumentType },
         { PH_ARG_DEBUG, L"debug", NoArgumentType },
         { PH_ARG_HWND, L"hwnd", MandatoryArgumentType },
         { PH_ARG_POINT, L"point", MandatoryArgumentType },
@@ -1531,7 +1463,6 @@ VOID PhpProcessStartupParameters(
             L"-elevate\n"
             L"-help\n"
             L"-hide\n"
-            L"-installkph\n"
             L"-newinstance\n"
             L"-nokph\n"
             L"-noplugins\n"
@@ -1542,36 +1473,11 @@ VOID PhpProcessStartupParameters(
             L"-selectpid pid-to-select\n"
             L"-selecttab name-of-tab-to-select\n"
             L"-sysinfo [section-name]\n"
-            L"-uninstallkph\n"
             L"-v\n"
             );
 
         if (PhStartupParameters.Help)
             PhExitApplication(STATUS_SUCCESS);
-    }
-
-    if (PhStartupParameters.InstallKph)
-    {
-        NTSTATUS status;
-
-        status = PhInstallKsi();
-
-        if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
-            PhShowStatus(NULL, L"Unable to install KSystemInformer", status, 0);
-
-        PhExitApplication(status);
-    }
-
-    if (PhStartupParameters.UninstallKph)
-    {
-        NTSTATUS status;
-
-        status = PhUninstallKsi();
-
-        if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
-            PhShowStatus(NULL, L"Unable to uninstall KSystemInformer", status, 0);
-
-        PhExitApplication(status);
     }
 
     if (PhStartupParameters.Elevate && !PhGetOwnTokenAttributes().Elevated)
