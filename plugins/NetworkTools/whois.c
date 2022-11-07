@@ -321,7 +321,7 @@ BOOLEAN WhoisConnectServer(
                 sizeof(dnsRecord->Data.A.IpAddress)
                 );
 
-            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
+            if ((whoisSocketHandle = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
             {
                 ULONG bestInterfaceIndex;
 
@@ -369,7 +369,7 @@ BOOLEAN WhoisConnectServer(
                 sizeof(dnsRecord->Data.AAAA.Ip6Address.IP6Byte)
                 );
 
-            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
+            if ((whoisSocketHandle = WSASocket(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT)) != INVALID_SOCKET)
             {
                 ULONG bestInterfaceIndex;
 
