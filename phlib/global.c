@@ -134,7 +134,7 @@ VOID PhInitializeWindowsVersion(
 
     if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
     {
-        WindowsVersion = WINDOWS_NEW;
+        WindowsVersion = WINDOWS_ANCIENT;
         return;
     }
 
@@ -165,7 +165,11 @@ VOID PhInitializeWindowsVersion(
     // Windows 10, Windows Server 2016
     else if (majorVersion == 10 && minorVersion == 0)
     {
-        if (buildVersion >= 22500)
+        if (buildVersion > 22621)
+        {
+            WindowsVersion = WINDOWS_NEW;
+        }
+        else if (buildVersion >= 22621)
         {
             WindowsVersion = WINDOWS_11_22H1;
         }
