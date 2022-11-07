@@ -71,9 +71,8 @@ typedef struct _PH_SETUP_CONTEXT
         struct
         {
             ULONG SetupRemoveAppData: 1;
-            ULONG SetupDriverInstallRequired : 1;
             ULONG SetupIsLegacyUpdate : 1;
-            ULONG Spare : 29;
+            ULONG Spare : 30;
         };
     };
 
@@ -176,11 +175,6 @@ PPH_STRING SetupFindAppdataDirectory(
 
 VOID SetupDeleteAppdataDirectory(
     _In_ PPH_SETUP_CONTEXT Context
-    );
-
-VOID SetupInstallDriver(
-    _In_ PPH_SETUP_CONTEXT Context,
-    _In_ BOOLEAN ForceInstall
     );
 
 BOOLEAN SetupUninstallDriver(

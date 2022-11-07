@@ -348,7 +348,7 @@ VOID SetupStopService(
     SC_HANDLE serviceHandle;
 
     if (serviceHandle = PhOpenService(
-        ServiceName,
+        L"KSystemInformer",
         SERVICE_QUERY_STATUS | SERVICE_STOP
         ))
     {
@@ -400,116 +400,13 @@ VOID SetupStopService(
         CloseServiceHandle(serviceHandle);
     }
 
-    if (RemoveService)
+    if (serviceHandle = PhOpenService(
+        L"KSystemInformer",
+        DELETE
+        ))
     {
-        if (serviceHandle = PhOpenService(
-            ServiceName,
-            DELETE
-            ))
-        {
-            DeleteService(serviceHandle);
-            CloseServiceHandle(serviceHandle);
-        }
-    }
-}
-
-BOOLEAN SetupCheckDriverInstallState( // TODO: Use PhGetKernelDriverSystemStart instead (dmex)
-    VOID
-    )
-{
-    static PH_STRINGREF driverServiceKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\KSystemInformer");
-    BOOLEAN driverInstallRequired = FALSE;
-    HANDLE runKeyHandle;
-
-    if (NT_SUCCESS(PhOpenKey(
-        &runKeyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &driverServiceKeyName,
-        0
-        )))
-    {
-        // Make sure we re-install the driver when installed as a service.
-        if (PhQueryRegistryUlong(runKeyHandle, L"Start") == SERVICE_SYSTEM_START)
-        {
-            driverInstallRequired = TRUE;
-        }
-
-        NtClose(runKeyHandle);
-    }
-
-    return driverInstallRequired;
-}
-
-VOID SetupInstallDriver(
-    _In_ PPH_SETUP_CONTEXT Context,
-    _In_ BOOLEAN ForceInstall
-    )
-{
-    if (ForceInstall || Context->SetupDriverInstallRequired)
-    {
-        PPH_STRING clientPath;
-
-        clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
-
-        if (PhDoesFileExistWin32(PhGetString(clientPath)))
-        {
-            HANDLE processHandle;
-
-            if (PhShellExecuteEx(
-                NULL,
-                PhGetString(clientPath),
-                L"-installkph -s",
-                SW_NORMAL,
-                PhGetOwnTokenAttributes().Elevated ? 0 : PH_SHELL_EXECUTE_ADMIN,
-                0,
-                &processHandle
-                ))
-            {
-                NtWaitForSingleObject(processHandle, FALSE, NULL);
-                NtClose(processHandle);
-            }
-        }
-
-        PhDereferenceObject(clientPath);
-    }
-
-    SetupStartService(L"KSystemInformer");
-}
-
-BOOLEAN SetupUninstallDriver(
-    _In_ PPH_SETUP_CONTEXT Context
-    )
-{
-    PPH_STRING clientPath;
-
-    // Query the current driver installation state.
-    Context->SetupDriverInstallRequired = SetupCheckDriverInstallState();
-
-    // Stop and uninstall the current installation.
-    clientPath = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
-
-    if (PhDoesFileExistWin32(PhGetString(clientPath)))
-    {
-        HANDLE processHandle;
-
-        if (PhShellExecuteEx(
-            NULL,
-            PhGetString(clientPath),
-            L"-uninstallkph -s",
-            SW_NORMAL,
-            0,
-            0,
-            &processHandle
-            ))
-        {
-            NtWaitForSingleObject(processHandle, FALSE, NULL);
-            NtClose(processHandle);
-        }
-    }
-    else
-    {
-        SetupStopService(L"KSystemInformer", TRUE);
+        DeleteService(serviceHandle);
+        CloseServiceHandle(serviceHandle);
     }
 
     return TRUE;

@@ -63,9 +63,6 @@ NTSTATUS SetupUpdateBuild(
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
-    // Set the default KPH configuration.
-    SetupInstallDriver(Context, FALSE);
-
     PostMessage(Context->DialogHandle, SETUP_SHOWUPDATEFINAL, 0, 0);
     return STATUS_SUCCESS;
 
