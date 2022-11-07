@@ -1476,53 +1476,53 @@ NTSTATUS PhQueryEnvironmentVariable(
     )
 {
     NTSTATUS status;
-    UNICODE_STRING variableNameUs;
-    UNICODE_STRING variableValueUs;
+    UNICODE_STRING variableName;
+    UNICODE_STRING variableValue;
 
-    PhStringRefToUnicodeString(Name, &variableNameUs);
+    PhStringRefToUnicodeString(Name, &variableName);
 
     if (Value)
     {
-        variableValueUs.Length = 0x100 * sizeof(WCHAR);
-        variableValueUs.MaximumLength = variableValueUs.Length + sizeof(UNICODE_NULL);
-        variableValueUs.Buffer = PhAllocate(variableValueUs.MaximumLength);
+        variableValue.Length = 0x100 * sizeof(WCHAR);
+        variableValue.MaximumLength = variableValue.Length + sizeof(UNICODE_NULL);
+        variableValue.Buffer = PhAllocate(variableValue.MaximumLength);
     }
     else
     {
-        RtlInitEmptyUnicodeString(&variableValueUs, NULL, 0);
+        RtlInitEmptyUnicodeString(&variableValue, NULL, 0);
     }
 
     status = RtlQueryEnvironmentVariable_U(
         Environment,
-        &variableNameUs,
-        &variableValueUs
+        &variableName,
+        &variableValue
         );
 
     if (Value && status == STATUS_BUFFER_TOO_SMALL)
     {
-        if (variableValueUs.Length + sizeof(UNICODE_NULL) > UNICODE_STRING_MAX_BYTES)
-            variableValueUs.MaximumLength = variableValueUs.Length;
+        if (variableValue.Length + sizeof(UNICODE_NULL) > UNICODE_STRING_MAX_BYTES)
+            variableValue.MaximumLength = variableValue.Length;
         else
-            variableValueUs.MaximumLength = variableValueUs.Length + sizeof(UNICODE_NULL);
+            variableValue.MaximumLength = variableValue.Length + sizeof(UNICODE_NULL);
 
-        PhFree(variableValueUs.Buffer);
-        variableValueUs.Buffer = PhAllocate(variableValueUs.MaximumLength);
+        PhFree(variableValue.Buffer);
+        variableValue.Buffer = PhAllocate(variableValue.MaximumLength);
 
         status = RtlQueryEnvironmentVariable_U(
             Environment,
-            &variableNameUs,
-            &variableValueUs
+            &variableName,
+            &variableValue
             );
     }
 
     if (Value && NT_SUCCESS(status))
     {
-        *Value = PhCreateStringFromUnicodeString(&variableValueUs);
+        *Value = PhCreateStringFromUnicodeString(&variableValue);
     }
 
-    if (Value && variableValueUs.Buffer)
+    if (Value && variableValue.Buffer)
     {
-        PhFree(variableValueUs.Buffer);
+        PhFree(variableValue.Buffer);
     }
 
     return status;
