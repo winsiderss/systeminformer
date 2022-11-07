@@ -527,10 +527,7 @@ NTSTATUS UpdateCheckThread(
     if (!context->HaveData)
     {
         PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
-
-        PhDereferenceObject(context);
-        PhDeleteAutoPool(&autoPool);
-        return STATUS_SUCCESS;
+        goto CleanupExit;
     }
 
     if (context->CurrentVersion == context->LatestVersion)
@@ -549,8 +546,10 @@ NTSTATUS UpdateCheckThread(
         PostMessage(context->DialogHandle, PH_SHOWUPDATE, 0, 0);
     }
 
+CleanupExit:
     PhDereferenceObject(context);
     PhDeleteAutoPool(&autoPool);
+
     return STATUS_SUCCESS;
 }
 
