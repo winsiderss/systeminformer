@@ -4728,6 +4728,8 @@ BOOLEAN PhShellExecuteEx(
         info.lpVerb = L"runas";
     if (Flags & PH_SHELL_EXECUTE_NOZONECHECKS)
         info.fMask |= SEE_MASK_NOZONECHECKS;
+    if (Flags & PH_SHELL_EXECUTE_NOASYNC)
+        info.fMask |= SEE_MASK_NOASYNC;
 
     if (ShellExecuteEx(&info))
     {
