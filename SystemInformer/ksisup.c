@@ -282,43 +282,6 @@ VOID PhInitializeKsi(
 
     ksiServiceName = PhGetKsiServiceName();
 
-    // Reset driver parameters after a Windows build update. (dmex)
-    {
-        ULONG latestBuildNumber = PhGetIntegerSetting(L"KphBuildNumber");
-
-        if (latestBuildNumber == 0)
-        {
-            PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-        }
-        else
-        {
-            if (latestBuildNumber != PhOsVersion.dwBuildNumber)
-            {
-                if (KphParametersExists(PhGetString(ksiServiceName)))
-                {
-                    if (PhShowMessage(
-                        NULL,
-                        MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
-                        L"System Informer needs to reset the driver configuration\r\n\r\n%s",
-                        L"Do you want to continue?"
-                        ) != IDYES)
-                    {
-                        return;
-                    }
-
-                    if (NT_SUCCESS(KphResetParameters(PhGetString(ksiServiceName))))
-                    {
-                        PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-                    }
-                }
-                else
-                {
-                    PhSetIntegerSetting(L"KphBuildNumber", PhOsVersion.dwBuildNumber);
-                }
-            }
-        }
-    }
-
     if (ksiServiceName && PhDoesFileExistWin32(PhGetString(ksiFileName)))
     {
         PPH_STRING objectName = NULL;
