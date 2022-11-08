@@ -164,7 +164,7 @@ BOOLEAN SetupUpdateKsi(
     PH_HASH_CONTEXT hashContext;
     BYTE inputHash[256/ 8];
     BYTE existingHash[256/ 8];
-    PPH_STRING newFile = NULL;
+    PPH_STRING oldFile = NULL;
 
     PhInitializeHash(&hashContext, Sha256HashAlgorithm);
     PhUpdateHash(&hashContext, Buffer, BufferLength);
@@ -186,24 +186,31 @@ BOOLEAN SetupUpdateKsi(
         goto CleanupExit;
     }
 
-    MoveFileExW(PhGetString(FileName), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
-
     Context->NeedsReboot = TRUE;
 
-    newFile = PhConcatStringRefZ(&FileName->sr, L"-new");
+    oldFile = PhConcatStringRefZ(&FileName->sr, L"-old");
 
-    if (!SetupOverwriteFile(newFile, Buffer, BufferLength))
+    PhDeleteFileWin32(PhGetString(oldFile));
+    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(FileName), PhGetString(oldFile))))
     {
         result = FALSE;
         goto CleanupExit;
     }
 
-    result = MoveFileExW(PhGetString(newFile), PhGetString(FileName), MOVEFILE_DELAY_UNTIL_REBOOT);
+    MoveFileExW(PhGetString(oldFile), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+
+    if (!SetupOverwriteFile(FileName, Buffer, BufferLength))
+    {
+        result = FALSE;
+        goto CleanupExit;
+    }
+
+    result = TRUE;
 
 CleanupExit:
 
-    if (newFile)
-        PhDereferenceObject(newFile);
+    if (oldFile)
+        PhDereferenceObject(oldFile);
 
     return result;
 }
