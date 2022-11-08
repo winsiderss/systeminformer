@@ -211,11 +211,11 @@ NTSTATUS PhRestartSelf(
     return status;
 }
 
-BOOLEAN PhDoesNewKsiExist(
+BOOLEAN PhDoesOldKsiExist(
     VOID
     )
 {
-    static PH_STRINGREF ksiNew = PH_STRINGREF_INIT(L"ksi.dll-new");
+    static PH_STRINGREF ksiOld = PH_STRINGREF_INIT(L"ksi.dll-old");
     BOOLEAN result = FALSE;
     PPH_STRING applicationDirectory;
     PPH_STRING fileName;
@@ -223,7 +223,7 @@ BOOLEAN PhDoesNewKsiExist(
     if (!(applicationDirectory = PhGetApplicationDirectory()))
         return FALSE;
 
-    if (fileName = PhConcatStringRef2(&applicationDirectory->sr, &ksiNew))
+    if (fileName = PhConcatStringRef2(&applicationDirectory->sr, &ksiOld))
     {
         result = PhDoesFileExist(&fileName->sr);
         PhDereferenceObject(fileName);
@@ -263,7 +263,7 @@ VOID PhInitializeKsi(
     if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
         return;
 
-    if (PhDoesNewKsiExist())
+    if (PhDoesOldKsiExist())
     {
         if (PhGetIntegerSetting(L"EnableKphWarnings") && !PhStartupParameters.PhSvc)
         {
