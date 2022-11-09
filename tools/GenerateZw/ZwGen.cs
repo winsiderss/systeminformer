@@ -73,7 +73,7 @@ namespace GenerateZw
             // Build up a list of definitions.
 
             var definitions = new List<ServiceDefinition>();
-            var regex = new Regex(@"NTSYSCALLAPI[\w\s_]*NTAPI\s*(Nt(\w)*)\(.*?\);", RegexOptions.Compiled | RegexOptions.Singleline);
+            var regex = RegexDefinition.Regex();
 
             foreach (string fileName in Files)
             {
@@ -111,7 +111,7 @@ namespace GenerateZw
                     Console.WriteLine("System service: " + d.Name);
 
                     // Write the original definition, replacing "Nt" with "Zw".
-                    sw.Write(d.Text.Substring(0, d.NameIndex) + "Zw" + d.Text.Substring(d.NameIndex + 2) + "\r\n\r\n");
+                    sw.Write(string.Concat(d.Text.AsSpan(0, d.NameIndex), "Zw", d.Text.AsSpan(d.NameIndex + 2), "\r\n\r\n"));
                 }
 
                 // Footer
@@ -119,6 +119,12 @@ namespace GenerateZw
                 sw.Write(Footer);
             }
         }
+    }
+
+    public static partial class RegexDefinition
+    {
+        [GeneratedRegex(@"NTSYSCALLAPI[\w\s_]*NTAPI\s*(Nt(\w)*)\(.*?\);", RegexOptions.Singleline)]
+        public static partial Regex Regex();
     }
 
     public class ServiceDefinition : IEquatable<ServiceDefinition>

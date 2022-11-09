@@ -4,11 +4,11 @@
         <OutputType>Exe</OutputType>
         <Platforms>AnyCPU</Platforms>
         <PlatformTarget>AnyCPU</PlatformTarget>
-        <TargetFramework>net6.0</TargetFramework>
-        <RuntimeIdentifier>win-x86</RuntimeIdentifier>
-        <TrimUnusedDependencies>true</TrimUnusedDependencies>
+        <TargetFramework>net7.0</TargetFramework>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
         <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
+        <PublishAot>true</PublishAot>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
