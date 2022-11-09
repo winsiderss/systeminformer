@@ -298,7 +298,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <GuardEHContMetadata>true</GuardEHContMetadata>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
@@ -314,7 +314,7 @@
       <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
@@ -342,7 +342,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
       <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
@@ -358,7 +358,7 @@
       <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;ws2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
