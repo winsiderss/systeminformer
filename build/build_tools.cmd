@@ -31,7 +31,7 @@ if exist "tools\CustomBuildTool\obj" (
    rmdir /S /Q "tools\CustomBuildTool\obj"
 )
 
-dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\32bit.pubxml --output tools\CustomBuildTool\bin\Release\
+dotnet publish tools\CustomBuildTool\CustomBuildTool.sln -c Release /p:PublishProfile=Properties\PublishProfiles\64bit.pubxml
 
 :: Post-cleanup (optional)
 if exist "tools\CustomBuildTool\bin\Release\net7.0-x64" (
