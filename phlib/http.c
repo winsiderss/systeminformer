@@ -100,12 +100,14 @@ BOOLEAN PhHttpSocketCreate(
 
         if (WindowsVersion >= WINDOWS_11)
         {
+#ifdef WINHTTP_OPTION_DISABLE_GLOBAL_POOLING
             WinHttpSetOption(
                 httpContext->SessionHandle,
                 WINHTTP_OPTION_DISABLE_GLOBAL_POOLING,
                 &(ULONG){ TRUE },
                 sizeof(ULONG)
                 );
+#endif
         }
     }
 
@@ -945,12 +947,14 @@ HINTERNET PhpCreateDohConnectionHandle(
 
                 if (WindowsVersion >= WINDOWS_11)
                 {
+#ifdef WINHTTP_OPTION_DISABLE_GLOBAL_POOLING
                     WinHttpSetOption(
                         httpSessionHandle,
                         WINHTTP_OPTION_DISABLE_GLOBAL_POOLING,
                         &(ULONG){ TRUE },
                         sizeof(ULONG)
                         );
+#endif
                 }
             }
 
