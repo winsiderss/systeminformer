@@ -38,7 +38,7 @@
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <SubSystem>Windows</SubSystem>
-            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <BuildLog>
             <Path>$(IntDir)$(MSBuildProjectName).log</Path>
