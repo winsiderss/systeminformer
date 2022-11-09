@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <Platforms>x64;x86</Platforms>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <RuntimeIdentifiers>win7-x86;win7-x64</RuntimeIdentifiers>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -11,6 +11,9 @@
     <CodePage>65001</CodePage>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
     <PdbFile>$(AssemblyName).pdb</PdbFile>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <PublishAot>true</PublishAot>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <PlatformTarget>x86</PlatformTarget>
@@ -48,6 +51,5 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.manifest" />
-    <None Include="Properties\PublishProfiles\32bit.pubxml" />
   </ItemGroup>
 </Project>

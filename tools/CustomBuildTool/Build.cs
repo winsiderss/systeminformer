@@ -63,22 +63,22 @@ namespace CustomBuildTool
             Build.BuildNightly = !string.IsNullOrWhiteSpace(Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%"));
             Build.BuildOutputFolder = VisualStudio.GetOutputDirectoryPath();
 
-            {
-                VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
-
-                if (instance == null)
-                {
-                    Program.PrintColorMessage("Unable to find Visual Studio.", ConsoleColor.Red);
-                    return false;
-                }
-
-                if (!instance.HasRequiredDependency)
-                {
-                    Program.PrintColorMessage("Visual Studio does not have required the packages: ", ConsoleColor.Red);
-                    Program.PrintColorMessage(instance.MissingDependencyList, ConsoleColor.Cyan);
-                    return false;
-                }
-            }
+            //{
+            //    VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
+            //
+            //    if (instance == null)
+            //    {
+            //        Program.PrintColorMessage("Unable to find Visual Studio.", ConsoleColor.Red);
+            //        return false;
+            //    }
+            //
+            //    if (!instance.HasRequiredDependency)
+            //    {
+            //        Program.PrintColorMessage("Visual Studio does not have required the packages: ", ConsoleColor.Red);
+            //        Program.PrintColorMessage(instance.MissingDependencyList, ConsoleColor.Cyan);
+            //        return false;
+            //    }
+            //}
 
             return true;
         }
@@ -200,13 +200,14 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Windows: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green, true);
 
-                var instance = VisualStudio.GetVisualStudioInstance();
-                if (instance != null)
+                //var instance = VisualStudio.GetVisualStudioInstance();
+                //if (instance != null)
                 {
                     Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(instance.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);//
+                    Program.PrintColorMessage(VisualStudio.GetWindowsSdkVersion(), ConsoleColor.Green, true);
+                    //Program.PrintColorMessage(Utils.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(instance.Name, ConsoleColor.Green, true);
+                    Program.PrintColorMessage(VisualStudio.GetVisualStudioVersion(), ConsoleColor.Green, true);
                 }
 
                 Program.PrintColorMessage(Environment.NewLine + "Building... ", ConsoleColor.DarkGray, false);
@@ -932,7 +933,7 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrWhiteSpace(BuildCommit))
-                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\";");
+                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.AsSpan(0, 7)}\";");
                 if (!string.IsNullOrWhiteSpace(BuildRevision))
                     compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
                 if (!string.IsNullOrWhiteSpace(BuildCount))
@@ -972,7 +973,7 @@ namespace CustomBuildTool
                 if (Flags.HasFlag(BuildFlags.BuildApi))
                     compilerOptions.Append("PH_BUILD_API;");
                 if (!string.IsNullOrWhiteSpace(BuildCommit))
-                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\";");
+                    compilerOptions.Append($"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.AsSpan(0, 7)}\";");
                 if (!string.IsNullOrWhiteSpace(BuildRevision))
                     compilerOptions.Append($"PHAPP_VERSION_REVISION=\"{BuildRevision}\";");
                 if (!string.IsNullOrWhiteSpace(BuildCount))
@@ -1024,7 +1025,7 @@ namespace CustomBuildTool
             if (Flags.HasFlag(BuildFlags.BuildApi))
                 commandLine.Append(" /d \"PH_BUILD_API\" ");
             if (!string.IsNullOrWhiteSpace(BuildCommit))
-                commandLine.Append($"/d \"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.Substring(0, 7)}\"\" ");
+                commandLine.Append($"/d \"PHAPP_VERSION_COMMITHASH=\"{BuildCommit.AsSpan(0, 7)}\"\" ");
             if (!string.IsNullOrWhiteSpace(BuildRevision))
                 commandLine.Append($"/d \"PHAPP_VERSION_REVISION=\"{BuildRevision}\"\" ");
             if (!string.IsNullOrWhiteSpace(BuildCount))
@@ -1388,7 +1389,7 @@ namespace CustomBuildTool
 
                     if (File.Exists(sourceFile))
                     {
-                        var result = Github.UploadAssets(BuildVersion, sourceFile, response.upload_url);
+                        var result = Github.UploadAssets(BuildVersion, sourceFile, response.UploadUrl);
 
                         if (result == null)
                         {
@@ -1396,7 +1397,7 @@ namespace CustomBuildTool
                             return null;
                         }
 
-                        //mirror.Files.Add(new GithubReleaseAsset(file.FileName, result.download_url));
+                        //mirror.Files.Add(new GithubReleaseAsset(file.FileName, result.Download_url));
                     }
                 }
 
@@ -1419,7 +1420,7 @@ namespace CustomBuildTool
                         continue;
                     }
 
-                    mirror.Files.Add(new GithubReleaseAsset(file.Name, file.download_url));
+                    mirror.Files.Add(new GithubReleaseAsset(file.Name, file.DownloadUrl));
                 }
 
                 mirror.ReleaseId = update.ReleaseId;

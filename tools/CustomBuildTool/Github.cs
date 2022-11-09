@@ -84,7 +84,7 @@ namespace CustomBuildTool
                                 return null;
                             }
 
-                            if (string.IsNullOrWhiteSpace(response.upload_url))
+                            if (string.IsNullOrWhiteSpace(response.UploadUrl))
                             {
                                 Program.PrintColorMessage("[CreateRelease-upload_url]", ConsoleColor.Red);
                                 return null;
@@ -251,7 +251,7 @@ namespace CustomBuildTool
                                 return null;
                             }
 
-                            if (string.IsNullOrWhiteSpace(response.upload_url))
+                            if (string.IsNullOrWhiteSpace(response.UploadUrl))
                             {
                                 Program.PrintColorMessage("[UpdateRelease-upload_url]", ConsoleColor.Red);
                                 return null;
@@ -333,7 +333,7 @@ namespace CustomBuildTool
                                 return null;
                             }
 
-                            if (!response.Uploaded || string.IsNullOrWhiteSpace(response.download_url))
+                            if (!response.Uploaded || string.IsNullOrWhiteSpace(response.DownloadUrl))
                             {
                                 Program.PrintColorMessage("[UploadAssets-download_url]", ConsoleColor.Red);
                                 return null;

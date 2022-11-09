@@ -81,37 +81,76 @@ typedef struct _KPH_DYNDATA
 #include <poppack.h>";
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public class DynConfig 
+        public struct DynConfig
         {
-            public UInt16 MajorVersion = 0xffff;
-            public UInt16 MinorVersion = 0xffff;
-            public UInt16 ServicePackMajor = 0xffff;
-            public UInt16 BuildNumberMin = 0xffff;
-            public UInt16 BuildNumberMax = 0xffff;
-            public UInt16 RevisionMin = 0xffff;
-            public UInt16 RevisionMax = 0xffff;
+            public UInt16 MajorVersion;
+            public UInt16 MinorVersion;
+            public UInt16 ServicePackMajor;
+            public UInt16 BuildNumberMin;
+            public UInt16 BuildNumberMax;
+            public UInt16 RevisionMin;
+            public UInt16 RevisionMax;
 
-            public UInt16 EgeGuid = 0xffff;
-            public UInt16 EpObjectTable = 0xffff;
-            public UInt16 EreGuidEntry = 0xffff;
-            public UInt16 HtHandleContentionEvent = 0xffff;
-            public UInt16 OtName = 0xffff;
-            public UInt16 OtIndex = 0xffff;
-            public UInt16 ObDecodeShift = 0xffff;
-            public UInt16 ObAttributesShift = 0xffff;
-            public UInt16 CiVersion = 0xffff;
-            public UInt16 AlpcCommunicationInfo = 0xffff;
-            public UInt16 AlpcOwnerProcess = 0xffff;
-            public UInt16 AlpcConnectionPort = 0xffff;
-            public UInt16 AlpcServerCommunicationPort = 0xffff;
-            public UInt16 AlpcClientCommunicationPort = 0xffff;
-            public UInt16 AlpcHandleTable = 0xffff;
-            public UInt16 AlpcHandleTableLock = 0xffff;
-            public UInt16 AlpcAttributes = 0xffff;
-            public UInt16 AlpcAttributesFlags = 0xffff;
-            public UInt16 AlpcPortContext = 0xffff;
-            public UInt16 AlpcSequenceNo = 0xffff;
-            public UInt16 AlpcState = 0xffff;
+            public UInt16 EgeGuid;
+            public UInt16 EpObjectTable;
+            public UInt16 EreGuidEntry;
+            public UInt16 HtHandleContentionEvent;
+            public UInt16 OtName;
+            public UInt16 OtIndex;
+            public UInt16 ObDecodeShift;
+            public UInt16 ObAttributesShift;
+            public UInt16 CiVersion;
+            public UInt16 AlpcCommunicationInfo;
+            public UInt16 AlpcOwnerProcess;
+            public UInt16 AlpcConnectionPort;
+            public UInt16 AlpcServerCommunicationPort;
+            public UInt16 AlpcClientCommunicationPort;
+            public UInt16 AlpcHandleTable;
+            public UInt16 AlpcHandleTableLock;
+            public UInt16 AlpcAttributes;
+            public UInt16 AlpcAttributesFlags;
+            public UInt16 AlpcPortContext;
+            public UInt16 AlpcSequenceNo;
+            public UInt16 AlpcState;
+
+            public DynConfig()
+            {
+                MajorVersion = 0xffff;
+                MinorVersion = 0xffff;
+                ServicePackMajor = 0xffff;
+                BuildNumberMin = 0xffff;
+                BuildNumberMax = 0xffff;
+                RevisionMin = 0xffff;
+                RevisionMax = 0xffff;
+
+                EgeGuid = 0xffff;
+                EpObjectTable = 0xffff;
+                EreGuidEntry = 0xffff;
+                HtHandleContentionEvent = 0xffff;
+                OtName = 0xffff;
+                OtIndex = 0xffff;
+                ObDecodeShift = 0xffff;
+                ObAttributesShift = 0xffff;
+                CiVersion = 0xffff;
+                AlpcCommunicationInfo = 0xffff;
+                AlpcOwnerProcess = 0xffff;
+                AlpcConnectionPort = 0xffff;
+                AlpcServerCommunicationPort = 0xffff;
+                AlpcClientCommunicationPort = 0xffff;
+                AlpcHandleTable = 0xffff;
+                AlpcHandleTableLock = 0xffff;
+                AlpcAttributes = 0xffff;
+                AlpcAttributesFlags = 0xffff;
+                AlpcPortContext = 0xffff;
+                AlpcSequenceNo = 0xffff;
+                AlpcState = 0xffff;
+            }
+
+            public static readonly int SizeOf;
+            static DynConfig()
+            {
+                SizeOf = Marshal.SizeOf<DynConfig>();
+            }
         }
 
         public DynData(
@@ -275,9 +314,9 @@ typedef struct _KPH_DYNDATA
                 writer.Write(configs.Count);
                 foreach (var (configName, config) in configs)
                 {
-                    var ptr = Marshal.AllocHGlobal(Marshal.SizeOf(config.GetType()));
+                    var ptr = Marshal.AllocHGlobal(DynConfig.SizeOf);
                     Marshal.StructureToPtr(config, ptr, false);
-                    var bytes = new byte[Marshal.SizeOf(config.GetType())];
+                    var bytes = new byte[DynConfig.SizeOf];
                     Marshal.Copy(ptr, bytes, 0, bytes.Length);
                     Marshal.FreeHGlobal(ptr);
                     writer.Write(bytes);

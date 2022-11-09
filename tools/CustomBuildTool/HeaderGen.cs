@@ -214,9 +214,9 @@ namespace CustomBuildTool
             {
                 string name = Path.GetFileName(file);
 
-                if (headerFiles.ContainsKey(name))
+                if (headerFiles.TryGetValue(name, out HeaderFile value))
                 {
-                    orderedHeaderFilesList.Add(headerFiles[name]);
+                    orderedHeaderFilesList.Add(value);
                 }
             }
 
