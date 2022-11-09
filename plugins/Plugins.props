@@ -133,7 +133,11 @@
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
         <ClCompile>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <AdditionalOptions>/guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
+        <Link>
+            <AdditionalOptions>/guard:xfg %(AdditionalOptions)</AdditionalOptions>
+        </Link>
     </ItemDefinitionGroup>
 
     <!-- Release|Win32 Builds -->
@@ -155,9 +159,11 @@
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
             <GuardEHContMetadata>true</GuardEHContMetadata>
+            <AdditionalOptions>/guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>
+            <AdditionalOptions>/guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </Link>
     </ItemDefinitionGroup>
 
