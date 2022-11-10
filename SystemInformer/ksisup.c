@@ -14,6 +14,7 @@
 #include <kphuser.h>
 #include <kphcomms.h>
 #include <settings.h>
+#include <json.h>
 
 #include <ksisup.h>
 #include <phsettings.h>
@@ -262,6 +263,8 @@ VOID PhInitializeKsi(
 
     if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
         return;
+    if (!PhGetOwnTokenAttributes().Elevated)
+        return;
 
     if (PhDoesOldKsiExist())
     {
@@ -275,14 +278,14 @@ VOID PhInitializeKsi(
         return;
     }
 
+    if (!(ksiServiceName = PhGetKsiServiceName()))
+        goto CleanupExit;
     if (!(fileName = PhGetApplicationFileNameWin32()))
         goto CleanupExit;
     if (!(ksiFileName = PhGetBaseNamePathWithExtension(fileName, &driverExtension)))
         goto CleanupExit;
 
-    ksiServiceName = PhGetKsiServiceName();
-
-    if (ksiServiceName && PhDoesFileExistWin32(PhGetString(ksiFileName)))
+    if (PhDoesFileExistWin32(PhGetString(ksiFileName)))
     {
         PPH_STRING objectName = NULL;
         PPH_STRING portName = NULL;
@@ -316,7 +319,7 @@ VOID PhInitializeKsi(
                 if ((level == KphLevelHigh) &&
                     !PhStartupParameters.KphStartupMax)
                 {
-                    PH_STRINGREF commandline = PH_STRINGREF_INIT(L"-kx");
+                    PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kx");
                     PhRestartSelf(&commandline);
                 }
 
@@ -324,7 +327,7 @@ VOID PhInitializeKsi(
                     !PhStartupParameters.KphStartupMax &&
                     !PhStartupParameters.KphStartupHigh)
                 {
-                    PH_STRINGREF commandline = PH_STRINGREF_INIT(L"-kh");
+                    PH_STRINGREF commandline = PH_STRINGREF_INIT(L" -kh");
                     PhRestartSelf(&commandline);
                 }
             }
@@ -357,4 +360,87 @@ VOID PhDestroyKsi(
     )
 {
     KphCommsStop();
+}
+
+_Success_(return)
+BOOLEAN PhParseKsiSettingsBlob(
+    _In_ PPH_STRING KsiSettingsBlob,
+    _Out_ PPH_STRING* Directory,
+    _Out_ PPH_STRING* ServiceName
+    )
+{
+    BOOLEAN status = FALSE;
+    PPH_STRING directory = NULL;
+    PPH_STRING serviceName = NULL;
+    PSTR string;
+    ULONG stringLength;
+    PPH_BYTES value;
+    PVOID object;
+
+    stringLength = (ULONG)KsiSettingsBlob->Length / sizeof(WCHAR) / 2;
+    string = PhAllocateZero(stringLength + sizeof(UNICODE_NULL));
+
+    if (PhHexStringToBufferEx(&KsiSettingsBlob->sr, stringLength, string))
+    {
+        value = PhCreateBytesEx(string, stringLength);
+
+        if (object = PhCreateJsonParserEx(value, FALSE))
+        {
+            directory = PhGetJsonValueAsString(object, "KsiDirectory");
+            serviceName = PhGetJsonValueAsString(object, "KsiServiceName");
+            PhFreeJsonObject(object);
+        }
+
+        PhDereferenceObject(value);
+    }
+
+    PhFree(string);
+
+    if (!PhIsNullOrEmptyString(directory) &&
+        !PhIsNullOrEmptyString(serviceName))
+    {
+        *Directory = directory;
+        *ServiceName = serviceName;
+        return TRUE;
+    }
+
+    PhClearReference(&serviceName);
+    PhClearReference(&directory);
+    return FALSE;
+}
+
+// Note: Exported from appsup.h (dmex)
+PVOID PhCreateKsiSettingsBlob(
+    VOID
+    )
+{
+    PVOID object;
+    PPH_BYTES value;
+    PPH_STRING string;
+    PPH_STRING directory;
+    PPH_STRING serviceName;
+
+    object = PhCreateJsonObject();
+
+    directory = PhGetApplicationDirectoryWin32();
+    value = PhConvertUtf16ToUtf8Ex(directory->Buffer, directory->Length);
+    PhDereferenceObject(directory);
+
+    PhAddJsonObject2(object, "KsiDirectory", value->Buffer, value->Length);
+    PhDereferenceObject(value);
+
+    serviceName = PhGetKsiServiceName();
+    value = PhConvertUtf16ToUtf8Ex(serviceName->Buffer, serviceName->Length);
+    PhDereferenceObject(serviceName);
+
+    PhAddJsonObject2(object, "KsiServiceName", value->Buffer, value->Length);
+    PhDereferenceObject(value);
+
+    value = PhGetJsonArrayString(object, FALSE);
+    string = PhBufferToHexString((PUCHAR)value->Buffer, (ULONG)value->Length);
+    PhDereferenceObject(value);
+
+    PhFreeJsonObject(object);
+
+    return string;
 }

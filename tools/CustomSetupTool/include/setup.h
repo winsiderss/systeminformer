@@ -78,6 +78,7 @@ typedef struct _PH_SETUP_CONTEXT
 
     SETUP_COMMAND_TYPE SetupMode;
     PPH_STRING SetupInstallPath;
+    PPH_STRING SetupServiceName;
 
     ULONG ErrorCode;
     PPH_STRING FilePath;

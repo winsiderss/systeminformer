@@ -202,6 +202,53 @@ VOID SetupShowDialog(
     PhDeleteAutoPool(&autoPool);
 }
 
+_Success_(return)
+BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
+    _In_ PPH_STRING KsiSettingsBlob,
+    _Out_ PPH_STRING* Directory,
+    _Out_ PPH_STRING* ServiceName
+    )
+{
+    BOOLEAN status = FALSE;
+    PPH_STRING directory = NULL;
+    PPH_STRING serviceName = NULL;
+    PSTR string;
+    ULONG stringLength;
+    PPH_BYTES value;
+    PVOID object;
+
+    stringLength = (ULONG)KsiSettingsBlob->Length / sizeof(WCHAR) / 2;
+    string = PhAllocateZero(stringLength + sizeof(UNICODE_NULL));
+
+    if (PhHexStringToBufferEx(&KsiSettingsBlob->sr, stringLength, string))
+    {
+        value = PhCreateBytesEx(string, stringLength);
+
+        if (object = PhCreateJsonParserEx(value, FALSE))
+        {
+            directory = PhGetJsonValueAsString(object, "KsiDirectory");
+            serviceName = PhGetJsonValueAsString(object, "KsiServiceName");
+            PhFreeJsonObject(object);
+        }
+
+        PhDereferenceObject(value);
+    }
+
+    PhFree(string);
+
+    if (!PhIsNullOrEmptyString(directory) &&
+        !PhIsNullOrEmptyString(serviceName))
+    {
+        *Directory = directory;
+        *ServiceName = serviceName;
+        return TRUE;
+    }
+
+    PhClearReference(&serviceName);
+    PhClearReference(&directory);
+    return FALSE;
+}
+
 BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     _In_opt_ PPH_COMMAND_LINE_OPTION Option,
     _In_opt_ PPH_STRING Value,
@@ -220,36 +267,26 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
         if (context->SetupMode == SETUP_COMMAND_UPDATE && Value)
         {
             PPH_STRING directory;
-            PWSTR string;
-            ULONG stringLength;
+            PPH_STRING serviceName;
 
-            stringLength = (ULONG)Value->Length / sizeof(WCHAR) / 2;
-            string = PhAllocateZero(stringLength + sizeof(UNICODE_NULL));
-
-            if (PhHexStringToBufferEx(&Value->sr, stringLength, string))
+            if (PhParseKsiSettingsBlob(Value, &directory, &serviceName))
             {
-                if (directory = PhGetFullPath(string, NULL))
+                PhSwapReference(&context->SetupInstallPath, directory);
+                PhSwapReference(&context->SetupServiceName, serviceName);
+
+                if (!PhEndsWithStringRef(&context->SetupInstallPath->sr, &PhNtPathSeperatorString, FALSE))
                 {
-                    PhSwapReference(&context->SetupInstallPath, directory);
+                    PhMoveReference(&context->SetupInstallPath, PhConcatStringRef2(&directory->sr, &PhNtPathSeperatorString));
+                }
 
-                    if (!PhEndsWithStringRef(&directory->sr, &PhNtPathSeperatorString, FALSE))
-                    {
-                        PhMoveReference(&context->SetupInstallPath, PhConcatStringRef2(&directory->sr, &PhNtPathSeperatorString));
-                    }
-
-                    // Check the path for the legacy directory name.
-                    if (CheckApplicationInstallPathLegacy(context->SetupInstallPath))
-                    {
-                        // Update the directory path to the new directory.
-                        PhMoveReference(&context->SetupInstallPath, SetupFindInstallDirectory());
-                        context->SetupIsLegacyUpdate = TRUE;
-                    }
-
-                    PhDereferenceObject(directory);
+                // Check the path for the legacy directory name.
+                if (CheckApplicationInstallPathLegacy(context->SetupInstallPath))
+                {
+                    // Update the directory path to the new directory.
+                    PhMoveReference(&context->SetupInstallPath, SetupFindInstallDirectory());
+                    context->SetupIsLegacyUpdate = TRUE;
                 }
             }
-
-            PhFree(string);
         }
     }
     else

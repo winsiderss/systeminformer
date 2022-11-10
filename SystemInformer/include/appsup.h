@@ -494,6 +494,13 @@ PhWordMatchStringZ(
     _In_ PPH_STRING SearchText,
     _In_ PWSTR Text
     );
+
+PHAPPAPI
+PVOID
+NTAPI
+PhCreateKsiSettingsBlob( // ksisup.c
+    VOID
+    );
 // end_phapppub
 
 #define PH_LOAD_SHARED_ICON_SMALL(BaseAddress, Name, dpiValue) PhLoadIcon(BaseAddress, (Name), PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue) // phapppub
