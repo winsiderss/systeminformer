@@ -33,6 +33,7 @@
             <StringPooling>true</StringPooling>
             <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
             <SupportJustMyCode>false</SupportJustMyCode>
+            <CallingConvention>StdCall</CallingConvention>
         </ClCompile>
         <Link>
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
