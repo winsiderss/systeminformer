@@ -81,26 +81,24 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
             }
             else if (buttonId == IDYES)
             {
-                SHELLEXECUTEINFO info = { sizeof(SHELLEXECUTEINFO) };
-                PPH_STRING parameters;
+                PVOID parameters;
 
                 if (PhIsNullOrEmptyString(context->SetupFilePath))
                     break;
 
-                parameters = PH_AUTO(PhGetApplicationDirectoryWin32());
-                parameters = PH_AUTO(PhBufferToHexString((PUCHAR)parameters->Buffer, (ULONG)parameters->Length));
-                parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
-
-                info.lpFile = PhGetStringOrEmpty(context->SetupFilePath);
-                info.lpParameters = PhGetString(parameters);
-                info.lpVerb = UpdaterCheckApplicationDirectory() ? NULL : L"runas";
-                info.nShow = SW_SHOW;
-                info.hwnd = hwndDlg;
-                info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI | SEE_MASK_NOZONECHECKS;
+                parameters = PhCreateKsiSettingsBlob();
 
                 ProcessHacker_PrepareForEarlyShutdown();
 
-                if (ShellExecuteEx(&info))
+                if (PhShellExecuteEx(
+                    hwndDlg,
+                    PhGetString(context->SetupFilePath),
+                    PhGetString(parameters),
+                    SW_SHOW,
+                    PH_SHELL_EXECUTE_NOZONECHECKS | PH_SHELL_EXECUTE_NOASYNC | (UpdaterCheckApplicationDirectory() ? 0 : PH_SHELL_EXECUTE_ADMIN),
+                    0,
+                    NULL
+                    ))
                 {
                     ProcessHacker_Destroy();
                 }
@@ -122,8 +120,12 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                             ShowCheckForUpdatesDialog(context);
                     }
 
+                    PhDereferenceObject(parameters);
+
                     return S_FALSE;
                 }
+
+                PhDereferenceObject(parameters);
             }
         }
         break;

@@ -289,7 +289,7 @@ BOOLEAN SetupUninstallDriver(
     SC_HANDLE serviceHandle;
 
     if (serviceHandle = PhOpenService(
-        L"KSystemInformer",
+        PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName),
         SERVICE_QUERY_STATUS | SERVICE_STOP
         ))
     {
@@ -342,7 +342,7 @@ BOOLEAN SetupUninstallDriver(
     }
 
     if (serviceHandle = PhOpenService(
-        L"KSystemInformer",
+        PhIsNullOrEmptyString(Context->SetupServiceName) ? L"KSystemInformer" : PhGetString(Context->SetupServiceName),
         DELETE
         ))
     {
