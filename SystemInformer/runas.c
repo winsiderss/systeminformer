@@ -1921,7 +1921,7 @@ NTSTATUS PhExecuteRunAsCommand3(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PH_RUNAS_SERVICE_PARAMETERS parameters;
-    WCHAR serviceName[31];
+    WCHAR serviceName[32];
     PPH_STRING portName;
     UNICODE_STRING portNameUs;
 
@@ -1962,10 +1962,11 @@ NTSTATUS PhExecuteRunAsCommand3(
 
     // An existing instance was not available. Proceed normally.
 
+    memset(serviceName, 0, sizeof(serviceName));
     memcpy(serviceName, L"SystemInformer", 14 * sizeof(WCHAR));
-    PhGenerateRandomAlphaString(&serviceName[14], 16);
+    PhGenerateRandomAlphaString(&serviceName[14], ARRAYSIZE(serviceName) - 14);
     PhAcquireQueuedLockExclusive(&RunAsOldServiceLock);
-    memcpy(RunAsOldServiceName, serviceName, sizeof(serviceName));
+    memcpy(RunAsOldServiceName, serviceName, sizeof(serviceName) - sizeof(UNICODE_NULL));
     PhReleaseQueuedLockExclusive(&RunAsOldServiceLock);
 
     parameters.ServiceName = serviceName;
