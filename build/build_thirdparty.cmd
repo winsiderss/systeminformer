@@ -17,6 +17,11 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 /t:Clean -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x86 /t:Clean -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x64 /t:Clean -verbosity:normal
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x64 /t:Clean -verbosity:normal
+
 msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -verbosity:normal
 if %ERRORLEVEL% neq 0 goto end
 
