@@ -1343,64 +1343,123 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
     case Microsoft_Windows_Dwm_Core::FlipChain_Pending::Id:
     case Microsoft_Windows_Dwm_Core::FlipChain_Complete::Id:
     case Microsoft_Windows_Dwm_Core::FlipChain_Dirty::Id:
-    {
-        if (InlineIsEqualGUID(hdr.ProviderId, Microsoft_Windows_Dwm_Core::Win7::GUID)) {
-            break;
-        }
+        {
+            if (InlineIsEqualGUID(hdr.ProviderId, Microsoft_Windows_Dwm_Core::Win7::GUID)) {
+                break;
+            }
 
-        EventDataDesc desc[] = {
-            { L"ulFlipChain" },
-            { L"ulSerialNumber" },
-            { L"hwnd" },
-        };
-        mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
-        auto ulFlipChain    = desc[0].GetData<uint32_t>();
-        auto ulSerialNumber = desc[1].GetData<uint32_t>();
-        auto hwnd           = desc[2].GetData<uint64_t>();
+            if (PhWindowsVersion > WINDOWS_7 && PhWindowsVersion < WINDOWS_10)
+            {
+                EventDataDesc desc[] = {
+                    { L"ulFlipChain" },
+                    { L"ulSerialNumber" },
+                    { L"hwnd" },
+                };
+                mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
+                auto ulFlipChain = desc[0].GetData<uint64_t>();
+                auto ulSerialNumber = desc[1].GetData<uint64_t>();
+                auto hwnd = desc[2].GetData<uint64_t>();
 
-        // Lookup the present using the 64-bit token data from the PHT
-        // submission, which is actually two 32-bit data chunks corresponding
-        // to a flip chain id and present id.
-        auto tokenData = ((uint64_t) ulFlipChain << 32ull) | ulSerialNumber;
-        auto flipIter = mPresentByDxgkPresentHistoryTokenData.find(tokenData);
-        if (flipIter != mPresentByDxgkPresentHistoryTokenData.end()) {
-            auto present = flipIter->second;
+                // Lookup the present using the 64-bit token data from the PHT
+                // submission, which is actually two 32-bit data chunks corresponding
+                // to a flip chain id and present id.
+                auto tokenData = ((uint64_t)ulFlipChain << 32ull) | ulSerialNumber;
+                auto flipIter = mPresentByDxgkPresentHistoryTokenData.find(tokenData);
+                if (flipIter != mPresentByDxgkPresentHistoryTokenData.end()) {
+                    auto present = flipIter->second;
 
-            TRACK_PRESENT_PATH(present);
+                    TRACK_PRESENT_PATH(present);
 
-            //DebugModifyPresent(present.get());
-            present->DxgkPresentHistoryTokenData = 0;
-            present->DwmNotified = true;
+                    //DebugModifyPresent(present.get());
+                    present->DxgkPresentHistoryTokenData = 0;
+                    present->DwmNotified = true;
 
-            mLastPresentByWindow[hwnd] = present;
+                    mLastPresentByWindow[hwnd] = present;
 
-            mPresentByDxgkPresentHistoryTokenData.erase(flipIter);
+                    mPresentByDxgkPresentHistoryTokenData.erase(flipIter);
+                }
+            }
+            else
+            {
+                EventDataDesc desc[] = {
+                    { L"ulFlipChain" },
+                    { L"ulSerialNumber" },
+                    { L"hwnd" },
+                };
+                mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
+                auto ulFlipChain = desc[0].GetData<uint32_t>();
+                auto ulSerialNumber = desc[1].GetData<uint32_t>();
+                auto hwnd = desc[2].GetData<uint64_t>();
+
+                // Lookup the present using the 64-bit token data from the PHT
+                // submission, which is actually two 32-bit data chunks corresponding
+                // to a flip chain id and present id.
+                auto tokenData = ((uint64_t)ulFlipChain << 32ull) | ulSerialNumber;
+                auto flipIter = mPresentByDxgkPresentHistoryTokenData.find(tokenData);
+                if (flipIter != mPresentByDxgkPresentHistoryTokenData.end()) {
+                    auto present = flipIter->second;
+
+                    TRACK_PRESENT_PATH(present);
+
+                    //DebugModifyPresent(present.get());
+                    present->DxgkPresentHistoryTokenData = 0;
+                    present->DwmNotified = true;
+
+                    mLastPresentByWindow[hwnd] = present;
+
+                    mPresentByDxgkPresentHistoryTokenData.erase(flipIter);
+                }
+            }
         }
         break;
-    }
     case Microsoft_Windows_Dwm_Core::SCHEDULE_SURFACEUPDATE_Info::Id:
-    {
-        EventDataDesc desc[] = {
-            { L"luidSurface" },
-            { L"PresentCount" },
-            { L"bindId" },
-        };
-        mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
-        auto luidSurface  = desc[0].GetData<uint64_t>();
-        auto PresentCount = desc[1].GetData<uint64_t>();
-        auto bindId       = desc[2].GetData<uint64_t>();
+        {
+            if (PhWindowsVersion > WINDOWS_7 && PhWindowsVersion < WINDOWS_10)
+            {
+                EventDataDesc desc[] = {
+                    { L"luidSurface" },
+                    { L"OutOfFrameDirectFlipPresentCount" },
+                    { L"bindId" },
+                };
+                mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
+                auto luidSurface = desc[0].GetData<uint64_t>();
+                auto PresentCount = desc[1].GetData<uint64_t>();
+                auto bindId = desc[2].GetData<uint64_t>();
 
-        Win32KPresentHistoryToken key(luidSurface, PresentCount, bindId);
-        auto eventIter = mPresentByWin32KPresentHistoryToken.find(key);
-        if (eventIter != mPresentByWin32KPresentHistoryToken.end() && eventIter->second->SeenInFrameEvent) {
-            TRACK_PRESENT_PATH(eventIter->second);
-            //DebugModifyPresent(eventIter->second.get());
-            eventIter->second->DwmNotified = true;
-            mPresentsWaitingForDWM.emplace_back(eventIter->second);
-            eventIter->second->PresentInDwmWaitingStruct = true;
+                Win32KPresentHistoryToken key(luidSurface, PresentCount, bindId);
+                auto eventIter = mPresentByWin32KPresentHistoryToken.find(key);
+                if (eventIter != mPresentByWin32KPresentHistoryToken.end() && eventIter->second->SeenInFrameEvent) {
+                    TRACK_PRESENT_PATH(eventIter->second);
+                    //DebugModifyPresent(eventIter->second.get());
+                    eventIter->second->DwmNotified = true;
+                    mPresentsWaitingForDWM.emplace_back(eventIter->second);
+                    eventIter->second->PresentInDwmWaitingStruct = true;
+                }
+            }
+            else
+            {
+                EventDataDesc desc[] = {
+                    { L"luidSurface" },
+                    { L"PresentCount" },
+                    { L"bindId" },
+                };
+                mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
+                auto luidSurface = desc[0].GetData<uint64_t>();
+                auto PresentCount = desc[1].GetData<uint64_t>();
+                auto bindId = desc[2].GetData<uint64_t>();
+
+                Win32KPresentHistoryToken key(luidSurface, PresentCount, bindId);
+                auto eventIter = mPresentByWin32KPresentHistoryToken.find(key);
+                if (eventIter != mPresentByWin32KPresentHistoryToken.end() && eventIter->second->SeenInFrameEvent) {
+                    TRACK_PRESENT_PATH(eventIter->second);
+                    //DebugModifyPresent(eventIter->second.get());
+                    eventIter->second->DwmNotified = true;
+                    mPresentsWaitingForDWM.emplace_back(eventIter->second);
+                    eventIter->second->PresentInDwmWaitingStruct = true;
+                }
+            }
         }
         break;
-    }
     default:
         //assert(!mFilteredEvents || // Assert that filtering is working if expected
         //       hdr.ProviderId == Microsoft_Windows_Dwm_Core::Win7::GUID);
