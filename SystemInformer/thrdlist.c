@@ -2064,7 +2064,7 @@ VOID PhpGenerateSyscallLists(
 {
     static PH_STRINGREF ntdllPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll");
     static PH_STRINGREF win32kPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32k.sys");
-    static PH_STRINGREF win32uPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.sys");
+    static PH_STRINGREF win32uPath = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\win32u.dll");
     PPH_LIST ntdllSystemCallList = NULL;
     PPH_LIST win32kSystemCallList = NULL;
     PH_MAPPED_IMAGE mappedImage;
