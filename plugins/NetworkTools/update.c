@@ -11,7 +11,6 @@
 
 #include "nettools.h"
 #include <commonutil.h>
-#include <shellapi.h>
 #include "..\..\tools\thirdparty\gzip\zlib.h"
 #include "..\..\tools\thirdparty\gzip\gzguts.h"
 

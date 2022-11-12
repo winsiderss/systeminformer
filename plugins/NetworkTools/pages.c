@@ -10,7 +10,6 @@
  */
 
 #include "nettools.h"
-#include <shellapi.h>
 
 TASKDIALOG_BUTTON RestartButtonArray[] =
 {
