@@ -36,7 +36,9 @@ NTSTATUS SetupUninstallBuild(
     if (!NT_SUCCESS(PhDeleteDirectoryWin32(Context->SetupInstallPath)))
     {
         static PH_STRINGREF ksiFileName = PH_STRINGREF_INIT(L"ksi.dll");
+        static PH_STRINGREF ksiOldFileName = PH_STRINGREF_INIT(L"ksi.dll-old");
         PPH_STRING ksiFile;
+        PPH_STRING ksiOldFile;
 
         ksiFile = PhConcatStringRef3(
             &Context->SetupInstallPath->sr,
@@ -44,9 +46,18 @@ NTSTATUS SetupUninstallBuild(
             &ksiFileName
             );
 
-        MoveFileExW(PhGetString(ksiFile), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+        ksiOldFile = PhConcatStringRef3(
+            &Context->SetupInstallPath->sr,
+            &PhNtPathSeperatorString,
+            &ksiOldFileName
+            );
+
+        PhMoveFileWin32(PhGetString(ksiFile), PhGetString(ksiOldFile));
+
+        MoveFileExW(PhGetString(ksiOldFile), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
         MoveFileExW(PhGetString(Context->SetupInstallPath), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
 
+        PhDereferenceObject(ksiOldFile);
         PhDereferenceObject(ksiFile);
 
         Context->NeedsReboot = TRUE;
