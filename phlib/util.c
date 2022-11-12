@@ -20,8 +20,8 @@
 #include <winsta.h>
 
 #include <apiimport.h>
-#include <lsasup.h>
 #include <mapimg.h>
+#include <lsasup.h>
 #include <wslsup.h>
 
 #include "..\tools\thirdparty\md5\md5.h"
