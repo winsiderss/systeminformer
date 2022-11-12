@@ -916,6 +916,15 @@ PhSetProcessEmptyWorkingSet(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhSetProcessEmptyPageWorkingSet(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T Size
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessPriority(
     _In_ HANDLE ProcessHandle,
     _Out_ PUCHAR PriorityClass
@@ -2085,6 +2094,22 @@ PhGetProcessConsoleCodePage(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN ConsoleOutputCP,
     _Out_ PUSHORT ConsoleCodePage
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessSequenceNumber(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONGLONG SequenceNumber
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetProcessStartKey(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONGLONG ProcessStartKey
     );
 
 PHLIBAPI

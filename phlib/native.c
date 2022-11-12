@@ -5256,6 +5256,38 @@ NTSTATUS PhSetProcessEmptyWorkingSet(
     return status;
 }
 
+NTSTATUS PhSetProcessEmptyPageWorkingSet(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T Size
+    )
+{
+    NTSTATUS status;
+    PVOID baseAddress;
+    SIZE_T regionSize;
+
+    baseAddress = BaseAddress;
+    regionSize = Size;
+
+    // Calling VirtualUnlock on a range of memory that is not locked
+    // releases the pages from the process's working set. (MSDN)
+
+    status = NtUnlockVirtualMemory(
+        ProcessHandle,
+        &baseAddress,
+        &regionSize,
+        MAP_PROCESS
+        );
+
+    // Note: STATUS_SUCCESS is a bad status in this case. (dmex)
+    assert(status == STATUS_NOT_LOCKED);
+
+    if (status == STATUS_NOT_LOCKED)
+        status = STATUS_SUCCESS;
+
+    return status;
+}
+
 NTSTATUS PhGetProcessPriority(
     _In_ HANDLE ProcessHandle,
     _Out_ PUCHAR PriorityClass
@@ -11638,6 +11670,51 @@ CleanupExit:
     if (threadHandle)
     {
         NtClose(threadHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessSequenceNumber(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONGLONG SequenceNumber
+    )
+{
+    NTSTATUS status;
+    ULONGLONG sequenceNumber;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessSequenceNumber,
+        &sequenceNumber,
+        sizeof(ULONGLONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SequenceNumber = sequenceNumber;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessStartKey(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PULONGLONG ProcessStartKey
+    )
+{
+    NTSTATUS status;
+    ULONGLONG processSequenceNumber;
+
+    status = PhGetProcessSequenceNumber(
+        ProcessHandle,
+        &processSequenceNumber
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *ProcessStartKey = PH_PROCESS_EXTENSION_STARTKEY(processSequenceNumber);
     }
 
     return status;
