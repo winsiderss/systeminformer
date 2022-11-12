@@ -20,7 +20,6 @@
 #include <workqueue.h>
 
 #include <icmpapi.h>
-#include <shlobj.h>
 
 #include "resource.h"
 

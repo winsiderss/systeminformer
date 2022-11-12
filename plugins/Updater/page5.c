@@ -10,8 +10,6 @@
  */
 
 #include "updater.h"
-#include <shellapi.h>
-#include <shlobj.h>
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {
