@@ -84,7 +84,8 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                 if (PhIsNullOrEmptyString(context->SetupFilePath))
                     break;
 
-                parameters = PhCreateKsiSettingsBlob();
+                parameters = PH_AUTO(PhCreateKsiSettingsBlob());
+                parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
 
                 ProcessHacker_PrepareForEarlyShutdown();
 
@@ -118,12 +119,8 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                             ShowCheckForUpdatesDialog(context);
                     }
 
-                    PhDereferenceObject(parameters);
-
                     return S_FALSE;
                 }
-
-                PhDereferenceObject(parameters);
             }
         }
         break;
