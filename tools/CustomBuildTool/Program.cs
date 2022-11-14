@@ -83,9 +83,9 @@ namespace CustomBuildTool
             }
             else if (ProgramArgs.ContainsKey("-dyndata"))
             {
-                var kphdyn = System.IO.Path.Combine(ProgramArgs["-dyndata"], "kphdyn.xml");
-                var source = System.IO.Path.Combine(ProgramArgs["-dyndata"], "kphdyn.c");
-                var header = System.IO.Path.Combine(ProgramArgs["-dyndata"], "include", "kphdyn.h");
+                var kphdyn = Path.Combine(ProgramArgs["-dyndata"], "kphdyn.xml");
+                var source = Path.Combine(ProgramArgs["-dyndata"], "kphdyn.c");
+                var header = Path.Combine(ProgramArgs["-dyndata"], "include", "kphdyn.h");
 
                 Program.PrintColorMessage(kphdyn, ConsoleColor.White);
                 Program.PrintColorMessage(source, ConsoleColor.White);
@@ -93,8 +93,8 @@ namespace CustomBuildTool
 
                 var dyn = new DynData(Verify.GetCustomSignToolFilePath(), kphdyn, Verify.GetPath("kph.key"));
 
-                System.IO.File.WriteAllText(source, dyn.Source);
-                System.IO.File.WriteAllText(header, dyn.Header);
+                File.WriteAllText(source, dyn.Source);
+                File.WriteAllText(header, dyn.Header);
                 Program.PrintColorMessage("Done!", ConsoleColor.Green);
             }
             else if (ProgramArgs.ContainsKey("-phapppub_gen"))

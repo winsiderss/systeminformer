@@ -227,10 +227,10 @@ namespace CustomBuildTool
 
     public static class Verify
     {
-        private static Aes GetRijndael(string secret)
+        private static Aes GetRijndael(string Secret)
         {
             using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
-                secret,
+                Secret,
                 Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="),
                 10000,
                 HashAlgorithmName.SHA512))
@@ -244,24 +244,36 @@ namespace CustomBuildTool
             }
         }
 
-        public static void Encrypt(string fileName, string outFileName, string secret)
+        public static void Encrypt(string FileName, string outFileName, string Secret)
         {
+            if (!File.Exists(FileName))
+            {
+                Program.PrintColorMessage($"Unable to encrypt file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
+                return;
+            }
+
+            using (Aes rijndael = GetRijndael(Secret))
+            using (FileStream fileStream = File.OpenRead(FileName))
             using (FileStream fileOutStream = File.Create(outFileName))
-            using (Aes rijndael = GetRijndael(secret))
-            using (FileStream fileStream = File.OpenRead(fileName))
             using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateEncryptor(), CryptoStreamMode.Write, true))
             {
                 fileStream.CopyTo(cryptoStream);
             }
         }
 
-        public static bool Decrypt(string FileName, string outFileName, string secret)
+        public static bool Decrypt(string FileName, string outFileName, string Secret)
         {
+            if (!File.Exists(FileName))
+            {
+                Program.PrintColorMessage($"Unable to decrypt file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
+                return false;
+            }
+
             try
             {
-                using (FileStream fileOutStream = File.Create(outFileName))
-                using (Aes rijndael = GetRijndael(secret))
+                using (Aes rijndael = GetRijndael(Secret))
                 using (FileStream fileStream = File.OpenRead(FileName))
+                using (FileStream fileOutStream = File.Create(outFileName))
                 using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
                 {
                     fileStream.CopyTo(cryptoStream);
@@ -275,11 +287,11 @@ namespace CustomBuildTool
             return true;
         }
 
-        private static Aes GetRijndaelLegacy(string secret)
+        private static Aes GetRijndaelLegacy(string Secret)
         {
 #pragma warning disable SYSLIB0041 // Type or member is obsolete
             using (Rfc2898DeriveBytes rfc2898DeriveBytes = new Rfc2898DeriveBytes(
-                secret,
+                Secret,
                 Convert.FromBase64String("e0U0RTY2RjU5LUNBRjItNEMzOS1BN0Y4LTQ2MDk3QjFDNDYxQn0="),
                 10000))
             {
@@ -293,13 +305,19 @@ namespace CustomBuildTool
 #pragma warning restore SYSLIB0041 // Type or member is obsolete
         }
 
-        public static bool DecryptLegacy(string FileName, string outFileName, string secret)
+        public static bool DecryptLegacy(string FileName, string outFileName, string Secret)
         {
+            if (!File.Exists(FileName))
+            {
+                Program.PrintColorMessage($"Unable to decrypt legacy file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
+                return false;
+            }
+
             try
             {
-                using (FileStream fileOutStream = File.Create(outFileName))
-                using (Aes rijndael = GetRijndaelLegacy(secret))
+                using (Aes rijndael = GetRijndaelLegacy(Secret))
                 using (FileStream fileStream = File.OpenRead(FileName))
+                using (FileStream fileOutStream = File.Create(outFileName))
                 using (CryptoStream cryptoStream = new CryptoStream(fileOutStream, rijndael.CreateDecryptor(), CryptoStreamMode.Write, true))
                 {
                     fileStream.CopyTo(cryptoStream);
@@ -313,9 +331,14 @@ namespace CustomBuildTool
             return true;
         }
 
-
         public static string HashFile(string FileName)
         {
+            if (!File.Exists(FileName))
+            {
+                Program.PrintColorMessage($"Unable to hash file {Path.GetFileName(FileName)}: Does not exist.", ConsoleColor.Yellow);
+                return string.Empty;
+            }
+
             //using (HashAlgorithm algorithm = new SHA256CryptoServiceProvider())
             //{
             //    byte[] inputBytes = Encoding.UTF8.GetBytes(input);
