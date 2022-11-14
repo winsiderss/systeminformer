@@ -9,9 +9,6 @@
  *
  */
 
-using System;
-using System.Collections.Generic;
-
 namespace CustomBuildTool
 {
     public static class Program

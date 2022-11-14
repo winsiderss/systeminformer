@@ -9,13 +9,6 @@
  *
  */
 
-using System;
-using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-
 namespace CustomBuildTool
 {
     public static class Build
@@ -61,10 +54,10 @@ namespace CustomBuildTool
 
             Build.TimeStart = DateTime.Now;
             Build.BuildNightly = !string.IsNullOrWhiteSpace(Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%"));
-            Build.BuildOutputFolder = VisualStudio.GetOutputDirectoryPath();
+            Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
             //{
-            //    VisualStudioInstance instance = VisualStudio.GetVisualStudioInstance();
+            //    VisualStudioInstance instance = Utils.GetVisualStudioInstance();
             //
             //    if (instance == null)
             //    {
@@ -160,8 +153,8 @@ namespace CustomBuildTool
 
             try
             {
-                string currentGitDir = VisualStudio.GetGitWorkPath();
-                string currentGitPath = VisualStudio.GetGitFilePath();
+                string currentGitDir = Utils.GetGitWorkPath();
+                string currentGitPath = Utils.GetGitFilePath();
 
                 if (!string.IsNullOrWhiteSpace(currentGitDir) && !string.IsNullOrWhiteSpace(currentGitPath))
                 {
@@ -200,14 +193,15 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Windows: ", ConsoleColor.DarkGray, false);
                 Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green, true);
 
-                //var instance = VisualStudio.GetVisualStudioInstance();
-                //if (instance != null)
+                var instance = VisualStudio.GetVisualStudioInstance();
+                if (instance != null)
                 {
                     Program.PrintColorMessage("WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(VisualStudio.GetWindowsSdkVersion(), ConsoleColor.Green, true);
+                    Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green, true);
                     //Program.PrintColorMessage(Utils.GetWindowsSdkVersion() + " (" + instance.GetWindowsSdkFullVersion() + ")", ConsoleColor.Green, true);
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(VisualStudio.GetVisualStudioVersion(), ConsoleColor.Green, true);
+                    Program.PrintColorMessage(instance.Name, ConsoleColor.Green, true);
+                    //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.Green, true);
                 }
 
                 Program.PrintColorMessage(Environment.NewLine + "Building... ", ConsoleColor.DarkGray, false);
@@ -614,7 +608,7 @@ namespace CustomBuildTool
 
             try
             {
-                VisualStudio.CreateOutputDirectory();
+                Utils.CreateOutputDirectory();
 
                 if (File.Exists(BuildOutputFolder + "\\systeminformer-build-websetup.exe"))
                     File.Delete(BuildOutputFolder + "\\systeminformer-build-websetup.exe");
@@ -719,7 +713,7 @@ namespace CustomBuildTool
 
             try
             {
-                VisualStudio.CreateOutputDirectory();
+                Utils.CreateOutputDirectory();
 
                 if (File.Exists(BuildOutputFolder + "\\systeminformer-build-setup.exe"))
                     File.Delete(BuildOutputFolder + "\\systeminformer-build-setup.exe");
@@ -750,7 +744,7 @@ namespace CustomBuildTool
 
             try
             {
-                VisualStudio.CreateOutputDirectory();
+                Utils.CreateOutputDirectory();
 
                 Zip.CreateCompressedSdkFromFolder("sdk", BuildOutputFolder + "\\systeminformer-build-sdk.zip");
 
@@ -806,7 +800,7 @@ namespace CustomBuildTool
 
             try
             {
-                VisualStudio.CreateOutputDirectory();
+                Utils.CreateOutputDirectory();
 
                 if (File.Exists(BuildOutputFolder + "\\systeminformer-build-bin.zip"))
                     File.Delete(BuildOutputFolder + "\\systeminformer-build-bin.zip");
@@ -826,7 +820,7 @@ namespace CustomBuildTool
 
             try
             {
-                VisualStudio.CreateOutputDirectory();
+                Utils.CreateOutputDirectory();
 
                 if (File.Exists(BuildOutputFolder + "\\systeminformer-build-bin.64"))
                     File.Delete(BuildOutputFolder + "\\systeminformer-build-bin.64");
@@ -851,7 +845,7 @@ namespace CustomBuildTool
 
             try
             {
-                VisualStudio.CreateOutputDirectory();
+                Utils.CreateOutputDirectory();
 
                 Zip.CreateCompressedPdbFromFolder(
                     ".\\",
@@ -895,7 +889,7 @@ namespace CustomBuildTool
                     }
                 }
 
-                VisualStudio.CreateOutputDirectory();
+                Utils.CreateOutputDirectory();
 
                 if (File.Exists(BuildOutputFolder + "\\systeminformer-build-checksums.txt"))
                     File.Delete(BuildOutputFolder + "\\systeminformer-build-checksums.txt");
@@ -912,7 +906,7 @@ namespace CustomBuildTool
 
         public static bool BuildSolution(string Solution, BuildFlags Flags)
         {
-            string msbuildExePath = VisualStudio.GetMsbuildFilePath();
+            string msbuildExePath = Utils.GetMsbuildFilePath();
 
             if (!File.Exists(msbuildExePath))
             {
@@ -1009,8 +1003,8 @@ namespace CustomBuildTool
                 return true;
 
             StringBuilder commandLine = new StringBuilder();
-            string windowsSdkPath = VisualStudio.GetWindowsSdkPath();
-            string windowsSdkIncludePath = VisualStudio.GetWindowsSdkIncludePath();
+            string windowsSdkPath = Utils.GetWindowsSdkPath();
+            string windowsSdkIncludePath = Utils.GetWindowsSdkIncludePath();
             string resIncludePath = Path.GetFullPath("systeminformer");
             string rcExePath = windowsSdkPath + "\\x64\\rc.exe";
 
