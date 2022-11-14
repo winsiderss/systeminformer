@@ -81,7 +81,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddStringSetting(L"FontMonospace", L""); // null
     PhpAddIntegerSetting(L"ForceNoParent", L"1");
-    //PhpAddIntegerSetting(L"KphBuildNumber", L"0");
     PhpAddStringSetting(L"KphServiceName", L"");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
