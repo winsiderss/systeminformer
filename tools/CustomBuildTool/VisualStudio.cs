@@ -251,7 +251,6 @@ namespace CustomBuildTool
             if (package == null)
                 return string.Empty;
 
-            // SDK
             var found = this.Packages.FindAll(p =>
             {
                 return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
@@ -326,17 +325,17 @@ namespace CustomBuildTool
             {
                 string list = string.Empty;
 
-                if (this.Packages.Exists(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)))
+                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.Component.MSBuild", StringComparison.OrdinalIgnoreCase)))
                 {
                     list += "MSBuild" + Environment.NewLine;
                 }
 
-                if (this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase)))
+                if (!this.Packages.Exists(p => p.Id.StartsWith("Microsoft.VisualStudio.Component.VC", StringComparison.OrdinalIgnoreCase)))
                 {
                     list += "VC.14.Redist" + Environment.NewLine;
                 }
 
-                if (this.Packages.Exists(p =>
+                if (!this.Packages.Exists(p =>
                 {
                     return p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows10SDK", StringComparison.OrdinalIgnoreCase) ||
                         p.Id.StartsWith("Microsoft.VisualStudio.Component.Windows11SDK", StringComparison.OrdinalIgnoreCase);
@@ -428,32 +427,32 @@ namespace CustomBuildTool
         Complete = 4294967295u
     }
 
-    internal partial class NativeMethods
+    public static partial class NativeMethods
     {
         public const uint HRESULT_S_OK = 0u;
         public const uint HRESULT_S_FALSE = 1u;
 
-        internal static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
-        internal static readonly IntPtr HKEY_CURRENT_USER = new IntPtr(unchecked((int)0x80000001));
-        internal static readonly uint KEY_READ = 0x20019u;
+        public static readonly IntPtr HKEY_LOCAL_MACHINE = new IntPtr(unchecked((int)0x80000002));
+        public static readonly IntPtr HKEY_CURRENT_USER = new IntPtr(unchecked((int)0x80000001));
+        public static readonly uint KEY_READ = 0x20019u;
 
         [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16)]
-        internal static partial uint RegOpenKeyExW(IntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, out IntPtr KeyHandle);
+        public static partial uint RegOpenKeyExW(IntPtr RootKeyHandle, string KeyName, uint Options, uint AccessMask, out IntPtr KeyHandle);
 
         [LibraryImport("advapi32.dll", StringMarshalling = StringMarshalling.Utf16)]
-        internal static partial uint RegQueryValueExW(IntPtr KeyHandle, string ValueName, IntPtr Reserved, out int DataType, IntPtr DataBuffer, ref int DataLength);
+        public static partial uint RegQueryValueExW(IntPtr KeyHandle, string ValueName, IntPtr Reserved, out int DataType, IntPtr DataBuffer, ref int DataLength);
 
         [LibraryImport("advapi32.dll")]
-        internal static partial uint RegCloseKey(IntPtr KeyHandle);
+        public static partial uint RegCloseKey(IntPtr KeyHandle);
 
         [LibraryImport("oleaut32.dll")]
-        internal static partial uint SafeArrayGetLBound(IntPtr psa, uint nDim, out uint lLBound);
+        public static partial uint SafeArrayGetLBound(IntPtr psa, uint nDim, out uint lLBound);
 
         [LibraryImport("oleaut32.dll")]
-        internal static partial uint SafeArrayGetUBound(IntPtr psa, uint nDim, out uint lUBound);
+        public static partial uint SafeArrayGetUBound(IntPtr psa, uint nDim, out uint lUBound);
 
         [LibraryImport("oleaut32.dll")]
-        internal static partial uint SafeArrayGetElement(IntPtr psa, ref uint rgIndices, out IntPtr pv);
+        public static partial uint SafeArrayGetElement(IntPtr psa, ref uint rgIndices, out IntPtr pv);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -468,28 +467,43 @@ namespace CustomBuildTool
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupPackageReferenceVTable
+    public readonly unsafe struct ISetupConfigurationVTable
     {
         public readonly delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, uint> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // ISetupPackageReference
-        // STDMETHOD(GetId)(_Out_ BSTR* pbstrId) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetId;
-        // STDMETHOD(GetVersion)(_Out_ BSTR* pbstrVersion) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetVersion;
-        // STDMETHOD(GetChip)(_Out_ BSTR* pbstrChip) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetChip;
-        // STDMETHOD(GetLanguage)(_Out_ BSTR* pbstrLanguage) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetLanguage;
-        // STDMETHOD(GetBranch)(_Out_ BSTR* pbstrBranch) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetBranch;
-        // STDMETHOD(GetType)(_Out_ BSTR* pbstrType) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetPackageType;
-        // STDMETHOD(GetUniqueId)(_Out_ BSTR* pbstrUniqueId) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetUniqueId;
-        // STDMETHOD(GetIsExtension)(_Out_ BSTR* pfIsExtension) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out ushort, uint> GetIsExtension;
+        // STDMETHOD(EnumInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> EnumInstances;
+        // STDMETHOD(GetInstanceForCurrentProcess)(_Out_ ISetupInstance ** ppInstance) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetInstanceForCurrentProcess;
+        // STDMETHOD(GetInstanceForPath)(_In_z_ LPCWSTR wzPath, _Out_ ISetupInstance **ppInstance) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, in IntPtr, out IntPtr, uint> GetInstanceForPath;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public readonly unsafe struct ISetupConfiguration2VTable
+    {
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, uint> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
+        // STDMETHOD(EnumAllInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> EnumAllInstances;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public readonly unsafe struct IEnumSetupInstancesVTable
+    {
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, uint> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
+        // STDMETHOD(Next)(_In_ ULONG celt, _Out_writes_to_(celt, *pceltFetched) ISetupInstance** rgelt, _Out_opt_ _Deref_out_range_(0, celt) ULONG* pceltFetched) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, in uint, out IntPtr, out uint, uint> Next;
+        // STDMETHOD(Skip)(_In_ ULONG celt) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, in uint, uint> Skip;
+        // STDMETHOD(Reset)(void) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Reset;
+        // STDMETHOD(Clone)(_Deref_out_opt_ IEnumSetupInstances **ppenum) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> Clone;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -498,9 +512,7 @@ namespace CustomBuildTool
         public readonly delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, uint> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-
         // ISetupInstance
-
         // STDMETHOD(GetInstanceId)(_Out_ BSTR *pbstrInstanceId) = 0;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetInstanceId;
         // STDMETHOD(GetInstallDate)(_Out_ LPFILETIME pInstallDate) = 0;
@@ -564,42 +576,27 @@ namespace CustomBuildTool
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct IEnumSetupInstancesVTable
+    public readonly unsafe struct ISetupPackageReferenceVTable
     {
         public readonly delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, uint> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // STDMETHOD(Next)(_In_ ULONG celt, _Out_writes_to_(celt, *pceltFetched) ISetupInstance** rgelt, _Out_opt_ _Deref_out_range_(0, celt) ULONG* pceltFetched) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, in uint, out IntPtr, out uint, uint> Next;
-        // STDMETHOD(Skip)(_In_ ULONG celt) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, in uint, uint> Skip;
-        // STDMETHOD(Reset)(void) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Reset;
-        // STDMETHOD(Clone)(_Deref_out_opt_ IEnumSetupInstances **ppenum) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> Clone;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupConfiguration2VTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // STDMETHOD(EnumAllInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> EnumAllInstances;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public readonly unsafe struct ISetupConfigurationVTable
-    {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, in Guid, out IntPtr, uint> QueryInterface;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
-        // STDMETHOD(EnumInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> EnumInstances;
-        // STDMETHOD(GetInstanceForCurrentProcess)(_Out_ ISetupInstance ** ppInstance) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetInstanceForCurrentProcess;
-        // STDMETHOD(GetInstanceForPath)(_In_z_ LPCWSTR wzPath, _Out_ ISetupInstance **ppInstance) = 0;
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, in IntPtr, out IntPtr, uint> GetInstanceForPath;
+        // ISetupPackageReference
+        // STDMETHOD(GetId)(_Out_ BSTR* pbstrId) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetId;
+        // STDMETHOD(GetVersion)(_Out_ BSTR* pbstrVersion) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetVersion;
+        // STDMETHOD(GetChip)(_Out_ BSTR* pbstrChip) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetChip;
+        // STDMETHOD(GetLanguage)(_Out_ BSTR* pbstrLanguage) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetLanguage;
+        // STDMETHOD(GetBranch)(_Out_ BSTR* pbstrBranch) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetBranch;
+        // STDMETHOD(GetType)(_Out_ BSTR* pbstrType) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetPackageType;
+        // STDMETHOD(GetUniqueId)(_Out_ BSTR* pbstrUniqueId) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, uint> GetUniqueId;
+        // STDMETHOD(GetIsExtension)(_Out_ BSTR* pfIsExtension) = 0;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, out ushort, uint> GetIsExtension;
     }
 }
