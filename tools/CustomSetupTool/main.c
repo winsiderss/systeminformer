@@ -230,6 +230,18 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
             serviceName = PhGetJsonValueAsString(object, "KsiServiceName");
             PhFreeJsonObject(object);
         }
+        else
+        {
+            // legacy nightly
+            directory = PhCreateStringEx((PWSTR)string, stringLength);
+            serviceName = PhCreateString(L"KSystemInformer");
+
+            if (!PhDoesDirectoryExistWin32(PhGetString(directory)))
+            {
+                PhClearReference(&directory);
+                PhClearReference(&serviceName);
+            }
+        }
 
         PhDereferenceObject(value);
     }
