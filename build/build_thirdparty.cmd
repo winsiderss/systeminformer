@@ -17,6 +17,13 @@ if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
    goto end
 )
 
+if exist "tools\thirdparty\bin" (
+   rmdir /S /Q "tools\thirdparty\bin"
+)
+if exist "tools\thirdparty\obj" (
+   rmdir /S /Q "tools\thirdparty\obj"
+)
+
 msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=x86 -verbosity:normal
 if %ERRORLEVEL% neq 0 goto end
 
