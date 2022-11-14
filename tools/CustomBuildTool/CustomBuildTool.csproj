@@ -6,14 +6,17 @@
     <RuntimeIdentifiers>win7-x86;win7-x64</RuntimeIdentifiers>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <OldToolsVersion>Current</OldToolsVersion>
     <Version>1.0</Version>
     <CodePage>65001</CodePage>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
-    <PdbFile>$(AssemblyName).pdb</PdbFile>
+    <!--<PdbFile>$(AssemblyName).pdb</PdbFile>-->
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PublishAot>true</PublishAot>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <FileAlignment>4096</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <PlatformTarget>x86</PlatformTarget>
@@ -29,27 +32,31 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
     <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
     <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DebugType>embedded</DebugType>
-    <DebugSymbols>true</DebugSymbols>
     <Optimize>True</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
-    <DebugType>embedded</DebugType>
-    <DebugSymbols>true</DebugSymbols>
     <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <None Include="app.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="System.Diagnostics" />
+    <Using Include="System.IO.Compression" />
+    <Using Include="System.Net" />
+    <Using Include="System.Net.Http.Headers" />
+    <Using Include="System.Runtime.InteropServices" />
+    <Using Include="System.Security.Cryptography" />
+    <Using Include="System.Text" />
+    <Using Include="System.Text.Json" />
+    <Using Include="System.Text.Json.Serialization" />
+    <Using Include="System.Xml" />
   </ItemGroup>
 </Project>

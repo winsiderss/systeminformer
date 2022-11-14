@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -9,29 +9,8 @@
  *
  */
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
 namespace CustomBuildTool
 {
-    public struct BuildFile
-    {
-        public string FileName;
-        public bool UploadNightly;
-
-        public BuildFile(string Filename, bool UploadNightly)
-        {
-            this.FileName = Filename;
-            this.UploadNightly = UploadNightly;
-        }
-
-        public override string ToString()
-        {
-            return this.FileName;
-        }
-    }
-
     public static class BuildConfig
     {
         public static readonly List<BuildFile> Build_Release_Files = new List<BuildFile>
@@ -137,5 +116,22 @@ namespace CustomBuildTool
             "verify.h",
             "workqueue.h"
         };
+    }
+
+    public struct BuildFile
+    {
+        public string FileName;
+        public bool UploadNightly;
+
+        public BuildFile(string Filename, bool UploadNightly)
+        {
+            this.FileName = Filename;
+            this.UploadNightly = UploadNightly;
+        }
+
+        public override string ToString()
+        {
+            return this.FileName;
+        }
     }
 }

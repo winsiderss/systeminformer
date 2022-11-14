@@ -1,9 +1,13 @@
-﻿using System;
-using System.IO;
-using System.Text;
-using System.Xml;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     jxy-s
+ *
+ */
 
 namespace CustomBuildTool
 {

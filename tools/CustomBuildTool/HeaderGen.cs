@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -10,46 +10,8 @@
  *
  */
 
-using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-
 namespace CustomBuildTool
 {
-    public class HeaderFile : IEquatable<HeaderFile>
-    {
-        public string Name;
-        public List<string> Lines;
-        public List<HeaderFile> Dependencies;
-
-        public override string ToString()
-        {
-            return this.Name;
-        }
-
-        public override int GetHashCode()
-        {
-            return this.Name.GetHashCode(StringComparison.OrdinalIgnoreCase);
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (obj == null)
-                return false;
-
-            if (obj is not HeaderFile file)
-                return false;
-
-            return this.Name.Equals(file.Name, StringComparison.OrdinalIgnoreCase);
-        }
-
-        public bool Equals(HeaderFile other)
-        {
-            return this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
     public static class HeaderGen
     {
         private static readonly string Header = "#ifndef _PH_PHAPPPUB_H\r\n#define _PH_PHAPPPUB_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n#ifdef __cplusplus\r\nextern \"C\" {\r\n#endif\r\n";
@@ -249,6 +211,39 @@ namespace CustomBuildTool
                 // Footer
                 sw.Write(Footer);
             }
+        }
+    }
+
+    public class HeaderFile : IEquatable<HeaderFile>
+    {
+        public string Name;
+        public List<string> Lines;
+        public List<HeaderFile> Dependencies;
+
+        public override string ToString()
+        {
+            return this.Name;
+        }
+
+        public override int GetHashCode()
+        {
+            return this.Name.GetHashCode(StringComparison.OrdinalIgnoreCase);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null)
+                return false;
+
+            if (obj is not HeaderFile file)
+                return false;
+
+            return this.Name.Equals(file.Name, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public bool Equals(HeaderFile other)
+        {
+            return this.Name.Equals(other.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
