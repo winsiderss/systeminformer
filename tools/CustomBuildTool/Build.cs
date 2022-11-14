@@ -488,7 +488,7 @@ namespace CustomBuildTool
 
             if (File.Exists(CustomSignToolPath))
             {
-                var files = new System.Collections.Generic.List<string>();
+                var files = new List<string>();
 
                 if (Flags.HasFlag(BuildFlags.BuildDebug))
                 {
@@ -540,9 +540,28 @@ namespace CustomBuildTool
                 {
                     if (File.Exists(file))
                     {
-                        var outfile = Path.ChangeExtension(file, ".sig");
-                        File.WriteAllText(outfile, string.Empty);
-                        Win32.ShellExecute(CustomSignToolPath, $"sign -k {Verify.GetPath("kph.key")} {file} -s {outfile}");
+                        var sigfile = Path.ChangeExtension(file, ".sig");
+
+                        File.WriteAllText(sigfile, string.Empty);
+
+                        int errorcode = Win32.CreateProcess(
+                            CustomSignToolPath,
+                            $"sign -k {Verify.GetPath("kph.key")} {file} -s {sigfile}",
+                            out string _
+                            );
+
+                        if (errorcode != 0)
+                        {
+                            Program.PrintColorMessage("[CopyKernelDriver] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+
+                            if (BuildNightly)
+                            {
+                                if (File.Exists(Verify.GetPath("kph.key")))
+                                    File.Delete(Verify.GetPath("kph.key"));
+                            }
+
+                            return false;
+                        }
                     }
                 }
             }
@@ -566,6 +585,12 @@ namespace CustomBuildTool
 
             string CustomSignToolPath = Verify.GetCustomSignToolFilePath();
 
+            if (!File.Exists(CustomSignToolPath))
+            {
+                Program.PrintColorMessage("[SKIPPED] CustomSignTool not found: " + PluginName, ConsoleColor.Yellow);
+                return true;
+            }
+
             if (BuildNightly && !File.Exists(Verify.GetPath("kph.key")))
             {
                 string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
@@ -582,17 +607,28 @@ namespace CustomBuildTool
                 }
             }
 
-            if (File.Exists(CustomSignToolPath))
             {
-                var outfile = Path.ChangeExtension(PluginName, ".sig");
-                File.WriteAllText(outfile, string.Empty);
-                Win32.ShellExecute(CustomSignToolPath, $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {outfile}");
-            }
+                string sigfile = Path.ChangeExtension(PluginName, ".sig");
 
-            if (BuildNightly)
-            {
-                if (File.Exists(Verify.GetPath("kph.key")))
-                    File.Delete(Verify.GetPath("kph.key"));
+                File.WriteAllText(sigfile, string.Empty);
+
+                int errorcode = Win32.CreateProcess(
+                    CustomSignToolPath,
+                    $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {sigfile}",
+                    out string _
+                    );
+
+                if (BuildNightly)
+                {
+                    if (File.Exists(Verify.GetPath("kph.key")))
+                        File.Delete(Verify.GetPath("kph.key"));
+                }
+
+                if (errorcode != 0)
+                {
+                    Program.PrintColorMessage("[SignPlugin] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                    return false;
+                }
             }
 
             return true;
