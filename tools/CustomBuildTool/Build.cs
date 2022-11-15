@@ -171,7 +171,7 @@ namespace CustomBuildTool
                     }
                 }
             }
-            catch (Exception) {  }
+            catch (Exception) { }
 
             if (
                 string.IsNullOrWhiteSpace(BuildBranch) ||
@@ -560,8 +560,7 @@ namespace CustomBuildTool
 
                                 if (BuildNightly)
                                 {
-                                    if (File.Exists(Verify.GetPath("kph.key")))
-                                        File.Delete(Verify.GetPath("kph.key"));
+                                    File.Delete(PathToKPHKeyFile);
                                 }
 
                                 return false;
@@ -617,22 +616,26 @@ namespace CustomBuildTool
 
                 File.WriteAllText(sigfile, string.Empty);
 
-                int errorcode = Win32.CreateProcess(
-                    CustomSignToolPath,
-                    $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {sigfile}",
-                    out string _
-                    );
+                string PathToKPHKeyFile = Verify.GetPath("kph.key");
 
-                if (BuildNightly)
+                if (File.Exists(PathToKPHKeyFile))
                 {
-                    if (File.Exists(Verify.GetPath("kph.key")))
-                        File.Delete(Verify.GetPath("kph.key"));
-                }
+                    int errorcode = Win32.CreateProcess(
+                        CustomSignToolPath,
+                        $"sign -k {PathToKPHKeyFile} {PluginName} -s {sigfile}",
+                        out string _
+                        );
 
-                if (errorcode != 0)
-                {
-                    Program.PrintColorMessage("[SignPlugin] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                    return false;
+                    if (BuildNightly)
+                    {
+                        File.Delete(PathToKPHKeyFile);
+                    }
+
+                    if (errorcode != 0)
+                    {
+                        Program.PrintColorMessage("[SignPlugin] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                        return false;
+                    }
                 }
             }
 
@@ -1317,9 +1320,9 @@ namespace CustomBuildTool
                         filename = Path.GetFileName(sourceFile);
                         //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
 
-#pragma warning disable SYSLIB0014 // Type or member is obsolete
+                        #pragma warning disable SYSLIB0014 // Type or member is obsolete
                         request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
-#pragma warning restore SYSLIB0014 // Type or member is obsolete
+                        #pragma warning restore SYSLIB0014 // Type or member is obsolete
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
                         request.Method = WebRequestMethods.Ftp.UploadFile;
                         request.Timeout = System.Threading.Timeout.Infinite;
@@ -1468,7 +1471,7 @@ namespace CustomBuildTool
 
             if (!mirror.Valid)
             {
-                Program.PrintColorMessage("[Github-Valid]" , ConsoleColor.Red);
+                Program.PrintColorMessage("[Github-Valid]", ConsoleColor.Red);
                 return null;
             }
 
