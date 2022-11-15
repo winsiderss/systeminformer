@@ -171,7 +171,7 @@ namespace CustomBuildTool
                     }
                 }
             }
-            catch (Exception) {  }
+            catch (Exception) { }
 
             if (
                 string.IsNullOrWhiteSpace(BuildBranch) ||
@@ -544,23 +544,26 @@ namespace CustomBuildTool
 
                         File.WriteAllText(sigfile, string.Empty);
 
-                        int errorcode = Win32.CreateProcess(
-                            CustomSignToolPath,
-                            $"sign -k {Verify.GetPath("kph.key")} {file} -s {sigfile}",
-                            out string _
-                            );
-
-                        if (errorcode != 0)
+                        if (File.Exists(Verify.GetPath("kph.key")))
                         {
-                            Program.PrintColorMessage("[CopyKernelDriver] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                            int errorcode = Win32.CreateProcess(
+                                CustomSignToolPath,
+                                $"sign -k {Verify.GetPath("kph.key")} {file} -s {sigfile}",
+                                out string _
+                                );
 
-                            if (BuildNightly)
+                            if (errorcode != 0)
                             {
-                                if (File.Exists(Verify.GetPath("kph.key")))
-                                    File.Delete(Verify.GetPath("kph.key"));
-                            }
+                                Program.PrintColorMessage("[CopyKernelDriver] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
 
-                            return false;
+                                if (BuildNightly)
+                                {
+                                    if (File.Exists(Verify.GetPath("kph.key")))
+                                        File.Delete(Verify.GetPath("kph.key"));
+                                }
+
+                                return false;
+                            }
                         }
                     }
                 }
@@ -612,22 +615,25 @@ namespace CustomBuildTool
 
                 File.WriteAllText(sigfile, string.Empty);
 
-                int errorcode = Win32.CreateProcess(
-                    CustomSignToolPath,
-                    $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {sigfile}",
-                    out string _
-                    );
-
-                if (BuildNightly)
+                if (File.Exists(Verify.GetPath("kph.key")))
                 {
-                    if (File.Exists(Verify.GetPath("kph.key")))
-                        File.Delete(Verify.GetPath("kph.key"));
-                }
+                    int errorcode = Win32.CreateProcess(
+                        CustomSignToolPath,
+                        $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {sigfile}",
+                        out string _
+                        );
 
-                if (errorcode != 0)
-                {
-                    Program.PrintColorMessage("[SignPlugin] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                    return false;
+                    if (BuildNightly)
+                    {
+                        if (File.Exists(Verify.GetPath("kph.key")))
+                            File.Delete(Verify.GetPath("kph.key"));
+                    }
+
+                    if (errorcode != 0)
+                    {
+                        Program.PrintColorMessage("[SignPlugin] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                        return false;
+                    }
                 }
             }
 
@@ -1463,7 +1469,7 @@ namespace CustomBuildTool
 
             if (!mirror.Valid)
             {
-                Program.PrintColorMessage("[Github-Valid]" , ConsoleColor.Red);
+                Program.PrintColorMessage("[Github-Valid]", ConsoleColor.Red);
                 return null;
             }
 
