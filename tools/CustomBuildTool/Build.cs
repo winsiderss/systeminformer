@@ -536,31 +536,36 @@ namespace CustomBuildTool
                     }
                 }
 
-                foreach (var file in files)
+                string PathToKPHKeyFile = Verify.GetPath("kph.key");
+
+                if (File.Exists(PathToKPHKeyFile))
                 {
-                    if (File.Exists(file))
+                    foreach (var file in files)
                     {
-                        var sigfile = Path.ChangeExtension(file, ".sig");
-
-                        File.WriteAllText(sigfile, string.Empty);
-
-                        int errorcode = Win32.CreateProcess(
-                            CustomSignToolPath,
-                            $"sign -k {Verify.GetPath("kph.key")} {file} -s {sigfile}",
-                            out string _
-                            );
-
-                        if (errorcode != 0)
+                        if (File.Exists(file))
                         {
-                            Program.PrintColorMessage("[CopyKernelDriver] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                            var sigfile = Path.ChangeExtension(file, ".sig");
 
-                            if (BuildNightly)
+                            File.WriteAllText(sigfile, string.Empty);
+
+                            int errorcode = Win32.CreateProcess(
+                                CustomSignToolPath,
+                                $"sign -k {PathToKPHKeyFile} {file} -s {sigfile}",
+                                out string _
+                                );
+
+                            if (errorcode != 0)
                             {
-                                if (File.Exists(Verify.GetPath("kph.key")))
-                                    File.Delete(Verify.GetPath("kph.key"));
-                            }
+                                Program.PrintColorMessage("[CopyKernelDriver] (" + errorcode + ") ", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
 
-                            return false;
+                                if (BuildNightly)
+                                {
+                                    if (File.Exists(Verify.GetPath("kph.key")))
+                                        File.Delete(Verify.GetPath("kph.key"));
+                                }
+
+                                return false;
+                            }
                         }
                     }
                 }
@@ -574,7 +579,7 @@ namespace CustomBuildTool
 
             return true;
         }
-        
+
         public static bool SignPlugin(string PluginName)
         {
             if (!File.Exists(PluginName))
@@ -1312,9 +1317,9 @@ namespace CustomBuildTool
                         filename = Path.GetFileName(sourceFile);
                         //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
 
-                        #pragma warning disable SYSLIB0014 // Type or member is obsolete
+#pragma warning disable SYSLIB0014 // Type or member is obsolete
                         request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
-                        #pragma warning restore SYSLIB0014 // Type or member is obsolete
+#pragma warning restore SYSLIB0014 // Type or member is obsolete
                         request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
                         request.Method = WebRequestMethods.Ftp.UploadFile;
                         request.Timeout = System.Threading.Timeout.Infinite;
