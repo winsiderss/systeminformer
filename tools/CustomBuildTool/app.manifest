@@ -25,15 +25,15 @@
     </application>
   </compatibility>
   <asmv3:application xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
-    <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">
-      <dpiAware>true</dpiAware>
-    </asmv3:windowsSettings>
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2011/WindowsSettings">
       <disableWindowFiltering>true</disableWindowFiltering>
       <printerDriverIsolation>true</printerDriverIsolation>
     </asmv3:windowsSettings>
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
       <longPathAware>true</longPathAware>
+    </asmv3:windowsSettings>
+    <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">
+      <activeCodePage>UTF-8</activeCodePage>
     </asmv3:windowsSettings>
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">
       <heapType>SegmentHeap</heapType>

@@ -341,8 +341,8 @@ typedef struct _KPH_DYNDATA
                 file.CopyTo(Sig);
             }
 
-            File.Delete(configFile);
-            File.Delete(sigFile);
+            Win32.DeleteFile(configFile);
+            Win32.DeleteFile(sigFile);
         }
 
         private bool Validate(List<Tuple<string, DynConfig>> Configs)

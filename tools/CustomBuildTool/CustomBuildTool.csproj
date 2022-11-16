@@ -9,14 +9,23 @@
     <Version>1.0</Version>
     <CodePage>65001</CodePage>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
-    <!--<PdbFile>$(AssemblyName).pdb</PdbFile>-->
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PublishAot>true</PublishAot>
-    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <!--<TrimmerSingleWarn>false</TrimmerSingleWarn>-->
     <ImplicitUsings>enable</ImplicitUsings>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <FileAlignment>4096</FileAlignment>
+    <Determinisitc>true</Determinisitc>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <PublishTrimmed>true</PublishTrimmed>
+    <EventSourceSupport>false</EventSourceSupport>
+    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+    <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <PlatformTarget>x86</PlatformTarget>
@@ -27,8 +36,8 @@
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
-    <IntDir>$(ProjectDir)obj\$(Configuration)\\$(TargetFramework)-$(PlatformTarget)\</IntDir>
-    <OutDir>$(ProjectDir)bin\$(Configuration)\\$(TargetFramework)-$(PlatformTarget)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
+    <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
@@ -60,6 +69,6 @@
     <Using Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <LinkerArg Include="/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
+    <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
 </Project>

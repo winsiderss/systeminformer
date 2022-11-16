@@ -17,7 +17,7 @@ namespace CustomBuildTool
         private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)
         {
             if (names == null || names.Length == 0)
-                return new string[0];
+                return Array.Empty<string>();
 
             if (includeBaseName)
                 sourceFolder = Path.GetDirectoryName(sourceFolder);
@@ -40,8 +40,7 @@ namespace CustomBuildTool
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
-            if (File.Exists(destinationArchiveFileName))
-                File.Delete(destinationArchiveFileName);
+            Win32.DeleteFile(destinationArchiveFileName);
 
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
             using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
@@ -109,8 +108,7 @@ namespace CustomBuildTool
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
-            if (File.Exists(destinationArchiveFileName))
-                File.Delete(destinationArchiveFileName);
+            Win32.DeleteFile(destinationArchiveFileName);
 
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
             using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
@@ -123,8 +121,7 @@ namespace CustomBuildTool
 
             //string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             //
-            //if (File.Exists(destinationArchiveFileName))
-            //    File.Delete(destinationArchiveFileName);
+            //Win32.DeleteFile(destinationArchiveFileName);
             //
             //using (var filestream = File.Create(destinationArchiveFileName))
             //using (var archive = new SevenZipArchive(filestream, FileAccess.Write))
@@ -151,8 +148,7 @@ namespace CustomBuildTool
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
-            if (File.Exists(destinationArchiveFileName))
-                File.Delete(destinationArchiveFileName);
+            Win32.DeleteFile(destinationArchiveFileName);
 
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
             using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
