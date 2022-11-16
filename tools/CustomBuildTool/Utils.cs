@@ -87,9 +87,22 @@ namespace CustomBuildTool
             return exitcode;
         }
 
+        public static bool DeleteFile(string FileName)
+        {
+            try
+            {
+                if (File.Exists(FileName))
+                    File.Delete(FileName);
+                return true;
+            }
+            catch { }
+
+            return false;
+        }
+
         public static string ShellExecute(string FileName, string Arguments)
         {
-            Win32.CreateProcess(FileName, Arguments, out string outputstring);
+            CreateProcess(FileName, Arguments, out string outputstring);
 
             return outputstring;
         }
@@ -358,23 +371,19 @@ namespace CustomBuildTool
 
         private static readonly string[] CustomSignToolPathArray =
         {
-            "\\tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe",
-            "\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
-            //"\\tools\\CustomSignTool\\bin\\Debug64\\CustomSignTool.exe",
-            //"\\tools\\CustomSignTool\\bin\\Debug32\\CustomSignTool.exe",
+            "tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe",
+            "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
         };
 
         public static string GetPath(string FileName)
         {
-            return "tools\\CustomSignTool\\Resources\\" + FileName;
+            return $"tools\\CustomSignTool\\Resources\\{FileName}";
         }
 
         public static string GetCustomSignToolFilePath()
         {
-            foreach (string path in CustomSignToolPathArray)
+            foreach (string file in CustomSignToolPathArray)
             {
-                string file = Environment.CurrentDirectory + path;
-
                 if (File.Exists(file))
                     return file;
             }
@@ -397,7 +406,7 @@ namespace CustomBuildTool
 
         public static string GetOutputDirectoryPath()
         {
-            return Environment.CurrentDirectory + "\\build\\output";
+            return $"{Environment.CurrentDirectory}\\build\\output";
         }
 
         public static void CreateOutputDirectory()
@@ -413,7 +422,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("Error creating output directory: " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage($"Error creating output directory: {ex}", ConsoleColor.Red);
             }
         }
 
@@ -538,9 +547,9 @@ namespace CustomBuildTool
 
         public static string GetGitWorkPath()
         {
-            if (Directory.Exists(Environment.CurrentDirectory + "\\.git"))
+            if (Directory.Exists($"{Environment.CurrentDirectory}\\.git"))
             {
-                return "--git-dir=\"" + Environment.CurrentDirectory + "\\.git\" --work-tree=\"" + Environment.CurrentDirectory + "\" ";
+                return $"--git-dir=\"{Environment.CurrentDirectory}\\.git\" --work-tree=\"{Environment.CurrentDirectory}\" ";
             }
 
             return string.Empty;
@@ -549,7 +558,6 @@ namespace CustomBuildTool
         public static string GetWindowsSdkIncludePath()
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
-
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\Include");
 
@@ -586,7 +594,6 @@ namespace CustomBuildTool
         public static string GetWindowsSdkPath()
         {
             List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
-
             string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
             string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
 
@@ -685,7 +692,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("Unable to find devenv directory: " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage($"Unable to find devenv directory: {ex}", ConsoleColor.Red);
             }
 
             return string.Empty;
@@ -760,7 +767,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[UpdateBuildVersion] " + ex, ConsoleColor.Red, true);
+                Program.PrintColorMessage($"[UpdateBuildVersion] {ex}", ConsoleColor.Red, true);
             }
 
             return false;
@@ -780,7 +787,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[UploadFile] " + ex, ConsoleColor.Red, true);
+                Program.PrintColorMessage($"[UploadFile] {ex}", ConsoleColor.Red, true);
             }
 
             return false;
@@ -912,26 +919,5 @@ namespace CustomBuildTool
                 : string.Format("{0}B", Math.Round((double)value, decimalPlaces));
             return chosenValue;
         }
-    }
-
-    [Flags]
-    public enum ConsoleMode : uint
-    {
-        DEFAULT,
-        ENABLE_PROCESSED_INPUT = 0x0001,
-        ENABLE_LINE_INPUT = 0x0002,
-        ENABLE_ECHO_INPUT = 0x0004,
-        ENABLE_WINDOW_INPUT = 0x0008,
-        ENABLE_MOUSE_INPUT = 0x0010,
-        ENABLE_INSERT_MODE = 0x0020,
-        ENABLE_QUICK_EDIT_MODE = 0x0040,
-        ENABLE_EXTENDED_FLAGS = 0x0080,
-        ENABLE_AUTO_POSITION = 0x0100,
-        ENABLE_PROCESSED_OUTPUT = 0x0001,
-        ENABLE_WRAP_AT_EOL_OUTPUT = 0x0002,
-        ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004,
-        DISABLE_NEWLINE_AUTO_RETURN = 0x0008,
-        ENABLE_LVB_GRID_WORLDWIDE = 0x0010,
-        ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200
     }
 }
