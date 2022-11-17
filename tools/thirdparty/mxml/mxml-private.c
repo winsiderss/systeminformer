@@ -3,7 +3,7 @@
  *
  * https://www.msweet.org/mxml
  *
- * Copyright © 2003-2021 by Michael R Sweet.
+ * Copyright © 2003-2022 by Michael R Sweet.
  *
  * Licensed under Apache License v2.0.  See the file "LICENSE" for more
  * information.
@@ -26,7 +26,7 @@
  * be unloaded safely, although since there is no standard way to do so I
  * can't even provide any guarantees that you can do it safely on all platforms.
  *
- * This code currently supports AIX, HP-UX, Linux, Mac OS X, Solaris, and
+ * This code currently supports AIX, HP-UX, Linux, macOS, Solaris, and
  * Windows.  It might work on the BSDs and IRIX, but I haven't tested that.
  */
 
@@ -36,7 +36,7 @@
 #elif defined(__hpux)
 #  pragma FINI _mxml_fini
 #  define _MXML_FINI _mxml_fini
-#elif defined(__GNUC__) /* Linux and Mac OS X */
+#elif defined(__GNUC__) /* Linux and macOS */
 #  define _MXML_FINI __attribute((destructor)) _mxml_fini
 #else
 #  define _MXML_FINI _fini
@@ -51,37 +51,28 @@ void
 mxml_error(const char *format,		/* I - Printf-style format string */
            ...)				/* I - Additional arguments as needed */
 {
- // va_list	ap;			/* Pointer to arguments */
- // char		s[1024];		/* Message string */
- // _mxml_global_t *global = _mxml_global();
- //                   /* Global data */
-
-
- ///*
- // * Range check input...
- // */
-
- // if (!format)
- //   return;
-
- ///*
- // * Format the error message string...
- // */
-
- // va_start(ap, format);
-
- // vsnprintf(s, sizeof(s), format, ap);
-
- // va_end(ap);
-
- ///*
- // * And then display the error message...
- // */
-
- // if (global->error_cb)
- //   (*global->error_cb)(s);
- // else
- //   fprintf(stderr, "mxml: %s\n", s);
+// va_list	ap;			/* Pointer to arguments */
+// char		s[1024];		/* Message string */
+// _mxml_global_t *global = _mxml_global();
+//                   /* Global data */
+///*
+// * Range check input...
+// */
+// if (!format)
+//   return;
+///*
+// * Format the error message string...
+// */
+// va_start(ap, format);
+// vsnprintf(s, sizeof(s), format, ap);
+// va_end(ap);
+///*
+// * And then display the error message...
+// */
+// if (global->error_cb)
+//   (*global->error_cb)(s);
+// else
+//   fprintf(stderr, "mxml: %s\n", s);
 }
 
 
@@ -140,6 +131,8 @@ mxml_real_cb(mxml_node_t *node)		/* I - Current node */
 #ifdef HAVE_PTHREAD_H			/**** POSIX threading ****/
 #  include <pthread.h>
 
+static int		_mxml_initialized = 0;
+                    /* Have we been initialized? */
 static pthread_key_t	_mxml_key;	/* Thread local storage key */
 static pthread_once_t	_mxml_key_once = PTHREAD_ONCE_INIT;
                     /* One-time initialization object */
@@ -165,13 +158,8 @@ _mxml_destructor(void *g)		/* I - Global data */
 static void
 _MXML_FINI(void)
 {
-  _mxml_global_t	*global;	/* Global data */
-
-
-  if ((global = (_mxml_global_t *)pthread_getspecific(_mxml_key)) != NULL)
-    _mxml_destructor(global);
-
-  pthread_key_delete(_mxml_key);
+  if (_mxml_initialized)
+    pthread_key_delete(_mxml_key);
 }
 
 
@@ -208,6 +196,7 @@ _mxml_global(void)
 static void
 _mxml_init(void)
 {
+  _mxml_initialized = 1;
   pthread_key_create(&_mxml_key, _mxml_destructor);
 }
 

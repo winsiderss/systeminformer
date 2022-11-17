@@ -825,9 +825,9 @@ mxml_new(mxml_node_t *parent,		/* I - Parent node */
   mxml_node_t	*node;			/* New node */
 
 
-#if DEBUG > 1
+#if MXML_DEBUG > 1
   fprintf(stderr, "mxml_new(parent=%p, type=%d)\n", parent, type);
-#endif /* DEBUG > 1 */
+#endif /* MXML_DEBUG > 1 */
 
  /*
   * Allocate memory for the node...
