@@ -5,6 +5,8 @@ extern "C" {
 #ifndef MAXMINDDB_H
 #define MAXMINDDB_H
 
+#include <ph.h>
+
 /* Request POSIX.1-2008. However, we want to remain compatible with
  * POSIX.1-2001 (since we have been historically and see no reason to drop
  * compatibility). By requesting POSIX.1-2008, we can conditionally use
@@ -28,7 +30,7 @@ extern "C" {
 #include <winsock2.h>
 #include <ws2tcpip.h>
 /* libmaxminddb package version from configure */
-#define PACKAGE_VERSION "1.6.0"
+#define PACKAGE_VERSION "1.7.1"
 
 typedef ADDRESS_FAMILY sa_family_t;
 
@@ -191,7 +193,6 @@ typedef struct MMDB_ipv4_start_node_s {
  * library is upgraded */
 typedef struct MMDB_s {
     uint32_t flags;
-    wchar_t *filename;
     ssize_t file_size;
     const uint8_t *file_content;
     const uint8_t *data_section;
@@ -215,7 +216,7 @@ typedef struct MMDB_search_node_s {
 } MMDB_search_node_s;
 
 extern int
-MMDB_open(wchar_t* filename, uint32_t flags, MMDB_s *const mmdb);
+MMDB_open(PPH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb);
 extern MMDB_lookup_result_s MMDB_lookup_string(const MMDB_s *const mmdb,
                                                const char *const ipstr,
                                                int *const gai_error,

@@ -2,8 +2,6 @@
 //#include <config.h>
 //#endif
 
-#include <ph.h>
-
 #include "data-pool.h"
 #include "maxminddb-compat-util.h"
 #include "maxminddb.h"
@@ -11,6 +9,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +19,7 @@
 #ifndef UNICODE
 #define UNICODE
 #endif
+//#include <windows.h>
 #include <ws2ipdef.h>
 #else
 #include <arpa/inet.h>
@@ -132,7 +132,7 @@ typedef struct record_info_s {
 // 64 leads us to allocating 4 KiB on a 64bit system.
 #define MMDB_POOL_INIT_SIZE 64
 
-static int map_file(MMDB_s *const mmdb);
+static int map_file(MMDB_s *const mmdb, PPH_STRINGREF filename);
 static const uint8_t *find_metadata(const uint8_t *file_content,
                                     ssize_t file_size,
                                     uint32_t *metadata_size);
@@ -154,7 +154,7 @@ static int populate_description_metadata(MMDB_s *mmdb,
                                          MMDB_entry_s *metadata_start);
 static int resolve_any_address(const char *ipstr, struct addrinfo **addresses);
 static int find_address_in_search_tree(const MMDB_s *const mmdb,
-                                       uint8_t *address,
+                                       uint8_t const *address,
                                        sa_family_t address_family,
                                        MMDB_lookup_result_s *result);
 static record_info_s record_info_for_database(const MMDB_s *const mmdb);
@@ -164,7 +164,7 @@ static uint32_t get_left_28_bit_record(const uint8_t *record);
 static uint32_t get_right_28_bit_record(const uint8_t *record);
 static uint32_t data_section_offset_for_record(const MMDB_s *const mmdb,
                                                uint64_t record);
-static int path_length(va_list va_path);
+static size_t path_length(va_list va_path);
 static int lookup_path_in_array(const char *path_elem,
                                 const MMDB_s *const mmdb,
                                 MMDB_entry_data_s *entry_data);
@@ -203,7 +203,7 @@ dump_entry_data_list(FILE *stream,
                      int indent,
                      int *status);
 static void print_indentation(FILE *stream, int i);
-static char *bytes_to_hex(uint8_t *bytes, uint32_t size);
+static char *bytes_to_hex(uint8_t const *bytes, uint32_t size);
 
 #define CHECKED_DECODE_ONE(mmdb, offset, entry_data)                           \
     do {                                                                       \
@@ -235,7 +235,7 @@ static char *bytes_to_hex(uint8_t *bytes, uint32_t size);
         (p) = NULL;                                                            \
     }
 
-int MMDB_open(wchar_t* filename, uint32_t flags, MMDB_s *const mmdb) {
+int MMDB_open(PPH_STRINGREF filename, uint32_t flags, MMDB_s *const mmdb) {
     int status = MMDB_SUCCESS;
 
     mmdb->file_content = NULL;
@@ -245,8 +245,7 @@ int MMDB_open(wchar_t* filename, uint32_t flags, MMDB_s *const mmdb) {
     mmdb->metadata.languages.names = NULL;
     mmdb->metadata.description.count = 0;
 
-    mmdb->filename = filename; // dmex: modified for wchar_t
-    if (NULL == mmdb->filename) {
+    if (NULL == filename) {
         status = MMDB_OUT_OF_MEMORY_ERROR;
         goto cleanup;
     }
@@ -256,7 +255,7 @@ int MMDB_open(wchar_t* filename, uint32_t flags, MMDB_s *const mmdb) {
     }
     mmdb->flags = flags;
 
-    if (MMDB_SUCCESS != (status = map_file(mmdb))) {
+    if (MMDB_SUCCESS != (status = map_file(mmdb, filename))) {
         goto cleanup;
     }
 
@@ -348,7 +347,7 @@ static LPWSTR utf8_to_utf16(const char *utf8_str) {
     return utf16_str;
 }
 
-static int map_file(MMDB_s *const mmdb) // dmex: modified for NTAPI
+static int map_file(MMDB_s* const mmdb, PPH_STRINGREF filename) // dmex: modified for NTAPI
 {
     NTSTATUS status;
     HANDLE fileHandle;
@@ -357,9 +356,9 @@ static int map_file(MMDB_s *const mmdb) // dmex: modified for NTAPI
     SIZE_T viewSize;
     PVOID viewBase;
 
-    status = PhCreateFileWin32(
+    status = PhCreateFile(
         &fileHandle,
-        mmdb->filename,
+        filename,
         FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -422,28 +421,39 @@ static int map_file(MMDB_s *const mmdb) // dmex: modified for NTAPI
 #else // _WIN32
 
 static int map_file(MMDB_s *const mmdb) {
-    ssize_t size;
     int status = MMDB_SUCCESS;
 
-    int flags = O_RDONLY;
+    int o_flags = O_RDONLY;
 #ifdef O_CLOEXEC
-    flags |= O_CLOEXEC;
+    o_flags |= O_CLOEXEC;
 #endif
-    int fd = open(mmdb->filename, flags);
-    struct stat s;
-    if (fd < 0 || fstat(fd, &s)) {
+    int fd = open(mmdb->filename, o_flags);
+    if (fd < 0) {
         status = MMDB_FILE_OPEN_ERROR;
         goto cleanup;
     }
 
-    size = s.st_size;
-    if (size < 0 || size != s.st_size) {
+#if defined(FD_CLOEXEC) && !defined(O_CLOEXEC)
+    int fd_flags = fcntl(fd, F_GETFD);
+    if (fd_flags >= 0) {
+        fcntl(fd, F_SETFD, fd_flags | FD_CLOEXEC);
+    }
+#endif
+
+    struct stat s;
+    if (fstat(fd, &s)) {
+        status = MMDB_FILE_OPEN_ERROR;
+        goto cleanup;
+    }
+
+    off_t size = s.st_size;
+    if (size < 0 || size > SSIZE_MAX) {
         status = MMDB_OUT_OF_MEMORY_ERROR;
         goto cleanup;
     }
 
     uint8_t *file_content =
-        (uint8_t *)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+        (uint8_t *)mmap(NULL, (size_t)size, PROT_READ, MAP_SHARED, fd, 0);
     if (MAP_FAILED == file_content) {
         if (ENOMEM == errno) {
             status = MMDB_OUT_OF_MEMORY_ERROR;
@@ -453,7 +463,7 @@ static int map_file(MMDB_s *const mmdb) {
         goto cleanup;
     }
 
-    mmdb->file_size = size;
+    mmdb->file_size = (ssize_t)size;
     mmdb->file_content = file_content;
 
 cleanup:;
@@ -475,12 +485,16 @@ static const uint8_t *find_metadata(const uint8_t *file_content,
     ssize_t max_size = file_size > METADATA_BLOCK_MAX_SIZE
                            ? METADATA_BLOCK_MAX_SIZE
                            : file_size;
+    if (max_size < 0) {
+        return NULL;
+    }
 
-    uint8_t *search_area = (uint8_t *)(file_content + (file_size - max_size));
-    uint8_t *start = search_area;
-    uint8_t *tmp;
+    uint8_t const *search_area = (file_content + (file_size - max_size));
+    uint8_t const *start = search_area;
+    uint8_t const *tmp;
     do {
-        tmp = mmdb_memmem(search_area, max_size, METADATA_MARKER, marker_len);
+        tmp = mmdb_memmem(
+            search_area, (size_t)max_size, METADATA_MARKER, marker_len);
 
         if (NULL != tmp) {
             max_size -= tmp - search_area;
@@ -687,7 +701,7 @@ value_for_key_as_string(MMDB_entry_s *start, char *key, char const **value) {
                    type_num_to_name(entry_data.type));
         return MMDB_INVALID_METADATA_ERROR;
     }
-    *value = mmdb_strndup((char *)entry_data.utf8_string, entry_data.data_size);
+    *value = mmdb_strndup(entry_data.utf8_string, entry_data.data_size);
     if (NULL == *value) {
         return MMDB_OUT_OF_MEMORY_ERROR;
     }
@@ -735,9 +749,8 @@ static int populate_languages_metadata(MMDB_s *mmdb,
             return MMDB_INVALID_METADATA_ERROR;
         }
 
-        mmdb->metadata.languages.names[i] =
-            mmdb_strndup((char *)member->entry_data.utf8_string,
-                         member->entry_data.data_size);
+        mmdb->metadata.languages.names[i] = mmdb_strndup(
+            member->entry_data.utf8_string, member->entry_data.data_size);
 
         if (NULL == mmdb->metadata.languages.names[i]) {
             return MMDB_OUT_OF_MEMORY_ERROR;
@@ -819,9 +832,8 @@ static int populate_description_metadata(MMDB_s *mmdb,
             goto cleanup;
         }
 
-        mmdb->metadata.description.descriptions[i]->language =
-            mmdb_strndup((char *)member->entry_data.utf8_string,
-                         member->entry_data.data_size);
+        mmdb->metadata.description.descriptions[i]->language = mmdb_strndup(
+            member->entry_data.utf8_string, member->entry_data.data_size);
 
         if (NULL == mmdb->metadata.description.descriptions[i]->language) {
             status = MMDB_OUT_OF_MEMORY_ERROR;
@@ -835,9 +847,8 @@ static int populate_description_metadata(MMDB_s *mmdb,
             goto cleanup;
         }
 
-        mmdb->metadata.description.descriptions[i]->description =
-            mmdb_strndup((char *)member->entry_data.utf8_string,
-                         member->entry_data.data_size);
+        mmdb->metadata.description.descriptions[i]->description = mmdb_strndup(
+            member->entry_data.utf8_string, member->entry_data.data_size);
 
         if (NULL == mmdb->metadata.description.descriptions[i]->description) {
             status = MMDB_OUT_OF_MEMORY_ERROR;
@@ -895,22 +906,24 @@ MMDB_lookup_result_s MMDB_lookup_sockaddr(const MMDB_s *const mmdb,
                                    .netmask = 0,
                                    .entry = {.mmdb = mmdb, .offset = 0}};
 
-    uint8_t mapped_address[16], *address;
+    uint8_t mapped_address[16];
+    uint8_t const *address;
     if (mmdb->metadata.ip_version == 4) {
         if (sockaddr->sa_family == AF_INET6) {
             *mmdb_error = MMDB_IPV6_LOOKUP_IN_IPV4_DATABASE_ERROR;
             return result;
         }
-        address = (uint8_t *)&((struct sockaddr_in *)sockaddr)->sin_addr.s_addr;
+        address = (uint8_t const *)&((struct sockaddr_in const *)sockaddr)
+                      ->sin_addr.s_addr;
     } else {
         if (sockaddr->sa_family == AF_INET6) {
-            address = (uint8_t *)&((struct sockaddr_in6 *)sockaddr)
+            address = (uint8_t const *)&((struct sockaddr_in6 const *)sockaddr)
                           ->sin6_addr.s6_addr;
         } else {
             address = mapped_address;
-            memset(address, 0, 12);
-            memcpy(address + 12,
-                   &((struct sockaddr_in *)sockaddr)->sin_addr.s_addr,
+            memset(mapped_address, 0, 12);
+            memcpy(mapped_address + 12,
+                   &((struct sockaddr_in const *)sockaddr)->sin_addr.s_addr,
                    4);
         }
     }
@@ -922,7 +935,7 @@ MMDB_lookup_result_s MMDB_lookup_sockaddr(const MMDB_s *const mmdb,
 }
 
 static int find_address_in_search_tree(const MMDB_s *const mmdb,
-                                       uint8_t *address,
+                                       uint8_t const *address,
                                        sa_family_t address_family,
                                        MMDB_lookup_result_s *result) {
     record_info_s record_info = record_info_for_database(mmdb);
@@ -1056,7 +1069,7 @@ static uint8_t record_type(const MMDB_s *const mmdb, uint64_t record) {
 
 static uint32_t get_left_28_bit_record(const uint8_t *record) {
     return record[0] * 65536 + record[1] * 256 + record[2] +
-           ((record[3] & 0xf0) << 20);
+           (uint32_t)((record[3] & 0xf0) << 20);
 }
 
 static uint32_t get_right_28_bit_record(const uint8_t *record) {
@@ -1120,13 +1133,13 @@ int MMDB_get_value(MMDB_entry_s *const start,
 int MMDB_vget_value(MMDB_entry_s *const start,
                     MMDB_entry_data_s *const entry_data,
                     va_list va_path) {
-    int length = path_length(va_path);
+    size_t length = path_length(va_path);
     const char *path_elem;
     int i = 0;
 
-    MAYBE_CHECK_SIZE_OVERFLOW(length,
-                              SIZE_MAX / sizeof(const char *) - 1,
-                              MMDB_INVALID_METADATA_ERROR);
+    if (length == SIZE_MAX) {
+        return MMDB_INVALID_METADATA_ERROR;
+    }
 
     const char **path = calloc(length + 1, sizeof(const char *));
     if (NULL == path) {
@@ -1141,18 +1154,17 @@ int MMDB_vget_value(MMDB_entry_s *const start,
 
     int status = MMDB_aget_value(start, entry_data, path);
 
-    free((char **)path);
+    free(path);
 
     return status;
 }
 
-static int path_length(va_list va_path) {
-    int i = 0;
-    const char *ignore;
+static size_t path_length(va_list va_path) {
+    size_t i = 0;
     va_list path_copy;
     va_copy(path_copy, va_path);
 
-    while (NULL != (ignore = va_arg(path_copy, char *))) {
+    while (NULL != va_arg(path_copy, char *)) {
         i++;
     }
 
@@ -1225,7 +1237,7 @@ static int lookup_path_in_array(const char *path_elem,
 
     int saved_errno = errno;
     errno = 0;
-    int array_index = strtol(path_elem, &first_invalid, 10);
+    long array_index = strtol(path_elem, &first_invalid, 10);
     if (ERANGE == errno) {
         errno = saved_errno;
         return MMDB_INVALID_LOOKUP_PATH_ERROR;
@@ -1240,11 +1252,11 @@ static int lookup_path_in_array(const char *path_elem,
         }
     }
 
-    if (*first_invalid || (uint32_t)array_index >= size) {
+    if (*first_invalid || (unsigned long)array_index >= size) {
         return MMDB_LOOKUP_PATH_DOES_NOT_MATCH_DATA_ERROR;
     }
 
-    for (int i = 0; i < array_index; i++) {
+    for (long i = 0; i < array_index; i++) {
         /* We don't want to follow a pointer here. If the next element is a
          * pointer we simply skip it and keep going */
         CHECKED_DECODE_ONE(mmdb, entry_data->offset_to_next, entry_data);
@@ -1410,7 +1422,7 @@ static int decode_one(const MMDB_s *const mmdb,
         DEBUG_MSGF("Extended type: %i (%s)", type, type_num_to_name(type));
     }
 
-    entry_data->type = type;
+    entry_data->type = (uint32_t)type;
 
     if (type == MMDB_DATA_TYPE_POINTER) {
         uint8_t psize = ((ctrl >> 3) & 3) + 1;
@@ -1466,6 +1478,7 @@ static int decode_one(const MMDB_s *const mmdb,
             }
             size = 65821 + get_uint24(&mem[offset]);
             offset += 3;
+            break;
         default:
             break;
     }
@@ -1501,28 +1514,28 @@ static int decode_one(const MMDB_s *const mmdb,
             DEBUG_MSGF("uint16 of size %d", size);
             return MMDB_INVALID_DATA_ERROR;
         }
-        entry_data->uint16 = (uint16_t)get_uintX(&mem[offset], size);
+        entry_data->uint16 = (uint16_t)get_uintX(&mem[offset], (int)size);
         DEBUG_MSGF("uint16 value: %u", entry_data->uint16);
     } else if (type == MMDB_DATA_TYPE_UINT32) {
         if (size > 4) {
             DEBUG_MSGF("uint32 of size %d", size);
             return MMDB_INVALID_DATA_ERROR;
         }
-        entry_data->uint32 = (uint32_t)get_uintX(&mem[offset], size);
+        entry_data->uint32 = (uint32_t)get_uintX(&mem[offset], (int)size);
         DEBUG_MSGF("uint32 value: %u", entry_data->uint32);
     } else if (type == MMDB_DATA_TYPE_INT32) {
         if (size > 4) {
             DEBUG_MSGF("int32 of size %d", size);
             return MMDB_INVALID_DATA_ERROR;
         }
-        entry_data->int32 = get_sintX(&mem[offset], size);
+        entry_data->int32 = get_sintX(&mem[offset], (int)size);
         DEBUG_MSGF("int32 value: %i", entry_data->int32);
     } else if (type == MMDB_DATA_TYPE_UINT64) {
         if (size > 8) {
             DEBUG_MSGF("uint64 of size %d", size);
             return MMDB_INVALID_DATA_ERROR;
         }
-        entry_data->uint64 = get_uintX(&mem[offset], size);
+        entry_data->uint64 = get_uintX(&mem[offset], (int)size);
         DEBUG_MSGF("uint64 value: %" PRIu64, entry_data->uint64);
     } else if (type == MMDB_DATA_TYPE_UINT128) {
         if (size > 16) {
@@ -1535,7 +1548,7 @@ static int decode_one(const MMDB_s *const mmdb,
             memcpy(entry_data->uint128 + 16 - size, &mem[offset], size);
         }
 #else
-        entry_data->uint128 = get_uint128(&mem[offset], size);
+        entry_data->uint128 = get_uint128(&mem[offset], (int)size);
 #endif
     } else if (type == MMDB_DATA_TYPE_FLOAT) {
         if (size != 4) {
@@ -1554,7 +1567,7 @@ static int decode_one(const MMDB_s *const mmdb,
         entry_data->double_value = get_ieee754_double(&mem[offset]);
         DEBUG_MSGF("double value: %f", entry_data->double_value);
     } else if (type == MMDB_DATA_TYPE_UTF8_STRING) {
-        entry_data->utf8_string = size == 0 ? "" : (char *)&mem[offset];
+        entry_data->utf8_string = size == 0 ? "" : (char const *)&mem[offset];
         entry_data->data_size = size;
 #ifdef MMDB_DEBUG
         char *string =
@@ -1582,13 +1595,15 @@ get_ptr_from(uint8_t ctrl, uint8_t const *const ptr, int ptr_size) {
     uint32_t new_offset;
     switch (ptr_size) {
         case 1:
-            new_offset = ((ctrl & 7) << 8) + ptr[0];
+            new_offset = (uint32_t)((ctrl & 7) << 8) + ptr[0];
             break;
         case 2:
-            new_offset = 2048 + ((ctrl & 7) << 16) + (ptr[0] << 8) + ptr[1];
+            new_offset = 2048 + (uint32_t)((ctrl & 7) << 16) +
+                         (uint32_t)(ptr[0] << 8) + ptr[1];
             break;
         case 3:
-            new_offset = 2048 + 524288 + ((ctrl & 7) << 24) + get_uint24(ptr);
+            new_offset =
+                2048 + 524288 + (uint32_t)((ctrl & 7) << 24) + get_uint24(ptr);
             break;
         case 4:
         default:
@@ -1736,7 +1751,7 @@ static int get_entry_data_list(const MMDB_s *const mmdb,
 
 static float get_ieee754_float(const uint8_t *restrict p) {
     volatile float f;
-    uint8_t *q = (void *)&f;
+    volatile uint8_t *q = (volatile void *)&f;
 /* Windows builds don't use autoconf but we can assume they're all
  * little-endian. */
 #if MMDB_LITTLE_ENDIAN || _WIN32
@@ -1752,7 +1767,7 @@ static float get_ieee754_float(const uint8_t *restrict p) {
 
 static double get_ieee754_double(const uint8_t *restrict p) {
     volatile double d;
-    uint8_t *q = (void *)&d;
+    volatile uint8_t *q = (volatile void *)&d;
 #if MMDB_LITTLE_ENDIAN || _WIN32
     q[7] = p[0];
     q[6] = p[1];
@@ -1806,9 +1821,6 @@ static void free_mmdb_struct(MMDB_s *const mmdb) {
         return;
     }
 
-    //if (NULL != mmdb->filename) {
-    //    FREE_AND_SET_NULL(mmdb->filename);
-    //}
     if (NULL != mmdb->file_content) {
 #ifdef _WIN32
         NtUnmapViewOfSection(NtCurrentProcess(), (PVOID)mmdb->file_content);
@@ -1816,11 +1828,18 @@ static void free_mmdb_struct(MMDB_s *const mmdb) {
          * to cleanup then. */
         //WSACleanup();
 #else
-        munmap((void *)mmdb->file_content, mmdb->file_size);
+// This is a const char * that we need to free, which isn't valid. However it
+// would mean changing the public API to fix this.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-qual"
+        munmap((void *)mmdb->file_content, (size_t)mmdb->file_size);
+#pragma clang diagnostic pop
 #endif
     }
 
     if (NULL != mmdb->metadata.database_type) {
+// This is a const char * that we need to free, which isn't valid. However it
+// would mean changing the public API to fix this.
         FREE_AND_SET_NULL(mmdb->metadata.database_type);
     }
 
@@ -1834,6 +1853,8 @@ static void free_languages_metadata(MMDB_s *mmdb) {
     }
 
     for (size_t i = 0; i < mmdb->metadata.languages.count; i++) {
+// This is a const char * that we need to free, which isn't valid. However it
+// would mean changing the public API to fix this.
         FREE_AND_SET_NULL(mmdb->metadata.languages.names[i]);
     }
     FREE_AND_SET_NULL(mmdb->metadata.languages.names);
@@ -1847,12 +1868,16 @@ static void free_descriptions_metadata(MMDB_s *mmdb) {
     for (size_t i = 0; i < mmdb->metadata.description.count; i++) {
         if (NULL != mmdb->metadata.description.descriptions[i]) {
             if (NULL != mmdb->metadata.description.descriptions[i]->language) {
+// This is a const char * that we need to free, which isn't valid. However it
+// would mean changing the public API to fix this.
                 FREE_AND_SET_NULL(
                     mmdb->metadata.description.descriptions[i]->language);
             }
 
             if (NULL !=
                 mmdb->metadata.description.descriptions[i]->description) {
+// This is a const char * that we need to free, which isn't valid. However it
+// would mean changing the public API to fix this.
                 FREE_AND_SET_NULL(
                     mmdb->metadata.description.descriptions[i]->description);
             }
@@ -1895,9 +1920,9 @@ dump_entry_data_list(FILE *stream,
                     *status = MMDB_INVALID_DATA_ERROR;
                     return NULL;
                 }
-                char *key = mmdb_strndup(
-                    (char *)entry_data_list->entry_data.utf8_string,
-                    entry_data_list->entry_data.data_size);
+                char *key =
+                    mmdb_strndup(entry_data_list->entry_data.utf8_string,
+                                 entry_data_list->entry_data.data_size);
                 if (NULL == key) {
                     *status = MMDB_OUT_OF_MEMORY_ERROR;
                     return NULL;
@@ -1942,9 +1967,8 @@ dump_entry_data_list(FILE *stream,
             fprintf(stream, "]\n");
         } break;
         case MMDB_DATA_TYPE_UTF8_STRING: {
-            char *string =
-                mmdb_strndup((char *)entry_data_list->entry_data.utf8_string,
-                             entry_data_list->entry_data.data_size);
+            char *string = mmdb_strndup(entry_data_list->entry_data.utf8_string,
+                                        entry_data_list->entry_data.data_size);
             if (NULL == string) {
                 *status = MMDB_OUT_OF_MEMORY_ERROR;
                 return NULL;
@@ -1956,7 +1980,7 @@ dump_entry_data_list(FILE *stream,
         } break;
         case MMDB_DATA_TYPE_BYTES: {
             char *hex_string =
-                bytes_to_hex((uint8_t *)entry_data_list->entry_data.bytes,
+                bytes_to_hex(entry_data_list->entry_data.bytes,
                              entry_data_list->entry_data.data_size);
 
             if (NULL == hex_string) {
@@ -2048,14 +2072,12 @@ dump_entry_data_list(FILE *stream,
 static void print_indentation(FILE *stream, int i) {
     char buffer[1024];
     int size = i >= 1024 ? 1023 : i;
-    memset(buffer, 32, size);
+    memset(buffer, 32, (size_t)size);
     buffer[size] = '\0';
     fputs(buffer, stream);
 }
 
-#pragma warning(push)
-#pragma warning(disable : 4996)
-static char *bytes_to_hex(uint8_t *bytes, uint32_t size) {
+static char *bytes_to_hex(uint8_t const *bytes, uint32_t size) {
     char *hex_string;
     MAYBE_CHECK_SIZE_OVERFLOW(size, SIZE_MAX / 2 - 1, NULL);
 
@@ -2070,7 +2092,6 @@ static char *bytes_to_hex(uint8_t *bytes, uint32_t size) {
 
     return hex_string;
 }
-#pragma warning(pop)
 
 const char *MMDB_strerror(int error_code) {
     switch (error_code) {
