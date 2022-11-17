@@ -38,9 +38,9 @@ BOOLEAN NetToolsGeoLiteInitialized(
     {
         PPH_STRING dbpath;
 
-        if (dbpath = PhGetApplicationDataFileName(&GeoDbFileName, FALSE))
+        if (dbpath = PhGetApplicationDataFileName(&GeoDbFileName, TRUE))
         {
-            if (MMDB_open(dbpath->Buffer, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
+            if (MMDB_open(&dbpath->sr, MMDB_MODE_MMAP, &GeoDbCountry) == MMDB_SUCCESS)
             {
                 LARGE_INTEGER systemTime;
                 ULONG secondsSince1970;
