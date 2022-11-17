@@ -429,16 +429,20 @@ VOID NTAPI EtpEtwEventCallback(
             break;
         }
 
+        if (IsEqualGUID(&EventRecord->EventHeader.ProviderId, &TcpIpGuid_I))
+            networkEvent.ProtocolType |= PH_TCP_PROTOCOL_TYPE;
+        else
+            networkEvent.ProtocolType |= PH_UDP_PROTOCOL_TYPE;
+
         if (networkEvent.Type != ULONG_MAX)
         {
             PH_IP_ENDPOINT source;
             PH_IP_ENDPOINT destination;
 
-            if (IsEqualGUID(&EventRecord->EventHeader.ProviderId, &TcpIpGuid_I))
+            if (networkEvent.ProtocolType & PH_IPV4_NETWORK_TYPE)
             {
                 TcpIpOrUdpIp_IPV4_Header* data = EventRecord->UserData;
 
-                networkEvent.ProtocolType |= PH_TCP_PROTOCOL_TYPE;
                 networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
                 networkEvent.TransferSize = data->size;
 
@@ -449,11 +453,10 @@ VOID NTAPI EtpEtwEventCallback(
                 destination.Address.Ipv4 = data->daddr.s_addr;
                 destination.Port = _byteswap_ushort(data->dport);
             }
-            else
+            else if (networkEvent.ProtocolType & PH_IPV6_NETWORK_TYPE)
             {
                 TcpIpOrUdpIp_IPV6_Header* data = EventRecord->UserData;
 
-                networkEvent.ProtocolType |= PH_UDP_PROTOCOL_TYPE;
                 networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
                 networkEvent.TransferSize = data->size;
 
