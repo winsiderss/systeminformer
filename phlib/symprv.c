@@ -379,15 +379,18 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
         {
             PIMAGEHLP_CBA_READ_MEMORY callbackData = (PIMAGEHLP_CBA_READ_MEMORY)CallbackData;
 
-            if (NT_SUCCESS(NtReadVirtualMemory(
-                ProcessHandle,
-                (PVOID)callbackData->addr,
-                callbackData->buf,
-                (SIZE_T)callbackData->bytes,
-                (PSIZE_T)callbackData->bytesread
-                )))
+            if (symbolProvider->IsRealHandle)
             {
-                return TRUE;
+                if (NT_SUCCESS(NtReadVirtualMemory(
+                    ProcessHandle,
+                    (PVOID)callbackData->addr,
+                    callbackData->buf,
+                    (SIZE_T)callbackData->bytes,
+                    (PSIZE_T)callbackData->bytesread
+                    )))
+                {
+                    return TRUE;
+                }
             }
         }
         return FALSE;
