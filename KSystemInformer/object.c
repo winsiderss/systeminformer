@@ -2141,6 +2141,19 @@ NTSTATUS KphOpenNamedObject(
 
     PAGED_PASSIVE();
 
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            ProbeOutputType(ObjectHandle, HANDLE);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
     status = ObOpenObjectByName(ObjectAttributes,
                                 ObjectType,
                                 AccessMode,
@@ -2156,6 +2169,7 @@ NTSTATUS KphOpenNamedObject(
                       status);
 
         objectHandle = NULL;
+        goto Exit;
     }
 
     if (AccessMode != KernelMode)
@@ -2173,6 +2187,8 @@ NTSTATUS KphOpenNamedObject(
     {
         *ObjectHandle = objectHandle;
     }
+
+Exit:
 
     return status;
 }
