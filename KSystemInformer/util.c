@@ -305,8 +305,11 @@ NTSTATUS KphpValidateAddressForSystemModulesByModuleList(
 
     endAddress = Add2Ptr(Address, Length);
 
+    KeEnterCriticalRegion();
     if (!ExAcquireResourceSharedLite(KphDynPsLoadedModuleResource, TRUE))
     {
+        KeLeaveCriticalRegion();
+
         KphTracePrint(TRACE_LEVEL_ERROR,
                       UTIL,
                       "Failed to acquire PsLoadedModuleResource");
@@ -339,6 +342,7 @@ NTSTATUS KphpValidateAddressForSystemModulesByModuleList(
     }
 
     ExReleaseResourceLite(KphDynPsLoadedModuleResource);
+    KeLeaveCriticalRegion();
 
     return (valid ? STATUS_SUCCESS : STATUS_ACCESS_VIOLATION);
 }

@@ -411,9 +411,12 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
                 // Prevent TOCTOU between checking the system module list and
                 // copying memory.
                 //
+                KeEnterCriticalRegion();
                 if (!ExAcquireResourceSharedLite(KphDynPsLoadedModuleResource,
                                                  TRUE))
                 {
+                    KeLeaveCriticalRegion();
+
                     KphTracePrint(TRACE_LEVEL_ERROR,
                                   GENERAL,
                                   "Failed to acquire PsLoadedModuleResource");
@@ -504,6 +507,7 @@ Exit:
     {
         NT_ASSERT(KphDynPsLoadedModuleResource);
         ExReleaseResourceLite(KphDynPsLoadedModuleResource);
+        KeLeaveCriticalRegion();
     }
 
     if (NumberOfBytesRead)
