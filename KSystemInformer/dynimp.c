@@ -186,8 +186,11 @@ PVOID KphpGetRoutineAddressByModuleList(
     routine = NULL;
     RtlInitUnicodeString(&moduleName, ModuleName);
 
+    KeEnterCriticalRegion();
     if (!ExAcquireResourceSharedLite(KphDynPsLoadedModuleResource, TRUE))
     {
+        KeLeaveCriticalRegion();
+
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Failed to acquire PsLoadedModuleResource to "
@@ -219,6 +222,7 @@ PVOID KphpGetRoutineAddressByModuleList(
     }
 
     ExReleaseResourceLite(KphDynPsLoadedModuleResource);
+    KeLeaveCriticalRegion();
 
     if (!routine)
     {
