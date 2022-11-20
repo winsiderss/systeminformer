@@ -43,8 +43,6 @@ NTSTATUS FLTAPI KphpFltFilterUnloadCallback(
 
     KphTracePrint(TRACE_LEVEL_VERBOSE, INFORMER, "Filter unload invoked");
 
-    KphCommsStop();
-
     return STATUS_SUCCESS;
 }
 
@@ -373,6 +371,8 @@ VOID KphFltUnregister(
     )
 {
     PAGED_PASSIVE();
+
+    KphCommsStop();
 
     if (!KphFltFilter)
     {
