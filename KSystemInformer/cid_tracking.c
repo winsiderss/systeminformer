@@ -144,6 +144,19 @@ NTSTATUS KSIAPI KphpInitializeProcessContext(
 
     process->ProcessId = PsGetProcessId(process->EProcess);
 
+    process->ApcNoopRoutine = (PKNORMAL_ROUTINE)KphNtDllRtlSetBits;
+
+#if _WIN64
+    if (PsGetProcessWow64Process(process->EProcess))
+    {
+        process->IsWow64 = TRUE;
+    }
+    else
+#endif
+    {
+        process->IsWow64 = FALSE;
+    }
+
     KphInitializeRWLock(&process->ThreadListLock);
     InitializeListHead(&process->ThreadListHead);
 

@@ -1127,7 +1127,8 @@ typedef struct _KPH_PROCESS_CONTEXT
             ULONG SecurelyCreated : 1;
             ULONG Protected : 1;
             ULONG IsLsass : 1;
-            ULONG Reserved : 26;
+            ULONG IsWow64 : 1;
+            ULONG Reserved : 25;
         };
     };
 
@@ -1149,6 +1150,8 @@ typedef struct _KPH_PROCESS_CONTEXT
     volatile SIZE_T NumberOfAntimalwareImageLoads;
     volatile SIZE_T NumberOfVerifiedImageLoads;
     volatile SIZE_T NumberOfUntrustedImageLoads;
+
+    PKNORMAL_ROUTINE ApcNoopRoutine;
 
 } KPH_PROCESS_CONTEXT, *PKPH_PROCESS_CONTEXT;
 
@@ -1503,4 +1506,14 @@ NTSTATUS KphQueryVolumeInformationFile(
     _In_ ULONG FsInformationLength,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ KPROCESSOR_MODE AccessMode
+    );
+
+// knowndll
+
+extern PVOID KphNtDllBaseAddress;
+extern PVOID KphNtDllRtlSetBits;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS KphInitializeKnownDll(
+    VOID
     );

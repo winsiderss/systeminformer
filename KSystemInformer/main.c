@@ -198,6 +198,17 @@ NTSTATUS DriverEntry(
 
     KphDynamicImport();
 
+    status = KphInitializeKnownDll();
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "KphInitializeKnownDll failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
     status = KphLocateKernelRevision(&KphOsRevision);
     if (!NT_SUCCESS(status))
     {
