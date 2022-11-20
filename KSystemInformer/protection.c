@@ -920,21 +920,28 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
     PKPH_IMAGE_LOAD_APC firstApc;
     PKPH_IMAGE_LOAD_APC secondApc;
     KPH_IMAGE_LOAD_APC_INIT init;
+#if DBG
+    PKPH_THREAD_CONTEXT actor;
+#endif
 
     PAGED_CODE();
-
-    UNREFERENCED_PARAMETER(NormalContext);
-    UNREFERENCED_PARAMETER(SystemArgument1);
-    UNREFERENCED_PARAMETER(SystemArgument2);
-
-    //
-    // Cancel the faked routine.
-    //
-    *NormalRoutine = NULL;
 
     secondApc = NULL;
 
     firstApc = CONTAINING_RECORD(Apc, KPH_IMAGE_LOAD_APC, Apc);
+
+    DBG_UNREFERENCED_PARAMETER(NormalRoutine);
+#if DBG
+    actor = KphGetCurrentThreadContext();
+    NT_ASSERT(actor && actor->ProcessContext);
+    NT_ASSERT(*NormalRoutine == actor->ProcessContext->ApcNoopRoutine);
+    KphDereferenceObject(actor);
+    actor = NULL;
+#endif
+
+    *NormalContext = NULL;
+    *SystemArgument1 = NULL;
+    *SystemArgument2 = NULL;
 
     init.Process = firstApc->Process;
     init.ImageBase = firstApc->ImageBase;
@@ -1040,11 +1047,17 @@ VOID KphpHandleUntrustedImageLoad(
         goto Exit;
     }
 
+    actor = KphGetCurrentThreadContext();
+    if (!actor || !actor->ProcessContext)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, PROTECTION, "Insufficient tracking.");
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
     if (ImageBase > MmHighestUserAddress)
     {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      PROTECTION,
-                      "Invalid image base!");
+        KphTracePrint(TRACE_LEVEL_ERROR, PROTECTION, "Invalid image base!");
 
         //
         // This isn't an error, we just check for safety downstream.
@@ -1071,16 +1084,13 @@ VOID KphpHandleUntrustedImageLoad(
         goto Exit;
     }
 
-    //
-    // Fake a normal routine so the APC mode is honored, we'll cancel it later.
-    //
     KsiInitializeApc(&apc->Apc,
                      KphDriverObject,
-                     KeGetCurrentThread(),
+                     actor->EThread,
                      OriginalApcEnvironment,
                      KphpImageLoadKernelRoutineFirst,
                      KphpImageLoadCleanupRoutine,
-                     (PKNORMAL_ROUTINE)(PVOID)1,
+                     actor->ProcessContext->ApcNoopRoutine,
                      UserMode,
                      NULL);
 

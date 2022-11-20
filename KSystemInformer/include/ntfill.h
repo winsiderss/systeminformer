@@ -708,7 +708,7 @@ PsGetProcessInheritedFromUniqueProcessId(
     _In_ PEPROCESS Process
     );
 
-#if defined(_WIN64)
+#if _WIN64
 
 NTKERNELAPI
 PVOID

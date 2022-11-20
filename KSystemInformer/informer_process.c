@@ -68,6 +68,7 @@ VOID KphpFreeProcessCreateApc(
 
     NT_ASSERT(KphpProcesCreateApcLookaside);
 
+    KphDereferenceObject(Apc->Actor);
     KphFreeToNPagedLookasideObject(KphpProcesCreateApcLookaside, Apc);
     KphDereferenceObject(KphpProcesCreateApcLookaside);
 }
@@ -368,7 +369,6 @@ KphpProcessCreateCleanupRoutine(
 
     apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
 
-    KphDereferenceObject(apc->Actor);
     KphpFreeProcessCreateApc(apc);
 }
 
@@ -401,16 +401,14 @@ VOID KSIAPI KphpProcessCreateKernelRoutine(
 
     PAGED_CODE();
 
-    UNREFERENCED_PARAMETER(NormalContext);
-    UNREFERENCED_PARAMETER(SystemArgument1);
-    UNREFERENCED_PARAMETER(SystemArgument2);
-
     apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
 
-    //
-    // Cancel the faked routine.
-    //
-    *NormalRoutine = NULL;
+    DBG_UNREFERENCED_PARAMETER(NormalRoutine);
+    NT_ASSERT(*NormalRoutine == apc->Actor->ProcessContext->ApcNoopRoutine);
+
+    *NormalContext = NULL;
+    *SystemArgument1 = NULL;
+    *SystemArgument2 = NULL;
 
     NT_ASSERT(apc->Actor->IsCreatingProcess);
 
@@ -449,14 +447,13 @@ VOID KphpPerformProcessCreationTracking(
     NT_ASSERT(PsGetCurrentProcessId() == CreateInfo->CreatingThreadId.UniqueProcess);
     NT_ASSERT(PsGetCurrentThreadId() == CreateInfo->CreatingThreadId.UniqueThread);
 
-    actor = KphGetCurrentThreadContext();
-    if (!actor)
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      TRACKING,
-                      "KphGetCurrentThreadContext returned null");
+    apc = NULL;
 
-        return;
+    actor = KphGetCurrentThreadContext();
+    if (!actor || !actor->ProcessContext)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "Insufficient tracking.");
+        goto Exit;
     }
 
     apc = KphpAllocateProcessCreateApc();
@@ -466,46 +463,55 @@ VOID KphpPerformProcessCreationTracking(
                       TRACKING,
                       "Failed to allocate create process APC");
 
-        KphDereferenceObject(actor);
-        return;
+        goto Exit;
     }
 
     apc->Actor = actor;
-    actor->IsCreatingProcess = TRUE;
-    actor->IsCreatingProcessId = ProcessId;
+    actor = NULL;
 
-    //
-    // Fake a normal routine do the APC mode is honored, we'll cancel it later.
-    //
+    apc->Actor->IsCreatingProcess = TRUE;
+    apc->Actor->IsCreatingProcessId = ProcessId;
+
     KsiInitializeApc(&apc->Apc,
                      KphDriverObject,
-                     KeGetCurrentThread(),
+                     apc->Actor->EThread,
                      OriginalApcEnvironment,
                      KphpProcessCreateKernelRoutine,
                      KphpProcessCreateCleanupRoutine,
-                     (PKNORMAL_ROUTINE)(PVOID)1,
+                     apc->Actor->ProcessContext->ApcNoopRoutine,
                      UserMode,
                      NULL);
 
-    if (KsiInsertQueueApc(&apc->Apc, NULL, NULL, IO_NO_INCREMENT))
+    if (!KsiInsertQueueApc(&apc->Apc, NULL, NULL, IO_NO_INCREMENT))
     {
+        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "KsiInsertQueueApc failed");
+
         //
-        // Stage the thread for user mode APC delivery.
+        // No choice other than to reset the actor state immediately.
         //
-        KeTestAlertThread(UserMode);
-        return;
+        apc->Actor->IsCreatingProcess = FALSE;
+        apc->Actor->IsCreatingProcessId = NULL;
+        goto Exit;
     }
 
-    KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "KsiInsertQueueApc failed");
-
     //
-    // No choice other than to reset the actor state immediately.
+    // Stage the thread for user mode APC delivery.
     //
-    actor->IsCreatingProcess = FALSE;
-    actor->IsCreatingProcessId = NULL;
+    KeTestAlertThread(UserMode);
 
-    KphDereferenceObject(actor);
-    KphpFreeProcessCreateApc(apc);
+    apc = NULL;
+
+Exit:
+
+    if (apc)
+    {
+        KphpFreeProcessCreateApc(apc);
+    }
+
+    if (actor)
+    {
+        KphDereferenceObject(actor);
+    }
 }
 
 /**
