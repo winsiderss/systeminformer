@@ -206,7 +206,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
             gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
             // %.2f%%%s\n%s
-            PhInitFormatF(&format[0], (DOUBLE)gpu * 100, 2);
+            PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
             PhInitFormatC(&format[1], L'%');
             PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
             PhInitFormatC(&format[3], L'\n');
@@ -232,7 +232,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
                 PhInitFormatS(&format[3], L" / ");
@@ -241,7 +241,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuDedicatedUsage);
 
@@ -252,7 +252,7 @@ BOOLEAN EtpGpuSysInfoSectionCallback(
                 PH_FORMAT format[5];
 
                 // %.2f%%\n%s / %s
-                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtGpuSharedUsage);
                 PhInitFormatS(&format[3], L" / ");
@@ -893,7 +893,7 @@ VOID EtpNotifyGpuGraph(
                     gpu = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
                     // %.2f%%%s\n%s
-                    PhInitFormatF(&format[0], gpu * 100, 2);
+                    PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');
                     PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
                     PhInitFormatC(&format[3], L'\n');
@@ -1453,7 +1453,7 @@ PPH_STRING EtpGetMaxNodeString(
         PhInitFormatS(&format[2],L" (");
         PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
         PhInitFormatS(&format[4], L"): ");
-        PhInitFormatF(&format[5], maxGpuUsage * 100, 2);
+        PhInitFormatF(&format[5], maxGpuUsage * 100, EtMaxPrecisionUnit);
         PhInitFormatC(&format[6], L'%');
 
         maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 0);

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2015
- *     dmex    2016-2020
+ *     dmex    2016-2022
  *
  */
 
@@ -27,7 +27,7 @@ VOID EtGpuMiniInformationInitializing(
 BOOLEAN EtpGpuListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
+    _In_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     )
 {
@@ -39,7 +39,7 @@ BOOLEAN EtpGpuListSectionCallback(
 
             // GPU    %.2f%%
             PhInitFormatS(&format[0], L"GPU    ");
-            PhInitFormatF(&format[1], EtGpuNodeUsage * 100, 2);
+            PhInitFormatF(&format[1], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
             PhInitFormatC(&format[2], L'%');
 
             ListSection->Section->Parameters->SetSectionText(ListSection->Section,
@@ -49,9 +49,6 @@ BOOLEAN EtpGpuListSectionCallback(
     case MiListSectionSortProcessList:
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
-
-            if (!sortList)
-                break;
 
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_PROCESS_NODE), EtpGpuListSectionProcessCompareFunction);
@@ -63,9 +60,6 @@ BOOLEAN EtpGpuListSectionCallback(
             PPH_LIST processes;
             FLOAT gpuUsage;
             ULONG i;
-
-            if (!assignSortData)
-                break;
 
             processes = assignSortData->ProcessGroup->Processes;
             gpuUsage = 0;
@@ -84,9 +78,6 @@ BOOLEAN EtpGpuListSectionCallback(
         {
             PPH_MINIINFO_LIST_SECTION_SORT_LIST sortList = Parameter1;
 
-            if (!sortList)
-                break;
-
             qsort(sortList->List->Items, sortList->List->Count,
                 sizeof(PPH_MINIINFO_LIST_SECTION_SORT_DATA), EtpGpuListSectionNodeCompareFunction);
         }
@@ -98,14 +89,11 @@ BOOLEAN EtpGpuListSectionCallback(
             FLOAT gpuUsage;
             PH_FORMAT format[2];
 
-            if (!getUsageText)
-                break;
-
             processes = getUsageText->ProcessGroup->Processes;
             gpuUsage = *(PFLOAT)getUsageText->SortData->UserData;
 
             // %.2f%%
-            PhInitFormatF(&format[0], gpuUsage * 100, 2);
+            PhInitFormatF(&format[0], gpuUsage * 100, EtMaxPrecisionUnit);
             PhInitFormatC(&format[1], L'%');
 
             PhMoveReference(&getUsageText->Line1, PhFormat(format, RTL_NUMBER_OF(format), 0));

@@ -51,6 +51,7 @@ extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
+extern USHORT EtMaxPrecisionUnit;
 extern BOOLEAN EtGraphShowText;
 extern BOOLEAN EtEnableScaleGraph;
 extern BOOLEAN EtEnableScaleText;
