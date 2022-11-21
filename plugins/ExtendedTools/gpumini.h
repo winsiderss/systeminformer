@@ -16,7 +16,7 @@
 BOOLEAN EtpGpuListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
+    _In_ PVOID Parameter1,
     _In_opt_ PVOID Parameter2
     );
 

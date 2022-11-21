@@ -367,7 +367,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                     PH_FORMAT format[4];
 
                                     // %.2f%% (%s)
-                                    PhInitFormatF(&format[0], gpu * 100, 2);
+                                    PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
                                     PhInitFormatS(&format[1], L"% (");
                                     PhInitFormatSR(&format[2], engineName->sr);
                                     PhInitFormatC(&format[3], L')');
@@ -379,7 +379,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                     PH_FORMAT format[4];
 
                                     // %.2f%% (Node %lu)
-                                    PhInitFormatF(&format[0], gpu * 100, 2);
+                                    PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
                                     PhInitFormatS(&format[1], L"% (Node ");
                                     PhInitFormatU(&format[2], i);
                                     PhInitFormatC(&format[3], L')');
@@ -456,7 +456,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         PH_FORMAT format[9];
 
                                         // %.2f%%\nNode %lu (%s) on %s\n%s
-                                        PhInitFormatF(&format[0], gpu * 100, 2);
+                                        PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
                                         PhInitFormatS(&format[1], L"%\nNode ");
                                         PhInitFormatU(&format[2], i);
                                         PhInitFormatS(&format[3], L" (");
@@ -473,7 +473,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                                         PH_FORMAT format[7];
 
                                         // %.2f%%\nNode %lu on %s\n%s
-                                        PhInitFormatF(&format[0], gpu * 100, 2);
+                                        PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
                                         PhInitFormatS(&format[1], L"%\nNode ");
                                         PhInitFormatU(&format[2], i);
                                         PhInitFormatS(&format[3], L" on ");

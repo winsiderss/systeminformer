@@ -115,68 +115,70 @@ VOID EtLoadTrayIconGuids(
     VOID
     )
 {
-    PPH_STRING settingsString = NULL;
-    PH_STRINGREF remaining;
-    ULONG i;
-
-    settingsString = PhGetStringSetting(SETTING_NAME_TRAYICON_GUIDS);
-
-    if (PhIsNullOrEmptyString(settingsString))
-    {
-        PH_STRING_BUILDER iconListBuilder;
-        PPH_STRING iconGuid;
-
-        PhInitializeStringBuilder(&iconListBuilder, 100);
-
-        for (i = 0; i < RTL_NUMBER_OF(EtpTrayIconGuids); i++)
-        {
-            PhGenerateGuid(&EtpTrayIconGuids[i]);
-
-            if (iconGuid = PhFormatGuid(&EtpTrayIconGuids[i]))
-            {
-                PhAppendFormatStringBuilder(
-                    &iconListBuilder,
-                    L"%s|",
-                    iconGuid->Buffer
-                    );
-                PhDereferenceObject(iconGuid);
-            }
-        }
-
-        if (iconListBuilder.String->Length != 0)
-            PhRemoveEndStringBuilder(&iconListBuilder, 1);
-
-        PhMoveReference(&settingsString, PhFinalStringBuilderString(&iconListBuilder));
-        PhSetStringSetting2(SETTING_NAME_TRAYICON_GUIDS, &settingsString->sr);
-        PhDereferenceObject(settingsString);
-    }
-    else
-    {
-        remaining = PhGetStringRef(settingsString);
-
-        for (i = 0; i < RTL_NUMBER_OF(EtpTrayIconGuids); i++)
-        {
-            PH_STRINGREF guidPart;
-            GUID guid;
-
-            if (remaining.Length == 0)
-                continue;
-
-            PhSplitStringRefAtChar(&remaining, L'|', &guidPart, &remaining);
-
-            if (guidPart.Length == 0)
-                continue;
-
-            if (!NT_SUCCESS(PhStringToGuid(&guidPart, &guid)))
-                PhGenerateGuid(&EtpTrayIconGuids[i]);
-            else
-                EtpTrayIconGuids[i] = guid;
-        }
-
-        PhDereferenceObject(settingsString);
-    }
-
     EtTrayIconTransparencyEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+
+    if (PhGetIntegerSetting(L"IconTrayPersistGuidEnabled"))
+    {
+        PPH_STRING settingsString = NULL;
+        PH_STRINGREF remaining;
+
+        settingsString = PhGetStringSetting(SETTING_NAME_TRAYICON_GUIDS);
+
+        if (PhIsNullOrEmptyString(settingsString))
+        {
+            PH_STRING_BUILDER iconListBuilder;
+            PPH_STRING iconGuid;
+
+            PhInitializeStringBuilder(&iconListBuilder, 100);
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(EtpTrayIconGuids); i++)
+            {
+                PhGenerateGuid(&EtpTrayIconGuids[i]);
+
+                if (iconGuid = PhFormatGuid(&EtpTrayIconGuids[i]))
+                {
+                    PhAppendFormatStringBuilder(
+                        &iconListBuilder,
+                        L"%s|",
+                        iconGuid->Buffer
+                    );
+                    PhDereferenceObject(iconGuid);
+                }
+            }
+
+            if (iconListBuilder.String->Length != 0)
+                PhRemoveEndStringBuilder(&iconListBuilder, 1);
+
+            PhMoveReference(&settingsString, PhFinalStringBuilderString(&iconListBuilder));
+            PhSetStringSetting2(SETTING_NAME_TRAYICON_GUIDS, &settingsString->sr);
+            PhDereferenceObject(settingsString);
+        }
+        else
+        {
+            remaining = PhGetStringRef(settingsString);
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(EtpTrayIconGuids); i++)
+            {
+                PH_STRINGREF guidPart;
+                GUID guid;
+
+                if (remaining.Length == 0)
+                    continue;
+
+                PhSplitStringRefAtChar(&remaining, L'|', &guidPart, &remaining);
+
+                if (guidPart.Length == 0)
+                    continue;
+
+                if (!NT_SUCCESS(PhStringToGuid(&guidPart, &guid)))
+                    PhGenerateGuid(&EtpTrayIconGuids[i]);
+                else
+                    EtpTrayIconGuids[i] = guid;
+            }
+
+            PhDereferenceObject(settingsString);
+        }
+    }
 }
 
 VOID EtRegisterNotifyIcons(
@@ -302,7 +304,13 @@ VOID EtpGpuIconUpdateCallback(
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
 
     if (!lineData1)
+    {
+        SelectBitmap(hdc, oldBitmap);
+        *NewIconOrBitmap = bitmap;
+        *Flags = PH_NF_UPDATE_IS_BITMAP;
+        *NewText = PhReferenceEmptyString();
         return;
+    }
 
     lineDataCount = min(maxDataCount, EtGpuNodeHistory.Count);
     PhCopyCircularBuffer_FLOAT(&EtGpuNodeHistory, lineData1, lineDataCount);
@@ -335,7 +343,7 @@ VOID EtpGpuIconUpdateCallback(
         maxGpuProcessItem = NULL;
 
     PhInitFormatS(&format[0], L"GPU usage: ");
-    PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
+    PhInitFormatF(&format[1], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
     PhInitFormatC(&format[2], '%');
 
     if (maxGpuProcessItem)
@@ -343,7 +351,7 @@ VOID EtpGpuIconUpdateCallback(
         PhInitFormatC(&format[3], '\n');
         PhInitFormatSR(&format[4], maxGpuProcessItem->ProcessName->sr);
         PhInitFormatS(&format[5], L": ");
-        PhInitFormatF(&format[6], (DOUBLE)EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUtilization * 100, 2);
+        PhInitFormatF(&format[6], EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUtilization * 100, EtMaxPrecisionUnit);
         PhInitFormatC(&format[7], '%');
     }
 
@@ -419,6 +427,15 @@ VOID EtpDiskIconUpdateCallback(
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
 
+    if (!(lineData1 && lineData2))
+    {
+        SelectBitmap(hdc, oldBitmap);
+        *NewIconOrBitmap = bitmap;
+        *Flags = PH_NF_UPDATE_IS_BITMAP;
+        *NewText = PhReferenceEmptyString();
+        return;
+    }
+
     lineDataCount = min(maxDataCount, EtDiskReadHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
 
@@ -443,7 +460,10 @@ VOID EtpDiskIconUpdateCallback(
     drawInfo.LineBackColor2 = PhHalveColorBrightness(drawInfo.LineColor2);
     PhDrawGraphDirect(hdc, bits, &drawInfo);
 
-    PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    if (EtTrayIconTransparencyEnabled)
+    {
+        PhBitmapSetAlpha(bits, drawInfo.Width, drawInfo.Height);
+    }
 
     SelectBitmap(hdc, oldBitmap);
     *NewIconOrBitmap = bitmap;
@@ -544,6 +564,15 @@ VOID EtpNetworkIconUpdateCallback(
     maxDataCount = drawInfo.Width / 2 + 1;
     lineData1 = _malloca(maxDataCount * sizeof(FLOAT));
     lineData2 = _malloca(maxDataCount * sizeof(FLOAT));
+
+    if (!(lineData1 && lineData2))
+    {
+        SelectBitmap(hdc, oldBitmap);
+        *NewIconOrBitmap = bitmap;
+        *Flags = PH_NF_UPDATE_IS_BITMAP;
+        *NewText = PhReferenceEmptyString();
+        return;
+    }
 
     lineDataCount = min(maxDataCount, EtNetworkReceiveHistory.Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
@@ -697,7 +726,7 @@ VOID EtpGpuTextIconUpdateCallback(
         maxGpuProcessItem = NULL;
 
     PhInitFormatS(&format[0], L"GPU usage: ");
-    PhInitFormatF(&format[1], (DOUBLE)EtGpuNodeUsage * 100, 2);
+    PhInitFormatF(&format[1], EtGpuNodeUsage * 100, EtMaxPrecisionUnit);
     PhInitFormatC(&format[2], '%');
 
     if (maxGpuProcessItem)
@@ -705,7 +734,7 @@ VOID EtpGpuTextIconUpdateCallback(
         PhInitFormatC(&format[3], '\n');
         PhInitFormatSR(&format[4], maxGpuProcessItem->ProcessName->sr);
         PhInitFormatS(&format[5], L": ");
-        PhInitFormatF(&format[6], (DOUBLE)EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUtilization * 100, 2);
+        PhInitFormatF(&format[6], EtGetProcessBlock(maxGpuProcessItem)->GpuNodeUtilization * 100, EtMaxPrecisionUnit);
         PhInitFormatC(&format[7], '%');
     }
 
@@ -925,7 +954,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(EtpToolbarGpuHistoryGraphMessageCallba
                     gpuUsage = PhGetItemCircularBuffer_FLOAT(&EtGpuNodeHistory, getTooltipText->Index);
 
                     // %.2f%%%s\n%s
-                    PhInitFormatF(&format[0], (DOUBLE)gpuUsage * 100, 2);
+                    PhInitFormatF(&format[0], gpuUsage * 100, EtMaxPrecisionUnit);
                     PhInitFormatC(&format[1], L'%');
                     PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, EtpGetMaxNodeString(getTooltipText->Index))->sr);
                     PhInitFormatC(&format[3], L'\n');

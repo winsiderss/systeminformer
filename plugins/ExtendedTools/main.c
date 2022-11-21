@@ -54,6 +54,7 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
 ULONG EtUpdateInterval = 0;
+USHORT EtMaxPrecisionUnit = 2;
 BOOLEAN EtGraphShowText = FALSE;
 BOOLEAN EtEnableScaleGraph = FALSE;
 BOOLEAN EtEnableScaleText = FALSE;
@@ -298,7 +299,7 @@ VOID NTAPI HandlePropertiesInitializingCallback(
 }
 
 VOID NTAPI ProcessMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
@@ -339,7 +340,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
 }
 
 VOID NTAPI ThreadMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
@@ -349,9 +350,6 @@ VOID NTAPI ThreadMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
 
     WctThreadMenuInitializingCallback(Parameter, Context);
-
-    if (!menuInfo)
-        return;
 
     if (menuInfo->u.Thread.NumberOfThreads == 1)
         threadItem = menuInfo->u.Thread.Threads[0];
@@ -373,7 +371,7 @@ VOID NTAPI ThreadMenuInitializingCallback(
 }
 
 VOID NTAPI ModuleMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
@@ -385,9 +383,6 @@ VOID NTAPI ModuleMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
 
     addMenuItem = FALSE;
-
-    if (!menuInfo)
-        return;
 
     if (processItem = PhReferenceProcessItem(menuInfo->u.Module.ProcessId))
     {
@@ -420,41 +415,32 @@ VOID NTAPI ModuleMenuInitializingCallback(
 }
 
 VOID NTAPI ProcessTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
-
-    if (!treeNewInfo)
-        return;
 
     ProcessTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtProcessTreeNewInitializing(Parameter);
 }
 
 VOID NTAPI NetworkTreeNewInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
-
-    if (!treeNewInfo)
-        return;
 
     NetworkTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtNetworkTreeNewInitializing(Parameter);
 }
 
 VOID NTAPI SystemInformationInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    if (!Parameter)
-        return;
-
     if (EtGpuEnabled)
         EtGpuSystemInformationInitializing(Parameter);
     if (EtEtwEnabled && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS))
@@ -462,13 +448,10 @@ VOID NTAPI SystemInformationInitializingCallback(
 }
 
 VOID NTAPI MiniInformationInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    if (!Parameter)
-        return;
-
     if (EtGpuEnabled)
         EtGpuMiniInformationInitializing(Parameter);
     if (EtEtwEnabled)
@@ -476,13 +459,10 @@ VOID NTAPI MiniInformationInitializingCallback(
 }
 
 VOID NTAPI TrayIconsInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    if (!Parameter)
-        return;
-
     EtLoadTrayIconGuids();
     EtRegisterNotifyIcons(Parameter);
 }
@@ -872,6 +852,7 @@ VOID EtLoadSettings(
     )
 {
     EtUpdateInterval = PhGetIntegerSetting(L"UpdateInterval");
+    EtMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
     EtGraphShowText = !!PhGetIntegerSetting(L"GraphShowText");
     EtEnableScaleGraph = !!PhGetIntegerSetting(L"EnableGraphMaxScale");
     EtEnableScaleText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
