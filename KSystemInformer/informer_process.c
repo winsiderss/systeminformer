@@ -404,6 +404,7 @@ VOID KSIAPI KphpProcessCreateKernelRoutine(
     apc = CONTAINING_RECORD(Apc, KPH_PROCESS_CREATE_APC, Apc);
 
     DBG_UNREFERENCED_PARAMETER(NormalRoutine);
+    NT_ASSERT(apc->Actor->ProcessContext->ApcNoopRoutine);
     NT_ASSERT(*NormalRoutine == apc->Actor->ProcessContext->ApcNoopRoutine);
 
     *NormalContext = NULL;
@@ -453,6 +454,12 @@ VOID KphpPerformProcessCreationTracking(
     if (!actor || !actor->ProcessContext)
     {
         KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "Insufficient tracking.");
+        goto Exit;
+    }
+
+    if (!actor->ProcessContext->ApcNoopRoutine)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "APC no-op routine null.");
         goto Exit;
     }
 
