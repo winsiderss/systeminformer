@@ -1141,6 +1141,11 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                             PhInitializeStringRef(&getCellText->Text, L"100%");
                             break;
                         }
+                        if (moduleItem->ImageCoherency > 0.9999f)
+                        {
+                            PhInitializeStringRef(&getCellText->Text, L">99.99%");
+                            break;
+                        }
 
                         PhInitFormatF(&format[0], moduleItem->ImageCoherency * 100.0f, PhMaxPrecisionUnit);
                         PhInitFormatS(&format[1], L"%");
