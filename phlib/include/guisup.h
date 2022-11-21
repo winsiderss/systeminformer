@@ -97,6 +97,24 @@ FORCEINLINE VOID PhSetWindowExStyle(
 #define WM_REFLECT 0x2000
 #endif
 
+FORCEINLINE LRESULT PhReflectMessage(
+    _In_ HWND Handle,
+    _In_ UINT Message,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    if (Message == WM_NOTIFY)
+    {
+        LPNMHDR header = (LPNMHDR)lParam;
+
+        if (header->hwndFrom == Handle)
+            return SendMessage(Handle, WM_REFLECT + Message, wParam, lParam);
+    }
+
+    return 0;
+}
+
 #define REFLECT_MESSAGE(hwnd, msg, wParam, lParam) \
     { \
         LRESULT result_ = PhReflectMessage(hwnd, msg, wParam, lParam); \
@@ -115,24 +133,6 @@ FORCEINLINE VOID PhSetWindowExStyle(
             return TRUE; \
         } \
     }
-
-FORCEINLINE LRESULT PhReflectMessage(
-    _In_ HWND Handle,
-    _In_ UINT Message,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    if (Message == WM_NOTIFY)
-    {
-        LPNMHDR header = (LPNMHDR)lParam;
-
-        if (header->hwndFrom == Handle)
-            return SendMessage(Handle, WM_REFLECT + Message, wParam, lParam);
-    }
-
-    return 0;
-}
 
 FORCEINLINE VOID PhSetListViewStyle(
     _In_ HWND Handle,

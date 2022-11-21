@@ -764,7 +764,10 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 PhDereferenceObject(context->ProcessItem);
                 context->ProcessItem = NULL;
             }
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
@@ -845,6 +848,8 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
     case WM_NOTIFY:
         {
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+
+            REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
         }
         break;
     case WM_SIZE:
@@ -917,8 +922,6 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }

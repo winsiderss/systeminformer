@@ -438,6 +438,8 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                 }
                 break;
             }
+
+            REFLECT_MESSAGE_DLG(hwndDlg, PhHiddenProcessesListViewHandle, uMsg, wParam, lParam);
         }
         break;
     case WM_SIZE:
@@ -466,8 +468,6 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         }
         break;
     }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, PhHiddenProcessesListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
