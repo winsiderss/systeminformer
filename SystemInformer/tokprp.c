@@ -1645,6 +1645,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
             }
 
             PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
+
+            REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->ListViewHandle, uMsg, wParam, lParam);
         }
         break;
     case WM_CONTEXTMENU:
@@ -1754,8 +1756,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
         }
         break;
     }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->ListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }

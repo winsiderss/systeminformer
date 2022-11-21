@@ -3271,6 +3271,11 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            REFLECT_MESSAGE_DLG(hwndDlg, context->TreeNewHandle, uMsg, wParam, lParam);
+        }
+        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -3278,8 +3283,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, context->TreeNewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
@@ -3508,6 +3511,8 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                 }
                 break;
             }
+
+            REFLECT_MESSAGE_DLG(hwndDlg, HighlightingListViewHandle, uMsg, wParam, lParam);
         }
         break;
     case WM_CTLCOLORBTN:
@@ -3517,8 +3522,6 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, HighlightingListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
@@ -3661,6 +3664,11 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
                 }
                 break;
             }
+
+            if (IsWindowEnabled(PhpGraphListViewHandle)) // HACK: Move to WM_COMMAND (dmex)
+            {
+                REFLECT_MESSAGE_DLG(hwndDlg, PhpGraphListViewHandle, uMsg, wParam, lParam);
+            }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -3669,11 +3677,6 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
         return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    }
-
-    if (IsWindowEnabled(PhpGraphListViewHandle)) // HACK: Move to WM_COMMAND (dmex)
-    {
-        REFLECT_MESSAGE_DLG(hwndDlg, PhpGraphListViewHandle, uMsg, wParam, lParam);
     }
 
     return FALSE;

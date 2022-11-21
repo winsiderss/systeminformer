@@ -2034,6 +2034,11 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             //PhSaveListViewColumnsToSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
+        }
+        break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -2164,6 +2169,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             }
 
             PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+
+            REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
         }
         break;
     case WM_CONTEXTMENU:
@@ -2182,11 +2189,6 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             return (INT_PTR)GetStockBrush(DC_BRUSH);
         }
         break;
-    }
-
-    if (context)
-    {
-        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
     }
 
     return FALSE;

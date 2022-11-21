@@ -514,11 +514,12 @@ INT_PTR CALLBACK TextDlgProc(
                 DeleteFont(context->ListViewBoldFont);
 
             PhpUpdaterFreeListViewEntries(context);
-
+        }
+        break;
+    case WM_NCDESTROY:
+        {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-
             PhFree(context);
-            context = NULL;
         }
         break;
     case WM_SIZE:
@@ -674,6 +675,8 @@ INT_PTR CALLBACK TextDlgProc(
             }
 
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+
+            REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
         }
         break;
     case WM_CONTEXTMENU:
@@ -800,11 +803,6 @@ INT_PTR CALLBACK TextDlgProc(
         return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    }
-
-    if (context)
-    {
-        REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
     }
 
     return FALSE;
