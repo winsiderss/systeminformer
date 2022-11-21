@@ -67,6 +67,54 @@ static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
 static ULONG SelectedUserSessionId = ULONG_MAX;
 
+PPH_STRING PhGetMainWindowTitle(
+    VOID
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING currentUserName;
+
+    if (!PhGetIntegerSetting(L"EnableWindowText"))
+    {
+        return NULL;
+    }
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+    PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
+
+    if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
+    {
+        PhAppendStringBuilder2(&stringBuilder, L" [");
+        PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
+        PhAppendCharStringBuilder(&stringBuilder, L']');
+        PhDereferenceObject(currentUserName);
+    }
+
+    switch (KphLevel())
+    {
+    case KphLevelMax:
+        PhAppendStringBuilder2(&stringBuilder, L"++");
+        break;
+    case KphLevelHigh:
+        PhAppendStringBuilder2(&stringBuilder, L"+");
+        break;
+    case KphLevelMed:
+        PhAppendStringBuilder2(&stringBuilder, L"~");
+        break;
+    case KphLevelLow:
+        PhAppendStringBuilder2(&stringBuilder, L"-");
+        break;
+    case KphLevelMin:
+        PhAppendStringBuilder2(&stringBuilder, L"--");
+        break;
+    }
+
+    if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
+        PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
 BOOLEAN PhMainWndInitialization(
     _In_ INT ShowCommand
     )
@@ -96,49 +144,8 @@ BOOLEAN PhMainWndInitialization(
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue).Pair;
 
     // Create the window title.
-    windowName = NULL;
-
-    if (PhGetIntegerSetting(L"EnableWindowText"))
-    {
-        PH_STRING_BUILDER stringBuilder;
-        PPH_STRING currentUserName;
-
-        PhInitializeStringBuilder(&stringBuilder, 100);
-        PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
-
-        if (currentUserName = PhGetSidFullName(PhGetOwnTokenAttributes().TokenSid, TRUE, NULL))
-        {
-            PhAppendStringBuilder2(&stringBuilder, L" [");
-            PhAppendStringBuilder(&stringBuilder, &currentUserName->sr);
-            PhAppendCharStringBuilder(&stringBuilder, L']');
-            PhDereferenceObject(currentUserName);
-        }
-
-        switch (KphLevel())
-        {
-        case KphLevelMax:
-            PhAppendStringBuilder2(&stringBuilder, L"++");
-            break;
-        case KphLevelHigh:
-            PhAppendStringBuilder2(&stringBuilder, L"+");
-            break;
-        case KphLevelMed:
-            PhAppendStringBuilder2(&stringBuilder, L"~");
-            break;
-        case KphLevelLow:
-            PhAppendStringBuilder2(&stringBuilder, L"-");
-            break;
-        case KphLevelMin:
-            PhAppendStringBuilder2(&stringBuilder, L"--");
-            break;
-        }
-
-        if (PhGetOwnTokenAttributes().ElevationType == TokenElevationTypeFull)
-            PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
-
-        windowName = PhFinalStringBuilderString(&stringBuilder);
-    }
-    else
+    windowName = PhGetMainWindowTitle();
+    if (!windowName)
     {
         PhApplicationName = L" "; // Remove dialog window title when disabled (dmex)
     }
@@ -2031,6 +2038,13 @@ VOID PhMwpOnSetFocus(
     VOID
     )
 {
+    PPH_STRING windowTitle = PhGetMainWindowTitle();
+
+    SetWindowText(PhMainWndHandle, PhGetString(windowTitle));
+
+    if (windowTitle)
+        PhDereferenceObject(windowTitle);
+
     if (CurrentPage->WindowHandle)
         SetFocus(CurrentPage->WindowHandle);
 }
