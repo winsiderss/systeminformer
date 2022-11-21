@@ -934,6 +934,7 @@ VOID KSIAPI KphpImageLoadKernelRoutineFirst(
 #if DBG
     actor = KphGetCurrentThreadContext();
     NT_ASSERT(actor && actor->ProcessContext);
+    NT_ASSERT(actor->ProcessContext->ApcNoopRoutine);
     NT_ASSERT(*NormalRoutine == actor->ProcessContext->ApcNoopRoutine);
     KphDereferenceObject(actor);
     actor = NULL;
@@ -1052,6 +1053,13 @@ VOID KphpHandleUntrustedImageLoad(
     {
         KphTracePrint(TRACE_LEVEL_ERROR, PROTECTION, "Insufficient tracking.");
         status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    if (!actor->ProcessContext->ApcNoopRoutine)
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "APC no-op routine null.");
+        status = STATUS_BAD_FUNCTION_TABLE;
         goto Exit;
     }
 
