@@ -1643,6 +1643,58 @@ VOID PvpSetPeImageFileProperties(
     }
 }
 
+VOID PvUpdatePeFileTimes(
+    _In_ HWND ListViewHandle
+    )
+{
+    HANDLE fileHandle;
+    FILE_BASIC_INFORMATION fileInfo;
+    IO_STATUS_BLOCK isb;
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(PvFileName),
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        if (NT_SUCCESS(NtQueryInformationFile(
+            fileHandle,
+            &isb,
+            &fileInfo,
+            sizeof(FILE_BASIC_INFORMATION),
+            FileBasicInformation
+            )))
+        {
+            if (fileInfo.CreationTime.QuadPart != 0)
+            {
+                PPH_STRING string = PvGetRelativeTimeString(&fileInfo.CreationTime);
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILECREATEDTIME, 1, PhGetString(string));
+                PhDereferenceObject(string);
+            }
+
+            if (fileInfo.LastWriteTime.QuadPart != 0)
+            {
+                PPH_STRING string = PvGetRelativeTimeString(&fileInfo.LastWriteTime);
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILEMODIFIEDTIME, 1, PhGetString(string));
+                PhDereferenceObject(string);
+            }
+
+            if (fileInfo.ChangeTime.QuadPart != 0)
+            {
+                PPH_STRING string = PvGetRelativeTimeString(&fileInfo.ChangeTime);
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_FILELASTWRITETIME, 1, PhGetString(string));
+                PhDereferenceObject(string);
+            }
+        }
+
+        NtClose(fileHandle);
+    }
+}
+
 VOID PvpSetPeImageDebugRepoHash(
     _In_ HWND ListViewHandle
     )
@@ -2057,10 +2109,14 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
                 PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
                 PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
             }
+
+            SetTimer(hwndDlg, 1, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
+            KillTimer(hwndDlg, 1);
+
             PhSaveListViewGroupStatesToSetting(L"ImageGeneralPropertiesListViewGroupStates", context->ListViewHandle);
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             //PhSaveListViewColumnsToSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
@@ -2202,6 +2258,16 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
 
             REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+        }
+        break;
+    case WM_TIMER:
+        {
+            //if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
+            //    break;
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+            PvUpdatePeFileTimes(context->ListViewHandle);
+            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
         }
         break;
     case WM_CONTEXTMENU:
