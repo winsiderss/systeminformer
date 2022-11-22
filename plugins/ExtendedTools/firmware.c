@@ -327,15 +327,54 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
     return FALSE;
 }
 
+BOOLEAN EtFirmwareEnablePrivilege(
+    _In_ HWND ParentWindowHandle,
+    _In_ BOOLEAN Enable
+    )
+{
+    NTSTATUS status;
+
+    status = PhAdjustPrivilege(
+        NULL, // SE_SYSTEM_ENVIRONMENT_NAME
+        SE_SYSTEM_ENVIRONMENT_PRIVILEGE,
+        Enable
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to enable environment privilege.", status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 VOID EtShowFirmwareDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBoxParam(
-        PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_FIRMWARE),
-        NULL,
-        EtFirmwareDlgProc,
-        (LPARAM)ParentWindowHandle
-        );
+    if (!EtFirmwareEnablePrivilege(ParentWindowHandle, TRUE))
+        return;
+
+    if (PhIsFirmwareSupported())
+    {
+        DialogBoxParam(
+            PluginInstance->DllBase,
+            MAKEINTRESOURCE(IDD_FIRMWARE),
+            NULL,
+            EtFirmwareDlgProc,
+            (LPARAM)ParentWindowHandle
+            );
+    }
+    else
+    {
+        PhShowError2(
+            ParentWindowHandle,
+            L"Unable to query firmware table.",
+            L"%s",
+            L"Windows was installed using legacy BIOS."
+            );
+    }
+
+    EtFirmwareEnablePrivilege(ParentWindowHandle, FALSE);
 }

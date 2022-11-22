@@ -65,14 +65,6 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    HANDLE tokenHandle;
-
-    if (NT_SUCCESS(NtOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
-    {
-        PhSetTokenPrivilege(tokenHandle, SE_SYSTEM_ENVIRONMENT_NAME, NULL, SE_PRIVILEGE_ENABLED);
-        NtClose(tokenHandle);
-    }
-
     EtLoadSettings();
 
     EtEtwStatisticsInitialization();
@@ -110,14 +102,11 @@ VOID NTAPI ShowOptionsCallback(
 }
 
 VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-
-    if (!menuItem)
-        return;
 
     switch (menuItem->Id)
     {
@@ -163,12 +152,6 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_FIRMWARE:
         {
-            if (!PhIsFirmwareSupported())
-            {
-                PhShowError(menuItem->OwnerWindow, L"%s", L"Windows was installed using legacy BIOS.");
-                return;
-            }
-
             EtShowFirmwareDialog(menuItem->OwnerWindow);
         }
         break;
@@ -186,14 +169,11 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI TreeNewMessageCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
     PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
-
-    if (!message)
-        return;
 
     if (message->TreeNewHandle == ProcessTreeNewHandle)
         EtProcessTreeNewMessage(Parameter);
@@ -213,7 +193,7 @@ VOID NTAPI PhSvcRequestCallback(
 }
 
 VOID NTAPI MainMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
@@ -223,9 +203,6 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_EMENU_ITEM reparsePointsMenu;
     PPH_EMENU_ITEM reparseObjIdMenu;
     PPH_EMENU_ITEM reparseSsdlMenu;
-
-    if (!menuInfo)
-        return;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_TOOLS)
         return;
