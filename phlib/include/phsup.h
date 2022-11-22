@@ -437,7 +437,7 @@ FORCEINLINE VOID PhPrintUInt64(
 
 FORCEINLINE VOID PhPrintPointer(
     _Out_writes_(PH_PTR_STR_LEN_1) PWSTR Destination,
-    _In_ PVOID Pointer
+    _In_opt_ PVOID Pointer
     )
 {
     Destination[0] = L'0';
