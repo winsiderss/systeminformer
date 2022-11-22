@@ -691,7 +691,6 @@ VOID PvSetPeImageOverlayHeaderProperties(
             )))
         {
             if (
-                dataDirectory->VirtualAddress &&
                 (lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
                 (lastRawDataOffset == dataDirectory->VirtualAddress)
                 )
