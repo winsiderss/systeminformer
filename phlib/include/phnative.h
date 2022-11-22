@@ -1550,6 +1550,43 @@ PhSetValueKey(
     _In_ ULONG BufferLength
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetValueKeyZ(
+    _In_ HANDLE KeyHandle,
+    _In_opt_ PWSTR ValueName,
+    _In_ ULONG ValueType,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    if (ValueName)
+    {
+        PH_STRINGREF valueNameSr;
+
+        PhInitializeStringRef(&valueNameSr, ValueName);
+
+        return PhSetValueKey(
+            KeyHandle,
+            &valueNameSr,
+            ValueType,
+            Buffer,
+            BufferLength
+            );
+    }
+    else
+    {
+        return PhSetValueKey(
+            KeyHandle,
+            NULL,
+            ValueType,
+            Buffer,
+            BufferLength
+            );
+    }
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
