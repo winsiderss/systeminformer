@@ -81,7 +81,6 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"Font", L""); // null
     PhpAddStringSetting(L"FontMonospace", L""); // null
     PhpAddIntegerSetting(L"ForceNoParent", L"1");
-    PhpAddStringSetting(L"KphServiceName", L"");
     PhpAddStringSetting(L"HandleTreeListColumns", L"");
     PhpAddStringSetting(L"HandleTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerSetting(L"HandleTreeListFlags", L"3");
@@ -115,7 +114,6 @@ VOID PhAddDefaultSettings(
     //PhpAddIntegerSetting(L"IconTransparency", L"255");
     PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
-    //PhpAddIntegerSetting(L"KphUnloadOnShutdown", L"0");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
     PhpAddStringSetting(L"LogListViewColumns", L"");
     PhpAddIntegerPairSetting(L"LogWindowPosition", L"0,0");
@@ -303,10 +301,12 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"ColorTemperature", L"0000ff");
     PhpAddIntegerSetting(L"ColorFanRpm", L"ff0077");
 
+    PhpAddStringSetting(L"KphServiceName", L"");
     PhpAddStringSetting(L"KphObjectName", L"");
     PhpAddStringSetting(L"KphPortName", L"");
     PhpAddStringSetting(L"KphAltitude", L"385400");
-    PhpAddIntegerSetting(L"KphDisableImageLoadProtection", L"0")
+    PhpAddIntegerSetting(L"KphDisableImageLoadProtection", L"0");
+    PhpAddIntegerSetting(L"KsiUnloadOnExitTest", L"0");
 }
 
 VOID PhUpdateCachedSettings(

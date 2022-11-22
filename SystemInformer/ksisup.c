@@ -359,7 +359,17 @@ VOID PhDestroyKsi(
     VOID
     )
 {
-    KphCommsStop();
+    PPH_STRING ksiServiceName;
+
+    if (!KphCommsIsConnected())
+        return;
+
+    // KphCommsStop();
+
+    if (ksiServiceName = PhGetKsiServiceName())
+    {
+        KphServiceStop(&ksiServiceName->sr);
+    }
 }
 
 _Success_(return)

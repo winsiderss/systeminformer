@@ -60,11 +60,18 @@ KphSetServiceSecurity(
 //    _In_ PPH_STRINGREF Altitude,
 //    _In_ BOOLEAN DisableImageLoadProtection
 //    );
+//
+//PHLIBAPI
+//NTSTATUS
+//NTAPI
+//KphUninstall(
+//    _In_ PPH_STRINGREF ServiceName
+//    );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
-KphUninstall(
+KphServiceStop(
     _In_ PPH_STRINGREF ServiceName
     );
 

@@ -371,6 +371,7 @@ VOID KphSetServiceSecurity(
     )
 {
     static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+    UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
     PSECURITY_DESCRIPTOR securityDescriptor;
     ULONG sdAllocationLength;
     UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
@@ -391,8 +392,8 @@ VOID KphSetServiceSecurity(
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         RtlLengthSid(&PhSeInteractiveSid);
 
-    securityDescriptor = PhAllocate(sdAllocationLength);
-    dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
+    dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
     RtlCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
@@ -411,7 +412,10 @@ VOID KphSetServiceSecurity(
 
     SetServiceObjectSecurity(ServiceHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
 
-    PhFree(securityDescriptor);
+#ifdef DEBUG
+    assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
+    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+#endif
 }
 
 //NTSTATUS KphInstall(
@@ -481,7 +485,37 @@ VOID KphSetServiceSecurity(
 //    return status;
 //}
 
-NTSTATUS KphUninstall(
+//NTSTATUS KphUninstall(
+//    _In_ PPH_STRINGREF ServiceName
+//    )
+//{
+//    NTSTATUS status = STATUS_SUCCESS;
+//    SC_HANDLE scmHandle;
+//    SC_HANDLE serviceHandle;
+//
+//    if (!(scmHandle = PhGetServiceManagerHandle()))
+//        return PhGetLastWin32ErrorAsNtStatus();
+//
+//    if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_STOP | DELETE))
+//    {
+//        SERVICE_STATUS serviceStatus;
+//
+//        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+//
+//        if (!DeleteService(serviceHandle))
+//            status = PhGetLastWin32ErrorAsNtStatus();
+//
+//        CloseServiceHandle(serviceHandle);
+//    }
+//    else
+//    {
+//        status = PhGetLastWin32ErrorAsNtStatus();
+//    }
+//
+//    return status;
+//}
+
+NTSTATUS KphServiceStop(
     _In_ PPH_STRINGREF ServiceName
     )
 {
@@ -489,19 +523,20 @@ NTSTATUS KphUninstall(
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
 
-    if (!(scmHandle = PhGetServiceManagerHandle()))
-        return PhGetLastWin32ErrorAsNtStatus();
-
-    if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_STOP | DELETE))
+    if (scmHandle = PhGetServiceManagerHandle())
     {
-        SERVICE_STATUS serviceStatus;
+        if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_STOP))
+        {
+            SERVICE_STATUS serviceStatus;
 
-        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+            ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
 
-        if (!DeleteService(serviceHandle))
+            CloseServiceHandle(serviceHandle);
+        }
+        else
+        {
             status = PhGetLastWin32ErrorAsNtStatus();
-
-        CloseServiceHandle(serviceHandle);
+        }
     }
     else
     {

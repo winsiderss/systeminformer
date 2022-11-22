@@ -234,8 +234,6 @@ INT WINAPI wWinMain(
         PhSetProcessPriority(NtCurrentProcess(), priorityClass);
     }
 
-    PhEnableTerminationPolicy(TRUE);
-
     if (PhGetIntegerSetting(L"EnableKph") &&
         PhGetIntegerSetting(L"EnableKphWarnings") &&
         !PhStartupParameters.NoKph &&
@@ -250,11 +248,23 @@ INT WINAPI wWinMain(
         return 1;
     }
 
+    PhEnableTerminationPolicy(TRUE);
+
     PhDrainAutoPool(&BaseAutoPool);
 
     result = PhMainMessageLoop();
 
     PhEnableTerminationPolicy(FALSE);
+
+    if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
+        PhGetIntegerSetting(L"EnableKph") &&
+        PhGetIntegerSetting(L"KsiUnloadOnExitTest") &&
+        !PhStartupParameters.NewInstance &&
+        !PhStartupParameters.NoKph &&
+        !PhIsExecutingInWow64())
+    {
+        PhDestroyKsi();
+    }
 
     PhExitApplication(result);
 }
