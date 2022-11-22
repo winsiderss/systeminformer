@@ -515,7 +515,7 @@ NTSTATUS PhGetMappedImageDataEntry(
         PIMAGE_OPTIONAL_HEADER32 optionalHeader;
         PIMAGE_DATA_DIRECTORY dataDirectory;
 
-        optionalHeader = &MappedImage->NtHeaders32->OptionalHeader;
+        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&MappedImage->NtHeaders32->OptionalHeader;
 
         if (Index >= optionalHeader->NumberOfRvaAndSizes)
             return STATUS_INVALID_PARAMETER_2;
@@ -533,7 +533,7 @@ NTSTATUS PhGetMappedImageDataEntry(
         PIMAGE_OPTIONAL_HEADER64 optionalHeader;
         PIMAGE_DATA_DIRECTORY dataDirectory;
 
-        optionalHeader = &MappedImage->NtHeaders->OptionalHeader;
+        optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader;
 
         if (Index >= optionalHeader->NumberOfRvaAndSizes)
             return STATUS_INVALID_PARAMETER_2;
