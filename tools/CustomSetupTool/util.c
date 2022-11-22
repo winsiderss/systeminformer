@@ -370,7 +370,8 @@ VOID SetupSetWindowsOptions(
         SetupCreateLink(
             PhGetString(string),
             PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath)
+            PhGetString(Context->SetupInstallPath),
+            L"SystemInformer"
             );
 
         PhDereferenceObject(clientPathString);
@@ -384,7 +385,8 @@ VOID SetupSetWindowsOptions(
         SetupCreateLink(
             PhGetString(string),
             PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath)
+            PhGetString(Context->SetupInstallPath),
+            L"SystemInformer"
             );
 
         PhDereferenceObject(clientPathString);
@@ -398,7 +400,8 @@ VOID SetupSetWindowsOptions(
         SetupCreateLink(
             PhGetString(string),
             PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath)
+            PhGetString(Context->SetupInstallPath),
+            L"SystemInformer_PEViewer"
             );
 
         PhDereferenceObject(clientPathString);
@@ -852,12 +855,13 @@ BOOLEAN ConnectionAvailable(VOID)
 VOID SetupCreateLink(
     _In_ PWSTR LinkFilePath,
     _In_ PWSTR FilePath,
-    _In_ PWSTR FileParentDir
+    _In_ PWSTR FileParentDir,
+    _In_ PWSTR AppId
     )
 {
     IShellLink* shellLinkPtr = NULL;
     IPersistFile* persistFilePtr = NULL;
-    //IPropertyStore* propertyStorePtr;
+    IPropertyStore* propertyStorePtr;
 
     if (FAILED(CoCreateInstance(&CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, &IID_IShellLinkW, &shellLinkPtr)))
         goto CleanupExit;
@@ -865,35 +869,30 @@ VOID SetupCreateLink(
     if (FAILED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPersistFile, &persistFilePtr)))
         goto CleanupExit;
 
-    //if (SUCCEEDED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPropertyStore, &propertyStorePtr)))
-    //{
-    //    PROPVARIANT propValue;
-    //    SIZE_T propValueLength;
-    //
-    //    PropVariantInit(&propValue);
-    //    propValue.vt = VT_LPWSTR;
-    //    propValueLength = PhCountStringZ(AppId) * sizeof(WCHAR);
-    //    propValue.pwszVal = (PWSTR)CoTaskMemAlloc(propValueLength + sizeof(UNICODE_NULL));
-    //
-    //    if (propValue.pwszVal)
-    //    {
-    //        memset(propValue.pwszVal, 0, propValueLength + sizeof(UNICODE_NULL));
-    //        memcpy(propValue.pwszVal, AppId, propValueLength);
-    //
-    //        IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
-    //    }
-    //
-    //    PropVariantClear(&propValue);
-    //
-    //    //PropVariantInit(&propValue);
-    //    //propValue.vt = VT_CLSID;
-    //    //propValue.puuid = GUID;
-    //    //
-    //    //IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ToastActivatorCLSID, &propValue);
-    //
-    //    IPropertyStore_Commit(propertyStorePtr);
-    //    IPropertyStore_Release(propertyStorePtr);
-    //}
+    if (SUCCEEDED(IShellLinkW_QueryInterface(shellLinkPtr, &IID_IPropertyStore, &propertyStorePtr)))
+    {
+        SIZE_T propValueLength;
+        PROPVARIANT propValue;
+
+        propValueLength = PhCountStringZ(AppId) * sizeof(WCHAR);
+
+        PropVariantInit(&propValue);
+        V_VT(&propValue) = VT_LPWSTR;
+        V_UNION(&propValue, pwszVal) = CoTaskMemAlloc(propValueLength + sizeof(UNICODE_NULL));
+    
+        if (V_UNION(&propValue, pwszVal))
+        {
+            memset(V_UNION(&propValue, pwszVal), 0, propValueLength + sizeof(UNICODE_NULL));
+            memcpy(V_UNION(&propValue, pwszVal), AppId, propValueLength);
+    
+            IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
+        }
+
+        IPropertyStore_Commit(propertyStorePtr);
+        IPropertyStore_Release(propertyStorePtr);
+
+        PropVariantClear(&propValue);
+    }
 
     // Load existing shell item if it exists...
     //IPersistFile_Load(persistFilePtr, LinkFilePath, STGM_READWRITE);
@@ -913,13 +912,13 @@ VOID SetupCreateLink(
     // Save the shortcut to the file system...
     IPersistFile_Save(persistFilePtr, LinkFilePath, TRUE);
 
-    //SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, LinkFilePath, NULL);
-
 CleanupExit:
     if (persistFilePtr)
         IPersistFile_Release(persistFilePtr);
     if (shellLinkPtr)
         IShellLinkW_Release(shellLinkPtr);
+
+    SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, LinkFilePath, NULL);
 }
 
 BOOLEAN CheckApplicationInstalled(
