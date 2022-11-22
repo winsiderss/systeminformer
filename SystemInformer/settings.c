@@ -111,7 +111,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
-    PhpAddIntegerSetting(L"IconTransparencyEnabled", L"1");
+    PhpAddIntegerSetting(L"IconTransparencyEnabled", L"0");
     //PhpAddIntegerSetting(L"IconTransparency", L"255");
     PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
