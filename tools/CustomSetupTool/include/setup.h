@@ -234,7 +234,8 @@ typedef struct _SETUP_REMOVE_FILE
 VOID SetupCreateLink(
     _In_ PWSTR LinkFilePath,
     _In_ PWSTR FilePath,
-    _In_ PWSTR FileParentDir
+    _In_ PWSTR FileParentDir,
+    _In_ PWSTR AppId
     );
 
 BOOLEAN CheckApplicationInstalled(

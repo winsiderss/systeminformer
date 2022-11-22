@@ -152,6 +152,50 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
     return S_OK;
 }
 
+INT SetupShowMessagePromptForLegacyVersion(
+    VOID
+    )
+{
+    INT result;
+    TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
+    config.dwCommonButtons = TDCBF_OK_BUTTON;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_INFORMATION_ICON;
+    config.pszMainInstruction = L"Hey there, before we continue...";
+    config.pszContent =
+        L"- Process Hacker was renamed System Informer.\n"
+        L"- Process Hacker does not support Windows 10 or 11.\n"
+        L"- Process Hacker will not be updated.\n"
+        L"- Process Hacker will not be uninstalled.\n\n"
+        L"This update will now install System Informer.\n\nPlease remember to uninstall Process Hacker. Thanks <3";
+    config.cxWidth = 200;
+
+    //PhShowInformation2(
+    //    NULL,
+    //    L"Process Hacker",
+    //    L"%s",
+    //    L"Process Hacker was renamed System Informer.\n"
+    //    L"The legacy version of Process Hacker is no longer maintained and will not receive updates.\r\n\r\n"
+    //    L"The updater is now installing System Informer. The Process Hacker installation must be manually uninstalled"
+    //    );
+
+    if (SUCCEEDED(TaskDialogIndirect(
+        &config,
+        &result,
+        NULL,
+        NULL
+        )))
+    {
+        return result;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
 VOID SetupShowDialog(
     VOID
     )
@@ -175,13 +219,7 @@ VOID SetupShowDialog(
 
     if (context->SetupIsLegacyUpdate)
     {
-        PhShowInformation2(
-            NULL,
-            L"Process Hacker",
-            L"%s",
-            L"Process Hacker was renamed System Informer.\n"
-            L"The legacy version of Process Hacker is no longer maintained and will not receive updates."
-            );
+        SetupShowMessagePromptForLegacyVersion();
     }
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
