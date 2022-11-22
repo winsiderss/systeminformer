@@ -153,6 +153,201 @@ static VOID PhpUpdateMemoryListInfo(
     }
 }
 
+VOID PhShowMemoryListCommand(
+    _In_ HWND ParentWindow,
+    _In_ HWND ButtonWindow,
+    _In_ BOOLEAN ShowTopAlign
+    )
+{
+    SYSTEM_MEMORY_LIST_COMMAND command = ULONG_MAX;
+    PPH_EMENU menu;
+    RECT buttonRect;
+    PPH_EMENU_ITEM selectedItem;
+
+    menu = PhCreateEMenu();
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMBINEMEMORYLISTS, L"&Combine memory lists", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYWORKINGSETS, L"Empty &working sets", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMPRESSIONSTORE, L"Empty &compression working sets", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYMODIFIEDPAGELIST, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYSTANDBYLIST, L"Empty &standby list", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYPRIORITY0STANDBYLIST, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_SYSTEMFILECACHE, L"Empty system &file cache", NULL, NULL), ULONG_MAX);
+
+    if (ShowTopAlign)
+    {
+        GetWindowRect(ButtonWindow, &buttonRect);
+        selectedItem = PhShowEMenu(
+            menu,
+            ParentWindow,
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
+            buttonRect.left,
+            buttonRect.top
+            );
+    }
+    else
+    {
+        POINT point;
+
+        GetClientRect(ButtonWindow, &buttonRect);
+        point.x = 0;
+        point.y = buttonRect.bottom;
+        ClientToScreen(ButtonWindow, &point);
+
+        selectedItem = PhShowEMenu(
+            menu,
+            ParentWindow,
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+            point.x,
+            point.y
+            );
+    }
+
+    if (selectedItem)
+    {
+        switch (selectedItem->Id)
+        {
+        case ID_EMPTY_EMPTYWORKINGSETS:
+            command = MemoryEmptyWorkingSets;
+            break;
+        case ID_EMPTY_EMPTYMODIFIEDPAGELIST:
+            command = MemoryFlushModifiedList;
+            break;
+        case ID_EMPTY_EMPTYSTANDBYLIST:
+            command = MemoryPurgeStandbyList;
+            break;
+        case ID_EMPTY_EMPTYPRIORITY0STANDBYLIST:
+            command = MemoryPurgeLowPriorityStandbyList;
+            break;
+        case ID_EMPTY_COMBINEMEMORYLISTS:
+            {
+                NTSTATUS status;
+                MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
+
+                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                status = NtSetSystemInformation(
+                    SystemCombinePhysicalMemoryInformation,
+                    &combineInfo,
+                    sizeof(MEMORY_COMBINE_INFORMATION_EX)
+                    );
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+                if (NT_SUCCESS(status))
+                {
+                    PhShowInformation2(
+                        ParentWindow,
+                        L"Memory pages combined",
+                        L"%s (%llu pages)",
+                        PhaFormatSize(combineInfo.PagesCombined * PAGE_SIZE, ULONG_MAX)->Buffer,
+                        combineInfo.PagesCombined
+                        );
+                }
+                else
+                {
+                    PhShowStatus(ParentWindow, L"Unable to combine memory pages", status, 0);
+                }
+            }
+            break;
+        case ID_EMPTY_COMPRESSIONSTORE:
+            {
+                NTSTATUS status;
+
+                if (KphLevel() < KphLevelMax)
+                {
+                    PhShowError2(ParentWindow, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
+                    break;
+                }
+
+                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                status = KphSystemControl(
+                    KphSystemControlEmptyCompressionStore,
+                    NULL,
+                    0
+                    );
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(ParentWindow, L"Unable to empty compression stores", status, 0);
+                }
+            }
+            break;
+        case ID_EMPTY_SYSTEMFILECACHE:
+            {
+                NTSTATUS status;
+                SYSTEM_FILECACHE_INFORMATION cacheInfo = { 0 };
+
+                PhAdjustPrivilege(NULL, SE_INCREASE_QUOTA_PRIVILEGE, TRUE);
+
+                PhGetSystemFileCacheSize(&cacheInfo);
+
+                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                status = PhSetSystemFileCacheSize(
+                    SIZE_T_MAX,
+                    SIZE_T_MAX,
+                    0
+                    );
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+                if (NT_SUCCESS(status))
+                {
+                    PhShowInformation2(
+                        ParentWindow,
+                        L"System file cache has been cleared.",
+                        L"Flushed: %s",
+                        PhaFormatSize(cacheInfo.CurrentSize, ULONG_MAX)->Buffer
+                        );
+                }
+                else
+                {
+                    PhShowStatus(ParentWindow, L"Unable to empty system file cache.", status, 0);
+                }
+            }
+            break;
+        }
+    }
+
+    if (command != ULONG_MAX)
+    {
+        NTSTATUS status;
+
+        SetCursor(LoadCursor(NULL, IDC_WAIT));
+        status = NtSetSystemInformation(
+            SystemMemoryListInformation,
+            &command,
+            sizeof(SYSTEM_MEMORY_LIST_COMMAND)
+            );
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+        if (status == STATUS_PRIVILEGE_NOT_HELD)
+        {
+            if (!PhGetOwnTokenAttributes().Elevated)
+            {
+                if (PhUiConnectToPhSvc(ParentWindow, FALSE))
+                {
+                    SetCursor(LoadCursor(NULL, IDC_WAIT));
+                    status = PhSvcCallIssueMemoryListCommand(command);
+                    SetCursor(LoadCursor(NULL, IDC_ARROW));
+                    PhUiDisconnectFromPhSvc();
+                }
+                else
+                {
+                    // User cancelled elevation.
+                    status = STATUS_SUCCESS;
+                }
+            }
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(ParentWindow, L"Unable to execute the memory list command", status, 0);
+        }
+    }
+
+    PhDestroyEMenu(menu);
+}
+
 INT_PTR CALLBACK PhpMemoryListsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -197,171 +392,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                 break;
             case IDC_EMPTY:
                 {
-                    PPH_EMENU menu;
-                    RECT buttonRect;
-                    POINT point;
-                    PPH_EMENU_ITEM selectedItem;
-                    SYSTEM_MEMORY_LIST_COMMAND command = ULONG_MAX;
-
-                    menu = PhCreateEMenu();
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMBINEMEMORYLISTS, L"&Combine memory lists", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYWORKINGSETS, L"Empty &working sets", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMPRESSIONSTORE, L"Empty &compression working sets", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYMODIFIEDPAGELIST, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYSTANDBYLIST, L"Empty &standby list", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYPRIORITY0STANDBYLIST, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
-                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_SYSTEMFILECACHE, L"Empty system &file cache", NULL, NULL), ULONG_MAX);
-
-                    GetClientRect(GET_WM_COMMAND_HWND(wParam, lParam), &buttonRect);
-                    point.x = 0;
-                    point.y = buttonRect.bottom;
-
-                    ClientToScreen(GET_WM_COMMAND_HWND(wParam, lParam), &point);
-                    selectedItem = PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_LEFTRIGHT,
-                        PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
-
-                    if (selectedItem)
-                    {
-                        switch (selectedItem->Id)
-                        {
-                        case ID_EMPTY_EMPTYWORKINGSETS:
-                            command = MemoryEmptyWorkingSets;
-                            break;
-                        case ID_EMPTY_EMPTYMODIFIEDPAGELIST:
-                            command = MemoryFlushModifiedList;
-                            break;
-                        case ID_EMPTY_EMPTYSTANDBYLIST:
-                            command = MemoryPurgeStandbyList;
-                            break;
-                        case ID_EMPTY_EMPTYPRIORITY0STANDBYLIST:
-                            command = MemoryPurgeLowPriorityStandbyList;
-                            break;
-                        case ID_EMPTY_COMBINEMEMORYLISTS:
-                            {
-                                NTSTATUS status;
-                                MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
-
-                                SetCursor(LoadCursor(NULL, IDC_WAIT));
-                                status = NtSetSystemInformation(
-                                    SystemCombinePhysicalMemoryInformation,
-                                    &combineInfo,
-                                    sizeof(MEMORY_COMBINE_INFORMATION_EX)
-                                    );
-                                SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-                                if (NT_SUCCESS(status))
-                                {
-                                    PhShowInformation2(
-                                        hwndDlg,
-                                        L"Memory pages combined",
-                                        L"%s (%llu pages)",
-                                        PhaFormatSize(combineInfo.PagesCombined * PAGE_SIZE, ULONG_MAX)->Buffer,
-                                        combineInfo.PagesCombined
-                                        );
-                                }
-                                else
-                                {
-                                    PhShowStatus(hwndDlg, L"Unable to combine memory pages", status, 0);
-                                }
-                            }
-                            break;
-                        case ID_EMPTY_COMPRESSIONSTORE:
-                            {
-                                NTSTATUS status;
-
-                                if (KphLevel() < KphLevelMax)
-                                {
-                                    PhShowError2(hwndDlg, PH_KPH_ERROR_TITLE, L"%s", PH_KPH_ERROR_MESSAGE);
-                                    break;
-                                }
-
-                                SetCursor(LoadCursor(NULL, IDC_WAIT));
-                                status = KphSystemControl(
-                                    KphSystemControlEmptyCompressionStore,
-                                    NULL,
-                                    0
-                                    );
-                                SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-                                if (!NT_SUCCESS(status))
-                                {
-                                    PhShowStatus(hwndDlg, L"Unable to empty compression stores", status, 0);
-                                }
-                            }
-                            break;
-                        case ID_EMPTY_SYSTEMFILECACHE:
-                            {
-                                NTSTATUS status;
-                                SYSTEM_FILECACHE_INFORMATION cacheInfo = { 0 };
-
-                                PhAdjustPrivilege(NULL, SE_INCREASE_QUOTA_PRIVILEGE, TRUE);
-
-                                PhGetSystemFileCacheSize(&cacheInfo);
-
-                                SetCursor(LoadCursor(NULL, IDC_WAIT));
-                                status = PhSetSystemFileCacheSize(
-                                    SIZE_T_MAX,
-                                    SIZE_T_MAX,
-                                    0
-                                    );
-                                SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-                                if (NT_SUCCESS(status))
-                                {
-                                    PhShowInformation2(
-                                        hwndDlg,
-                                        L"System file cache has been cleared.",
-                                        L"Flushed: %s",
-                                        PhaFormatSize(cacheInfo.CurrentSize, ULONG_MAX)->Buffer
-                                        );
-                                }
-                                else
-                                {
-                                    PhShowStatus(hwndDlg, L"Unable to empty system file cache.", status, 0);
-                                }
-                            }
-                            break;
-                        }
-                    }
-
-                    if (command != ULONG_MAX)
-                    {
-                        NTSTATUS status;
-
-                        SetCursor(LoadCursor(NULL, IDC_WAIT));
-                        status = NtSetSystemInformation(
-                            SystemMemoryListInformation,
-                            &command,
-                            sizeof(SYSTEM_MEMORY_LIST_COMMAND)
-                            );
-                        SetCursor(LoadCursor(NULL, IDC_ARROW));
-
-                        if (status == STATUS_PRIVILEGE_NOT_HELD)
-                        {
-                            if (!PhGetOwnTokenAttributes().Elevated)
-                            {
-                                if (PhUiConnectToPhSvc(hwndDlg, FALSE))
-                                {
-                                    SetCursor(LoadCursor(NULL, IDC_WAIT));
-                                    status = PhSvcCallIssueMemoryListCommand(command);
-                                    SetCursor(LoadCursor(NULL, IDC_ARROW));
-                                    PhUiDisconnectFromPhSvc();
-                                }
-                                else
-                                {
-                                    // User cancelled elevation.
-                                    status = STATUS_SUCCESS;
-                                }
-                            }
-                        }
-
-                        if (!NT_SUCCESS(status))
-                        {
-                            PhShowStatus(hwndDlg, L"Unable to execute the memory list command", status, 0);
-                        }
-                    }
-
-                    PhDestroyEMenu(menu);
+                    PhShowMemoryListCommand(hwndDlg, GET_WM_COMMAND_HWND(wParam, lParam), FALSE);
                 }
                 break;
             }
