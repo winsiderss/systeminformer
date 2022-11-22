@@ -17,41 +17,29 @@ EXTERN_C_START
 #define KSI_COMMS_INIT_ASSERT()
 #endif
 
+typedef struct _KPH_CONFIG_PARAMETERS
+{
+    _In_ PPH_STRINGREF FileName;
+    _In_ PPH_STRINGREF ServiceName;
+    _In_ PPH_STRINGREF ObjectName;
+    _In_ PPH_STRINGREF PortName;
+    _In_ PPH_STRINGREF Altitude;
+    _In_ BOOLEAN DisableImageLoadProtection;
+    _In_opt_ PKPH_COMMS_CALLBACK Callback;
+} KPH_CONFIG_PARAMETERS, *PKPH_CONFIG_PARAMETERS;
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphConnect(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ PPH_STRINGREF ObjectName,
-    _In_ PPH_STRINGREF PortName,
-    _In_ PPH_STRINGREF FileName,
-    _In_ PPH_STRINGREF Altitude,
-    _In_ BOOLEAN DisableImageLoadProtection,
-    _In_opt_ PKPH_COMMS_CALLBACK Callback
+    _In_ PKPH_CONFIG_PARAMETERS Options
     );
 
 PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetParameters(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ PPH_STRINGREF PortName,
-    _In_ PPH_STRINGREF Altitude,
-    _In_ BOOLEAN DisableImageLoadProtection
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-KphParametersExists(
-    _In_z_ PWSTR ServiceName
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphResetParameters(
-    _In_z_ PWSTR ServiceName
+    _In_ PKPH_CONFIG_PARAMETERS Options
     );
 
 PHLIBAPI
