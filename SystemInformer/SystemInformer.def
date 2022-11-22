@@ -230,6 +230,7 @@ EXPORTS
     PhZeroExtendToUtf16Ex
 
 ; phnative
+    PhAdjustPrivilege
     PhCreateDirectoryWin32
     PhCreateDirectoryFullPathWin32
     PhCreateFile
