@@ -35,8 +35,8 @@ VOID KphpPopulateObjectNameInMessage(
     )
 {
     NTSTATUS status;
-    UCHAR stackBuffer[MAX_PATH + sizeof(OBJECT_NAME_INFORMATION)];
-    PUCHAR buffer;
+    BYTE stackBuffer[MAX_PATH + sizeof(OBJECT_NAME_INFORMATION)];
+    PBYTE buffer;
     POBJECT_NAME_INFORMATION info;
     ULONG length;
 

@@ -868,7 +868,7 @@ NTSTATUS KphQueryInformationObject(
     PVOID object;
     ULONG returnLength;
     PVOID buffer;
-    UCHAR stackBuffer[64];
+    BYTE stackBuffer[64];
     KPROCESSOR_MODE accessMode;
     PKPH_PROCESS_CONTEXT processContext;
 

@@ -243,9 +243,9 @@ NTSTATUS KphpReadDynamicConfiguration(
     )
 {
     NTSTATUS status;
-    PUCHAR dataBuffer;
+    PBYTE dataBuffer;
     ULONG dataLength;
-    PUCHAR sigBuffer;
+    PBYTE sigBuffer;
     ULONG sigLength;
     ULONG actualLength;
     PKPH_DYNDATA dynData;
@@ -487,7 +487,7 @@ Exit:
 
     if (dynData)
     {
-        KphFreeRegistryBinary((PUCHAR)dynData);
+        KphFreeRegistryBinary((PBYTE)dynData);
     }
 
     if (keyHandle)

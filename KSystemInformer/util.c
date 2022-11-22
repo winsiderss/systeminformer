@@ -685,12 +685,12 @@ _Must_inspect_result_
 NTSTATUS KphQueryRegistryBinary(
     _In_ HANDLE KeyHandle,
     _In_ PUNICODE_STRING ValueName,
-    _Outptr_allocatesMem_ PUCHAR* Buffer,
+    _Outptr_allocatesMem_ PBYTE* Buffer,
     _Out_ PULONG Length
     )
 {
     NTSTATUS status;
-    PUCHAR buffer;
+    PBYTE buffer;
     ULONG resultLength;
     PKEY_VALUE_PARTIAL_INFORMATION info;
 
@@ -765,7 +765,7 @@ Exit:
  */
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphFreeRegistryBinary(
-    _In_freesMem_ PUCHAR Buffer
+    _In_freesMem_ PBYTE Buffer
     )
 {
     PAGED_CODE();
@@ -792,7 +792,7 @@ NTSTATUS KphQueryRegistryULong(
     )
 {
     NTSTATUS status;
-    UCHAR buffer[sizeof(KEY_VALUE_PARTIAL_INFORMATION) + sizeof(ULONGLONG)];
+    BYTE buffer[sizeof(KEY_VALUE_PARTIAL_INFORMATION) + sizeof(ULONGLONG)];
     ULONG resultLength;
     PKEY_VALUE_PARTIAL_INFORMATION info;
 
