@@ -2362,6 +2362,22 @@ PhGetSystemCompressionStoreInformation(
     _Out_ PPH_SYSTEM_STORE_COMPRESSION_INFORMATION SystemCompressionStoreInformation
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemFileCacheSize(
+    _Out_ PSYSTEM_FILECACHE_INFORMATION CacheInfo
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetSystemFileCacheSize(
+    _In_ SIZE_T MinimumFileCacheSize,
+    _In_ SIZE_T MaximumFileCacheSize,
+    _In_ ULONG Flags
+    );
+
 #ifdef __cplusplus
 }
 #endif
