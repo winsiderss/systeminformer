@@ -163,7 +163,7 @@ VOID PvPeProperties(
         PvAddPropPage(propContext, newPage);
 
         // Load Config page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PELOADCONFIG),
@@ -213,7 +213,7 @@ VOID PvPeProperties(
         }
 
         // Resources page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)) && entry->VirtualAddress)
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PERESOURCES),
@@ -225,7 +225,6 @@ VOID PvPeProperties(
 
         // CLR page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
-            entry->VirtualAddress &&
             (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
         {
             NTSTATUS status = STATUS_SUCCESS;
@@ -275,7 +274,7 @@ VOID PvPeProperties(
         }
 
         // TLS page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)) && entry->VirtualAddress)
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_TLS),
@@ -285,10 +284,11 @@ VOID PvPeProperties(
             PvAddPropPage(propContext, newPage);
         }
 
-        // RICH header page
+        // ProdId page
         {
-            // .NET executables don't include a RICH header.
-            if (!(NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) && entry->VirtualAddress))
+            ULONG imageDosStubLength = ((PIMAGE_DOS_HEADER)PvMappedImage.ViewBase)->e_lfanew - RTL_SIZEOF_THROUGH_FIELD(IMAGE_DOS_HEADER, e_lfanew);
+
+            if (imageDosStubLength != 0 && imageDosStubLength != 64)
             {
                 newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PEPRODID),
@@ -314,7 +314,7 @@ VOID PvPeProperties(
             }
             else
             {
-                if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)) && entry->VirtualAddress)
+                if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
                 {
                     has_exceptions = TRUE;
                 }
@@ -333,7 +333,7 @@ VOID PvPeProperties(
 
         // Relocations page
         {
-            if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)) && entry->VirtualAddress)
+            if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
             {
                 newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PERELOCATIONS),
@@ -345,7 +345,7 @@ VOID PvPeProperties(
         }
 
         // Certificates page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PESECURITY),
@@ -356,7 +356,7 @@ VOID PvPeProperties(
         }
 
         // Debug page
-        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
+        if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
         {
             newPage = PvCreatePropPageContext(
                 MAKEINTRESOURCE(IDD_PEDEBUG),
@@ -935,11 +935,8 @@ VOID PvpSetPeImageSize(
             &dataDirectory
             )))
         {
-            if (
-                dataDirectory->VirtualAddress &&
-                (lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
-                (lastRawDataOffset == dataDirectory->VirtualAddress)
-                )
+            if ((lastRawDataOffset + dataDirectory->Size == PvMappedImage.Size) &&
+                (lastRawDataOffset == dataDirectory->VirtualAddress))
             {
                 success = TRUE;
             }
