@@ -453,6 +453,13 @@ INT_PTR CALLBACK PhSipMemoryPanelDialogProc(
                     PhShowMemoryListsDialog(PhSipWindow, PhSipRegisterDialog, PhSipUnregisterDialog);
                 }
                 break;
+            case IDC_EMPTY:
+                {
+                    extern VOID PhShowMemoryListCommand(_In_ HWND ParentWindow, _In_ HWND ButtonWindow, _In_ BOOLEAN ShowTopAlign); // memlists.c (dmex);
+
+                    PhShowMemoryListCommand(PhSipWindow, GET_WM_COMMAND_HWND(wParam, lParam), TRUE);
+                }
+                break;
             }
         }
         break;
