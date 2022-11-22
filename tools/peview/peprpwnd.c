@@ -159,7 +159,7 @@ VOID PvAddTreeViewSections(
         );
 
     // Load Config page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)))
     {
         PvCreateTabSection(
             L"Load Config",
@@ -214,7 +214,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Resources page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)) && entry->VirtualAddress)
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
     {
         PvCreateTabSection(
             L"Resources",
@@ -227,7 +227,6 @@ VOID PvAddTreeViewSections(
 
     // CLR page
     if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
-        entry->VirtualAddress &&
         (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
     {
         NTSTATUS status = STATUS_SUCCESS;
@@ -280,7 +279,7 @@ VOID PvAddTreeViewSections(
     }
 
     // TLS page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)) && entry->VirtualAddress)
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_TLS, &entry)))
     {
         PvCreateTabSection(
             L"TLS",
@@ -291,17 +290,20 @@ VOID PvAddTreeViewSections(
             );
     }
 
-    // RICH header page
-    // .NET executables don't include a RICH header.
-    if (!(PvImageCor20Header && (PvImageCor20Header->Flags & COMIMAGE_FLAGS_NATIVE_ENTRYPOINT) == 0))
+    // ProdId page
     {
-        PvCreateTabSection(
-            L"ProdID",
-            PhInstanceHandle,
-            MAKEINTRESOURCE(IDD_PEPRODID),
-            PvpPeProdIdDlgProc,
-            NULL
-            );
+        ULONG imageDosStubLength = ((PIMAGE_DOS_HEADER)PvMappedImage.ViewBase)->e_lfanew - RTL_SIZEOF_THROUGH_FIELD(IMAGE_DOS_HEADER, e_lfanew);
+
+        if (imageDosStubLength != 0 && imageDosStubLength != 64)
+        {
+            PvCreateTabSection(
+                L"ProdID",
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_PEPRODID),
+                PvpPeProdIdDlgProc,
+                NULL
+                );
+        }
     }
 
     // Exceptions page
@@ -319,7 +321,7 @@ VOID PvAddTreeViewSections(
         }
         else
         {
-            if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)) && entry->VirtualAddress)
+            if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_EXCEPTION, &entry)))
             {
                 has_exceptions = TRUE;
             }
@@ -338,7 +340,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Relocations page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)) && entry->VirtualAddress)
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_BASERELOC, &entry)))
     {
         PvCreateTabSection(
             L"Relocations",
@@ -350,7 +352,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Certificates page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)) && entry->VirtualAddress)
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
     {
         PvCreateTabSection(
             L"Certificates",
@@ -362,7 +364,7 @@ VOID PvAddTreeViewSections(
     }
 
     // Debug page
-    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)) && entry->VirtualAddress)
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_DEBUG, &entry)))
     {
         PvCreateTabSection(
             L"Debug",
