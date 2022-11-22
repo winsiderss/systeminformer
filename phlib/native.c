@@ -13205,3 +13205,39 @@ NTSTATUS PhGetSystemCompressionStoreInformation(
 
     return status;
 }
+
+NTSTATUS PhGetSystemFileCacheSize(
+    _Out_ PSYSTEM_FILECACHE_INFORMATION CacheInfo
+    )
+{
+    return NtQuerySystemInformation(
+        SystemFileCacheInformationEx,
+        CacheInfo,
+        sizeof(SYSTEM_FILECACHE_INFORMATION),
+        0
+        );
+}
+
+// rev from SetSystemFileCacheSize (MSDN) (dmex)
+NTSTATUS PhSetSystemFileCacheSize(
+    _In_ SIZE_T MinimumFileCacheSize,
+    _In_ SIZE_T MaximumFileCacheSize,
+    _In_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    SYSTEM_FILECACHE_INFORMATION cacheInfo;
+
+    memset(&cacheInfo, 0, sizeof(SYSTEM_FILECACHE_INFORMATION));
+    cacheInfo.MinimumWorkingSet = MinimumFileCacheSize;
+    cacheInfo.MaximumWorkingSet = MaximumFileCacheSize;
+    cacheInfo.Flags = Flags;
+
+    status = NtSetSystemInformation(
+        SystemFileCacheInformationEx,
+        &cacheInfo,
+        sizeof(SYSTEM_FILECACHE_INFORMATION)
+        );
+
+    return status;
+}
