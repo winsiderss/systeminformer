@@ -58,13 +58,13 @@ VOID StatusBarLoadSettings(
     PH_STRINGREF remaining;
     PH_STRINGREF part;
 
-    settingsString = PhaGetStringSetting(SETTING_NAME_STATUSBAR_CONFIG);
+    settingsString = PhGetStringSetting(SETTING_NAME_STATUSBAR_CONFIG);
 
     if (PhIsNullOrEmptyString(settingsString))
     {
         // Load default settings
         StatusBarLoadDefault();
-        return;
+        goto CleanupExit;
     }
 
     remaining = PhGetStringRef(settingsString);
@@ -74,14 +74,14 @@ VOID StatusBarLoadSettings(
     {
         // Load default settings
         StatusBarLoadDefault();
-        return;
+        goto CleanupExit;
     }
 
     if (!PhStringToInteger64(&part, 10, &buttonCount))
     {
         // Load default settings
         StatusBarLoadDefault();
-        return;
+        goto CleanupExit;
     }
 
     StatusBarItemList = PhCreateList((ULONG)buttonCount);
@@ -101,6 +101,9 @@ VOID StatusBarLoadSettings(
             PhInsertItemList(StatusBarItemList, i, UlongToPtr((ULONG)idInteger));
         }
     }
+
+CleanupExit:
+    PhClearReference(&settingsString);
 }
 
 VOID StatusBarSaveSettings(

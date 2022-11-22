@@ -747,30 +747,31 @@ VOID ToolbarLoadButtonSettings(
     PH_STRINGREF part;
     LONG dpiValue;
 
-    settingsString = PhaGetStringSetting(SETTING_NAME_TOOLBAR_CONFIG);
-    remaining = settingsString->sr;
-    dpiValue = PhGetWindowDpi(PhMainWndHandle);
+    settingsString = PhGetStringSetting(SETTING_NAME_TOOLBAR_CONFIG);
 
-    if (remaining.Length == 0)
+    if (PhIsNullOrEmptyString(settingsString))
     {
         ToolbarLoadDefaultButtonSettings();
-        return;
+        goto CleanupExit;
     }
+
+    remaining = PhGetStringRef(settingsString);
 
     // Query the number of buttons to insert
     if (!PhSplitStringRefAtChar(&remaining, L'|', &part, &remaining))
     {
         ToolbarLoadDefaultButtonSettings();
-        return;
+        goto CleanupExit;
     }
 
     if (!PhStringToInteger64(&part, 10, &countInteger))
     {
         ToolbarLoadDefaultButtonSettings();
-        return;
+        goto CleanupExit;
     }
 
     count = (INT)countInteger;
+    dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     // Allocate the button array
     buttonArray = PhAllocate(count * sizeof(TBBUTTON));
@@ -835,6 +836,9 @@ VOID ToolbarLoadButtonSettings(
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, count, (LPARAM)buttonArray);
 
     PhFree(buttonArray);
+
+CleanupExit:
+    PhClearReference(&settingsString);
 }
 
 VOID ToolbarSaveButtonSettings(

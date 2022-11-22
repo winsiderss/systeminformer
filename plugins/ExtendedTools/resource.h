@@ -128,6 +128,7 @@
 #define ID_PIPE_ENUM                    6000
 #define IDD_PIPEDIALOG                  6001
 #define IDC_ATOMLIST                    6002
+#define IDC_PIPELIST                    6002
 #define ID_REPARSE_POINTS               7000
 #define ID_REPARSE_OBJID                7001
 #define ID_REPARSE_SDDL                 7002

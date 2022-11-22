@@ -54,42 +54,44 @@ VOID NetAdaptersLoadList(
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
-    settingsString = PhaGetStringSetting(SETTING_NAME_INTERFACE_LIST);
+    settingsString = PhGetStringSetting(SETTING_NAME_INTERFACE_LIST);
 
-    if (PhIsNullOrEmptyString(settingsString))
-        return;
-
-    remaining = PhGetStringRef(settingsString);
-
-    while (remaining.Length != 0)
+    if (!PhIsNullOrEmptyString(settingsString))
     {
-        ULONG64 ifindex;
-        ULONG64 luid64;
-        PH_STRINGREF part1;
-        PH_STRINGREF part2;
-        PH_STRINGREF part3;
-        IF_LUID ifLuid;
-        DV_NETADAPTER_ID id;
-        PDV_NETADAPTER_ENTRY entry;
+        remaining = PhGetStringRef(settingsString);
 
-        if (remaining.Length == 0)
-            break;
+        while (remaining.Length != 0)
+        {
+            ULONG64 ifindex;
+            ULONG64 luid64;
+            PH_STRINGREF part1;
+            PH_STRINGREF part2;
+            PH_STRINGREF part3;
+            IF_LUID ifLuid;
+            DV_NETADAPTER_ID id;
+            PDV_NETADAPTER_ENTRY entry;
 
-        PhSplitStringRefAtChar(&remaining, L',', &part1, &remaining);
-        PhSplitStringRefAtChar(&remaining, L',', &part2, &remaining);
-        PhSplitStringRefAtChar(&remaining, L',', &part3, &remaining);
+            if (remaining.Length == 0)
+                break;
 
-        PhStringToInteger64(&part1, 10, &ifindex);
-        PhStringToInteger64(&part2, 10, &luid64);
+            PhSplitStringRefAtChar(&remaining, L',', &part1, &remaining);
+            PhSplitStringRefAtChar(&remaining, L',', &part2, &remaining);
+            PhSplitStringRefAtChar(&remaining, L',', &part3, &remaining);
 
-        ifLuid.Value = luid64;
+            PhStringToInteger64(&part1, 10, &ifindex);
+            PhStringToInteger64(&part2, 10, &luid64);
 
-        InitializeNetAdapterId(&id, (IF_INDEX)ifindex, ifLuid, PhCreateString2(&part3));
-        entry = CreateNetAdapterEntry(&id);
-        DeleteNetAdapterId(&id);
+            ifLuid.Value = luid64;
 
-        entry->UserReference = TRUE;
+            InitializeNetAdapterId(&id, (IF_INDEX)ifindex, ifLuid, PhCreateString2(&part3));
+            entry = CreateNetAdapterEntry(&id);
+            DeleteNetAdapterId(&id);
+
+            entry->UserReference = TRUE;
+        }
     }
+
+    PhClearReference(&settingsString);
 }
 
 VOID NetAdaptersSaveList(

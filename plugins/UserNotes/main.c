@@ -254,7 +254,7 @@ VOID InitializeDbPath(
     }
     else
     {
-        fileName = PH_AUTO(PhExpandEnvironmentStrings(&databaseFilePath));
+        PhMoveReference(&fileName, PhExpandEnvironmentStrings(&databaseFilePath));
 
         SetDbPath(fileName);
     }

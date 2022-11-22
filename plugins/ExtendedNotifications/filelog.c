@@ -29,15 +29,15 @@ VOID FileLogInitialization(
     NTSTATUS status;
     PPH_STRING fileName;
 
-    fileName = PhaGetStringSetting(SETTING_NAME_LOG_FILENAME);
+    fileName = PhGetStringSetting(SETTING_NAME_LOG_FILENAME);
 
     if (!PhIsNullOrEmptyString(fileName))
     {
-        fileName = PH_AUTO(PhExpandEnvironmentStrings(&fileName->sr));
+        PhMoveReference(&fileName, PhExpandEnvironmentStrings(&fileName->sr));
 
         if (PhDetermineDosPathNameType(PhGetString(fileName)) == RtlPathTypeRelative)
         {
-            fileName = PH_AUTO(PhGetApplicationDirectoryFileName(&fileName->sr, FALSE));
+            PhMoveReference(&fileName, PhGetApplicationDirectoryFileName(&fileName->sr, FALSE));
         }
 
         status = PhCreateFileStream(
@@ -59,6 +59,8 @@ VOID FileLogInitialization(
                 );
         }
     }
+
+    PhClearReference(&fileName);
 }
 
 VOID NTAPI LoggedCallback(
