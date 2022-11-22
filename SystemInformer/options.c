@@ -2240,6 +2240,8 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
             EnableWindow(GetDlgItem(hwndDlg, IDC_NAME), FALSE);
 
             PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
