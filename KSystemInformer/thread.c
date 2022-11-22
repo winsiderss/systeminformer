@@ -899,7 +899,7 @@ NTSTATUS KphSetInformationThread(
 {
     NTSTATUS status;
     PVOID threadInformation;
-    UCHAR stackBuffer[64];
+    BYTE stackBuffer[64];
     PETHREAD thread;
     HANDLE threadHandle;
     THREADINFOCLASS threadInformationClass;

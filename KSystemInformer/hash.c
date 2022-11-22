@@ -171,7 +171,7 @@ VOID KSIAPI KphpFreeHashingInfra(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Return_allocatesMem_
-PUCHAR KphpAllocateHashingBuffer(
+PBYTE KphpAllocateHashingBuffer(
     VOID
     )
 {
@@ -189,7 +189,7 @@ PUCHAR KphpAllocateHashingBuffer(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphpFreeHashingBuffer(
-    _In_freesMem_ PUCHAR Buffer
+    _In_freesMem_ PBYTE Buffer
     )
 {
     PAGED_PASSIVE();
@@ -296,7 +296,7 @@ VOID KphDereferenceHashingInfrastructure(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHashBuffer(
-    _In_ PUCHAR Buffer,
+    _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
     _In_ ALG_ID AlgorithmId,
     _Out_ PKPH_HASH Hash
@@ -427,7 +427,7 @@ NTSTATUS KphHashFile(
     PVOID mappedBase;
     SIZE_T viewSize;
     KAPC_STATE apcState;
-    PUCHAR readBuffer;
+    PBYTE readBuffer;
     SIZE_T readSize;
 
     PAGED_PASSIVE();
@@ -502,7 +502,7 @@ NTSTATUS KphHashFile(
 
         __try
         {
-            RtlCopyMemory(readBuffer, &((PUCHAR)mappedBase)[offset], readSize);
+            RtlCopyMemory(readBuffer, &((PBYTE)mappedBase)[offset], readSize);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -695,7 +695,7 @@ NTSTATUS KphGetAuthenticodeInfo(
     PVOID securityBase;
     ULONG securitySize;
     PVOID securityEnd;
-    PUCHAR readBuffer;
+    PBYTE readBuffer;
 
     PAGED_PASSIVE();
 
@@ -758,10 +758,10 @@ NTSTATUS KphGetAuthenticodeInfo(
 
         if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
         {
-            regions[0].Buffer = (PUCHAR)mappedBase;
+            regions[0].Buffer = (PBYTE)mappedBase;
             regions[0].Size = PtrOffset(regions[0].Buffer, &image.Headers32->OptionalHeader.CheckSum);
 
-            regions[1].Buffer = (PUCHAR)&image.Headers32->OptionalHeader.Subsystem;
+            regions[1].Buffer = (PBYTE)&image.Headers32->OptionalHeader.Subsystem;
             if (image.Headers32->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
             {
                 regions[1].Size = PtrOffset(regions[1].Buffer, mappedEnd);
@@ -773,10 +773,10 @@ NTSTATUS KphGetAuthenticodeInfo(
         }
         else if (image.Headers->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
         {
-            regions[0].Buffer = (PUCHAR)mappedBase;
+            regions[0].Buffer = (PBYTE)mappedBase;
             regions[0].Size = PtrOffset(regions[0].Buffer, &image.Headers64->OptionalHeader.CheckSum);
 
-            regions[1].Buffer = (PUCHAR)&image.Headers64->OptionalHeader.Subsystem;
+            regions[1].Buffer = (PBYTE)&image.Headers64->OptionalHeader.Subsystem;
             if (image.Headers64->OptionalHeader.NumberOfRvaAndSizes <= IMAGE_DIRECTORY_ENTRY_SECURITY)
             {
                 regions[1].Size = PtrOffset(regions[1].Buffer, mappedEnd);
@@ -792,7 +792,7 @@ NTSTATUS KphGetAuthenticodeInfo(
         }
 
         NT_ASSERT(securityDir);
-        regions[2].Buffer = (PUCHAR)&securityDir[1];
+        regions[2].Buffer = (PBYTE)&securityDir[1];
         if ((securityDir->VirtualAddress == 0) || (securityDir->Size == 0))
         {
             regions[2].Size = PtrOffset(regions[2].Buffer, mappedEnd);
@@ -806,7 +806,7 @@ NTSTATUS KphGetAuthenticodeInfo(
 
         if (securityEnd < mappedEnd)
         {
-            regions[3].Buffer = (PUCHAR)securityEnd;
+            regions[3].Buffer = (PBYTE)securityEnd;
             regions[3].Size = PtrOffset(regions[3].Buffer, mappedEnd);
         }
     }

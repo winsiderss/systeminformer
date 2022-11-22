@@ -16,7 +16,7 @@
 #include <trace.h>
 
 KPH_PROTECTED_DATA_SECTION_PUSH();
-static UCHAR KphpTrustedPublicKey[] =
+static BYTE KphpTrustedPublicKey[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
     0x7C, 0x32, 0xAB, 0xA6, 0x40, 0x79, 0x9C, 0x00,
@@ -124,9 +124,9 @@ VOID KphCleanupVerify(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyBuffer(
-    _In_ PUCHAR Buffer,
+    _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
-    _In_ PUCHAR Signature,
+    _In_ PBYTE Signature,
     _In_ ULONG SignatureLength
     )
 {
@@ -191,7 +191,7 @@ NTSTATUS KphVerifyFile(
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE signatureFileHandle;
     IO_STATUS_BLOCK ioStatusBlock;
-    UCHAR signature[MINCRYPT_MAX_HASH_LEN];
+    BYTE signature[MINCRYPT_MAX_HASH_LEN];
 
     PAGED_PASSIVE();
 

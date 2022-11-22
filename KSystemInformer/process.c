@@ -813,7 +813,7 @@ NTSTATUS KphSetInformationProcess(
 {
     NTSTATUS status;
     PVOID processInformation;
-    UCHAR stackBuffer[64];
+    BYTE stackBuffer[64];
     PEPROCESS process;
     HANDLE processHandle;
     PROCESSINFOCLASS processInformationClass;

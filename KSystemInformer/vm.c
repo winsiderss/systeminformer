@@ -88,7 +88,7 @@ NTSTATUS KphCopyVirtualMemory(
     _Out_ PSIZE_T ReturnLength
     )
 {
-    UCHAR stackBuffer[KPH_STACK_COPY_BYTES];
+    BYTE stackBuffer[KPH_STACK_COPY_BYTES];
     PVOID buffer;
     PFN_NUMBER mdlBuffer[(sizeof(MDL) / sizeof(PFN_NUMBER)) + KPH_MAPPED_COPY_PAGES + 1];
     PMDL mdl = (PMDL)mdlBuffer;
@@ -213,7 +213,7 @@ NTSTATUS KphCopyVirtualMemory(
                 probing = TRUE;
                 ProbeForRead(sourceAddress,
                              BufferLength,
-                             TYPE_ALIGNMENT(UCHAR));
+                             TYPE_ALIGNMENT(BYTE));
                 probing = FALSE;
             }
 
@@ -253,7 +253,7 @@ NTSTATUS KphCopyVirtualMemory(
 #pragma prefast(suppress : 6001)
                 ProbeForWrite(targetAddress,
                               BufferLength,
-                              TYPE_ALIGNMENT(UCHAR));
+                              TYPE_ALIGNMENT(BYTE));
                 probing = FALSE;
             }
 

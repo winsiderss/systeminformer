@@ -46,7 +46,7 @@ NTSTATUS KphQueryInformationFile(
     KAPC_STATE apcState;
     IO_STATUS_BLOCK ioStatusBlock;
     PVOID buffer;
-    UCHAR stackBuffer[64];
+    BYTE stackBuffer[64];
 
     PAGED_PASSIVE();
 
@@ -191,7 +191,7 @@ NTSTATUS KphQueryVolumeInformationFile(
     KAPC_STATE apcState;
     IO_STATUS_BLOCK ioStatusBlock;
     PVOID buffer;
-    UCHAR stackBuffer[64];
+    BYTE stackBuffer[64];
 
     PAGED_PASSIVE();
 

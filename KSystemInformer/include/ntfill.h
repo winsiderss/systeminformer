@@ -1073,8 +1073,8 @@ _Must_inspect_result_
 NTSTATUS
 NTAPI
 CI_CHECK_SIGNED_FILE(
-    _In_bytecount_(MINCRYPT_SHA1_HASH_LEN) PUCHAR Hash,
-    _In_bytecount_(SignatureSize) PUCHAR Signature,
+    _In_bytecount_(MINCRYPT_SHA1_HASH_LEN) PBYTE Hash,
+    _In_bytecount_(SignatureSize) PBYTE Signature,
     _In_ ULONG SignatureSize,
     _Inout_opt_ PMINCRYPT_POLICY_INFO PolicyInfo,
     _Out_opt_ PLARGE_INTEGER SigningTime,
@@ -1089,10 +1089,10 @@ _Must_inspect_result_
 NTSTATUS
 NTAPI
 CI_CHECK_SIGNED_FILE_EX(
-    _In_bytecount_(HashSize) PUCHAR Hash,
+    _In_bytecount_(HashSize) PBYTE Hash,
     _In_ ULONG HashSize,
     _In_ ALG_ID AlgorithmId,
-    _In_bytecount_(SignatureSize) PUCHAR Signature,
+    _In_bytecount_(SignatureSize) PBYTE Signature,
     _In_ ULONG SignatureSize,
     _Inout_opt_ PMINCRYPT_POLICY_INFO PolicyInfo,
     _Out_opt_ PLARGE_INTEGER SigningTime,
@@ -1107,7 +1107,7 @@ _Must_inspect_result_
 NTSTATUS
 NTAPI
 CI_VERIFY_HASH_IN_CATALOG(
-    _In_bytecount_(MINCRYPT_SHA1_HASH_LEN) PUCHAR Hash,
+    _In_bytecount_(MINCRYPT_SHA1_HASH_LEN) PBYTE Hash,
     _In_ ULONG ReloadCatalogs,
     _In_ ULONG SecureProcess,
     _In_ ULONG AcceptRoots,
@@ -1125,7 +1125,7 @@ _Must_inspect_result_
 NTSTATUS
 NTAPI
 CI_VERIFY_HASH_IN_CATALOG_EX(
-    _In_bytecount_(HashSize) PUCHAR Hash,
+    _In_bytecount_(HashSize) PBYTE Hash,
     _In_ ULONG HashSize,
     _In_ ALG_ID AlgorithmId,
     _In_ ULONG ReloadCatalogs,

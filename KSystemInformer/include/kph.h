@@ -12,6 +12,7 @@
 #pragma once
 #include <ntifs.h>
 #include <ntintsafe.h>
+#include <minwindef.h>
 #include <ntstrsafe.h>
 #include <fltKernel.h>
 #include <ntimage.h>
@@ -103,7 +104,7 @@ ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 typedef struct _KPH_SIZED_BUFFER
 {
     ULONG Size;
-    PUCHAR Buffer;
+    PBYTE Buffer;
 
 } KPH_SIZED_BUFFER, *PKPH_SIZED_BUFFER;
 
@@ -682,13 +683,13 @@ _Must_inspect_result_
 NTSTATUS KphQueryRegistryBinary(
     _In_ HANDLE KeyHandle,
     _In_ PUNICODE_STRING ValueName,
-    _Outptr_allocatesMem_ PUCHAR* Buffer,
+    _Outptr_allocatesMem_ PBYTE* Buffer,
     _Out_ PULONG Length
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID KphFreeRegistryBinary(
-    _In_freesMem_ PUCHAR Buffer
+    _In_freesMem_ PBYTE Buffer
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -859,15 +860,15 @@ typedef struct _KPH_HASH
 {
     ALG_ID AlgorithmId;
     ULONG Size;
-    UCHAR Buffer[MINCRYPT_MAX_HASH_LEN];
+    BYTE Buffer[MINCRYPT_MAX_HASH_LEN];
 
 } KPH_HASH, *PKPH_HASH;
 
 typedef struct _KPH_AUTHENTICODE_INFO
 {
-    UCHAR SHA1[MINCRYPT_SHA1_HASH_LEN];
-    UCHAR SHA256[MINCRYPT_SHA256_HASH_LEN];
-    PUCHAR Signature;
+    BYTE SHA1[MINCRYPT_SHA1_HASH_LEN];
+    BYTE SHA256[MINCRYPT_SHA256_HASH_LEN];
+    PBYTE Signature;
     ULONG SignatureSize;
 
 } KPH_AUTHENTICODE_INFO, *PKPH_AUTHENTICODE_INFO;
@@ -896,7 +897,7 @@ VOID KphDereferenceHashingInfrastructure(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphHashBuffer(
-    _In_ PUCHAR Buffer,
+    _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
     _In_ ALG_ID AlgorithmId,
     _Out_ PKPH_HASH Hash
@@ -1351,9 +1352,9 @@ VOID KphCleanupVerify(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphVerifyBuffer(
-    _In_ PUCHAR Buffer,
+    _In_ PBYTE Buffer,
     _In_ ULONG BufferLength,
-    _In_ PUCHAR Signature,
+    _In_ PBYTE Signature,
     _In_ ULONG SignatureLength
     );
 
