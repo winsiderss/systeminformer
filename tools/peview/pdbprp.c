@@ -365,6 +365,37 @@ BOOLEAN NTAPI PvSymbolTreeNewCallback(
         }
         return TRUE;
     case TreeNewKeyDown:
+        {
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            if (!keyEvent)
+                break;
+
+            switch (keyEvent->VirtualKey)
+            {
+            case 'C':
+                {
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        PPH_STRING text;
+
+                        text = PhGetTreeNewText(hwnd, 0);
+                        PhSetClipboardString(hwnd, &text->sr);
+                        PhDereferenceObject(text);
+                    }
+                }
+                break;
+            case 'A':
+                {
+                    if (GetKeyState(VK_CONTROL) < 0)
+                    {
+                        TreeNew_SelectRange(hwnd, 0, -1);
+                    }
+                }
+                break;
+            }
+        }
+        return TRUE;
     case TreeNewNodeExpanding:
         return TRUE;
     case TreeNewLeftDoubleClick:
