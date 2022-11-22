@@ -53,30 +53,32 @@ VOID GraphicsDevicesLoadList(
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
-    settingsString = PhaGetStringSetting(SETTING_NAME_GRAPHICS_LIST);
+    settingsString = PhGetStringSetting(SETTING_NAME_GRAPHICS_LIST);
 
-    if (PhIsNullOrEmptyString(settingsString))
-        return;
-
-    remaining = PhGetStringRef(settingsString);
-
-    while (remaining.Length != 0)
+    if (!PhIsNullOrEmptyString(settingsString))
     {
-        PH_STRINGREF part;
-        DV_GPU_ID id;
-        PDV_GPU_ENTRY entry;
+        remaining = PhGetStringRef(settingsString);
 
-        if (remaining.Length == 0)
-            break;
+        while (remaining.Length != 0)
+        {
+            PH_STRINGREF part;
+            DV_GPU_ID id;
+            PDV_GPU_ENTRY entry;
 
-        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
+            if (remaining.Length == 0)
+                break;
 
-        InitializeGraphicsDeviceId(&id, PhCreateString2(&part));
-        entry = CreateGraphicsDeviceEntry(&id);
-        DeleteGraphicsDeviceId(&id);
+            PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
 
-        entry->UserReference = TRUE;
+            InitializeGraphicsDeviceId(&id, PhCreateString2(&part));
+            entry = CreateGraphicsDeviceEntry(&id);
+            DeleteGraphicsDeviceId(&id);
+
+            entry->UserReference = TRUE;
+        }
     }
+
+    PhClearReference(&settingsString);
 }
 
 VOID GraphicsDevicesSaveList(

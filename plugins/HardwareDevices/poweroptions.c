@@ -42,34 +42,36 @@ VOID RaplDevicesLoadList(
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
-    settingsString = PhaGetStringSetting(SETTING_NAME_RAPL_LIST);
+    settingsString = PhGetStringSetting(SETTING_NAME_RAPL_LIST);
 
-    if (PhIsNullOrEmptyString(settingsString))
-        return;
-
-    remaining = PhGetStringRef(settingsString);
-
-    while (remaining.Length != 0)
+    if (!PhIsNullOrEmptyString(settingsString))
     {
-        PH_STRINGREF part;
-        DV_RAPL_ID id;
-        PDV_RAPL_ENTRY entry;
+        remaining = PhGetStringRef(settingsString);
 
-        if (remaining.Length == 0)
-            break;
+        while (remaining.Length != 0)
+        {
+            PH_STRINGREF part;
+            DV_RAPL_ID id;
+            PDV_RAPL_ENTRY entry;
 
-        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
+            if (remaining.Length == 0)
+                break;
 
-        // Convert settings path for compatibility. (dmex)
-        if (part.Length > sizeof(UNICODE_NULL) && part.Buffer[1] == OBJ_NAME_PATH_SEPARATOR)
-            part.Buffer[1] = L'?';
+            PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
 
-        InitializeRaplDeviceId(&id, PhCreateString2(&part));
-        entry = CreateRaplDeviceEntry(&id);
-        DeleteRaplDeviceId(&id);
+            // Convert settings path for compatibility. (dmex)
+            if (part.Length > sizeof(UNICODE_NULL) && part.Buffer[1] == OBJ_NAME_PATH_SEPARATOR)
+                part.Buffer[1] = L'?';
 
-        entry->UserReference = TRUE;
+            InitializeRaplDeviceId(&id, PhCreateString2(&part));
+            entry = CreateRaplDeviceEntry(&id);
+            DeleteRaplDeviceId(&id);
+
+            entry->UserReference = TRUE;
+        }
     }
+
+    PhClearReference(&settingsString);
 }
 
 VOID RaplDevicesSaveList(

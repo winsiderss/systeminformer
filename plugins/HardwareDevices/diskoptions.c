@@ -39,34 +39,36 @@ VOID DiskDrivesLoadList(
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
-    settingsString = PhaGetStringSetting(SETTING_NAME_DISK_LIST);
+    settingsString = PhGetStringSetting(SETTING_NAME_DISK_LIST);
 
-    if (PhIsNullOrEmptyString(settingsString))
-        return;
-
-    remaining = PhGetStringRef(settingsString);
-
-    while (remaining.Length != 0)
+    if (!PhIsNullOrEmptyString(settingsString))
     {
-        PH_STRINGREF part;
-        DV_DISK_ID id;
-        PDV_DISK_ENTRY entry;
+        remaining = PhGetStringRef(settingsString);
 
-        if (remaining.Length == 0)
-            break;
+        while (remaining.Length != 0)
+        {
+            PH_STRINGREF part;
+            DV_DISK_ID id;
+            PDV_DISK_ENTRY entry;
 
-        PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
+            if (remaining.Length == 0)
+                break;
 
-        // Convert settings path for compatibility. (dmex)
-        if (part.Length > sizeof(UNICODE_NULL) && part.Buffer[1] == OBJ_NAME_PATH_SEPARATOR)
-            part.Buffer[1] = L'?';
+            PhSplitStringRefAtChar(&remaining, L',', &part, &remaining);
 
-        InitializeDiskId(&id, PhCreateString2(&part));
-        entry = CreateDiskEntry(&id);
-        DeleteDiskId(&id);
+            // Convert settings path for compatibility. (dmex)
+            if (part.Length > sizeof(UNICODE_NULL) && part.Buffer[1] == OBJ_NAME_PATH_SEPARATOR)
+                part.Buffer[1] = L'?';
 
-        entry->UserReference = TRUE;
+            InitializeDiskId(&id, PhCreateString2(&part));
+            entry = CreateDiskEntry(&id);
+            DeleteDiskId(&id);
+
+            entry->UserReference = TRUE;
+        }
     }
+
+    PhClearReference(&settingsString);
 }
 
 VOID DiskDrivesSaveList(

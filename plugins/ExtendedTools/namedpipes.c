@@ -14,6 +14,7 @@
 typedef struct _PIPE_ENUM_DIALOG_CONTEXT
 {
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND ListViewWndHandle;
     PH_LAYOUT_MANAGER LayoutManager;
 } PIPE_ENUM_DIALOG_CONTEXT, *PPIPE_ENUM_DIALOG_CONTEXT;
@@ -142,6 +143,8 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PIPE_ENUM_DIALOG_CONTEXT));
+        context->ParentWindowHandle = (HWND)lParam;
+
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -156,7 +159,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context->ListViewWndHandle = GetDlgItem(hwndDlg, IDC_ATOMLIST);
+            context->ListViewWndHandle = GetDlgItem(hwndDlg, IDC_PIPELIST);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -168,7 +171,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_PIPE_ENUM_WINDOW_POSITION, SETTING_NAME_PIPE_ENUM_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle); // TODO: Pass ParentWindowHandle from EtShowPipeEnumDialog (dmex)
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhSetListViewStyle(context->ListViewWndHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewWndHandle, L"explorer");
@@ -228,9 +231,9 @@ VOID EtShowPipeEnumDialog(
 {
     DialogBoxParam(
         PluginInstance->DllBase,
-        MAKEINTRESOURCE(IDD_REPARSEDIALOG),
+        MAKEINTRESOURCE(IDD_PIPEDIALOG),
         NULL,
         EtPipeEnumDlgProc,
-        (LPARAM)NULL
+        (LPARAM)ParentWindowHandle
         );
 }

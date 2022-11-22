@@ -278,8 +278,19 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
-    LoadFilterList(ProcessFilterList, PhaGetStringSetting(SETTING_NAME_PROCESS_LIST));
-    LoadFilterList(ServiceFilterList, PhaGetStringSetting(SETTING_NAME_SERVICE_LIST));
+    PPH_STRING settings;
+
+    if (settings = PhGetStringSetting(SETTING_NAME_PROCESS_LIST))
+    {
+        LoadFilterList(ProcessFilterList, settings);
+        PhDereferenceObject(settings);
+    }
+
+    if (settings = PhGetStringSetting(SETTING_NAME_SERVICE_LIST))
+    {
+        LoadFilterList(ServiceFilterList, settings);
+        PhDereferenceObject(settings);
+    }
 
     FileLogInitialization();
 }
