@@ -588,12 +588,20 @@ FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
     if (MappedImage->Magic != Magic)
         return STATUS_INVALID_PARAMETER;
 
-    status = PhGetMappedImageDataEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry);
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
+        &entry
+        );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    loadConfig = PhMappedImageRvaToVa(MappedImage, entry->VirtualAddress, NULL);
+    loadConfig = PhMappedImageRvaToVa(
+        MappedImage,
+        entry->VirtualAddress,
+        NULL
+        );
 
     if (!loadConfig)
         return STATUS_INVALID_PARAMETER;
@@ -3678,6 +3686,181 @@ NTSTATUS PhGetMappedImageExceptions(
 
     Exceptions->NumberOfEntries = (ULONG)exceptionArray.Count;
     Exceptions->ExceptionEntries = PhFinalArrayItems(&exceptionArray);
+
+    return status;
+}
+
+NTSTATUS PhGetMappedImageVolatileMetadata(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_VOLATILE_METADATA VolatileMetadata
+    )
+{
+    NTSTATUS status;
+    PIMAGE_VOLATILE_METADATA metadata;
+    ULONG metadataAccessTotal = 0;
+    ULONG metadataRangeTotal = 0;
+    PH_ARRAY metadataAccessArray = { 0 };
+    PH_ARRAY metadataRangeArray = { 0 };
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+
+        status = PhGetMappedImageLoadConfig32(MappedImage, &config32);
+
+        if (!NT_SUCCESS(status))
+            return status;
+        if (!RTL_CONTAINS_FIELD(config32, config32->Size, VolatileMetadataPointer))
+            return STATUS_INVALID_VIEW_SIZE;
+        if (config32->VolatileMetadataPointer == 0)
+            return STATUS_INVALID_FILE_FOR_SECTION;
+
+        metadata = PhMappedImageVaToVa(
+            MappedImage,
+            (ULONG)config32->VolatileMetadataPointer,
+            NULL
+            );
+    }
+    else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+
+        status = PhGetMappedImageLoadConfig64(MappedImage, &config64);
+
+        if (!NT_SUCCESS(status))
+            return status;
+        if (!RTL_CONTAINS_FIELD(config64, config64->Size, VolatileMetadataPointer))
+            return STATUS_INVALID_VIEW_SIZE;
+        if (config64->VolatileMetadataPointer == 0)
+            return STATUS_INVALID_FILE_FOR_SECTION;
+
+        metadata = PhMappedImageVaToVa(
+            MappedImage,
+            (ULONG)config64->VolatileMetadataPointer,
+            NULL
+            );
+    }
+
+    if (!metadata)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, metadata, sizeof(IMAGE_VOLATILE_METADATA));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    if (metadata->Size != sizeof(IMAGE_VOLATILE_METADATA))
+        return STATUS_NOT_IMPLEMENTED;
+
+    //USHORT metadataVersionMin = HIWORD(metadata->Version) & 0xff;
+    //USHORT metadataVersionMax = LOWORD(metadata->Version) & 0xff;
+    //if (metadataVersionMin != 2 && metadataVersionMax != 2)
+    //    return STATUS_NOT_IMPLEMENTED;
+
+    if (metadata->VolatileAccessTable && metadata->VolatileAccessTableSize)
+    {
+        PVOID volatileAccessTable;
+        PIMAGE_VOLATILE_RVA_METADATA entry;
+
+        volatileAccessTable = PhMappedImageRvaToVa(
+            MappedImage,
+            metadata->VolatileAccessTable,
+            NULL
+            );
+
+        if (volatileAccessTable)
+        {
+            ULONG count;
+            ULONG i;
+
+            count = metadata->VolatileAccessTableSize / sizeof(IMAGE_VOLATILE_RVA_METADATA);
+
+            PhInitializeArray(&metadataAccessArray, sizeof(PH_IMAGE_VOLATILE_ENTRY), count);
+
+            for (i = 0; i < count; i++)
+            {
+                entry = PTR_ADD_OFFSET(volatileAccessTable, i * sizeof(IMAGE_VOLATILE_RVA_METADATA));
+
+                __try
+                {
+                    PhpMappedImageProbe(MappedImage, entry, sizeof(IMAGE_VOLATILE_RVA_METADATA));
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    continue;
+                }
+
+                {
+                    PH_IMAGE_VOLATILE_ENTRY volatileRvaEntry;
+
+                    volatileRvaEntry.Rva = entry->Rva;
+                    volatileRvaEntry.Size = 0;
+
+                    PhAddItemArray(&metadataAccessArray, &volatileRvaEntry);
+                }
+            }
+
+            metadataAccessTotal = (ULONG)metadataAccessArray.Count;
+        }
+    }
+
+    if (metadata->VolatileInfoRangeTable && metadata->VolatileInfoRangeTableSize)
+    {
+        PVOID volatileRangeTable;
+        PIMAGE_VOLATILE_RANGE_METADATA entry;
+
+        volatileRangeTable = PhMappedImageRvaToVa(
+            MappedImage,
+            metadata->VolatileInfoRangeTable,
+            NULL
+            );
+
+        if (volatileRangeTable)
+        {
+            ULONG count;
+            ULONG i;
+
+            count = metadata->VolatileInfoRangeTableSize / sizeof(IMAGE_VOLATILE_RANGE_METADATA);
+
+            PhInitializeArray(&metadataRangeArray, sizeof(PH_IMAGE_VOLATILE_ENTRY), count);
+
+            for (i = 0; i < count; i++)
+            {
+                entry = PTR_ADD_OFFSET(volatileRangeTable, i * sizeof(IMAGE_VOLATILE_RANGE_METADATA));
+
+                __try
+                {
+                    PhpMappedImageProbe(MappedImage, entry, sizeof(IMAGE_VOLATILE_RANGE_METADATA));
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    continue;
+                }
+
+                {
+                    PH_IMAGE_VOLATILE_ENTRY volatileRangeEntry;
+
+                    volatileRangeEntry.Rva = entry->Rva;
+                    volatileRangeEntry.Size = entry->Size;
+
+                    PhAddItemArray(&metadataRangeArray, &volatileRangeEntry);
+                }
+            }
+
+            metadataRangeTotal = (ULONG)metadataRangeArray.Count;
+        }
+    }
+
+    VolatileMetadata->MappedImage = MappedImage;
+    VolatileMetadata->VolatileMetadata = metadata;
+    VolatileMetadata->NumberOfAccessEntries = metadataAccessTotal;
+    VolatileMetadata->NumberOfRangeEntries = metadataRangeTotal;
+    VolatileMetadata->AccessEntries = PhFinalArrayItems(&metadataAccessArray);
+    VolatileMetadata->RangeEntries = PhFinalArrayItems(&metadataRangeArray);
 
     return status;
 }

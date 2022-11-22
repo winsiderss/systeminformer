@@ -874,6 +874,61 @@ PhGetMappedImageExceptions(
     _Out_ PPH_MAPPED_IMAGE_EXCEPTIONS Exceptions
     );
 
+// Note: Remove if/when added to the Windows SDK. (dmex)
+#ifndef _IMAGE_VOLATILE_METADATA
+typedef struct _IMAGE_VOLATILE_METADATA
+{
+    ULONG Size;
+    ULONG Version;
+    ULONG VolatileAccessTable;
+    ULONG VolatileAccessTableSize;
+    ULONG VolatileInfoRangeTable;
+    ULONG VolatileInfoRangeTableSize;
+} IMAGE_VOLATILE_METADATA, *PIMAGE_VOLATILE_METADATA;
+#endif
+
+// Note: Remove if/when added to the Windows SDK. (dmex)
+#ifndef _IMAGE_VOLATILE_RVA_METADATA
+typedef struct _IMAGE_VOLATILE_RVA_METADATA
+{
+    ULONG Rva;
+} IMAGE_VOLATILE_RVA_METADATA, *PIMAGE_VOLATILE_RVA_METADATA;
+#endif
+
+// Note: Remove if/when added to the Windows SDK. (dmex)
+#ifndef _IMAGE_VOLATILE_RANGE_METADATA
+typedef struct _IMAGE_VOLATILE_RANGE_METADATA
+{
+    ULONG Rva;
+    ULONG Size;
+} IMAGE_VOLATILE_RANGE_METADATA, *PIMAGE_VOLATILE_RANGE_METADATA;
+#endif
+
+typedef struct _PH_IMAGE_VOLATILE_ENTRY
+{
+    ULONG Rva;
+    ULONG Size;
+} PH_IMAGE_VOLATILE_ENTRY, *PPH_IMAGE_VOLATILE_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_VOLATILE_METADATA
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_VOLATILE_METADATA VolatileMetadata;
+
+    ULONG NumberOfAccessEntries;
+    ULONG NumberOfRangeEntries;
+    PPH_IMAGE_VOLATILE_ENTRY AccessEntries;
+    PPH_IMAGE_VOLATILE_ENTRY RangeEntries;
+} PH_MAPPED_IMAGE_VOLATILE_METADATA, *PPH_MAPPED_IMAGE_VOLATILE_METADATA;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageVolatileMetadata(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_VOLATILE_METADATA VolatileMetadata
+    );
+
 // ELF binary support
 
 NTSTATUS PhInitializeMappedWslImage(
