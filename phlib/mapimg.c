@@ -513,31 +513,41 @@ NTSTATUS PhGetMappedImageDataEntry(
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
         PIMAGE_OPTIONAL_HEADER32 optionalHeader;
+        PIMAGE_DATA_DIRECTORY dataDirectory;
 
-        optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&MappedImage->NtHeaders32->OptionalHeader;
+        optionalHeader = &MappedImage->NtHeaders32->OptionalHeader;
 
         if (Index >= optionalHeader->NumberOfRvaAndSizes)
             return STATUS_INVALID_PARAMETER_2;
 
-        *Entry = &optionalHeader->DataDirectory[Index];
+        dataDirectory = &optionalHeader->DataDirectory[Index];
+
+        if (dataDirectory->VirtualAddress)
+        {
+            *Entry = dataDirectory;
+            return STATUS_SUCCESS;
+        }
     }
     else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
         PIMAGE_OPTIONAL_HEADER64 optionalHeader;
+        PIMAGE_DATA_DIRECTORY dataDirectory;
 
-        optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader;
+        optionalHeader = &MappedImage->NtHeaders->OptionalHeader;
 
         if (Index >= optionalHeader->NumberOfRvaAndSizes)
             return STATUS_INVALID_PARAMETER_2;
 
-        *Entry = &optionalHeader->DataDirectory[Index];
-    }
-    else
-    {
-        return STATUS_INVALID_PARAMETER;
+        dataDirectory = &optionalHeader->DataDirectory[Index];
+
+        if (dataDirectory->VirtualAddress)
+        {
+            *Entry = dataDirectory;
+            return STATUS_SUCCESS;
+        }
     }
 
-    return STATUS_SUCCESS;
+    return STATUS_INVALID_PARAMETER;
 }
 
 PVOID PhGetMappedImageDirectoryEntry(
