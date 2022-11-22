@@ -767,6 +767,7 @@
 #define IDC_MAXSCREEN                   40293
 #define ID_EMPTY_COMPRESSIONSTORE       40294
 #define ID_EMPTY_COMBINEMEMORYLISTS     40295
+#define ID_EMPTY_SYSTEMFILECACHE        40296
 #define ID_PRIVILEGE_RESET              40296
 #define ID_GROUP_ENABLE                 40297
 #define ID_THREAD_CRITICAL              40297

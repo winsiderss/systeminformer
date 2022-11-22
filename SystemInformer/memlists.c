@@ -164,7 +164,7 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhAdjustPrivilege(NULL, SE_PROF_SINGLE_PROCESS_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+            PhAdjustPrivilege(NULL, SE_PROF_SINGLE_PROCESS_PRIVILEGE, TRUE);
 
             PhRegisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), ProcessesUpdatedCallback, NULL, &ProcessesUpdatedRegistration);
             PhpUpdateMemoryListInfo(hwndDlg);
@@ -210,12 +210,13 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYMODIFIEDPAGELIST, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYSTANDBYLIST, L"Empty &standby list", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYPRIORITY0STANDBYLIST, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_SYSTEMFILECACHE, L"Empty system &file cache", NULL, NULL), ULONG_MAX);
 
-                    GetClientRect(GetDlgItem(hwndDlg, IDC_EMPTY), &buttonRect);
+                    GetClientRect(GET_WM_COMMAND_HWND(wParam, lParam), &buttonRect);
                     point.x = 0;
                     point.y = buttonRect.bottom;
 
-                    ClientToScreen(GetDlgItem(hwndDlg, IDC_EMPTY), &point);
+                    ClientToScreen(GET_WM_COMMAND_HWND(wParam, lParam), &point);
                     selectedItem = PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
 
@@ -240,11 +241,13 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                 NTSTATUS status;
                                 MEMORY_COMBINE_INFORMATION_EX combineInfo = { 0 };
 
+                                SetCursor(LoadCursor(NULL, IDC_WAIT));
                                 status = NtSetSystemInformation(
                                     SystemCombinePhysicalMemoryInformation,
                                     &combineInfo,
                                     sizeof(MEMORY_COMBINE_INFORMATION_EX)
                                     );
+                                SetCursor(LoadCursor(NULL, IDC_ARROW));
 
                                 if (NT_SUCCESS(status))
                                 {
@@ -272,12 +275,49 @@ INT_PTR CALLBACK PhpMemoryListsDlgProc(
                                     break;
                                 }
 
-                                status = KphSystemControl(KphSystemControlEmptyCompressionStore,
-                                                          NULL,
-                                                          0);
+                                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                                status = KphSystemControl(
+                                    KphSystemControlEmptyCompressionStore,
+                                    NULL,
+                                    0
+                                    );
+                                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
                                 if (!NT_SUCCESS(status))
                                 {
                                     PhShowStatus(hwndDlg, L"Unable to empty compression stores", status, 0);
+                                }
+                            }
+                            break;
+                        case ID_EMPTY_SYSTEMFILECACHE:
+                            {
+                                NTSTATUS status;
+                                SYSTEM_FILECACHE_INFORMATION cacheInfo = { 0 };
+
+                                PhAdjustPrivilege(NULL, SE_INCREASE_QUOTA_PRIVILEGE, TRUE);
+
+                                PhGetSystemFileCacheSize(&cacheInfo);
+
+                                SetCursor(LoadCursor(NULL, IDC_WAIT));
+                                status = PhSetSystemFileCacheSize(
+                                    SIZE_T_MAX,
+                                    SIZE_T_MAX,
+                                    0
+                                    );
+                                SetCursor(LoadCursor(NULL, IDC_ARROW));
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    PhShowInformation2(
+                                        hwndDlg,
+                                        L"System file cache has been cleared.",
+                                        L"Flushed: %s",
+                                        PhaFormatSize(cacheInfo.CurrentSize, ULONG_MAX)->Buffer
+                                        );
+                                }
+                                else
+                                {
+                                    PhShowStatus(hwndDlg, L"Unable to empty system file cache.", status, 0);
                                 }
                             }
                             break;
