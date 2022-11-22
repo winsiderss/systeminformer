@@ -1038,7 +1038,7 @@ KPH_PROCESS_STATE KphGetProcessState(
         return 0;
 
     if (!NT_SUCCESS(KphQueryInformationProcess(
-        ZwCurrentProcess(),
+        ProcessHandle,
         KphProcessStateInformation,
         &state,
         sizeof(state),
