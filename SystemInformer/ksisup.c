@@ -287,6 +287,7 @@ VOID PhInitializeKsi(
 
     if (PhDoesFileExistWin32(PhGetString(ksiFileName)))
     {
+        KPH_CONFIG_PARAMETERS config = { 0 };
         PPH_STRING objectName = NULL;
         PPH_STRING portName = NULL;
         PPH_STRING altitudeName = NULL;
@@ -300,15 +301,14 @@ VOID PhInitializeKsi(
             PhMoveReference(&altitudeName, PhCreateString(KPH_ALTITUDE_NAME));
         disableImageLoadProtection = !!PhGetIntegerSetting(L"KphDisableImageLoadProtection");
 
-        status = KphConnect(
-            &ksiServiceName->sr,
-            &objectName->sr,
-            &portName->sr,
-            &ksiFileName->sr,
-            &altitudeName->sr,
-            disableImageLoadProtection,
-            KsiCommsCallback
-            );
+        config.FileName = &ksiFileName->sr;
+        config.ServiceName = &ksiServiceName->sr;
+        config.ObjectName = &objectName->sr;
+        config.PortName = &portName->sr;
+        config.Altitude = &altitudeName->sr;
+        config.DisableImageLoadProtection = disableImageLoadProtection;
+        config.Callback = KsiCommsCallback;
+        status = KphConnect(&config);
 
         if (NT_SUCCESS(status))
         {

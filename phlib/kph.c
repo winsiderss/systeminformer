@@ -15,30 +15,26 @@
 #include <kphuser.h>
 #include <kphdyn.h>
 
-static PH_INITONCE KphMessageInitOnce = PH_INITONCE_INIT;
+//static PH_INITONCE KphMessageInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST KphMessageFreeList;
 
 NTSTATUS KphInitialize(
     VOID
     )
 {
-    if (PhBeginInitOnce(&KphMessageInitOnce))
-    {
-        PhInitializeFreeList(&KphMessageFreeList, sizeof(KPH_MESSAGE), 16);
-        PhEndInitOnce(&KphMessageInitOnce);
-    }
+    //if (PhBeginInitOnce(&KphMessageInitOnce))
+    //{
+    //    PhInitializeFreeList(&KphMessageFreeList, sizeof(KPH_MESSAGE), 16);
+    //    PhEndInitOnce(&KphMessageInitOnce);
+    //}
+
+    PhInitializeFreeList(&KphMessageFreeList, sizeof(KPH_MESSAGE), 16);
 
     return STATUS_SUCCESS;
 }
 
 NTSTATUS KphConnect(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ PPH_STRINGREF ObjectName,
-    _In_ PPH_STRINGREF PortName,
-    _In_ PPH_STRINGREF FileName,
-    _In_ PPH_STRINGREF Altitude,
-    _In_ BOOLEAN DisableImageLoadProtection,
-    _In_opt_ PKPH_COMMS_CALLBACK Callback
+    _In_ PKPH_CONFIG_PARAMETERS Config
     )
 {
     NTSTATUS status;
@@ -47,9 +43,13 @@ NTSTATUS KphConnect(
     BOOLEAN started = FALSE;
     BOOLEAN created = FALSE;
 
-    KphInitialize();
+    status = KphInitialize();
 
-    status = KphCommsStart(PortName, Callback);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = KphCommsStart(Config->PortName, Config->Callback);
+
     if (NT_SUCCESS(status) || (status == STATUS_ALREADY_INITIALIZED))
         return status;
 
@@ -59,7 +59,7 @@ NTSTATUS KphConnect(
 
     if (scmHandle = PhGetServiceManagerHandle())
     {
-        if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_START))
+        if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(Config->ServiceName), SERVICE_START))
         {
             if (StartService(serviceHandle, 0, NULL))
                 started = TRUE;
@@ -68,7 +68,7 @@ NTSTATUS KphConnect(
         }
     }
 
-    if (!started && PhDoesFileExistWin32(PhGetStringRefZ(FileName)))
+    if (!started && PhDoesFileExistWin32(PhGetStringRefZ(Config->FileName)))
     {
         // Try to create the service.
 
@@ -78,17 +78,17 @@ NTSTATUS KphConnect(
         {
             serviceHandle = CreateService(
                 scmHandle,
-                PhGetStringRefZ(ServiceName),
-                PhGetStringRefZ(ServiceName),
+                PhGetStringRefZ(Config->ServiceName),
+                PhGetStringRefZ(Config->ServiceName),
                 SERVICE_ALL_ACCESS,
                 SERVICE_KERNEL_DRIVER,
                 SERVICE_DEMAND_START,
                 SERVICE_ERROR_IGNORE,
-                PhGetStringRefZ(FileName),
+                PhGetStringRefZ(Config->FileName),
                 NULL,
                 NULL,
                 NULL,
-                PhGetStringRefZ(ObjectName),
+                PhGetStringRefZ(Config->ObjectName),
                 L""
                 );
 
@@ -98,12 +98,7 @@ NTSTATUS KphConnect(
 
                 KphSetServiceSecurity(serviceHandle);
 
-                status = KphSetParameters(
-                    ServiceName,
-                    PortName,
-                    Altitude,
-                    DisableImageLoadProtection
-                    );
+                status = KphSetParameters(Config);
 
                 if (!NT_SUCCESS(status))
                     goto CreateAndConnectEnd;
@@ -124,7 +119,7 @@ NTSTATUS KphConnect(
 
     if (started)
     {
-        status = KphCommsStart(PortName, Callback);
+        status = KphCommsStart(Config->PortName, Config->Callback);
     }
 
 CreateAndConnectEnd:
@@ -145,44 +140,40 @@ CreateAndConnectEnd:
 }
 
 NTSTATUS KphSetParameters(
-    _In_ PPH_STRINGREF ServiceName,
-    _In_ PPH_STRINGREF PortName,
-    _In_ PPH_STRINGREF Altitude,
-    _In_ BOOLEAN DisableImageLoadProtection
+    _In_ PKPH_CONFIG_PARAMETERS Config
     )
 {
     NTSTATUS status;
     HANDLE parametersKeyHandle = NULL;
     ULONG disposition;
-    PH_STRINGREF valueNameSr;
     SIZE_T returnLength;
-    PH_STRINGREF parametersKeyNameSr;
+    PH_STRINGREF parametersKeyName;
     PH_FORMAT format[3];
-    WCHAR parametersKeyName[MAX_PATH];
+    WCHAR parametersKeyNameBuffer[MAX_PATH];
 
     PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatSR(&format[1], *ServiceName);
+    PhInitFormatSR(&format[1], *Config->ServiceName);
     PhInitFormatS(&format[2], L"\\Parameters");
 
     if (!PhFormatToBuffer(
         format,
         RTL_NUMBER_OF(format),
-        parametersKeyName,
-        sizeof(parametersKeyName),
+        parametersKeyNameBuffer,
+        sizeof(parametersKeyNameBuffer),
         &returnLength
         ))
     {
         return STATUS_UNSUCCESSFUL;
     }
 
-    parametersKeyNameSr.Buffer = parametersKeyName;
-    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+    parametersKeyName.Buffer = parametersKeyNameBuffer;
+    parametersKeyName.Length = returnLength - sizeof(UNICODE_NULL);
 
     status = PhCreateKey(
         &parametersKeyHandle,
         KEY_WRITE | DELETE,
         PH_KEY_LOCAL_MACHINE,
-        &parametersKeyNameSr,
+        &parametersKeyName,
         0,
         0,
         &disposition
@@ -191,62 +182,60 @@ NTSTATUS KphSetParameters(
     if (!NT_SUCCESS(status))
         return status;
 
-    PhInitializeStringRef(&valueNameSr, L"KphPortName");
-    status = PhSetValueKey(
+    status = PhSetValueKeyZ(
         parametersKeyHandle,
-        &valueNameSr,
+        L"KphPortName",
         REG_SZ,
-        PortName->Buffer,
-        (ULONG)PortName->Length + sizeof(UNICODE_NULL)
+        Config->PortName->Buffer,
+        (ULONG)Config->PortName->Length + sizeof(UNICODE_NULL)
         );
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    PhInitializeStringRef(&valueNameSr, L"KphAltitude");
-    status = PhSetValueKey(
+    status = PhSetValueKeyZ(
         parametersKeyHandle,
-        &valueNameSr,
+        L"KphAltitude",
         REG_SZ,
-        Altitude->Buffer,
-        (ULONG)Altitude->Length + sizeof(UNICODE_NULL)
+        Config->Altitude->Buffer,
+        (ULONG)Config->Altitude->Length + sizeof(UNICODE_NULL)
         );
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    PhInitializeStringRef(&valueNameSr, L"DynData");
-    status = PhSetValueKey(
+    status = PhSetValueKeyZ(
         parametersKeyHandle,
-        &valueNameSr,
+        L"DynData",
         REG_BINARY,
         KphDynData,
         KphDynDataLength
         );
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    PhInitializeStringRef(&valueNameSr, L"DynDataSig");
-    status = PhSetValueKey(
+    status = PhSetValueKeyZ(
         parametersKeyHandle,
-        &valueNameSr,
+        L"DynDataSig",
         REG_BINARY,
         KphDynDataSig,
         KphDynDataSigLength
         );
+
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (DisableImageLoadProtection)
+    if (Config->DisableImageLoadProtection)
     {
-        ULONG dynULongValue = 1;
-
-        PhInitializeStringRef(&valueNameSr, L"DisableImageLoadProtection");
-        status = PhSetValueKey(
+        status = PhSetValueKeyZ(
             parametersKeyHandle,
-            &valueNameSr,
+            L"DisableImageLoadProtection",
             REG_DWORD,
-            &dynULongValue,
-            sizeof(dynULongValue)
+            &(ULONG){ TRUE },
+            sizeof(ULONG)
             );
+
         if (!NT_SUCCESS(status))
             goto CleanupExit;
     }
@@ -268,114 +257,114 @@ CleanupExit:
     return status;
 }
 
-BOOLEAN KphParametersExists(
-    _In_z_ PWSTR ServiceName
-    )
-{
-    NTSTATUS status;
-    HANDLE parametersKeyHandle = NULL;
-    PH_STRINGREF parametersKeyNameSr;
-    PH_FORMAT format[3];
-    SIZE_T returnLength;
-    WCHAR parametersKeyName[MAX_PATH];
-
-    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatS(&format[1], ServiceName);
-    PhInitFormatS(&format[2], L"\\Parameters");
-
-    if (!PhFormatToBuffer(
-        format,
-        RTL_NUMBER_OF(format),
-        parametersKeyName,
-        sizeof(parametersKeyName),
-        &returnLength
-        ))
-    {
-        return FALSE;
-    }
-
-    parametersKeyNameSr.Buffer = parametersKeyName;
-    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-
-    status = PhOpenKey(
-        &parametersKeyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &parametersKeyNameSr,
-        0
-        );
-
-    if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
-    {
-        if (parametersKeyHandle)
-            NtClose(parametersKeyHandle);
-        return TRUE;
-    }
-
-    if (parametersKeyHandle)
-        NtClose(parametersKeyHandle);
-    return FALSE;
-}
-
-NTSTATUS KphResetParameters(
-    _In_z_ PWSTR ServiceName
-    )
-{
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
-    HANDLE parametersKeyHandle = NULL;
-    PH_STRINGREF serviceNameSr;
-    PH_STRINGREF parametersKeyName;
-    PH_FORMAT format[3];
-    SIZE_T returnLength;
-    WCHAR parametersKeyNameBuffer[MAX_PATH];
-
-    PhInitializeStringRefLongHint(&serviceNameSr, ServiceName);
-    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
-    PhInitFormatSR(&format[1], serviceNameSr);
-    PhInitFormatS(&format[2], L"\\Parameters");
-
-    if (!PhFormatToBuffer(
-        format,
-        RTL_NUMBER_OF(format),
-        parametersKeyNameBuffer,
-        sizeof(parametersKeyNameBuffer),
-        &returnLength
-        ))
-    {
-        return STATUS_UNSUCCESSFUL;
-    }
-
-    parametersKeyName.Buffer = parametersKeyNameBuffer;
-    parametersKeyName.Length = returnLength - sizeof(UNICODE_NULL);
-
-    status = KphUninstall(&serviceNameSr);
-    status = WIN32_FROM_NTSTATUS(status);
-
-    if (status == ERROR_SERVICE_DOES_NOT_EXIST)
-        status = STATUS_SUCCESS;
-
-    if (NT_SUCCESS(status))
-    {
-        status = PhOpenKey(
-            &parametersKeyHandle,
-            DELETE,
-            PH_KEY_LOCAL_MACHINE,
-            &parametersKeyName,
-            0
-            );
-    }
-
-    if (NT_SUCCESS(status) && parametersKeyHandle)
-        status = NtDeleteKey(parametersKeyHandle);
-
-    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-        status = STATUS_SUCCESS;
-
-    if (parametersKeyHandle)
-        NtClose(parametersKeyHandle);
-
-    return status;
-}
+//BOOLEAN KphParametersExists(
+//    _In_z_ PWSTR ServiceName
+//    )
+//{
+//    NTSTATUS status;
+//    HANDLE parametersKeyHandle = NULL;
+//    PH_STRINGREF parametersKeyNameSr;
+//    PH_FORMAT format[3];
+//    SIZE_T returnLength;
+//    WCHAR parametersKeyName[MAX_PATH];
+//
+//    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+//    PhInitFormatS(&format[1], ServiceName);
+//    PhInitFormatS(&format[2], L"\\Parameters");
+//
+//    if (!PhFormatToBuffer(
+//        format,
+//        RTL_NUMBER_OF(format),
+//        parametersKeyName,
+//        sizeof(parametersKeyName),
+//        &returnLength
+//        ))
+//    {
+//        return FALSE;
+//    }
+//
+//    parametersKeyNameSr.Buffer = parametersKeyName;
+//    parametersKeyNameSr.Length = returnLength - sizeof(UNICODE_NULL);
+//
+//    status = PhOpenKey(
+//        &parametersKeyHandle,
+//        KEY_READ,
+//        PH_KEY_LOCAL_MACHINE,
+//        &parametersKeyNameSr,
+//        0
+//        );
+//
+//    if (NT_SUCCESS(status) || status == STATUS_ACCESS_DENIED)
+//    {
+//        if (parametersKeyHandle)
+//            NtClose(parametersKeyHandle);
+//        return TRUE;
+//    }
+//
+//    if (parametersKeyHandle)
+//        NtClose(parametersKeyHandle);
+//    return FALSE;
+//}
+//
+//NTSTATUS KphResetParameters(
+//    _In_z_ PWSTR ServiceName
+//    )
+//{
+//    NTSTATUS status = STATUS_UNSUCCESSFUL;
+//    HANDLE parametersKeyHandle = NULL;
+//    PH_STRINGREF serviceNameSr;
+//    PH_STRINGREF parametersKeyName;
+//    PH_FORMAT format[3];
+//    SIZE_T returnLength;
+//    WCHAR parametersKeyNameBuffer[MAX_PATH];
+//
+//    PhInitializeStringRefLongHint(&serviceNameSr, ServiceName);
+//    PhInitFormatS(&format[0], L"System\\CurrentControlSet\\Services\\");
+//    PhInitFormatSR(&format[1], serviceNameSr);
+//    PhInitFormatS(&format[2], L"\\Parameters");
+//
+//    if (!PhFormatToBuffer(
+//        format,
+//        RTL_NUMBER_OF(format),
+//        parametersKeyNameBuffer,
+//        sizeof(parametersKeyNameBuffer),
+//        &returnLength
+//        ))
+//    {
+//        return STATUS_UNSUCCESSFUL;
+//    }
+//
+//    parametersKeyName.Buffer = parametersKeyNameBuffer;
+//    parametersKeyName.Length = returnLength - sizeof(UNICODE_NULL);
+//
+//    status = KphUninstall(&serviceNameSr);
+//    status = WIN32_FROM_NTSTATUS(status);
+//
+//    if (status == ERROR_SERVICE_DOES_NOT_EXIST)
+//        status = STATUS_SUCCESS;
+//
+//    if (NT_SUCCESS(status))
+//    {
+//        status = PhOpenKey(
+//            &parametersKeyHandle,
+//            DELETE,
+//            PH_KEY_LOCAL_MACHINE,
+//            &parametersKeyName,
+//            0
+//            );
+//    }
+//
+//    if (NT_SUCCESS(status) && parametersKeyHandle)
+//        status = NtDeleteKey(parametersKeyHandle);
+//
+//    if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+//        status = STATUS_SUCCESS;
+//
+//    if (parametersKeyHandle)
+//        NtClose(parametersKeyHandle);
+//
+//    return status;
+//}
 
 VOID KphSetServiceSecurity(
     _In_ SC_HANDLE ServiceHandle
