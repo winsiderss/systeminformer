@@ -400,6 +400,7 @@
     <ClCompile Include="settings.c" />
     <ClCompile Include="streams.c" />
     <ClCompile Include="tlsprp.c" />
+    <ClCompile Include="volatileprp.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="colmgr.h" />

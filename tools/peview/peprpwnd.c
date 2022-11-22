@@ -375,6 +375,41 @@ VOID PvAddTreeViewSections(
             );
     }
 
+    // Volatile page
+    {
+        BOOLEAN valid = FALSE;
+
+        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                RTL_CONTAINS_FIELD(config32, config32->Size, VolatileMetadataPointer))
+            {
+                if (config32->VolatileMetadataPointer)
+                    valid = TRUE;
+            }
+        }
+        else
+        {
+            if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
+                RTL_CONTAINS_FIELD(config64, config64->Size, VolatileMetadataPointer))
+            {
+                if (config64->VolatileMetadataPointer)
+                    valid = TRUE;
+            }
+        }
+
+        if (valid)
+        {
+            PvCreateTabSection(
+                L"Volatile Metadata",
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_PEVOLATILE),
+                PvpPeVolatileDlgProc,
+                NULL
+                );
+        }
+    }
+
     // EH continuation page
     {
         BOOLEAN has_ehcont = FALSE;

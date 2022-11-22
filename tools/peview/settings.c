@@ -77,6 +77,7 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageDebugCrtListViewColumns", L"");
     PhpAddStringSetting(L"ImageDebugPogoListViewColumns", L"");
     PhpAddStringSetting(L"ImageEhContListViewColumns", L"");
+    PhpAddStringSetting(L"ImageVolatileListViewColumns", L"");
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
