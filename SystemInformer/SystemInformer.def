@@ -363,6 +363,7 @@ EXPORTS
     PhCreateOpenFileDialog
     PhCreateProcess
     PhCreateProcessAsUser
+    PhCreateProcessRedirection
     PhCreateProcessWin32
     PhCreateProcessWin32Ex
     PhCreateSaveFileDialog
