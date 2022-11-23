@@ -429,7 +429,7 @@ CleanupExit:
 
     if (startupInfo.lpAttributeList)
     {
-        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
         PhFree(startupInfo.lpAttributeList);
     }
 
