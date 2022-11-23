@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2021
+ *     dmex    2017-2022
  *
  */
 
@@ -64,9 +64,7 @@ _SymGetLineFromAddrW64 SymGetLineFromAddrW64_I = NULL;
 _SymLoadModuleExW SymLoadModuleExW_I = NULL;
 _SymGetOptions SymGetOptions_I = NULL;
 _SymSetOptions SymSetOptions_I = NULL;
-_SymGetSearchPathW SymGetSearchPathW_I = NULL;
 _SymSetSearchPathW SymSetSearchPathW_I = NULL;
-_SymUnloadModule64 SymUnloadModule64_I = NULL;
 _SymFunctionTableAccess64 SymFunctionTableAccess64_I = NULL;
 _SymGetModuleBase64 SymGetModuleBase64_I = NULL;
 _SymRegisterCallbackW64 SymRegisterCallbackW64_I = NULL;
@@ -525,9 +523,7 @@ VOID PhpSymbolProviderCompleteInitialization(
         SymLoadModuleExW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymLoadModuleExW", 0);
         SymGetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetOptions", 0);
         SymSetOptions_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetOptions", 0);
-        SymGetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetSearchPathW", 0);
         SymSetSearchPathW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymSetSearchPathW", 0);
-        SymUnloadModule64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymUnloadModule64", 0);
         SymFunctionTableAccess64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFunctionTableAccess64", 0);
         SymGetModuleBase64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetModuleBase64", 0);
         SymRegisterCallbackW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymRegisterCallbackW64", 0);
@@ -1175,8 +1171,7 @@ VOID PhLoadModulesForProcessSymbolProvider(
         &context
         );
 
-    // Load symbols for ntdll.dll and kernel32.dll.
-    // HACK: Return from LDR without enumeration (dmex)
+    // Load symbols for ntdll.dll and kernel32.dll (dmex)
     {
         static PH_STRINGREF ntdllSr = PH_STRINGREF_INIT(L"ntdll.dll");
         static PH_STRINGREF kernel32Sr = PH_STRINGREF_INIT(L"kernel32.dll");
