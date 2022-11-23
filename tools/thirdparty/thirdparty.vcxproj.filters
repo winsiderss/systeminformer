@@ -28,12 +28,6 @@
     <Filter Include="tlsh">
       <UniqueIdentifier>{407366db-5825-4bc3-aa28-1a584dc8430e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="gzip">
-      <UniqueIdentifier>{5c70a087-9762-482d-a15a-98ac4095e7a5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="gzip\Headers">
-      <UniqueIdentifier>{228f20b4-adb4-4646-a32c-2602b245eac9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="maxminddb">
       <UniqueIdentifier>{010e4e1c-b7bc-440d-b60a-d14a00f5d24e}</UniqueIdentifier>
     </Filter>
@@ -356,66 +350,6 @@
     </ClCompile>
     <ClCompile Include="tlsh\tlsh_wrapper.cpp">
       <Filter>tlsh</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\adler32.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\compress.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\crc32.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\deflate.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\gzclose.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\gzlib.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\gzread.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\gzwrite.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\infback.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\inffast.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\inflate.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\inftrees.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\ioapi.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\iowin32.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\mztools.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\trees.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\uncompr.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\unzip.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\zip.c">
-      <Filter>gzip</Filter>
-    </ClCompile>
-    <ClCompile Include="gzip\zutil.c">
-      <Filter>gzip</Filter>
     </ClCompile>
     <ClCompile Include="maxminddb\data-pool.c">
       <Filter>maxminddb</Filter>
@@ -769,57 +703,6 @@
     </ClInclude>
     <ClInclude Include="tlsh\win_version.h">
       <Filter>tlsh</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\crc32.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\crypt.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\deflate.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\gzguts.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\inffast.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\inffixed.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\inflate.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\inftrees.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\ioapi.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\iowin32.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\mztools.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\trees.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\unzip.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\zconf.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\zlib.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\zip.h">
-      <Filter>gzip\Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="gzip\zutil.h">
-      <Filter>gzip\Headers</Filter>
     </ClInclude>
     <ClInclude Include="maxminddb\data-pool.h">
       <Filter>maxminddb</Filter>
