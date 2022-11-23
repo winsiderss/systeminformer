@@ -57,7 +57,7 @@ PPH_STRING EtGetSelectedTreeViewPath(
 {
     HTREEITEM treeItem;
     PPH_STRING treePath = NULL;
-    WCHAR buffer[_MAX_FNAME] = L"";
+    WCHAR buffer[MAX_PATH] = L"";
 
     treeItem = Context->SelectedTreeItem;
 
@@ -120,7 +120,7 @@ HTREEITEM EtTreeViewFindItem(
         treeItem.hItem = TreeView_GetNextSibling(TreeViewHandle, treeItem.hItem)
         )
     {
-        WCHAR itemText[_MAX_FNAME] = L"";
+        WCHAR itemText[MAX_PATH] = L"";
 
         treeItem.mask = TVIF_TEXT | TVIF_CHILDREN;
         treeItem.pszText = itemText;
@@ -456,7 +456,7 @@ NTSTATUS EnumCurrentDirectoryObjects(
         NtClose(directoryHandle);
     }
 
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status) && status != STATUS_NO_MORE_ENTRIES)
     {
         PhShowStatus(Context->WindowHandle, L"Unable to query directory object.", status, 0);
     }
