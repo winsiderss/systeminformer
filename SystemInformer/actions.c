@@ -2548,13 +2548,11 @@ CleanupExit:
         PhFree(processSecurityDescriptor);
     }
 
-#if (PHNT_VERSION >= PHNT_WIN7)
     if (startupInfo.lpAttributeList)
     {
-        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
         PhFree(startupInfo.lpAttributeList);
     }
-#endif
 
     if (newProcessHandle)
     {

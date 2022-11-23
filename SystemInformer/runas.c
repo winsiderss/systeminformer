@@ -1566,13 +1566,13 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 {
                                     PhFree(processSecurityDescriptor);
                                 }
-#if (PHNT_VERSION >= PHNT_WIN7)
+
                                 if (startupInfo.lpAttributeList)
                                 {
-                                    DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+                                    //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
                                     PhFree(startupInfo.lpAttributeList);
                                 }
-#endif
+
                                 if (processHandle)
                                 {
                                     NtClose(processHandle);
@@ -2602,13 +2602,12 @@ NTSTATUS PhpRunFileProgram(
             PhFree(processSecurityDescriptor);
         }
 
-#if (PHNT_VERSION >= PHNT_WIN7)
         if (startupInfo.lpAttributeList)
         {
-            DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+            //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
             PhFree(startupInfo.lpAttributeList);
         }
-#endif
+
         if (processHandle)
         {
             NtClose(processHandle);
@@ -2756,13 +2755,11 @@ CleanupExit:
     if (serviceHandle)
         CloseServiceHandle(serviceHandle);
 
-#if (PHNT_VERSION >= PHNT_WIN7)
     if (startupInfo.lpAttributeList)
     {
-        DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
         PhFree(startupInfo.lpAttributeList);
     }
-#endif
 
     if (commandLine)
     {
