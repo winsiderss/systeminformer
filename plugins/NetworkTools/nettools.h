@@ -38,6 +38,7 @@
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")
 #define SETTING_NAME_EXTENDED_TCP_STATS (PLUGIN_NAME L".EnableExtendedTcpStats")
+#define SETTING_NAME_GEOLITE_API_KEY (PLUGIN_NAME L".MaxMindApiKey")
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN GeoDbInitialized;
@@ -295,20 +296,19 @@ typedef struct _PH_UPDATER_CONTEXT
 {
     HWND DialogHandle;
     WNDPROC DefaultWindowProc;
-
-    PPH_STRING FileDownloadUrl;
+    ULONG ErrorCode;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
 
-VOID TaskDialogLinkClicked(
+BOOLEAN GeoLiteCheckUpdatePlatformSupported(
+    VOID
+    );
+
+NTSTATUS GeoLiteUpdateThread(
     _In_ PPH_UPDATER_CONTEXT Context
     );
 
-NTSTATUS GeoIPUpdateThread(
-    _In_ PVOID Parameter
-    );
-
-VOID ShowGeoIPUpdateDialog(
-    VOID
+VOID ShowGeoLiteUpdateDialog(
+    _In_opt_ HWND ParentWindowHandle
     );
 
 // pages.c

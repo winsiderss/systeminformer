@@ -57,7 +57,7 @@ BEGIN
     CONTROL         "",IDC_NETOUTPUTEDIT,"RICHEDIT50W",WS_VSCROLL | WS_TABSTOP | 0x4,0,0,389,214
 END
 
-IDD_OPTIONS DIALOGEX 0, 0, 253, 129
+IDD_OPTIONS DIALOGEX 0, 0, 303, 122
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -68,6 +68,11 @@ BEGIN
     LTEXT           "Max Tracert Hops:",IDC_STATIC,105,25,60,8
     CONTROL         "Enable extended TCP statistics",IDC_ENABLE_EXTENDED_TCP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,115,10
+    EDITTEXT        IDC_KEYTEXT,7,76,184,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    LTEXT           "MaxMind GeoLite license key:",IDC_STATIC,7,66,94,8
+    PUSHBUTTON      "Download",IDRETRY,246,77,50,14
+    PUSHBUTTON      "Change",IDC_REFRESH,193,77,50,14
+    LTEXT           "Note: You can also download GeoLite updates from the Main menu > Tools > Network Tools > Update GeoLite...",IDC_STATIC,7,94,192,19
 END
 
 IDD_PING DIALOGEX 0, 0, 329, 151
@@ -98,6 +103,19 @@ BEGIN
     DEFPUSHBUTTON   "Close",IDCANCEL,333,191,50,14
     CONTROL         "",IDC_LIST_TRACERT,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0xa,7,22,375,166,WS_EX_CLIENTEDGE
     PUSHBUTTON      "Refresh",IDC_REFRESH,279,191,50,14
+END
+
+IDD_OPTIONSKEY DIALOGEX 0, 0, 309, 68
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Update MaxMind License Key"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Save",IDYES,198,47,50,14
+    DEFPUSHBUTTON   "Cancel",IDCANCEL,252,47,50,14
+    EDITTEXT        IDC_KEYTEXT,7,24,295,14,ES_AUTOHSCROLL
+    LTEXT           "Paste the license key here: ",IDC_STATIC,7,7,90,8
+    CONTROL         "Checkout <a href=""https://support.maxmind.com/hc/en-us/articles/4407111582235-Generate-a-License-Key"">How-to-generate-a-license-key</a>",IDC_HELPLINK,
+                    "SysLink",WS_TABSTOP,7,47,136,14
 END
 
 
@@ -616,9 +634,9 @@ BEGIN
     IDD_OPTIONS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 246
+        RIGHTMARGIN, 296
         TOPMARGIN, 7
-        BOTTOMMARGIN, 122
+        BOTTOMMARGIN, 115
     END
 
     IDD_PING, DIALOG
@@ -635,6 +653,14 @@ BEGIN
         RIGHTMARGIN, 382
         TOPMARGIN, 7
         BOTTOMMARGIN, 205
+    END
+
+    IDD_OPTIONSKEY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 61
     END
 END
 #endif    // APSTUDIO_INVOKED

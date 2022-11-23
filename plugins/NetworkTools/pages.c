@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016
+ *     dmex    2016-2022
  *
  */
 
@@ -47,7 +47,7 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
         break;
     case TDN_HYPERLINK_CLICKED:
         {
-            TaskDialogLinkClicked(context);
+            PhShellExecute(hwndDlg, L"https://www.maxmind.com", NULL);
         }
         break;
     }
@@ -73,7 +73,7 @@ HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), GeoIPUpdateThread, context);
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), GeoLiteUpdateThread, context);
         }
         break;
     }
@@ -167,8 +167,8 @@ VOID ShowDbCheckForUpdatesDialog(
     config.pfCallback = CheckForUpdatesDbCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Network Tools - GeoIP Updater";
-    config.pszMainInstruction = L"Download the latest GeoIP database?";
+    config.pszWindowTitle = L"Network Tools - GeoLite Updater";
+    config.pszMainInstruction = L"Download the latest GeoLite database?";
     config.pszContent = L"This product includes GeoLite2 data created by MaxMind, available from <a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>\r\n\r\nSelect download to continue.";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
@@ -189,7 +189,7 @@ VOID ShowDbCheckingForUpdatesDialog(
     config.pfCallback = CheckingForUpdatesDbCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Network Tools - GeoIP Updater";
+    config.pszWindowTitle = L"Network Tools - GeoLite Updater";
     config.pszMainInstruction = L"Downloading";
     config.pszContent = L"Downloaded: ~ of ~ (~%%)\r\nSpeed: ~/s";
 
@@ -213,9 +213,9 @@ VOID ShowDbInstallRestartDialog(
     config.pButtons = RestartButtonArray;
     config.cButtons = ARRAYSIZE(RestartButtonArray);
 
-    config.pszWindowTitle = L"Network Tools - GeoIP Updater";
-    config.pszMainInstruction = L"The GeoIP database has been installed";
-    config.pszContent = L"You need to restart System Informer for the changes to take effect...";
+    config.pszWindowTitle = L"Network Tools - GeoLite Updater";
+    config.pszMainInstruction = L"The GeoLite database has been updated.";
+    config.pszContent = L"Please restart System Informer for the changes to take effect...";
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
@@ -236,9 +236,32 @@ VOID ShowDbUpdateFailedDialog(
     config.pfCallback = FinalDbTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 
-    config.pszWindowTitle = L"Network Tools - GeoIP Updater";
-    config.pszMainInstruction = L"Error downloading GeoIP database.";
-    config.pszContent = L"Click Retry to download the database again.";
+    config.pszWindowTitle = L"Network Tools - GeoLite Updater";
+    config.pszMainInstruction = L"Error downloading GeoLite database.";
+
+    if (Context->ErrorCode)
+    {
+        PPH_STRING errorMessage;
+
+        if (Context->ErrorCode == ERROR_ACCESS_DENIED)
+        {
+            config.pszContent = PhaFormatString(L"[%lu] Access denied (invalid license key)", Context->ErrorCode)->Buffer;
+        }
+        else if (errorMessage = PhHttpSocketGetErrorMessage(Context->ErrorCode))
+        {
+            config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
+            PhDereferenceObject(errorMessage);
+        }
+        else if (errorMessage = PhGetStatusMessage(0, Context->ErrorCode))
+        {
+            config.pszContent = PhaFormatString(L"[%lu] %s", Context->ErrorCode, errorMessage->Buffer)->Buffer;
+            PhDereferenceObject(errorMessage);
+        }
+    }
+    else
+    {
+        config.pszContent = L"Click Retry to download the update again.";
+    }
 
     TaskDialogNavigatePage(Context->DialogHandle, &config);
 }
