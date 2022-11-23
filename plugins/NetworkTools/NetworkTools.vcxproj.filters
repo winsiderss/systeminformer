@@ -66,9 +66,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHANGELOG.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="resources\ad.png">
       <Filter>Resource Files\Images</Filter>
     </Image>

@@ -11,6 +11,7 @@
 #define AM_PNG                          107
 #define AN_PNG                          108
 #define AO_PNG                          109
+#define IDD_OPTIONSKEY                  109
 #define AR_PNG                          110
 #define AS_PNG                          111
 #define AT_PNG                          112
@@ -274,14 +275,16 @@
 #define IDC_LIST_TRACERT                1030
 #define IDC_REFRESH                     1031
 #define IDC_ENABLE_EXTENDED_TCP         1032
+#define IDC_HELPLINK                    1036
+#define IDC_KEYTEXT                     1037
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        108
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40006
-#define _APS_NEXT_CONTROL_VALUE         1033
+#define _APS_NEXT_CONTROL_VALUE         1038
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

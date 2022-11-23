@@ -146,9 +146,6 @@
     <ResourceCompile Include="NetworkTools.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHANGELOG.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="resources\ad.png" />
     <Image Include="resources\ae.png" />
     <Image Include="resources\af.png" />

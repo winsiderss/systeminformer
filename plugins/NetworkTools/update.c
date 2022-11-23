@@ -5,14 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2016-2021
+ *     dmex    2016-2022
  *
  */
 
 #include "nettools.h"
 #include <commonutil.h>
-#include "..\..\tools\thirdparty\gzip\zlib.h"
-#include "..\..\tools\thirdparty\gzip\gzguts.h"
 
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
@@ -20,15 +18,36 @@ PH_EVENT InitializedEvent = PH_EVENT_INIT;
 PPH_OBJECT_TYPE UpdateContextType = NULL;
 PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 
+// Note: We're using the built-in tar.exe on Windows 10/11 for extracting the database
+// updates since SI doesn't currently ship with a tar library. (dmex) 
+BOOLEAN GeoLiteCheckUpdatePlatformSupported(
+    VOID
+    )
+{
+    BOOLEAN supported = FALSE;
+    PPH_STRING systemDirectory;
+    PPH_STRING fileName;
+
+    if (systemDirectory = PhGetSystemDirectory())
+    {
+        if (fileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\tar.exe"))
+        {
+            supported = PhDoesFileExistWin32(PhGetString(fileName));
+            PhDereferenceObject(fileName);
+        }
+
+        PhDereferenceObject(systemDirectory);
+    }
+
+    return supported;
+}
+
 VOID UpdateContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
 {
-    PPH_UPDATER_CONTEXT context = Object;
-
-    if (context->FileDownloadUrl)
-        PhDereferenceObject(context->FileDownloadUrl);
+    //PPH_UPDATER_CONTEXT context = Object;
 }
 
 PPH_UPDATER_CONTEXT CreateUpdateContext(
@@ -39,7 +58,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
 
     if (PhBeginInitOnce(&UpdateContextTypeInitOnce))
     {
-        UpdateContextType = PhCreateObjectType(L"GeoIpContextObjectType", 0, UpdateContextDeleteProcedure);
+        UpdateContextType = PhCreateObjectType(L"GeoLiteContextObjectType", 0, UpdateContextDeleteProcedure);
         PhEndInitOnce(&UpdateContextTypeInitOnce);
     }
 
@@ -49,310 +68,259 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     return context;
 }
 
-VOID TaskDialogLinkClicked(
-    _In_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    PhShellExecute(Context->DialogHandle, L"https://www.maxmind.com", NULL);
-}
-
-PPH_STRING UpdateVersionString(
+PPH_STRING CreateUserAgentString(
     VOID
     )
 {
-    ULONG majorVersion;
-    ULONG minorVersion;
-    ULONG revisionVersion;
-    PPH_STRING currentVersion;
-    PPH_STRING versionHeader = NULL;
-
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, NULL, &revisionVersion);
-
-    if (currentVersion = PhFormatString(L"%lu.%lu.%lu", majorVersion, minorVersion, revisionVersion))
-    {
-        versionHeader = PhConcatStrings2(L"SystemInformer-Build: ", currentVersion->Buffer);
-        PhDereferenceObject(currentVersion);
-    }
-
-    return versionHeader;
-}
-
-PPH_STRING UpdateWindowsString(
-    VOID
-    )
-{
-    PPH_STRING buildString = NULL;
-    PPH_STRING fileName = NULL;
-    PPH_STRING fileVersion = NULL;
-    PVOID versionInfo;
-    VS_FIXEDFILEINFO* rootBlock;
-    PH_FORMAT fileVersionFormat[3];
-
-    fileName = PhGetKernelFileName();
-    PhMoveReference(&fileName, PhGetFileName(fileName));
-    versionInfo = PhGetFileVersionInfo(fileName->Buffer);
-    PhDereferenceObject(fileName);
-
-    if (versionInfo)
-    {
-        if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
-        {
-            PhInitFormatU(&fileVersionFormat[0], HIWORD(rootBlock->dwFileVersionLS));
-            PhInitFormatC(&fileVersionFormat[1], '.');
-            PhInitFormatU(&fileVersionFormat[2], LOWORD(rootBlock->dwFileVersionLS));
-
-            fileVersion = PhFormat(fileVersionFormat, 3, 30);
-        }
-
-        PhFree(versionInfo);
-    }
-
-    if (fileVersion)
-    {
-        if (PhIsExecutingInWow64())
-            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"x86fre");
-        else
-            buildString = PhFormatString(L"%s: %s.%s", L"SystemInformer-OsBuild", fileVersion->Buffer, L"amd64fre");
-
-        PhDereferenceObject(fileVersion);
-    }
-
-    return buildString;
-
-    //
-    // NOTE: Some security products have started randomizing the build string located in the registry
-    // breaking the version check that blocks updates that are not compatible with old and unsupported
-    // versions of Windows. (dmex)
-    //
-    //static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
-    //HANDLE keyHandle;
-    //PPH_STRING buildLabHeader = NULL;
-    //
-    //if (NT_SUCCESS(PhOpenKey(
-    //    &keyHandle,
-    //    KEY_READ,
-    //    PH_KEY_LOCAL_MACHINE,
-    //    &keyName,
-    //    0
-    //    )))
-    //{
-    //    PPH_STRING buildLabString;
-    //
-    //    if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
-    //    {
-    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
-    //        PhDereferenceObject(buildLabString);
-    //    }
-    //    else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
-    //    {
-    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
-    //        PhDereferenceObject(buildLabString);
-    //    }
-    //
-    //    NtClose(keyHandle);
-    //}
-    //
-    //return buildLabHeader;
-}
-
-PPH_STRING QueryFwLinkUrl(
-    _In_ PPH_UPDATER_CONTEXT Context
-    )
-{
-    PPH_STRING redirectUrl = NULL;
-    PPH_HTTP_CONTEXT httpContext = NULL;
-    PPH_STRING versionString = NULL;
-    PPH_STRING userAgentString = NULL;
-    PPH_STRING versionHeader;
-    PPH_STRING windowsHeader;
+    PPH_STRING userAgentString;
+    PPH_STRING versionString;
 
     versionString = PhGetPhVersion();
-    userAgentString = PhConcatStrings2(L"SystemInformer_", versionString->Buffer);
+    userAgentString = PhConcatStrings2(L"SystemInformer_", PhGetString(versionString));
+    PhDereferenceObject(versionString);
 
-    if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
-        goto CleanupExit;
-
-    if (!PhHttpSocketConnect(httpContext, L"wj32.org", PH_HTTP_DEFAULT_HTTPS_PORT))
-        goto CleanupExit;
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        NULL,
-        L"/processhacker/fwlink/maxminddb.php",
-        PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    if (versionHeader = UpdateVersionString())
-    {
-        PhHttpSocketAddRequestHeaders(httpContext, versionHeader->Buffer, (ULONG)versionHeader->Length / sizeof(WCHAR));
-        PhDereferenceObject(versionHeader);
-    }
-
-    if (windowsHeader = UpdateWindowsString())
-    {
-        PhHttpSocketAddRequestHeaders(httpContext, windowsHeader->Buffer, (ULONG)windowsHeader->Length / sizeof(WCHAR));
-        PhDereferenceObject(windowsHeader);
-    }
-
-    if (!PhHttpSocketSetFeature(httpContext, PH_HTTP_FEATURE_REDIRECTS, FALSE))
-        goto CleanupExit;
-
-    if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
-        goto CleanupExit;
-
-    if (!PhHttpSocketEndRequest(httpContext))
-        goto CleanupExit;
-
-    //redirectUrl = PhCreateString(L"https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz");
-    redirectUrl = PhHttpSocketQueryHeaderString(httpContext, L"Location"); // WINHTTP_QUERY_LOCATION
-
-CleanupExit:
-
-    if (httpContext)
-        PhHttpSocketDestroy(httpContext);
-
-    PhClearReference(&versionString);
-    PhClearReference(&userAgentString);
-
-    return redirectUrl;
+    return userAgentString;
 }
 
-NTSTATUS GeoIPUpdateThread(
-    _In_ PVOID Parameter
+NTSTATUS ExtractUpdateToFile(
+    _In_ PPH_STRING WorkingDirectory,
+    _In_ PPH_STRING CompressedFileName,
+    _In_ PCWSTR NewFileName
+    )
+{
+    NTSTATUS status;
+    PPH_STRING commandLine;
+    PPH_STRING systemDirectory;
+    PH_FORMAT format[6];
+
+    if (!(systemDirectory = PhGetSystemDirectory()))
+        return STATUS_UNSUCCESSFUL;
+
+    // tar --extract --file="GeoLite2-Country.tar.gz" --directory="%temp%\\guid" --strip-components=1 */GeoLite2-Country.mmdb
+
+    PhInitFormatSR(&format[0], systemDirectory->sr);
+    PhInitFormatS(&format[1], L"\\tar.exe --extract --file=\"");
+    PhInitFormatSR(&format[2], CompressedFileName->sr);
+    PhInitFormatS(&format[3], L"\" --directory=\"");
+    PhInitFormatSR(&format[4], WorkingDirectory->sr);
+    PhInitFormatS(&format[5], L"\" --strip-components=1 */GeoLite2-Country.mmdb"); // NewFileName
+    commandLine = PhFormat(format, RTL_NUMBER_OF(format), 0x100);
+
+    status = PhCreateProcessRedirection(
+        commandLine,
+        NULL
+        );
+
+    PhDereferenceObject(commandLine);
+    PhDereferenceObject(systemDirectory);
+
+    return status;
+}
+
+_Success_(return)
+BOOLEAN DownloadUpdateToFile(
+    _In_ PPH_UPDATER_CONTEXT Context,
+    _Out_ PPH_STRING* UpdateFileName
     )
 {
     BOOLEAN success = FALSE;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
     HANDLE tempFileHandle = NULL;
-    PPH_STRING fwLinkUrl;
     PPH_HTTP_CONTEXT httpContext = NULL;
-    PPH_STRING zipFilePath = NULL;
-    PPH_STRING versionString = NULL;
-    PPH_STRING userAgentString = NULL;
-    PPH_STRING httpHostName = NULL;
-    PPH_STRING httpHostPath = NULL;
-    PPH_STRING dbpath = NULL;
-    PPH_BYTES mmdbGzPath = NULL;
-    gzFile gzfile = NULL;
-    USHORT httpHostPort = 0;
-    LARGE_INTEGER timeNow;
-    LARGE_INTEGER timeStart;
-    ULONG64 timeTicks;
-    ULONG64 timeBitsPerSecond;
-    PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)Parameter;
+    PPH_STRING httpRequestString = NULL;
+    PPH_STRING httpHeaderFileHash = NULL;
+    PPH_STRING httpHeaderFileName = NULL;
+    ULONG httpStatus = 0;
+    ULONG httpContentLength = 0;
+    PH_HASH_CONTEXT hashContext;
 
-    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing download request...");
+    PhInitializeHash(&hashContext, Md5HashAlgorithm);
 
-    if (!(fwLinkUrl = QueryFwLinkUrl(context)))
-        goto CleanupExit;
-
-    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
-
-    if (!PhHttpSocketParseUrl(
-        fwLinkUrl,
-        &httpHostName,
-        &httpHostPath,
-        &httpHostPort
-        ))
     {
+        PPH_STRING apikeyString = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+
+        if (PhIsNullOrEmptyString(apikeyString))
+        {
+            Context->ErrorCode = ERROR_INVALID_DATA;
+            goto CleanupExit;
+        }
+
+        httpRequestString = PhFormatString(
+            L"/app/geoip_download?edition_id=%s&license_key=%s&suffix=tar.gz",
+            L"GeoLite2-Country",
+            PhGetString(apikeyString)
+            );
+
+        PhClearReference(&apikeyString);
+    }
+
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Connecting...");
+
+    {
+        PPH_STRING userAgentString = CreateUserAgentString();
+
+        if (!PhHttpSocketCreate(&httpContext, PhGetString(userAgentString)))
+        {
+            PhClearReference(&userAgentString);
+            Context->ErrorCode = ERROR_INVALID_DATA;
+            goto CleanupExit;
+        }
+
+        PhClearReference(&userAgentString);
+    }
+
+    if (!PhHttpSocketConnect(httpContext, L"download.maxmind.com", PH_HTTP_DEFAULT_HTTPS_PORT))
+    {
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    versionString = PhGetPhVersion();
-    userAgentString = PhConcatStrings2(L"SystemInformer_", versionString->Buffer);
-
-    if (!PhHttpSocketCreate(
-        &httpContext,
-        PhGetString(userAgentString)
-        ))
+    if (!PhHttpSocketBeginRequest(httpContext, NULL, PhGetString(httpRequestString), PH_HTTP_FLAG_REFRESH | PH_HTTP_FLAG_SECURE))
     {
+        Context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
 
-    if (!PhHttpSocketConnect(
-        httpContext,
-        PhGetString(httpHostName),
-        httpHostPort
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    if (!PhHttpSocketBeginRequest(
-        httpContext,
-        NULL,
-        PhGetString(httpHostPath),
-        PH_HTTP_FLAG_REFRESH | (httpHostPort == PH_HTTP_DEFAULT_HTTPS_PORT ? PH_HTTP_FLAG_SECURE : 0)
-        ))
-    {
-        goto CleanupExit;
-    }
-
-    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Sending download request...");
 
     if (!PhHttpSocketSendRequest(httpContext, NULL, 0))
-        goto CleanupExit;
-
-    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
-
-    if (PhHttpSocketEndRequest(httpContext))
     {
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Waiting for response...");
+
+    if (!PhHttpSocketEndRequest(httpContext))
+    {
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+
+    // Check http request status.
+
+    if (!PhHttpSocketQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus))
+    {
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+
+    if (httpStatus != PH_HTTP_STATUS_OK)
+    {
+        switch (httpStatus)
+        {
+        case 401:
+            Context->ErrorCode = ERROR_ACCESS_DENIED;
+            break;
+        default:
+            Context->ErrorCode = ERROR_UNHANDLED_ERROR;
+            break;
+        }
+
+        goto CleanupExit;
+    }
+
+    if (!PhHttpSocketQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &httpContentLength))
+    {
+        Context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+    if (httpContentLength == 0)
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    // Update status message.
+
+    SendMessage(Context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
+    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Downloading GeoLite2-Country...");
+
+    // Extract the content hash from the request headers.
+
+    httpHeaderFileHash = PhHttpSocketQueryHeaderString(httpContext, L"ETag");
+
+    if (PhIsNullOrEmptyString(httpHeaderFileHash))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    if (PhStartsWithString2(httpHeaderFileHash, L"\"", TRUE))
+        PhSkipStringRef(&httpHeaderFileHash->sr, 1 * sizeof(WCHAR));
+    if (PhEndsWithString2(httpHeaderFileHash, L"\"", TRUE))
+        httpHeaderFileHash->Length -= 1 * sizeof(WCHAR);
+
+    // Extract the filename from the request headers.
+
+    httpHeaderFileName = PhHttpSocketQueryHeaderString(httpContext, L"content-disposition");
+
+    if (PhIsNullOrEmptyString(httpHeaderFileName))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    if (!PhStartsWithString2(httpHeaderFileName, L"attachment; filename=", TRUE))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    PhSkipStringRef(&httpHeaderFileName->sr, 21 * sizeof(WCHAR));
+
+    if (!PhStartsWithString2(httpHeaderFileName, L"GeoLite2-Country", TRUE))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    if (!PhEndsWithString2(httpHeaderFileName, L".tar.gz", TRUE))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    // Create temporary file in the cache directory.
+
+    PhMoveReference(&httpHeaderFileName, PhCreateCacheFile(httpHeaderFileName));
+
+    if (PhIsNullOrEmptyString(httpHeaderFileName))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    status = PhCreateFileWin32Ex(
+        &tempFileHandle,
+        PhGetString(httpHeaderFileName),
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+        &(LARGE_INTEGER){ .QuadPart = httpContentLength },
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        Context->ErrorCode = PhNtStatusToDosError(status);
+        goto CleanupExit;
+    }
+
+    // Start downloading the update into the cache.
+    {
+        LARGE_INTEGER timeNow;
+        LARGE_INTEGER timeStart;
+        ULONG64 timeTicks;
+        ULONG64 timeBitsPerSecond;
         ULONG bytesDownloaded = 0;
-        ULONG downloadedBytes = 0;
-        ULONG contentLength = 0;
-        PPH_STRING status;
+        ULONG bytesTotalDownloaded = 0;
         IO_STATUS_BLOCK isb;
         BYTE buffer[PAGE_SIZE];
 
-        memset(buffer, 0, PAGE_SIZE);
-
-        status = PhFormatString(L"Downloading GeoLite2-Country...");
-        SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
-        SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
-        PhDereferenceObject(status);
-
-        if (!PhHttpSocketQueryHeaderUlong(
-            httpContext,
-            PH_HTTP_QUERY_CONTENT_LENGTH,
-            &contentLength
-            ))
-        {
-            //context->ErrorCode = GetLastError();
-            goto CleanupExit;
-        }
-        else
-        {
-            LARGE_INTEGER allocationSize;
-
-            {
-                PPH_STRING temp = PhCreateString2(&GeoDbFileName);
-                zipFilePath = PhCreateCacheFile(temp);
-                PhClearReference(&temp);
-            }
-
-            if (PhIsNullOrEmptyString(zipFilePath))
-                goto CleanupExit;
-
-            allocationSize.QuadPart = contentLength;
-
-            if (!NT_SUCCESS(PhCreateFileWin32Ex(
-                &tempFileHandle,
-                PhGetString(zipFilePath),
-                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-                &allocationSize,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                FILE_OVERWRITE_IF,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                NULL
-                )))
-            {
-                goto CleanupExit;
-            }
-        }
-
+        memset(buffer, 0, sizeof(buffer));
         PhQuerySystemTime(&timeStart);
 
         while (PhHttpSocketReadData(httpContext, buffer, PAGE_SIZE, &bytesDownloaded))
@@ -361,11 +329,14 @@ NTSTATUS GeoIPUpdateThread(
             if (bytesDownloaded == 0)
                 break;
 
-            // If the dialog was closed; cleanup and exit.
-            if (!context->DialogHandle)
+            // If the dialog was closed then cleanup and exit.
+            if (!Context->DialogHandle)
+            {
+                Context->ErrorCode = ERROR_INVALID_DATA;
                 goto CleanupExit;
+            }
 
-            if (!NT_SUCCESS(NtWriteFile(
+            status = NtWriteFile(
                 tempFileHandle,
                 NULL,
                 NULL,
@@ -375,35 +346,43 @@ NTSTATUS GeoIPUpdateThread(
                 bytesDownloaded,
                 NULL,
                 NULL
-                )))
+                );
+
+            if (!NT_SUCCESS(status))
             {
+                Context->ErrorCode = PhNtStatusToDosError(status);
                 goto CleanupExit;
             }
 
-            downloadedBytes += (ULONG)isb.Information;
-
-            // Check the number of bytes written are the same we downloaded.
+            // Check the downloaded was copied to the file.
             if (bytesDownloaded != isb.Information)
+            {
+                Context->ErrorCode = ERROR_INVALID_DATA;
                 goto CleanupExit;
+            }
+
+            // Update the hash.
+            PhUpdateHash(&hashContext, buffer, bytesDownloaded);
 
             // Query the current time
             PhQuerySystemTime(&timeNow);
 
             // Calculate the number of ticks
+            bytesTotalDownloaded += (ULONG)isb.Information;
             timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
-            timeBitsPerSecond = downloadedBytes / __max(timeTicks, 1);
+            timeBitsPerSecond = bytesTotalDownloaded / __max(timeTicks, 1);
 
-            // TODO: Update on timer callback.
+            // Update download status (TODO: Update on timer callback)
             {
-                FLOAT percent = ((FLOAT)downloadedBytes / contentLength * 100);
+                FLOAT percent = ((FLOAT)bytesTotalDownloaded / httpContentLength * 100);
                 PH_FORMAT format[9];
                 WCHAR string[MAX_PATH];
 
                 // L"Downloaded: %s of %s (%.0f%%)\r\nSpeed: %s/s"
                 PhInitFormatS(&format[0], L"Downloaded: ");
-                PhInitFormatSize(&format[1], downloadedBytes);
+                PhInitFormatSize(&format[1], bytesTotalDownloaded);
                 PhInitFormatS(&format[2], L" of ");
-                PhInitFormatSize(&format[3], contentLength);
+                PhInitFormatSize(&format[3], httpContentLength);
                 PhInitFormatS(&format[4], L" (");
                 PhInitFormatF(&format[5], percent, 1);
                 PhInitFormatS(&format[6], L"%)\r\nSpeed: ");
@@ -412,120 +391,179 @@ NTSTATUS GeoIPUpdateThread(
 
                 if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
                 {
-                    SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
+                    SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
                 }
 
-                SendMessage(context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
+                SendMessage(Context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
             }
         }
+    }
 
+    // Check the file hash matches the original ETag hash.
+    {
+        PPH_STRING finalHashString;
+        UCHAR finalHashBuffer[32];
+
+        if (!PhFinalHash(&hashContext, finalHashBuffer, 16, NULL))
         {
-            dbpath = PhGetApplicationDataFileName(&GeoDbFileName, FALSE);
-
-            if (PhIsNullOrEmptyString(dbpath))
-                goto CleanupExit;
-
-            if (PhDoesFileExistWin32(PhGetString(dbpath)))
-            {
-                if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(dbpath))))
-                    goto CleanupExit;
-            }
-            else
-            {
-                if (!NT_SUCCESS(PhCreateDirectoryFullPathWin32(&dbpath->sr)))
-                    goto CleanupExit;
-            }
-
-            mmdbGzPath = PhConvertUtf16ToUtf8(PhGetString(zipFilePath));
-
-            if (gzfile = gzopen(mmdbGzPath->Buffer, "rb"))
-            {
-                HANDLE mmdbFileHandle;
-
-                if (NT_SUCCESS(PhCreateFileWin32(
-                    &mmdbFileHandle,
-                    PhGetStringOrEmpty(dbpath),
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-                    FILE_ATTRIBUTE_NORMAL,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                    FILE_OVERWRITE_IF,
-                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                    )))
-                {
-                    IO_STATUS_BLOCK isb;
-                    BYTE buffer[PAGE_SIZE];
-
-                    while (!gzeof(gzfile))
-                    {
-                        INT bytes = gzread(gzfile, buffer, sizeof(buffer));
-
-                        if (bytes == -1)
-                        {
-                            NtClose(mmdbFileHandle);
-                            goto CleanupExit;
-                        }
-
-                        if (!NT_SUCCESS(NtWriteFile(
-                            mmdbFileHandle,
-                            NULL,
-                            NULL,
-                            NULL,
-                            &isb,
-                            buffer,
-                            bytes,
-                            NULL,
-                            NULL
-                            )))
-                        {
-                            NtClose(mmdbFileHandle);
-                            goto CleanupExit;
-                        }
-                    }
-
-                    success = TRUE;
-
-                    NtClose(mmdbFileHandle);
-                }
-
-                gzclose(gzfile);
-                gzfile = NULL;
-            }
+            Context->ErrorCode = ERROR_INVALID_DATA;
+            goto CleanupExit;
         }
+
+        finalHashString = PhBufferToHexString(finalHashBuffer, 16);
+
+        if (!PhEqualString(finalHashString, httpHeaderFileHash, TRUE))
+        {
+            Context->ErrorCode = ERROR_SYSTEM_IMAGE_BAD_SIGNATURE;
+            goto CleanupExit;
+        }
+
+        success = TRUE;
+
+        PhClearReference(&finalHashString);
     }
 
 CleanupExit:
 
-    if (gzfile)
-        gzclose(gzfile);
-    if (mmdbGzPath)
-        PhDereferenceObject(mmdbGzPath);
-    if (dbpath)
-        PhDereferenceObject(dbpath);
-
     if (tempFileHandle)
         NtClose(tempFileHandle);
-
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
+    if (httpHeaderFileHash)
+        PhDereferenceObject(httpHeaderFileHash);
+    if (httpRequestString)
+        PhDereferenceObject(httpRequestString);
 
-    if (userAgentString)
-        PhDereferenceObject(userAgentString);
-    if (versionString)
-        PhDereferenceObject(versionString);
-
-    if (zipFilePath)
+    if (success)
     {
-        PhDeleteCacheFile(zipFilePath);
-        PhDereferenceObject(zipFilePath);
+        *UpdateFileName = httpHeaderFileName;
+    }
+    else
+    {
+        if (httpHeaderFileName)
+        {
+            PhDeleteCacheFile(httpHeaderFileName);
+            PhDereferenceObject(httpHeaderFileName);
+        }
     }
 
-    if (context->DialogHandle)
+    return success;
+}
+
+BOOLEAN MoveUpdateToFile(
+    _In_ PPH_UPDATER_CONTEXT Context,
+    _In_ PPH_STRING UpdateFileName
+    )
+{
+    BOOLEAN success = FALSE;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PPH_STRING existingFileName = NULL;
+
+    // Get the current database filename.
+
+    existingFileName = PhGetApplicationDataFileName(&GeoDbFileName, FALSE);
+
+    if (PhIsNullOrEmptyString(existingFileName))
     {
-        PostMessage(context->DialogHandle,
-            success ? PH_SHOWINSTALL : PH_SHOWERROR, 0, 0);
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
     }
 
-    PhDereferenceObject(context);
+    // Backup the current database.
+
+    //backupFileName = PhConcatStringRefZ(&existingFileName->sr, L".backup");
+    //if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(existingFileName), PhGetString(backupFileName))))
+    //    goto CleanupExit;
+
+    // Delete the current database.
+
+    if (PhDoesFileExistWin32(PhGetString(existingFileName)))
+    {
+        if (!NT_SUCCESS(status = PhDeleteFileWin32(PhGetString(existingFileName))))
+        {
+            Context->ErrorCode = PhNtStatusToDosError(status);
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+        if (!NT_SUCCESS(status = PhCreateDirectoryFullPathWin32(&existingFileName->sr)))
+        {
+            Context->ErrorCode = PhNtStatusToDosError(status);
+            goto CleanupExit;
+        }
+    }
+
+    // Move the update from the cache to the correct location.
+
+    if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(UpdateFileName), PhGetString(existingFileName))))
+    {
+        Context->ErrorCode = PhNtStatusToDosError(status);
+        goto CleanupExit;
+    }
+
+    success = TRUE;
+
+CleanupExit:
+    if (existingFileName)
+        PhDereferenceObject(existingFileName);
+
+    return success;
+}
+
+NTSTATUS GeoLiteUpdateThread(
+    _In_ PPH_UPDATER_CONTEXT Context
+    )
+{
+    BOOLEAN success = FALSE;
+    PPH_STRING compressedFileName = NULL;
+    PPH_STRING cacheDirectory = NULL;
+    PPH_STRING updateFileName = NULL;
+
+    // Download the update into the cache.
+
+    if (!DownloadUpdateToFile(Context, &compressedFileName))
+        goto CleanupExit;
+
+    // Extract the update into the cache.
+
+    cacheDirectory = PhGetBaseDirectory(compressedFileName);
+
+    if (!NT_SUCCESS(ExtractUpdateToFile(cacheDirectory, compressedFileName, L"\\GeoLite2-Country.mmdb")))
+        goto CleanupExit;
+
+    // Check the update file was extracted.
+
+    updateFileName = PhConcatStringRefZ(&cacheDirectory->sr, L"\\GeoLite2-Country.mmdb");
+
+    if (!PhDoesFileExistWin32(PhGetString(updateFileName)))
+    {
+        Context->ErrorCode = ERROR_INVALID_DATA;
+        goto CleanupExit;
+    }
+
+    // Update the database to the latest version.
+
+    if (!MoveUpdateToFile(Context, updateFileName))
+        goto CleanupExit;
+
+    success = TRUE;
+
+CleanupExit:
+
+    if (updateFileName)
+        PhDereferenceObject(updateFileName);
+    if (cacheDirectory)
+        PhDereferenceObject(cacheDirectory);
+    if (compressedFileName)
+        PhDereferenceObject(compressedFileName);
+
+    if (Context->DialogHandle)
+    {
+        PostMessage(Context->DialogHandle, success ? PH_SHOWINSTALL : PH_SHOWERROR, 0, 0);
+    }
+
+    PhDereferenceObject(Context);
     return STATUS_SUCCESS;
 }
 
@@ -616,7 +654,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
     return S_OK;
 }
 
-NTSTATUS GeoIPUpdateDialogThread(
+NTSTATUS GeoLiteUpdateTaskDialogThread(
     _In_ PVOID Parameter
     )
 {
@@ -693,20 +731,77 @@ NTSTATUS GeoIPUpdateDialogThread(
     //}
 }
 
-VOID ShowGeoIPUpdateDialog(
-    VOID
+HRESULT CALLBACK GeoLiteMissingKeyTaskDialogCallbackProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _In_ LONG_PTR dwRefData
     )
 {
-    if (!UpdateDialogThreadHandle)
+    switch (uMsg)
     {
-        if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoIPUpdateDialogThread, NULL)))
+    case TDN_HYPERLINK_CLICKED:
         {
-            PhShowError(NULL, L"%s", L"Unable to create the window.");
-            return;
-        }
+            PWSTR hyperlink = (PWSTR)lParam;
 
-        PhWaitForEvent(&InitializedEvent, NULL);
+            PhShellExecute(hwndDlg, hyperlink, NULL);
+        }
+        break;
     }
 
-    PostMessage(UpdateDialogHandle, PH_SHOWDIALOG, 0, 0);
+    return S_OK;
+}
+
+VOID ShowGeoLiteUpdateDialog(
+    _In_opt_ HWND ParentWindowHandle
+    )
+{
+    if (!GeoLiteCheckUpdatePlatformSupported())
+    {
+        PhShowError(ParentWindowHandle, L"%s", L"The GeoLite updater doesn't support legacy versions of Windows.");
+        return;
+    }
+
+    PPH_STRING geolitekey = PhGetStringSetting(SETTING_NAME_GEOLITE_API_KEY);
+
+    if (PhIsNullOrEmptyString(geolitekey))
+    {
+        PhClearReference(&geolitekey);
+
+        TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };
+        config.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+        config.dwCommonButtons = TDCBF_OK_BUTTON;
+        config.pszMainIcon = TD_ERROR_ICON;
+        config.hwndParent = ParentWindowHandle;
+        config.pszWindowTitle = L"Network Tools - GeoLite Updater";
+        config.pszMainInstruction = L"Unable to download GeoLite database updates.";
+        config.pszContent =
+            L"A license key is required to download GeoLite database updates and there are no keys configured.\n\n"
+            L"The license keys are completely free. If you're unsure how to create keys then please review the documentation here: <a href=\"https://support.maxmind.com/hc/en-us/articles/4407111582235-Generate-a-License-Key\">Generate-a-License-Key</a>\n\n"
+            L"Once you've created the key you can copy/paste the text into the Options window > NetworkTools settings and System Informer can start downloading GeoLite database updates.\n\n"
+            L"Special thanks to MaxMind (<a href=\"http://www.maxmind.com\">http://www.maxmind.com</a>) for continuing free GeoLite services <3";
+
+        config.pfCallback = GeoLiteMissingKeyTaskDialogCallbackProc;
+        config.cxWidth = 200;
+
+        TaskDialogIndirect(&config, NULL, NULL, NULL);
+    }
+    else
+    {
+        PhClearReference(&geolitekey);
+
+        if (!UpdateDialogThreadHandle)
+        {
+            if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoLiteUpdateTaskDialogThread, NULL)))
+            {
+                PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
+                return;
+            }
+
+            PhWaitForEvent(&InitializedEvent, NULL);
+        }
+
+        PostMessage(UpdateDialogHandle, PH_SHOWDIALOG, 0, 0);
+    }
 }
