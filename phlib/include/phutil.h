@@ -1863,6 +1863,14 @@ PhFreeProcessSnapshot(
     _In_ HANDLE ProcessHandle
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateProcessRedirection(
+    _In_ PPH_STRING CommandLine,
+    _Out_opt_ PPH_STRING* CommandOutput
+    );
+
 #ifdef __cplusplus
 }
 #endif

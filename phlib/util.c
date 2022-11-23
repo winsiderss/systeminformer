@@ -6519,7 +6519,6 @@ PPH_STRING PhCreateCacheFile(
     PPH_STRING settingsFileName;
     PPH_STRING cacheDirectory;
     PPH_STRING cacheFilePath = NULL;
-    ULONG indexOfFileName = ULONG_MAX;
     PH_STRINGREF randomAlphaStringRef;
     WCHAR randomAlphaString[32] = L"";
 
@@ -9419,4 +9418,139 @@ VOID PhFreeProcessSnapshot(
     {
         PssFreeSnapshot_Import()(ProcessHandle, SnapshotHandle);
     }
+}
+
+NTSTATUS PhCreateProcessRedirection(
+    _In_ PPH_STRING CommandLine,
+    _Out_opt_ PPH_STRING *CommandOutput
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PPH_STRING output = NULL;
+    STARTUPINFOEX startupInfo = { 0 };
+    SIZE_T attributeListLength = 0;
+    HANDLE processHandle = NULL;
+    HANDLE outputReadHandle = NULL;
+    HANDLE outputWriteHandle = NULL;
+    HANDLE inputReadHandle = NULL;
+    HANDLE inputWriteHandle = NULL;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    
+    status = PhCreatePipeEx(
+        &inputReadHandle,
+        &inputWriteHandle,
+        TRUE,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhCreatePipeEx(
+        &outputReadHandle,
+        &outputWriteHandle,
+        TRUE,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
+    startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
+    startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_FORCEOFFFEEDBACK | STARTF_USESTDHANDLES;
+    startupInfo.StartupInfo.wShowWindow = SW_HIDE;
+    startupInfo.StartupInfo.hStdInput = inputReadHandle;
+    startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
+    startupInfo.StartupInfo.hStdError = outputWriteHandle;
+
+    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+
+    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    if (!UpdateProcThreadAttribute(
+        startupInfo.lpAttributeList,
+        0,
+        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
+        sizeof(HANDLE[2]),
+        NULL,
+        NULL
+        ))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto CleanupExit;
+    }
+
+    status = PhCreateProcessWin32Ex(
+        NULL,
+        PhGetString(CommandLine),
+        NULL,
+        NULL,
+        &startupInfo.StartupInfo,
+        PH_CREATE_PROCESS_INHERIT_HANDLES | PH_CREATE_PROCESS_NEW_CONSOLE |
+        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        NULL,
+        NULL,
+        &processHandle,
+        NULL
+        );
+
+    NtClose(inputReadHandle);
+    inputReadHandle = NULL;
+    NtClose(outputWriteHandle);
+    outputWriteHandle = NULL;
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    output = PhGetFileText(outputReadHandle, TRUE);
+
+    //if (PhIsNullOrEmptyString(output))
+    //{
+    //    status = STATUS_UNSUCCESSFUL;
+    //    goto CleanupExit;
+    //}
+
+    status = PhGetProcessBasicInformation(processHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = basicInfo.ExitStatus;
+
+CleanupExit:
+    if (processHandle)
+        NtClose(processHandle);
+    if (outputWriteHandle)
+        NtClose(outputWriteHandle);
+    if (outputReadHandle)
+        NtClose(outputReadHandle);
+    if (inputReadHandle)
+        NtClose(inputReadHandle);
+    if (inputWriteHandle)
+        NtClose(inputWriteHandle);
+
+    if (startupInfo.lpAttributeList)
+    {
+        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+        PhFree(startupInfo.lpAttributeList);
+    }
+
+    if (CommandOutput)
+        *CommandOutput = output;
+    else
+        PhClearReference(&output);
+
+    return status;
 }
