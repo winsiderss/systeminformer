@@ -146,7 +146,6 @@ NTSTATUS HashFileAndResetPosition(
     PH_HASH_CONTEXT hashContext;
     PPH_STRING hashString = NULL;
     ULONG64 bytesRemaining;
-    LARGE_INTEGER position;
     KPRIORITY priority;
     IO_PRIORITY_HINT ioPriority;
     BYTE buffer[PAGE_SIZE];
@@ -192,24 +191,25 @@ NTSTATUS HashFileAndResetPosition(
         {
         case Md5HashAlgorithm:
             PhFinalHash(&hashContext, hash, 16, NULL);
-            *HashString = PhBufferToHexString(hash, 16);
+            hashString = PhBufferToHexString(hash, 16);
             break;
         case Sha1HashAlgorithm:
             PhFinalHash(&hashContext, hash, 20, NULL);
-            *HashString = PhBufferToHexString(hash, 20);
+            hashString = PhBufferToHexString(hash, 20);
             break;
         case Sha256HashAlgorithm:
             PhFinalHash(&hashContext, hash, 32, NULL);
-            *HashString = PhBufferToHexString(hash, 32);
+            hashString = PhBufferToHexString(hash, 32);
             break;
         }
 
-        position.QuadPart = 0;
-        status = PhSetFilePosition(FileHandle, &position);
+        status = PhSetFilePosition(FileHandle, NULL);
     }
 
     PhSetThreadBasePriority(NtCurrentThread(), priority);
     PhSetThreadIoPriority(NtCurrentThread(), ioPriority);
+
+    *HashString = hashString;
 
     return status;
 }
