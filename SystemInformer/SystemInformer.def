@@ -311,6 +311,7 @@ EXPORTS
     PhImpersonateToken
     PhListenNamedPipe
     PhLoadAppKey
+    PhMoveFileWin32
     PhOpenKey
     PhOpenDriver
     PhOpenProcess
