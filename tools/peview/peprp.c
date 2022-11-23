@@ -597,6 +597,7 @@ PPH_STRING PvGetRelativeTimeString(
     return PhFormatString(L"%s (%s ago)", timeString->Buffer, timeRelativeString->Buffer);
 }
 
+_Success_(return == VrTrusted)
 VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     _In_ PPH_STRING FileName,
     _In_ ULONG Flags,
@@ -617,7 +618,7 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
 
     status = PhCreateFileWin32(
         &fileHandle,
-        FileName->Buffer,
+        PhGetString(FileName),
         FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -2262,9 +2263,6 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_TIMER:
         {
-            //if (!(context->Enabled && GetFocus() != context->StartedLabelHandle))
-            //    break;
-
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             PvUpdatePeFileTimes(context->ListViewHandle);
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
@@ -2297,6 +2295,7 @@ BOOLEAN PvpLoadDbgHelp(
 {
     static PH_STRINGREF symbolPath = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
     PPH_STRING searchPath = NULL;
+    PPH_STRING currentDirectory;
     PPH_SYMBOL_PROVIDER symbolProvider;
 
     symbolProvider = PhCreateSymbolProvider(NULL);
@@ -2309,11 +2308,34 @@ BOOLEAN PvpLoadDbgHelp(
     PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);
 
     if (PhIsNullOrEmptyString(searchPath))
+    {
         searchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+    }
+
     if (!PhIsNullOrEmptyString(searchPath))
-        PhSetSearchPathSymbolProvider(symbolProvider, searchPath->Buffer);
-    if (searchPath)
-        PhDereferenceObject(searchPath);
+    {
+        if (currentDirectory = PhGetBaseDirectory(PvFileName))
+        {
+            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L";");
+
+            // Note: dbghelp doesn't automatically load symbols for images in some cases such as when the symbol path was stripped with PDBALTPATH.
+            //  We have to prepend the image directory to the symbol search path so dbghelp can load the symbol information. (dmex)
+            // Note: Don't include SRV/HTTP with the prepended directory otherwise symsrv will start using the directory for downloaded symbols.
+            //  For example D:\Folder is readonly while C:\Symbols is read/write: "D:\folder;SRV*C:\Symbols*msdl.microsoft.com"
+
+            PhMoveReference(&searchPath, PhConcatStringRef3(
+                &currentDirectory->sr,
+                &seperator,
+                &searchPath->sr
+                ));
+
+            PhDereferenceObject(currentDirectory);
+        }
+
+        PhSetSearchPathSymbolProvider(symbolProvider, PhGetString(searchPath));
+    }
+
+    PhClearReference(&searchPath);
 
     *SymbolProvider = symbolProvider;
     return TRUE;
