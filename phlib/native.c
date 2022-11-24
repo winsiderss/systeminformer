@@ -3018,6 +3018,7 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     ULONG subAuthoritiesCount;
     ULONG subAuthority;
     PWSTR integrityString;
+    BOOLEAN isAppContainer;
 
     status = PhpQueryTokenVariableSize(TokenHandle, TokenIntegrityLevel, &mandatoryLabel);
 
@@ -3039,32 +3040,42 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
 
     if (IntegrityString)
     {
-        switch (subAuthority)
+        isAppContainer = FALSE;
+        PhGetTokenIsAppContainer(TokenHandle, &isAppContainer);
+
+        if (isAppContainer)
         {
-        case SECURITY_MANDATORY_UNTRUSTED_RID:
-            integrityString = L"Untrusted";
-            break;
-        case SECURITY_MANDATORY_LOW_RID:
-            integrityString = L"Low";
-            break;
-        case SECURITY_MANDATORY_MEDIUM_RID:
-            integrityString = L"Medium";
-            break;
-        case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
-            integrityString = L"Medium +";
-            break;
-        case SECURITY_MANDATORY_HIGH_RID:
-            integrityString = L"High";
-            break;
-        case SECURITY_MANDATORY_SYSTEM_RID:
-            integrityString = L"System";
-            break;
-        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
-            integrityString = L"Protected";
-            break;
-        default:
-            integrityString = L"Other";
-            break;
+            integrityString = L"AppContainer";
+        }
+        else
+        {
+            switch (subAuthority)
+            {
+            case SECURITY_MANDATORY_UNTRUSTED_RID:
+                integrityString = L"Untrusted";
+                break;
+            case SECURITY_MANDATORY_LOW_RID:
+                integrityString = L"Low";
+                break;
+            case SECURITY_MANDATORY_MEDIUM_RID:
+                integrityString = L"Medium";
+                break;
+            case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+                integrityString = L"Medium +";
+                break;
+            case SECURITY_MANDATORY_HIGH_RID:
+                integrityString = L"High";
+                break;
+            case SECURITY_MANDATORY_SYSTEM_RID:
+                integrityString = L"System";
+                break;
+            case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+                integrityString = L"Protected";
+                break;
+            default:
+                integrityString = L"Other";
+                break;
+            }
         }
 
         *IntegrityString = integrityString;
