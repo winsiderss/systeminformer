@@ -167,6 +167,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -231,6 +232,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -254,6 +256,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <AdditionalOptions>/kernel /utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
       <GuardSignedReturns>true</GuardSignedReturns>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>

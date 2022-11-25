@@ -188,6 +188,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -275,6 +276,7 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
@@ -304,6 +306,7 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
