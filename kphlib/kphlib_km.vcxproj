@@ -29,7 +29,6 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B1863396-A667-42DB-97AC-C5E033CEE321}</ProjectGuid>
     <TemplateGuid>{dd38f7fc-d7bd-488b-9242-7d8754cde80d}</TemplateGuid>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <RootNamespace>kphlib_km</RootNamespace>
     <ProjectName>kphlib</ProjectName>
@@ -147,12 +146,12 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Lib>
       <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
@@ -167,13 +166,13 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <Lib>
@@ -189,12 +188,12 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Lib>
       <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
@@ -210,13 +209,13 @@
       <SupportJustMyCode>false</SupportJustMyCode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Lib>
       <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>
@@ -231,13 +230,13 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <Lib>
@@ -253,13 +252,13 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
       <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Lib>
       <TreatLibWarningAsErrors>true</TreatLibWarningAsErrors>

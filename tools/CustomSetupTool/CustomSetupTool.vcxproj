@@ -65,7 +65,7 @@
       <StringPooling>true</StringPooling>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -74,7 +74,7 @@
       <SubSystem>Windows</SubSystem>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;crypt32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
@@ -100,7 +100,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
       <IntelJCCErratum>true</IntelJCCErratum>
     </ClCompile>
     <Link>
@@ -114,7 +114,7 @@
       <SetChecksum>true</SetChecksum>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;crypt32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;uxtheme.dll;winhttp.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>

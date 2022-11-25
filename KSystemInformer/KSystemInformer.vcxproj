@@ -152,7 +152,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -166,7 +166,7 @@
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -179,7 +179,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /Z7 %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -192,7 +192,7 @@
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -206,7 +206,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <SupportJustMyCode>false</SupportJustMyCode>
@@ -221,7 +221,7 @@
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 /guard:retpoline %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -235,7 +235,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -249,7 +249,7 @@
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -262,7 +262,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /Z7 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
@@ -276,7 +276,7 @@
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -290,7 +290,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /Z7 %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -304,7 +304,7 @@
     <Link>
       <AdditionalDependencies>ksi.lib;FltMgr.lib;ksecdd.lib;kphlib_km.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

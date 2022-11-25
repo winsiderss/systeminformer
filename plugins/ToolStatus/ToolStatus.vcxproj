@@ -73,49 +73,31 @@
     <Link>
       <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
       <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
       <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
       <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
       <AdditionalDependencies>uxtheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="customizesb.c" />
@@ -142,21 +124,39 @@
     <Image Include="resources\application.ico" />
     <Image Include="resources\application_get.ico" />
     <Image Include="resources\application_get_modern.png" />
+    <Image Include="resources\application_get_modern_dark.png" />
+    <Image Include="resources\application_get_modern_light.png" />
     <Image Include="resources\application_go.ico" />
     <Image Include="resources\application_go_modern.png" />
+    <Image Include="resources\application_go_modern_dark.png" />
+    <Image Include="resources\application_go_modern_light.png" />
     <Image Include="resources\application_modern.png" />
+    <Image Include="resources\application_modern_dark.png" />
+    <Image Include="resources\application_modern_light.png" />
     <Image Include="resources\arrow_refresh.ico" />
     <Image Include="resources\arrow_refresh_modern.png" />
+    <Image Include="resources\arrow_refresh_modern_dark.png" />
+    <Image Include="resources\arrow_refresh_modern_light.png" />
     <Image Include="resources\chart_line.ico" />
     <Image Include="resources\chart_line_modern.png" />
+    <Image Include="resources\chart_line_modern_dark.png" />
+    <Image Include="resources\chart_line_modern_light.png" />
     <Image Include="resources\cog_edit.ico" />
     <Image Include="resources\cog_edit_modern.png" />
+    <Image Include="resources\cog_edit_modern_dark.png" />
+    <Image Include="resources\cog_edit_modern_light.png" />
     <Image Include="resources\cross.ico" />
     <Image Include="resources\cross_modern.png" />
+    <Image Include="resources\cross_modern_dark.png" />
+    <Image Include="resources\cross_modern_light.png" />
     <Image Include="resources\find.ico" />
     <Image Include="resources\find_modern.png" />
+    <Image Include="resources\find_modern_dark.png" />
+    <Image Include="resources\find_modern_light.png" />
     <Image Include="resources\lightbulb_off.ico" />
     <Image Include="resources\lightbulb_off_modern.png" />
+    <Image Include="resources\lightbulb_off_modern_dark.png" />
+    <Image Include="resources\lightbulb_off_modern_light.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

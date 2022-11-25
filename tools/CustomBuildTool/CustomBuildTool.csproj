@@ -69,6 +69,6 @@
     <Using Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
+    <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO" />
   </ItemGroup>
 </Project>

@@ -74,54 +74,36 @@
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;fwpuclnt.lib;pdh.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>cfgmgr32.dll;fwpuclnt.dll;oleaut32.dll;tdh.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="counters.c" />

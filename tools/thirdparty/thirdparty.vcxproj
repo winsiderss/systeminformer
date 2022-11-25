@@ -126,8 +126,6 @@
     </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
       <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
     </Lib>
   </ItemDefinitionGroup>
@@ -150,8 +148,6 @@
     </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
       <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
     </Lib>
   </ItemDefinitionGroup>
@@ -194,13 +190,11 @@
       <IntelJCCErratum>true</IntelJCCErratum>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
       <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
     </Lib>
   </ItemDefinitionGroup>
@@ -222,13 +216,11 @@
       <IntelJCCErratum>true</IntelJCCErratum>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
       <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
     </Lib>
   </ItemDefinitionGroup>
@@ -248,7 +240,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Lib>

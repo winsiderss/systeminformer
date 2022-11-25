@@ -12,6 +12,7 @@
         <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Debug'">false</WholeProgramOptimization>
         <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
+        <GenerateManifest>false</GenerateManifest>
         <!-- Debugging -->
         <LocalDebuggerCommand>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\SystemInformer.exe</LocalDebuggerCommand>
         <LocalDebuggerWorkingDirectory>$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)\</LocalDebuggerWorkingDirectory>
@@ -31,7 +32,6 @@
             <LanguageStandard>stdcpplatest</LanguageStandard>
             <LanguageStandard_C>stdc17</LanguageStandard_C>
             <StringPooling>true</StringPooling>
-            <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
             <SupportJustMyCode>false</SupportJustMyCode>
             <CallingConvention>StdCall</CallingConvention>
         </ClCompile>
@@ -39,11 +39,16 @@
             <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;noenv.obj;noarg.obj;%(AdditionalDependencies)</AdditionalDependencies>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <SubSystem>Windows</SubSystem>
-            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <BuildLog>
             <Path>$(IntDir)$(MSBuildProjectName).log</Path>
         </BuildLog>
+        <PostBuildEvent>
+            <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\CustomBuildTool.exe" -sign_plugin $(OutDir)$(TargetName)$(TargetExt)</Command>
+        </PostBuildEvent>
+        <ResourceCompile>
+            <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+        </ResourceCompile>
     </ItemDefinitionGroup>
 
     <!-- Debug Builds -->
@@ -53,7 +58,11 @@
             <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
             <FunctionLevelLinking>false</FunctionLevelLinking>
             <IntrinsicFunctions>false</IntrinsicFunctions>
+            <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
+        <Link>
+            <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
+        </Link>
     </ItemDefinitionGroup>
 
     <!-- Release Builds -->
@@ -134,7 +143,11 @@
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
         <ClCompile>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
+        <Link>
+            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
+        </Link>
     </ItemDefinitionGroup>
 
     <!-- Release|Win32 Builds -->
@@ -143,9 +156,11 @@
             <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>
+            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
         </Link>
     </ItemDefinitionGroup>
 
@@ -156,11 +171,11 @@
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
             <GuardEHContMetadata>true</GuardEHContMetadata>
-            <AdditionalOptions>/guard:xfg %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>
-            <AdditionalOptions>/guard:xfg %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </Link>
     </ItemDefinitionGroup>
 
