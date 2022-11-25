@@ -1,6 +1,8 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "../resource.h"
+#pragma code_page(65001)
+
+#include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -8,17 +10,16 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "winres.h"
-#include "../../../SystemInformer/include/phappres.h"
+#include "../../SystemInformer/include/phappres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (United States) resources
+// Neutral resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -28,13 +29,13 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 1 TEXTINCLUDE 
 BEGIN
-    "../resource.h\0"
+    "resource.h\0"
 END
 
 2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
-    "#include ""../../../SystemInformer/include/phappres.h""\r\n"
+    "#include ""../../SystemInformer/include/phappres.h""\r\n"
     "\0"
 END
 
@@ -45,6 +46,14 @@ BEGIN
 END
 
 #endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// RCDATA
+//
+#if defined(PH_BUILD_API)
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.64"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -84,28 +93,7 @@ BEGIN
     END
 END
 
-#endif    // English (United States) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// RCDATA
-//
-#if defined(PH_BUILD_API)
-
-IDR_BIN_DATA            RCDATA                  "../../../build/output/systeminformer-build-bin.64"
-
-#endif
-
-#endif    // English (Australia) resources
+#endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
 
