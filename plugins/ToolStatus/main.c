@@ -685,13 +685,10 @@ LRESULT CALLBACK MainWndSubclassProc(
                         // Cache the current search text for our callback.
                         PhSwapReference(&SearchboxText, newSearchboxText);
 
-                        if (!PhIsNullOrEmptyString(SearchboxText))
-                        {
-                            // Expand the nodes to ensure that they will be visible to the user.
-                            PhExpandAllProcessNodes(TRUE);
-                            PhDeselectAllProcessNodes();
-                            PhDeselectAllServiceNodes();
-                        }
+                        // Expand the nodes to ensure that they will be visible to the user.
+                        PhExpandAllProcessNodes(TRUE);
+                        PhDeselectAllProcessNodes();
+                        PhDeselectAllServiceNodes();
 
                         PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
                         PhApplyTreeNewFilters(PhGetFilterSupportServiceTreeList());
