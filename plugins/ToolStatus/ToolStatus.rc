@@ -1,5 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
+
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -12,11 +14,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
+// Neutral resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -153,37 +155,47 @@ BEGIN
     "K",            ID_SEARCH,              VIRTKEY, CONTROL, NOINVERT
 END
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
-// PNG 
+// PNG
 //
 
-IDB_ARROW_REFRESH_MODERN_LIGHT    PNG    "resources\\arrow_refresh_modern_light.png"
-IDB_ARROW_REFRESH_MODERN_DARK     PNG    "resources\\arrow_refresh_modern_dark.png"
+IDB_ARROW_REFRESH_MODERN_LIGHT PNG                     "resources\\arrow_refresh_modern_light.png"
 
-IDB_COG_EDIT_MODERN_LIGHT         PNG    "resources\\cog_edit_modern_light.png"
-IDB_COG_EDIT_MODERN_DARK          PNG    "resources\\cog_edit_modern_dark.png"
+IDB_ARROW_REFRESH_MODERN_DARK PNG                     "resources\\arrow_refresh_modern_dark.png"
 
-IDB_FIND_MODERN_LIGHT             PNG    "resources\\find_modern_light.png"
-IDB_FIND_MODERN_DARK              PNG    "resources\\find_modern_dark.png"
+IDB_COG_EDIT_MODERN_LIGHT PNG                     "resources\\cog_edit_modern_light.png"
 
-IDB_CHART_LINE_MODERN_LIGHT       PNG    "resources\\chart_line_modern_light.png"
-IDB_CHART_LINE_MODERN_DARK        PNG    "resources\\chart_line_modern_dark.png"
+IDB_COG_EDIT_MODERN_DARK PNG                     "resources\\cog_edit_modern_dark.png"
 
-IDB_TBAPPLICATION_MODERN_LIGHT    PNG    "resources\\application_modern_light.png"
-IDB_TBAPPLICATION_MODERN_DARK     PNG    "resources\\application_modern_dark.png"
+IDB_FIND_MODERN_LIGHT   PNG                     "resources\\find_modern_light.png"
 
-IDB_APPLICATION_GO_MODERN_LIGHT   PNG    "resources\\application_go_modern_light.png"
-IDB_APPLICATION_GO_MODERN_DARK    PNG    "resources\\application_go_modern_dark.png"
+IDB_FIND_MODERN_DARK    PNG                     "resources\\find_modern_dark.png"
 
-IDB_CROSS_MODERN_LIGHT            PNG    "resources\\cross_modern_light.png"
-IDB_CROSS_MODERN_DARK             PNG    "resources\\cross_modern_dark.png"
+IDB_CHART_LINE_MODERN_LIGHT PNG                     "resources\\chart_line_modern_light.png"
 
-IDB_APPLICATION_GET_MODERN_LIGHT  PNG    "resources\\application_get_modern_light.png"
-IDB_APPLICATION_GET_MODERN_DARK   PNG    "resources\\application_get_modern_dark.png"
+IDB_CHART_LINE_MODERN_DARK PNG                     "resources\\chart_line_modern_dark.png"
 
-IDB_LIGHTBULB_OFF_MODERN_LIGHT    PNG    "resources\\lightbulb_off_modern_light.png"
-IDB_LIGHTBULB_OFF_MODERN_DARK     PNG    "resources\\lightbulb_off_modern_dark.png"
+IDB_TBAPPLICATION_MODERN_LIGHT PNG                     "resources\\application_modern_light.png"
+
+IDB_TBAPPLICATION_MODERN_DARK PNG                     "resources\\application_modern_dark.png"
+
+IDB_APPLICATION_GO_MODERN_LIGHT PNG                     "resources\\application_go_modern_light.png"
+
+IDB_APPLICATION_GO_MODERN_DARK PNG                     "resources\\application_go_modern_dark.png"
+
+IDB_CROSS_MODERN_LIGHT  PNG                     "resources\\cross_modern_light.png"
+
+IDB_CROSS_MODERN_DARK   PNG                     "resources\\cross_modern_dark.png"
+
+IDB_APPLICATION_GET_MODERN_LIGHT PNG                     "resources\\application_get_modern_light.png"
+
+IDB_APPLICATION_GET_MODERN_DARK PNG                     "resources\\application_get_modern_dark.png"
+
+IDB_LIGHTBULB_OFF_MODERN_LIGHT PNG                     "resources\\lightbulb_off_modern_light.png"
+
+IDB_LIGHTBULB_OFF_MODERN_DARK PNG                     "resources\\lightbulb_off_modern_dark.png"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -193,47 +205,25 @@ IDB_LIGHTBULB_OFF_MODERN_DARK     PNG    "resources\\lightbulb_off_modern_dark.p
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ARROW_REFRESH                 ICON    "resources\\arrow_refresh.ico"
+IDI_ARROW_REFRESH       ICON                    "resources\\arrow_refresh.ico"
 
-IDI_COG_EDIT                      ICON    "resources\\cog_edit.ico"
+IDI_COG_EDIT            ICON                    "resources\\cog_edit.ico"
 
-IDI_FIND                          ICON    "resources\\find.ico"
+IDI_FIND                ICON                    "resources\\find.ico"
 
-IDI_CHART_LINE                    ICON    "resources\\chart_line.ico"
+IDI_CHART_LINE          ICON                    "resources\\chart_line.ico"
 
-IDI_TBAPPLICATION                 ICON    "resources\\application.ico"
+IDI_TBAPPLICATION       ICON                    "resources\\application.ico"
 
-IDI_APPLICATION_GO                ICON    "resources\\application_go.ico"
+IDI_APPLICATION_GO      ICON                    "resources\\application_go.ico"
 
-IDI_CROSS                         ICON    "resources\\cross.ico"
+IDI_CROSS               ICON                    "resources\\cross.ico"
 
-IDI_APPLICATION_GET               ICON    "resources\\application_get.ico"
+IDI_APPLICATION_GET     ICON                    "resources\\application_get.ico"
 
-IDI_LIGHTBULB_OFF                 ICON    "resources\\lightbulb_off.ico"
+IDI_LIGHTBULB_OFF       ICON                    "resources\\lightbulb_off.ico"
 
 
+#endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_OPTIONS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-#endif    // English (Australia) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
 

@@ -1,5 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
+
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -13,11 +15,10 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
+// Neutral resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -2009,18 +2010,14 @@ IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
 
-#endif    // English (Australia) resources
-/////////////////////////////////////////////////////////////////////////////
 
-
-
-#ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
-// Generated from the TEXTINCLUDE 3 resource.
+// RT_MANIFEST
 //
 
+IDR_RT_MANIFEST         RT_MANIFEST             "SystemInformer.manifest"
 
+#endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
 

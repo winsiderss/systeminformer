@@ -1,5 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
+
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -12,11 +14,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
+// Neutral resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
-#pragma code_page(1252)
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -537,51 +539,6 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// AFX_DIALOG_LAYOUT
-//
-
-IDD_REPARSEDIALOG AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_PIPEDIALOG AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_FIRMWARE AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_FIRMWARE_EDITVAR AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_OBJMGR AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_POOL AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_BIGPOOL AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-IDD_WCT_DIALOG AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -620,18 +577,7 @@ IDI_UNKNOWN             ICON                    "resources\\unknown.ico"
 
 IDR_TXT_POOLTAGS        TXT                     "resources\\pooltag.txt"
 
-#endif    // English (Australia) resources
+
+#endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
-
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
 
