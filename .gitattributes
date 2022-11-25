@@ -41,5 +41,6 @@
 .gitattributes  export-ignore
 .gitignore      export-ignore
 .gitmodules     export-ignore
+.github         export-ignore
 appveyor.yml    export-ignore
 Doxyfile        export-ignore
