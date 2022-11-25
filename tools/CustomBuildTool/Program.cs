@@ -188,7 +188,7 @@ namespace CustomBuildTool
                 if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
 
-                if (!Build.CopyTextFiles())
+                if (!Build.CopyTextFiles(true))
                     return;
                 if (!Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
@@ -201,6 +201,7 @@ namespace CustomBuildTool
                     return;
 
                 Build.ShowBuildStats();
+                Build.CopyTextFiles(false);
             }
             else if (ProgramArgs.ContainsKey("-debug"))
             {
@@ -272,7 +273,7 @@ namespace CustomBuildTool
                 if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     Environment.Exit(1);
 
-                if (!Build.CopyTextFiles())
+                if (!Build.CopyTextFiles(true))
                     Environment.Exit(1);
                 if (!Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     Environment.Exit(1);
@@ -324,7 +325,7 @@ namespace CustomBuildTool
                 if (!Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
 
-                if (!Build.CopyTextFiles())
+                if (!Build.CopyTextFiles(true))
                     return;
                 if (!Build.CopyWow64Files(BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildDebug | BuildFlags.BuildRelease))
                     return;
@@ -342,6 +343,7 @@ namespace CustomBuildTool
                 //Build.BuildSrcZip();
                 Build.BuildChecksumsFile();
                 Build.ShowBuildStats();
+                Build.CopyTextFiles(false);
             }
 
             Environment.Exit(Environment.ExitCode);
