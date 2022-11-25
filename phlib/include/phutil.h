@@ -1871,6 +1871,31 @@ PhCreateProcessRedirection(
     _Out_opt_ PPH_STRING* CommandOutput
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhInitializeProcThreadAttributeList(
+    _Out_ PPROC_THREAD_ATTRIBUTE_LIST* AttributeList,
+    _In_ ULONG AttributeCount
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDeleteProcThreadAttributeList(
+    _In_ PPROC_THREAD_ATTRIBUTE_LIST AttributeList
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhUpdateProcThreadAttribute(
+    _In_ PPROC_THREAD_ATTRIBUTE_LIST AttributeList,
+    _In_ ULONG_PTR Attribute,
+    _In_ PVOID Buffer,
+    _In_ SIZE_T BufferLength
+    );
+
 #ifdef __cplusplus
 }
 #endif
