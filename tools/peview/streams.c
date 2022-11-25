@@ -212,6 +212,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
         {
             PhSaveListViewColumnsToSetting(L"ImageStreamsListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
