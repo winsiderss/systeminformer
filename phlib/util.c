@@ -577,7 +577,6 @@ PPH_STRING PhGetUserDefaultLocaleName(
     VOID
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -587,7 +586,7 @@ PPH_STRING PhGetUserDefaultLocaleName(
     {
         return PhCreateStringFromUnicodeString(&localeNameUs);
     }
-#endif
+
     return NULL;
 }
 
@@ -596,7 +595,6 @@ PPH_STRING PhLCIDToLocaleName(
     _In_ LCID lcid
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     UNICODE_STRING localeNameUs;
     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -616,7 +614,7 @@ PPH_STRING PhLCIDToLocaleName(
             return PhCreateStringFromUnicodeString(&localeNameUs);
         }
     }
-#endif
+
     return NULL;
 }
 
@@ -9428,7 +9426,6 @@ NTSTATUS PhCreateProcessRedirection(
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     PPH_STRING output = NULL;
     STARTUPINFOEX startupInfo = { 0 };
-    SIZE_T attributeListLength = 0;
     HANDLE processHandle = NULL;
     HANDLE outputReadHandle = NULL;
     HANDLE outputWriteHandle = NULL;
@@ -9464,33 +9461,20 @@ NTSTATUS PhCreateProcessRedirection(
     startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
     startupInfo.StartupInfo.hStdError = outputWriteHandle;
 
-    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
-    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
-
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
-        goto CleanupExit;
-    }
-
-    if (!UpdateProcThreadAttribute(
+    status = PhUpdateProcThreadAttribute(
         startupInfo.lpAttributeList,
-        0,
         PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
         &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-        sizeof(HANDLE[2]),
-        NULL,
-        NULL
-        ))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+        sizeof(HANDLE[2])
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
     status = PhCreateProcessWin32Ex(
         NULL,
@@ -9540,12 +9524,8 @@ CleanupExit:
         NtClose(inputReadHandle);
     if (inputWriteHandle)
         NtClose(inputWriteHandle);
-
     if (startupInfo.lpAttributeList)
-    {
-        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-        PhFree(startupInfo.lpAttributeList);
-    }
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
 
     if (CommandOutput)
         *CommandOutput = output;

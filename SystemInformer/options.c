@@ -1974,7 +1974,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                             static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
                                             HRESULT status;
                                             PPH_STRING quotedFileName;
-#if (PHNT_VERSION >= PHNT_WIN7)
                                             RTL_ELEVATION_FLAGS flags;
 
                                             if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
@@ -2000,7 +1999,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                                     }
                                                 }
                                             }
-#endif
+
                                             quotedFileName = PH_AUTO(PhConcatStringRef3(
                                                 &seperator,
                                                 &applicationFileName->sr,

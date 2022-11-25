@@ -1379,7 +1379,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 HANDLE processHandle = NULL;
                                 HANDLE newProcessHandle;
                                 STARTUPINFOEX startupInfo = { 0 };
-                                SIZE_T attributeListLength = 0;
                                 PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
                                 PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
                                 PVOID environment = NULL;
@@ -1440,27 +1439,21 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 if (!NT_SUCCESS(status))
                                     goto CleanupExit;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-                                if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-                                {
-                                    status = PhGetLastWin32ErrorAsNtStatus();
-                                    goto CleanupExit;
-                                }
+                                status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
 
-                                startupInfo.lpAttributeList = PhAllocate(attributeListLength);
-
-                                if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
-                                {
-                                    status = PhGetLastWin32ErrorAsNtStatus();
+                                if (!NT_SUCCESS(status))
                                     goto CleanupExit;
-                                }
 
-                                if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &processHandle, sizeof(HANDLE), NULL, NULL))
-                                {
-                                    status = PhGetLastWin32ErrorAsNtStatus();
+                                status = PhUpdateProcThreadAttribute(
+                                    startupInfo.lpAttributeList,
+                                    PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
+                                    &(HANDLE){ processHandle },
+                                    sizeof(HANDLE)
+                                    );
+
+                                if (!NT_SUCCESS(status))
                                     goto CleanupExit;
-                                }
-#endif
+
                                 if (PhGetOwnTokenAttributes().Elevated)
                                 {
                                     PhGetObjectSecurity(
@@ -1569,8 +1562,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                 if (startupInfo.lpAttributeList)
                                 {
-                                    //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-                                    PhFree(startupInfo.lpAttributeList);
+                                    PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
                                 }
 
                                 if (processHandle)
@@ -2423,7 +2415,6 @@ NTSTATUS PhpRunFileProgram(
         HANDLE tokenHandle;
         HWND shellWindow;
         STARTUPINFOEX startupInfo;
-        SIZE_T attributeListLength = 0;
         PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
         PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
         PVOID environment = NULL;
@@ -2465,27 +2456,21 @@ NTSTATUS PhpRunFileProgram(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-        if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-            goto CleanupExit;
-        }
+        status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
 
-        startupInfo.lpAttributeList = PhAllocate(attributeListLength);
-
-        if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
 
-        if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &processHandle, sizeof(HANDLE), NULL, NULL))
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
+        status = PhUpdateProcThreadAttribute(
+            startupInfo.lpAttributeList,
+            PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
+            &(HANDLE){ processHandle },
+            sizeof(HANDLE)
+            );
+
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
-        }
-#endif
+
         if (PhGetOwnTokenAttributes().Elevated)
         {
             PhGetObjectSecurity(
@@ -2604,8 +2589,7 @@ NTSTATUS PhpRunFileProgram(
 
         if (startupInfo.lpAttributeList)
         {
-            //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-            PhFree(startupInfo.lpAttributeList);
+            PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
         }
 
         if (processHandle)
@@ -2636,7 +2620,6 @@ NTSTATUS RunAsCreateProcessThread(
     SC_HANDLE serviceHandle = NULL;
     HANDLE processHandle = NULL;
     STARTUPINFOEX startupInfo;
-    SIZE_T attributeListLength = 0;
     PPH_STRING commandLine = NULL;
     ULONG bytesNeeded = 0;
     PPH_STRING filePathString;
@@ -2710,27 +2693,18 @@ NTSTATUS RunAsCreateProcessThread(
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_CREATE_PROCESS, UlongToHandle(serviceStatus.dwProcessId))))
         goto CleanupExit;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    if (!NT_SUCCESS(status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1)))
         goto CleanupExit;
-    }
 
-    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
+    status = PhUpdateProcThreadAttribute(
+        startupInfo.lpAttributeList,
+        PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
+        &(HANDLE){ processHandle },
+        sizeof(HANDLE)
+        );
 
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
-
-    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &processHandle, sizeof(HANDLE), NULL, NULL))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
-        goto CleanupExit;
-    }
-#endif
 
     AllowSetForegroundWindow(ASFW_ANY);
 
@@ -2757,8 +2731,7 @@ CleanupExit:
 
     if (startupInfo.lpAttributeList)
     {
-        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-        PhFree(startupInfo.lpAttributeList);
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
     }
 
     if (commandLine)
