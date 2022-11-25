@@ -9,7 +9,7 @@
  *
  */
 
-#include <setup.h>
+#include "setup.h"
 #include "..\thirdparty\miniz\miniz.h"
 
 BOOLEAN SetupOverwriteFile(

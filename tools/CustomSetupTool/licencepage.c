@@ -9,7 +9,7 @@
  *
  */
 
-#include <setup.h>
+#include "setup.h"
 
 static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 {

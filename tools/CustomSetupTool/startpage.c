@@ -9,7 +9,7 @@
  *
  */
 
-#include <setup.h>
+#include "setup.h"
 
 HRESULT CALLBACK SetupWelcomePageCallbackProc(
     _In_ HWND hwndDlg,
@@ -25,6 +25,8 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
     {
     case TDN_NAVIGATED:
         {
+            PhCenterWindow(hwndDlg, NULL);
+
             if (!PhGetOwnTokenAttributes().Elevated)
             {
                 SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDCONTINUE, TRUE);
