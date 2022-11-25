@@ -120,5 +120,59 @@
     <Image Include="resources\lightbulb_off.ico">
       <Filter>Resource Files\Icons</Filter>
     </Image>
+    <Image Include="resources\application_get_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\application_get_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\application_go_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\application_go_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\application_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\application_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\arrow_refresh_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\arrow_refresh_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\chart_line_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\chart_line_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\cog_edit_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\cog_edit_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\cross_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\cross_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\find_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\find_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\lightbulb_off_modern_dark.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
+    <Image Include="resources\lightbulb_off_modern_light.png">
+      <Filter>Resource Files\Images</Filter>
+    </Image>
   </ItemGroup>
 </Project>
