@@ -9554,3 +9554,49 @@ CleanupExit:
 
     return status;
 }
+
+// rev from InitializeProcThreadAttributeList (dmex)
+NTSTATUS PhInitializeProcThreadAttributeList(
+    _Out_ PPROC_THREAD_ATTRIBUTE_LIST* AttributeList,
+    _In_ ULONG AttributeCount
+    )
+{
+    PPROC_THREAD_ATTRIBUTE_LIST attributeList;
+    SIZE_T attributeListLength;
+
+    attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes[AttributeCount]);
+    attributeList = PhAllocateZero(attributeListLength);
+    attributeList->AttributeCount = AttributeCount;
+
+    *AttributeList = attributeList;
+    return STATUS_SUCCESS;
+}
+
+// rev from DeleteProcThreadAttributeList (dmex)
+NTSTATUS PhDeleteProcThreadAttributeList(
+    _In_ PPROC_THREAD_ATTRIBUTE_LIST AttributeList
+    )
+{
+    PhFree(AttributeList);
+    return STATUS_SUCCESS;
+}
+
+// rev from UpdateProcThreadAttribute (dmex)
+NTSTATUS PhUpdateProcThreadAttribute(
+    _In_ PPROC_THREAD_ATTRIBUTE_LIST AttributeList,
+    _In_ ULONG_PTR AttributeNumber,
+    _In_ PVOID Buffer,
+    _In_ SIZE_T BufferLength
+    )
+{
+    if (AttributeList->LastAttribute >= AttributeList->AttributeCount)
+        return STATUS_NO_MEMORY;
+
+    AttributeList->PresentFlags |= (1 << (AttributeNumber & PROC_THREAD_ATTRIBUTE_NUMBER));
+    AttributeList->Attributes[AttributeList->LastAttribute].Attribute = AttributeNumber;
+    AttributeList->Attributes[AttributeList->LastAttribute].Size = BufferLength;
+    AttributeList->Attributes[AttributeList->LastAttribute].Value = (ULONG_PTR)Buffer;
+    AttributeList->LastAttribute++;
+
+    return STATUS_SUCCESS;
+}
