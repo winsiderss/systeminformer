@@ -2309,7 +2309,6 @@ BOOLEAN PhUiRestartProcess(
     PPH_STRING commandLine;
     PPH_STRING currentDirectory;
     STARTUPINFOEX startupInfo;
-    SIZE_T attributeListLength = 0;
     PSECURITY_DESCRIPTOR processSecurityDescriptor = NULL;
     PSECURITY_DESCRIPTOR tokenSecurityDescriptor = NULL;
     BOOLEAN appContainerRevertToken = FALSE;
@@ -2388,27 +2387,20 @@ BOOLEAN PhUiRestartProcess(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
-        goto CleanupExit;
-    }
+    status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
 
-    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
-
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
 
-    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, &processHandle, sizeof(HANDLE), NULL, NULL))
-    {
-        status = PhGetLastWin32ErrorAsNtStatus();
+    status = PhUpdateProcThreadAttribute(
+        startupInfo.lpAttributeList,
+        PROC_THREAD_ATTRIBUTE_PARENT_PROCESS,
+        &(HANDLE){ processHandle },
+        sizeof(HANDLE)
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
-#endif
 
     if (PhGetOwnTokenAttributes().Elevated)
     {
@@ -2550,8 +2542,7 @@ CleanupExit:
 
     if (startupInfo.lpAttributeList)
     {
-        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-        PhFree(startupInfo.lpAttributeList);
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
     }
 
     if (newProcessHandle)

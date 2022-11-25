@@ -187,11 +187,7 @@ BOOLEAN PhMainWndInitialization(
     // Allow WM_PH_ACTIVATE to pass through UIPI. (wj32)
     if (PhGetOwnTokenAttributes().Elevated)
     {
-#if (PHNT_VERSION >= PHNT_WIN7)
         ChangeWindowMessageFilterEx(PhMainWndHandle, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
-#elif (PHNT_VERSION >= PHNT_VISTA)
-        ChangeWindowMessageFilter(WM_PH_ACTIVATE, MSGFLT_ADD);
-#endif
     }
 
     // Initialize child controls.

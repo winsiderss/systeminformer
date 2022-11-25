@@ -416,7 +416,6 @@ NTSTATUS PhTerminateProcessAlternative(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
 #ifdef _WIN64
     BOOLEAN isWow64;
@@ -495,9 +494,6 @@ CleanupExit:
     }
 
     return status;
-#else
-    return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 /**
@@ -1751,7 +1747,6 @@ NTSTATUS PhGetProcessUnloadedDlls(
     _Out_ ULONG *EventTraceCount
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     PULONG elementSize;
     PULONG elementCount;
@@ -1839,9 +1834,6 @@ CleanupExit:
     }
 
     return status;
-#else
-    return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 NTSTATUS PhTraceControl(
@@ -2173,7 +2165,6 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
 #ifdef _WIN64
     BOOLEAN isWow64;
@@ -2400,9 +2391,6 @@ CleanupExit:
     }
 
     return status;
-#else
-    return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 NTSTATUS PhGetJobProcessIdList(
@@ -3018,7 +3006,7 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     ULONG subAuthoritiesCount;
     ULONG subAuthority;
     PWSTR integrityString;
-    BOOLEAN isAppContainer;
+    BOOLEAN tokenIsAppContainer;
 
     status = PhpQueryTokenVariableSize(TokenHandle, TokenIntegrityLevel, &mandatoryLabel);
 
@@ -3040,10 +3028,7 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
 
     if (IntegrityString)
     {
-        isAppContainer = FALSE;
-        PhGetTokenIsAppContainer(TokenHandle, &isAppContainer);
-
-        if (isAppContainer)
+        if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)) && tokenIsAppContainer)
         {
             integrityString = L"AppContainer";
         }
@@ -8393,7 +8378,6 @@ NTSTATUS PhLoadAppKey(
     _In_opt_ ULONG Flags
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     GUID guid;
     UNICODE_STRING fileName;
@@ -8479,9 +8463,6 @@ CleanupExit:
 #endif
 
     return status;
-#else
-    return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 /**

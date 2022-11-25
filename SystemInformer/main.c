@@ -882,7 +882,6 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
 #ifndef DEBUG
     BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
 #define DEFAULT_MITIGATION_POLICY_FLAGS \
@@ -902,7 +901,6 @@ BOOLEAN PhInitializeMitigationPolicy(
     ULONG64 options[2] = { 0 };
     PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
     STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
-    SIZE_T attributeListLength;
 
     if (WindowsVersion < WINDOWS_10_RS3)
         return TRUE;
@@ -927,37 +925,35 @@ BOOLEAN PhInitializeMitigationPolicy(
         }
     }
 
-    if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 2)))
         goto CleanupExit;
 
-    startupInfo.lpAttributeList = PhAllocate(attributeListLength);
-
-    if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
+    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
+        startupInfo.lpAttributeList,
+        PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+        &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS },
+        sizeof(ULONG64)
+        )))
+    {
         goto CleanupExit;
-    if (!UpdateProcThreadAttribute(startupInfo.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY, &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS }, sizeof(ULONG64), NULL, NULL))
-        goto CleanupExit;
+    }
 
-    //{
-    //    PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoIsolation;
-    //    WCHAR alphastring[16] = L"";
-    //
-    //    bnoIsolation.IsolationEnabled = TRUE;
-    //    PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-    //    wcscpy_s(bnoIsolation.IsolationPrefix, RTL_NUMBER_OF(bnoIsolation.IsolationPrefix), alphastring);
-    //
-    //    if (!UpdateProcThreadAttribute(
-    //        startupInfo.lpAttributeList,
-    //        0,
-    //        PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
-    //        &bnoIsolation,
-    //        sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE),
-    //        NULL,
-    //        NULL
-    //        ))
-    //    {
-    //        goto CleanupExit;
-    //    }
-    //}
+    {
+        PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoAttribute;
+
+        bnoAttribute.IsolationEnabled = TRUE;
+        wcsncpy_s(bnoAttribute.IsolationPrefix, RTL_NUMBER_OF(bnoAttribute.IsolationPrefix), L"SystemInformer", _TRUNCATE);
+
+        if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
+            startupInfo.lpAttributeList,
+            PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
+            &bnoAttribute,
+            sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE)
+            )))
+        {
+            goto CleanupExit;
+        }
+    }
 
     if (NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
@@ -981,16 +977,9 @@ CleanupExit:
         PhDereferenceObject(commandline);
 
     if (startupInfo.lpAttributeList)
-    {
-        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-        PhFree(startupInfo.lpAttributeList);
-    }
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
 
     return success;
-#else
-    return TRUE;
-#endif
-
 #else
     return TRUE;
 #endif

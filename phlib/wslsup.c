@@ -348,32 +348,18 @@ BOOLEAN PhCreateProcessLxss(
     startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
     startupInfo.StartupInfo.hStdError = outputWriteHandle;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
+    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
+        startupInfo.lpAttributeList,
+        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
+        sizeof(HANDLE[2])
+        )))
     {
-        SIZE_T attributeListLength = 0;
-
-        if (!InitializeProcThreadAttributeList(NULL, 1, 0, &attributeListLength) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-            goto CleanupExit;
-
-        startupInfo.lpAttributeList = PhAllocate(attributeListLength);
-
-        if (!InitializeProcThreadAttributeList(startupInfo.lpAttributeList, 1, 0, &attributeListLength))
-            goto CleanupExit;
-
-        if (!UpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
-            0,
-            PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-            &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
-            sizeof(HANDLE[2]),
-            NULL,
-            NULL
-            ))
-        {
-            goto CleanupExit;
-        }
+        goto CleanupExit;
     }
-#endif
 
     if (!NT_SUCCESS(PhCreateProcessWin32Ex(
         NULL,
@@ -428,10 +414,7 @@ CleanupExit:
         NtClose(inputWriteHandle);
 
     if (startupInfo.lpAttributeList)
-    {
-        //DeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-        PhFree(startupInfo.lpAttributeList);
-    }
+        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
 
     return result;
 }

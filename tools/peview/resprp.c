@@ -385,7 +385,6 @@ VOID PvpPeEnumMappedImageResources(
             {
                 if ((ULONG)entry.Language)
                 {
-#if (PHNT_VERSION >= PHNT_WIN7)
                     UNICODE_STRING localeNameUs;
                     WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = { UNICODE_NULL };
 
@@ -402,14 +401,10 @@ VOID PvpPeEnumMappedImageResources(
                         PhPrintUInt32(value, (ULONG)entry.Language);
                         resourceNode->LcidString = PhCreateString(value);
                     }
-#else
-                    PhPrintUInt32(value, (ULONG)entry.Language);
-                    resourceNode->LcidString = PhCreateString(value);
-#endif
                 }
-                else // LOCALE_NEUTRAL
+                else
                 {
-                    resourceNode->LcidString = PhCreateString(L"Neutral");
+                    resourceNode->LcidString = PhCreateString(L"Neutral"); // LOCALE_NEUTRAL
                 }
             }
             else
@@ -451,7 +446,7 @@ VOID PvpPeEnumMappedImageResources(
                         entry.Data,
                         entry.Size,
                         NULL
-                    );
+                        );
 
                     resourceNode->ResourcesEntropy = imageResourceEntropy;
                     resourceNode->EntropyString = PvFormatDoubleCropZero(imageResourceEntropy, 2);
