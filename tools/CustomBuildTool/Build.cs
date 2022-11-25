@@ -14,14 +14,14 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
-        private static bool BuildNightly;
-        private static string BuildOutputFolder;
-        private static string BuildBranch;
-        private static string BuildCommit;
-        private static string BuildVersion;
-        private static string BuildLongVersion;
-        private static string BuildCount;
-        private static string BuildRevision;
+        private static bool BuildNightly = false;
+        private static string BuildOutputFolder = string.Empty;
+        private static string BuildBranch = string.Empty;
+        private static string BuildCommit = string.Empty;
+        private static string BuildVersion = "1.0.0";
+        private static string BuildLongVersion = "1.0.0.0";
+        private static string BuildCount = string.Empty;
+        private static string BuildRevision = string.Empty;
 
         public static bool InitializeBuildEnvironment()
         {
@@ -114,25 +114,60 @@ namespace CustomBuildTool
 
                 foreach (string folder in project_folders)
                 {
-                    try
-                    {
-                        string path = Path.GetFullPath(folder);
-                        string name = Path.GetFileName(path);
+                    string path = Path.GetFullPath(folder);
+                    string name = Path.GetFileName(path);
 
-                        if (
-                            string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
-                            )
+                    if (
+                        string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
+                        )
+                    {
+                        if (Directory.Exists(path))
                         {
-                            if (Directory.Exists(path))
+                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                            try
                             {
-                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
                                 Directory.Delete(path, true);
+                            }
+                            catch (Exception ex)
+                            {
+                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
                             }
                         }
                     }
-                    catch (Exception)
-                    { }
+                }
+
+                // Delete files with abs
+
+                var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
+                {
+                    AttributesToSkip = FileAttributes.Offline,
+                    RecurseSubdirectories = true,
+                    ReturnSpecialDirectories = false
+                });
+
+                foreach (string file in res_files)
+                {
+                    string path = Path.GetFullPath(file);
+                    string name = Path.GetFileName(path);
+
+                    if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (File.Exists(path))
+                        {
+                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                            try
+                            {
+                                File.Delete(path);
+                            }
+                            catch (Exception ex)
+                            {
+                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -143,13 +178,6 @@ namespace CustomBuildTool
 
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
         {
-            BuildBranch = string.Empty;
-            BuildCommit = string.Empty;
-            BuildCount = string.Empty;
-            BuildRevision = string.Empty;
-            BuildVersion = "1.0.0";
-            BuildLongVersion = "1.0.0.0";
-
             string currentGitDir = Utils.GetGitWorkPath();
             string currentGitPath = Utils.GetGitFilePath();
 
@@ -236,14 +264,24 @@ namespace CustomBuildTool
             Program.PrintColorMessage($" second(s) {Environment.NewLine + Environment.NewLine}", ConsoleColor.DarkGray, false);
         }
 
-        public static bool CopyTextFiles()
+        public static bool CopyTextFiles(bool Update)
         {
             try
             {
-                Win32.CopyIfNewer("README.txt", "bin\\README.txt");
-                //Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt"); // TODO: Git log
-                Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
-                Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
+                if (Update)
+                {
+                    Win32.CopyIfNewer("README.txt", "bin\\README.txt");
+                    //Win32.CopyIfNewer("CHANGELOG.txt", "bin\\CHANGELOG.txt"); // TODO: Git log
+                    Win32.CopyIfNewer("COPYRIGHT.txt", "bin\\COPYRIGHT.txt");
+                    Win32.CopyIfNewer("LICENSE.txt", "bin\\LICENSE.txt");
+                }
+                else
+                {
+                    Win32.DeleteFile("bin\\README.txt");
+                    //Win32.DeleteFile("bin\\CHANGELOG.txt");
+                    Win32.DeleteFile("bin\\COPYRIGHT.txt");
+                    Win32.DeleteFile("bin\\LICENSE.txt");
+                }
             }
             catch (Exception ex)
             {
