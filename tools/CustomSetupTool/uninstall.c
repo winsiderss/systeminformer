@@ -9,7 +9,7 @@
  *
  */
 
-#include <setup.h>
+#include "setup.h"
 
 NTSTATUS SetupUninstallBuild(
     _In_ PPH_SETUP_CONTEXT Context

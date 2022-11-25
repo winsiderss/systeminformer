@@ -134,7 +134,7 @@
     <ClCompile Include="websetuppage.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\setup.h" />
+    <ClInclude Include="setup.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
@@ -142,9 +142,10 @@
     <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="app.manifest">
-      <SubType>Designer</SubType>
-    </Manifest>
+    <Manifest Include="app.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\SystemInformer\SystemInformer.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

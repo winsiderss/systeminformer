@@ -9,7 +9,7 @@
  *
  */
 
-#include <setup.h>
+#include "setup.h"
 
 //NTSTATUS SetupDownloadWebSetupThread(
 //    _In_ PPH_SETUP_CONTEXT Context

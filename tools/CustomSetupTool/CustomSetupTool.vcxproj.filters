@@ -59,7 +59,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\setup.h">
+    <ClInclude Include="setup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -78,5 +78,10 @@
     <Manifest Include="app.manifest">
       <Filter>Resource Files\Content</Filter>
     </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\SystemInformer\SystemInformer.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
