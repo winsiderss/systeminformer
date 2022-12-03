@@ -457,6 +457,18 @@ PhGenerateGuid(
     _Out_ PGUID Guid
     );
 
+FORCEINLINE
+VOID
+NTAPI
+PhReverseGuid(
+    _Inout_ PGUID Guid
+    )
+{
+    Guid->Data1 = _byteswap_ulong(Guid->Data1);
+    Guid->Data2 = _byteswap_ushort(Guid->Data2);
+    Guid->Data3 = _byteswap_ushort(Guid->Data3);
+}
+
 PHLIBAPI
 VOID
 NTAPI
