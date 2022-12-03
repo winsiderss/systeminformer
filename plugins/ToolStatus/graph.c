@@ -544,7 +544,7 @@ static PPH_STRING PhSipGetMaxCpuString(
             PhInitFormatS(&format[2], L" (");
             PhInitFormatU(&format[3], HandleToUlong(maxProcessRecord->ProcessId));
             PhInitFormatS(&format[4], L"): ");
-            PhInitFormatF(&format[5], (DOUBLE)maxCpuUsage * 100, 2);
+            PhInitFormatF(&format[5], maxCpuUsage * 100, 2);
             PhInitFormatC(&format[6], L'%');
 
             maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);
@@ -557,7 +557,7 @@ static PPH_STRING PhSipGetMaxCpuString(
             PhInitFormatC(&format[0], L'\n');
             PhInitFormatSR(&format[1], maxProcessRecord->ProcessName->sr);
             PhInitFormatS(&format[2], L": ");
-            PhInitFormatF(&format[3], (DOUBLE)maxCpuUsage * 100, 2);
+            PhInitFormatF(&format[3], maxCpuUsage * 100, 2);
             PhInitFormatC(&format[4], L'%');
 
             maxUsageString = PhFormat(format, RTL_NUMBER_OF(format), 128);

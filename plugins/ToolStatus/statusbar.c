@@ -280,7 +280,7 @@ VOID StatusBarUpdate(
                 PH_FORMAT format[3];
 
                 PhInitFormatS(&format[0], L"CPU usage: ");
-                PhInitFormatF(&format[1], (DOUBLE)cpuUsage * 100, 2);
+                PhInitFormatF(&format[1], cpuUsage * 100, 2);
                 PhInitFormatS(&format[2], L"%");
 
                 PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
@@ -413,7 +413,7 @@ VOID StatusBarUpdate(
                         PhInitFormatS(&format[1], L" (");
                         PhInitFormatI64U(&format[2], HandleToUlong(processItem->ProcessId));
                         PhInitFormatS(&format[3], L"): ");
-                        PhInitFormatF(&format[4], (DOUBLE)processItem->CpuUsage * 100, 2);
+                        PhInitFormatF(&format[4], processItem->CpuUsage * 100, 2);
                         PhInitFormatS(&format[5], L"%");
 
                         PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
@@ -424,7 +424,7 @@ VOID StatusBarUpdate(
 
                         PhInitFormatSR(&format[0], processItem->ProcessName->sr);
                         PhInitFormatS(&format[1], L": ");
-                        PhInitFormatF(&format[2], (DOUBLE)processItem->CpuUsage * 100, 2);
+                        PhInitFormatF(&format[2], processItem->CpuUsage * 100, 2);
                         PhInitFormatS(&format[3], L"%)");
 
                         PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
