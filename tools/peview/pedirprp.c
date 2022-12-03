@@ -431,6 +431,8 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
         {
             PhSaveSettingsDirectoryList(context);
             PvDeleteDirectoryTree(context);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:
