@@ -759,7 +759,7 @@ NTSTATUS PhHttpSocketDownloadToFile(
 
         if (NT_SUCCESS(status))
         {
-            status = PhMoveFileWin32(PhGetString(fileName), PhGetStringRefZ(FileName));
+            status = PhMoveFileWin32(PhGetString(fileName), PhGetStringRefZ(FileName), FALSE);
         }
     }
 

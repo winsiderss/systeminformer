@@ -52,7 +52,7 @@ NTSTATUS SetupUninstallBuild(
             &ksiOldFileName
             );
 
-        PhMoveFileWin32(PhGetString(ksiFile), PhGetString(ksiOldFile));
+        PhMoveFileWin32(PhGetString(ksiFile), PhGetString(ksiOldFile), FALSE);
 
         MoveFileExW(PhGetString(ksiOldFile), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
         MoveFileExW(PhGetString(Context->SetupInstallPath), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);

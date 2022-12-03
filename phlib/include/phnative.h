@@ -1793,7 +1793,8 @@ NTSTATUS
 NTAPI
 PhMoveFileWin32(
     _In_ PWSTR OldFileName,
-    _In_ PWSTR NewFileName
+    _In_ PWSTR NewFileName,
+    _In_ BOOLEAN FailIfExists
     );
 
 PHLIBAPI

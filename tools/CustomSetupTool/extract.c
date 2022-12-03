@@ -191,7 +191,7 @@ BOOLEAN SetupUpdateKsi(
     oldFile = PhConcatStringRefZ(&FileName->sr, L"-old");
 
     PhDeleteFileWin32(PhGetString(oldFile));
-    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(FileName), PhGetString(oldFile))))
+    if (!NT_SUCCESS(PhMoveFileWin32(PhGetString(FileName), PhGetString(oldFile), FALSE)))
     {
         result = FALSE;
         goto CleanupExit;
