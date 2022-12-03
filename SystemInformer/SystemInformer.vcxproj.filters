@@ -306,9 +306,6 @@
     <ClCompile Include="heapinfo.c">
       <Filter>System Informer</Filter>
     </ClCompile>
-    <ClCompile Include="notiftoast.cpp">
-      <Filter>System Informer</Filter>
-    </ClCompile>
     <ClCompile Include="prpgvdm.c">
       <Filter>System Informer</Filter>
     </ClCompile>
