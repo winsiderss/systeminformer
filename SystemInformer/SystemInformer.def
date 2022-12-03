@@ -240,7 +240,7 @@ EXPORTS
     PhCreateNamedPipe
     PhCreatePipe
     PhConnectPipe
-    PhDeviceIoControl
+    PhDeviceIoControlFile
     PhDeleteDirectoryWin32
     PhDeleteFileWin32
     PhDeleteValueKey
