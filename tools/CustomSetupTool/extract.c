@@ -295,9 +295,9 @@ BOOLEAN SetupExtractBuild(
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
-        if (PhFindStringInString(fileName, 0, L"SystemInformer.exe.settings.xml") != -1)
+        if (PhFindStringInString(fileName, 0, L"SystemInformer.exe.settings.xml") != SIZE_MAX)
             continue;
-        if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
+        if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != SIZE_MAX)
             continue;
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
@@ -335,9 +335,9 @@ BOOLEAN SetupExtractBuild(
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
 
-        if (PhFindStringInString(fileName, 0, L"SystemInformer.exe.settings.xml") != -1)
+        if (PhFindStringInString(fileName, 0, L"SystemInformer.exe.settings.xml") != SIZE_MAX)
             continue;
-        if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != -1)
+        if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != SIZE_MAX)
             continue;
 
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)

@@ -18,6 +18,7 @@
 #include <workqueue.h>
 #include <svcsup.h>
 #include <json.h>
+#include <phnet.h>
 
 #include <aclapi.h>
 #include <io.h>
@@ -87,19 +88,19 @@ typedef struct _PH_SETUP_CONTEXT
     PPH_STRING RelVersion;
 
     PPH_STRING BinFileDownloadUrl;
-    PPH_STRING BinFileLength;
+    ULONGLONG BinFileLength;
     PPH_STRING BinFileHash;
     PPH_STRING BinFileSignature;
     PPH_STRING SetupFileDownloadUrl;
-    PPH_STRING SetupFileLength;
+    ULONGLONG SetupFileLength;
     PPH_STRING SetupFileHash;
     PPH_STRING SetupFileSignature;
 
-    PPH_STRING WebSetupFileDownloadUrl;
-    PPH_STRING WebSetupFileVersion;
-    PPH_STRING WebSetupFileLength;
-    PPH_STRING WebSetupFileHash;
-    PPH_STRING WebSetupFileSignature;
+    //PPH_STRING WebSetupFileDownloadUrl;
+    //PPH_STRING WebSetupFileVersion;
+    //PPH_STRING WebSetupFileLength;
+    //PPH_STRING WebSetupFileHash;
+    //PPH_STRING WebSetupFileSignature;
 
     ULONG CurrentMajorVersion;
     ULONG CurrentMinorVersion;
