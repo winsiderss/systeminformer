@@ -2300,24 +2300,69 @@ BOOLEAN PhWordMatchStringZ(
     return PhWordMatchStringRef(&SearchText->sr, &text);
 }
 
-//#include <wuapi.h>
 //BOOLEAN PhIsSystemRebootRequired(
 //    VOID
 //    )
 //{
-//    VARIANT_BOOL rebootRequired = VARIANT_FALSE;
-//    ISystemInformation* systemInformation = NULL;
+//    static PH_STRINGREF keyRootPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate");
+//    static PH_STRINGREF keyAuPath = PH_STRINGREF_INIT(L"Auto Update\\RebootRequired");
+//    static PH_STRINGREF keyOrcPath = PH_STRINGREF_INIT(L"Orchestrator\\RebootRequired");
+//    BOOLEAN keyRebootRequired = FALSE;
+//    HANDLE keyRootHandle;
+//    HANDLE keyHandle;
 //
-//    if (SUCCEEDED(PhGetClassObject(
-//        L"wuapi.dll",
-//        &CLSID_SystemInformation,
-//        &IID_ISystemInformation,
-//        &systemInformation
+//    if (NT_SUCCESS(PhOpenKey(
+//        &keyRootHandle,
+//        KEY_READ,
+//        PH_KEY_LOCAL_MACHINE,
+//        &keyRootPath,
+//        0
 //        )))
 //    {
-//        ISystemInformation_get_RebootRequired(systemInformation, &rebootRequired);
-//        ISystemInformation_Release(systemInformation);
+//        if (NT_SUCCESS(PhOpenKey(
+//            &keyHandle,
+//            KEY_READ,
+//            keyRootHandle,
+//            &keyAuPath,
+//            0
+//            )))
+//        {
+//            keyRebootRequired = TRUE;
+//            NtClose(keyHandle);
+//        }
+//
+//        if (NT_SUCCESS(PhOpenKey(
+//            &keyHandle,
+//            KEY_READ,
+//            keyRootHandle,
+//            &keyOrcPath,
+//            0
+//            )))
+//        {
+//            keyRebootRequired = TRUE;
+//            NtClose(keyHandle);
+//        }
+//
+//        NtClose(keyRootHandle);
 //    }
 //
-//    return rebootRequired == VARIANT_TRUE;
+//    //#include <wuapi.h>
+//    //ISystemInformation* systemInformation = NULL;
+//    //
+//    //if (SUCCEEDED(PhGetClassObject(
+//    //    L"wuapi.dll",
+//    //    &CLSID_SystemInformation,
+//    //    &IID_ISystemInformation,
+//    //    &systemInformation
+//    //    )))
+//    //{
+//    //    VARIANT_BOOL rebootRequiredVariant = VARIANT_FALSE;
+//    //
+//    //    ISystemInformation_get_RebootRequired(systemInformation, &rebootRequiredVariant);
+//    //    ISystemInformation_Release(systemInformation);
+//    //
+//    //    keyRebootRequired = rebootRequiredVariant == VARIANT_TRUE;
+//    //}
+//
+//    return keyRebootRequired;
 //}
