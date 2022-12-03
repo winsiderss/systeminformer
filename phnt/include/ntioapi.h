@@ -726,7 +726,15 @@ typedef struct _FILE_VOLUME_NAME_INFORMATION
 typedef struct _FILE_ID_INFORMATION
 {
     ULONGLONG VolumeSerialNumber;
-    FILE_ID_128 FileId;
+    union
+    {
+        FILE_ID_128 FileId; // private
+        struct
+        {
+            LONGLONG FileIdLowPart : 64; // rev
+            LONGLONG FileIdHighPart : 64; // rev
+        };
+    };
 } FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
 
 typedef struct _FILE_ID_EXTD_DIR_INFORMATION
