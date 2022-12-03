@@ -61,7 +61,6 @@ PPH_STRING PvResolveReparsePointTarget(
     PREPARSE_DATA_BUFFER reparseBuffer;
     ULONG reparseLength;
     HANDLE fileHandle;
-    IO_STATUS_BLOCK isb;
 
     if (PhIsNullOrEmptyString(FileName))
         return NULL;
@@ -82,17 +81,14 @@ PPH_STRING PvResolveReparsePointTarget(
     reparseLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
     reparseBuffer = PhAllocateZero(reparseLength);
 
-    if (NT_SUCCESS(NtFsControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         FSCTL_GET_REPARSE_POINT,
         NULL,
         0,
         reparseBuffer,
-        reparseLength
+        reparseLength,
+        NULL
         )))
     {
         if (

@@ -801,7 +801,6 @@ NTSTATUS PvLayoutGetMetadataOptimization(
 {
     NTSTATUS status;
     HANDLE fileHandle;
-    IO_STATUS_BLOCK isb;
 
     status = PhCreateFileWin32(
         &fileHandle,
@@ -816,17 +815,14 @@ NTSTATUS PvLayoutGetMetadataOptimization(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = NtFsControlFile(
+    status = PhDeviceIoControlFile(
         fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         FSCTL_QUERY_FILE_METADATA_OPTIMIZATION,
         NULL,
         0,
         FileMetadataOptimization,
-        sizeof(FILE_QUERY_METADATA_OPTIMIZATION_OUTPUT)
+        sizeof(FILE_QUERY_METADATA_OPTIMIZATION_OUTPUT),
+        NULL
         );
 
     NtClose(fileHandle);
@@ -841,7 +837,6 @@ NTSTATUS PvLayoutSetMetadataOptimization(
     NTSTATUS status;
     HANDLE fileHandle;
     HANDLE tokenHandle;
-    IO_STATUS_BLOCK isb;
 
     status = PhCreateFileWin32(
         &fileHandle,
@@ -855,17 +850,14 @@ NTSTATUS PvLayoutSetMetadataOptimization(
 
     if (NT_SUCCESS(status))
     {
-        status = NtFsControlFile(
+        status = PhDeviceIoControlFile(
             fileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
             FSCTL_INITIATE_FILE_METADATA_OPTIMIZATION,
             NULL,
             0,
             NULL,
-            0
+            0,
+            NULL
             );
 
         NtClose(fileHandle);
@@ -897,17 +889,14 @@ NTSTATUS PvLayoutSetMetadataOptimization(
 
     if (NT_SUCCESS(status))
     {
-        status = NtFsControlFile(
+        status = PhDeviceIoControlFile(
             fileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
             FSCTL_INITIATE_FILE_METADATA_OPTIMIZATION,
             NULL,
             0,
             NULL,
-            0
+            0,
+            NULL
             );
 
         NtClose(fileHandle);
@@ -931,7 +920,7 @@ NTSTATUS PvGetFileAllocatedRanges(
     LARGE_INTEGER fileSize;
     FILE_ALLOCATED_RANGE_BUFFER input;
     PFILE_ALLOCATED_RANGE_BUFFER output;
-    IO_STATUS_BLOCK isb;
+    ULONG returnLength;
 
     status = PhGetFileSize(FileHandle, &fileSize);
 
@@ -947,23 +936,20 @@ NTSTATUS PvGetFileAllocatedRanges(
 
     while (TRUE)
     {
-        status = NtFsControlFile(
+        status = PhDeviceIoControlFile(
             FileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
             FSCTL_QUERY_ALLOCATED_RANGES,
             &input,
             sizeof(FILE_ALLOCATED_RANGE_BUFFER),
             output,
-            outputLength
+            outputLength,
+            &returnLength
             );
 
         if (!NT_SUCCESS(status))
             break;
 
-        outputCount = (ULONG)isb.Information / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+        outputCount = returnLength / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
 
         if (outputCount == 0)
             break;
@@ -997,9 +983,8 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
     PPH_STRING volumeName;
     PH_STRINGREF firstPart;
     PH_STRINGREF lastPart;
-    IO_STATUS_BLOCK isb;
     ULONG outputLength;
-    FILE_INTERNAL_INFORMATION fileInternalInfo;
+    FILE_INTERNAL_INFORMATION internalInfo;
     FILE_QUERY_METADATA_OPTIMIZATION_OUTPUT fileMetadataOptimization;
     QUERY_FILE_LAYOUT_INPUT input;
     PQUERY_FILE_LAYOUT_OUTPUT output;
@@ -1040,25 +1025,22 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
         goto CleanupExit;
 
     memset(&fileMetadataOptimization, 0, sizeof(FILE_QUERY_METADATA_OPTIMIZATION_OUTPUT));
-    NtFsControlFile(
+    status = PhDeviceIoControlFile(
         fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         FSCTL_QUERY_FILE_METADATA_OPTIMIZATION,
         NULL,
         0,
         &fileMetadataOptimization,
-        sizeof(FILE_QUERY_METADATA_OPTIMIZATION_OUTPUT)
+        sizeof(FILE_QUERY_METADATA_OPTIMIZATION_OUTPUT),
+        NULL
         );
 
-    status = NtQueryInformationFile(
+    //if (!NT_SUCCESS(status))
+    //    goto CleanupExit;
+
+    status = PhGetFileIndexNumber(
         fileHandle,
-        &isb,
-        &fileInternalInfo,
-        sizeof(FILE_INTERNAL_INFORMATION),
-        FileInternalInformation
+        &internalInfo
         );
 
     if (!NT_SUCCESS(status))
@@ -1097,25 +1079,22 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
 
     input.FilterEntryCount = 1;
     input.FilterType = QUERY_FILE_LAYOUT_FILTER_TYPE_FILEID;
-    input.Filter.FileReferenceRanges->StartingFileReferenceNumber = fileInternalInfo.IndexNumber.QuadPart;
-    input.Filter.FileReferenceRanges->EndingFileReferenceNumber = fileInternalInfo.IndexNumber.QuadPart;
+    input.Filter.FileReferenceRanges->StartingFileReferenceNumber = internalInfo.IndexNumber.QuadPart;
+    input.Filter.FileReferenceRanges->EndingFileReferenceNumber = internalInfo.IndexNumber.QuadPart;
 
     outputLength = 0x2000000; // magic value
     output = PhAllocateZero(outputLength);
 
     while (TRUE)
     {
-        status = NtFsControlFile(
+        status = PhDeviceIoControlFile(
             volumeHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
             FSCTL_QUERY_FILE_LAYOUT,
             &input,
             sizeof(QUERY_FILE_LAYOUT_INPUT),
             output,
-            outputLength
+            outputLength,
+            NULL
             );
 
         if (!NT_SUCCESS(status))
