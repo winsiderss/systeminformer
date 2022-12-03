@@ -766,7 +766,7 @@ PPH_STRING PhGetNtMessage(
     if (!NT_NTWIN32(Status))
         message = PhGetMessage(PhGetLoaderEntryDllBase(L"ntdll.dll"), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
     else
-        message = PhGetWin32Message(WIN32_FROM_NTSTATUS(Status));
+        message = PhGetWin32Message(PhNtStatusToDosError(Status));
 
     if (PhIsNullOrEmptyString(message))
         return message;
