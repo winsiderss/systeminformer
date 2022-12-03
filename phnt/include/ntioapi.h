@@ -297,7 +297,15 @@ typedef struct _FILE_STANDARD_INFORMATION_EX
 
 typedef struct _FILE_INTERNAL_INFORMATION
 {
-    LARGE_INTEGER IndexNumber;
+    union
+    {
+        LARGE_INTEGER IndexNumber; // private
+        struct
+        {
+            LONGLONG MftRecordIndex : 48; // rev
+            LONGLONG SequenceNumber : 16; // rev
+        };
+    };
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
 
 typedef struct _FILE_EA_INFORMATION
