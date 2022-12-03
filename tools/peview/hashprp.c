@@ -1455,7 +1455,10 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
                     hashString = PhBufferToHexString(entry->PageHash, sizeof(entry->PageHash));
 
                     PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_PAGEHASH, MAXINT, &count, TRUE, NULL, number, hashString);
+                    PhFree(entry);
                 }
+
+                PhDereferenceObject(results->PageHashList);
             }
 
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
