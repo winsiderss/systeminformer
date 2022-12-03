@@ -1267,15 +1267,6 @@ VOID PhGenerateGuid(
     ((PGUID_EX)Guid)->s2.Variant |= GUID_VARIANT_STANDARD;
 }
 
-FORCEINLINE VOID PhpReverseGuid(
-    _Inout_ PGUID Guid
-    )
-{
-    Guid->Data1 = _byteswap_ulong(Guid->Data1);
-    Guid->Data2 = _byteswap_ushort(Guid->Data2);
-    Guid->Data3 = _byteswap_ushort(Guid->Data3);
-}
-
 /**
  * Creates a name-based (type 3 or 5) UUID.
  *
@@ -1304,7 +1295,7 @@ VOID PhGenerateGuidFromName(
     // Convert the namespace to big endian.
 
     ns = *Namespace;
-    PhpReverseGuid(&ns);
+    PhReverseGuid(&ns);
 
     // Compute the hash of the namespace concatenated with the name.
 
@@ -1338,7 +1329,7 @@ VOID PhGenerateGuidFromName(
 
     guid = (PGUID_EX)Guid;
     memcpy(guid->Data, hash, 16);
-    PhpReverseGuid(&guid->Guid);
+    PhReverseGuid(&guid->Guid);
     guid->s2.Version = Version;
     guid->s2.Variant &= ~GUID_VARIANT_STANDARD_MASK;
     guid->s2.Variant |= GUID_VARIANT_STANDARD;
