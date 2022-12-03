@@ -265,7 +265,8 @@ INT_PTR CALLBACK PvOptionsWndProc(
         break;
     case WM_DESTROY:
         {
-            NOTHING;
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_DPICHANGED:
