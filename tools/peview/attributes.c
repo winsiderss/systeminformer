@@ -153,6 +153,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
