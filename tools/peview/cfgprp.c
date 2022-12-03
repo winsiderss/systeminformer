@@ -228,6 +228,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;

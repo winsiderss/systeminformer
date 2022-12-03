@@ -187,6 +187,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
         {
             PhSaveListViewColumnsToSetting(L"ImageDebugListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
