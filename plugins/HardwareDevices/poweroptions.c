@@ -371,22 +371,18 @@ VOID FindRaplDevices(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            IO_STATUS_BLOCK isb;
             EMI_VERSION version;
 
             memset(&version, 0, sizeof(EMI_VERSION));
 
-            if (NT_SUCCESS(NtDeviceIoControlFile(
+            if (NT_SUCCESS(PhDeviceIoControlFile(
                 deviceHandle,
-                NULL,
-                NULL,
-                NULL,
-                &isb,
                 IOCTL_EMI_GET_VERSION,
                 NULL,
                 0,
                 &version,
-                sizeof(EMI_VERSION)
+                sizeof(EMI_VERSION),
+                NULL
                 )))
             {
                 if (version.EmiVersion == EMI_VERSION_V2)
@@ -402,33 +398,27 @@ VOID FindRaplDevices(
 
                 memset(&metadataSize, 0, sizeof(EMI_METADATA_SIZE));
 
-                if (NT_SUCCESS(NtDeviceIoControlFile(
+                if (NT_SUCCESS(PhDeviceIoControlFile(
                     deviceHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
                     IOCTL_EMI_GET_METADATA_SIZE,
                     NULL,
                     0,
                     &metadataSize,
-                    sizeof(EMI_METADATA_SIZE)
+                    sizeof(EMI_METADATA_SIZE),
+                    NULL
                     )))
                 {
                     metadata = PhAllocate(metadataSize.MetadataSize);
                     memset(metadata, 0, metadataSize.MetadataSize);
 
-                    if (NT_SUCCESS(NtDeviceIoControlFile(
+                    if (NT_SUCCESS(PhDeviceIoControlFile(
                         deviceHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &isb,
                         IOCTL_EMI_GET_METADATA,
                         NULL,
                         0,
                         metadata,
-                        metadataSize.MetadataSize
+                        metadataSize.MetadataSize,
+                        NULL
                         )))
                     {
                         EMI_CHANNEL_V2* channels = metadata->Channels;
