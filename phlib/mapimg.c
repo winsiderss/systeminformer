@@ -522,7 +522,7 @@ NTSTATUS PhGetMappedImageDataEntry(
 
         dataDirectory = &optionalHeader->DataDirectory[Index];
 
-        if (dataDirectory->VirtualAddress)
+        if (dataDirectory->VirtualAddress && dataDirectory->Size)
         {
             *Entry = dataDirectory;
             return STATUS_SUCCESS;
@@ -540,14 +540,14 @@ NTSTATUS PhGetMappedImageDataEntry(
 
         dataDirectory = &optionalHeader->DataDirectory[Index];
 
-        if (dataDirectory->VirtualAddress)
+        if (dataDirectory->VirtualAddress && dataDirectory->Size)
         {
             *Entry = dataDirectory;
             return STATUS_SUCCESS;
         }
     }
 
-    return STATUS_INVALID_PARAMETER;
+    return STATUS_NOT_FOUND;
 }
 
 PVOID PhGetMappedImageDirectoryEntry(
