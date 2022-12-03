@@ -2428,7 +2428,7 @@ PhSetSystemFileCacheSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhDeviceIoControl(
+PhDeviceIoControlFile(
     _In_ HANDLE DeviceHandle,
     _In_ ULONG IoControlCode,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,

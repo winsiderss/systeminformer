@@ -13257,7 +13257,7 @@ NTSTATUS PhSetSystemFileCacheSize(
 }
 
 // rev from DeviceIoControl (dmex)
-NTSTATUS PhDeviceIoControl(
+NTSTATUS PhDeviceIoControlFile(
     _In_ HANDLE DeviceHandle,
     _In_ ULONG IoControlCode,
     _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
