@@ -17,7 +17,6 @@ BOOLEAN NetworkAdapterQuerySupported(
     )
 {
     NTSTATUS status;
-    IO_STATUS_BLOCK isb;
     BOOLEAN ndisQuerySupported = FALSE;
     BOOLEAN adapterNameSupported = FALSE;
     BOOLEAN adapterStatsSupported = FALSE;
@@ -25,22 +24,20 @@ BOOLEAN NetworkAdapterQuerySupported(
     BOOLEAN adapterLinkSpeedSupported = FALSE;
     PNDIS_OID objectIdBuffer;
     ULONG objectIdBufferLength;
+    ULONG objectIdBufferReturnLength;
     ULONG attempts = 0;
 
     objectIdBufferLength = 2048 * sizeof(NDIS_OID);
     objectIdBuffer = PhAllocateZero(objectIdBufferLength);
 
-    status = NtDeviceIoControlFile(
+    status = PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_SUPPORTED_LIST },
         sizeof(NDIS_OID),
         objectIdBuffer,
-        objectIdBufferLength
+        objectIdBufferLength,
+        &objectIdBufferReturnLength
         );
 
     while (status == STATUS_BUFFER_OVERFLOW && attempts < 8)
@@ -49,17 +46,14 @@ BOOLEAN NetworkAdapterQuerySupported(
         objectIdBufferLength *= 2;
         objectIdBuffer = PhAllocateZero(objectIdBufferLength);
 
-        status = NtDeviceIoControlFile(
+        status = PhDeviceIoControlFile(
             DeviceHandle,
-            NULL,
-            NULL,
-            NULL,
-            &isb,
             IOCTL_NDIS_QUERY_GLOBAL_STATS,
             &(NDIS_OID) { OID_GEN_SUPPORTED_LIST },
             sizeof(NDIS_OID),
             objectIdBuffer,
-            objectIdBufferLength
+            objectIdBufferLength,
+            &objectIdBufferReturnLength
             );
         attempts++;
     }
@@ -68,7 +62,7 @@ BOOLEAN NetworkAdapterQuerySupported(
     {
         ndisQuerySupported = TRUE;
 
-        for (ULONG i = 0; i < (ULONG)isb.Information / sizeof(NDIS_OID); i++)
+        for (ULONG i = 0; i < objectIdBufferReturnLength / sizeof(NDIS_OID); i++)
         {
             NDIS_OID objectId = objectIdBuffer[i];
 
@@ -111,20 +105,16 @@ BOOLEAN NetworkAdapterQueryNdisVersion(
     _Out_opt_ PUINT MinorVersion
     )
 {
-    IO_STATUS_BLOCK isb;
     ULONG versionResult = 0;
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_DRIVER_VERSION }, // OID_GEN_VENDOR_DRIVER_VERSION
         sizeof(NDIS_OID),
         &versionResult,
-        sizeof(versionResult)
+        sizeof(versionResult),
+        NULL
         )))
     {
         if (MajorVersion)
@@ -312,27 +302,24 @@ PPH_STRING NetworkAdapterQueryName(
     _In_ HANDLE DeviceHandle
     )
 {
-    IO_STATUS_BLOCK isb;
+    ULONG adapterNameReturnLength;
     WCHAR adapterName[NDIS_IF_MAX_STRING_SIZE + 1] = L"";
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_FRIENDLY_NAME },
         sizeof(NDIS_OID),
         adapterName,
-        sizeof(adapterName)
+        sizeof(adapterName),
+        &adapterNameReturnLength
         )))
     {
         PPH_STRING string;
 
-        if (isb.Information > sizeof(UNICODE_NULL))
+        if (adapterNameReturnLength > sizeof(UNICODE_NULL))
         {
-            string = PhCreateStringEx(adapterName, isb.Information - sizeof(UNICODE_NULL));
+            string = PhCreateStringEx(adapterName, adapterNameReturnLength - sizeof(UNICODE_NULL));
             //PhTrimToNullTerminatorString(string);
         }
         else
@@ -351,7 +338,6 @@ NTSTATUS NetworkAdapterQueryStatistics(
     _Out_ PNDIS_STATISTICS_INFO Info
     )
 {
-    IO_STATUS_BLOCK isb;
     NDIS_STATISTICS_INFO result;
 
     memset(&result, 0, sizeof(NDIS_STATISTICS_INFO));
@@ -359,17 +345,14 @@ NTSTATUS NetworkAdapterQueryStatistics(
     result.Header.Revision = NDIS_STATISTICS_INFO_REVISION_1;
     result.Header.Size = NDIS_SIZEOF_STATISTICS_INFO_REVISION_1;
 
-    return NtDeviceIoControlFile(
+    return PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_STATISTICS },
         sizeof(NDIS_OID),
         Info,
-        sizeof(NDIS_STATISTICS_INFO)
+        sizeof(NDIS_STATISTICS_INFO),
+        NULL
         );
 }
 
@@ -378,7 +361,6 @@ NTSTATUS NetworkAdapterQueryLinkState(
     _Out_ PNDIS_LINK_STATE State
     )
 {
-    IO_STATUS_BLOCK isb;
     NDIS_LINK_STATE result;
 
     memset(&result, 0, sizeof(NDIS_LINK_STATE));
@@ -386,17 +368,14 @@ NTSTATUS NetworkAdapterQueryLinkState(
     result.Header.Revision = NDIS_LINK_STATE_REVISION_1;
     result.Header.Size = NDIS_SIZEOF_LINK_STATE_REVISION_1;
 
-    return NtDeviceIoControlFile(
+    return PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_LINK_STATE }, // OID_GEN_MEDIA_CONNECT_STATUS
         sizeof(NDIS_OID),
         State,
-        sizeof(NDIS_LINK_STATE)
+        sizeof(NDIS_LINK_STATE),
+        NULL
         );
 }
 
@@ -406,24 +385,19 @@ BOOLEAN NetworkAdapterQueryMediaType(
     _Out_ PNDIS_PHYSICAL_MEDIUM Medium
     )
 {
-    IO_STATUS_BLOCK isb;
     NDIS_MEDIUM adapterType;
     NDIS_PHYSICAL_MEDIUM adapterMediaType;
 
     adapterMediaType = NdisPhysicalMediumUnspecified;
-    memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_PHYSICAL_MEDIUM_EX },
         sizeof(NDIS_OID),
         &adapterMediaType,
-        sizeof(adapterMediaType)
+        sizeof(adapterMediaType),
+        NULL
         )))
     {
         *Medium = adapterMediaType;
@@ -431,19 +405,15 @@ BOOLEAN NetworkAdapterQueryMediaType(
     }
 
     adapterMediaType = NdisPhysicalMediumUnspecified;
-    memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_PHYSICAL_MEDIUM },
         sizeof(NDIS_OID),
         &adapterMediaType,
-        sizeof(adapterMediaType)
+        sizeof(adapterMediaType),
+        NULL
         )))
     {
         *Medium = adapterMediaType;
@@ -451,19 +421,15 @@ BOOLEAN NetworkAdapterQueryMediaType(
     }
 
     adapterType = NdisMediumMax;
-    memset(&isb, 0, sizeof(IO_STATUS_BLOCK));
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_MEDIA_SUPPORTED }, // OID_GEN_MEDIA_IN_USE
         sizeof(NDIS_OID),
         &adapterType,
-        sizeof(adapterType)
+        sizeof(adapterType),
+        NULL
         )))
     {
         switch (adapterType)
@@ -497,22 +463,18 @@ NTSTATUS NetworkAdapterQueryLinkSpeed(
     )
 {
     NTSTATUS status;
-    IO_STATUS_BLOCK isb;
     NDIS_LINK_SPEED result;
 
     memset(&result, 0, sizeof(NDIS_LINK_SPEED));
 
-    status = NtDeviceIoControlFile(
+    status = PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &(NDIS_OID) { OID_GEN_LINK_SPEED },
         sizeof(NDIS_OID),
         &result,
-        sizeof(NDIS_LINK_SPEED)
+        sizeof(NDIS_LINK_SPEED),
+        NULL
         );
 
     if (NT_SUCCESS(status))
@@ -528,20 +490,16 @@ ULONG64 NetworkAdapterQueryValue(
     _In_ NDIS_OID OpCode
     )
 {
-    IO_STATUS_BLOCK isb;
     ULONG64 result = 0;
 
-    if (NT_SUCCESS(NtDeviceIoControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         DeviceHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         IOCTL_NDIS_QUERY_GLOBAL_STATS,
         &OpCode,
         sizeof(NDIS_OID),
         &result,
-        sizeof(result)
+        sizeof(result),
+        NULL
         )))
     {
         return result;
