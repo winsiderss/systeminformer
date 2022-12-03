@@ -186,7 +186,7 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (!NT_SUCCESS(status = PhGetProcessImageFileNameWin32(NtCurrentProcess(), &currentFilePath)))
     {
-        Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+        Context->ErrorCode = PhNtStatusToDosError(status);
         return FALSE;
     }
 
@@ -209,9 +209,9 @@ BOOLEAN SetupCreateUninstallFile(
         tempFilePath = PhCreateCacheFile(tempFileName);
 
         //if (!NT_SUCCESS(PhDeleteFileWin32(backupFilePath->Buffer)))
-        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(backupFilePath), PhGetString(tempFilePath))))
+        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(backupFilePath), PhGetString(tempFilePath), FALSE)))
         {
-            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            Context->ErrorCode = PhNtStatusToDosError(status);
             return FALSE;
         }
 
@@ -228,9 +228,9 @@ BOOLEAN SetupCreateUninstallFile(
         tempFileName = PhCreateString(L"systeminformer-setup.exe");
         tempFilePath = PhCreateCacheFile(tempFileName);
 
-        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath))))
+        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath), FALSE)))
         {
-            Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+            Context->ErrorCode = PhNtStatusToDosError(status);
             return FALSE;
         }
 
@@ -240,7 +240,7 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), TRUE)))
     {
-        Context->ErrorCode = WIN32_FROM_NTSTATUS(status);
+        Context->ErrorCode = PhNtStatusToDosError(status);
         return FALSE;
     }
 
@@ -271,7 +271,7 @@ VOID SetupDeleteUninstallFile(
             goto CleanupExit;
         }
 
-        PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath));
+        PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath), FALSE);
 
         PhDereferenceObject(tempFilePath);
         PhDereferenceObject(tempFileName);
