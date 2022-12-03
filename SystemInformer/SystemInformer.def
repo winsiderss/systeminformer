@@ -240,6 +240,7 @@ EXPORTS
     PhCreateNamedPipe
     PhCreatePipe
     PhConnectPipe
+    PhDeviceIoControl
     PhDeleteDirectoryWin32
     PhDeleteFileWin32
     PhDeleteValueKey
@@ -314,6 +315,8 @@ EXPORTS
     PhMoveFileWin32
     PhOpenKey
     PhOpenDriver
+    PhOpenFile
+    PhOpenFileById
     PhOpenProcess
     PhOpenThread
     PhOpenThreadProcess
