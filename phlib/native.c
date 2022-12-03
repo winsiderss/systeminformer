@@ -3461,6 +3461,22 @@ NTSTATUS PhSetFileAllocationSize(
         );
 }
 
+NTSTATUS PhGetFileIndexNumber(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_INTERNAL_INFORMATION IndexNumber
+    )
+{
+    IO_STATUS_BLOCK isb;
+
+    return NtQueryInformationFile(
+        FileHandle,
+        &isb,
+        IndexNumber,
+        sizeof(FILE_INTERNAL_INFORMATION),
+        FileInternalInformation
+        );
+}
+
 NTSTATUS PhDeleteFile(
     _In_ HANDLE FileHandle
     )
@@ -9065,6 +9081,7 @@ NTSTATUS PhOpenFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
     _In_ ULONG ShareAccess,
     _In_ ULONG OpenOptions,
     _Out_opt_ PULONG OpenStatus
@@ -9083,7 +9100,7 @@ NTSTATUS PhOpenFile(
         &objectAttributes,
         &fileName,
         OBJ_CASE_INSENSITIVE,
-        NULL,
+        RootDirectory,
         NULL
         );
 
@@ -13231,6 +13248,69 @@ NTSTATUS PhSetSystemFileCacheSize(
         &cacheInfo,
         sizeof(SYSTEM_FILECACHE_INFORMATION)
         );
+
+    return status;
+}
+
+// rev from DeviceIoControl (dmex)
+NTSTATUS PhDeviceIoControl(
+    _In_ HANDLE DeviceHandle,
+    _In_ ULONG IoControlCode,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_to_opt_(OutputBufferLength, *ReturnLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    if (DEVICE_TYPE_FROM_CTL_CODE(IoControlCode) == FILE_DEVICE_FILE_SYSTEM)
+    {
+        status = NtFsControlFile(
+            DeviceHandle,
+            NULL,
+            NULL,
+            NULL,
+            &ioStatusBlock,
+            IoControlCode,
+            InputBuffer,
+            InputBufferLength,
+            OutputBuffer,
+            OutputBufferLength
+            );
+    }
+    else
+    {
+        status = NtDeviceIoControlFile(
+            DeviceHandle,
+            NULL,
+            NULL,
+            NULL,
+            &ioStatusBlock,
+            IoControlCode,
+            InputBuffer,
+            InputBufferLength,
+            OutputBuffer,
+            OutputBufferLength
+            );
+    }
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(DeviceHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+        {
+            status = ioStatusBlock.Status;
+        }
+    }
+
+    if (ReturnLength)
+    {
+        *ReturnLength = (ULONG)ioStatusBlock.Information;
+    }
 
     return status;
 }
