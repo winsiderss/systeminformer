@@ -668,6 +668,14 @@ PhSetFileAllocationSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileIndexNumber(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_INTERNAL_INFORMATION IndexNumber
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhDeleteFile(
     _In_ HANDLE FileHandle
     );
@@ -1692,6 +1700,7 @@ PhOpenFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
     _In_ ULONG ShareAccess,
     _In_ ULONG OpenOptions,
     _Out_opt_ PULONG OpenStatus
@@ -2414,6 +2423,19 @@ PhSetSystemFileCacheSize(
     _In_ SIZE_T MinimumFileCacheSize,
     _In_ SIZE_T MaximumFileCacheSize,
     _In_ ULONG Flags
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDeviceIoControl(
+    _In_ HANDLE DeviceHandle,
+    _In_ ULONG IoControlCode,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_to_opt_(OutputBufferLength, *ReturnLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 #ifdef __cplusplus
