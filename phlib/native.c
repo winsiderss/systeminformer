@@ -3579,13 +3579,17 @@ NTSTATUS PhGetFileAllInformation(
 
 NTSTATUS PhGetFileId(
     _In_ HANDLE FileHandle,
-    _Out_ PFILE_ID_INFORMATION *FileId
+    _Out_ PFILE_ID_INFORMATION FileId
     )
 {
-    return PhpQueryFileVariableSize(
+    IO_STATUS_BLOCK isb;
+
+    return NtQueryInformationFile(
         FileHandle,
-        FileIdInformation,
-        FileId
+        &isb,
+        FileId,
+        sizeof(FILE_ID_INFORMATION),
+        FileIdInformation
         );
 }
 
