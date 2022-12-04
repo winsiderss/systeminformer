@@ -32,10 +32,9 @@ VOID EtEnumerateNamedPipeDirectory(
     _In_ PPIPE_ENUM_DIALOG_CONTEXT Context
     )
 {
+    static PH_STRINGREF objectName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
     NTSTATUS status;
     HANDLE pipeDirectoryHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectName;
     IO_STATUS_BLOCK isb;
     PPH_LIST pipeList;
     ULONG count = 0;
@@ -43,22 +42,14 @@ VOID EtEnumerateNamedPipeDirectory(
     ExtendedListView_SetRedraw(Context->ListViewWndHandle, FALSE);
     ListView_DeleteAllItems(Context->ListViewWndHandle);
 
-    RtlInitUnicodeString(&objectName, DEVICE_NAMED_PIPE);
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectName,
-        OBJ_CASE_INSENSITIVE,
-        NULL,
-        NULL
-        );
-
-    status = NtOpenFile(
+    status = PhOpenFile(
         &pipeDirectoryHandle,
+        &objectName,
         FILE_LIST_DIRECTORY | SYNCHRONIZE,
-        &objectAttributes,
-        &isb,
+        NULL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
         );
 
     if (!NT_SUCCESS(status))
@@ -75,22 +66,14 @@ VOID EtEnumerateNamedPipeDirectory(
         HANDLE processID;
         INT lvItemIndex;
 
-        PhStringRefToUnicodeString(&pipeName->sr, &objectName);
-        InitializeObjectAttributes(
-            &objectAttributes,
-            &objectName,
-            OBJ_CASE_INSENSITIVE,
-            pipeDirectoryHandle,
-            NULL
-            );
-
-        status = NtOpenFile(
+        status = PhOpenFile(
             &pipeHandle,
+            &pipeName->sr,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-            &objectAttributes,
-            &isb,
+            pipeDirectoryHandle,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL
             );
 
         PhPrintUInt32(value, ++count);
