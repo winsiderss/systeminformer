@@ -767,7 +767,9 @@ BOOLEAN PvLayoutTreeFilterCallback(
 
 #define FILE_LAYOUT_ENTRY_VERSION 0x1
 #define STREAM_LAYOUT_ENTRY_VERSION 0x1
-#define PH_FIRST_LAYOUT_ENTRY(LayoutEntry) ((PFILE_LAYOUT_ENTRY)(LayoutEntry))
+#define PH_FIRST_LAYOUT_ENTRY(LayoutEntry) \
+    ((PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET(LayoutEntry, \
+    ((PQUERY_FILE_LAYOUT_OUTPUT)LayoutEntry)->FirstFileOffset)))
 #define PH_NEXT_LAYOUT_ENTRY(LayoutEntry) ( \
     ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset ? \
     (PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET((LayoutEntry), \
@@ -1108,8 +1110,8 @@ NTSTATUS PvLayoutEnumerateFileLayouts(
                 break;
             }
 
-            if (fileLayoutEntry->Flags == 1 && fileLayoutEntry->FileReferenceNumber == 1)
-                continue;
+            //if (fileLayoutEntry->Flags == 1 && fileLayoutEntry->FileReferenceNumber == 1)
+            //    continue;
 
             fileLayoutSteamEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->FirstStreamOffset);
             fileLayoutInfoEntry = PTR_ADD_OFFSET(fileLayoutEntry, fileLayoutEntry->ExtraInfoOffset);
