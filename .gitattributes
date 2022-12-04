@@ -2,8 +2,8 @@
 * text=crlf
 
 # Custom for Visual Studio
-*.cs     diff=csharp
-*.sln    merge=union
+*.cs diff=csharp
+*.sln merge=union
 *.csproj merge=union
 *.vbproj merge=union
 *.fsproj merge=union
@@ -13,17 +13,51 @@
 *.bat eol=crlf
 *.c eol=crlf
 *.cs eol=crlf
+*.cpp eol=crlf
 *.config eol=crlf
 *.cmd eol=crlf
 *.csproj eol=crlf
 *.def eol=crlf
+*.ddf eol=crlf
+*.editorconfig eol=crlf
+*.gitattributes eol=crlf
+*.gitignore eol=crlf
 *.h eol=crlf
+*.hpp eol=crlf
+*.inc eol=crlf
+*.inf eol=crlf
 *.manifest eol=crlf
+*.md eol=crlf
+*.props eol=crlf
+*.pubxml eol=crlf
 *.resx eol=crlf
 *.rc eol=crlf
 *.sln eol=crlf
 *.txt eol=crlf
 *.vcxproj eol=crlf
+*.filters eol=crlf
+*.xml eol=crlf
+*.yml eol=crlf
+
+**AUTHORS eol=crlf
+**COPYING eol=crlf
+**CHANGELOG eol=crlf
+**LICENSE eol=crlf
+**LICENCE eol=crlf
+**README eol=crlf
+
+*.bmp binary
+*.dll binary
+*.exe binary
+*.ico binary
+*.lib binary
+*.pdb binary
+*.png binary
+*.s binary
+*.sys binary
+
+# svg standard require LF
+*.svg eol=lf
 
 # Standard to msysgit
 *.doc    diff=astextplain
@@ -43,4 +77,3 @@
 .gitmodules     export-ignore
 .github         export-ignore
 appveyor.yml    export-ignore
-Doxyfile        export-ignore
