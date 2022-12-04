@@ -608,9 +608,18 @@ BOOLEAN PhInitializeDirectoryPolicy(
 {
     PPH_STRING applicationDirectory;
     UNICODE_STRING applicationDirectoryUs;
+    PH_STRINGREF currentDirectory;
 
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
         return FALSE;
+
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath, &currentDirectory);
+
+    if (PhEqualStringRef(&applicationDirectory->sr, &currentDirectory, TRUE))
+    {
+        PhDereferenceObject(applicationDirectory);
+        return TRUE;
+    }
 
     if (!PhStringRefToUnicodeString(&applicationDirectory->sr, &applicationDirectoryUs))
     {
