@@ -1403,6 +1403,12 @@ VOID PvpSetPeImageCharacteristics(
         {
             if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT)
                 PhAppendStringBuilder2(&stringBuilder, L"CET compatible, ");
+            if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT_STRICT_MODE)
+                PhAppendStringBuilder2(&stringBuilder, L"CET compatible (Strict), ");
+            if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_SET_CONTEXT_IP_VALIDATION_RELAXED_MODE)
+                PhAppendStringBuilder2(&stringBuilder, L"CET context validation (Relaxed), ");
+            if (characteristicsEx & IMAGE_DLLCHARACTERISTICS_EX_CET_DYNAMIC_APIS_ALLOW_IN_PROC)
+                PhAppendStringBuilder2(&stringBuilder, L"CET dynamic APIs allowed, ");
         }
     }
 
