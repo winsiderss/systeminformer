@@ -776,11 +776,6 @@ NTSTATUS DiskDriveQueryVolumeInformation(
     _Out_ PFILE_FS_VOLUME_INFORMATION* VolumeInfo
     );
 
-NTSTATUS DiskDriveQueryVolumeAttributes(
-    _In_ HANDLE DosDeviceHandle,
-    _Out_ PFILE_FS_ATTRIBUTE_INFORMATION* AttributeInfo
-    );
-
 // https://en.wikipedia.org/wiki/S.M.A.R.T.#Known_ATA_S.M.A.R.T._attributes
 typedef enum _SMART_ATTRIBUTE_ID
 {
@@ -1036,11 +1031,6 @@ VOID RaplDevicesLoadList(
 
 VOID RaplDevicesUpdate(
     VOID
-    );
-
-VOID RaplDeviceUpdateDeviceInfo(
-    _In_opt_ HANDLE DeviceHandle,
-    _In_ PDV_RAPL_ENTRY DiskEntry
     );
 
 VOID InitializeRaplDeviceId(
@@ -1427,7 +1417,7 @@ BOOLEAN GraphicsQueryDeviceProperties(
     _Out_opt_ PPH_STRING* DriverDate,
     _Out_opt_ PPH_STRING* DriverVersion,
     _Out_opt_ PPH_STRING* LocationInfo,
-    _Out_opt_ ULONG64* InstalledMemory,
+    _Out_opt_ PULONG64 InstalledMemory,
     _Out_opt_ LUID* AdapterLuid
     );
 
