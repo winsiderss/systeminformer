@@ -80,21 +80,12 @@ build/output/
 plugins-extra/
 sdk/
 
-!KProcessHacker/bin/
-KProcessHacker/bin/Debug32/
-KProcessHacker/bin/Debug64/
-KProcessHacker/bin/Release32/
-KProcessHacker/bin/Release64/
-KProcessHacker/bin/*
-
-!plugins/SamplePlugin/bin/
-plugins/SamplePlugin/bin/Debug32/
-plugins/SamplePlugin/bin/Debug64/
-plugins/SamplePlugin/bin/Release32/*
-!plugins/SamplePlugin/bin/Release32/SamplePlugin.dll
-plugins/SamplePlugin/bin/Release64/*
-!plugins/SamplePlugin/bin/Release64/SamplePlugin.dll
-plugins/OnlineChecks/virustotal.h
+!KSystemInformer/bin/
+KSystemInformer/bin/Debug32/
+KSystemInformer/bin/Debug64/
+KSystemInformer/bin/Release32/
+KSystemInformer/bin/Release64/
+KSystemInformer/bin/*
 
 !tools/CustomBuildTool/bin/
 tools/CustomBuildTool/bin/Debug*/
