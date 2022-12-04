@@ -276,14 +276,12 @@ BOOLEAN PhHeapInitialization(
         if (!PhHeapHandle)
             return FALSE;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
         RtlSetHeapInformation(
             PhHeapHandle,
             HeapCompatibilityInformation,
             &(ULONG){ HEAP_COMPATIBILITY_LFH },
             sizeof(ULONG)
             );
-#endif
     }
 
     return TRUE;

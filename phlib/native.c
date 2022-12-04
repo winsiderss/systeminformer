@@ -8437,12 +8437,14 @@ NTSTATUS PhLoadAppKey(
     }
 #endif
 
-    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
         NULL,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     InitializeObjectAttributes(
@@ -8834,7 +8836,7 @@ NTSTATUS PhCreateFileWin32(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions
@@ -8892,7 +8894,7 @@ NTSTATUS PhCreateFileWin32Ex(
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PLARGE_INTEGER AllocationSize,
-    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions,
@@ -8905,21 +8907,15 @@ NTSTATUS PhCreateFileWin32Ex(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
 
-    if (!FileAttributes)
-        FileAttributes = FILE_ATTRIBUTE_NORMAL;
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
         NULL,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
-#else
-    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
-        return STATUS_UNSUCCESSFUL;
-#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -9038,18 +9034,15 @@ NTSTATUS PhOpenFileWin32Ex(
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatusBlock;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
         NULL,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
-#else
-    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
-        return STATUS_UNSUCCESSFUL;
-#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -9213,18 +9206,15 @@ NTSTATUS PhQueryFullAttributesFileWin32(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
         NULL,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
-#else
-    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
-        return STATUS_UNSUCCESSFUL;
-#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -9272,18 +9262,15 @@ NTSTATUS PhQueryAttributesFileWin32(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
         FileName,
         &fileName,
         NULL,
         NULL
-        )))
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
-#else
-    if (!RtlDosPathNameToNtPathName_U(FileName, &fileName, NULL, NULL))
-        return STATUS_UNSUCCESSFUL;
-#endif
 
     InitializeObjectAttributes(
         &objectAttributes,
@@ -9780,22 +9767,15 @@ NTSTATUS PhMoveFileWin32(
     UNICODE_STRING newFileName;
     PFILE_RENAME_INFORMATION renameInfo;
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-    if (!NT_SUCCESS(status = RtlDosPathNameToNtPathName_U_WithStatus(
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
         NewFileName,
         &newFileName,
         NULL,
         NULL
-        )))
-    {
+        );
+
+    if (!NT_SUCCESS(status))
         return status;
-    }
-#else
-    if (!RtlDosPathNameToNtPathName_U(NewFileName, &newFileName, NULL, NULL))
-    {
-        return STATUS_UNSUCCESSFUL;
-    }
-#endif
 
     status = PhCreateFileWin32(
         &fileHandle,

@@ -1636,7 +1636,7 @@ PhCreateFileWin32(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions
@@ -1650,7 +1650,7 @@ PhCreateFileWin32Ex(
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PLARGE_INTEGER AllocationSize,
-    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions,
