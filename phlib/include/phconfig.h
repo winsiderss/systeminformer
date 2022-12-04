@@ -66,11 +66,7 @@ PhExitApplication(
     _In_opt_ NTSTATUS Status
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     RtlExitUserProcess(Status);
-#else
-    ExitProcess(Status);
-#endif
 }
 
 // Processor group support (dmex)
