@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2020
+ *     dmex    2015-2022
  *
  */
 
@@ -61,7 +61,7 @@ VOID DiskDrivesUpdate(
         if (NT_SUCCESS(PhCreateFile(
             &deviceHandle,
             &entry->Id.DevicePath->sr,
-            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_READ_ATTRIBUTES | SYNCHRONIZE, // (PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES)
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
             FILE_OPEN,
@@ -211,7 +211,7 @@ VOID DiskDriveUpdateDeviceInfo(
             PhCreateFile(
                 &deviceHandle,
                 &DiskEntry->Id.DevicePath->sr,
-                FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+                FILE_READ_ATTRIBUTES | SYNCHRONIZE, // (PhGetOwnTokenAttributes().Elevated ? FILE_GENERIC_READ : FILE_READ_ATTRIBUTES)
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 FILE_OPEN,
