@@ -569,24 +569,45 @@ PPH_STRING DiskDriveQueryGeometry(
     _In_ HANDLE DeviceHandle
     )
 {
-    DISK_GEOMETRY result;
-
-    memset(&result, 0, sizeof(DISK_GEOMETRY));
-
-    // TODO: MSDN states the IOCTL_DISK_GET_DRIVE_GEOMETRY query is obsolete.
-
-    if (NT_SUCCESS(PhDeviceIoControlFile(
-        DeviceHandle,
-        IOCTL_DISK_GET_DRIVE_GEOMETRY,
-        NULL,
-        0,
-        &result,
-        sizeof(result),
-        NULL
-        )))
     {
-        // TODO: This doesn't return total capacity like Task Manager.
-        return PhFormatSize(result.Cylinders.QuadPart * result.TracksPerCylinder * result.SectorsPerTrack * result.BytesPerSector, ULONG_MAX);
+        DISK_GEOMETRY_EX result;
+
+        memset(&result, 0, sizeof(DISK_GEOMETRY_EX));
+
+        if (NT_SUCCESS(PhDeviceIoControlFile(
+            DeviceHandle,
+            IOCTL_DISK_GET_DRIVE_GEOMETRY_EX,
+            NULL,
+            0,
+            &result,
+            sizeof(result),
+            NULL
+            )))
+        {
+            ULONG64 formattedSize = result.Geometry.Cylinders.QuadPart * result.Geometry.TracksPerCylinder * result.Geometry.SectorsPerTrack * result.Geometry.BytesPerSector;
+            ULONG64 capacitySize = result.DiskSize.QuadPart;
+
+            return PhFormatSize(capacitySize, ULONG_MAX);
+        }
+    }
+
+    {
+        DISK_GEOMETRY result;
+
+        memset(&result, 0, sizeof(DISK_GEOMETRY));
+
+        if (NT_SUCCESS(PhDeviceIoControlFile(
+            DeviceHandle,
+            IOCTL_DISK_GET_DRIVE_GEOMETRY,
+            NULL,
+            0,
+            &result,
+            sizeof(result),
+            NULL
+            )))
+        {
+            return PhFormatSize(result.Cylinders.QuadPart * result.TracksPerCylinder * result.SectorsPerTrack * result.BytesPerSector, ULONG_MAX);
+        }
     }
 
     return PhReferenceEmptyString();
