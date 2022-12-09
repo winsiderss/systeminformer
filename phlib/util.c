@@ -3513,46 +3513,109 @@ PPH_STRING PhGetApplicationDataFileName(
  * \param Folder A CSIDL value representing the known location.
  * \param AppendPath A string to append to the folder path.
  */
-PPH_STRING PhGetKnownLocation(
-    _In_ ULONG Folder,
+//PPH_STRING PhGetKnownLocation(
+//    _In_ ULONG Folder,
+//    _In_opt_ PWSTR AppendPath
+//    )
+//{
+//    PPH_STRING path;
+//    SIZE_T appendPathLength;
+//
+//    if (!SHGetFolderPathW_Import())
+//        return NULL;
+//
+//    if (AppendPath)
+//        appendPathLength = PhCountStringZ(AppendPath) * sizeof(WCHAR);
+//    else
+//        appendPathLength = 0;
+//
+//    path = PhCreateStringEx(NULL, MAX_PATH * sizeof(WCHAR) + appendPathLength);
+//
+//    if (SUCCEEDED(SHGetFolderPathW_Import()(
+//        NULL,
+//        Folder,
+//        NULL,
+//        SHGFP_TYPE_CURRENT,
+//        path->Buffer
+//        )))
+//    {
+//        PhTrimToNullTerminatorString(path);
+//
+//        if (AppendPath)
+//        {
+//            memcpy(&path->Buffer[path->Length / sizeof(WCHAR)], AppendPath, appendPathLength + sizeof(UNICODE_NULL)); // +2 for null terminator
+//            path->Length += appendPathLength;
+//        }
+//
+//        return path;
+//    }
+//
+//    PhDereferenceObject(path);
+//
+//    return NULL;
+//}
+
+PPH_STRING PhGetKnownFolderPath(
+    _In_ REFKNOWNFOLDERID Folder,
     _In_opt_ PWSTR AppendPath
     )
 {
     PPH_STRING path;
     SIZE_T appendPathLength;
 
-    if (!SHGetFolderPathW_Import())
-        return NULL;
+static const PH_FLAG_MAPPING PhpKnownFolderFlagMappings[] =
+{
+    { PH_KF_FLAG_FORCE_APP_DATA_REDIRECTION, KF_FLAG_FORCE_APP_DATA_REDIRECTION },
+};
 
-    if (AppendPath)
-        appendPathLength = PhCountStringZ(AppendPath) * sizeof(WCHAR);
-    else
-        appendPathLength = 0;
+PPH_STRING PhGetKnownFolderPathEx(
+    _In_ REFKNOWNFOLDERID Folder,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _In_opt_ PWSTR AppendPath
+    )
+{
+    PPH_STRING path;
+    ULONG flags;
+    PWSTR knownFolderBuffer;
+    SIZE_T knownFolderLength;
+    SIZE_T knownAppendLength;
 
-    path = PhCreateStringEx(NULL, MAX_PATH * sizeof(WCHAR) + appendPathLength);
+    flags = 0;
+    PhMapFlags1(&flags, Flags, PhpKnownFolderFlagMappings, ARRAYSIZE(PhpKnownFolderFlagMappings));
 
-    if (SUCCEEDED(SHGetFolderPathW_Import()(
-        NULL,
+    if (FAILED(SHGetKnownFolderPath(
         Folder,
-        NULL,
-        SHGFP_TYPE_CURRENT,
-        path->Buffer
+        flags | KF_FLAG_DONT_VERIFY,
+        TokenHandle,
+        &knownFolderBuffer
         )))
     {
-        PhTrimToNullTerminatorString(path);
-
-        if (AppendPath)
-        {
-            memcpy(&path->Buffer[path->Length / sizeof(WCHAR)], AppendPath, appendPathLength + sizeof(UNICODE_NULL)); // +2 for null terminator
-            path->Length += appendPathLength;
-        }
-
-        return path;
+        return NULL;
     }
 
-    PhDereferenceObject(path);
+    knownFolderLength = PhCountStringZ(knownFolderBuffer) * sizeof(WCHAR);
+    knownAppendLength = AppendPath ? PhCountStringZ(AppendPath) * sizeof(WCHAR) : 0;
 
-    return NULL;
+    path = PhCreateStringEx(NULL, knownFolderLength + knownAppendLength);
+    memcpy(
+        path->Buffer,
+        knownFolderBuffer,
+        knownFolderLength
+        );
+
+    if (AppendPath)
+    {
+        memcpy(
+            PTR_ADD_OFFSET(path->Buffer, knownFolderLength),
+            AppendPath,
+            knownAppendLength
+            );
+    }
+
+    CoTaskMemFree(knownFolderBuffer);
+
+    return path;
 }
 
 /**
