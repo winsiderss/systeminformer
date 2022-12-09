@@ -416,7 +416,7 @@ EXPORTS
     PhGetFileVersionInfoString
     PhGetFileVersionInfoString2
     PhGetFullPath
-    PhGetKnownLocation
+    PhGetKnownFolderPath
     PhGetMessage
     PhGetNtMessage
     PhGetStatusMessage

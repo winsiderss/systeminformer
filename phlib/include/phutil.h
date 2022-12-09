@@ -893,11 +893,27 @@ PhGetApplicationDataFileName(
     _In_ BOOLEAN NativeFileName
     );
 
+DEFINE_GUID(FOLDERID_LocalAppData, 0xF1B32785, 0x6FBA, 0x4FCF, 0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91);
+DEFINE_GUID(FOLDERID_RoamingAppData, 0x3EB685DB, 0x65F9, 0x4CF6, 0xA0, 0x3A, 0xE3, 0xEF, 0x65, 0x72, 0x9F, 0x3D);
+DEFINE_GUID(FOLDERID_ProgramFiles, 0x905e63b6, 0xc1bf, 0x494e, 0xb2, 0x9c, 0x65, 0xb7, 0x32, 0xd3, 0xd2, 0x1a);
+
+#define PH_KF_FLAG_FORCE_APP_DATA_REDIRECTION 0x1
+
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetKnownLocation(
-    _In_ ULONG Folder,
+PhGetKnownFolderPath(
+    _In_ REFKNOWNFOLDERID Folder,
+    _In_opt_ PWSTR AppendPath
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetKnownFolderPathEx(
+    _In_ REFKNOWNFOLDERID Folder,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
     _In_opt_ PWSTR AppendPath
     );
 
