@@ -220,12 +220,7 @@ PPH_STRING PvGetFinalHash(
         0
         )))
     {
-        PPH_STRING string;
-
-        string = PhBufferToHexString(HashContext->Hash, HashContext->HashSize);
-        _wcsupr(string->Buffer);
-
-        return string;
+        return PhBufferToHexString(HashContext->Hash, HashContext->HashSize);
     }
 
     return NULL;
@@ -571,12 +566,7 @@ NTSTATUS PvGetMappedImageMicrosoftImpHash(
 
     if (NT_SUCCESS(status))
     {
-        PPH_STRING string;
-
-        string = PhBufferToHexString(importTableMd5Hash, sizeof(importTableMd5Hash));
-        _wcsupr(string->Buffer);
-
-        *HashResult = string;
+        *HashResult = PhBufferToHexString(importTableMd5Hash, sizeof(importTableMd5Hash));
         return STATUS_SUCCESS;
     }
 
@@ -1416,7 +1406,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             if (results->ImageHasImports)
             {
                 PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASH, &count, FALSE, NULL, L"Imphash", results->ImphashString);
-                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASHMSFT, &count, FALSE, NULL, L"Imphash (Microsoft)", results->ImpMsftHashString);
+                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASHMSFT, &count, TRUE, NULL, L"Imphash (Microsoft)", results->ImpMsftHashString);
                 PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_IMPFUZZY, &count, FALSE, NULL, L"Impfuzzy", results->ImphashFuzzyString);
             }
             else

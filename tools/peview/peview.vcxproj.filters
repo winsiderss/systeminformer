@@ -160,7 +160,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="volatileprp.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

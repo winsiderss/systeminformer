@@ -354,7 +354,6 @@
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="attributes.c" />
     <ClCompile Include="debugprp.c" />
-    <ClCompile Include="disasmtree.c" />
     <ClCompile Include="ehcontprp.c" />
     <ClCompile Include="exlfdynamic.c" />
     <ClCompile Include="exlfexports.c" />
