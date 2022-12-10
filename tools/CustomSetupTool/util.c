@@ -117,7 +117,16 @@ PPH_STRING SetupFindInstallDirectory(
 
     if (PhIsNullOrEmptyString(setupInstallPath))
     {
-        setupInstallPath = PhGetKnownFolderPath(&FOLDERID_ProgramFiles, L"\\SystemInformer\\");
+        static PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%\\SystemInformer\\");
+        static PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%\\SystemInformer\\");
+        SYSTEM_INFO info;
+
+        GetNativeSystemInfo(&info);
+
+        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+            setupInstallPath = PhExpandEnvironmentStrings(&programW6432);
+        else
+            setupInstallPath = PhExpandEnvironmentStrings(&programFiles);
     }
 
     if (PhIsNullOrEmptyString(setupInstallPath))
