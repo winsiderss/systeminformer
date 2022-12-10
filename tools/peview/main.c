@@ -336,7 +336,7 @@ BOOLEAN PvInitializeExceptionPolicy(
 
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
-        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        ClearFlag(errorMode, SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 

@@ -132,7 +132,7 @@ VOID PvInitializeSettings(
     // 2. Default location
     if (PhIsNullOrEmptyString(PvSettingsFileName))
     {
-        PvSettingsFileName = PhExpandEnvironmentStringsZ(L"%APPDATA%\\SystemInformer\\peview.xml");
+        PvSettingsFileName = PhGetRoamingAppDataDirectoryZ(L"peview.xml");
     }
 
     if (!PhIsNullOrEmptyString(PvSettingsFileName))
