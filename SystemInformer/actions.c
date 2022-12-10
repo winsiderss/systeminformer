@@ -2681,6 +2681,15 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
             Processes[i]->ProcessId
             );
 
+        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        {
+            status = PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION, // HACK for KphProcessEmptyWorkingSet (dmex)
+                Processes[i]->ProcessId
+                );
+        }
+
         if (NT_SUCCESS(status))
         {
             status = PhSetProcessEmptyWorkingSet(processHandle);
