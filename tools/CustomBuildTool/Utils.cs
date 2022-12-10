@@ -36,6 +36,8 @@ namespace CustomBuildTool
                     process.StartInfo.UseShellExecute = false;
                     process.StartInfo.RedirectStandardOutput = true;
                     process.StartInfo.RedirectStandardError = true;
+                    process.StartInfo.StandardErrorEncoding = Encoding.UTF8;
+                    process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
 
                     using (AutoResetEvent outputWaitHandle = new AutoResetEvent(false))
                     using (AutoResetEvent errorWaitHandle = new AutoResetEvent(false))
@@ -75,13 +77,13 @@ namespace CustomBuildTool
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                Program.PrintColorMessage($"[CreateProcess] {ex}", ConsoleColor.Red);
             }
 
             outputstring = output.ToString() + error.ToString();
-            outputstring = outputstring.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
+            //outputstring = outputstring.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
             outputstring = outputstring.Replace("\r\n", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
 
             return exitcode;
@@ -95,7 +97,10 @@ namespace CustomBuildTool
                     File.Delete(FileName);
                 return true;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[DeleteFile] {ex}", ConsoleColor.Red);
+            }
 
             return false;
         }
@@ -124,7 +129,10 @@ namespace CustomBuildTool
                         return whereResult;
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[SearchFile] {ex}", ConsoleColor.Yellow);
+            }
 
             return null;
         }
@@ -183,7 +191,10 @@ namespace CustomBuildTool
                     return versionInfo.FileVersion ?? string.Empty;
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[GetKernelVersion] {ex}", ConsoleColor.Red);
+            }
 
             return string.Empty;
         }
@@ -683,9 +694,9 @@ namespace CustomBuildTool
                 {
                     info = info.Parent;
 
-                    if (File.Exists(info.FullName + "\\Common7\\IDE\\devenv.exe"))
+                    if (File.Exists($"{info.FullName}\\Common7\\IDE\\devenv.exe"))
                     {
-                        FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo(info.FullName + "\\Common7\\IDE\\devenv.exe");
+                        FileVersionInfo currentInfo = FileVersionInfo.GetVersionInfo($"{info.FullName}\\Common7\\IDE\\devenv.exe");
                         return currentInfo.ProductVersion;
                     }
                 }
@@ -696,6 +707,42 @@ namespace CustomBuildTool
             }
 
             return string.Empty;
+        }
+
+        public static string GetMakeAppxPath()
+        {
+            string windowsSdkPath = Utils.GetWindowsSdkPath();
+
+            if (string.IsNullOrWhiteSpace(windowsSdkPath))
+                return string.Empty;
+
+            string makeAppxPath = $"{windowsSdkPath}\\x64\\MakeAppx.exe";
+
+            if (string.IsNullOrWhiteSpace(makeAppxPath))
+                return string.Empty;
+
+            if (!File.Exists(makeAppxPath))
+                return string.Empty;
+
+            return makeAppxPath;
+        }
+
+        public static string GetSignToolPath()
+        {
+            string windowsSdkPath = Utils.GetWindowsSdkPath();
+
+            if (string.IsNullOrWhiteSpace(windowsSdkPath))
+                return string.Empty;
+
+            string signToolPath = $"{windowsSdkPath}\\x64\\SignTool.exe";
+
+            if (string.IsNullOrWhiteSpace(signToolPath))
+                return string.Empty;
+
+            if (!File.Exists(signToolPath))
+                return string.Empty;
+
+            return signToolPath;
         }
 
         //public static string GetMsbuildFilePath()
@@ -767,7 +814,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[UpdateBuildVersion] {ex}", ConsoleColor.Red, true);
+                Program.PrintColorMessage($"[UpdateBuildVersion] {ex}", ConsoleColor.Red);
             }
 
             return false;
@@ -787,7 +834,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[UploadFile] {ex}", ConsoleColor.Red, true);
+                Program.PrintColorMessage($"[UploadFile] {ex}", ConsoleColor.Red);
             }
 
             return false;
