@@ -6565,7 +6565,6 @@ PPH_STRING PhCreateCacheFile(
     _In_ PPH_STRING FileName
     )
 {
-    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
     static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     static PH_STRINGREF settingsDir = PH_STRINGREF_INIT(L"\\cache");
     PPH_STRING fileName;
@@ -6612,8 +6611,7 @@ PPH_STRING PhCreateCacheFile(
         }
         else
         {
-            cacheDirectory = PhConcatStringRef2(&settingsPath, &settingsDir);
-            PhMoveReference(&cacheDirectory, PhExpandEnvironmentStrings(&cacheDirectory->sr));
+            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDir);
         }
 
         PhDereferenceObject(applicationFileName);
@@ -6621,8 +6619,7 @@ PPH_STRING PhCreateCacheFile(
     }
     else
     {
-        cacheDirectory = PhConcatStringRef2(&settingsPath, &settingsDir);
-        PhMoveReference(&cacheDirectory, PhExpandEnvironmentStrings(&cacheDirectory->sr));
+        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDir);
 
         if (PhIsNullOrEmptyString(cacheDirectory))
         {
@@ -6664,7 +6661,6 @@ VOID PhClearCacheDirectory(
     VOID
     )
 {
-    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
     static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
     static PH_STRINGREF settingsDir = PH_STRINGREF_INIT(L"\\cache");
     PPH_STRING fileName;
@@ -6710,8 +6706,7 @@ VOID PhClearCacheDirectory(
         }
         else
         {
-            cacheDirectory = PhConcatStringRef2(&settingsPath, &settingsDir);
-            PhMoveReference(&cacheDirectory, PhExpandEnvironmentStrings(&cacheDirectory->sr));
+            cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDir);
         }
 
         PhDereferenceObject(applicationFileName);
@@ -6719,8 +6714,7 @@ VOID PhClearCacheDirectory(
     }
     else
     {
-        cacheDirectory = PhConcatStringRef2(&settingsPath, &settingsDir);
-        PhMoveReference(&cacheDirectory, PhExpandEnvironmentStrings(&cacheDirectory->sr));
+        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDir);
     }
 
     if (cacheDirectory)
@@ -9516,6 +9510,7 @@ NTSTATUS PhCreateProcessRedirection(
     startupInfo.StartupInfo.hStdOutput = outputWriteHandle;
     startupInfo.StartupInfo.hStdError = outputWriteHandle;
 
+#if !defined(PH_BUILD_MSIX)
     status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 1);
 
     if (!NT_SUCCESS(status))
@@ -9530,6 +9525,32 @@ NTSTATUS PhCreateProcessRedirection(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+#else
+    status = PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 2);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhUpdateProcThreadAttribute(
+        startupInfo.lpAttributeList,
+        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+        &(HANDLE[2]){ inputReadHandle, outputWriteHandle },
+        sizeof(HANDLE[2])
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhUpdateProcThreadAttribute(
+        startupInfo.lpAttributeList,
+        PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY,
+        &(ULONG){ PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE },
+        sizeof(ULONG)
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+#endif
 
     status = PhCreateProcessWin32Ex(
         NULL,
