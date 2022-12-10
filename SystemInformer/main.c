@@ -22,8 +22,6 @@
 #include <phsvc.h>
 #include <procprv.h>
 
-#include <shlobj.h>
-
 #include <ksisup.h>
 #include <settings.h>
 #include <srvprv.h>
@@ -828,7 +826,7 @@ BOOLEAN PhInitializeExceptionPolicy(
 
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
-        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        ClearFlag(errorMode, SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 
@@ -1150,7 +1148,6 @@ VOID PhpInitializeSettings(
 
     if (!PhStartupParameters.NoSettings)
     {
-        static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
         static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
         PPH_STRING settingsFileName;
 
@@ -1192,7 +1189,12 @@ VOID PhpInitializeSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
+#if !defined(PH_BUILD_MSIX)
+            static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
             PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
+#else
+            PhSettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+#endif
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
