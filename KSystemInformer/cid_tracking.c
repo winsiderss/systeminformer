@@ -1141,9 +1141,9 @@ PKPH_PROCESS_CONTEXT KphTrackProcessContext(
     KphpCidWaitForPopulate();
 
     return KphpTrackContext(PsGetProcessId(Process),
-                           KphProcessContextType,
-                           sizeof(KPH_PROCESS_CONTEXT),
-                           Process);
+                            KphProcessContextType,
+                            sizeof(KPH_PROCESS_CONTEXT),
+                            Process);
 }
 
 /**
@@ -1187,9 +1187,9 @@ PKPH_THREAD_CONTEXT KphTrackThreadContext(
     KphpCidWaitForPopulate();
 
     return KphpTrackContext(PsGetThreadId(Thread),
-                           KphThreadContextType,
-                           sizeof(KPH_THREAD_CONTEXT),
-                           Thread);
+                            KphThreadContextType,
+                            sizeof(KPH_THREAD_CONTEXT),
+                            Thread);
 }
 
 /**
