@@ -90,6 +90,82 @@ static NTSTATUS (NTAPI* PsmGetPackageFullNameFromKey_I)(
     _Inout_ PULONG NameLength
     ) = NULL;
 
+// "168EB462-775F-42AE-9111-D714B2306C2E"
+static CLSID CLSID_IDesktopAppXActivator_I = { 0x168EB462, 0x775F, 0x42AE, { 0x91, 0x11, 0xD7, 0x14, 0xB2, 0x30, 0x6C, 0x2E } };
+// "F158268A-D5A5-45CE-99CF-00D6C3F3FC0A"
+static IID IID_IDesktopAppXActivator_I = { 0xF158268A, 0xD5A5, 0x45CE, { 0x99, 0xCF, 0x00, 0xD6, 0xC3, 0xF3, 0xFC, 0x0A } };
+
+typedef enum _DESKTOP_APPX_ACTIVATE_OPTIONS
+{
+    DAXAO_NONE = 0,
+    DAXAO_ELEVATE = 1,
+    DAXAO_NONPACKAGED_EXE = 2,
+    DAXAO_NONPACKAGED_EXE_PROCESS_TREE = 4,
+    DAXAO_NONPACKAGED_EXE_FLAGS = 6,
+    DAXAO_NO_ERROR_UI = 8,
+    DAXAO_CHECK_FOR_APPINSTALLER_UPDATES = 16,
+    DAXAO_CENTENNIAL_PROCESS = 32,
+    DAXAO_UNIVERSAL_PROCESS = 64,
+    DAXAO_WIN32ALACARTE_PROCESS = 128,
+    DAXAO_RUNTIME_BEHAVIOR_FLAGS = 224,
+    DAXAO_PARTIAL_TRUST = 256,
+    DAXAO_UNIVERSAL_CONSOLE = 512,
+    DAXAO_APP_SILO = 1024,
+    DAXAO_TRUST_LEVEL_FLAGS = 1280
+} DESKTOP_APPX_ACTIVATE_OPTIONS, *PDESKTOP_APPX_ACTIVATE_OPTIONS;
+
+#undef INTERFACE
+#define INTERFACE IDesktopAppXActivator
+DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IDesktopAppXActivator
+
+    STDMETHOD(Activate)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR PackageRelativeExecutable,
+        _In_ PWSTR Arguments,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    STDMETHOD(ActivateWithOptions)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
+        _In_opt_ ULONG ParentProcessId,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    STDMETHOD(ActivateWithOptionsAndArgs)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_opt_ ULONG ParentProcessId,
+        _In_opt_ PVOID ActivatedEventArgs,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    STDMETHOD(ActivateWithOptionsArgsWorkingDirectoryShowWindow)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
+        _In_opt_ ULONG ParentProcessId,
+        _In_opt_ PVOID ActivatedEventArgs,
+        _In_ PWSTR WorkingDirectory,
+        _In_ ULONG ShowWindow,
+        _Out_ PHANDLE ProcessHandle) PURE;
+
+    END_INTERFACE
+};
+
 typedef enum _START_MENU_APP_ITEMS_FLAGS
 {
     SMAIF_DEFAULT = 0,
