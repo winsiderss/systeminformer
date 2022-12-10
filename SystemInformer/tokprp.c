@@ -2526,6 +2526,7 @@ VOID PhpRemoveAttributeNode(
     PhpDestroyAttributeNode(Node);
 }
 
+_Success_(return)
 BOOLEAN PhpGetSelectedAttributeTreeNodes(
     _Inout_ PATTRIBUTE_TREE_CONTEXT Context,
     _Out_ PATTRIBUTE_NODE **Nodes,
@@ -3453,71 +3454,87 @@ PPH_STRING PhpGetTokenRegistryPath(
 
 PPH_STRING PhpGetTokenAppContainerFolderPath(
     _In_ HANDLE TokenHandle,
-    _In_ PSID TokenAppContainerSid
+    _In_opt_ PSID TokenAppContainerSid
     )
 {
-    PPH_STRING appContainerFolderPath = NULL;
-    PPH_STRING appContainerSid = NULL;
-    PWSTR folderPath = NULL;
-
-    appContainerSid = PhSidToStringSid(TokenAppContainerSid);
-
-    if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
+    if (PhIsTokenFullTrustAppPackage(TokenHandle))
     {
-        if (GetAppContainerFolderPath_Import())
-        {
-            if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
-            {
-                appContainerFolderPath = PhCreateString(folderPath);
-                CoTaskMemFree(folderPath);
-            }
-        }
-
-        PhRevertImpersonationToken(NtCurrentThread());
+        return PhGetKnownFolderPathEx(
+            &FOLDERID_LocalAppData,
+            PH_KF_FLAG_FORCE_APP_DATA_REDIRECTION,
+            TokenHandle,
+            NULL
+            );
     }
-
-    PhDereferenceObject(appContainerSid);
-
-    // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
-    if (PhIsNullOrEmptyString(appContainerFolderPath))
+    else if (TokenAppContainerSid)
     {
-        PTOKEN_USER tokenUser;
+        PPH_STRING appContainerFolderPath = NULL;
+        PPH_STRING appContainerSid;
+        PWSTR folderPath = NULL;
 
-        if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
+        appContainerSid = PhSidToStringSid(TokenAppContainerSid);
+
+        if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
         {
-            ULONG subAuthority;
-            PPH_STRING tokenProfilePathString;
-            PPH_STRING appContainerName;
-
-            subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
-            //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
-
-            if (subAuthority == SECURITY_UMFD_BASE_RID)
+            if (GetAppContainerFolderPath_Import())
             {
-                if (tokenProfilePathString = PhpGetTokenFolderPath(TokenHandle))
+                if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
                 {
-                    if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
-                    {
-                        static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
-
-                        PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
-                            &tokenProfilePathString->sr,
-                            &appDataPackagePath,
-                            &appContainerName->sr
-                            ));
-
-                        PhDereferenceObject(appContainerName);
-                    }
-
-                    PhDereferenceObject(tokenProfilePathString);
+                    appContainerFolderPath = PhCreateString(folderPath);
+                    CoTaskMemFree(folderPath);
                 }
             }
 
-            PhFree(tokenUser);
+            PhRevertImpersonationToken(NtCurrentThread());
         }
-    }
 
-    return appContainerFolderPath;
+        PhDereferenceObject(appContainerSid);
+
+        // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
+        if (PhIsNullOrEmptyString(appContainerFolderPath))
+        {
+            PTOKEN_USER tokenUser;
+        
+            if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
+            {
+                ULONG subAuthority;
+                PPH_STRING tokenProfilePathString;
+                PPH_STRING appContainerName;
+        
+                subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
+                //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
+        
+                if (subAuthority == SECURITY_UMFD_BASE_RID)
+                {
+                    if (tokenProfilePathString = PhpGetTokenFolderPath(TokenHandle))
+                    {
+                        if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
+                        {
+                            static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
+        
+                            PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
+                                &tokenProfilePathString->sr,
+                                &appDataPackagePath,
+                                &appContainerName->sr
+                                ));
+        
+                            PhDereferenceObject(appContainerName);
+                        }
+        
+                        PhDereferenceObject(tokenProfilePathString);
+                    }
+                }
+        
+                PhFree(tokenUser);
+            }
+        }
+
+        return appContainerFolderPath;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 PPH_STRING PhpGetTokenAppContainerRegistryPath(
@@ -3773,12 +3790,12 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                 if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
                 {
-                    if (appContainerInfo->TokenAppContainer)
-                    {
-                        appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, appContainerInfo->TokenAppContainer);
-                    }
-
+                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, appContainerInfo->TokenAppContainer);
                     PhFree(appContainerInfo);
+                }
+                else
+                {
+                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, NULL);
                 }
 
                 if (appContainerFolderPath)
