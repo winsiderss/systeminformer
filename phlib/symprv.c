@@ -1946,6 +1946,9 @@ NTSTATUS PhWalkThreadStack(
                 threadStackFrame.PcAddress = stack[i];
                 threadStackFrame.Flags = PH_THREAD_STACK_FRAME_KERNEL;
 
+                if ((UINT_PTR)stack[i] <= PhSystemBasicInformation.MaximumUserModeAddress)
+                    break;
+
                 if (!Callback(&threadStackFrame, Context))
                 {
                     goto ResumeExit;
