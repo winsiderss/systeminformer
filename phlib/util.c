@@ -3443,21 +3443,27 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     return randomAlphaFileName;
 }
 
-PPH_STRING PhGetApplicationDataDirectory(
+PPH_STRING PhGetRoamingAppDataDirectory(
     _In_ PPH_STRINGREF FileName
     )
 {
-    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
-    PPH_STRING applicationDataDirectory = NULL;
-    PPH_STRING applicationDirectory;
+    PPH_STRING roamingAppDataFileName = NULL;
+    PPH_STRING roamingAppDataDirectory;
 
-    if (applicationDirectory = PhExpandEnvironmentStrings(&directoryPath))
+#if !defined(PH_BUILD_MSIX)
+    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
+    roamingAppDataDirectory = PhExpandEnvironmentStrings(&directoryPath);
+#else
+    roamingAppDataDirectory = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\");
+#endif
+
+    if (roamingAppDataDirectory)
     {
-        applicationDataDirectory = PhConcatStringRef2(&applicationDirectory->sr, FileName);
-        PhReferenceObject(applicationDirectory);
+        roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
+        PhReferenceObject(roamingAppDataDirectory);
     }
 
-    return applicationDataDirectory;
+    return roamingAppDataFileName;
 }
 
 PPH_STRING PhGetApplicationDataFileName(
@@ -3465,12 +3471,9 @@ PPH_STRING PhGetApplicationDataFileName(
     _In_ BOOLEAN NativeFileName
     )
 {
-    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"\\??\\%APPDATA%\\SystemInformer\\");
-    static PH_STRINGREF directoryPathWin32 = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
     PPH_STRING applicationDataFileName = NULL;
-    PPH_STRING applicationDirectory;
 
-    // Check current directory. (dmex)
+    // Check the current directory. (dmex)
 
     if (applicationDataFileName = PhGetApplicationDirectoryFileName(FileName, NativeFileName))
     {
@@ -3488,20 +3491,17 @@ PPH_STRING PhGetApplicationDataFileName(
         PhClearReference(&applicationDataFileName);
     }
 
-    // Check appdata directory. (dmex)
+    // Check the appdata directory. (dmex)
+
     if (NativeFileName)
     {
-        applicationDirectory = PhExpandEnvironmentStrings(&directoryPath);
+        static PH_STRINGREF path = PH_STRINGREF_INIT(L"\\??\\");
+        applicationDataFileName = PhGetRoamingAppDataDirectory(FileName);
+        PhMoveReference(&applicationDataFileName, PhConcatStringRef2(&path, &applicationDataFileName->sr));
     }
     else
     {
-        applicationDirectory = PhExpandEnvironmentStrings(&directoryPathWin32);
-    }
-
-    if (applicationDirectory)
-    {
-        applicationDataFileName = PhConcatStringRef2(&applicationDirectory->sr, FileName);
-        PhReferenceObject(applicationDirectory);
+        applicationDataFileName = PhGetRoamingAppDataDirectory(FileName);
     }
 
     return applicationDataFileName;
@@ -3560,8 +3560,8 @@ PPH_STRING PhGetKnownFolderPath(
     _In_opt_ PWSTR AppendPath
     )
 {
-    PPH_STRING path;
-    SIZE_T appendPathLength;
+    return PhGetKnownFolderPathEx(Folder, 0, NULL, AppendPath);
+}
 
 static const PH_FLAG_MAPPING PhpKnownFolderFlagMappings[] =
 {
