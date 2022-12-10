@@ -6820,54 +6820,54 @@ HANDLE PhGetNamespaceHandle(
 }
 
 // rev from LdrAccessResource (dmex)
-NTSTATUS PhAccessResource(
-    _In_ PVOID DllBase,
-    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
-    _Out_opt_ PVOID *ResourceBuffer,
-    _Out_opt_ ULONG *ResourceLength
-    )
-{
-    PVOID baseAddress;
-
-    if (LDR_IS_DATAFILE(DllBase))
-        baseAddress = LDR_DATAFILE_TO_MAPPEDVIEW(DllBase);
-    else if (LDR_IS_IMAGEMAPPING(DllBase))
-        baseAddress = LDR_IMAGEMAPPING_TO_MAPPEDVIEW(DllBase);
-    else
-        baseAddress = DllBase;
-
-    if (ResourceLength)
-    {
-        *ResourceLength = ResourceDataEntry->Size;
-    }
-
-    if (ResourceBuffer)
-    {
-        if (LDR_IS_DATAFILE(DllBase))
-        {
-            NTSTATUS status;
-
-            status = PhLoaderEntryImageRvaToVa(
-                baseAddress,
-                ResourceDataEntry->OffsetToData,
-                ResourceBuffer
-                );
-
-            return status;
-        }
-        else
-        {
-            *ResourceBuffer = PTR_ADD_OFFSET(
-                baseAddress,
-                ResourceDataEntry->OffsetToData
-                );
-
-            return STATUS_SUCCESS;
-        }
-    }
-
-    return STATUS_SUCCESS;
-}
+//NTSTATUS PhAccessResource(
+//    _In_ PVOID DllBase,
+//    _In_ PIMAGE_RESOURCE_DATA_ENTRY ResourceDataEntry,
+//    _Out_opt_ PVOID *ResourceBuffer,
+//    _Out_opt_ ULONG *ResourceLength
+//    )
+//{
+//    PVOID baseAddress;
+//
+//    if (LDR_IS_DATAFILE(DllBase))
+//        baseAddress = LDR_DATAFILE_TO_MAPPEDVIEW(DllBase);
+//    else if (LDR_IS_IMAGEMAPPING(DllBase))
+//        baseAddress = LDR_IMAGEMAPPING_TO_MAPPEDVIEW(DllBase);
+//    else
+//        baseAddress = DllBase;
+//
+//    if (ResourceLength)
+//    {
+//        *ResourceLength = ResourceDataEntry->Size;
+//    }
+//
+//    if (ResourceBuffer)
+//    {
+//        if (LDR_IS_DATAFILE(DllBase))
+//        {
+//            NTSTATUS status;
+//
+//            status = PhLoaderEntryImageRvaToVa(
+//                baseAddress,
+//                ResourceDataEntry->OffsetToData,
+//                ResourceBuffer
+//                );
+//
+//            return status;
+//        }
+//        else
+//        {
+//            *ResourceBuffer = PTR_ADD_OFFSET(
+//                baseAddress,
+//                ResourceDataEntry->OffsetToData
+//                );
+//
+//            return STATUS_SUCCESS;
+//        }
+//    }
+//
+//    return STATUS_SUCCESS;
+//}
 
 _Success_(return)
 BOOLEAN PhLoadResource(
@@ -8274,7 +8274,7 @@ NTSTATUS PhLoaderEntryLoadDll(
 
     status = PhCreateFileWin32(
         &fileHandle,
-        FileName->Buffer,
+        PhGetStringRefZ(FileName),
         FILE_READ_DATA | FILE_EXECUTE | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ,
@@ -9469,6 +9469,7 @@ VOID PhFreeProcessSnapshot(
 
 NTSTATUS PhCreateProcessRedirection(
     _In_ PPH_STRING CommandLine,
+    _In_opt_ PPH_STRINGREF CommandInput,
     _Out_opt_ PPH_STRING *CommandOutput
     )
 {
@@ -9574,6 +9575,23 @@ NTSTATUS PhCreateProcessRedirection(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    if (CommandInput)
+    {
+        IO_STATUS_BLOCK isb;
+
+        NtWriteFile(
+            inputWriteHandle,
+            NULL,
+            NULL,
+            NULL,
+            &isb,
+            CommandInput->Buffer, 
+            (ULONG)CommandInput->Length, 
+            NULL, 
+            NULL
+            );
+    }
+
     output = PhGetFileText(outputReadHandle, TRUE);
 
     //if (PhIsNullOrEmptyString(output))
@@ -9623,8 +9641,8 @@ NTSTATUS PhInitializeProcThreadAttributeList(
     attributeListLength = FIELD_OFFSET(PROC_THREAD_ATTRIBUTE_LIST, Attributes[AttributeCount]);
     attributeList = PhAllocateZero(attributeListLength);
     attributeList->AttributeCount = AttributeCount;
-
     *AttributeList = attributeList;
+
     return STATUS_SUCCESS;
 }
 

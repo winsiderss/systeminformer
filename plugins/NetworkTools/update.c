@@ -108,6 +108,7 @@ NTSTATUS ExtractUpdateToFile(
 
     status = PhCreateProcessRedirection(
         commandLine,
+        NULL,
         NULL
         );
 
