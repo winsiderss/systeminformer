@@ -9,7 +9,9 @@
 
 #pragma once
 
-#define KPH_DYN_CONFIGURATION_VERSION 5
+#include <kphlibbase.h>
+
+#define KPH_DYN_CONFIGURATION_VERSION 6
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
@@ -21,7 +23,6 @@ typedef struct _KPH_DYN_CONFIGURATION
 {
     USHORT MajorVersion;
     USHORT MinorVersion;
-    USHORT ServicePackMajor;             // -1 to ignore
     USHORT BuildNumberMin;               // -1 to ignore
     USHORT RevisionMin;                  // -1 to ignore
     USHORT BuildNumberMax;               // -1 to ignore

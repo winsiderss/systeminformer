@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 5;
+        private const UInt32 Version = 6;
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -41,7 +41,6 @@ typedef struct _KPH_DYN_CONFIGURATION
 {{
     USHORT MajorVersion;
     USHORT MinorVersion;
-    USHORT ServicePackMajor;             // -1 to ignore
     USHORT BuildNumberMin;               // -1 to ignore
     USHORT RevisionMin;                  // -1 to ignore
     USHORT BuildNumberMax;               // -1 to ignore
@@ -86,10 +85,9 @@ typedef struct _KPH_DYNDATA
         {
             public UInt16 MajorVersion;
             public UInt16 MinorVersion;
-            public UInt16 ServicePackMajor;
             public UInt16 BuildNumberMin;
-            public UInt16 BuildNumberMax;
             public UInt16 RevisionMin;
+            public UInt16 BuildNumberMax;
             public UInt16 RevisionMax;
 
             public UInt16 EgeGuid;
@@ -118,7 +116,6 @@ typedef struct _KPH_DYNDATA
             {
                 MajorVersion = ushort.MaxValue;
                 MinorVersion = ushort.MaxValue;
-                ServicePackMajor = ushort.MaxValue;
                 BuildNumberMin = ushort.MaxValue;
                 BuildNumberMax = ushort.MaxValue;
                 RevisionMin = ushort.MaxValue;
@@ -351,23 +348,20 @@ typedef struct _KPH_DYNDATA
                     Program.PrintColorMessage($"{configName} - MajorVersion required", ConsoleColor.Red);
                     valid = false;
                 }
+
                 if (config.MinorVersion == ushort.MaxValue)
                 {
                     Program.PrintColorMessage($"{configName} - MinorVersion required", ConsoleColor.Red);
                     valid = false;
                 }
 
-                if ((config.BuildNumberMax != ushort.MaxValue) &&
-                    (config.BuildNumberMin != ushort.MaxValue) &&
-                    (config.BuildNumberMax < config.BuildNumberMin))
+                if (config.BuildNumberMax < config.BuildNumberMin)
                 {
                     Program.PrintColorMessage($"{configName} - BuildNumber range is invalid", ConsoleColor.Red);
                     valid = false;
                 }
 
-                if ((config.RevisionMax != ushort.MaxValue) &&
-                    (config.RevisionMin != ushort.MaxValue) &&
-                    (config.RevisionMax < config.RevisionMin))
+                if (config.RevisionMax < config.RevisionMin)
                 {
                     Program.PrintColorMessage($"{configName} - Revision range is invalid", ConsoleColor.Red);
                     valid = false;

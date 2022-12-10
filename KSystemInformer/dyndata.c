@@ -31,7 +31,6 @@ typedef struct _KPH_ACTIVE_DYNDATA
     ULONG Index;
     USHORT MajorVersion;
     USHORT MinorVersion;
-    USHORT ServicePackMajor;
     USHORT BuildNumberMin;
     USHORT RevisionMin;
     USHORT BuildNumberMax;
@@ -62,64 +61,40 @@ NTSTATUS KphpSetDynamicConfigiration(
         return STATUS_NOT_SUPPORTED;
     }
 
-    if ((Configuration->ServicePackMajor != USHORT_MAX) &&
-        (Configuration->ServicePackMajor != KphOsVersionInfo.wServicePackMajor))
+    if ((KphOsVersionInfo.dwBuildNumber < Configuration->BuildNumberMin) ||
+        (KphOsVersionInfo.dwBuildNumber > Configuration->BuildNumberMax))
     {
         return STATUS_NOT_SUPPORTED;
     }
 
-    if (Configuration->BuildNumberMin != USHORT_MAX)
+    if ((KphOsVersionInfo.dwBuildNumber == Configuration->BuildNumberMin) &&
+        (KphOsRevision < Configuration->RevisionMin))
     {
-        if (Configuration->BuildNumberMin < KphOsVersionInfo.dwBuildNumber)
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-
-        if ((Configuration->RevisionMin != USHORT_MAX) &&
-            (Configuration->RevisionMin < KphOsRevision))
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
+        return STATUS_NOT_SUPPORTED;
     }
 
-    if (Configuration->BuildNumberMax != USHORT_MAX)
+    if ((KphOsVersionInfo.dwBuildNumber == Configuration->BuildNumberMax) &&
+        (KphOsRevision > Configuration->RevisionMax))
     {
-        if (Configuration->BuildNumberMax >= KphOsVersionInfo.dwBuildNumber)
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-
-        if ((Configuration->RevisionMax != USHORT_MAX) &&
-            (Configuration->RevisionMax >= KphOsRevision))
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-    }
-
-    if ((Configuration->BuildNumberMax == USHORT_MAX) &&
-        (Configuration->BuildNumberMin == USHORT_MAX))
-    {
-        if ((Configuration->RevisionMin != USHORT_MAX) &&
-            (Configuration->RevisionMin < KphOsRevision))
-        {
-            return STATUS_NOT_SUPPORTED;
-
-        }
-
-        if ((Configuration->RevisionMax != USHORT_MAX) &&
-            (Configuration->RevisionMax >= KphOsRevision))
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
+        return STATUS_NOT_SUPPORTED;
     }
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   GENERAL,
-                  "Setting dynamic configuration for Windows %lu.%lu.%lu.%lu",
+                  "Setting dynamic configuration for Windows %lu.%lu.%lu.%lu "
+                  "(%lu.%lu.%lu.%lu - %lu.%lu.%lu.%lu)",
                   KphOsVersionInfo.dwMajorVersion,
                   KphOsVersionInfo.dwMinorVersion,
                   KphOsVersionInfo.dwBuildNumber,
-                  KphOsRevision);
+                  KphOsRevision,
+                  Configuration->MajorVersion,
+                  Configuration->MinorVersion,
+                  Configuration->BuildNumberMin,
+                  Configuration->RevisionMin,
+                  Configuration->MajorVersion,
+                  Configuration->MinorVersion,
+                  Configuration->BuildNumberMax,
+                  Configuration->RevisionMax);
 
     KphDynEgeGuid = C_2sTo4(Configuration->EgeGuid);
     KphDynEpObjectTable = C_2sTo4(Configuration->EpObjectTable);
@@ -466,7 +441,6 @@ NTSTATUS KphDynamicDataInitialization(
             KphpActiveDynData.Index = i;
             KphpActiveDynData.MajorVersion = config->MajorVersion;
             KphpActiveDynData.MinorVersion = config->MinorVersion;
-            KphpActiveDynData.ServicePackMajor = config->ServicePackMajor;
             KphpActiveDynData.BuildNumberMin = config->BuildNumberMin;
             KphpActiveDynData.RevisionMin = config->RevisionMin;
             KphpActiveDynData.BuildNumberMax = config->BuildNumberMax;
