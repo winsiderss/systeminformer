@@ -40,10 +40,8 @@ namespace CustomBuildTool
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
-            Win32.DeleteFile(destinationArchiveFileName);
-
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
-            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
@@ -108,10 +106,8 @@ namespace CustomBuildTool
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
-            Win32.DeleteFile(destinationArchiveFileName);
-
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
-            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
@@ -148,10 +144,8 @@ namespace CustomBuildTool
             string[] filesToAdd = Directory.GetFiles(sourceDirectoryName, "*", SearchOption.AllDirectories);
             string[] entryNames = GetEntryNames(filesToAdd, sourceDirectoryName, false);
 
-            Win32.DeleteFile(destinationArchiveFileName);
-
             using (FileStream zipFileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
-            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create, true))
+            using (ZipArchive archive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
             {
                 for (int i = 0; i < filesToAdd.Length; i++)
                 {
