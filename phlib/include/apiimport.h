@@ -135,14 +135,6 @@ typedef BOOL (WINAPI* _ConvertStringSecurityDescriptorToSecurityDescriptorW)(
     _Out_opt_ PULONG SecurityDescriptorSize
     );
 
-typedef HRESULT (WINAPI* _SHGetFolderPathW)(
-    _Reserved_ HWND hwnd,
-    _In_ INT csidl,
-    _In_opt_ HANDLE hToken,
-    _In_ ULONG dwFlags,
-    _Out_writes_(MAX_PATH) LPWSTR pszPath
-    );
-
 typedef HRESULT (WINAPI* _SHAutoComplete)(
     _In_ HWND hwndEdit,
     _In_ ULONG Flags
@@ -263,7 +255,6 @@ PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
 
 PH_DECLARE_IMPORT(SHAutoComplete);
-PH_DECLARE_IMPORT(SHGetFolderPathW);
 PH_DECLARE_IMPORT(SHGetFileInfoW);
 
 PH_DECLARE_IMPORT(PssCaptureSnapshot);
