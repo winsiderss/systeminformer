@@ -881,9 +881,22 @@ PhGetTemporaryDirectoryRandomAlphaFileName(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetApplicationDataDirectory(
+PhGetRoamingAppDataDirectory(
     _In_ PPH_STRINGREF FileName
     );
+
+FORCEINLINE
+PPH_STRING
+PhGetRoamingAppDataDirectoryZ(
+    _In_ PWSTR String
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+
+    return PhGetRoamingAppDataDirectory(&string);
+}
 
 PHLIBAPI
 PPH_STRING
