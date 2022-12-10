@@ -521,8 +521,6 @@ VOID KphInitializeStackBackTrace(
     VOID
     );
 
-#define KPH_STACK_TRACE_CAPTURE_USER_STACK 0x00000001
-
 _IRQL_requires_max_(APC_LEVEL)
 _Success_(return != 0)
 ULONG KphCaptureStackBackTrace(
