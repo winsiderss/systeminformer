@@ -90,6 +90,7 @@
 #define IDD_MINIINFO                    207
 #define IDD_MINIINFO_LIST               210
 #define IDD_MITIGATION                  215
+#define IDD_TOKAPPPOLICY                216
 #define IDI_PIN                         216
 #define IDI_FOLDER                      217
 #define IDI_PENCIL                      218
