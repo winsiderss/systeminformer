@@ -1909,6 +1909,7 @@ NTSTATUS
 NTAPI
 PhCreateProcessRedirection(
     _In_ PPH_STRING CommandLine,
+    _In_opt_ PPH_STRINGREF CommandInput,
     _Out_opt_ PPH_STRING* CommandOutput
     );
 
