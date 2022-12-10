@@ -5194,7 +5194,7 @@ NTSTATUS PhGetProcessQuotaLimits(
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessQuotaLimits,
-        &QuotaLimits,
+        QuotaLimits,
         sizeof(QUOTA_LIMITS),
         NULL
         );
@@ -5205,7 +5205,7 @@ NTSTATUS PhGetProcessQuotaLimits(
     //    status = KphQueryInformationProcess(
     //        ProcessHandle,
     //        KphProcessQuotaLimits,
-    //        &QuotaLimits,
+    //        QuotaLimits,
     //        sizeof(QUOTA_LIMITS),
     //        NULL
     //        );
