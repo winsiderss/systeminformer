@@ -578,6 +578,7 @@ PPH_STRING PhGetAppContainerPackageName(
     return packageName;
 }
 
+// rev from GetPackagePath (dmex)
 PPH_STRING PhGetPackagePath(
     _In_ PPH_STRING PackageFullName
     )
@@ -589,7 +590,6 @@ PPH_STRING PhGetPackagePath(
 
     keyPath = PhConcatStringRef2(&storeAppPackages, &PackageFullName->sr);
 
-    // rev from GetPackagePath
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
         KEY_READ,
@@ -611,12 +611,12 @@ PPH_STRING PhGetPackageAppDataPath(
     _In_ HANDLE ProcessHandle
     )
 {
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    static PH_STRINGREF appdataPackages = PH_STRINGREF_INIT(L"%APPDATALOCAL%\\Packages\\");
+    //static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    //static PH_STRINGREF appdataPackages = PH_STRINGREF_INIT(L"%APPDATALOCAL%\\Packages\\");
     NTSTATUS status;
     HANDLE tokenHandle;
-    BOOLEAN tokenContainerRevertToken = FALSE;
-    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    //BOOLEAN tokenContainerRevertToken = FALSE;
+    //PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     PPH_STRING packageAppDataPath = NULL;
 
     status = PhOpenProcessToken(
@@ -625,56 +625,62 @@ PPH_STRING PhGetPackageAppDataPath(
         &tokenHandle
         );
 
-    if (NT_SUCCESS(status))
-    {
-        tokenContainerRevertToken = NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), tokenHandle));
-    }
-    else
-    {
-        status = PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle);
-    }
+    //if (NT_SUCCESS(status))
+    //{
+    //    tokenContainerRevertToken = NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), tokenHandle));
+    //}
+    //else
+    //{
+    //    status = PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle);
+    //}
 
     if (NT_SUCCESS(status))
     {
-        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
-        {
-            for (ULONG i = 0; i < info->AttributeCount; i++)
-            {
-                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+        packageAppDataPath = PhGetKnownFolderPathEx(
+            &FOLDERID_LocalAppData,
+            PH_KF_FLAG_FORCE_APP_DATA_REDIRECTION,
+            tokenHandle,
+            NULL
+            );
 
-                if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
-                {
-                    PH_STRINGREF valueAttributeName;
-
-                    PhUnicodeStringToStringRef(&attribute->Name, &valueAttributeName);
-
-                    if (PhEqualStringRef(&valueAttributeName, &attributeName, FALSE))
-                    {
-                        PPH_STRING attributeValue;
-                        PPH_STRING attributePath;
-
-                        attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
-
-                        // TODO: Lookup user specific environment path from process. (dmex)
-                        if (attributePath = PhExpandEnvironmentStrings(&appdataPackages))
-                        {
-                            packageAppDataPath = PhConcatStringRef2(&attributePath->sr, &attributeValue->sr);
-
-                            PhDereferenceObject(attributePath);
-                            PhDereferenceObject(attributeValue);
-                            break;
-                        }
-
-                        PhDereferenceObject(attributeValue);
-                    }
-                }
-            }
-
-            PhFree(info);
-        }
-
-        if (tokenContainerRevertToken)
-            PhRevertImpersonationToken(NtCurrentThread());
+        //if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+        //{
+        //    for (ULONG i = 0; i < info->AttributeCount; i++)
+        //    {
+        //        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
+        //
+        //        if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+        //        {
+        //            PH_STRINGREF valueAttributeName;
+        //
+        //            PhUnicodeStringToStringRef(&attribute->Name, &valueAttributeName);
+        //
+        //            if (PhEqualStringRef(&valueAttributeName, &attributeName, FALSE))
+        //            {
+        //                PPH_STRING attributeValue;
+        //                PPH_STRING attributePath;
+        //
+        //                attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
+        //
+        //                if (attributePath = PhExpandEnvironmentStrings(&appdataPackages))
+        //                {
+        //                    packageAppDataPath = PhConcatStringRef2(&attributePath->sr, &attributeValue->sr);
+        //
+        //                    PhDereferenceObject(attributePath);
+        //                    PhDereferenceObject(attributeValue);
+        //                    break;
+        //                }
+        //
+        //                PhDereferenceObject(attributeValue);
+        //            }
+        //        }
+        //    }
+        //
+        //    PhFree(info);
+        //}
+        //
+        //if (tokenContainerRevertToken)
+        //    PhRevertImpersonationToken(NtCurrentThread());
 
         NtClose(tokenHandle);
     }
@@ -682,6 +688,7 @@ PPH_STRING PhGetPackageAppDataPath(
     return packageAppDataPath;
 }
 
+// rev from PackageIdFromFullName (dmex)
 PPH_STRING PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     )
@@ -697,7 +704,6 @@ PPH_STRING PhGetProcessPackageFullName(
         &tokenHandle
         )))
     {
-        // rev from PackageIdFromFullName
         if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
         {
             for (ULONG i = 0; i < info->AttributeCount; i++)
