@@ -939,7 +939,8 @@ NTSTATUS KphCaptureStackBackTraceThread(
     _In_ ULONG FramesToCapture,
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Inout_opt_ PULONG CapturedFrames,
-    _Inout_opt_ PULONG BackTraceHash
+    _Inout_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status;
@@ -957,6 +958,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     msg->User.CaptureStackBackTraceThread.CapturedFrames = CapturedFrames;
     msg->User.CaptureStackBackTraceThread.BackTraceHash = BackTraceHash;
     msg->User.CaptureStackBackTraceThread.Timeout = PhTimeoutFromMilliseconds(&timeout, 30);
+    msg->User.CaptureStackBackTraceThread.Flags = Flags;
     status = KphCommsSendMessage(msg);
 
     if (NT_SUCCESS(status))

@@ -2042,7 +2042,8 @@ NTSTATUS PhWalkThreadStack(
             sizeof(stack) / sizeof(PVOID),
             stack,
             &capturedFrames,
-            NULL
+            NULL,
+            0
             )))
         {
             PH_THREAD_STACK_FRAME threadStackFrame;

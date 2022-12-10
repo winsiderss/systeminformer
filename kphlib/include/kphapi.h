@@ -176,7 +176,6 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
 
 } KPH_PROCESS_BASIC_INFORMATION, *PKPH_PROCESS_BASIC_INFORMATION;
 
-
 // Process handle information
 
 typedef struct _KPH_PROCESS_HANDLE
@@ -195,6 +194,10 @@ typedef struct _KPH_PROCESS_HANDLE_INFORMATION
     ULONG HandleCount;
     _Field_size_(HandleCount) KPH_PROCESS_HANDLE Handles[1];
 } KPH_PROCESS_HANDLE_INFORMATION, *PKPH_PROCESS_HANDLE_INFORMATION;
+
+// Thread information
+
+#define KPH_STACK_TRACE_CAPTURE_USER_STACK 0x00000001
 
 // Object information
 

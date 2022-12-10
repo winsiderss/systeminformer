@@ -202,7 +202,8 @@ KphCaptureStackBackTraceThread(
     _In_ ULONG FramesToCapture,
     _Out_writes_(FramesToCapture) PVOID *BackTrace,
     _Inout_opt_ PULONG CapturedFrames,
-    _Inout_opt_ PULONG BackTraceHash
+    _Inout_opt_ PULONG BackTraceHash,
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
