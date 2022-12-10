@@ -143,10 +143,10 @@
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
         <ClCompile>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
-            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
         </Link>
     </ItemDefinitionGroup>
 
@@ -156,11 +156,11 @@
             <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>
-            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
         </Link>
     </ItemDefinitionGroup>
 
@@ -171,11 +171,11 @@
             <SpectreMitigation>Spectre</SpectreMitigation>
             <IntelJCCErratum>true</IntelJCCErratum>
             <GuardEHContMetadata>true</GuardEHContMetadata>
-            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </ClCompile>
         <Link>
             <CETCompat>true</CETCompat>
-            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /guard:xfg %(AdditionalOptions)</AdditionalOptions>
+            <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
         </Link>
     </ItemDefinitionGroup>
 
