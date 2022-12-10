@@ -66,13 +66,13 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "0c0904b0"
+        BLOCK "000004b0"
         BEGIN
             VALUE "CompanyName", "System Informer"
             VALUE "FileDescription", "System Informer"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "SystemInformer.exe"
-            VALUE "LegalCopyright", "Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "SystemInformer.exe"
             VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
@@ -80,7 +80,7 @@ BEGIN
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0xc09, 1200
+        VALUE "Translation", 0x0, 1200
     END
 END
 
