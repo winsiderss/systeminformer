@@ -5069,7 +5069,7 @@ VOID PhEnumTokenAppModelPolicy(
 
     if (NT_SUCCESS(PhGetAppModelPolicy(TokenHandle, AppModelPolicy_Type_AppInstancingErrorBehavior, &result)))
     {
-        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"PullPackageDependencyData"));
+        PATTRIBUTE_NODE node = PhpAddAttributeNode(&TokenPageContext->AppPolicyTreeContext, NULL, PhCreateString(L"AppInstancingErrorBehavior"));
 
         switch (result)
         {
