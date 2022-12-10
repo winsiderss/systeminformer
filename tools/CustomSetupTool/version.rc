@@ -52,7 +52,7 @@ END
 // RCDATA
 //
 #if defined(PH_BUILD_API)
-IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.64"
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.zip"
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
@@ -75,13 +75,13 @@ VS_VERSION_INFO VERSIONINFO
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "0c0904b0"
+        BLOCK "000004b0"
         BEGIN
             VALUE "CompanyName", "System Informer"
             VALUE "FileDescription", "System Informer - Setup"
             VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "systeminformer-setup.exe"
-            VALUE "LegalCopyright", "Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
             VALUE "OriginalFilename", "systeminformer-setup.exe"
             VALUE "ProductName", "System Informer"
             VALUE "ProductVersion", PHAPP_VERSION_STRING
@@ -89,22 +89,10 @@ BEGIN
     END
     BLOCK "VarFileInfo"
     BEGIN
-        VALUE "Translation", 0xc09, 1200
+        VALUE "Translation", 0x0, 1200
     END
 END
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
-
-
-
-#ifndef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// Generated from the TEXTINCLUDE 3 resource.
-//
-
-
-/////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
 
