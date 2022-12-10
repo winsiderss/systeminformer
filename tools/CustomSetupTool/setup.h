@@ -52,6 +52,9 @@
     assert(HandleToUlong(NtCurrentThreadId()) == GetWindowThreadProcessId(WindowHandle, NULL)); \
     SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)Config);
 
+DEFINE_GUID(FOLDERID_ProgramData, 0x62AB5D82, 0xFDC1, 0x4DC3, 0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97);
+DEFINE_GUID(FOLDERID_PublicDesktop, 0xC4AA340D, 0xF20F, 0x4863, 0xAF, 0xEF, 0xF8, 0x7E, 0xF2, 0xE6, 0xBA, 0x25);
+
 typedef enum _SETUP_COMMAND_TYPE
 {
     SETUP_COMMAND_INSTALL,
@@ -171,10 +174,6 @@ PPH_STRING SetupFindInstallDirectory(
     VOID
     );
 
-PPH_STRING SetupFindAppdataDirectory(
-    VOID
-    );
-
 VOID SetupDeleteAppdataDirectory(
     _In_ PPH_SETUP_CONTEXT Context
     );
@@ -263,14 +262,6 @@ NTSTATUS QueryProcessesUsingVolumeOrFile(
 PPH_STRING SetupCreateFullPath(
     _In_ PPH_STRING Path,
     _In_ PWSTR FileName
-    );
-
-_Success_(return)
-BOOLEAN SetupBase64StringToBufferEx(
-    _In_ PVOID InputBuffer,
-    _In_ ULONG InputBufferLength,
-    _Out_opt_ PVOID* OutputBuffer,
-    _Out_opt_ ULONG* OutputBufferLength
     );
 
 // download.c

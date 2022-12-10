@@ -12,9 +12,10 @@
 #include "setup.h"
 
 PH_STRINGREF UninstallKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\SystemInformer");
-//PH_STRINGREF PhImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\SystemInformer.exe");
-//PH_STRINGREF PhImageOptionsWow64KeyName = PH_STRINGREF_INIT(L"Software\\WOW6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\SystemInformer.exe");
-PH_STRINGREF TmImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+PH_STRINGREF TaskmgrIfeoKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
+//PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
+//PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
+//PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
 
 NTSTATUS SetupCreateUninstallKey(
     _In_ PPH_SETUP_CONTEXT Context
@@ -112,22 +113,11 @@ PPH_STRING SetupFindInstallDirectory(
     VOID
     )
 {
-    // Find the current installation path.
     PPH_STRING setupInstallPath = GetApplicationInstallPath();
 
-    // Check if the string is valid.
     if (PhIsNullOrEmptyString(setupInstallPath))
     {
-        static PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%\\SystemInformer\\");
-        static PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%\\SystemInformer\\");
-        SYSTEM_INFO info;
-
-        GetNativeSystemInfo(&info);
-
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-            setupInstallPath = PhExpandEnvironmentStrings(&programW6432);
-        else
-            setupInstallPath = PhExpandEnvironmentStrings(&programFiles);
+        setupInstallPath = PhGetKnownFolderPath(&FOLDERID_ProgramFiles, L"\\SystemInformer\\");
     }
 
     if (PhIsNullOrEmptyString(setupInstallPath))
@@ -146,32 +136,16 @@ PPH_STRING SetupFindInstallDirectory(
     return setupInstallPath;
 }
 
-PPH_STRING SetupFindAppdataDirectory(
-    VOID
-    )
-{
-    static PH_STRINGREF appdataPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
-    PPH_STRING appdataFilePath;
-
-    if (appdataFilePath = PhExpandEnvironmentStrings(&appdataPath))
-    {
-        PhMoveReference(&appdataFilePath, PhGetFullPath(appdataFilePath->Buffer, NULL));
-        return appdataFilePath;
-    }
-
-    return NULL;
-}
-
 VOID SetupDeleteAppdataDirectory(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    PPH_STRING uninstallFilePath;
+    PPH_STRING appdataDirectory;
 
-    if (uninstallFilePath = SetupFindAppdataDirectory())
+    if (appdataDirectory = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\"))
     {
-        PhDeleteDirectoryWin32(uninstallFilePath);
-        PhDereferenceObject(uninstallFilePath);
+        PhDeleteDirectoryWin32(appdataDirectory);
+        PhDereferenceObject(appdataDirectory);
     }
 }
 
@@ -357,13 +331,10 @@ VOID SetupSetWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
-    static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
-    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
     PPH_STRING clientPathString;
     PPH_STRING string;
 
-    if (string = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
     {
         clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
@@ -378,22 +349,7 @@ VOID SetupSetWindowsOptions(
         PhDereferenceObject(string);
     }
 
-    if (string = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
-    {
-        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
-
-        SetupCreateLink(
-            PhGetString(string),
-            PhGetString(clientPathString),
-            PhGetString(Context->SetupInstallPath),
-            L"SystemInformer"
-            );
-
-        PhDereferenceObject(clientPathString);
-        PhDereferenceObject(string);
-    }
-
-    if (string = PhExpandEnvironmentStrings(&peviewerShortcutPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
     {
         clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\peview.exe");
 
@@ -402,6 +358,21 @@ VOID SetupSetWindowsOptions(
             PhGetString(clientPathString),
             PhGetString(Context->SetupInstallPath),
             L"SystemInformer_PEViewer"
+            );
+
+        PhDereferenceObject(clientPathString);
+        PhDereferenceObject(string);
+    }
+
+    if (string = PhGetKnownFolderPath(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    {
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+
+        SetupCreateLink(
+            PhGetString(string),
+            PhGetString(clientPathString),
+            PhGetString(Context->SetupInstallPath),
+            L"SystemInformer"
             );
 
         PhDereferenceObject(clientPathString);
@@ -510,59 +481,32 @@ VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF desktopShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
-    static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
-    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
     PPH_STRING string;
     HANDLE keyHandle;
 
-    if (string = PhExpandEnvironmentStrings(&desktopShortcutPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
     }
 
-    if (string = PhExpandEnvironmentStrings(&peviewerShortcutPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
     }
 
-    if (string = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
     }
-
-    //if (NT_SUCCESS(PhOpenKey(
-    //    &keyHandle,
-    //    DELETE,
-    //    PH_KEY_LOCAL_MACHINE,
-    //    &PhImageOptionsKeyName,
-    //    0
-    //    )))
-    //{
-    //    NtDeleteKey(keyHandle);
-    //    NtClose(keyHandle);
-    //}
-    //
-    //if (NT_SUCCESS(PhOpenKey(
-    //    &keyHandle,
-    //    DELETE,
-    //    PH_KEY_LOCAL_MACHINE,
-    //    &PhImageOptionsWow64KeyName,
-    //    0
-    //    )))
-    //{
-    //    NtDeleteKey(keyHandle);
-    //    NtClose(keyHandle);
-    //}
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
         DELETE,
         PH_KEY_LOCAL_MACHINE,
-        &TmImageOptionsKeyName,
+        &TaskmgrIfeoKeyName,
         0
         )))
     {
@@ -575,13 +519,9 @@ VOID SetupChangeNotifyShortcuts(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    static PH_STRINGREF desktopStartmenuPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk");
-    static PH_STRINGREF peviewerShortcutPathSr = PH_STRINGREF_INIT(L"%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk");
-    static PH_STRINGREF desktopAllusersPathSr = PH_STRINGREF_INIT(L"%PUBLIC%\\Desktop\\System Informer.lnk");
     PPH_STRING string;
-    PIDLIST_ABSOLUTE pidlist;
 
-    if (string = PhExpandEnvironmentStrings(&desktopStartmenuPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
     {
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
@@ -591,7 +531,7 @@ VOID SetupChangeNotifyShortcuts(
         PhDereferenceObject(string);
     }
 
-    if (string = PhExpandEnvironmentStrings(&desktopAllusersPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
     {
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
@@ -601,7 +541,7 @@ VOID SetupChangeNotifyShortcuts(
         PhDereferenceObject(string);
     }
 
-    if (string = PhExpandEnvironmentStrings(&peviewerShortcutPathSr))
+    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
     {
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
@@ -609,11 +549,6 @@ VOID SetupChangeNotifyShortcuts(
         }
 
         PhDereferenceObject(string);
-    }
-
-    if (SUCCEEDED(SHGetSpecialFolderLocation(NULL, CSIDL_STARTMENU, &pidlist)))
-    {
-        SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_IDLIST, pidlist, NULL);
     }
 }
 
@@ -650,111 +585,38 @@ VOID SetupUpgradeSettingsFile(
     VOID
     )
 {
-    static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
-    static PH_STRINGREF settingsLegacyPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker 2\\settings.xml");
-    static PH_STRINGREF settingsLegacyNightlyPath = PH_STRINGREF_INIT(L"%APPDATA%\\Process Hacker\\settings.xml");
     BOOLEAN migratedNightly = FALSE;
     PPH_STRING settingsFilePath;
-    PPH_STRING oldSettingsFileName;
-    PPH_STRING oldSettingsNightlyFileName;
+    PPH_STRING legacyNightlyFileName;
+    PPH_STRING legacySettingsFileName;
 
-    settingsFilePath = PhExpandEnvironmentStrings(&settingsPath);
-    oldSettingsFileName = PhExpandEnvironmentStrings(&settingsLegacyPath);
-    oldSettingsNightlyFileName = PhExpandEnvironmentStrings(&settingsLegacyNightlyPath);
+    settingsFilePath = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+    legacyNightlyFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\Process Hacker\\settings.xml");
+    legacySettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\Process Hacker 2\\settings.xml");
 
-    if (settingsFilePath && oldSettingsNightlyFileName)
+    if (settingsFilePath && legacyNightlyFileName)
     {
         if (!PhDoesFileExistWin32(PhGetString(settingsFilePath)))
         {
-            if (NT_SUCCESS(PhCopyFileWin32(PhGetString(oldSettingsNightlyFileName), PhGetString(settingsFilePath), TRUE)))
+            if (NT_SUCCESS(PhCopyFileWin32(PhGetString(legacyNightlyFileName), PhGetString(settingsFilePath), TRUE)))
             {
                 migratedNightly = TRUE;
             }
         }
     }
 
-    if (!migratedNightly && settingsFilePath && oldSettingsFileName)
+    if (!migratedNightly && settingsFilePath && legacySettingsFileName)
     {
         if (!PhDoesFileExistWin32(PhGetString(settingsFilePath)))
         {
-            PhCopyFileWin32(PhGetString(oldSettingsFileName), PhGetString(settingsFilePath), TRUE);
+            PhCopyFileWin32(PhGetString(legacySettingsFileName), PhGetString(settingsFilePath), TRUE);
         }
     }
 
-    if (oldSettingsNightlyFileName) PhDereferenceObject(oldSettingsNightlyFileName);
-    if (oldSettingsFileName) PhDereferenceObject(oldSettingsFileName);
+    if (legacySettingsFileName) PhDereferenceObject(legacySettingsFileName);
+    if (legacyNightlyFileName) PhDereferenceObject(legacyNightlyFileName);
     if (settingsFilePath) PhDereferenceObject(settingsFilePath);
 }
-
-//VOID SetupCreateImageFileExecutionOptions(
-//    VOID
-//    )
-//{
-//    HANDLE keyHandle;
-//    SYSTEM_INFO info;
-//
-//    if (WindowsVersion < WINDOWS_10)
-//        return;
-//
-//    GetNativeSystemInfo(&info);
-//
-//    if (NT_SUCCESS(PhCreateKey(
-//        &keyHandle,
-//        KEY_WRITE,
-//        PH_KEY_LOCAL_MACHINE,
-//        &PhImageOptionsKeyName,
-//        OBJ_OPENIF,
-//        0,
-//        NULL
-//        )))
-//    {
-//        static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
-//
-//        PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-//        {
-//            PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-//            PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-//            PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-//            PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-//            PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-//            PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-//            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-//            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
-//        }, sizeof(ULONG64));
-//
-//        NtClose(keyHandle);
-//    }
-//
-//    if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-//    {
-//        if (NT_SUCCESS(PhCreateKey(
-//            &keyHandle,
-//            KEY_WRITE,
-//            PH_KEY_LOCAL_MACHINE,
-//            &PhImageOptionsWow64KeyName,
-//            OBJ_OPENIF,
-//            0,
-//            NULL
-//            )))
-//        {
-//            static PH_STRINGREF valueName = PH_STRINGREF_INIT(L"MitigationOptions");
-//
-//            PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-//            {
-//                PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-//                PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-//                PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-//                PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-//                PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-//                PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-//                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-//                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON
-//            }, sizeof(ULONG64));
-//
-//            NtClose(keyHandle);
-//        }
-//    }
-//}
 
 VOID ExtractResourceToFile(
     _In_ PVOID DllBase,
@@ -929,20 +791,16 @@ BOOLEAN CheckApplicationInstalled(
     PPH_STRING installPath;
     PPH_STRING exePath;
 
-    installPath = GetApplicationInstallPath();
-
-    if (!PhIsNullOrEmptyString(installPath))
+    if (installPath = GetApplicationInstallPath())
     {
-        exePath = SetupCreateFullPath(installPath, L"\\SystemInformer.exe");
+        if (exePath = SetupCreateFullPath(installPath, L"\\SystemInformer.exe"))
+        {
+            installed = PhDoesFileExistWin32(PhGetString(exePath));
+            PhDereferenceObject(exePath);
+        }
 
-        // Check if the value has a valid file path.
-        installed = PhDoesFileExistWin32(PhGetString(exePath));
-
-        PhDereferenceObject(exePath);
-    }
-
-    if (installPath)
         PhDereferenceObject(installPath);
+    }
 
     return installed;
 }
@@ -1133,45 +991,4 @@ PPH_STRING SetupCreateFullPath(
     }
 
     return pathString;
-}
-
-_Success_(return)
-BOOLEAN SetupBase64StringToBufferEx(
-    _In_ PVOID InputBuffer,
-    _In_ ULONG InputBufferLength,
-    _Out_opt_ PVOID* OutputBuffer,
-    _Out_opt_ ULONG* OutputBufferLength
-    )
-{
-    PVOID buffer = NULL;
-    ULONG bufferLength = 0;
-    ULONG bufferSkip = 0;
-    ULONG bufferFlags = 0;
-
-    if (CryptStringToBinary(InputBuffer, InputBufferLength, CRYPT_STRING_BASE64, NULL, &bufferLength, &bufferSkip, &bufferFlags))
-    {
-        if (buffer = PhAllocateSafe(bufferLength))
-        {
-            if (!CryptStringToBinary(InputBuffer, InputBufferLength, CRYPT_STRING_BASE64, buffer, &bufferLength, &bufferSkip, &bufferFlags))
-            {
-                PhFree(buffer);
-                buffer = NULL;
-            }
-        }
-    }
-
-    if (buffer)
-    {
-        if (OutputBuffer)
-            *OutputBuffer = buffer;
-        else
-            PhFree(buffer);
-
-        if (OutputBufferLength)
-            *OutputBufferLength = bufferLength;
-
-        return TRUE;
-    }
-
-    return FALSE;
 }

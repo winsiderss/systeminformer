@@ -231,36 +231,15 @@ BOOLEAN SetupExtractBuild(
 #ifdef PH_BUILD_API
     ULONG resourceLength;
     PVOID resourceBuffer = NULL;
-    PVOID zipBuffer = NULL;
-    ULONG zipBufferLength = 0;
-    PPH_STRING bufferString;
 
     if (!PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer))
         return FALSE;
 
-    if (!(bufferString = PhZeroExtendToUtf16Ex(resourceBuffer, resourceLength)))
+    if (!(status = mz_zip_reader_init_mem(&zip_archive, resourceBuffer, resourceLength, 0)))
     {
         Context->ErrorCode = ERROR_PATH_NOT_FOUND;
         goto CleanupExit;
     }
-
-    if (!SetupBase64StringToBufferEx(
-        bufferString->Buffer,
-        bufferString->Length / sizeof(WCHAR),
-        &zipBuffer,
-        &zipBufferLength
-        ))
-    {
-        Context->ErrorCode = ERROR_PATH_NOT_FOUND;
-        goto CleanupExit;
-    }
-
-    if (!(status = mz_zip_reader_init_mem(&zip_archive, zipBuffer, zipBufferLength, 0)))
-    {
-        Context->ErrorCode = ERROR_PATH_NOT_FOUND;
-        goto CleanupExit;
-    }
-
 #else
     PPH_BYTES zipPathUtf8;
 
@@ -479,12 +458,6 @@ BOOLEAN SetupExtractBuild(
 
     mz_zip_reader_end(&zip_archive);
 
-#ifdef PH_BUILD_API
-    if (zipBuffer)
-        PhFree(zipBuffer);
-    if (bufferString)
-        PhDereferenceObject(bufferString);
-#endif
     if (extractPath)
         PhDereferenceObject(extractPath);
 
@@ -494,12 +467,6 @@ CleanupExit:
 
     mz_zip_reader_end(&zip_archive);
 
-#ifdef PH_BUILD_API
-    if (zipBuffer)
-        PhFree(zipBuffer);
-    if (bufferString)
-        PhDereferenceObject(bufferString);
-#endif
     if (extractPath)
         PhDereferenceObject(extractPath);
 

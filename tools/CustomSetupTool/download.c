@@ -322,7 +322,7 @@ BOOLEAN UpdateDownloadUpdateData(
         &tempFileHandle,
         PhGetString(Context->FilePath),
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-        &(LARGE_INTEGER){ Context->BinFileLength },
+        &(LARGE_INTEGER){ .QuadPart = Context->BinFileLength },
         FILE_ATTRIBUTE_NOT_CONTENT_INDEXED | FILE_ATTRIBUTE_TEMPORARY,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OVERWRITE_IF,
