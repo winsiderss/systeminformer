@@ -182,21 +182,35 @@ NTSTATUS KphpAlpcBasicInfo(
     )
 {
     PEPROCESS process;
+    PVOID portObjectLock;
 
     PAGED_PASSIVE();
 
     RtlZeroMemory(Info, sizeof(*Info));
 
-    if (KphDynAlpcOwnerProcess == ULONG_MAX)
+    if ((KphDynAlpcOwnerProcess == ULONG_MAX) ||
+        (KphDynAlpcPortObjectLock == ULONG_MAX))
     {
         return STATUS_NOINTERFACE;
     }
 
+    //
+    // The OS uses the first bit of the OwnerProcess to denote if it is valid,
+    // if the first bit of the OwnerProcess is set is it invalid. Checking the  
+    // bit should be done under the PortObjectLock.
+    // See: ntoskrnl!AlpcpPortQueryServerSessionInfo
+    //
+
+    portObjectLock = Add2Ptr(Port, KphDynAlpcPortObjectLock);
+    FltAcquirePushLockShared(portObjectLock);
+
     process = *(PEPROCESS*)Add2Ptr(Port, KphDynAlpcOwnerProcess);
-    if (process)
+    if (process && (((ULONG_PTR)process & 1) == 0))
     {
         Info->OwnerProcessId = PsGetProcessId(process);
     }
+
+    FltReleasePushLock(portObjectLock);
 
     if ((KphDynAlpcAttributes != ULONG_MAX) &&
         (KphDynAlpcAttributesFlags != ULONG_MAX))

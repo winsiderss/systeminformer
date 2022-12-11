@@ -144,6 +144,7 @@ NTSTATUS KphpSetDynamicConfigiration(
     KphDynAlpcAttributes = C_2sTo4(Configuration->AlpcAttributes);
     KphDynAlpcAttributesFlags = C_2sTo4(Configuration->AlpcAttributesFlags);
     KphDynAlpcPortContext = C_2sTo4(Configuration->AlpcPortContext);
+    KphDynAlpcPortObjectLock = C_2sTo4(Configuration->AlpcPortObjectLock);
     KphDynAlpcSequenceNo = C_2sTo4(Configuration->AlpcSequenceNo);
     KphDynAlpcState = C_2sTo4(Configuration->AlpcState);
     KphDynKtReadOperationCount = C_2sTo4(Configuration->KtReadOperationCount);

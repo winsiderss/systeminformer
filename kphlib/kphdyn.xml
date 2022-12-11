@@ -34,6 +34,7 @@ dt nt!_ALPC_PORT_ATTRIBUTES Flags
 dt nt!_ALPC_PORT PortContext
 dt nt!_ALPC_PORT SequenceNo
 dt nt!_ALPC_PORT State
+dt nt!_ALPC_PORT PortObjectLock
 dt nt!_KTHREAD ReadOperationCount
 dt nt!_KTHREAD WriteOperationCount
 dt nt!_KTHREAD OtherOperationCount
@@ -77,6 +78,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x100"  name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x160"  name="AlpcPortObjectLock"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
             <field value="0x380"  name="KtReadOperationCount"/>
@@ -119,6 +121,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x100"  name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x160"  name="AlpcPortObjectLock"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
             <field value="0x380"  name="KtReadOperationCount"/>
@@ -161,6 +164,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x100"  name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x160"  name="AlpcPortObjectLock"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
             <field value="0x380"  name="KtReadOperationCount"/>
@@ -203,6 +207,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x100"  name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x160"  name="AlpcPortObjectLock"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
             <field value="0x5a8"  name="KtReadOperationCount"/>
@@ -245,6 +250,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x100"  name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x160"  name="AlpcPortObjectLock"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
             <field value="0x5a8"  name="KtReadOperationCount"/>
@@ -281,6 +287,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x100"  name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x160"  name="AlpcPortObjectLock"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
             <field value="0x5a0"  name="KtReadOperationCount"/>
@@ -317,6 +324,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x98"   name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x1c"   name="AlpcPortContext"/>
+            <field value="0xd0"   name="AlpcPortObjectLock"/>
             <field value="0xe8"   name="AlpcSequenceNo"/>
             <field value="0xf4"   name="AlpcState"/>
         </data>
@@ -345,6 +353,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x98"   name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x1c"   name="AlpcPortContext"/>
+            <field value="0xd0"   name="AlpcPortObjectLock"/>
             <field value="0xe8"   name="AlpcSequenceNo"/>
             <field value="0xf4"   name="AlpcState"/>
         </data>
@@ -373,6 +382,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x98"   name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x1c"   name="AlpcPortContext"/>
+            <field value="0xd0"   name="AlpcPortObjectLock"/>
             <field value="0xe8"   name="AlpcSequenceNo"/>
             <field value="0xf4"   name="AlpcState"/>
         </data>
@@ -401,6 +411,7 @@ uf lxcore!LxpSyscall_GETTID
             <field value="0x98"   name="AlpcAttributes"/>
             <field value="0x0"    name="AlpcAttributesFlags"/>
             <field value="0x1c"   name="AlpcPortContext"/>
+            <field value="0xd0"   name="AlpcPortObjectLock"/>
             <field value="0xe8"   name="AlpcSequenceNo"/>
             <field value="0xf4"   name="AlpcState"/>
         </data>
