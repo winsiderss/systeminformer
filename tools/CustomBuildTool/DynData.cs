@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 8;
+        private const UInt32 Version = 9;
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -68,6 +68,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT AlpcAttributes;               // dt nt!_ALPC_PORT PortAttributes
     USHORT AlpcAttributesFlags;          // dt nt!_ALPC_PORT_ATTRIBUTES Flags
     USHORT AlpcPortContext;              // dt nt!_ALPC_PORT PortContext
+    USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT State
     USHORT KtReadOperationCount;         // dt nt!_KTHREAD ReadOperationCount
@@ -124,6 +125,7 @@ typedef struct _KPH_DYNDATA
             public UInt16 AlpcAttributes;
             public UInt16 AlpcAttributesFlags;
             public UInt16 AlpcPortContext;
+            public UInt16 AlpcPortObjectLock;
             public UInt16 AlpcSequenceNo;
             public UInt16 AlpcState;
             public UInt16 KtReadOperationCount;
@@ -167,6 +169,7 @@ typedef struct _KPH_DYNDATA
                 AlpcAttributes = ushort.MaxValue;
                 AlpcAttributesFlags = ushort.MaxValue;
                 AlpcPortContext = ushort.MaxValue;
+                AlpcPortObjectLock = ushort.MaxValue;
                 AlpcSequenceNo = ushort.MaxValue;
                 AlpcState = ushort.MaxValue;
                 KtReadOperationCount = ushort.MaxValue;

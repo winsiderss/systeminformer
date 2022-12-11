@@ -11,7 +11,7 @@
 
 #include <kphlibbase.h>
 
-#define KPH_DYN_CONFIGURATION_VERSION 8
+#define KPH_DYN_CONFIGURATION_VERSION 9
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)
 #define KPH_DYN_CI_V1      ((SHORT)1)
@@ -50,6 +50,7 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT AlpcAttributes;               // dt nt!_ALPC_PORT PortAttributes
     USHORT AlpcAttributesFlags;          // dt nt!_ALPC_PORT_ATTRIBUTES Flags
     USHORT AlpcPortContext;              // dt nt!_ALPC_PORT PortContext
+    USHORT AlpcPortObjectLock;           // dt nt!_ALPC_PORT PortObjectLock
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT State
     USHORT KtReadOperationCount;         // dt nt!_KTHREAD ReadOperationCount

@@ -46,6 +46,7 @@ EXT ULONG KphDynAlpcHandleTableLock OFFDEFAULT;
 EXT ULONG KphDynAlpcAttributes OFFDEFAULT;
 EXT ULONG KphDynAlpcAttributesFlags OFFDEFAULT;
 EXT ULONG KphDynAlpcPortContext OFFDEFAULT;
+EXT ULONG KphDynAlpcPortObjectLock OFFDEFAULT;
 EXT ULONG KphDynAlpcSequenceNo OFFDEFAULT;
 EXT ULONG KphDynAlpcState OFFDEFAULT;
 EXT ULONG KphDynKtReadOperationCount OFFDEFAULT;
