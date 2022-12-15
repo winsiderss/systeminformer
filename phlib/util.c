@@ -493,6 +493,80 @@ VOID PhGetSizeDpiValue(
     rect->bottom = rectangle.Top + rectangle.Height;
 }
 
+PVOID PhOpenThemeData(
+    _In_opt_ HWND WindowHandle,
+    _In_ PCWSTR ClassList,
+    _In_ LONG DpiValue
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HTHEME (WINAPI* OpenThemeDataForDpi_I)(
+        _In_opt_ HWND WindowHandle,
+        _In_ PCWSTR ClassList,
+        _In_ UINT DpiValue
+        ) = NULL;
+    static HTHEME (WINAPI* OpenThemeData_I)(
+        _In_opt_ HWND WindowHandle,
+        _In_ PCWSTR ClassList
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS1)
+        {
+            PVOID baseAddress;
+
+            if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+                baseAddress = PhLoadLibrary(L"uxtheme.dll");
+
+            if (baseAddress)
+            {
+                if (!(OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0)))
+                    OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDat", 0);
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (OpenThemeDataForDpi_I)
+        return OpenThemeDataForDpi_I(WindowHandle, ClassList, DpiValue);
+    if (OpenThemeData_I)
+        return OpenThemeData_I(WindowHandle, ClassList);
+
+    return NULL;
+}
+
+VOID PhCloseThemeData(
+    _In_ PVOID ThemeHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HTHEME (WINAPI* CloseThemeData_I)(
+        _In_ HTHEME hTheme
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+            baseAddress = PhLoadLibrary(L"uxtheme.dll");
+
+        if (baseAddress)
+        {
+            CloseThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "CloseThemeData", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (CloseThemeData_I)
+    {
+        CloseThemeData_I(ThemeHandle);
+    }
+}
+
 // rev from GetSystemDefaultLCID
 LCID PhGetSystemDefaultLCID(
     VOID
@@ -1994,6 +2068,19 @@ PPH_STRING PhFormatUInt64(
     PH_FORMAT format;
 
     format.Type = UInt64FormatType | (GroupDigits ? FormatGroupDigits : 0);
+    format.u.UInt64 = Value;
+
+    return PhFormat(&format, 1, 0);
+}
+
+PPH_STRING PhFormatUInt64Prefix(
+    _In_ ULONG64 Value,
+    _In_ BOOLEAN GroupDigits
+    )
+{
+    PH_FORMAT format;
+
+    format.Type = UInt64FormatType | (GroupDigits ? FormatGroupDigits : 0) | PrefixFormatType;
     format.u.UInt64 = Value;
 
     return PhFormat(&format, 1, 0);
@@ -6501,6 +6588,68 @@ BOOLEAN PhParseCommandLineFuzzy(
     return FALSE;
 }
 
+PPH_STRING PhSearchFile(
+    _In_ PPH_STRINGREF FileName,
+    _In_opt_ PWSTR Extension
+    )
+{
+    static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"PATH");
+    NTSTATUS status;
+    PPH_STRING variableValue;
+    PH_STRINGREF pathNamePart;
+    PH_STRINGREF baseNamePart;
+
+    //if (PhDoesFileExistWin32(FileName->Buffer))
+    //{
+    //    return PhCreateString2(FileName);
+    //}
+
+    if (!PhGetBaseNameComponents(FileName, &pathNamePart, &baseNamePart))
+    {
+        return NULL;
+    }
+
+    status = PhQueryEnvironmentVariable(NULL, &variableName, &variableValue);
+
+    if (NT_SUCCESS(status))
+    {
+        PH_STRINGREF remainingPart;
+        PH_STRINGREF firstPart;
+
+        remainingPart = PhGetStringRef(variableValue);
+
+        while (remainingPart.Length != 0)
+        {
+            PhSplitStringRefAtChar(&remainingPart, L';', &firstPart, &remainingPart);
+
+            if (firstPart.Length)
+            {
+                PPH_STRING fileName;
+
+                fileName = PhConcatStringRef3(
+                    &firstPart,
+                    &PhNtPathSeperatorString,
+                    &baseNamePart
+                    );
+
+                PhMoveReference(&fileName, PhExpandEnvironmentStrings(&fileName->sr));
+
+                if (PhDoesFileExistWin32(PhGetString(fileName)))
+                {
+                    PhDereferenceObject(variableValue);
+                    return fileName;
+                }
+
+                PhDereferenceObject(fileName);
+            }
+        }
+
+        PhDereferenceObject(variableValue);
+    }
+
+    return NULL;
+}
+
 PPH_STRING PhSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension
@@ -7221,6 +7370,18 @@ PVOID PhGetLoaderEntryStringRefDllBase(
     PLDR_DATA_TABLE_ENTRY ldrEntry;
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    //if (WindowsVersion >= WINDOWS_8 && !FullDllName && BaseDllName)
+    //{
+    //    ULONG baseDllNameHash = PhHashStringRefEx(BaseDllName, TRUE, PH_STRING_HASH_X65599);
+    //
+    //    if (ldrEntry = PhFindLoaderEntryNameHash(baseDllNameHash))
+    //    {
+    //        RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+    //        return ldrEntry->DllBase;
+    //    }
+    //}
+
     ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 
@@ -8433,26 +8594,26 @@ NTSTATUS PhLoadPluginImage(
     )
 {
     NTSTATUS status;
-    ULONG imageType;
+    //ULONG imageType;
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageNtHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
-    UNICODE_STRING imageFileName;
+    //UNICODE_STRING imageFileName;
 
-    imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
-    PhStringRefToUnicodeString(FileName, &imageFileName);
-
-    status = LdrLoadDll(
-        NULL,
-        &imageType,
-        &imageFileName,
-        &imageBaseAddress
-        );
-
-    //status = PhLoaderEntryLoadDll(
-    //    FileName,
+    //imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
+    //PhStringRefToUnicodeString(FileName, &imageFileName);
+    //
+    //status = LdrLoadDll(
+    //    NULL,
+    //    &imageType,
+    //    &imageFileName,
     //    &imageBaseAddress
     //    );
+
+    status = PhLoaderEntryLoadDll(
+        FileName,
+        &imageBaseAddress
+        );
 
     if (!NT_SUCCESS(status))
         return status;
