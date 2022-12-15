@@ -97,6 +97,17 @@ HRESULT PhAppResolverEndCrashDumpTask(
     _In_ HANDLE TaskHandle
     );
 
+// Desktop Bridge
+
+HRESULT PhCreateProcessDesktopPackage(
+    _In_ PWSTR ApplicationUserModelId,
+    _In_ PWSTR Executable,
+    _In_ PWSTR Arguments,
+    _In_ BOOLEAN PreventBreakaway,
+    _In_opt_ HANDLE ParentProcessId,
+    _Out_opt_ PHANDLE ProcessHandle
+    );
+
 #ifdef __cplusplus
 }
 #endif

@@ -1102,3 +1102,44 @@ HRESULT PhAppResolverGetEdpContextForProcess(
 //
 //    return packageIcon;
 //}
+
+// rev from Invoke-CommandInDesktopPackage (dmex)
+HRESULT PhCreateProcessDesktopPackage(
+    _In_ PWSTR ApplicationUserModelId,
+    _In_ PWSTR Executable,
+    _In_ PWSTR Arguments,
+    _In_ BOOLEAN PreventBreakaway,
+    _In_opt_ HANDLE ParentProcessId,
+    _Out_opt_ PHANDLE ProcessHandle
+    )
+{
+    HRESULT status;
+    IDesktopAppXActivator* desktopAppXActivator;
+
+    status = PhGetClassObject(
+        L"twinui.appcore.dll",
+        &CLSID_IDesktopAppXActivator_I,
+        &IID_IDesktopAppXActivator2_I,
+        &desktopAppXActivator
+        );
+
+    if (SUCCEEDED(status))
+    {
+        ULONG options = DAXAO_CHECK_FOR_APPINSTALLER_UPDATES | DAXAO_CENTENNIAL_PROCESS;
+        options |= (PreventBreakaway ? DAXAO_NONPACKAGED_EXE_PROCESS_TREE : DAXAO_NONPACKAGED_EXE);
+
+        status = IDesktopAppXActivator_ActivateWithOptions(
+            desktopAppXActivator,
+            ApplicationUserModelId,
+            Executable,
+            Arguments,
+            options,
+            HandleToUlong(ParentProcessId),
+            ProcessHandle
+            );
+
+        IDesktopAppXActivator_Release(desktopAppXActivator);
+    }
+
+    return status;
+}
