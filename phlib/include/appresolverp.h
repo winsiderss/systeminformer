@@ -92,8 +92,10 @@ static NTSTATUS (NTAPI* PsmGetPackageFullNameFromKey_I)(
 
 // "168EB462-775F-42AE-9111-D714B2306C2E"
 static CLSID CLSID_IDesktopAppXActivator_I = { 0x168EB462, 0x775F, 0x42AE, { 0x91, 0x11, 0xD7, 0x14, 0xB2, 0x30, 0x6C, 0x2E } };
+// "72e3a5b0-8fea-485c-9f8b-822b16dba17f"
+static IID IID_IDesktopAppXActivator1_I = { 0x72e3a5b0, 0x8fea, 0x485c, { 0x9f, 0x8b, 0x82, 0x2b, 0x16, 0xdb, 0xa1, 0x7f } };
 // "F158268A-D5A5-45CE-99CF-00D6C3F3FC0A"
-static IID IID_IDesktopAppXActivator_I = { 0xF158268A, 0xD5A5, 0x45CE, { 0x99, 0xCF, 0x00, 0xD6, 0xC3, 0xF3, 0xFC, 0x0A } };
+static IID IID_IDesktopAppXActivator2_I = { 0xF158268A, 0xD5A5, 0x45CE, { 0x99, 0xCF, 0x00, 0xD6, 0xC3, 0xF3, 0xFC, 0x0A } };
 
 typedef enum _DESKTOP_APPX_ACTIVATE_OPTIONS
 {
@@ -125,7 +127,7 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
-    // IDesktopAppXActivator
+    // IDesktopAppXActivator1
 
     STDMETHOD(Activate)(THIS,
         _In_ PWSTR ApplicationUserModelId,
@@ -142,6 +144,8 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
         _In_opt_ ULONG ParentProcessId,
         _Out_ PHANDLE ProcessHandle
         ) PURE;
+
+    // IDesktopAppXActivator2
 
     STDMETHOD(ActivateWithOptionsAndArgs)(THIS,
         _In_ PWSTR ApplicationUserModelId,
@@ -165,6 +169,15 @@ DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
 
     END_INTERFACE
 };
+
+#define IDesktopAppXActivator_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+#define IDesktopAppXActivator_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IDesktopAppXActivator_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IDesktopAppXActivator_ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle) \
+    ((This)->lpVtbl->ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle))
 
 typedef enum _START_MENU_APP_ITEMS_FLAGS
 {
