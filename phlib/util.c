@@ -2073,19 +2073,6 @@ PPH_STRING PhFormatUInt64(
     return PhFormat(&format, 1, 0);
 }
 
-PPH_STRING PhFormatUInt64Prefix(
-    _In_ ULONG64 Value,
-    _In_ BOOLEAN GroupDigits
-    )
-{
-    PH_FORMAT format;
-
-    format.Type = UInt64FormatType | (GroupDigits ? FormatGroupDigits : 0) | PrefixFormatType;
-    format.u.UInt64 = Value;
-
-    return PhFormat(&format, 1, 0);
-}
-
 PPH_STRING PhFormatDecimal(
     _In_ PWSTR Value,
     _In_ ULONG FractionalDigits,
@@ -6588,68 +6575,6 @@ BOOLEAN PhParseCommandLineFuzzy(
     return FALSE;
 }
 
-PPH_STRING PhSearchFile(
-    _In_ PPH_STRINGREF FileName,
-    _In_opt_ PWSTR Extension
-    )
-{
-    static PH_STRINGREF variableName = PH_STRINGREF_INIT(L"PATH");
-    NTSTATUS status;
-    PPH_STRING variableValue;
-    PH_STRINGREF pathNamePart;
-    PH_STRINGREF baseNamePart;
-
-    //if (PhDoesFileExistWin32(FileName->Buffer))
-    //{
-    //    return PhCreateString2(FileName);
-    //}
-
-    if (!PhGetBaseNameComponents(FileName, &pathNamePart, &baseNamePart))
-    {
-        return NULL;
-    }
-
-    status = PhQueryEnvironmentVariable(NULL, &variableName, &variableValue);
-
-    if (NT_SUCCESS(status))
-    {
-        PH_STRINGREF remainingPart;
-        PH_STRINGREF firstPart;
-
-        remainingPart = PhGetStringRef(variableValue);
-
-        while (remainingPart.Length != 0)
-        {
-            PhSplitStringRefAtChar(&remainingPart, L';', &firstPart, &remainingPart);
-
-            if (firstPart.Length)
-            {
-                PPH_STRING fileName;
-
-                fileName = PhConcatStringRef3(
-                    &firstPart,
-                    &PhNtPathSeperatorString,
-                    &baseNamePart
-                    );
-
-                PhMoveReference(&fileName, PhExpandEnvironmentStrings(&fileName->sr));
-
-                if (PhDoesFileExistWin32(PhGetString(fileName)))
-                {
-                    PhDereferenceObject(variableValue);
-                    return fileName;
-                }
-
-                PhDereferenceObject(fileName);
-            }
-        }
-
-        PhDereferenceObject(variableValue);
-    }
-
-    return NULL;
-}
-
 PPH_STRING PhSearchFilePath(
     _In_ PWSTR FileName,
     _In_opt_ PWSTR Extension
@@ -7370,18 +7295,6 @@ PVOID PhGetLoaderEntryStringRefDllBase(
     PLDR_DATA_TABLE_ENTRY ldrEntry;
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
-
-    //if (WindowsVersion >= WINDOWS_8 && !FullDllName && BaseDllName)
-    //{
-    //    ULONG baseDllNameHash = PhHashStringRefEx(BaseDllName, TRUE, PH_STRING_HASH_X65599);
-    //
-    //    if (ldrEntry = PhFindLoaderEntryNameHash(baseDllNameHash))
-    //    {
-    //        RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
-    //        return ldrEntry->DllBase;
-    //    }
-    //}
-
     ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 
@@ -8594,26 +8507,26 @@ NTSTATUS PhLoadPluginImage(
     )
 {
     NTSTATUS status;
-    //ULONG imageType;
+    ULONG imageType;
     PVOID imageBaseAddress;
     PIMAGE_NT_HEADERS imageNtHeaders;
     PLDR_INIT_ROUTINE imageEntryRoutine;
-    //UNICODE_STRING imageFileName;
+    UNICODE_STRING imageFileName;
 
-    //imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
-    //PhStringRefToUnicodeString(FileName, &imageFileName);
-    //
-    //status = LdrLoadDll(
-    //    NULL,
-    //    &imageType,
-    //    &imageFileName,
-    //    &imageBaseAddress
-    //    );
-
-    status = PhLoaderEntryLoadDll(
-        FileName,
+    imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
+    PhStringRefToUnicodeString(FileName, &imageFileName);
+    
+    status = LdrLoadDll(
+        NULL,
+        &imageType,
+        &imageFileName,
         &imageBaseAddress
         );
+
+    //status = PhLoaderEntryLoadDll(
+    //    FileName,
+    //    &imageBaseAddress
+    //    );
 
     if (!NT_SUCCESS(status))
         return status;
