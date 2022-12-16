@@ -541,12 +541,13 @@ INT LookupCountryIcon(
             {
                 HBITMAP countryBitmap;
 
-                if (countryBitmap = PhLoadPngImageFromResource(
+                if (countryBitmap = PhLoadImageFormatFromResource(
                     PluginInstance->DllBase,
-                    16,
-                    11,
                     MAKEINTRESOURCE(CountryResourceTable[i].ResourceID),
-                    TRUE
+                    L"PNG",
+                    PH_IMAGE_FORMAT_TYPE_PNG,
+                    16,
+                    11
                     ))
                 {
                     CountryResourceTable[i].IconIndex = PhImageListAddBitmap(

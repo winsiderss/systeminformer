@@ -1,13 +1,9 @@
 #ifndef _PH_PHGUI_H
 #define _PH_PHGUI_H
 
-#pragma once
-
 #include <commctrl.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 // guisup
 
@@ -1209,6 +1205,49 @@ PhCustomDrawTreeTimeLine(
     _In_ PLARGE_INTEGER CreateTime
     );
 
+// Windows Imaging Component (WIC) bitmap support
+
+typedef enum _PH_IMAGE_FORMAT_TYPE
+{
+    PH_IMAGE_FORMAT_TYPE_NONE,
+    PH_IMAGE_FORMAT_TYPE_ICO,
+    PH_IMAGE_FORMAT_TYPE_BMP,
+    PH_IMAGE_FORMAT_TYPE_JPG,
+    PH_IMAGE_FORMAT_TYPE_PNG,
+} PH_IMAGE_FORMAT_TYPE, *PPH_IMAGE_FORMAT_TYPE;
+
+PHLIBAPI
+HBITMAP
+NTAPI
+PhLoadImageFormatFromResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_ PH_IMAGE_FORMAT_TYPE Format,
+    _In_ UINT Width,
+    _In_ UINT Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
+PhLoadImageFromResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_ UINT Width,
+    _In_ UINT Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
+PhLoadImageFromFile(
+    _In_ PWSTR FileName,
+    _In_ UINT Width,
+    _In_ UINT Height
+    );
+
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
@@ -1369,8 +1408,6 @@ PhOffsetRect(
     Rect->bottom += dy;
 }
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif
