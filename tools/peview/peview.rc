@@ -37,7 +37,6 @@ END
 
 3 TEXTINCLUDE 
 BEGIN
-    "\r\n"
     "\0"
 END
 
@@ -791,4 +790,5 @@ IDR_RT_MANIFEST         RT_MANIFEST             "peview.manifest"
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
 

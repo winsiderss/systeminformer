@@ -147,6 +147,7 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -183,6 +184,7 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -217,6 +219,7 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -260,6 +263,7 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -303,6 +307,7 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -343,6 +348,7 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

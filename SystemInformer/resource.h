@@ -14,8 +14,6 @@
 #define IDC_CPU                         112
 #define IDC_PRIVATEBYTES                113
 #define IDC_IO                          114
-#define IDB_CROSS                       117
-#define IDB_TICK                        118
 #define IDC_MEMORY                      120
 #define IDD_ABOUT                       121
 #define IDC_NEWOBJECTS                  121
@@ -93,7 +91,6 @@
 #define IDD_TOKAPPPOLICY                216
 #define IDI_PIN                         216
 #define IDI_FOLDER                      217
-#define IDI_PENCIL                      218
 #define IDI_MAGNIFIER                   219
 #define IDD_EDITENV                     221
 #define IDB_SEARCH_ACTIVE               223
