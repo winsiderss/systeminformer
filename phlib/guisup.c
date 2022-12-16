@@ -2745,6 +2745,7 @@ VOID PhCustomDrawTreeTimeLine(
     RECT rect = CellRect;
     RECT borderRect = CellRect;
     FLOAT percent = 0;
+    FLOAT percentabs = 0;
     LARGE_INTEGER systemTime;
     LARGE_INTEGER startTime;
     LARGE_INTEGER createTime;
@@ -2795,13 +2796,14 @@ VOID PhCustomDrawTreeTimeLine(
 
     // Note: Time is 8 bytes, Float is 4 bytes. Use DOUBLE type at some stage. (dmex)
     percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+    percentabs = fabsf(percent);
 
     if (!(Flags & PH_DRAW_TIMELINE_OVERFLOW))
     {
         // Prevent overflow from changing the system time to an earlier date. (dmex)
-        if (fabsf(percent) > 100.f)
+        if (percentabs > 100.f)
             percent = 100.f;
-        if (fabsf(percent) < 0.0005f)
+        if (percentabs < 0.0005f)
             percent = 0.f;
     }
 
@@ -2839,9 +2841,9 @@ VOID PhCustomDrawTreeTimeLine(
     if (Flags & PH_DRAW_TIMELINE_OVERFLOW)
     {
         // Prevent overflow from changing the system time to an earlier date. (dmex)
-        if (fabsf(percent) > 100.f)
+        if (percentabs > 100.f)
             percent = 100.f;
-        if (fabsf(percent) < 0.0005f)
+        if (percentabs < 0.0005f)
             percent = 0.f;
     }
 
