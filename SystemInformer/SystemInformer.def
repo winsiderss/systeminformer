@@ -565,6 +565,7 @@ EXPORTS
     PhInitializeLayoutManager
     PhLayoutManagerLayout
     PhLoadIcon
+    PhLoadImageFormatFromResource
     PhLoadListViewColumnSettings
     PhModalPropertySheet
     PhRemoveListViewItem

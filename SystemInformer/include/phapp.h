@@ -698,27 +698,6 @@ PhCreateSearchControl(
     _In_opt_ PWSTR BannerText
     );
 
-PHAPPAPI
-HBITMAP
-NTAPI
-PhLoadPngImageFromResource(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    );
-
-PHAPPAPI
-HBITMAP
-NTAPI
-PhLoadPngImageFromFile(
-    _In_ PWSTR FileName,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ BOOLEAN RGBAImage
-    );
-
 FORCEINLINE
 HFONT
 PhCreateFont(
