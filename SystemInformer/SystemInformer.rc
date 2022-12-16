@@ -39,7 +39,6 @@ END
 
 3 TEXTINCLUDE 
 BEGIN
-    "\r\n"
     "\0"
 END
 
@@ -62,8 +61,6 @@ IDI_COG                 ICON                    "resources\\cog.ico"
 IDI_PIN                 ICON                    "resources\\pin.ico"
 
 IDI_FOLDER              ICON                    "resources\\folder.ico"
-
-IDI_PENCIL              ICON                    "resources\\pencil.ico"
 
 IDI_MAGNIFIER           ICON                    "resources\\magnifier.ico"
 
@@ -1999,10 +1996,6 @@ END
 //
 // Bitmap
 //
-
-IDB_CROSS               BITMAP                  "resources\\cross.bmp"
-
-IDB_TICK                BITMAP                  "resources\\tick.bmp"
 
 IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
 
