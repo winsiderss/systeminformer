@@ -3735,6 +3735,35 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             node->CpuGraphBuffers.Data1, drawInfo.LineDataCount);
                         PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
                             node->CpuGraphBuffers.Data2, drawInfo.LineDataCount);
+
+                        if (PhCsEnableGraphMaxScale)
+                        {
+                            FLOAT max = 0;
+
+                            for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
+                            {
+                                FLOAT data = node->CpuGraphBuffers.Data1[i] +
+                                    node->CpuGraphBuffers.Data2[i]; // HACK
+
+                                if (max < data)
+                                    max = data;
+                            }
+
+                            if (max != 0)
+                            {
+                                PhDivideSinglesBySingle(
+                                    node->CpuGraphBuffers.Data1,
+                                    max,
+                                    drawInfo.LineDataCount
+                                    );
+                                PhDivideSinglesBySingle(
+                                    node->CpuGraphBuffers.Data2,
+                                    max,
+                                    drawInfo.LineDataCount
+                                    );
+                            }
+                        }
+
                         node->CpuGraphBuffers.Valid = TRUE;
                     }
                 }
