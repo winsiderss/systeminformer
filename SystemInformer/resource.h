@@ -113,6 +113,8 @@
 #define IDD_PROCVDMHOST                 257
 #define IDD_OPTSYMBOLS                  258
 #define IDI_UACSHIELD                   261
+#define IDB_SEARCH_ACTIVE_SMALL         265
+#define IDB_SEARCH_INACTIVE_SMALL       266
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -785,10 +787,10 @@
 #define IDPLUGINS                       55000
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        265
+#define _APS_NEXT_RESOURCE_VALUE        267
 #define _APS_NEXT_COMMAND_VALUE         40298
 #define _APS_NEXT_CONTROL_VALUE         1415
 #define _APS_NEXT_SYMED_VALUE           170
