@@ -538,9 +538,11 @@
   <ItemGroup>
     <Image Include="resources\active_search.bmp" />
     <Image Include="resources\active_search.png" />
+    <Image Include="resources\active_search_small.png" />
     <Image Include="resources\folder.ico" />
     <Image Include="resources\inactive_search.bmp" />
     <Image Include="resources\inactive_search.png" />
+    <Image Include="resources\inactive_search_small.png" />
     <Image Include="resources\magnifier.ico" />
     <Image Include="resources\pencil.ico" />
     <Image Include="resources\pin.ico" />
