@@ -478,6 +478,8 @@ INT PhSelectComboBoxString(
 
         ComboBox_SetCurSel(hwnd, index);
 
+        InvalidateRect(hwnd, NULL, TRUE);
+
         return index;
     }
 }
