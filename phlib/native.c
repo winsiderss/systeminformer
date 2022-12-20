@@ -2698,17 +2698,256 @@ NTSTATUS PhGetTokenTrustLevel(
         );
 }
 
-NTSTATUS PhSetTokenSessionId(
+NTSTATUS PhGetTokenAppContainerSid(
     _In_ HANDLE TokenHandle,
-    _In_ ULONG SessionId
+    _Out_ PSID* AppContainerSid
     )
 {
-    return NtSetInformationToken(
+    NTSTATUS status;
+    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+
+    status = PhpQueryTokenVariableSize(
         TokenHandle,
-        TokenSessionId,
-        &SessionId,
-        sizeof(ULONG)
+        TokenAppContainerSid,
+        &appContainerInfo
         );
+
+    if (NT_SUCCESS(status))
+    {
+        if (appContainerInfo->TokenAppContainer)
+        {
+            *AppContainerSid = PhAllocateCopy(appContainerInfo->TokenAppContainer, RtlLengthSid(appContainerInfo->TokenAppContainer));
+        }
+        else
+        {
+            status = STATUS_UNSUCCESSFUL;
+        }
+
+        PhFree(appContainerInfo);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenSecurityAttributes(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenSecurityAttributes,
+        SecurityAttributes
+        );
+}
+
+PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
+    _In_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes,
+    _In_ PPH_STRINGREF AttributeName
+    )
+{
+    for (ULONG i = 0; i < Attributes->AttributeCount; i++)
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &Attributes->Attribute.pAttributeV1[i];
+        PH_STRINGREF attributeName;
+
+        PhUnicodeStringToStringRef(&attribute->Name, &attributeName);
+
+        if (PhEqualStringRef(&attributeName, AttributeName, FALSE))
+        {
+            return attribute;
+        }
+    }
+
+    return NULL;
+}
+
+BOOLEAN PhIsTokenFullTrustAppContainer(
+    _In_ HANDLE TokenHandle
+    )
+{
+    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    BOOLEAN tokenIsAppContainer = FALSE;
+    BOOLEAN tokenHasAppId = FALSE;
+
+    if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)))
+    {
+        if (tokenIsAppContainer)
+            return FALSE;
+    }
+
+    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
+
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+        {
+            tokenHasAppId = TRUE;
+        }
+
+        PhFree(info);
+    }
+
+    return tokenHasAppId;
+}
+
+NTSTATUS PhGetTokenIsLessPrivilegedAppContainer(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsLessPrivilegedAppContainer
+    )
+{
+    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    NTSTATUS status;
+
+    status = PhGetTokenSecurityAttributes(TokenHandle, &info);
+
+    if (NT_SUCCESS(status))
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
+
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64)
+        {
+            *IsLessPrivilegedAppContainer = TRUE; // attribute->Values.pUint64[0] == 1;
+        }
+        else
+        {
+            status = STATUS_UNSUCCESSFUL;
+        }
+
+        PhFree(info);
+    }
+
+    // TODO: NtQueryInformationToken(TokenIsLessPrivilegedAppContainer);
+
+    return status;
+}
+
+ULONG64 PhGetTokenSecurityAttributeValueUlong64(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG ValueIndex
+    )
+{
+    ULONG64 value = ULONG64_MAX;
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+
+    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
+
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64 && ValueIndex < attribute->ValueCount)
+        {
+            value = attribute->Values.pUint64[ValueIndex];
+        }
+
+        PhFree(info);
+    }
+
+    return value;
+}
+
+PPH_STRING PhGetTokenSecurityAttributeValueString(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG ValueIndex
+    )
+{
+    PPH_STRING value = NULL;
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+
+    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, Name);
+
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && ValueIndex < attribute->ValueCount)
+        {
+            value = PhCreateStringFromUnicodeString(&attribute->Values.pString[ValueIndex]);
+        }
+
+        PhFree(info);
+    }
+
+    return value;
+}
+
+// rev from GetApplicationUserModelId/GetApplicationUserModelIdFromToken (dmex)
+PPH_STRING PhGetTokenPackageApplicationUserModelId(
+    _In_ HANDLE TokenHandle
+    )
+{
+    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"!");
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    PPH_STRING applicationUserModelId = NULL;
+
+    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
+
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && attribute->ValueCount >= 3)
+        {
+            PPH_STRING relativeIdName;
+            PPH_STRING packageFamilyName;
+
+            relativeIdName = PhCreateStringFromUnicodeString(&attribute->Values.pString[1]);
+            packageFamilyName = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
+
+            applicationUserModelId = PhConcatStringRef3(
+                &packageFamilyName->sr, 
+                &seperator, 
+                &relativeIdName->sr
+                );
+
+            PhDereferenceObject(packageFamilyName);
+            PhDereferenceObject(relativeIdName);
+        }
+
+        PhFree(info);
+    }
+
+    return applicationUserModelId;
+}
+
+PPH_STRING PhGetTokenPackageFullName(
+    _In_ HANDLE TokenHandle
+    )
+{
+    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
+    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
+    PPH_STRING packageFullName = NULL;
+
+    if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
+    {
+        PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = PhFindTokenSecurityAttributeName(info, &attributeName);
+
+        if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+        {
+            packageFullName = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
+        }
+
+        PhFree(info);
+    }
+
+    return packageFullName;
+}
+
+// rev from PackageIdFromFullName (dmex)
+PPH_STRING PhGetProcessPackageFullName(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    HANDLE tokenHandle;
+    PPH_STRING packageName = NULL;
+
+    if (NT_SUCCESS(PhOpenProcessToken(ProcessHandle, TOKEN_QUERY, &tokenHandle)))
+    {
+        packageName = PhGetTokenPackageFullName(tokenHandle);
+        NtClose(tokenHandle);
+    }
+
+    return packageName;
 }
 
 NTSTATUS PhGetTokenNamedObjectPath(
@@ -2966,6 +3205,19 @@ NTSTATUS PhSetTokenGroups(
         PhFree(groups.Groups[0].Sid);
 
     return status;
+}
+
+NTSTATUS PhSetTokenSessionId(
+    _In_ HANDLE TokenHandle,
+    _In_ ULONG SessionId
+    )
+{
+    return NtSetInformationToken(
+        TokenHandle,
+        TokenSessionId,
+        &SessionId,
+        sizeof(ULONG)
+        );
 }
 
 /**
