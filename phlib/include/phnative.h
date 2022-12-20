@@ -508,7 +508,7 @@ PhGetTokenSecurityAttributes(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhIsTokenFullTrustAppContainer(
+PhIsTokenFullTrustPackage(
     _In_ HANDLE TokenHandle
     );
 
