@@ -1085,7 +1085,7 @@ LRESULT CALLBACK PhpGraphWndProc(
 
             updateRegion = (HRGN)wParam;
 
-            if (updateRegion == (HRGN)1) // HRGN_FULL
+            if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
 
             // Themed border
