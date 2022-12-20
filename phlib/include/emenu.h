@@ -1,9 +1,7 @@
 #ifndef _PH_EMENU_H
 #define _PH_EMENU_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define PH_EMENU_DISABLED 0x1
 #define PH_EMENU_CHECKED 0x2
@@ -250,8 +248,6 @@ VOID PhSetEnabledEMenuItem(
         Item->Flags |= PH_EMENU_DISABLED;
 }
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

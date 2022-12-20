@@ -12,9 +12,7 @@
 #ifndef _PH_APPRESOLVER_H
 #define _PH_APPRESOLVER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 _Success_(return)
 BOOLEAN PhAppResolverGetAppIdForProcess(
@@ -108,8 +106,6 @@ HRESULT PhCreateProcessDesktopPackage(
     _Out_opt_ PHANDLE ProcessHandle
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

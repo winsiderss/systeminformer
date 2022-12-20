@@ -10,12 +10,10 @@
  */
 
 #pragma once
+
 #include <kphmsg.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+EXTERN_C_START
 
 typedef struct _KPH_STACK_TRACE
 {
@@ -76,6 +74,4 @@ NTSTATUS KphMsgDynGetStackTrace(
     _Out_ PKPH_STACK_TRACE StackTrace 
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
