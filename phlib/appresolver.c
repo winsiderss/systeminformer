@@ -638,7 +638,7 @@ PPH_STRING PhGetPackageAppDataPath(
     {
         packageAppDataPath = PhGetKnownFolderPathEx(
             &FOLDERID_LocalAppData,
-            PH_KF_FLAG_FORCE_APP_DATA_REDIRECTION,
+            PH_KF_FLAG_FORCE_PACKAGE_REDIRECTION,
             tokenHandle,
             NULL
             );
