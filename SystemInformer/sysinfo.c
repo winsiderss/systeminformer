@@ -514,7 +514,7 @@ VOID PhSipOnNcDestroy(
 
     if (ThemeData)
     {
-        CloseThemeData(ThemeData);
+        PhCloseThemeData(ThemeData);
         ThemeData = NULL;
     }
 
@@ -2322,13 +2322,15 @@ VOID PhSipUpdateThemeData(
     VOID
     )
 {
+    LONG dpi = PhGetWindowDpi(PhSipWindow);
+
     if (ThemeData)
     {
-        CloseThemeData(ThemeData);
+        PhCloseThemeData(ThemeData);
         ThemeData = NULL;
     }
 
-    ThemeData = OpenThemeData(PhSipWindow, VSCLASS_TREEVIEW);
+    ThemeData = PhOpenThemeData(PhSipWindow, VSCLASS_TREEVIEW, dpi);
 
     if (ThemeData)
     {

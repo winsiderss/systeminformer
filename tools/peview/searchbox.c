@@ -103,7 +103,7 @@ VOID PhpSearchInitializeTheme(
     {
         HTHEME themeDataHandle;
 
-        if (themeDataHandle = OpenThemeData(WindowHandle, VSCLASS_EDIT))
+        if (themeDataHandle = PhOpenThemeData(WindowHandle, VSCLASS_EDIT, dpiValue))
         {
             //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
 
@@ -118,7 +118,7 @@ VOID PhpSearchInitializeTheme(
                 Context->CXBorder = borderX * 2;
             }
 
-            CloseThemeData(themeDataHandle);
+            PhCloseThemeData(themeDataHandle);
         }
         else
         {

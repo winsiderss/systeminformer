@@ -42,7 +42,6 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     HDC BufferedDc;
     HBITMAP BufferedOldBitmap;
     HBITMAP BufferedBitmap;
-    PVOID BufferedBits;
     RECT BufferedContextRect;
 } PH_SEARCHCONTROL_CONTEXT, *PPH_SEARCHCONTROL_CONTEXT;
 
@@ -62,7 +61,7 @@ VOID PhSearchControlCreateBufferedContext(
         Hdc,
         Context->BufferedContextRect.right,
         Context->BufferedContextRect.bottom
-    );
+        );
 
     Context->BufferedOldBitmap = SelectBitmap(Context->BufferedDc, Context->BufferedBitmap);
 }
@@ -461,7 +460,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             updateRegion = (HRGN)wParam;
 
-            if (updateRegion == (HRGN)1) // HRGN_FULL
+            if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
 
             flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | DCX_USESTYLE;
