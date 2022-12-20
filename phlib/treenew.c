@@ -386,7 +386,7 @@ VOID PhTnpDestroyTreeNewContext(
         DeleteFont(Context->Font);
 
     if (Context->ThemeData)
-        CloseThemeData(Context->ThemeData);
+        PhCloseThemeData(Context->ThemeData);
 
     if (Context->SearchString)
         PhFree(Context->SearchString);
@@ -401,7 +401,7 @@ VOID PhTnpDestroyTreeNewContext(
         DeleteRgn(Context->SuspendUpdateRegion);
 
     if (Context->HeaderThemeHandle)
-        CloseThemeData(Context->HeaderThemeHandle);
+        PhCloseThemeData(Context->HeaderThemeHandle);
 
     if (Context->HeaderBoldFontHandle)
         DeleteFont(Context->HeaderBoldFontHandle);
@@ -2062,7 +2062,7 @@ VOID PhTnpSetFont(
 
     if (!Context->Font)
     {
-        dpiValue = PhGetWindowDpi (Context->Handle);
+        dpiValue = PhGetWindowDpi(Context->Handle);
 
         if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
         {
@@ -2111,9 +2111,6 @@ VOID PhTnpUpdateTextMetrics(
     )
 {
     HDC hdc;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(Context->Handle);
 
     if (hdc = GetDC(Context->Handle))
     {
@@ -2122,6 +2119,10 @@ VOID PhTnpUpdateTextMetrics(
 
         if (!Context->CustomRowHeight)
         {
+            LONG dpiValue;
+
+            dpiValue = PhGetWindowDpi(Context->Handle);
+
             // Below we try to match the row height as calculated by the list view, even if it
             // involves magic numbers. On Vista and above there seems to be extra padding.
 
@@ -2158,11 +2159,11 @@ VOID PhTnpUpdateThemeData(
 
     if (Context->ThemeData)
     {
-        CloseThemeData(Context->ThemeData);
+        PhCloseThemeData(Context->ThemeData);
         Context->ThemeData = NULL;
     }
 
-    Context->ThemeData = OpenThemeData(Context->Handle, VSCLASS_TREEVIEW);
+    Context->ThemeData = PhOpenThemeData(Context->Handle, VSCLASS_TREEVIEW, PhGetWindowDpi(Context->Handle));
 
     if (Context->ThemeData)
     {
@@ -6168,7 +6169,7 @@ VOID PhTnpInitializeTooltips(
     if (Context->HeaderCustomDraw)
     {
         Context->HeaderHotColumn = -1;
-        Context->HeaderThemeHandle = OpenThemeData(Context->HeaderHandle, VSCLASS_HEADER);
+        Context->HeaderThemeHandle = PhOpenThemeData(Context->HeaderHandle, VSCLASS_HEADER, PhGetWindowDpi(Context->HeaderHandle));
     }
 
     SetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
@@ -6502,6 +6503,49 @@ BOOLEAN PhTnpGetColumnHeaderText(
     return FALSE;
 }
 
+VOID PhTnpHeaderCreateBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ RECT BufferRect
+    )
+{
+    Context->HeaderBufferedDc = CreateCompatibleDC(Hdc);
+
+    if (!Context->HeaderBufferedDc)
+        return;
+
+    Context->HeaderBufferedContextRect = BufferRect;
+    Context->HeaderBufferedBitmap = CreateCompatibleBitmap(
+        Hdc,
+        Context->HeaderBufferedContextRect.right,
+        Context->HeaderBufferedContextRect.bottom
+        );
+
+    Context->HeaderBufferedOldBitmap = SelectBitmap(Context->HeaderBufferedDc, Context->HeaderBufferedBitmap);
+}
+
+VOID PhTnpHeaderDestroyBufferedContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (Context->HeaderBufferedDc && Context->HeaderBufferedOldBitmap)
+    {
+        SelectBitmap(Context->HeaderBufferedDc, Context->HeaderBufferedOldBitmap);
+    }
+
+    if (Context->HeaderBufferedBitmap)
+    {
+        DeleteBitmap(Context->HeaderBufferedBitmap);
+        Context->HeaderBufferedBitmap = NULL;
+    }
+
+    if (Context->HeaderBufferedDc)
+    {
+        DeleteDC(Context->HeaderBufferedDc);
+        Context->HeaderBufferedDc = NULL;
+    }
+}
+
 LRESULT CALLBACK PhTnpHeaderHookWndProc(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -6523,6 +6567,8 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     {
     case WM_DESTROY:
         {
+            PhTnpHeaderDestroyBufferedContext(context);
+
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhRemoveWindowContext(hwnd, 0xF);
         }
@@ -6783,10 +6829,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
         {
             RECT clientRect;
             HDC hdc;
-            HDC bufferDc;
             RECT bufferRect;
-            HBITMAP bufferBitmap;
-            HBITMAP oldBufferBitmap;
             PH_STRINGREF headerString;
             WCHAR headerText[0x50];
 
@@ -6795,23 +6838,35 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             if (!context->HeaderCustomDraw)
                 break;
 
+            hdc = GetDC(hwnd);
+
             GetClientRect(hwnd, &clientRect);
             bufferRect.left = 0;
             bufferRect.top = 0;
             bufferRect.right = clientRect.right - clientRect.left;
             bufferRect.bottom = clientRect.bottom - clientRect.top;
 
-            hdc = GetDC(hwnd);
-            bufferDc = CreateCompatibleDC(hdc);
-            bufferBitmap = CreateCompatibleBitmap(hdc, bufferRect.right, bufferRect.bottom);
-            oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+            if (context->HeaderBufferedDc && (
+                context->HeaderBufferedContextRect.right < bufferRect.right ||
+                context->HeaderBufferedContextRect.bottom < bufferRect.bottom))
+            {
+                PhTnpHeaderDestroyBufferedContext(context);
+            }
 
-            SetBkMode(bufferDc, TRANSPARENT);
+            if (!context->HeaderBufferedDc)
+            {
+                PhTnpHeaderCreateBufferedContext(context, hdc, bufferRect);
+            }
+
+            if (!context->HeaderBufferedDc)
+                break;
+
+            SetBkMode(context->HeaderBufferedDc, TRANSPARENT);
 
             if (context->ThemeSupport)
             {
-                SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
-                FillRect(bufferDc, &clientRect, GetStockBrush(DC_BRUSH));
+                SetDCBrushColor(context->HeaderBufferedDc, PhThemeWindowBackgroundColor);
+                FillRect(context->HeaderBufferedDc, &clientRect, GetStockBrush(DC_BRUSH));
             }
             else
             {
@@ -6819,7 +6874,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 //{
                 //    DrawThemeBackground(
                 //        context->HeaderThemeHandle,
-                //        bufferDc,
+                //        context->HeaderBufferedDc,
                 //        HP_HEADERITEM,
                 //        HIS_NORMAL,
                 //        &clientRect,
@@ -6828,7 +6883,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 //}
                 //else
                 {
-                    FillRect(bufferDc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
+                    FillRect(context->HeaderBufferedDc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
                 }
             }
 
@@ -6842,7 +6897,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
                 if (!CallWindowProc(oldWndProc, hwnd, HDM_GETITEMRECT, (WPARAM)i, (LPARAM)&headerRect))
                     continue;
-                if (!RectVisible(bufferDc, &headerRect))
+                if (!RectVisible(context->HeaderBufferedDc, &headerRect))
                     continue;
 
                 headerItem.mask = HDI_LPARAM | HDI_FORMAT;
@@ -6856,28 +6911,28 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 {
                     if (context->ThemeSupport)
                     {
-                        SetDCBrushColor(bufferDc, RGB(128, 128, 128));
-                        FillRect(bufferDc, &headerRect, GetStockBrush(DC_BRUSH));
+                        SetDCBrushColor(context->HeaderBufferedDc, RGB(128, 128, 128));
+                        FillRect(context->HeaderBufferedDc, &headerRect, GetStockBrush(DC_BRUSH));
 
                         if (context->HeaderDragging && context->HeaderHotColumn != -1 && context->HeaderHotColumn == column->Id)
                         {
-                            SetDCBrushColor(bufferDc, RGB(0, 0, 229));
-                            SelectBrush(bufferDc, GetStockBrush(DC_BRUSH));
-                            PatBlt(bufferDc, headerRect.right - 2, headerRect.top, 2, headerRect.bottom - headerRect.top, PATCOPY);
+                            SetDCBrushColor(context->HeaderBufferedDc, RGB(0, 0, 229));
+                            SelectBrush(context->HeaderBufferedDc, GetStockBrush(DC_BRUSH));
+                            PatBlt(context->HeaderBufferedDc, headerRect.right - 2, headerRect.top, 2, headerRect.bottom - headerRect.top, PATCOPY);
                         }
                         else
                         {
-                            SetDCBrushColor(bufferDc, context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
-                            SelectBrush(bufferDc, GetStockBrush(DC_BRUSH));
-                            PatBlt(bufferDc, headerRect.right - 1, headerRect.top, 1, headerRect.bottom - headerRect.top, PATCOPY);
-                            //PatBlt(bufferDc, headerRect.left, headerRect.bottom - 1, headerRect.right - headerRect.left, 1, PATCOPY);
+                            SetDCBrushColor(context->HeaderBufferedDc, context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
+                            SelectBrush(context->HeaderBufferedDc, GetStockBrush(DC_BRUSH));
+                            PatBlt(context->HeaderBufferedDc, headerRect.right - 1, headerRect.top, 1, headerRect.bottom - headerRect.top, PATCOPY);
+                            //PatBlt(context->HeaderBufferedDc, headerRect.left, headerRect.bottom - 1, headerRect.right - headerRect.left, 1, PATCOPY);
                         }
                     }
                     else if (context->HeaderThemeHandle)
                     {
                         DrawThemeBackground(
                             context->HeaderThemeHandle,
-                            bufferDc,
+                            context->HeaderBufferedDc,
                             HP_HEADERITEM,
                             HIS_HOT,
                             &headerRect,
@@ -6886,35 +6941,35 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     }
                     else
                     {
-                        FillRect(bufferDc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
+                        FillRect(context->HeaderBufferedDc, &headerRect, GetSysColorBrush(COLOR_HIGHLIGHT));
                     }
                 }
                 else
                 {
                     if (context->ThemeSupport)
                     {
-                        SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
-                        FillRect(bufferDc, &headerRect, GetStockBrush(DC_BRUSH));
+                        SetDCBrushColor(context->HeaderBufferedDc, PhThemeWindowBackgroundColor);
+                        FillRect(context->HeaderBufferedDc, &headerRect, GetStockBrush(DC_BRUSH));
 
                         if (context->HeaderDragging && context->HeaderHotColumn != -1 && context->HeaderHotColumn == column->Id)
                         {
-                            SetDCBrushColor(bufferDc, RGB(0, 0, 229));
-                            SelectBrush(bufferDc, GetStockBrush(DC_BRUSH));
-                            PatBlt(bufferDc, headerRect.right - 2, headerRect.top, 2, headerRect.bottom - headerRect.top, PATCOPY);
+                            SetDCBrushColor(context->HeaderBufferedDc, RGB(0, 0, 229));
+                            SelectBrush(context->HeaderBufferedDc, GetStockBrush(DC_BRUSH));
+                            PatBlt(context->HeaderBufferedDc, headerRect.right - 2, headerRect.top, 2, headerRect.bottom - headerRect.top, PATCOPY);
                         }
                         else
                         {
-                            SetDCBrushColor(bufferDc, context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
-                            SelectBrush(bufferDc, GetStockBrush(DC_BRUSH));
-                            PatBlt(bufferDc, headerRect.right - 1, headerRect.top, 1, headerRect.bottom - headerRect.top, PATCOPY);
-                            //PatBlt(bufferDc, headerRect.left, headerRect.bottom - 1, headerRect.right - headerRect.left, 1, PATCOPY);
+                            SetDCBrushColor(context->HeaderBufferedDc, context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
+                            SelectBrush(context->HeaderBufferedDc, GetStockBrush(DC_BRUSH));
+                            PatBlt(context->HeaderBufferedDc, headerRect.right - 1, headerRect.top, 1, headerRect.bottom - headerRect.top, PATCOPY);
+                            //PatBlt(context->HeaderBufferedDc, headerRect.left, headerRect.bottom - 1, headerRect.right - headerRect.left, 1, PATCOPY);
                         }
                     }
                     else if (context->HeaderThemeHandle)
                     {
                         DrawThemeBackground(
                             context->HeaderThemeHandle,
-                            bufferDc,
+                            context->HeaderBufferedDc,
                             HP_HEADERITEM,
                             HIS_NORMAL,
                             &headerRect,
@@ -6923,7 +6978,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     }
                     else
                     {
-                        FillRect(bufferDc, &headerRect, GetSysColorBrush(COLOR_WINDOW));
+                        FillRect(context->HeaderBufferedDc, &headerRect, GetSysColorBrush(COLOR_WINDOW));
                     }
                 }
 
@@ -6946,12 +7001,12 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     textRect.bottom -= PhGetDpi(5, dpiValue);
                     textRect.top += PhGetDpi(2, dpiValue);
 
-                    SetTextColor(bufferDc, context->ThemeSupport ? RGB(0x8f, 0x8f, 0x8f) : RGB(97, 116, 139)); // RGB(178, 178, 178)
-                    oldFont = SelectFont(bufferDc, context->Font);
+                    SetTextColor(context->HeaderBufferedDc, context->ThemeSupport ? RGB(0x8f, 0x8f, 0x8f) : RGB(97, 116, 139)); // RGB(178, 178, 178)
+                    oldFont = SelectFont(context->HeaderBufferedDc, context->Font);
                     if (headerItem.fmt & HDF_RIGHT)
                     {
                         DrawText(
-                            bufferDc,
+                            context->HeaderBufferedDc,
                             textBuffer,
                             textLength,
                             &textRect,
@@ -6961,14 +7016,14 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     else
                     {
                         DrawText(
-                            bufferDc,
+                            context->HeaderBufferedDc,
                             textBuffer,
                             textLength,
                             &textRect,
                             DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS | DT_BOTTOM | DT_LEFT
                             );
                     }
-                    SelectFont(bufferDc, oldFont);
+                    SelectFont(context->HeaderBufferedDc, oldFont);
 
                     if (PhTnpGetColumnHeaderText(
                         context,
@@ -6978,17 +7033,17 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                         &headerString
                         ))
                     {
-                        SetTextColor(bufferDc, context->ThemeSupport ? RGB(0xff, 0xff, 0xff) : RGB(0, 0, 0));
+                        SetTextColor(context->HeaderBufferedDc, context->ThemeSupport ? RGB(0xff, 0xff, 0xff) : RGB(0, 0, 0));
 
-                        oldFont = SelectFont(bufferDc, context->HeaderBoldFontHandle);
+                        oldFont = SelectFont(context->HeaderBufferedDc, context->HeaderBoldFontHandle);
                         DrawText(
-                            bufferDc,
+                            context->HeaderBufferedDc,
                             headerString.Buffer,
                             (UINT)headerString.Length / sizeof(WCHAR),
                             &textRect,
                             DT_SINGLELINE | DT_HIDEPREFIX | DT_WORD_ELLIPSIS | DT_TOP | DT_RIGHT
                             );
-                        SelectFont(bufferDc, oldFont);
+                        SelectFont(context->HeaderBufferedDc, oldFont);
                     }
 
                     if (headerItem.fmt & HDF_SORTDOWN)
@@ -6999,7 +7054,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
                             if (GetThemePartSize(
                                 context->HeaderThemeHandle,
-                                bufferDc,
+                                context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,
                                 HSAS_SORTEDDOWN,
                                 NULL,
@@ -7012,7 +7067,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
                             DrawThemeBackground(
                                 context->HeaderThemeHandle,
-                                bufferDc,
+                                context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,
                                 HSAS_SORTEDDOWN,
                                 &headerRect,
@@ -7028,7 +7083,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
                             if (GetThemePartSize(
                                 context->HeaderThemeHandle,
-                                bufferDc,
+                                context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,
                                 HSAS_SORTEDUP,
                                 NULL,
@@ -7041,7 +7096,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
                             DrawThemeBackground(
                                 context->HeaderThemeHandle,
-                                bufferDc,
+                                context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,
                                 HSAS_SORTEDUP,
                                 &headerRect,
@@ -7052,10 +7107,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 }
             }
 
-            BitBlt(hdc, bufferRect.left, bufferRect.top, bufferRect.right, bufferRect.bottom, bufferDc, 0, 0, SRCCOPY);
-            SelectBitmap(bufferDc, oldBufferBitmap);
-            DeleteBitmap(bufferBitmap);
-            DeleteDC(bufferDc);
+            BitBlt(hdc, bufferRect.left, bufferRect.top, bufferRect.right, bufferRect.bottom, context->HeaderBufferedDc, 0, 0, SRCCOPY);
             ReleaseDC(hwnd, hdc);
         }
         return DefWindowProc(hwnd, uMsg, wParam, lParam);

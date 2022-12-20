@@ -179,8 +179,13 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HeaderHotColumn : 16; // HACK (dmex)
         };
     };
+
     HTHEME HeaderThemeHandle;
     HFONT HeaderBoldFontHandle;
+    HDC HeaderBufferedDc;
+    HBITMAP HeaderBufferedOldBitmap;
+    HBITMAP HeaderBufferedBitmap;
+    RECT HeaderBufferedContextRect;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
