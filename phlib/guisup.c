@@ -98,7 +98,7 @@ INT PhAddListViewColumn(
     LVCOLUMN column;
     LONG dpiValue;
 
-    dpiValue = PhGetDpiValue(ListViewHandle, NULL);
+    dpiValue = PhGetWindowDpi(ListViewHandle);
 
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
