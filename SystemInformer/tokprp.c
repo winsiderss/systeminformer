@@ -918,9 +918,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PPH_STRING tokenElevated = NULL;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
-                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                PSID appContainerSid;
                 PPH_STRING appContainerName;
-                PPH_STRING appContainerSid;
+                PPH_STRING appContainerSidString;
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
@@ -982,17 +982,13 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (WindowsVersion >= WINDOWS_8)
                 {
                     appContainerName = NULL;
-                    appContainerSid = NULL;
+                    appContainerSidString = NULL;
 
-                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
                     {
-                        if (appContainerInfo->TokenAppContainer)
-                        {
-                            appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
-                            appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
-                        }
-
-                        PhFree(appContainerInfo);
+                        appContainerName = PhGetAppContainerName(appContainerSid);
+                        appContainerSidString = PhSidToStringSid(appContainerSid);
+                        PhFree(appContainerSid);
                     }
 
                     if (appContainerName)
@@ -1006,10 +1002,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PhDereferenceObject(appContainerName);
                     }
 
-                    if (appContainerSid)
+                    if (appContainerSidString)
                     {
-                        PhSetDialogItemText(hwndDlg, IDC_USERSID, appContainerSid->Buffer);
-                        PhDereferenceObject(appContainerSid);
+                        PhSetDialogItemText(hwndDlg, IDC_USERSID, appContainerSidString->Buffer);
+                        PhDereferenceObject(appContainerSidString);
                     }
                 }
 
@@ -1605,7 +1601,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
             case IDC_ADVANCED:
                 {
                     HANDLE tokenHandle;
-                    HANDLE processHandle;
                     BOOLEAN tokenIsAppContainer = FALSE;
 
                     if (NT_SUCCESS(tokenPageContext->OpenObject(
@@ -1615,25 +1610,17 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         )))
                     {
                         PhGetTokenIsAppContainer(tokenHandle, &tokenIsAppContainer);
-                        NtClose(tokenHandle);
-                    }
 
-                    // Secondary check for desktop containers. (dmex)
-                    if (!tokenIsAppContainer)
-                    {
-                        if (NT_SUCCESS(PhOpenProcess(
-                            &processHandle,
-                            PROCESS_QUERY_LIMITED_INFORMATION,
-                            tokenPageContext->Context  // ProcessId
-                            )))
+                        if (!tokenIsAppContainer)
                         {
-                            PPH_STRING packageName = PhGetProcessPackageFullName(processHandle);
+                            PPH_STRING packageName = PhGetTokenPackageFullName(tokenHandle);
 
                             tokenIsAppContainer = !PhIsNullOrEmptyString(packageName);
 
                             PhClearReference(&packageName);
-                            NtClose(processHandle);
                         }
+
+                        NtClose(tokenHandle);
                     }
 
                     PhpShowTokenAdvancedProperties(hwndDlg, tokenPageContext, tokenIsAppContainer);
@@ -2668,39 +2655,29 @@ BOOLEAN PhpAddTokenCapabilities(
             {
                 if (subAuthoritiesCount == SECURITY_APP_PACKAGE_RID_COUNT)
                 {
-                    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                    PSID appContainerSid;
 
                     //if (*RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1) == SECURITY_CAPABILITY_APP_RID)
                     //    continue;
 
-                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
                     {
-                        if (appContainerInfo->TokenAppContainer)
+                        if (PhIsPackageCapabilitySid(appContainerSid, TokenPageContext->Capabilities->Groups[i].Sid))
                         {
-                            if (PhIsPackageCapabilitySid(appContainerInfo->TokenAppContainer, TokenPageContext->Capabilities->Groups[i].Sid))
+                            static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
+
+                            if (name = PhGetTokenPackageFullName(tokenHandle))
                             {
-                                HANDLE processHandle;
-
-                                if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, TokenPageContext->Context)))
-                                {
-                                    static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
-
-                                    if (name = PhGetProcessPackageFullName(processHandle))
-                                    {
-                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&packageNameStringRef, &name->sr));
-                                        PhDereferenceObject(name);
-                                    }
-                                    else
-                                    {
-                                        PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhCreateString2(&packageNameStringRef));
-                                    }
-
-                                    NtClose(processHandle);
-                                }
+                                PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhConcatStringRef2(&packageNameStringRef, &name->sr));
+                                PhDereferenceObject(name);
+                            }
+                            else
+                            {
+                                PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhCreateString2(&packageNameStringRef));
                             }
                         }
 
-                        PhFree(appContainerInfo);
+                        PhFree(appContainerSid);
                     }
                 }
                 else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
@@ -3216,7 +3193,7 @@ BOOLEAN PhpAddTokenAttributes(
         )))
         return FALSE;
 
-    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+    if (NT_SUCCESS(PhGetTokenSecurityAttributes(tokenHandle, &info)))
     {
         for (i = 0; i < info->AttributeCount; i++)
         {
@@ -3480,38 +3457,63 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
     _In_opt_ PSID TokenAppContainerSid
     )
 {
-    if (PhIsTokenFullTrustAppPackage(TokenHandle))
+    if (PhIsTokenFullTrustPackage(TokenHandle))
     {
-        return PhGetKnownFolderPathEx(
+        PPH_STRING packageLocalAppData = PhGetKnownFolderPathEx(
             &FOLDERID_LocalAppData,
-            PH_KF_FLAG_FORCE_APP_DATA_REDIRECTION,
+            PH_KF_FLAG_FORCE_PACKAGE_REDIRECTION,
             TokenHandle,
             NULL
             );
+        PPH_STRING localAppData = PhGetKnownFolderPathEx(
+            &FOLDERID_LocalAppData,
+            0,
+            NULL,
+            NULL
+            );
+
+        if (PhEqualString(packageLocalAppData, localAppData, TRUE))
+        {
+            PhDereferenceObject(localAppData);
+            PhDereferenceObject(packageLocalAppData);
+            return NULL;
+        }
+
+        PhDereferenceObject(localAppData);
+
+        return packageLocalAppData;
     }
     else if (TokenAppContainerSid)
     {
         PPH_STRING appContainerFolderPath = NULL;
-        PPH_STRING appContainerSid;
         PWSTR folderPath = NULL;
 
-        appContainerSid = PhSidToStringSid(TokenAppContainerSid);
+        appContainerFolderPath = PhGetKnownFolderPathEx(
+            &FOLDERID_LocalAppData,
+            PH_KF_FLAG_FORCE_APPCONTAINER_REDIRECTION,
+            TokenHandle,
+            NULL
+            );
 
+#ifdef DEBUG
         if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
         {
             if (GetAppContainerFolderPath_Import())
             {
+                PPH_STRING appContainerSid = PhSidToStringSid(TokenAppContainerSid);
+        
                 if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
                 {
-                    appContainerFolderPath = PhCreateString(folderPath);
+                    assert(PhEqualString2(appContainerFolderPath, folderPath, TRUE));
                     CoTaskMemFree(folderPath);
                 }
+        
+                PhDereferenceObject(appContainerSid);
             }
-
+        
             PhRevertImpersonationToken(NtCurrentThread());
         }
-
-        PhDereferenceObject(appContainerSid);
+#endif
 
         // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
         if (PhIsNullOrEmptyString(appContainerFolderPath))
@@ -3626,9 +3628,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
         {
             HANDLE tokenHandle;
             BOOLEAN isLessPrivilegedAppContainer = FALSE;
-            WCHAR appContainerNumberString[PH_INT64_STR_LEN_1] = L"Unknown";
             PPH_STRING tokenNamedObjectPathString = NULL;
-            HANDLE processHandle;
 
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -3666,27 +3666,25 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
                 APPCONTAINER_SID_TYPE appContainerSidType = InvalidAppContainerSidType;
+                PSID appContainerSid;
                 PSID appContainerSidParent = NULL;
                 PPH_STRING appContainerName = NULL;
-                PPH_STRING appContainerSid = NULL;
+                PPH_STRING appContainerSidString = NULL;
                 ULONG appContainerNumber;
+                PPH_STRING packageFullName;
+                PPH_STRING packagePath;
 
-                if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
                 {
-                    if (appContainerInfo->TokenAppContainer)
-                    {
-                        if (RtlGetAppContainerSidType_Import())
-                            RtlGetAppContainerSidType_Import()(appContainerInfo->TokenAppContainer, &appContainerSidType);
-                        if (RtlGetAppContainerParent_Import())
-                            RtlGetAppContainerParent_Import()(appContainerInfo->TokenAppContainer, &appContainerSidParent);
+                    if (RtlGetAppContainerSidType_Import())
+                        RtlGetAppContainerSidType_Import()(appContainerSid, &appContainerSidType);
+                    if (RtlGetAppContainerParent_Import())
+                        RtlGetAppContainerParent_Import()(appContainerSid, &appContainerSidParent);
 
-                        appContainerName = PhGetAppContainerName(appContainerInfo->TokenAppContainer);
-                        appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
-                    }
-
-                    PhFree(appContainerInfo);
+                    appContainerName = PhGetAppContainerName(appContainerSid);
+                    appContainerSidString = PhSidToStringSid(appContainerSid);
+                    PhFree(appContainerSid);
                 }
 
                 if (appContainerName)
@@ -3703,50 +3701,24 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 case ParentAppContainerSidType:
                     PhSetListViewSubItem(context->ListViewHandle, 1, 1, L"Parent");
                     break;
-                default:
-                    PhSetListViewSubItem(context->ListViewHandle, 1, 1, L"Unknown");
-                    break;
                 }
 
-                if (appContainerSid)
+                if (appContainerSidString)
                 {
-                    PhSetListViewSubItem(context->ListViewHandle, 2, 1, appContainerSid->Buffer);
-                    PhDereferenceObject(appContainerSid);
+                    PhSetListViewSubItem(context->ListViewHandle, 2, 1, appContainerSidString->Buffer);
+                    PhDereferenceObject(appContainerSidString);
                 }
 
                 if (NT_SUCCESS(PhGetTokenAppContainerNumber(tokenHandle, &appContainerNumber)))
                 {
-                    PhPrintUInt32(appContainerNumberString, appContainerNumber);
-                    PhSetListViewSubItem(context->ListViewHandle, 3, 1, appContainerNumberString);
+                    WCHAR string[PH_INT64_STR_LEN_1] = L"Unknown";
+
+                    PhPrintUInt32(string, appContainerNumber);
+                    PhSetListViewSubItem(context->ListViewHandle, 3, 1, string);
                 }
 
-                // TODO: TokenIsLessPrivilegedAppContainer
                 {
-                    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://NOALLAPPPKG");
-                    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
-
-                    if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
-                    {
-                        for (ULONG i = 0; i < info->AttributeCount; i++)
-                        {
-                            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-                            PH_STRINGREF attributeNameSr;
-
-                            PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
-
-                            if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
-                            {
-                                if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_UINT64)
-                                {
-                                    isLessPrivilegedAppContainer = TRUE; // (*attribute->Values.pUint64 == 1);
-                                    break;
-                                }
-                            }
-                        }
-
-                        PhFree(info);
-                    }
-
+                    PhGetTokenIsLessPrivilegedAppContainer(tokenHandle, &isLessPrivilegedAppContainer);
                     PhSetListViewSubItem(context->ListViewHandle, 4, 1, isLessPrivilegedAppContainer ? L"True" : L"False");
                 }
 
@@ -3764,28 +3736,16 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                         PhDereferenceObject(appContainerName);
                     }
 
-                    if (appContainerSid = PhSidToStringSid(appContainerSidParent))
+                    if (appContainerSidString = PhSidToStringSid(appContainerSidParent))
                     {
-                        PhSetListViewSubItem(context->ListViewHandle, 7, 1, appContainerSid->Buffer);
-                        PhDereferenceObject(appContainerSid);
+                        PhSetListViewSubItem(context->ListViewHandle, 7, 1, appContainerSidString->Buffer);
+                        PhDereferenceObject(appContainerSidString);
                     }
 
                     RtlFreeSid(appContainerSidParent);
                 }
 
-                NtClose(tokenHandle);
-            }
-
-            if (NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_LIMITED_INFORMATION,
-                tokenPageContext->Context // ProcessId
-                )))
-            {
-                PPH_STRING packageFullName;
-                PPH_STRING packagePath;
-
-                if (packageFullName = PhGetProcessPackageFullName(processHandle))
+                if (packageFullName = PhGetTokenPackageFullName(tokenHandle))
                 {
                     PhSetListViewSubItem(context->ListViewHandle, 8, 1, packageFullName->Buffer);
 
@@ -3798,7 +3758,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                     PhDereferenceObject(packageFullName);
                 }
 
-                NtClose(processHandle);
+                NtClose(tokenHandle);
             }
 
             if (NT_SUCCESS(tokenPageContext->OpenObject(
@@ -3807,14 +3767,14 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+                PSID appContainerSid;
                 PPH_STRING appContainerFolderPath = NULL;
                 PPH_STRING appContainerRegistryPath = NULL;
 
-                if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
+                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
                 {
-                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, appContainerInfo->TokenAppContainer);
-                    PhFree(appContainerInfo);
+                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, appContainerSid);
+                    PhFree(appContainerSid);
                 }
                 else
                 {
