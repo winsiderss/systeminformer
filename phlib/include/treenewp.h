@@ -809,8 +809,6 @@ BOOLEAN PhTnpGetColumnHeaderText(
 
 // Macros
 
-#define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
-
 #define TNP_CELL_LEFT_MARGIN 6
 #define TNP_CELL_RIGHT_MARGIN 6
 #define TNP_ICON_RIGHT_PADDING 4
