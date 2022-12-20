@@ -16,6 +16,7 @@
 #include <processsnapshot.h>
 #include <sddl.h>
 #include <shellapi.h>
+#include <shellscalingapi.h>
 #include <shlobj.h>
 #include <winsta.h>
 
@@ -361,7 +362,7 @@ LONG PhGetDpiValue(
         LONG dpi_x;
 
         if (screenHdc = GetDC(NULL))
-        {          
+        {
             dpi_x = GetDeviceCaps(screenHdc, LOGPIXELSX);
             ReleaseDC(NULL, screenHdc);
             return dpi_x;
@@ -408,8 +409,8 @@ LONG PhGetSystemMetrics(
 
 BOOL PhGetSystemParametersInfo(
     _In_ INT Action,
-	_In_ UINT Param1,
-	_Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_ UINT Param1,
+    _Pre_maybenull_ _Post_valid_ PVOID Param2,
     _In_opt_ LONG DpiValue
     )
 {
@@ -3553,7 +3554,7 @@ PPH_STRING PhGetApplicationDataFileName(
 //}
 
 PPH_STRING PhGetKnownFolderPath(
-    _In_ REFKNOWNFOLDERID Folder,
+    _In_ PGUID Folder,
     _In_opt_ PWSTR AppendPath
     )
 {
@@ -3566,7 +3567,7 @@ static const PH_FLAG_MAPPING PhpKnownFolderFlagMappings[] =
 };
 
 PPH_STRING PhGetKnownFolderPathEx(
-    _In_ REFKNOWNFOLDERID Folder,
+    _In_ PGUID Folder,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
     _In_opt_ PWSTR AppendPath

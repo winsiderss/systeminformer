@@ -21,6 +21,7 @@
 #include <math.h>
 #include <commoncontrols.h>
 #include <shellapi.h>
+#include <shellscalingapi.h>
 #include <uxtheme.h>
 #include <wincodec.h>
 
@@ -104,18 +105,15 @@ PVOID PhOpenThemeData(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (WindowsVersion >= WINDOWS_10_RS1)
+        PVOID baseAddress;
+
+        if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+            baseAddress = PhLoadLibrary(L"uxtheme.dll");
+
+        if (baseAddress)
         {
-            PVOID baseAddress;
-
-            if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
-                baseAddress = PhLoadLibrary(L"uxtheme.dll");
-
-            if (baseAddress)
-            {
-                OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
-                OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
-            }
+            OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
+            OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
         }
 
         PhEndInitOnce(&initOnce);
@@ -501,7 +499,7 @@ PPH_STRING PhGetComboBoxString(
     )
 {
     PPH_STRING string;
-    ULONG length;
+    INT length;
 
     if (Index == -1)
     {
