@@ -521,15 +521,15 @@ PVOID PhOpenThemeData(
 
             if (baseAddress)
             {
-                if (!(OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0)))
-                    OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDat", 0);
+                OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
+                OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
             }
         }
 
         PhEndInitOnce(&initOnce);
     }
 
-    if (OpenThemeDataForDpi_I)
+    if (OpenThemeDataForDpi_I && DpiValue)
         return OpenThemeDataForDpi_I(WindowHandle, ClassList, DpiValue);
     if (OpenThemeData_I)
         return OpenThemeData_I(WindowHandle, ClassList);
