@@ -1832,6 +1832,11 @@ CleanupExit:
         *EventTraceSize = capturedElementSize;
         *EventTraceCount = capturedElementCount;
     }
+    else
+    {
+        if (capturedEventTrace)
+            PhFree(capturedEventTrace);
+    }
 
     return status;
 }
