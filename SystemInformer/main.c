@@ -14,6 +14,7 @@
 #include <colorbox.h>
 #include <hexedit.h>
 #include <hndlinfo.h>
+#include <objbase.h>
 
 #include <extmgri.h>
 #include <mainwnd.h>
