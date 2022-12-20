@@ -1430,6 +1430,17 @@ PhOffsetRect(
     Rect->bottom += dy;
 }
 
+FORCEINLINE
+BOOLEAN
+PhPtInRect(
+    _In_ PRECT Rect,
+    _In_ POINT Point
+    )
+{
+    return Point.x >= Rect->left && Point.x < Rect->right && 
+        Point.y >= Rect->top && Point.y < Rect->bottom;
+}
+
 EXTERN_C_END
 
 #endif
