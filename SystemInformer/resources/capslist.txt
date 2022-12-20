@@ -729,6 +729,7 @@ gamingContainerResources
 gazeInput
 globalMediaControl
 graphicsCapture
+graphicsCaptureWithoutBorder
 hevcPlayback
 hfxSystem
 hidTelephony
