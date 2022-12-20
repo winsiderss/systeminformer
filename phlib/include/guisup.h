@@ -38,6 +38,8 @@ typedef HANDLE HTHEME;
 #define DCX_USESTYLE 0x00010000
 #define DCX_NODELETERGN 0x00040000
 
+#define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
+
 PHLIBAPI
 VOID PhGuiSupportInitialization(
     VOID
