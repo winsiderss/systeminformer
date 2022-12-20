@@ -264,6 +264,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Processing live kernel dump...";
     config.pszContent = L" ";
+    config.cxWidth = 200;
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
