@@ -643,7 +643,7 @@ PPH_STRING PhGetPackageAppDataPath(
             NULL
             );
 
-        //if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
+        //if (NT_SUCCESS(PhGetTokenSecurityAttributes(tokenHandle, &info)))
         //{
         //    for (ULONG i = 0; i < info->AttributeCount; i++)
         //    {
@@ -686,92 +686,6 @@ PPH_STRING PhGetPackageAppDataPath(
     }
 
     return packageAppDataPath;
-}
-
-// rev from PackageIdFromFullName (dmex)
-PPH_STRING PhGetProcessPackageFullName(
-    _In_ HANDLE ProcessHandle
-    )
-{
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    HANDLE tokenHandle;
-    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
-    PPH_STRING packageName = NULL;
-
-    if (NT_SUCCESS(PhOpenProcessToken(
-        ProcessHandle,
-        TOKEN_QUERY,
-        &tokenHandle
-        )))
-    {
-        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
-        {
-            for (ULONG i = 0; i < info->AttributeCount; i++)
-            {
-                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-
-                if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
-                {
-                    PH_STRINGREF attributeNameSr;
-
-                    PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
-
-                    if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
-                    {
-                        packageName = PhCreateStringFromUnicodeString(&attribute->Values.pString[0]);
-                        break;
-                    }
-                }
-            }
-
-            PhFree(info);
-        }
-
-        NtClose(tokenHandle);
-    }
-
-    return packageName;
-}
-
-BOOLEAN PhIsTokenFullTrustAppPackage(
-    _In_ HANDLE TokenHandle
-    )
-{
-    static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
-    BOOLEAN tokenIsAppContainer = FALSE;
-    BOOLEAN tokenHasAppId = FALSE;
-
-    if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)))
-    {
-        if (tokenIsAppContainer)
-            return FALSE;
-    }
-
-    if (NT_SUCCESS(PhQueryTokenVariableSize(TokenHandle, TokenSecurityAttributes, &info)))
-    {
-        for (ULONG i = 0; i < info->AttributeCount; i++)
-        {
-            PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-
-            if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
-            {
-                PH_STRINGREF attributeNameSr;
-
-                PhUnicodeStringToStringRef(&attribute->Name, &attributeNameSr);
-
-                if (PhEqualStringRef(&attributeNameSr, &attributeName, FALSE))
-                {
-                    tokenHasAppId = TRUE;
-                    break;
-                }
-            }
-        }
-
-        PhFree(info);
-    }
-
-    return tokenHasAppId;
 }
 
 BOOLEAN PhIsPackageCapabilitySid(

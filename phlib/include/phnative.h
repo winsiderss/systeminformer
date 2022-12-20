@@ -492,6 +492,60 @@ PhGetTokenTrustLevel(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetTokenAppContainerSid(
+    _In_ HANDLE TokenHandle,
+    _Out_ PSID* AppContainerSid
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenSecurityAttributes(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsTokenFullTrustAppContainer(
+    _In_ HANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIsLessPrivilegedAppContainer(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsLessPrivilegedAppContainer
+    );
+
+PHLIBAPI
+ULONG64
+NTAPI
+PhGetTokenSecurityAttributeValueUlong64(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG ValueIndex
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetTokenPackageFullName(
+    _In_ HANDLE TokenHandle
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetProcessPackageFullName(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetTokenNamedObjectPath(
     _In_ HANDLE TokenHandle,
     _In_opt_ PSID Sid,
