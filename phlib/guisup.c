@@ -2486,8 +2486,7 @@ HIMAGELIST PhImageListCreate(
     if (FAILED(status))
         return NULL;
 
-    // Win32 HIMAGELIST is always a pointer to the IImageList interface. (dmex)
-    return (HIMAGELIST)imageList;
+    return IImageListToHIMAGELIST(imageList);
 }
 
 BOOLEAN PhImageListDestroy(
