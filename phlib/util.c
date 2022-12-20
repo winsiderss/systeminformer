@@ -475,96 +475,19 @@ VOID PhGetSizeDpiValue(
     rectangle.Width = rect->right - rect->left;
     rectangle.Height = rect->bottom - rect->top;
 
-    if(rectangle.Left)
+    if (rectangle.Left)
         rectangle.Left = PhMultiplyDivideSigned(rectangle.Left, numerator, denominator);
-
-    if(rectangle.Top)
+    if (rectangle.Top)
         rectangle.Top = PhMultiplyDivideSigned(rectangle.Top, numerator, denominator);
-
-    if(rectangle.Width)
+    if (rectangle.Width)
         rectangle.Width = PhMultiplyDivideSigned(rectangle.Width, numerator, denominator);
-
-    if(rectangle.Height)
+    if (rectangle.Height)
         rectangle.Height = PhMultiplyDivideSigned(rectangle.Height, numerator, denominator);
 
     rect->left = rectangle.Left;
     rect->top = rectangle.Top;
     rect->right = rectangle.Left + rectangle.Width;
     rect->bottom = rectangle.Top + rectangle.Height;
-}
-
-PVOID PhOpenThemeData(
-    _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ClassList,
-    _In_ LONG DpiValue
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HTHEME (WINAPI* OpenThemeDataForDpi_I)(
-        _In_opt_ HWND WindowHandle,
-        _In_ PCWSTR ClassList,
-        _In_ UINT DpiValue
-        ) = NULL;
-    static HTHEME (WINAPI* OpenThemeData_I)(
-        _In_opt_ HWND WindowHandle,
-        _In_ PCWSTR ClassList
-        ) = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        if (WindowsVersion >= WINDOWS_10_RS1)
-        {
-            PVOID baseAddress;
-
-            if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
-                baseAddress = PhLoadLibrary(L"uxtheme.dll");
-
-            if (baseAddress)
-            {
-                OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
-                OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
-            }
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (OpenThemeDataForDpi_I && DpiValue)
-        return OpenThemeDataForDpi_I(WindowHandle, ClassList, DpiValue);
-    if (OpenThemeData_I)
-        return OpenThemeData_I(WindowHandle, ClassList);
-
-    return NULL;
-}
-
-VOID PhCloseThemeData(
-    _In_ PVOID ThemeHandle
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HTHEME (WINAPI* CloseThemeData_I)(
-        _In_ HTHEME hTheme
-        ) = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID baseAddress;
-
-        if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
-            baseAddress = PhLoadLibrary(L"uxtheme.dll");
-
-        if (baseAddress)
-        {
-            CloseThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "CloseThemeData", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (CloseThemeData_I)
-    {
-        CloseThemeData_I(ThemeHandle);
-    }
 }
 
 // rev from GetSystemDefaultLCID

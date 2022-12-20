@@ -85,6 +85,80 @@ VOID PhSetControlTheme(
     SetWindowTheme(Handle, Theme, NULL);
 }
 
+PVOID PhOpenThemeData(
+    _In_opt_ HWND WindowHandle,
+    _In_ PCWSTR ClassList,
+    _In_ LONG DpiValue
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HTHEME (WINAPI* OpenThemeDataForDpi_I)(
+        _In_opt_ HWND WindowHandle,
+        _In_ PCWSTR ClassList,
+        _In_ UINT DpiValue
+        ) = NULL;
+    static HTHEME (WINAPI* OpenThemeData_I)(
+        _In_opt_ HWND WindowHandle,
+        _In_ PCWSTR ClassList
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS1)
+        {
+            PVOID baseAddress;
+
+            if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+                baseAddress = PhLoadLibrary(L"uxtheme.dll");
+
+            if (baseAddress)
+            {
+                OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
+                OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (OpenThemeDataForDpi_I && DpiValue)
+        return OpenThemeDataForDpi_I(WindowHandle, ClassList, DpiValue);
+    if (OpenThemeData_I)
+        return OpenThemeData_I(WindowHandle, ClassList);
+
+    return NULL;
+}
+
+VOID PhCloseThemeData(
+    _In_ PVOID ThemeHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HTHEME (WINAPI* CloseThemeData_I)(
+        _In_ HTHEME hTheme
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+            baseAddress = PhLoadLibrary(L"uxtheme.dll");
+
+        if (baseAddress)
+        {
+            CloseThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "CloseThemeData", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (CloseThemeData_I)
+    {
+        CloseThemeData_I(ThemeHandle);
+    }
+}
+
 INT PhAddListViewColumn(
     _In_ HWND ListViewHandle,
     _In_ INT Index,

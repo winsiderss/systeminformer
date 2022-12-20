@@ -41,14 +41,34 @@ typedef HANDLE HTHEME;
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
 
 PHLIBAPI
-VOID PhGuiSupportInitialization(
+VOID
+NTAPI
+PhGuiSupportInitialization(
     VOID
     );
 
 PHLIBAPI
-VOID PhSetControlTheme(
+VOID
+NTAPI
+PhSetControlTheme(
     _In_ HWND Handle,
     _In_ PWSTR Theme
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhOpenThemeData(
+    _In_opt_ HWND WindowHandle,
+    _In_ PCWSTR ClassList,
+    _In_ LONG DpiValue
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhCloseThemeData(
+    _In_ PVOID ThemeHandle
     );
 
 FORCEINLINE LONG_PTR PhGetWindowStyle(

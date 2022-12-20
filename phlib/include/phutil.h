@@ -216,22 +216,6 @@ PhGetSizeDpiValue(
     _In_ BOOLEAN isUnpack
     );
 
-PHLIBAPI
-PVOID
-NTAPI
-PhOpenThemeData(
-    _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ClassList,
-    _In_ LONG DpiValue
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhCloseThemeData(
-    _In_ PVOID ThemeHandle
-    );
-
 // NLS
 
 PHLIBAPI
