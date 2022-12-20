@@ -224,9 +224,7 @@ typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 
 #pragma warning(pop)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 VOID KphMsgInit(
     _Out_writes_bytes_(KPH_MESSAGE_MIN_SIZE) PKPH_MESSAGE Message,
@@ -238,6 +236,4 @@ NTSTATUS KphMsgValidate(
     _In_ PCKPH_MESSAGE Message
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END

@@ -12,9 +12,7 @@
 #ifndef _PH_PHJSON_H
 #define _PH_PHJSON_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 typedef struct _JSON_ARRAY_LIST_OBJECT
 {
@@ -475,8 +473,6 @@ PPH_XML_INTERFACE PhGetXmlInterface(
     _In_ ULONG Version
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

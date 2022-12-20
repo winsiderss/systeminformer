@@ -1,9 +1,7 @@
 #ifndef _PH_PHNATIVE_H
 #define _PH_PHNATIVE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 /** The PID of the idle process. */
 #define SYSTEM_IDLE_PROCESS_ID ((HANDLE)0)
@@ -2438,8 +2436,6 @@ PhDeviceIoControlFile(
     _Out_opt_ PULONG ReturnLength
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

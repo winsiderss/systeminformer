@@ -1,9 +1,7 @@
 #ifndef _PH_PHNET_H
 #define _PH_PHNET_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define __WINDOT11_H__ // temporary preprocessor workaround (dmex)
 
@@ -434,8 +432,6 @@ PhDnsFree(
     _In_ PDNS_RECORD DnsRecordList
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif
