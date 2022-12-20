@@ -2762,7 +2762,7 @@ PTOKEN_SECURITY_ATTRIBUTE_V1 PhFindTokenSecurityAttributeName(
     return NULL;
 }
 
-BOOLEAN PhIsTokenFullTrustAppContainer(
+BOOLEAN PhIsTokenFullTrustPackage(
     _In_ HANDLE TokenHandle
     )
 {
