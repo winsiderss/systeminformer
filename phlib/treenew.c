@@ -6825,6 +6825,17 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             return result;
         }
         break;
+    case WM_THEMECHANGED:
+        {
+            if (context->HeaderThemeHandle)
+            {
+                PhCloseThemeData(context->HeaderThemeHandle);
+                context->HeaderThemeHandle = NULL;
+            }
+
+            context->HeaderThemeHandle = PhOpenThemeData(hwnd, VSCLASS_HEADER, PhGetWindowDpi(hwnd));
+        }
+        break;
     case WM_PAINT:
         {
             RECT clientRect;
