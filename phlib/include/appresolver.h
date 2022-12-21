@@ -27,7 +27,7 @@ BOOLEAN PhAppResolverGetAppIdForWindow(
     );
 
 HRESULT PhAppResolverActivateAppId(
-    _In_ PPH_STRING AppUserModelId,
+    _In_ PPH_STRING ApplicationUserModelId,
     _In_opt_ PWSTR CommandLine,
     _Out_opt_ HANDLE *ProcessId
     );
@@ -69,6 +69,14 @@ PPH_STRING PhGetPackagePath(
 
 PPH_LIST PhGetPackageAssetsFromResourceFile(
     _In_ PWSTR FilePath
+    );
+
+BOOLEAN PhAppResolverGetPackageIcon(
+    _In_ HANDLE ProcessId,
+    _In_ PPH_STRING PackageFullName,
+    _Out_opt_ HICON* IconLarge,
+    _Out_opt_ HICON* IconSmall,
+    _In_ LONG SystemDpi
     );
 
 // Immersive PLM task support

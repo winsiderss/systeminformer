@@ -15,7 +15,6 @@
 #include <guisup.h>
 #include <mapimg.h>
 #include <settings.h>
-#include <fastlock.h>
 #include <guisupp.h>
 
 #include <math.h>
@@ -89,7 +88,7 @@ VOID PhSetControlTheme(
 PVOID PhOpenThemeData(
     _In_opt_ HWND WindowHandle,
     _In_ PCWSTR ClassList,
-    _In_ LONG DpiValue
+    _In_ LONG WindowDpi
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -119,8 +118,8 @@ PVOID PhOpenThemeData(
         PhEndInitOnce(&initOnce);
     }
 
-    if (OpenThemeDataForDpi_I && DpiValue)
-        return OpenThemeDataForDpi_I(WindowHandle, ClassList, DpiValue);
+    if (OpenThemeDataForDpi_I && WindowDpi)
+        return OpenThemeDataForDpi_I(WindowHandle, ClassList, WindowDpi);
     if (OpenThemeData_I)
         return OpenThemeData_I(WindowHandle, ClassList);
 
@@ -738,7 +737,7 @@ HICON PhLoadIcon(
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
     _In_opt_ ULONG Height,
-    _In_opt_ LONG DpiValue
+    _In_opt_ LONG SystemDpi
     )
 {
     PHP_ICON_ENTRY entry;
@@ -762,7 +761,7 @@ HICON PhLoadIcon(
         entry.Name = Name;
         entry.Width = PhpGetIconEntrySize(Width, Flags);
         entry.Height = PhpGetIconEntrySize(Height, Flags);
-        entry.DpiValue = DpiValue;
+        entry.DpiValue = SystemDpi;
         actualEntry = PhFindEntryHashtable(SharedIconCacheHashtable, &entry);
 
         if (actualEntry)
@@ -777,13 +776,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CYICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
         }
 
         if (LoadIconWithScaleDown)
@@ -801,13 +800,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CYICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
         }
 
         icon = LoadImage(ImageBaseAddress, Name, IMAGE_ICON, width, height, 0);
@@ -2373,7 +2372,7 @@ BOOLEAN PhExtractIconEx(
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall,
-    _In_ LONG dpiValue
+    _In_ LONG SystemDpi
     )
 {
     NTSTATUS status;
@@ -2458,8 +2457,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXICON, dpiValue),
-                PhGetSystemMetrics(SM_CYICON, dpiValue),
+                PhGetSystemMetrics(SM_CXICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYICON, SystemDpi),
                 LR_DEFAULTCOLOR
                 );
         }
@@ -2470,8 +2469,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
                 LR_DEFAULTCOLOR
                 );
         }

@@ -521,7 +521,7 @@ VOID PhpServiceQueryStage1(
         {
             dpiValue = PhGetSystemDpi();
 
-            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName, FALSE, dpiValue);
+            Data->IconEntry = PhImageListExtractIcon(serviceItem->FileName, FALSE, 0, NULL, dpiValue);
         }
 
         // Version info.
