@@ -1275,7 +1275,7 @@ PhLoadImageFromFile(
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 PHLIBAPI extern HFONT PhMonospaceFont; // phapppub
-PHLIBAPI extern HBRUSH PhMenuBackgroundBrush;
+PHLIBAPI extern HBRUSH PhThemeWindowBackgroundBrush;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
 extern COLORREF PhThemeWindowTextColor;
@@ -1330,6 +1330,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhThemeWindowDrawItem(
+    _In_ HWND WindowHandle,
     _In_ PDRAWITEMSTRUCT DrawInfo
     );
 

@@ -2878,7 +2878,7 @@ VOID PhCustomDrawTreeTimeLine(
     }
 
     if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
-        FillRect(Hdc, &rect, PhMenuBackgroundBrush);
+        FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
     else
         FillRect(Hdc, &rect, GetSysColorBrush(COLOR_WINDOW));
 
@@ -2887,7 +2887,7 @@ VOID PhCustomDrawTreeTimeLine(
 
     if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
     {
-        FillRect(Hdc, &rect, PhMenuBackgroundBrush);
+        FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
 
         if (Flags & PH_DRAW_TIMELINE_OVERFLOW) // System threads created before startup. (dmex)
             SetDCBrushColor(Hdc, percent > 100.f ? RGB(128, 128, 128) : RGB(0, 130, 135));

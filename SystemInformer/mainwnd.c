@@ -1987,7 +1987,7 @@ VOID PhMwpOnInitMenuPopup(
     if (PhEnableThemeSupport)
     {
         menuInfo.fMask |= MIM_BACKGROUND;
-        menuInfo.hbrBack = PhMenuBackgroundBrush;
+        menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
     }
 
     SetMenuInfo(Menu, &menuInfo);
