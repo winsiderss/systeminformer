@@ -36,5 +36,11 @@ if %ERRORLEVEL% neq 0 goto end
 msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=x64 -verbosity:normal
 if %ERRORLEVEL% neq 0 goto end
 
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Debug -property:Platform=ARM64 -verbosity:normal
+if %ERRORLEVEL% neq 0 goto end
+
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=Release -property:Platform=ARM64 -verbosity:normal
+if %ERRORLEVEL% neq 0 goto end
+
 :end
 pause

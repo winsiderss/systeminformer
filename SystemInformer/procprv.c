@@ -2020,6 +2020,95 @@ VOID PhpGetProcessThreadInformation(
         *ProcessorQueueLength = processorQueueLength;
 }
 
+#if _M_ARM64
+VOID PhpEstimateIdleCyclesForARM(
+    _Inout_ PULONG64 TotalCycles,
+    _Inout_ PULONG64 IdleCycles
+    )
+{
+    // EXPERIMENTAL (jxy-s)
+    //
+    // The kernel uses PMCCNTR_EL0 for CycleTime in threads and the processor control blocks.
+    // Here is a snippet from ntoskrnl!KiIdleLoop:
+    /*
+00000001`404f45a0 d53b9d0b mrs         x11,PMCCNTR_EL0    // x11 gets current cycle count
+00000001`404f45a4 f947a668 ldr         x8,[x19,#0xF48]    // x8 gets _KPRCB.StartCycles
+00000001`404f45a8 cb08016a sub         x10,x11,x8         // x10 gets relative cycles from StartCycle to current cycle count
+00000001`404f45ac f94026a9 ldr         x9,[x21,#0x48]     // x9 gets _KPRCB.IdleThread.CycleTime
+00000001`404f45b0 8b0a0128 add         x8,x9,x10          // x8 gets idle thread cycle time (x9) plus cycle increment (x10)
+00000001`404f45b4 f90026a8 str         x8,[x21,#0x48]     // stores new idle thread cycle time in _KPRCB.IdleThread.CycleTime
+00000001`404f45b8 f907a66b str         x11,[x19,#0xF48]   // stores the last cycle time fetch in the _KPRCB.StartCycles
+    */
+    // The idle logic in the HAL is here:
+    /*
+ntoskrnl!HalProcessorIdle:
+00000001`4048fbf0 d503237f pacibsp
+00000001`4048fbf4 a9bf7bfd stp         fp,lr,[sp,#-0x10]!
+00000001`4048fbf8 910003fd mov         fp,sp
+00000001`4048fbfc 940013df bl          ntoskrnl!HalpTimerResetProfileAdjustment (00000001`40494b78)
+00000001`4048fc00 d5033f9f dsb         sy
+00000001`4048fc04 d503207f wfi
+00000001`4048fc08 a8c17bfd ldp         fp,lr,[sp],#0x10
+00000001`4048fc0c d50323ff autibsp
+00000001`4048fc10 d65f03c0 ret
+    */
+    // This dictates that the CPU should enter WFI (Wait For Interrupt) mode. In this mode the
+    // CPU clock is disabled and the PMCCNTR register is not being updated, from the docs: 
+    /*
+All counters are subject to any changes in clock frequency, including clock stopping caused by
+the WFI and WFE instructions. This means that it is CONSTRAINED UNPREDICTABLE whether or not
+PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instructions.
+    */
+    // Arguably, the kernel is doing the right thing here, the idle threads are taking less cycle 
+    // time and the KTHREAD reflects this accurately. However, due to the way cycle-based CPU
+    // usage is implemented for other architectures it assumes on the idle thread cycles are
+    // the cycles *not* spent using the CPU, this assumption is incorrect for ARM.
+    //
+    // The most accurate represetnation of the utilization of the CPU for ARM would show
+    // the idle process CPU usage *below* what is "not being used" by other processes. Since
+    // this would indicate the idle thread being in the WFI state and not using CPU cycles.
+    // For cycle-based CPU to make sense for ARM, we need a way to get or estimate the amount
+    // of cycles the CPU would have used by the idle threads if WFI was mode was not entered.
+    //
+    // This experimental estimate achieves that. It will show the idle process utilization 
+    // accurately (given the estimate and what the kernel tracks/reports), and generally retain
+    // the cycle-based CPU benefits. Arguably, we are in some capacity reverting to the
+    // time-based CPU usage calculation by relying on the time to generate the estimate, but
+    // again it comes with the benefit of more realistically reporting the idle threads given 
+    // what is tracked/reported by the kernel. 
+    //
+    // let x = Unknown Idle Cycles
+    // let y = "Total" Cycles (missing idle cycles)
+    // let a = Time Idle
+    // let b = Time Kernel
+    // let c = Time User
+    //
+    // x / (y + x) = CycleUsage
+    // a / (a + b + c) = TimeUsage
+    //
+    // Assume: CycleUsage ~= TimeUsage
+    // Then:  x / (y + x) ~= a / (a + b + c)
+    //
+    // We know y, a, b, and c. So we need to solve for x.
+    //
+    // x / (y + x) ~= a / (a + b + c)
+    //
+    // x ~= a * (y + x) / (a + b + c)
+    // x * (a + b + c) ~= a * (y + x)
+    // x * (a + b + c) ~= (a * y) + (a * x)
+    // x * (a + b + c) - (a * x) ~= (a * y)
+    // x * ((a + b + c) - a) ~= (a * y)
+    // x ~= (a * y) / ((a + b + c) - a)
+    // 
+    // x ~= (a * y) / (b + c)
+    //
+    *IdleCycles = (PhCpuIdleCycleDelta.Delta * *TotalCycles) / (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta);
+
+    // We still need to add in the idle cycle time to the "total" since it wasn't complete yet.
+    *TotalCycles += *IdleCycles;
+}
+#endif
+
 VOID PhProcessProviderUpdate(
     _In_ PVOID Object
     )
@@ -2138,7 +2227,11 @@ VOID PhProcessProviderUpdate(
         process->UniqueProcessKey = (ULONG_PTR)pidBuckets[bucketIndex];
         pidBuckets[bucketIndex] = process;
 
+#if _M_ARM64 // see: PhpEstimateIdleCyclesForARM (jxy-s)
+        if (PhEnableCycleCpuUsage && process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
+#else
         if (PhEnableCycleCpuUsage)
+#endif
         {
             PPH_PROCESS_ITEM processItem;
 
@@ -2287,6 +2380,10 @@ VOID PhProcessProviderUpdate(
             PhDereferenceObject(processesToRemove);
         }
     }
+
+#if _M_ARM64
+    PhpEstimateIdleCyclesForARM(&sysTotalCycleTime, &sysIdleCycleTime);
+#endif
 
     // Go through the queued process query data.
     PhFlushProcessQueryData();

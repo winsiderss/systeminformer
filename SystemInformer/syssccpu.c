@@ -1093,12 +1093,14 @@ VOID PhSipUpdateCpuPanel(
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
     ULONG logicalInformationLength = 0;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
-#ifndef _ARM64_
     LARGE_INTEGER performanceCounterStart;
     LARGE_INTEGER performanceCounterEnd;
     LARGE_INTEGER performanceCounterTicks;
     ULONG64 timeStampCounterStart;
     ULONG64 timeStampCounterEnd;
+#if _M_ARM64
+    ULONG64 tid;
+#else
     INT cpubrand[4];
 #endif
     PH_FORMAT format[5];
@@ -1294,20 +1296,31 @@ VOID PhSipUpdateCpuPanel(
             PhSetWindowText(CpuPanelLogicalLabel, PhaFormatUInt64(processorLogicalCount, TRUE)->Buffer);
     }
 
-#ifndef _ARM64_
     // Do not optimize (dmex)
     PhQueryPerformanceCounter(&performanceCounterStart, NULL);
     timeStampCounterStart = PhReadTimeStampCounter();
     MemoryBarrier();
+#if _M_ARM64
+    tid = _ReadStatusReg(ARM64_TPIDRRO_EL0);
+#else
     CpuIdEx(cpubrand, 0, 0);
+#endif
     MemoryBarrier();
     timeStampCounterEnd = PhReadTimeStampCounter();
     MemoryBarrier();
     PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 
-    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 && cpubrand[0] == 0 && cpubrand[3] == 0)
+    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 &&
+#if _M_ARM64
+        tid == MAXULONG64
+#else
+        cpubrand[0] == 0 && cpubrand[3] == 0
+#endif
+        )
+    {
         performanceCounterTicks.QuadPart = 0;
+    }
 
     PhInitFormatI64UGroupDigits(&format[0], performanceCounterTicks.QuadPart);
     PhInitFormatS(&format[1], L" | ");
@@ -1317,9 +1330,6 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelLatencyLabel, formatBuffer);
     else
         PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(performanceCounterTicks.QuadPart, TRUE)->Buffer);
-#else
-    PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(PhTotalCpuQueueLength, TRUE)->Buffer);
-#endif
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(

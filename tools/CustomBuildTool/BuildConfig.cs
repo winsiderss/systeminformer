@@ -32,6 +32,7 @@ namespace CustomBuildTool
             "sdk\\dbg\\arm64",
             "sdk\\lib\\amd64",
             "sdk\\lib\\i386",
+            "sdk\\lib\\arm64",
             //"sdk\\samples\\SamplePlugin",
             //"sdk\\samples\\SamplePlugin\\bin\\Release32"
         };
