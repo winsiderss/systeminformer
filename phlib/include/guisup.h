@@ -1147,6 +1147,15 @@ PhImageListGetIcon(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhImageListGetIconSize(
+    _In_ HIMAGELIST ImageListHandle,
+    _Out_ PINT cx,
+    _Out_ PINT cy
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhImageListReplace(
     _In_ HIMAGELIST ImageListHandle,
     _In_ UINT Index,
