@@ -30,6 +30,7 @@ typedef struct _PHP_THEME_WINDOW_TAB_CONTEXT
 typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
 {
     WNDPROC DefaultWindowProc;
+    HTHEME ThemeHandle;
     BOOLEAN MouseActive;
     POINT CursorPos;
 } PHP_THEME_WINDOW_HEADER_CONTEXT, *PPHP_THEME_WINDOW_HEADER_CONTEXT;
@@ -572,6 +573,7 @@ VOID PhInitializeThemeWindowHeader(
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
     context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(HeaderWindow, GWLP_WNDPROC);
+    context->ThemeHandle = PhOpenThemeData(HeaderWindow, VSCLASS_HEADER, PhGetWindowDpi(HeaderWindow));
     context->CursorPos.x = LONG_MIN;
     context->CursorPos.y = LONG_MIN;
 
@@ -649,20 +651,20 @@ VOID PhInitializeThemeWindowEditControl(
 }
 
 VOID PhInitializeWindowThemeRebar(
-    _In_ HWND HeaderWindow
+    _In_ HWND RebarWindow
     )
 {
     PPHP_THEME_WINDOW_HEADER_CONTEXT context;
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(HeaderWindow, GWLP_WNDPROC);
+    context->DefaultWindowProc = (WNDPROC)GetWindowLongPtr(RebarWindow, GWLP_WNDPROC);
     context->CursorPos.x = LONG_MIN;
     context->CursorPos.y = LONG_MIN;
 
-    PhSetWindowContext(HeaderWindow, LONG_MAX, context);
-    SetWindowLongPtr(HeaderWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowRebarToolbarSubclassProc);
+    PhSetWindowContext(RebarWindow, LONG_MAX, context);
+    SetWindowLongPtr(RebarWindow, GWLP_WNDPROC, (LONG_PTR)PhpThemeWindowRebarToolbarSubclassProc);
 
-    InvalidateRect(HeaderWindow, NULL, FALSE);
+    InvalidateRect(RebarWindow, NULL, FALSE);
 }
 
 VOID PhInitializeWindowThemeMainMenu(
@@ -808,6 +810,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, WC_HEADER, TRUE))
     {
+        PhSetControlTheme(WindowHandle, L"DarkMode_ItemsView");
+
         PhInitializeThemeWindowHeader(WindowHandle);
     }
     else if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
@@ -1893,6 +1897,8 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
             SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
 
             LONG dpiValue;
+            INT bitmapWidth = 0;
+            INT bitmapHeight = 0;
 
             ULONG currentIndex = (ULONG)SendMessage(
                 DrawInfo->nmcd.hdr.hwndFrom,
@@ -2019,17 +2025,18 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     LONG x;
                     LONG y;
 
+                    PhImageListGetIconSize(toolbarImageList, &bitmapWidth, &bitmapHeight);
+
                     if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
                     {
-                        DrawInfo->nmcd.rc.left += PhGetDpi(5, dpiValue);
-
+                        DrawInfo->nmcd.rc.left += PhGetSystemMetrics(SM_CXEDGE, dpiValue); // PhGetDpi(5, dpiValue);
                         x = DrawInfo->nmcd.rc.left;// + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - PhSmallIconSize.X) / 2;
-                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhGetSystemMetrics(SM_CYSMICON, dpiValue)) / 2;
+                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - bitmapHeight) / 2;
                     }
                     else
                     {
-                        x = DrawInfo->nmcd.rc.left + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - PhGetSystemMetrics(SM_CXSMICON, dpiValue)) / 2;
-                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - PhGetSystemMetrics(SM_CYSMICON, dpiValue)) / 2;
+                        x = DrawInfo->nmcd.rc.left + ((DrawInfo->nmcd.rc.right - DrawInfo->nmcd.rc.left) - bitmapWidth) / 2;
+                        y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - bitmapHeight) / 2;
                     }
 
                     PhImageListDrawIcon(
@@ -2046,6 +2053,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
             if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
             {
+                RECT textRect = DrawInfo->nmcd.rc;
                 WCHAR buttonText[MAX_PATH] = L"";
 
                 SendMessage(
@@ -2055,12 +2063,12 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     (LPARAM)buttonText
                     );
 
-                DrawInfo->nmcd.rc.left += PhGetDpi(10, dpiValue);
+                textRect.left += bitmapWidth; // PhGetDpi(10, dpiValue);
                 DrawText(
                     DrawInfo->nmcd.hdc,
                     buttonText,
                     (UINT)PhCountStringZ(buttonText),
-                    &DrawInfo->nmcd.rc,
+                    &textRect,
                     DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
                     );
             }
@@ -2809,6 +2817,67 @@ VOID ThemeWindowRenderHeaderControl(
         if (!Header_GetItem(WindowHandle, i, &headerItem))
             continue;
 
+        if (headerItem.fmt & HDF_SORTUP)
+        {
+            if (Context->ThemeHandle)
+            {
+                RECT sortArrowRect = headerRect;
+                SIZE sortArrowSize;
+
+                if (GetThemePartSize(
+                    Context->ThemeHandle,
+                    bufferDc,
+                    HP_HEADERSORTARROW,
+                    HSAS_SORTEDUP,
+                    NULL,
+                    TS_TRUE,
+                    &sortArrowSize
+                    ) == S_OK)
+                {
+                    sortArrowRect.bottom = sortArrowSize.cy;
+                }
+
+                DrawThemeBackground(
+                    Context->ThemeHandle,
+                    bufferDc,
+                    HP_HEADERSORTARROW,
+                    HSAS_SORTEDUP,
+                    &sortArrowRect,
+                    NULL
+                    );
+            }
+        }
+        else if (headerItem.fmt & HDF_SORTDOWN)
+        {
+            if (Context->ThemeHandle)
+            {
+                RECT sortArrowRect = headerRect;
+                SIZE sortArrowSize;
+
+                if (GetThemePartSize(
+                    Context->ThemeHandle,
+                    bufferDc,
+                    HP_HEADERSORTARROW,
+                    HSAS_SORTEDDOWN,
+                    NULL,
+                    TS_TRUE,
+                    &sortArrowSize
+                    ) == S_OK)
+                {
+                    sortArrowRect.bottom = sortArrowSize.cy;
+                }
+
+                DrawThemeBackground(
+                    Context->ThemeHandle,
+                    bufferDc,
+                    HP_HEADERSORTARROW,
+                    HSAS_SORTEDDOWN,
+                    &sortArrowRect,
+                    NULL
+                    );
+            }
+        }
+
         if (headerItem.fmt & HDF_RIGHT)
             drawTextFlags |= DT_VCENTER | DT_RIGHT;
         else
@@ -2848,7 +2917,23 @@ LRESULT CALLBACK PhpThemeWindowHeaderSubclassProc(
             PhRemoveWindowContext(WindowHandle, LONG_MAX);
             SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
+            if (context->ThemeHandle)
+            {
+                PhCloseThemeData(context->ThemeHandle);
+            }
+
             PhFree(context);
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            if (context->ThemeHandle)
+            {
+                PhCloseThemeData(context->ThemeHandle);
+                context->ThemeHandle = NULL;
+            }
+
+            context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
         }
         break;
     case WM_ERASEBKGND:
