@@ -19,8 +19,6 @@
 #include <settings.h>
 
 #include <shobjidl.h>
-#include <uxtheme.h>
-#include <vssym32.h>
 
 #include "resource.h"
 #include <toolstatusintf.h>
@@ -110,7 +108,8 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG AutoHideMenu : 1;
         ULONG Reserved : 4;
         ULONG SearchAutoFocus : 1;
-        ULONG Spare : 20;
+        ULONG ToolBarLargeIcons : 1;
+        ULONG Spare : 19;
     };
 } TOOLSTATUS_CONFIG;
 
