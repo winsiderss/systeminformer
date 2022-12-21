@@ -61,9 +61,11 @@ namespace CustomBuildTool
                     }
 
                     if (name.StartsWith("Release32\\", StringComparison.OrdinalIgnoreCase))
-                        name = name.Replace("Release32\\", "32bit\\", StringComparison.OrdinalIgnoreCase);
+                        name = name.Replace("Release32\\", "i386\\", StringComparison.OrdinalIgnoreCase);
                     if (name.StartsWith("Release64\\", StringComparison.OrdinalIgnoreCase))
-                        name = name.Replace("Release64\\", "64bit\\", StringComparison.OrdinalIgnoreCase);
+                        name = name.Replace("Release64\\", "amd64\\", StringComparison.OrdinalIgnoreCase);
+                    if (name.StartsWith("ReleaseARM64\\", StringComparison.OrdinalIgnoreCase))
+                        name = name.Replace("ReleaseARM64\\", "arm64\\", StringComparison.OrdinalIgnoreCase);
 
                     archive.CreateEntryFromFile(file, name, CompressionLevel.Optimal);
                 }

@@ -9161,14 +9161,7 @@ ULONGLONG PhReadTimeStampCounter(
     VOID
     )
 {
-#if (_M_IX86 || _M_AMD64)
     return ReadTimeStampCounter();
-#elif _M_ARM
-    return __rdpmccntr64();
-#elif _M_ARM64
-    // The ReadTimeStampCounter() macro uses PMCCNTR on ARM64 instead of CNTVCT? (dmex)
-    return _ReadStatusReg(ARM64_CNTVCT);
-#endif
 }
 
 VOID PhQueryPerformanceCounter(

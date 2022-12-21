@@ -215,6 +215,49 @@ CleanupExit:
     return result;
 }
 
+typedef
+BOOL
+WINAPI
+IS_WOW64_PROCESS2(
+    _In_ HANDLE hProcess,
+    _Out_ USHORT* pProcessMachine,
+    _Out_opt_ USHORT* pNativeMachine
+    );
+typedef IS_WOW64_PROCESS2* PIS_WOW64_PROCESS2;
+
+USHORT GetNativeArchitecture(
+    VOID
+    )
+{
+    USHORT processMachine;
+    USHORT nativeMachine;
+    SYSTEM_INFO info;
+    PIS_WOW64_PROCESS2 isWow64Process2 = NULL;
+    HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
+
+    if (kernel32)
+        isWow64Process2 = (PIS_WOW64_PROCESS2)GetProcAddress(kernel32, "IsWow64Process2");
+
+    if (isWow64Process2 && isWow64Process2(NtCurrentProcess(), &processMachine, &nativeMachine))
+    {
+        switch (nativeMachine)
+        {
+        case IMAGE_FILE_MACHINE_I386:
+            return PROCESSOR_ARCHITECTURE_INTEL;
+        case IMAGE_FILE_MACHINE_AMD64:
+            return PROCESSOR_ARCHITECTURE_AMD64;
+        case IMAGE_FILE_MACHINE_ARM64:
+            return PROCESSOR_ARCHITECTURE_ARM64;
+        default:
+            break;
+        }
+    }
+
+    GetNativeSystemInfo(&info);
+
+    return info.wProcessorArchitecture;
+}
+
 BOOLEAN SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -224,9 +267,9 @@ BOOLEAN SetupExtractBuild(
     ULONG64 currentLength = 0;
     mz_zip_archive zip_archive = { 0 };
     PPH_STRING extractPath = NULL;
-    SYSTEM_INFO info;
+    USHORT nativeArchitecture;
 
-    GetNativeSystemInfo(&info);
+    nativeArchitecture = GetNativeArchitecture();
 
 #ifdef PH_BUILD_API
     ULONG resourceLength;
@@ -279,16 +322,22 @@ BOOLEAN SetupExtractBuild(
         if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != SIZE_MAX)
             continue;
 
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        if (nativeArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            if (PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
-                PhStartsWithString2(fileName, L"x32\\", TRUE))
+            if (PhStartsWithString2(fileName, L"i386\\", TRUE) ||
+                PhStartsWithString2(fileName, L"arm64\\", TRUE))
+                continue;
+        }
+        else if (nativeArchitecture == PROCESSOR_ARCHITECTURE_ARM64)
+        {
+            if (PhStartsWithString2(fileName, L"i386\\", TRUE) ||
+                PhStartsWithString2(fileName, L"amd64\\", TRUE))
                 continue;
         }
         else
         {
-            if (PhStartsWithString2(fileName, L"64bit\\", TRUE) ||
-                PhStartsWithString2(fileName, L"x64\\", TRUE))
+            if (PhStartsWithString2(fileName, L"amd64\\", TRUE) ||
+                PhStartsWithString2(fileName, L"arm64\\", TRUE))
                 continue;
         }
 
@@ -319,27 +368,32 @@ BOOLEAN SetupExtractBuild(
         if (PhFindStringInString(fileName, 0, L"usernotesdb.xml") != SIZE_MAX)
             continue;
 
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        if (nativeArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            if (PhStartsWithString2(fileName, L"32bit\\", TRUE) ||
-                PhStartsWithString2(fileName, L"x32\\", TRUE))
+            if (PhStartsWithString2(fileName, L"i386\\", TRUE) ||
+                PhStartsWithString2(fileName, L"arm64\\", TRUE))
                 continue;
 
-            if (PhStartsWithString2(fileName, L"64bit\\", TRUE))
+            if (PhStartsWithString2(fileName, L"amd64\\", TRUE))
                 PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / sizeof(WCHAR)) - 6));
-            if (PhStartsWithString2(fileName, L"x64\\", TRUE))
-                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / sizeof(WCHAR)) - 4));
+        }
+        else if (nativeArchitecture == PROCESSOR_ARCHITECTURE_ARM64)
+        {
+            if (PhStartsWithString2(fileName, L"i386\\", TRUE) ||
+                PhStartsWithString2(fileName, L"amd64\\", TRUE))
+                continue;
+
+            if (PhStartsWithString2(fileName, L"arm64\\", TRUE))
+                PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / sizeof(WCHAR)) - 6));
         }
         else
         {
-            if (PhStartsWithString2(fileName, L"64bit\\", TRUE) ||
-                PhStartsWithString2(fileName, L"x64\\", TRUE))
+            if (PhStartsWithString2(fileName, L"amd64\\", TRUE) ||
+                PhStartsWithString2(fileName, L"arm64\\", TRUE))
                 continue;
 
-            if (PhStartsWithString2(fileName, L"32bit\\", TRUE))
-                PhMoveReference(&fileName, PhSubstring(fileName, 6, (fileName->Length / sizeof(WCHAR)) - 6));
-            if (PhStartsWithString2(fileName, L"x32\\", TRUE))
-                PhMoveReference(&fileName, PhSubstring(fileName, 4, (fileName->Length / sizeof(WCHAR)) - 4));
+            if (PhStartsWithString2(fileName, L"i386\\", TRUE))
+                PhMoveReference(&fileName, PhSubstring(fileName, 5, (fileName->Length / sizeof(WCHAR)) - 5));
         }
 
         if (!(buffer = mz_zip_reader_extract_to_heap(
