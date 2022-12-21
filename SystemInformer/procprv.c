@@ -77,7 +77,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     PH_IMAGE_VERSION_INFO VersionInfo;
 
     HANDLE ConsoleHostProcessId;
-    PPH_STRING PackageFullName;
     PPH_STRING UserName;
 
     union
@@ -845,16 +844,16 @@ VOID PhpProcessQueryStage1(
     }
 
     // Immersive
-    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && !processItem->IsSubsystemProcess)
+    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && processItem->IsPackagedProcess && !processItem->IsSubsystemProcess)
     {
         Data->IsImmersive = !!PhIsImmersiveProcess(processHandleLimited);
     }
 
     // Package full name
-    if (processHandleLimited && ((WindowsVersion >= WINDOWS_8 && Data->IsImmersive) || WindowsVersion >= WINDOWS_10))
-    {
-        Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
-    }
+    //if (processHandleLimited && ((WindowsVersion >= WINDOWS_8 && Data->IsImmersive) || WindowsVersion >= WINDOWS_10))
+    //{
+    //    Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
+    //}
 
     if (processHandleLimited && processItem->IsHandleValid)
     {
@@ -1121,7 +1120,6 @@ VOID PhpFillProcessItemStage1(
     processItem->IconEntry = Data->IconEntry;
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
-    processItem->PackageFullName = Data->PackageFullName;
     processItem->IsDotNet = Data->IsDotNet;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
@@ -1235,6 +1233,7 @@ VOID PhpFillProcessItem(
             ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
             ProcessItem->IsWow64 = basicInfo.IsWow64Process;
+            ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
             ProcessItem->IsWow64Valid = TRUE;
         }
     }
@@ -1326,6 +1325,12 @@ VOID PhpFillProcessItem(
             {
                 ProcessItem->IntegrityLevel = integrityLevel;
                 ProcessItem->IntegrityString = integrityString;
+            }
+
+            // Package name
+            if (WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess)
+            {
+                ProcessItem->PackageFullName = PhGetTokenPackageFullName(tokenHandle);
             }
 
             NtClose(tokenHandle);

@@ -197,11 +197,12 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsProtectedProcess : 1;
             ULONG IsSecureProcess : 1;
             ULONG IsSubsystemProcess : 1;
+            ULONG IsPackagedProcess : 1;
             ULONG IsControlFlowGuardEnabled : 1;
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
             ULONG IsXfgAuditEnabled : 1;
-            ULONG Spare : 11;
+            ULONG Spare : 10;
         };
     };
 
