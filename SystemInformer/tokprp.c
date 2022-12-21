@@ -357,6 +357,62 @@ PPH_STRING PhGetGroupAttributesString(
     return string;
 }
 
+COLORREF PhGetGroupAttributesColorDark(
+    _In_ ULONG Attributes
+    )
+{
+    if (Attributes & (SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED))
+    {
+        if (!(Attributes & SE_GROUP_ENABLED))
+            return RGB(0, 26, 0);
+    }
+
+    if (Attributes & SE_GROUP_ENABLED)
+    {
+        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            return RGB(0, 26, 0);
+        else
+            return RGB(0, 102, 0);
+    }
+    else
+    {
+        if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+            return RGB(122, 77, 84);
+        else
+            return RGB(43, 12, 15);
+    }
+}
+
+COLORREF PhGetPrivilegeAttributesColorDark(
+    _In_ ULONG Attributes
+    )
+{
+    if (Attributes & SE_PRIVILEGE_ENABLED)
+    {
+        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+            return RGB(0, 26, 0);
+        else
+            return RGB(0, 102, 0);
+    }
+    else
+    {
+        if (Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT)
+            return RGB(122, 77, 84);
+        else
+            return RGB(43, 12, 15);
+    }
+}
+
+COLORREF PhGetDangerousFlagColorDark(
+    _In_ BOOLEAN FlagState
+    )
+{
+    if (FlagState)
+        return RGB(0xc0, 0xf0, 0xc0);
+    else
+        return RGB(0xf0, 0xc0, 0xc0);
+}
+
 COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
     )
@@ -405,7 +461,7 @@ COLORREF PhGetPrivilegeAttributesColor(
 
 COLORREF PhGetDangerousFlagColor(
     _In_ BOOLEAN FlagState
-)
+    )
 {
     if (FlagState)
         return RGB(0xc0, 0xf0, 0xc0);
@@ -421,12 +477,24 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
 {
     PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry = Param;
 
-    if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
-        return PhGetDangerousFlagColor(entry->ItemFlagState);
-    else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
-        return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
+    if (PhEnableThemeSupport)
+    {
+        if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+            return PhGetDangerousFlagColorDark(entry->ItemFlagState);
+        else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+            return PhGetPrivilegeAttributesColorDark(entry->TokenPrivilege->Attributes);
+        else
+            return PhGetGroupAttributesColorDark(entry->TokenGroup->Attributes);
+    }
     else
-        return PhGetGroupAttributesColor(entry->TokenGroup->Attributes);
+    {
+        if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_DANGEROUS_FLAGS)
+            return PhGetDangerousFlagColor(entry->ItemFlagState);
+        else if (entry->ItemCategory == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+            return PhGetPrivilegeAttributesColor(entry->TokenPrivilege->Attributes);
+        else
+            return PhGetGroupAttributesColor(entry->TokenGroup->Attributes);
+    }
 }
 
 PWSTR PhGetPrivilegeAttributesString(
