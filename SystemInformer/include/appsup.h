@@ -54,7 +54,7 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     ExplorerProcessType, // explorer
     UmdfHostProcessType, // wudfhost
     NtVdmHostProcessType, // ntvdm
-    EdgeProcessType, // Microsoft Edge
+    //EdgeProcessType, // Microsoft Edge
     WmiProviderHostType,
     MaximumProcessType,
     KnownProcessTypeMask = 0xffff,

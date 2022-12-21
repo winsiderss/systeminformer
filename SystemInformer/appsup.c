@@ -417,26 +417,26 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
                 knownProcessType = UmdfHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\wbem\\WmiPrvSE.exe", TRUE))
                 knownProcessType = WmiProviderHostType;
-            else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS5
-                knownProcessType = EdgeProcessType;
-            else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeSH.exe", TRUE)) // RS5
-                knownProcessType = EdgeProcessType;
+            //else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS5
+            //    knownProcessType = EdgeProcessType;
+            //else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeSH.exe", TRUE)) // RS5
+            //    knownProcessType = EdgeProcessType;
 #ifdef _M_IX86
             else if (PhEqualStringRef2(&name, L"\\ntvdm.exe", TRUE))
                 knownProcessType = NtVdmHostProcessType;
 #endif
         }
-        else
-        {
-            if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS4
-                knownProcessType = EdgeProcessType;
-            else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
-                knownProcessType = EdgeProcessType;
-            else if (PhEndsWithStringRef2(&name, L"\\ServiceWorkerHost.exe", TRUE))
-                knownProcessType = EdgeProcessType;
-            else if (PhEndsWithStringRef2(&name, L"\\Windows.WARP.JITService.exe", TRUE))
-                knownProcessType = EdgeProcessType;
-        }
+        //else
+        //{
+        //    if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS4
+        //        knownProcessType = EdgeProcessType;
+        //    else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
+        //        knownProcessType = EdgeProcessType;
+        //    else if (PhEndsWithStringRef2(&name, L"\\ServiceWorkerHost.exe", TRUE))
+        //        knownProcessType = EdgeProcessType;
+        //    else if (PhEndsWithStringRef2(&name, L"\\Windows.WARP.JITService.exe", TRUE))
+        //        knownProcessType = EdgeProcessType;
+        //}
     }
 
     PhDereferenceObject(fileName);
