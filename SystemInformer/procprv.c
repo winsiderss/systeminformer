@@ -44,7 +44,6 @@
 #include <phapp.h>
 #include <phsettings.h>
 #include <procprv.h>
-#include <appresolver.h>
 
 #include <hndlinfo.h>
 #include <kphuser.h>

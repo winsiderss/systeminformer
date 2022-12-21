@@ -1824,7 +1824,7 @@ BEGIN_SORT_FUNCTION(Elevation)
         break;
     }
 
-    sortResult = intcmp(key1, key2);
+    sortResult = uintcmp(key1, key2);
 }
 END_SORT_FUNCTION
 
@@ -1840,7 +1840,7 @@ BEGIN_SORT_FUNCTION(WindowStatus)
 {
     PhpUpdateProcessNodeWindow(node1);
     PhpUpdateProcessNodeWindow(node2);
-    sortResult = intcmp(node1->WindowHung, node2->WindowHung);
+    sortResult = ucharcmp(node1->WindowHung, node2->WindowHung);
 
     // Make sure all processes with windows get grouped together.
     if (sortResult == 0)

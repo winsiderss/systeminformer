@@ -449,12 +449,12 @@ PPH_STRING PhGetProcessTooltipText(
         if (Process->IsDotNet)
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
+        {
             if (Process->ElevationType == TokenElevationTypeFull)
                 PhAppendStringBuilder2(&notes, L"    Process is full elevated.\n");
-            else if (Process->ElevationType == TokenElevationTypeLimited) // OrbbQ3 - should never be the case
+            else if (Process->ElevationType == TokenElevationTypeLimited)
                 PhAppendStringBuilder2(&notes, L"    Process is limited elevated.\n");
-            else
-                PhAppendStringBuilder2(&notes, L"    Process is per default elevated.\n");
+        }
         if (Process->IsImmersive)
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
