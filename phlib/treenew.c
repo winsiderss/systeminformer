@@ -284,7 +284,7 @@ LRESULT CALLBACK PhTnpWndProc(
             return TRUE;
         break;
     case WM_DRAWITEM:
-        if (context->ThemeSupport && PhThemeWindowDrawItem((LPDRAWITEMSTRUCT)lParam))
+        if (context->ThemeSupport && PhThemeWindowDrawItem(hwnd, (LPDRAWITEMSTRUCT)lParam))
             return TRUE;
         break;
     case WM_CTLCOLORSCROLLBAR:
