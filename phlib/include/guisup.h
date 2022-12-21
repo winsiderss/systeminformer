@@ -61,7 +61,7 @@ NTAPI
 PhOpenThemeData(
     _In_opt_ HWND WindowHandle,
     _In_ PCWSTR ClassList,
-    _In_ LONG DpiValue
+    _In_ LONG WindowDpi
     );
 
 PHLIBAPI
@@ -383,7 +383,7 @@ HICON PhLoadIcon(
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
     _In_opt_ ULONG Height,
-    _In_opt_ LONG dpiValue
+    _In_opt_ LONG SystemDpi
     );
 
 PHLIBAPI
@@ -1060,7 +1060,7 @@ PhExtractIconEx(
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall,
-    _In_ LONG dpiValue
+    _In_ LONG SystemDpi
     );
 
 // Imagelist support
@@ -1440,6 +1440,15 @@ PhPtInRect(
     return Point.x >= Rect->left && Point.x < Rect->right && 
         Point.y >= Rect->top && Point.y < Rect->bottom;
 }
+
+// directdraw.cpp
+
+HICON PhGdiplusConvertBitmapToIcon(
+    _In_ HBITMAP Bitmap, 
+    _In_ LONG Width, 
+    _In_ LONG Height,
+    _In_ COLORREF Background
+    );
 
 EXTERN_C_END
 

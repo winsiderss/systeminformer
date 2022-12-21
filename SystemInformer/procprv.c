@@ -45,6 +45,7 @@
 #include <phsettings.h>
 #include <procprv.h>
 
+#include <appresolver.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>
@@ -714,9 +715,15 @@ VOID PhpProcessQueryStage1(
     {
         if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(&processItem->FileName->sr))
         {
-            LONG dpiValue = PhGetSystemDpi();
+            LONG systemDpi = PhGetSystemDpi();
 
-            Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue);
+            Data->IconEntry = PhImageListExtractIcon(
+                processItem->FileName,
+                TRUE, 
+                processItem->ProcessId,
+                processItem->PackageFullName, 
+                systemDpi
+                );
 
             PhInitializeImageVersionInfoCached(
                 &Data->VersionInfo,
@@ -3554,8 +3561,8 @@ VOID PhProcessImageListInitialization(
         100,
         100);
 
-    PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
-    PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
+    //PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
+    //PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
 
     PhGetStockApplicationIcon(&iconSmall, &iconLarge);
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
@@ -3576,7 +3583,7 @@ VOID PhProcessImageListInitialization(
             PPH_IMAGELIST_ITEM iconEntry;
 
             dpiValue = PhGetSystemDpi();
-            iconEntry = PhImageListExtractIcon(filename, TRUE, dpiValue);
+            iconEntry = PhImageListExtractIcon(filename, TRUE, 0, NULL, dpiValue);
 
             if (iconEntry)
             {
@@ -3585,9 +3592,9 @@ VOID PhProcessImageListInitialization(
 
                 PhEnumProcessItems(&processes, &numberOfProcesses);
 
-                for (ULONG i = 0; i < numberOfProcesses; i++)
+                for (ULONG j = 0; j < numberOfProcesses; j++)
                 {
-                    PPH_PROCESS_ITEM process = processes[i];
+                    PPH_PROCESS_ITEM process = processes[j];
 
                     if (process->FileName && PhEqualString(process->FileName, filename, TRUE))
                     {
@@ -3632,7 +3639,9 @@ ULONG PhImageListCacheHashtableHashFunction(
 PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName,
-    _In_ LONG dpiValue
+    _In_opt_ HANDLE ProcessId,
+    _In_opt_ PPH_STRING PackageFullName,
+    _In_ LONG SystemDpi
     )
 {
     HICON largeIcon = NULL;
@@ -3665,14 +3674,39 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
 
-    PhExtractIconEx(
-        FileName,
-        NativeFileName,
-        0,
-        &largeIcon,
-        &smallIcon,
-        dpiValue
-        );
+#ifdef PH_ENABLE_PACKAGE_ICON_EXTRACT
+    if (ProcessId && PackageFullName)
+    {
+        if (!PhAppResolverGetPackageIcon(
+            ProcessId,
+            PackageFullName,
+            &largeIcon,
+            &smallIcon,
+            SystemDpi
+            ))
+        {
+            PhExtractIconEx(
+                FileName,
+                NativeFileName,
+                0,
+                &largeIcon,
+                &smallIcon,
+                SystemDpi
+                );
+        }
+    }
+    else
+#endif
+    {
+        PhExtractIconEx(
+            FileName,
+            NativeFileName,
+            0,
+            &largeIcon,
+            &smallIcon,
+            SystemDpi
+            );
+    }
 
     PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
 

@@ -482,7 +482,9 @@ NTAPI
 PhImageListExtractIcon(
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName,
-    _In_ LONG dpiValue
+    _In_opt_ HANDLE ProcessId,
+    _In_opt_ PPH_STRING PackageFullName,
+    _In_ LONG SystemDpi
     );
 
 PHAPPAPI

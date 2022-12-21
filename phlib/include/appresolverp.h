@@ -57,11 +57,6 @@ static BOOL (WINAPI* AppContainerFreeMemory_I)(
     _Frees_ptr_opt_ PVOID Memory
     ) = NULL;
 
-static HRESULT (WINAPI* AppPolicyGetWindowingModel_I)(
-    _In_ HANDLE ProcessTokenHandle,
-    _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
-    ) = NULL;
-
 // rev
 static NTSTATUS (NTAPI* PsmGetKeyFromProcess_I)(
     _In_ HANDLE ProcessHandle,
@@ -403,7 +398,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
     // IStartMenuAppItems61
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ REFIID riid,
+        _In_ REFIID riid, // IID_IEnumObjects
         _Outptr_ IEnumObjects **ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
@@ -441,7 +436,7 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
     // IStartMenuAppItems62
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ REFIID riid,
+        _In_ REFIID riid, // IID_IEnumObjects
         _Outptr_ IEnumObjects **ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
@@ -614,6 +609,7 @@ DECLARE_INTERFACE_IID(IResourceMap, IUnknown)
     ((This)->lpVtbl->GetFilePathForContextByUri(This))
 
 // Note: Documented PKEY_AppUserModel_XYZ keys can be found in propkey.h
+DEFINE_PROPERTYKEY(PKEY_AppUserModel_ID, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 5);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_HostEnvironment, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 14);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageInstallPath, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 15);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFamilyName, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 17);

@@ -637,7 +637,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
         dpiValue = PhGetWindowDpi(PhGetMainWindowHandle());
 
         // Small icon, large icon.
-        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue))
+        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, processItem->ProcessId, processItem->PackageFullName, dpiValue))
         {
             processItem->SmallIconIndex = processItem->IconEntry->SmallIconIndex;
             processItem->LargeIconIndex = processItem->IconEntry->LargeIconIndex;
