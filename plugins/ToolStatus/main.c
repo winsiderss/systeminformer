@@ -633,22 +633,36 @@ LRESULT CALLBACK MainWndSubclassProc(
             // Update fonts/sizes for new DPI.
             if (ToolBarHandle)
             {
+                SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
+            }
+
+            if (StatusBarHandle)
+            {
+                SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
+            }
+
+            ToolbarLoadSettings(TRUE);
+
+            // Update fonts/sizes for new DPI.
+            if (ToolBarHandle)
+            {
                 LONG toolbarButtonHeight;
 
-                SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
-
+                USHORT toolbarButtonSize = HIWORD((ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0));
                 toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-                toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
+                toolbarButtonHeight = __max(toolbarButtonSize, toolbarButtonHeight);
 
-                RebarAdjustBandHeightLayout(toolbarButtonHeight);
+                if (toolbarButtonHeight < 22)
+                    toolbarButtonHeight = 22; // 22/default toolbar button height
+
                 SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+                RebarAdjustBandHeightLayout(toolbarButtonHeight);
+                SendMessage(RebarHandle, WM_SIZE, 0, 0);
             }
 
             if (StatusBarHandle)
             {
                 LONG statusbarButtonHeight;
-
-                SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
 
                 statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
                 statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
@@ -657,8 +671,6 @@ LRESULT CALLBACK MainWndSubclassProc(
                 //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
                 StatusBarUpdate(TRUE);
             }
-
-            ToolbarLoadSettings(TRUE);
 
             if (oldFont) DeleteFont(oldFont);
 

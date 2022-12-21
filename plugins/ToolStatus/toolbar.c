@@ -101,11 +101,18 @@ VOID RebarCreateOrUpdateWindow(
     {
         if (!ToolBarImageList || DpiChanged)
         {
-            LONG dpiValue;
+            LONG windowDpi = PhGetWindowDpi(PhMainWndHandle);
 
-            dpiValue = PhGetWindowDpi(PhMainWndHandle);
-            ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-            ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+            if (ToolStatusConfig.ToolBarLargeIcons)
+            {
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXICON, windowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYICON, windowDpi);
+            }
+            else
+            {
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, windowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, windowDpi);
+            }
 
             if (ToolBarImageList) PhImageListDestroy(ToolBarImageList);
             ToolBarImageList = PhImageListCreate(
@@ -118,16 +125,19 @@ VOID RebarCreateOrUpdateWindow(
 
         if (DpiChanged)
         {
-            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+            if (ToolBarHandle)
+            {
+                SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
-            // Remove all buttons.
-            INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+                // Remove all buttons.
+                INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
-            while (buttonCount--)
-                SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+                while (buttonCount--)
+                    SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 
-            // Re-add/update buttons.
-            ToolbarLoadButtonSettings();
+                // Re-add/update buttons.
+                ToolbarLoadButtonSettings();
+            }
         }
     }
 
@@ -178,8 +188,8 @@ VOID RebarCreateOrUpdateWindow(
             ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
             LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
 
-            if (RebarBandExists (REBAR_BAND_ID_TOOLBAR))
-                RebarBandRemove (REBAR_BAND_ID_TOOLBAR);
+            if (RebarBandExists(REBAR_BAND_ID_TOOLBAR))
+                RebarBandRemove(REBAR_BAND_ID_TOOLBAR);
 
             RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), __max(HIWORD(toolbarButtonSize), toolbarButtonHeight));
 

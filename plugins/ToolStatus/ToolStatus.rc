@@ -63,8 +63,10 @@ BEGIN
     CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,81,113,10
     LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,7,157,18
-    COMBOBOX        IDC_CURRENT,7,115,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Select the graph for the taskbar window icon:",IDC_STATIC,7,104,147,8
+    COMBOBOX        IDC_CURRENT,7,121,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select the graph for the taskbar window icon:",IDC_STATIC,7,110,147,8
+    CONTROL         "Enable large toolbar icons",IDC_ENABLE_LARGETOOLBARICON,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,94,98,10
 END
 
 IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 188
