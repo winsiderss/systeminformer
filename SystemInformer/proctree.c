@@ -1201,7 +1201,6 @@ static VOID PhpUpdateProcessNodeAppId(
                 //if (WindowsVersion >= WINDOWS_8 && ProcessNode->ProcessItem->IsImmersive)
                 //{
                 //    HANDLE tokenHandle;
-                //    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
                 //
                 //    if (NT_SUCCESS(PhOpenProcessToken(
                 //        ProcessNode->ProcessItem->QueryHandle,
@@ -1209,39 +1208,7 @@ static VOID PhpUpdateProcessNodeAppId(
                 //        &tokenHandle
                 //        )))
                 //    {
-                //        // rev from GetApplicationUserModelId
-                //        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
-                //        {
-                //            for (ULONG i = 0; i < info->AttributeCount; i++)
-                //            {
-                //                static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
-                //                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-                //
-                //                if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
-                //                {
-                //                    if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
-                //                    {
-                //                        PPH_STRING attributeValue1;
-                //                        PPH_STRING attributeValue2;
-                //
-                //                        attributeValue1 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[1]));
-                //                        attributeValue2 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[2]));
-                //
-                //                        ProcessNode->AppIdText = PhConcatStrings(
-                //                            3,
-                //                            attributeValue2->Buffer,
-                //                            L"!",
-                //                            attributeValue1->Buffer
-                //                            );
-                //
-                //                        break;
-                //                    }
-                //                }
-                //            }
-                //
-                //            PhFree(info);
-                //        }
-                //
+                //        ProcessNode->AppIdText = PhGetTokenPackageApplicationUserModelId(tokenHandle);
                 //        NtClose(tokenHandle);
                 //    }
                 //}
