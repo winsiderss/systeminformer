@@ -131,21 +131,17 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     if (processItem = PhReferenceProcessItem(ProcessId))
     {
         PhSetReference(&moduleProvider->ProcessFileName, processItem->FileName);
+        PhSetReference(&moduleProvider->PackageFullName, processItem->PackageFullName);
         PhDereferenceObject(processItem);
     }
 
-    if (WindowsVersion >= WINDOWS_8 && moduleProvider->ProcessHandle)
+    if (WindowsVersion >= WINDOWS_8_1 && moduleProvider->ProcessHandle)
     {
-        moduleProvider->PackageFullName = PhGetProcessPackageFullName(moduleProvider->ProcessHandle);
+        BOOLEAN cfguardEnabled;
 
-        if (WindowsVersion >= WINDOWS_8_1)
+        if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(moduleProvider->ProcessHandle, &cfguardEnabled)))
         {
-            BOOLEAN cfguardEnabled;
-
-            if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(moduleProvider->ProcessHandle, &cfguardEnabled)))
-            {
-                moduleProvider->ControlFlowGuardEnabled = cfguardEnabled;
-            }
+            moduleProvider->ControlFlowGuardEnabled = cfguardEnabled;
         }
     }
 
