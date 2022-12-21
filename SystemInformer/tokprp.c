@@ -3485,7 +3485,7 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
     }
     else if (TokenAppContainerSid)
     {
-        PPH_STRING appContainerFolderPath = NULL;
+        PPH_STRING appContainerFolderPath;
         PWSTR folderPath = NULL;
 
         appContainerFolderPath = PhGetKnownFolderPathEx(
@@ -3709,15 +3709,16 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                     PhDereferenceObject(appContainerSidString);
                 }
 
-                if (NT_SUCCESS(PhGetTokenAppContainerNumber(tokenHandle, &appContainerNumber)))
+                if (!PhIsTokenFullTrustPackage(tokenHandle))
                 {
-                    WCHAR string[PH_INT64_STR_LEN_1] = L"Unknown";
+                    if (NT_SUCCESS(PhGetTokenAppContainerNumber(tokenHandle, &appContainerNumber)))
+                    {
+                        WCHAR string[PH_INT64_STR_LEN_1] = L"Unknown";
 
-                    PhPrintUInt32(string, appContainerNumber);
-                    PhSetListViewSubItem(context->ListViewHandle, 3, 1, string);
-                }
+                        PhPrintUInt32(string, appContainerNumber);
+                        PhSetListViewSubItem(context->ListViewHandle, 3, 1, string);
+                    }
 
-                {
                     PhGetTokenIsLessPrivilegedAppContainer(tokenHandle, &isLessPrivilegedAppContainer);
                     PhSetListViewSubItem(context->ListViewHandle, 4, 1, isLessPrivilegedAppContainer ? L"True" : L"False");
                 }
@@ -3768,8 +3769,8 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 )))
             {
                 PSID appContainerSid;
-                PPH_STRING appContainerFolderPath = NULL;
-                PPH_STRING appContainerRegistryPath = NULL;
+                PPH_STRING appContainerFolderPath;
+                PPH_STRING appContainerRegistryPath;
 
                 if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
                 {
