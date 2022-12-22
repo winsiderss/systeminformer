@@ -990,13 +990,6 @@ PhWindowNotifyTopMostEvent(
     );
 
 PHLIBAPI
-HANDLE
-NTAPI
-PhGetGlobalTimerQueue(
-    VOID
-    );
-
-PHLIBAPI
 BOOLEAN
 NTAPI
 PhIsImmersiveProcess(

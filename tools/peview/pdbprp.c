@@ -669,6 +669,23 @@ VOID PvAddPendingSymbolNodes(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
+HANDLE PvSymbolGetGlobalTimerQueue(
+    VOID
+    )
+{
+    static HANDLE PhTimerQueueHandle = NULL;
+    static PH_INITONCE PhTimerQueueHandleInitOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&PhTimerQueueHandleInitOnce))
+    {
+        RtlCreateTimerQueue(&PhTimerQueueHandle);
+
+        PhEndInitOnce(&PhTimerQueueHandleInitOnce);
+    }
+
+    return PhTimerQueueHandle;
+}
+
 VOID CALLBACK PvSymbolTreeUpdateCallback(
     _In_ PPDB_SYMBOL_CONTEXT Context,
     _In_ BOOLEAN TimerOrWaitFired
@@ -679,7 +696,7 @@ VOID CALLBACK PvSymbolTreeUpdateCallback(
 
     PvAddPendingSymbolNodes(Context);
 
-    RtlUpdateTimer(PhGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
+    RtlUpdateTimer(PvSymbolGetGlobalTimerQueue(), Context->UpdateTimerHandle, 1000, INFINITE);
 }
 
 INT_PTR CALLBACK PvpSymbolsDlgProc(
@@ -737,7 +754,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
             PhCreateThread2(PeDumpFileSymbols, context);
 
             RtlCreateTimer(
-                PhGetGlobalTimerQueue(),
+                PvSymbolGetGlobalTimerQueue(),
                 &context->UpdateTimerHandle,
                 PvSymbolTreeUpdateCallback,
                 context,
@@ -753,7 +770,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         {
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
                 context->UpdateTimerHandle = NULL;
             }
 
@@ -824,7 +841,7 @@ INT_PTR CALLBACK PvpSymbolsDlgProc(
         {
             if (context->UpdateTimerHandle)
             {
-                RtlDeleteTimer(PhGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
+                RtlDeleteTimer(PvSymbolGetGlobalTimerQueue(), context->UpdateTimerHandle, NULL);
                 context->UpdateTimerHandle = NULL;
             }
 
