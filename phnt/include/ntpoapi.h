@@ -443,6 +443,8 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalPowerBootAppDiagInfo,
     PowerInternalUnregisterShutdownNotification, // since 22H1
     PowerInternalManageTransitionStateRecord,
+    PowerInternalGetAcpiTimeAndAlarmCapabilities, // since 22H2
+    PowerInternalSuspendResumeRequest,
     PowerInformationInternalMaximum
 } POWER_INFORMATION_LEVEL_INTERNAL;
 
