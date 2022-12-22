@@ -674,10 +674,16 @@ VOID StatusBarUpdate(
 
     ReleaseDC(StatusBarHandle, hdc);
 
+    // Note: Suspend redrawing until after updating the statusbar text
+    // otherwise SB_SETTEXT repaints multiple times during our loop. (dmex)
+    SendMessage(StatusBarHandle, WM_SETREDRAW, FALSE, 0);
     SendMessage(StatusBarHandle, SB_SETPARTS, count, (LPARAM)widths);
 
     for (i = 0; i < count; i++)
     {
         SendMessage(StatusBarHandle, SB_SETTEXT, i, (LPARAM)text[i]);
     }
+
+    SendMessage(StatusBarHandle, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(StatusBarHandle, NULL, TRUE);
 }
