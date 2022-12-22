@@ -599,7 +599,6 @@ EXPORTS
     PhInitializeWindowThemeStatusBar
     PhInitializeWindowThemeRebar
     PhInitializeThemeWindowHeader
-    PhGetGlobalTimerQueue
     PhImageListCreate
     PhImageListDestroy
     PhImageListSetImageCount

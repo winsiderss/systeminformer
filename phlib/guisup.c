@@ -1869,23 +1869,6 @@ HICON PhGetInternalWindowIcon(
     return InternalGetWindowIcon_I(WindowHandle, Type);
 }
 
-HANDLE PhGetGlobalTimerQueue(
-    VOID
-    )
-{
-    static HANDLE PhTimerQueueHandle = NULL;
-    static PH_INITONCE PhTimerQueueHandleInitOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&PhTimerQueueHandleInitOnce))
-    {
-        RtlCreateTimerQueue(&PhTimerQueueHandle);
-
-        PhEndInitOnce(&PhTimerQueueHandleInitOnce);
-    }
-
-    return PhTimerQueueHandle;
-}
-
 BOOLEAN PhIsImmersiveProcess(
     _In_ HANDLE ProcessHandle
     )
