@@ -33,12 +33,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableBitmapSupport", L"1");
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
-#if _M_ARM64
-    // Default cycle-based CPU usage for ARM to off, see: PhpEstimateIdleCyclesForARM (jxy-s)
-    PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"0");
-#else
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
-#endif
+    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
     PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");

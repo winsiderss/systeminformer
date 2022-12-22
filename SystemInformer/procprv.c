@@ -2389,7 +2389,8 @@ VOID PhProcessProviderUpdate(
     }
 
 #if _M_ARM64
-    PhpEstimateIdleCyclesForARM(&sysTotalCycleTime, &sysIdleCycleTime);
+    if (PhEnableCycleCpuUsage)
+        PhpEstimateIdleCyclesForARM(&sysTotalCycleTime, &sysIdleCycleTime);
 #endif
 
     // Go through the queued process query data.
