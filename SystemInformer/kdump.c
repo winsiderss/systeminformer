@@ -350,7 +350,7 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
                 if (!debugInfo.KernelDebuggerEnabled)
                 {
                     Button_Enable(GetDlgItem(hwndDlg, IDC_USERMODE), FALSE);
-                    //Button_SetText(GetDlgItem(hwndDlg, IDC_USERMODE), L"Include UserSpace memory pages (requires kernel debugger)");
+                    Button_SetText(GetDlgItem(hwndDlg, IDC_USERMODE), L"Include UserSpace (requires kernel debug enabled)");
                 }
             }
 

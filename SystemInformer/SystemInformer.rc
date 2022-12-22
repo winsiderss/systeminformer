@@ -1349,14 +1349,14 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Live kernel dump"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Use dump storage stack",IDC_DUMPSTACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,62,93,10
-    CONTROL         "Compress memory pages",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,96,10
-    CONTROL         "Include UserSpace memory pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,21,124,10
-    CONTROL         "Include Hypervisor memory pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,35,125,10
+    CONTROL         "Use dump storage stack",IDC_DUMPSTACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,177,10
+    CONTROL         "Compress memory pages",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,177,10
+    CONTROL         "Include UserSpace memory pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,177,10
+    CONTROL         "Include Hypervisor memory pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,177,10
     DEFPUSHBUTTON   "Save",IDOK,80,76,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,134,76,50,14
     CONTROL         "Include kernel thread stacks",IDC_DUMPKERNELTHREADSTACKS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,49,106,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,177,10
 END
 
 IDD_HEAPS DIALOGEX 0, 0, 343, 268
