@@ -1454,7 +1454,11 @@ static VOID PhpAdvancedPageLoad(
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
+#if _M_ARM64
+    SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableArmCycleCpuUsage");
+#else
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
+#endif
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetLvItemCheckForSetting(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");
@@ -1560,7 +1564,11 @@ static VOID PhpAdvancedPageSave(
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"DbgHelpUndecorate");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_COLUMN_HEADER_TOTALS, L"TreeListEnableHeaderTotals");
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_GRAPH_SCALING, L"EnableGraphMaxScale");
+#if _M_ARM64
+    SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableArmCycleCpuUsage");
+#else
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_CYCLE_CPU_USAGE, L"EnableCycleCpuUsage");
+#endif
     SetSettingForLvItemCheckRestartRequired(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_THEME_SUPPORT, L"EnableThemeSupport");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN, L"EnableStartAsAdmin");
     SetSettingForLvItemCheck(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY, L"EnableSilentCrashNotify");

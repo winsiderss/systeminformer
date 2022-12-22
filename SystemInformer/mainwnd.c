@@ -2125,7 +2125,11 @@ VOID PhMwpLoadSettings(
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
+#if _M_ARM64
+    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableArmCycleCpuUsage");
+#else
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
+#endif
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
