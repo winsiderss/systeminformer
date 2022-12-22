@@ -33,7 +33,8 @@ ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
     ID_STATUS_IO_W,
     ID_STATUS_MAX_CPU_PROCESS,
     ID_STATUS_MAX_IO_PROCESS,
-    ID_STATUS_SELECTEDWORKINGSET
+    ID_STATUS_SELECTEDWORKINGSET,
+    ID_STATUS_SELECTEDPRIVATEBYTES,
 };
 
 VOID StatusBarLoadDefault(
@@ -53,7 +54,7 @@ VOID StatusBarLoadSettings(
     VOID
     )
 {
-    ULONG64 buttonCount = 0;
+    LONG64 buttonCount = 0;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
     PH_STRINGREF part;
@@ -182,6 +183,8 @@ PWSTR StatusBarGetText(
         return L"Max. I/O process";
     case ID_STATUS_SELECTEDWORKINGSET:
         return L"Selected process WS";
+    case ID_STATUS_SELECTEDPRIVATEBYTES:
+        return L"Selected process private bytes";
     }
 
     return L"ERROR";
@@ -601,6 +604,37 @@ VOID StatusBarUpdate(
                 else
                 {
                     PhInitFormatS(&format[0], L"Selected WS: N/A");
+                    PhFormatToBuffer(format, 1, text[count], sizeof(text[count]), &textLength[count]);
+                }
+
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
+            break;
+        case ID_STATUS_SELECTEDPRIVATEBYTES:
+            {
+                PPH_PROCESS_ITEM* processes;
+                ULONG numberOfProcesses;
+                SIZE_T value = 0;
+                PH_FORMAT format[2];
+
+                PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+                PhReferenceObjects(processes, numberOfProcesses);
+
+                for (ULONG i = 0; i < numberOfProcesses; i++)
+                {
+                    value += processes[i]->VmCounters.PagefileUsage;
+                }
+
+                if (value)
+                {
+                    PhInitFormatS(&format[0], L"Selected private bytes: ");
+                    PhInitFormatSize(&format[1], value);
+                    PhFormatToBuffer(format, 2, text[count], sizeof(text[count]), &textLength[count]);
+                }
+                else
+                {
+                    PhInitFormatS(&format[0], L"Selected private bytes: N/A");
                     PhFormatToBuffer(format, 1, text[count], sizeof(text[count]), &textLength[count]);
                 }
 
