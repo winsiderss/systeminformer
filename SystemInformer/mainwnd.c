@@ -1656,7 +1656,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiStartServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiStartService(WindowHandle, serviceItems[0]);
+            else
+                PhUiStartServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
@@ -1670,7 +1673,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiContinueServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiContinueService(WindowHandle, serviceItems[0]);
+            else
+                PhUiContinueServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
@@ -1684,7 +1690,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiPauseServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiPauseService(WindowHandle, serviceItems[0]);
+            else
+                PhUiPauseServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
@@ -1698,7 +1707,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiStopServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiStopService(WindowHandle, serviceItems[0]);
+            else
+                PhUiStopServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
