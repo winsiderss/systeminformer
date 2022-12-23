@@ -7,6 +7,7 @@
  *
  *     wj32    2016
  *     dmex    2015-2022
+ *     jxy-s   2022
  *
  */
 
@@ -29,6 +30,18 @@
 #define SETTING_NAME_GRAPHICS_LIST (PLUGIN_NAME L".GraphicsList")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION (PLUGIN_NAME L".GraphicsNodesWindowPosition")
 #define SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE (PLUGIN_NAME L".GraphicsNodesWindowSize")
+#define SETTING_NAME_DEVICE_TREE_WINDOW_POSITION (PLUGIN_NAME L".DeviceTreeWindowPosition")
+#define SETTING_NAME_DEVICE_TREE_WINDOW_SIZE (PLUGIN_NAME L".DeviceTreeWindowSize")
+#define SETTING_NAME_DEVICE_TREE_AUTO_REFRESH (PLUGIN_NAME L".DeviceTreeAutoRefresh")
+#define SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED (PLUGIN_NAME L".DeviceTreeShowDisconnected")
+#define SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED (PLUGIN_NAME L".DeviceTreeHighlightUpperFiltered")
+#define SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED (PLUGIN_NAME L".DeviceTreeHighlightLowerFiltered")
+#define SETTING_NAME_DEVICE_TREE_SORT (PLUGIN_NAME L".DeviceTreeSort")
+#define SETTING_NAME_DEVICE_TREE_COLUMNS (PLUGIN_NAME L".DeviceTreeColumns")
+#define SETTING_NAME_DEVICE_PROBLEM_COLOR (PLUGIN_NAME L".ColorDeviceProblem")
+#define SETTING_NAME_DEVICE_DISABLED_COLOR (PLUGIN_NAME L".ColorDeviceDisabled")
+#define SETTING_NAME_DEVICE_DISCONNECTED_COLOR (PLUGIN_NAME L".ColorDeviceDisconnected")
+#define SETTING_NAME_DEVICE_HIGHLIGHT_COLOR (PLUGIN_NAME L".ColorDeviceHighlight")
 
 #define UM_NDIS687
 #define UM_NDIS60
@@ -87,6 +100,44 @@ extern PH_QUEUED_LOCK GraphicsDevicesListLock;
 
 PPH_STRING TrimString(
     _In_ PPH_STRING String
+    );
+
+BOOLEAN HardwareDeviceEnableDisable(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance,
+    _In_ BOOLEAN Enable
+    );
+
+BOOLEAN HardwareDeviceRestart(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+BOOLEAN HardwareDeviceUninstall(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+_Success_(return)
+BOOLEAN HardwareDeviceShowSecurity(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+BOOLEAN HardwareDeviceShowProperties(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING DeviceInstance
+    );
+
+#define HW_KEY_INDEX_HARDWARE 4
+#define HW_KEY_INDEX_SOFTWARE 5
+#define HW_KEY_INDEX_USER 6
+#define HW_KEY_INDEX_CONFIG 7
+
+BOOLEAN HardwareDeviceOpenKey(
+    _In_ HWND ParentWindow,
+    _In_ PPH_STRING DeviceInstance,
+    _In_ ULONG KeyIndex
     );
 
 VOID ShowDeviceMenu(
@@ -1431,6 +1482,12 @@ VOID GraphicsDeviceShowNodesDialog(
 VOID GraphicsDeviceShowDetailsDialog(
     _In_ PDV_GPU_SYSINFO_CONTEXT Context,
     _In_ HWND ParentWindowHandle
+    );
+
+// devicetree.c
+
+VOID InitializeDevicesTab(
+    VOID
     );
 
 #endif _DEVICES_H_
