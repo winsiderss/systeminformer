@@ -215,7 +215,7 @@ typedef enum _KPH_OBJECT_INFORMATION_CLASS
     KphObjectThreadNameInformation,    // q: THREAD_NAME_INFORMATION
     KphObjectThreadIsTerminated,       // q: ULONG
     KphObjectSectionBasicInformation,  // q: SECTION_BASIC_INFORMATION
-    KphObjectSectionFileName,          // q: UNICODE_STRING 
+    KphObjectSectionFileName,          // q: UNICODE_STRING
     MaxKphObjectInfoClass
 } KPH_OBJECT_INFORMATION_CLASS;
 
