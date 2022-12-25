@@ -8650,11 +8650,20 @@ RtlAppxIsFileOwnedByTrustedInstaller(
 #define PSM_ACTIVATION_TOKEN_DEVELOPMENT_APP 0x10
 #define BREAKAWAY_INHIBITED 0x20
 
+// PackageOrigin appmodel.h
+#define PackageOrigin_Unknown 0
+#define PackageOrigin_Unsigned 1
+#define PackageOrigin_Inbox 2
+#define PackageOrigin_Store 3
+#define PackageOrigin_DeveloperUnsigned 4
+#define PackageOrigin_DeveloperSigned 5
+#define PackageOrigin_LineOfBusiness 6
+
 // private
 typedef struct _PS_PKG_CLAIM
 {
     ULONG Flags;  // PSM_ACTIVATION_TOKEN_*
-    ULONG Origin; // PackageOrigin from appmodel.h
+    ULONG Origin; // PackageOrigin
 } PS_PKG_CLAIM, *PPS_PKG_CLAIM;
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
@@ -8670,6 +8679,33 @@ RtlQueryPackageClaims(
     _Out_opt_ PGUID DynamicId,
     _Out_opt_ PPS_PKG_CLAIM PkgClaim,
     _Out_opt_ PULONG64 AttributesPresent
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryPackageIdentity(
+    _In_ HANDLE TokenHandle,
+    _Out_writes_bytes_to_(*PackageSize, *PackageSize) PWSTR PackageFullName,
+    _Inout_ PSIZE_T PackageSize,
+    _Out_writes_bytes_to_opt_(*AppIdSize, *AppIdSize) PWSTR AppId,
+    _Inout_opt_ PSIZE_T AppIdSize,
+    _Out_opt_ PBOOLEAN Packaged
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryPackageIdentityEx(
+    _In_ HANDLE TokenHandle,
+    _Out_writes_bytes_to_(*PackageSize, *PackageSize) PWSTR PackageFullName,
+    _Inout_ PSIZE_T PackageSize,
+    _Out_writes_bytes_to_opt_(*AppIdSize, *AppIdSize) PWSTR AppId,
+    _Inout_opt_ PSIZE_T AppIdSize,
+    _Out_opt_ PGUID DynamicId,
+    _Out_opt_ PULONG64 Flags
     );
 #endif
 
