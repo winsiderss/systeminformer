@@ -128,6 +128,7 @@ INT WINAPI wWinMain(
         PhExitApplication(PhRunAsServiceStart(PhStartupParameters.RunAsServiceMode));
     }
 
+    PhGuiSupportInitialization();
     PhpInitializeSettings();
 
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
@@ -175,7 +176,6 @@ INT WINAPI wWinMain(
     PhInitializeAutoPool(&BaseAutoPool);
 
     PhInitializeCommonControls();
-    PhGuiSupportInitialization();
     PhTreeNewInitialization();
     PhGraphControlInitialization();
     PhHexEditInitialization();

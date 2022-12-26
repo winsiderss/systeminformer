@@ -2218,7 +2218,7 @@ HICON PhGetApplicationIcon(
     static HICON largeIcon = NULL;
     static LONG systemDpi = 0;
 
-    if (systemDpi != PhGetSystemDpi())
+    if (systemDpi != PhSystemDpi)
     {
         if (smallIcon)
         {
@@ -2231,7 +2231,7 @@ HICON PhGetApplicationIcon(
             largeIcon = NULL;
         }
 
-        systemDpi = PhGetSystemDpi();
+        systemDpi = PhSystemDpi;
     }
 
     if (!smallIcon || !largeIcon)

@@ -48,6 +48,9 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
+LONG PhSystemDpi = 96;
+PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
+PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -101,6 +104,19 @@ VOID PhGuiSupportInitialization(
         GetThemePartSize_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemePartSize", 0);
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
     }
+
+    PhGuiSupportUpdateSystemMetrics();
+}
+
+VOID PhGuiSupportUpdateSystemMetrics(
+    VOID
+    )
+{
+    PhSystemDpi = PhGetSystemDpi();
+    PhSmallIconSize.X = PhGetSystemMetrics(SM_CXSMICON, PhSystemDpi);
+    PhSmallIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, PhSystemDpi);
+    PhLargeIconSize.X = PhGetSystemMetrics(SM_CXICON, PhSystemDpi);
+    PhLargeIconSize.Y = PhGetSystemMetrics(SM_CYICON, PhSystemDpi);
 }
 
 HTHEME PhOpenThemeData(
@@ -920,8 +936,6 @@ VOID PhGetStockApplicationIcon(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        LONG dpiValue = PhGetSystemDpi();
-
         if (WindowsVersion < WINDOWS_10)
         {
             PPH_STRING systemDirectory;
@@ -947,9 +961,9 @@ VOID PhGetStockApplicationIcon(
 
         // Fallback icons
         if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
+            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, PhSystemDpi);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
+            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, PhSystemDpi);
 
         PhEndInitOnce(&initOnce);
     }

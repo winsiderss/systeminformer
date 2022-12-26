@@ -602,10 +602,7 @@ VOID PhConvertIgnoredSettings(
 {
     PPH_SETTING ignoredSetting;
     PPH_SETTING setting;
-    LONG dpiValue;
     ULONG i;
-
-    dpiValue = PhGetSystemDpi();
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -623,7 +620,7 @@ VOID PhConvertIgnoredSettings(
                 setting->Type,
                 &((PPH_STRING)ignoredSetting->u.Pointer)->sr,
                 ignoredSetting->u.Pointer,
-                dpiValue,
+                PhSystemDpi,
                 setting
                 ))
             {
@@ -631,7 +628,7 @@ VOID PhConvertIgnoredSettings(
                     setting->Type,
                     &setting->DefaultValue,
                     NULL,
-                    dpiValue,
+                    PhSystemDpi,
                     setting
                     );
             }
@@ -656,11 +653,8 @@ NTSTATUS PhLoadSettings(
     PPH_SETTING setting;
     PPH_STRING settingName;
     PPH_STRING settingValue;
-    LONG dpiValue;
 
     PhpClearIgnoredSettings();
-
-    dpiValue = PhGetSystemDpi();
 
     if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName, &topNode)))
         return status;
@@ -688,7 +682,7 @@ NTSTATUS PhLoadSettings(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
-                        dpiValue,
+                        PhSystemDpi,
                         setting
                         ))
                     {
@@ -696,7 +690,7 @@ NTSTATUS PhLoadSettings(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
-                            dpiValue,
+                            PhSystemDpi,
                             setting
                             );
                     }
@@ -858,16 +852,13 @@ VOID PhAddSetting(
     )
 {
     PH_SETTING setting;
-    LONG dpiValue;
 
     setting.Type = Type;
     setting.Name = *Name;
     setting.DefaultValue = *DefaultValue;
     memset(&setting.u, 0, sizeof(setting.u));
 
-    dpiValue = PhGetSystemDpi();
-
-    PhSettingFromString(Type, &setting.DefaultValue, NULL, dpiValue, &setting);
+    PhSettingFromString(Type, &setting.DefaultValue, NULL, PhSystemDpi, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
 }
