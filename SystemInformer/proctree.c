@@ -87,6 +87,10 @@ static PH_TN_FILTER_SUPPORT FilterSupport;
 
 BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need to be processed
+static ULONG PhProcessTreeColumnHeaderCacheLength = 0;
+static PVOID PhProcessTreeColumnHeaderCache = NULL;
+static ULONG PhProcessTreeColumnHeaderTextCacheLength = 0;
+static PVOID PhProcessTreeColumnHeaderTextCache = NULL;
 
 static HDC GraphContext = NULL;
 static ULONG GraphContextWidth = 0;
@@ -94,8 +98,6 @@ static ULONG GraphContextHeight = 0;
 static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
-
-static FLOAT LowImageCoherencyThreshold = 0.5f; /**< Limit for displaying "low image coherency" */
 
 VOID PhProcessTreeListInitialization(
     VOID
@@ -250,6 +252,29 @@ VOID PhInitializeProcessTreeList(
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
 }
 
+VOID PhInitializeProcessTreeColumnHeaderCache(
+    VOID
+    )
+{
+    PH_TREENEW_SET_HEADER_CACHE processTreeColumnHeaderCache;
+    ULONG columnCount = TreeNew_GetColumnCount(ProcessTreeListHandle);
+
+    // TODO: This creates a text cache for all columns wasting space since
+    // only some provide header text support. We should switch to the same treenode
+    // caching where nodes provide the cache instead of the control. (dmex)
+
+    PhProcessTreeColumnHeaderCacheLength = columnCount * sizeof(PH_STRINGREF);
+    PhProcessTreeColumnHeaderCache = PhAllocateZero(PhProcessTreeColumnHeaderCacheLength);
+
+    PhProcessTreeColumnHeaderTextCacheLength = columnCount * (PH_TREENEW_HEADER_TEXT_SIZE_MAX * sizeof(WCHAR));
+    PhProcessTreeColumnHeaderTextCache = PhAllocateZero(PhProcessTreeColumnHeaderTextCacheLength);
+
+    processTreeColumnHeaderCache.HeaderTreeColumnMax = columnCount;
+    processTreeColumnHeaderCache.HeaderTreeColumnStringCache = PhProcessTreeColumnHeaderCache;
+    processTreeColumnHeaderCache.HeaderTreeColumnTextCache = PhProcessTreeColumnHeaderTextCache;
+    TreeNew_SetColumnTextCache(ProcessTreeListHandle, &processTreeColumnHeaderCache);
+}
+
 VOID PhLoadSettingsProcessTreeUpdateMask(
     VOID
     )
@@ -275,6 +300,8 @@ VOID PhLoadSettingsProcessTreeUpdateMask(
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+
+    PhInitializeProcessTreeColumnHeaderCache();
 }
 
 VOID PhLoadSettingsProcessTreeList(
@@ -667,7 +694,11 @@ VOID PhTickProcessNodes(
     BOOLEAN fullyInvalidated;
     RECT rect;
 
-    // Text invalidation, node updates
+    // Header text invalidation (dmex)
+
+    memset(PhProcessTreeColumnHeaderCache, 0, PhProcessTreeColumnHeaderCacheLength);
+
+    // Node text invalidation, node updates
 
     for (i = 0; i < ProcessNodeList->Count; i++)
     {
@@ -4816,6 +4847,8 @@ BOOLEAN PhpShouldShowImageCoherency(
     _In_ BOOLEAN CheckThreshold
     )
 {
+    static FLOAT LowImageCoherencyThreshold = 0.5f; /**< Limit for displaying "low image coherency" */
+
     if (PhCsImageCoherencyScanLevel == 0)
     {
         //
