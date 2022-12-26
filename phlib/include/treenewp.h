@@ -157,6 +157,10 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG SystemDragY;
     RECT DragRect;
 
+    LONG WindowDpi;
+    LONG SmallIconWidth;
+    LONG SmallIconHeight;
+
     LONG EnableRedraw;
     HRGN SuspendUpdateRegion;
 
@@ -186,6 +190,10 @@ typedef struct _PH_TREENEW_CONTEXT
     HBITMAP HeaderBufferedOldBitmap;
     HBITMAP HeaderBufferedBitmap;
     RECT HeaderBufferedContextRect;
+
+    ULONG HeaderColumnCacheMax;
+    PPH_STRINGREF HeaderStringCache;
+    PVOID HeaderTextCache;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -244,6 +252,11 @@ VOID PhTnpOnSettingChange(
     );
 
 VOID PhTnpOnThemeChanged(
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpOnDpiChanged(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context
     );
@@ -807,8 +820,6 @@ VOID PhTnpGetMessagePos(
 BOOLEAN PhTnpGetColumnHeaderText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_COLUMN Column,
-    _In_ PWSTR TextCache,
-    _In_ ULONG TextCacheSize,
     _Out_ PPH_STRINGREF Text
     );
 
