@@ -27,7 +27,7 @@ VOID DiskDriveUpdatePanel(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    PH_FORMAT format[2];
+    PH_FORMAT format[3];
     WCHAR formatBuffer[256];
 
     PhInitFormatSize(&format[0], Context->DiskEntry->BytesReadDelta.Value);
@@ -76,11 +76,13 @@ VOID DiskDriveUpdatePanel(
         PhSetWindowText(Context->DiskDrivePanelBytesLabel, PhaFormatString(L"%s/s", PhaFormatSize(Context->DiskEntry->BytesReadDelta.Delta + Context->DiskEntry->BytesWrittenDelta.Delta, ULONG_MAX)->Buffer)->Buffer);
 
     PhInitFormatI64UGroupDigits(&format[0], Context->DiskEntry->QueueDepth);
+    PhInitFormatS(&format[1], L" | ");
+    PhInitFormatI64UGroupDigits(&format[2], Context->DiskEntry->ReadCountDelta.Delta + Context->DiskEntry->WriteCountDelta.Delta);
 
-    if (PhFormatToBuffer(format, 1, formatBuffer, sizeof(formatBuffer), NULL))
+    if (PhFormatToBuffer(format, 3, formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH), formatBuffer);
     else
-        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH), PhaFormatString(L"%lu", Context->DiskEntry->QueueDepth)->Buffer);
+        PhSetWindowText(GetDlgItem(Context->PanelWindowHandle, IDC_STAT_QUEUELENGTH), PhaFormatString(L"%lu | %lu", Context->DiskEntry->QueueDepth, Context->DiskEntry->ReadCountDelta.Delta + Context->DiskEntry->WriteCountDelta.Delta)->Buffer);
 
     PhInitFormatI64UGroupDigits(&format[0], Context->DiskEntry->SplitCount);
 

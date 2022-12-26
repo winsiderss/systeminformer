@@ -130,8 +130,8 @@ BEGIN
     RTEXT           "Static",IDC_STAT_RESPONSETIME,65,22,62,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_STAT_BYTESDELTA,65,33,62,8,SS_ENDELLIPSIS
     GROUPBOX        "Statistics",IDC_STATIC,278,0,136,33
-    LTEXT           "Queue depth",IDC_STATIC,287,11,48,8
-    LTEXT           "Split count",IDC_STATIC,287,22,45,8
+    LTEXT           "Queue delta",IDC_STATIC,287,11,48,8
+    LTEXT           "Split total",IDC_STATIC,287,22,45,8
     RTEXT           "Static",IDC_STAT_QUEUELENGTH,344,11,62,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_STAT_SPLITCOUNT,344,22,62,8,SS_ENDELLIPSIS
 END
