@@ -4184,7 +4184,10 @@ NTSTATUS PhGetAppModelPolicy(
 
         if (PhGetSymbolFromName(symbolProvider, L"GetAppModelPolicy", &symbolInfo))
         {
-            GetAppModelPolicy_I = (PVOID)symbolInfo.Address;
+            if (NT_SUCCESS(PhSetProcessValidCallTarget(NtCurrentProcess(), (PVOID)symbolInfo.Address)))
+            {
+                GetAppModelPolicy_I = (PVOID)symbolInfo.Address;
+            }
         }
 
         PhDereferenceObject(symbolProvider);
@@ -4205,9 +4208,9 @@ static NTSTATUS PhGetAppModelPolicySymbolDownloadThread(
     )
 {
     AppModelPolicy_PolicyValue result;
-    
+
     if (PhGetAppModelPolicy(
-        PhGetOwnTokenAttributes().TokenHandle, 
+        PhGetOwnTokenAttributes().TokenHandle,
         AppModelPolicy_Type_DllSearchOrder,
         &result
         ) != STATUS_PROCEDURE_NOT_FOUND)
@@ -5360,7 +5363,7 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
 }
 
 static PH_STRINGREF PhAppPolicyLoadingText = PH_STRINGREF_INIT(L"Initializing kernelbase symbols...");
-static PH_STRINGREF PhAppPolicyEmptyText = PH_STRINGREF_INIT(L"Unable to load kernelbase symbols.");
+static PH_STRINGREF PhAppPolicyEmptyText = PH_STRINGREF_INIT(L"There are no policies to display.");
 
 INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
     _In_ HWND hwndDlg,
@@ -5410,6 +5413,7 @@ INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
 
             if (result)
             {
+                TreeNew_SetEmptyText(tnHandle, &PhAppPolicyEmptyText, 0);
                 TreeNew_SetRedraw(tnHandle, FALSE);
                 PhEnumTokenAppModelPolicy(tokenPageContext);
                 TreeNew_NodesStructured(tnHandle);
