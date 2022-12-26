@@ -227,7 +227,7 @@ INT_PTR CALLBACK PvpPeExtendedAttributesDlgProc(
                                     PPH_BYTES nameAnsi = NULL;
                                     INT index;
 
-                                    if ((index = PhFindListViewItemByFlags(context->ListViewHandle, -1, LVNI_SELECTED)) != -1)
+                                    if ((index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
                                     {
                                         nameUtf = PhGetListViewItemText(context->ListViewHandle, index, 1);
                                     }

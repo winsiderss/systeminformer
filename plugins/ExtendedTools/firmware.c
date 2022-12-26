@@ -66,13 +66,9 @@ VOID FreeListViewFirmwareEntries(
     _In_ PUEFI_WINDOW_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
-    while ((index = PhFindListViewItemByFlags(
-        Context->ListViewHandle,
-        index,
-        LVNI_ALL
-        )) != -1)
+    while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
         PEFI_ENTRY param;
 

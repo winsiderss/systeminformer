@@ -350,7 +350,7 @@ VOID ToolbarLoadSettings(
             };
 
             // Get settings for first button
-            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
+            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
                 break;
 
             // Skip separator buttons
@@ -878,7 +878,7 @@ VOID ToolbarSaveButtonSettings(
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
         };
 
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
             break;
 
         PhAppendFormatStringBuilder(

@@ -212,13 +212,13 @@ VOID FreeListViewDiskDriveEntries(
     _In_ PDV_DISK_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PDV_DISK_ID param;
 
@@ -475,7 +475,7 @@ VOID FindDiskDrives(
     PhAcquireQueuedLockShared(&DiskDrivesListLock);
     for (ULONG i = 0; i < DiskDrivesList->Count; i++)
     {
-        ULONG index = ULONG_MAX;
+        INT index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_DISK_ENTRY entry = PhReferenceObjectSafe(DiskDrivesList->Items[i]);
 
@@ -486,7 +486,7 @@ VOID FindDiskDrives(
             Context->ListViewHandle,
             index,
             LVNI_ALL
-            )) != ULONG_MAX)
+            )) != INT_ERROR)
         {
             PDV_DISK_ID param;
 

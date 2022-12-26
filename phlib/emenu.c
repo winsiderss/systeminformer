@@ -606,7 +606,7 @@ VOID PhEMenuToHMenu2(
             }
         }
 
-        InsertMenuItem(MenuHandle, MAXINT, TRUE, &menuItemInfo);
+        InsertMenuItem(MenuHandle, MAXUINT, TRUE, &menuItemInfo);
     }
 }
 
@@ -621,19 +621,19 @@ VOID PhHMenuToEMenuItem(
     _In_ HMENU MenuHandle
     )
 {
-    ULONG i;
-    ULONG count;
+    INT i;
+    INT count;
 
     count = GetMenuItemCount(MenuHandle);
 
-    if (count == -1)
+    if (count == INT_ERROR)
         return;
 
     for (i = 0; i < count; i++)
     {
         MENUITEMINFO menuItemInfo;
         PPH_EMENU_ITEM menuItem;
-        WCHAR buffer[MAX_PATH];
+        WCHAR buffer[MAX_PATH] = L"";
 
         menuItemInfo.cbSize = sizeof(menuItemInfo);
         menuItemInfo.fMask = MIIM_FTYPE | MIIM_ID | MIIM_STATE | MIIM_STRING | MIIM_SUBMENU;
@@ -686,7 +686,7 @@ VOID PhLoadResourceEMenuItem(
     _Inout_ PPH_EMENU_ITEM MenuItem,
     _In_ HINSTANCE InstanceHandle,
     _In_ PWSTR Resource,
-    _In_ ULONG SubMenuIndex
+    _In_ INT SubMenuIndex
     )
 {
     HMENU menu;
@@ -694,7 +694,7 @@ VOID PhLoadResourceEMenuItem(
 
     menu = PhLoadMenu(InstanceHandle, Resource);
 
-    if (SubMenuIndex != ULONG_MAX)
+    if (SubMenuIndex != INT_ERROR)
         realMenu = GetSubMenu(menu, SubMenuIndex);
     else
         realMenu = menu;

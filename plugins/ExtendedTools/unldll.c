@@ -151,7 +151,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, buffer);
 
             // Size
-            string = PhFormatSize(rtlEvent->SizeOfImage, -1);
+            string = PhFormatSize(rtlEvent->SizeOfImage, ULONG_MAX);
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, string->Buffer);
             PhDereferenceObject(string);
 
@@ -216,7 +216,7 @@ NTSTATUS EtpRefreshUnloadedDlls(
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 2, buffer);
 
             // Size
-            string = PhFormatSize(rtlEvent->SizeOfImage, -1);
+            string = PhFormatSize(rtlEvent->SizeOfImage, ULONG_MAX);
             PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 3, string->Buffer);
             PhDereferenceObject(string);
 

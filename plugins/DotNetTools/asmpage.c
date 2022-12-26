@@ -728,8 +728,8 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_opt_ PVOID Context
     )
 {
@@ -743,12 +743,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-            PDNA_NODE node;
-
-            if (!getChildren)
-                break;
-
-            node = (PDNA_NODE)getChildren->Node;
+            PDNA_NODE node = (PDNA_NODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
             {
@@ -806,12 +801,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-            PDNA_NODE node;
-
-            if (!isLeaf)
-                break;
-
-            node = (PDNA_NODE)isLeaf->Node;
+            PDNA_NODE node = (PDNA_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
                 isLeaf->IsLeaf = node->Children && node->Children->Count == 0;
@@ -822,12 +812,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-            PDNA_NODE node;
-
-            if (!getCellText)
-                break;
-
-            node = (PDNA_NODE)getCellText->Node;
+            PDNA_NODE node = (PDNA_NODE)getCellText->Node;
 
             switch (getCellText->Id)
             {
@@ -862,12 +847,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-            PDNA_NODE node;
-
-            if (!getNodeColor)
-                break;
-
-            node = (PDNA_NODE)getNodeColor->Node;
+            PDNA_NODE node = (PDNA_NODE)getNodeColor->Node;
 
             switch (node->Type)
             {
@@ -899,12 +879,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
-            PDNA_NODE node;
-
-            if (!getCellTooltip)
-                break;
-
-            node = (PDNA_NODE)getCellTooltip->Node;
+            PDNA_NODE node = (PDNA_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0 || node->Type != DNA_TYPE_ASSEMBLY)
                 return FALSE;
@@ -933,9 +908,6 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -984,9 +956,6 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
-
-            if (!contextMenuEvent)
-                break;
 
             DotNetAsmShowContextMenu(context, contextMenuEvent);
         }

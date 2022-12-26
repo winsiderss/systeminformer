@@ -542,13 +542,13 @@ VOID PhpTokenPageFreeListViewEntries(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         TokenPageContext->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry;
 
@@ -564,16 +564,16 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     )
 {
     PPHP_TOKEN_GROUP_RESOLVE_CONTEXT context = ThreadParameter;
-    PPH_STRING sidString = NULL;
+    PPH_STRING sidString;
     INT lvItemIndex;
 
     lvItemIndex = PhFindListViewItemByParam(
         context->ListViewHandle,
-        -1,
+        INT_ERROR,
         context->LvItem
         );
 
-    if (lvItemIndex != -1)
+    if (lvItemIndex != INT_ERROR)
     {
         if (sidString = PhGetSidFullName(context->TokenGroupSid, TRUE, NULL))
         {
@@ -2183,7 +2183,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     case WM_INITDIALOG:
         {
             HANDLE tokenHandle;
-            ULONG listViewGroupIndex = 0;
+            INT listViewGroupIndex = 0;
             PWSTR tokenType = L"Unknown";
             PWSTR tokenImpersonationLevel = L"Unknown";
             WCHAR tokenLuid[PH_PTR_STR_LEN_1] = { L"Unknown" };

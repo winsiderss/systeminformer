@@ -345,7 +345,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
                     lvHitInfo.pt = itemActivate->ptAction;
 
-                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != -1)
+                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != INT_ERROR)
                     {
                         // Ignore click notifications for the listview checkbox region.
                         if (!(lvHitInfo.flags & LVHT_ONITEMSTATEICON))

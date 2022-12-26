@@ -238,7 +238,7 @@ FORCEINLINE VOID PhSetListViewStyle(
     ListView_SetExtendedListViewStyleEx(
         Handle,
         style,
-        -1
+        INT_ERROR
         );
 }
 
@@ -298,7 +298,7 @@ NTAPI
 PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
-    _Out_ PVOID *Param
+    _Outptr_ PVOID *Param
     );
 
 PHLIBAPI
@@ -1073,7 +1073,6 @@ typedef enum _PH_PROCESS_DPI_AWARENESS
     PH_PROCESS_DPI_AWARENESS_UNAWARE_GDISCALED = 4,
 } PH_PROCESS_DPI_AWARENESS, *PPH_PROCESS_DPI_AWARENESS;
 
-
 _Success_(return)
 PHLIBAPI
 BOOLEAN
@@ -1130,11 +1129,11 @@ PHLIBAPI
 HIMAGELIST
 NTAPI
 PhImageListCreate(
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ UINT Flags,
-    _In_ UINT InitialCount,
-    _In_ UINT GrowCount
+    _In_ INT32 Width,
+    _In_ INT32 Height,
+    _In_ UINT32 Flags,
+    _In_ INT32 InitialCount,
+    _In_ INT32 GrowCount
     );
 
 PHLIBAPI
@@ -1149,7 +1148,7 @@ BOOLEAN
 NTAPI
 PhImageListSetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Count
+    _In_ UINT32 Count
     );
 
 PHLIBAPI
@@ -1157,7 +1156,7 @@ BOOLEAN
 NTAPI
 PhImageListGetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PUINT Count
+    _Out_ PINT32 Count
     );
 
 PHLIBAPI
@@ -1173,14 +1172,14 @@ BOOLEAN
 NTAPI
 PhImageListRemoveIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index
+    _In_ INT32 Index
     );
 
 #define PhImageListRemoveAll(ImageListHandle) \
-    PhImageListRemoveIcon((ImageListHandle), -1)
+    PhImageListRemoveIcon((ImageListHandle), INT_ERROR)
 
 PHLIBAPI
-UINT
+INT32
 NTAPI
 PhImageListAddIcon(
     _In_ HIMAGELIST ImageListHandle,
@@ -1188,7 +1187,7 @@ PhImageListAddIcon(
     );
 
 PHLIBAPI
-UINT
+INT32
 NTAPI
 PhImageListAddBitmap(
     _In_ HIMAGELIST ImageListHandle,
@@ -1201,8 +1200,8 @@ HICON
 NTAPI
 PhImageListGetIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
-    _In_ UINT Flags
+    _In_ INT32 Index,
+    _In_ UINT32 Flags
     );
 
 PHLIBAPI
@@ -1210,8 +1209,8 @@ BOOLEAN
 NTAPI
 PhImageListGetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PINT cx,
-    _Out_ PINT cy
+    _Out_ PINT32 cx,
+    _Out_ PINT32 cy
     );
 
 PHLIBAPI
@@ -1219,7 +1218,7 @@ BOOLEAN
 NTAPI
 PhImageListReplace(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
+    _In_ INT32 Index,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     );
@@ -1229,11 +1228,11 @@ BOOLEAN
 NTAPI
 PhImageListDrawIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ UINT Style,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ UINT32 Style,
     _In_ BOOLEAN Disabled
     );
 
@@ -1242,16 +1241,16 @@ BOOLEAN
 NTAPI
 PhImageListDrawEx(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ INT dx,
-    _In_ INT dy,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ INT32 dx,
+    _In_ INT32 dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
     _In_ UINT Style,
-    _In_ DWORD State
+    _In_ ULONG State
     );
 
 PHLIBAPI
@@ -1259,8 +1258,8 @@ BOOLEAN
 NTAPI
 PhImageListSetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT cx,
-    _In_ INT cy
+    _In_ INT32 cx,
+    _In_ INT32 cy
     );
 
 PHLIBAPI
@@ -1508,15 +1507,15 @@ PhPtInRect(
     _In_ POINT Point
     )
 {
-    return Point.x >= Rect->left && Point.x < Rect->right && 
+    return Point.x >= Rect->left && Point.x < Rect->right &&
         Point.y >= Rect->top && Point.y < Rect->bottom;
 }
 
 // directdraw.cpp
 
 HICON PhGdiplusConvertBitmapToIcon(
-    _In_ HBITMAP Bitmap, 
-    _In_ LONG Width, 
+    _In_ HBITMAP Bitmap,
+    _In_ LONG Width,
     _In_ LONG Height,
     _In_ COLORREF Background
     );

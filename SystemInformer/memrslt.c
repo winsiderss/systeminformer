@@ -61,12 +61,12 @@ VOID PhShowMemoryResultsDialog(
     for (i = 0; i < Results->Count; i++)
         PhReferenceMemoryResult(Results->Items[i]);
 
-    windowHandle = CreateDialogParam(
+    windowHandle = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_MEMRESULTS),
         NULL,
         PhpMemoryResultsDlgProc,
-        (LPARAM)context
+        context
         );
     ShowWindow(windowHandle, SW_SHOW);
     SetForegroundWindow(windowHandle);

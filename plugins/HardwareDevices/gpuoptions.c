@@ -224,13 +224,13 @@ VOID FreeListViewGraphicsDeviceEntries(
     _In_ PDV_GPU_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PDV_GPU_ID param;
 
@@ -297,7 +297,7 @@ VOID FindGraphicsDevices(
     _In_ PDV_GPU_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = 0;
+    ULONG deviceIndex = 0;
     PPH_LIST deviceList;
     PWSTR deviceInterfaceList;
     ULONG deviceInterfaceListLength = 0;
@@ -352,7 +352,7 @@ VOID FindGraphicsDevices(
                 PGPU_ENUM_ENTRY entry;
 
                 entry = PhAllocateZero(sizeof(GPU_ENUM_ENTRY));
-                entry->DeviceIndex = ++index;
+                entry->DeviceIndex = ++deviceIndex;
                 entry->DevicePath = PhCreateString(deviceInterface);
                 entry->DeviceName = GraphicsQueryDeviceDescription(deviceInstanceHandle);
 
@@ -366,7 +366,7 @@ VOID FindGraphicsDevices(
      
                 if (entry->DevicePresent)
                 {
-                    ULONG deviceIndex;
+                    ULONG adapterIndex;
                     PPH_STRING locationString = NULL;
                     PPH_STRING locationInfoString;
 
@@ -375,14 +375,14 @@ VOID FindGraphicsDevices(
                         &DEVPKEY_Device_LocationInfo
                         );
 
-                    if (locationInfoString && GraphicsQueryDeviceInterfaceAdapterIndex(deviceInterface, &deviceIndex))
+                    if (locationInfoString && GraphicsQueryDeviceInterfaceAdapterIndex(deviceInterface, &adapterIndex))
                     {
                         SIZE_T returnLength;
                         PH_FORMAT format[2];
                         WCHAR formatBuffer[512];
 
                         PhInitFormatS(&format[0], L"GPU ");
-                        PhInitFormatU(&format[1], deviceIndex);
+                        PhInitFormatU(&format[1], adapterIndex);
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
                         {
@@ -459,7 +459,7 @@ VOID FindGraphicsDevices(
     PhAcquireQueuedLockShared(&GraphicsDevicesListLock);
     for (ULONG i = 0; i < GraphicsDevicesList->Count; i++)
     {
-        ULONG index = ULONG_MAX;
+        INT index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_GPU_ENTRY entry = PhReferenceObjectSafe(GraphicsDevicesList->Items[i]);
 
@@ -470,7 +470,7 @@ VOID FindGraphicsDevices(
             Context->ListViewHandle,
             index,
             LVNI_ALL
-            )) != ULONG_MAX)
+            )) != INT_ERROR)
         {
             PDV_GPU_ID param;
 

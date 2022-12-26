@@ -707,13 +707,9 @@ VOID EspFreeListViewDiskDriveEntries(
     _In_ PPNP_SERVICE_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
-    while ((index = PhFindListViewItemByFlags(
-        Context->ListViewHandle,
-        index,
-        LVNI_ALL
-        )) != ULONG_MAX)
+    while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
         PPH_STRING param;
 

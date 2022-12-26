@@ -1123,13 +1123,13 @@ VOID EtFreeReparseListViewEntries(
     _In_ PREPARSE_WINDOW_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PREPARSE_LISTVIEW_ENTRY param;
 
@@ -1474,9 +1474,9 @@ INT_PTR CALLBACK EtReparseDlgProc(
                                     for (ULONG i = 0; i < numberOfItems; i++)
                                     {
                                         PREPARSE_LISTVIEW_ENTRY entry = listviewItems[i];
-                                        INT index = PhFindListViewItemByParam(context->ListViewHandle, -1, entry);
+                                        INT index = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, entry);
 
-                                        if (index != -1)
+                                        if (index != INT_ERROR)
                                         {
                                             switch (context->MenuItemIndex)
                                             {

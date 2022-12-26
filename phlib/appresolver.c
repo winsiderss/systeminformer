@@ -1071,7 +1071,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
         goto CleanupExit;
     //if (FAILED(IPropertyStore_GetValue(propertyStore, &PKEY_Tile_Background, &propertyColorValue)))
     //    goto CleanupExit;
-    if (FAILED(PhAppResolverGetPackageResourceFilePath(PackageFullName, propertyKeyValue.pwszVal, &imagePath)))
+    if (FAILED(PhAppResolverGetPackageResourceFilePath(PackageFullName, V_BSTR(&propertyKeyValue), &imagePath)))
         goto CleanupExit;
 
     {
@@ -1084,7 +1084,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            largeIcon = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
+            largeIcon = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
             DeleteBitmap(bitmap);
         }
     }
@@ -1099,7 +1099,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            smallIcon = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
+            smallIcon = PhGdiplusConvertBitmapToIcon(bitmap, width, height, V_UI4(&propertyColorValue));
             DeleteBitmap(bitmap);
         }
     }
@@ -1107,8 +1107,8 @@ BOOLEAN PhAppResolverGetPackageIcon(
 CleanupExit:
     if (imagePath)
         CoTaskMemFree(imagePath);
-    if (propertyKeyValue.pwszVal)
-        CoTaskMemFree(propertyKeyValue.pwszVal);
+    if (V_BSTR(&propertyKeyValue))
+        CoTaskMemFree(V_BSTR(&propertyKeyValue));
     if (propertyStore)
         IPropertyStore_Release(propertyStore);
 
