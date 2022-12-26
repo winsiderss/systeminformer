@@ -292,6 +292,8 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
+            PhGuiSupportUpdateSystemMetrics();
+
             if (PhGetIntegerSetting(L"EnableWindowText"))
             {
                 PhSetApplicationWindowIcon(PhMainWndHandle);

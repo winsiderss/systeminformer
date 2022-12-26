@@ -40,10 +40,21 @@ typedef HANDLE HTHEME;
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
 
+extern LONG PhSystemDpi;
+extern PH_INTEGER_PAIR PhSmallIconSize;
+extern PH_INTEGER_PAIR PhLargeIconSize;
+
 PHLIBAPI
 VOID
 NTAPI
 PhGuiSupportInitialization(
+    VOID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhGuiSupportUpdateSystemMetrics(
     VOID
     );
 

@@ -163,6 +163,7 @@ BOOLEAN PhEnableProcessExtension = TRUE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 ULONG PhProcessProviderFlagsMask = 0;
+LONG PhProcessImageListWindowDpi = 96;
 
 PVOID PhProcessInformation = NULL; // only can be used if running on same thread as process provider
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
@@ -715,14 +716,12 @@ VOID PhpProcessQueryStage1(
     {
         if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(&processItem->FileName->sr))
         {
-            LONG systemDpi = PhGetSystemDpi();
-
             Data->IconEntry = PhImageListExtractIcon(
                 processItem->FileName,
                 TRUE, 
                 processItem->ProcessId,
                 processItem->PackageFullName, 
-                systemDpi
+                PhProcessImageListWindowDpi
                 );
 
             PhInitializeImageVersionInfoCached(
@@ -3516,12 +3515,11 @@ VOID PhProcessImageListInitialization(
 {
     HICON iconSmall;
     HICON iconLarge;
-    LONG dpiValue;
 
     if (!PhImageListItemType)
         PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
 
-    dpiValue = PhGetWindowDpi(hwnd);
+    PhProcessImageListWindowDpi = PhGetWindowDpi(hwnd);
 
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_IMAGELIST_ITEM* entry;
@@ -3550,14 +3548,14 @@ VOID PhProcessImageListInitialization(
     if (PhProcessLargeImageList) PhImageListDestroy(PhProcessLargeImageList);
     if (PhProcessSmallImageList) PhImageListDestroy(PhProcessSmallImageList);
     PhProcessLargeImageList = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXICON, dpiValue),
-        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        PhGetSystemMetrics(SM_CXICON, PhProcessImageListWindowDpi),
+        PhGetSystemMetrics(SM_CYICON, PhProcessImageListWindowDpi),
         ILC_MASK | ILC_COLOR32,
         100,
         100);
     PhProcessSmallImageList = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+        PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi),
+        PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi),
         ILC_MASK | ILC_COLOR32,
         100,
         100);
@@ -3569,8 +3567,8 @@ VOID PhProcessImageListInitialization(
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
 
-    iconLarge = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
-    iconSmall = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
+    iconLarge = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_LARGE, 0, 0, PhProcessImageListWindowDpi);
+    iconSmall = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_SMALL, 0, 0, PhProcessImageListWindowDpi);
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
     DestroyIcon(iconLarge);
@@ -3583,8 +3581,7 @@ VOID PhProcessImageListInitialization(
             PPH_STRING filename = fileNames->Items[i];
             PPH_IMAGELIST_ITEM iconEntry;
 
-            dpiValue = PhGetSystemDpi();
-            iconEntry = PhImageListExtractIcon(filename, TRUE, 0, NULL, dpiValue);
+            iconEntry = PhImageListExtractIcon(filename, TRUE, 0, NULL, PhProcessImageListWindowDpi);
 
             if (iconEntry)
             {
