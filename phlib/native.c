@@ -13420,7 +13420,6 @@ NTSTATUS PhGetNumaProximityNode(
     return status;
 }
 
-
 // rev from SetProcessValidCallTargets (dmex)
 NTSTATUS PhSetProcessValidCallTarget(
     _In_ HANDLE ProcessHandle,
