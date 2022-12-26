@@ -39,7 +39,6 @@
 #include <sysinfo.h>
 #include <sysinfop.h>
 
-#include <uxtheme.h>
 #include <vssym32.h>
 
 #include <mainwnd.h>
@@ -1332,7 +1331,7 @@ VOID PhSipDrawRestoreSummaryPanel(
     {
         if (ThemeHasItemBackground)
         {
-            DrawThemeBackground(
+            PhDrawThemeBackground(
                 ThemeData,
                 bufferDc,
                 TVP_TREEITEM,
@@ -1531,7 +1530,7 @@ VOID PhSipDefaultDrawPanel(
         {
             //if (Section->GraphHot)
             //{
-            //    DrawThemeBackground(
+            //    PhDrawThemeBackground(
             //        ThemeData,
             //        hdc,
             //        TVP_TREEITEM,
@@ -1566,7 +1565,7 @@ VOID PhSipDefaultDrawPanel(
                 themeRect = DrawPanel->Rect;
                 themeRect.left -= 2; // remove left edge
 
-                DrawThemeBackground(
+                PhDrawThemeBackground(
                     ThemeData,
                     hdc,
                     TVP_TREEITEM,
@@ -1578,7 +1577,7 @@ VOID PhSipDefaultDrawPanel(
         }
         else if (Section->HasFocus)
         {
-            DrawThemeBackground(
+            PhDrawThemeBackground(
                 ThemeData,
                 hdc,
                 TVP_TREEITEM,
@@ -2334,7 +2333,7 @@ VOID PhSipUpdateThemeData(
 
     if (ThemeData)
     {
-        ThemeHasItemBackground = !!IsThemePartDefined(ThemeData, TVP_TREEITEM, 0);
+        ThemeHasItemBackground = PhIsThemePartDefined(ThemeData, TVP_TREEITEM, 0);
     }
     else
     {

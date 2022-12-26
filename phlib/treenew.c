@@ -33,7 +33,6 @@
 #include <ph.h>
 #include <treenew.h>
 
-#include <uxtheme.h>
 #include <vssym32.h>
 
 #include <apiimport.h>
@@ -2155,7 +2154,7 @@ VOID PhTnpUpdateThemeData(
 {
     Context->DefaultBackColor = GetSysColor(COLOR_WINDOW);
     Context->DefaultForeColor = GetSysColor(COLOR_WINDOWTEXT);
-    Context->ThemeActive = !!IsThemeActive();
+    Context->ThemeActive = !!PhIsThemeActive();
 
     if (Context->ThemeData)
     {
@@ -2167,9 +2166,9 @@ VOID PhTnpUpdateThemeData(
 
     if (Context->ThemeData)
     {
-        Context->ThemeHasItemBackground = !!IsThemePartDefined(Context->ThemeData, TVP_TREEITEM, 0);
-        Context->ThemeHasGlyph = !!IsThemePartDefined(Context->ThemeData, TVP_GLYPH, 0);
-        Context->ThemeHasHotGlyph = !!IsThemePartDefined(Context->ThemeData, TVP_HOTGLYPH, 0);
+        Context->ThemeHasItemBackground = !!PhIsThemePartDefined(Context->ThemeData, TVP_TREEITEM, 0);
+        Context->ThemeHasGlyph = !!PhIsThemePartDefined(Context->ThemeData, TVP_GLYPH, 0);
+        Context->ThemeHasHotGlyph = !!PhIsThemePartDefined(Context->ThemeData, TVP_HOTGLYPH, 0);
     }
     else
     {
@@ -5362,7 +5361,7 @@ VOID PhTnpPaint(
                     rowRect.left = Context->NormalLeft - hScrollPosition;
                 }
 
-                DrawThemeBackground(
+                PhDrawThemeBackground(
                     Context->ThemeData,
                     hdc,
                     TVP_TREEITEM,
@@ -5720,15 +5719,17 @@ VOID PhTnpDrawCell(
                     partId = (RowIndex == Context->HotNodeIndex && Node->s.PlusMinusHot && Context->ThemeHasHotGlyph) ? TVP_HOTGLYPH : TVP_GLYPH;
                     stateId = Node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
 
-                    if (SUCCEEDED(DrawThemeBackground(
+                    if (PhDrawThemeBackground(
                         Context->ThemeData,
                         hdc,
                         partId,
                         stateId,
                         &themeRect,
                         NULL
-                        )))
+                        ))
+                    {
                         drewUsingTheme = TRUE;
+                    }
                 }
 
                 if (!drewUsingTheme)
@@ -6083,12 +6084,12 @@ VOID PhTnpDrawThemedBorder(
     ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
     // Draw the themed border.
-    DrawThemeBackground(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
+    PhDrawThemeBackground(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
 
     // Calculate the size of the border we just drew, and fill in the rest of the space if we didn't
     // fully paint the region.
 
-    if (SUCCEEDED(GetThemeInt(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth)))
+    if (PhGetThemeInt(Context->ThemeData, 0, 0, TMT_SIZINGBORDERWIDTH, &sizingBorderWidth))
     {
         borderX = sizingBorderWidth;
         borderY = sizingBorderWidth;
@@ -6883,7 +6884,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             {
                 //if (context->HeaderThemeHandle)
                 //{
-                //    DrawThemeBackground(
+                //    PhDrawThemeBackground(
                 //        context->HeaderThemeHandle,
                 //        context->HeaderBufferedDc,
                 //        HP_HEADERITEM,
@@ -6941,7 +6942,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     }
                     else if (context->HeaderThemeHandle)
                     {
-                        DrawThemeBackground(
+                        PhDrawThemeBackground(
                             context->HeaderThemeHandle,
                             context->HeaderBufferedDc,
                             HP_HEADERITEM,
@@ -6978,7 +6979,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                     }
                     else if (context->HeaderThemeHandle)
                     {
-                        DrawThemeBackground(
+                        PhDrawThemeBackground(
                             context->HeaderThemeHandle,
                             context->HeaderBufferedDc,
                             HP_HEADERITEM,
@@ -7063,20 +7064,20 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                         {
                             SIZE sortArrowSize;
 
-                            if (GetThemePartSize(
+                            if (PhGetThemePartSize(
                                 context->HeaderThemeHandle,
                                 context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,
                                 HSAS_SORTEDDOWN,
                                 NULL,
-                                TS_TRUE,
+                                THEMEPARTSIZE_TRUE,
                                 &sortArrowSize
                                 ) == S_OK)
                             {
                                 headerRect.bottom = sortArrowSize.cy;
                             }
 
-                            DrawThemeBackground(
+                            PhDrawThemeBackground(
                                 context->HeaderThemeHandle,
                                 context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,
@@ -7092,20 +7093,20 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                         {
                             SIZE sortArrowSize;
 
-                            if (GetThemePartSize(
+                            if (PhGetThemePartSize(
                                 context->HeaderThemeHandle,
                                 context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,
                                 HSAS_SORTEDUP,
                                 NULL,
-                                TS_TRUE,
+                                THEMEPARTSIZE_TRUE,
                                 &sortArrowSize
                                 ) == S_OK)
                             {
                                 headerRect.bottom = sortArrowSize.cy;
                             }
 
-                            DrawThemeBackground(
+                            PhDrawThemeBackground(
                                 context->HeaderThemeHandle,
                                 context->HeaderBufferedDc,
                                 HP_HEADERSORTARROW,

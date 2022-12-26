@@ -11,7 +11,6 @@
 
 #include <peview.h>
 #include <mapimg.h>
-#include <uxtheme.h>
 
 INT_PTR CALLBACK PvpLibExportsDlgProc(
     _In_ HWND hwndDlg,
