@@ -13429,7 +13429,7 @@ NTSTATUS PhSetProcessValidCallTarget(
 {
     NTSTATUS status;
     MEMORY_BASIC_INFORMATION basicInfo;
-    MEMORY_RANGE_ENTRY fgCallTargetRangeInfo;
+    MEMORY_RANGE_ENTRY cfgCallTargetRangeInfo;
     CFG_CALL_TARGET_INFO cfgCallTargetInfo;
     CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
     ULONG numberOfEntriesProcessed = 0;
@@ -13453,9 +13453,9 @@ NTSTATUS PhSetProcessValidCallTarget(
     cfgCallTargetInfo.Offset = (ULONG_PTR)VirtualAddress - (ULONG_PTR)basicInfo.AllocationBase;
     cfgCallTargetInfo.Flags = CFG_CALL_TARGET_VALID;
 
-    memset(&fgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
-    fgCallTargetRangeInfo.VirtualAddress = basicInfo.AllocationBase;
-    fgCallTargetRangeInfo.NumberOfBytes = basicInfo.RegionSize;
+    memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
+    cfgCallTargetRangeInfo.VirtualAddress = basicInfo.AllocationBase;
+    cfgCallTargetRangeInfo.NumberOfBytes = basicInfo.RegionSize;
 
     memset(&cfgCallTargetListInfo, 0, sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
     cfgCallTargetListInfo.NumberOfEntries = 1;
@@ -13467,7 +13467,7 @@ NTSTATUS PhSetProcessValidCallTarget(
         ProcessHandle,
         VmCfgCallTargetInformation,
         1,
-        &fgCallTargetRangeInfo,
+        &cfgCallTargetRangeInfo,
         &cfgCallTargetListInfo,
         sizeof(CFG_CALL_TARGET_LIST_INFORMATION)
         );
