@@ -292,6 +292,14 @@
     <ClCompile Include="capstone\MCRegisterInfo.c" />
     <ClCompile Include="capstone\SStream.c" />
     <ClCompile Include="capstone\utils.c" />
+    <ClCompile Include="detours\detours.cpp" />
+    <ClCompile Include="detours\disasm.cpp" />
+    <ClCompile Include="detours\disolarm.cpp" />
+    <ClCompile Include="detours\disolarm64.cpp" />
+    <ClCompile Include="detours\disolia64.cpp" />
+    <ClCompile Include="detours\disolx64.cpp" />
+    <ClCompile Include="detours\disolx86.cpp" />
+    <ClCompile Include="detours\modules.cpp" />
     <ClCompile Include="jsonc\arraylist.c" />
     <ClCompile Include="jsonc\debug.c" />
     <ClCompile Include="jsonc\json_c_version.c" />
@@ -429,6 +437,7 @@
     <ClInclude Include="capstone\MCRegisterInfo.h" />
     <ClInclude Include="capstone\SStream.h" />
     <ClInclude Include="capstone\utils.h" />
+    <ClInclude Include="detours\detours.h" />
     <ClInclude Include="jsonc\arraylist.h" />
     <ClInclude Include="jsonc\config.h" />
     <ClInclude Include="jsonc\debug.h" />
