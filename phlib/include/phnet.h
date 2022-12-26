@@ -295,6 +295,16 @@ PhHttpSocketQueryHeaderUlong(
     _Out_ PULONG HeaderValue
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhHttpSocketQueryHeaderUlong64(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ ULONG QueryValue,
+    _Out_ PULONG64 HeaderValue
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI

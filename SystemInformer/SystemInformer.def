@@ -811,6 +811,7 @@ EXPORTS
     PhHttpSocketQueryHeaders
     PhHttpSocketQueryHeaderString
     PhHttpSocketQueryHeaderUlong
+    PhHttpSocketQueryHeaderUlong64
     PhHttpSocketQueryOptionString
     PhHttpSocketReadDataToBuffer
     PhHttpSocketDownloadString
