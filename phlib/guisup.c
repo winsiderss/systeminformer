@@ -21,7 +21,6 @@
 #include <commoncontrols.h>
 #include <shellapi.h>
 #include <shellscalingapi.h>
-#include <uxtheme.h>
 #include <wincodec.h>
 
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
@@ -59,10 +58,23 @@ static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static PPH_HASHTABLE WindowContextHashTable = NULL;
 static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
 
+static _OpenThemeDataForDpi OpenThemeDataForDpi_I = NULL;
+static _OpenThemeData OpenThemeData_I = NULL;
+static _CloseThemeData CloseThemeData_I = NULL;
+static _SetWindowTheme SetWindowTheme_I = NULL;
+static _IsThemeActive IsThemeActive_I = NULL;
+static _IsThemePartDefined IsThemePartDefined_I = NULL;
+static _GetThemeClass GetThemeClass_I = NULL;
+static _GetThemeInt GetThemeInt_I = NULL;
+static _GetThemePartSize GetThemePartSize_I = NULL;
+static _DrawThemeBackground DrawThemeBackground_I = NULL;
+
 VOID PhGuiSupportInitialization(
     VOID
     )
 {
+    PVOID uxthemeHandle;
+
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
         PhpWindowCallbackHashtableEqualFunction,
@@ -75,6 +87,49 @@ VOID PhGuiSupportInitialization(
         PhpWindowContextHashtableHashFunction,
         10
         );
+
+    if (uxthemeHandle = PhLoadLibrary(L"uxtheme.dll"))
+    {
+        OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeDataForDpi", 0);
+        OpenThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeData", 0);
+        CloseThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "CloseThemeData", 0);
+        SetWindowTheme_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "SetWindowTheme", 0);
+        IsThemeActive_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemeActive", 0);
+        IsThemePartDefined_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemePartDefined", 0);
+        GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeClass", 0);
+        GetThemeInt_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeInt", 0);
+        GetThemePartSize_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemePartSize", 0);
+        DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
+    }
+}
+
+HTHEME PhOpenThemeData(
+    _In_opt_ HWND WindowHandle,
+    _In_ PCWSTR ClassList,
+    _In_ LONG WindowDpi
+    )
+{
+    if (OpenThemeDataForDpi_I && WindowDpi)
+    {
+        return OpenThemeDataForDpi_I(WindowHandle, ClassList, WindowDpi);
+    }
+
+    if (OpenThemeData_I)
+    {
+        return OpenThemeData_I(WindowHandle, ClassList);
+    }
+
+    return NULL;
+}
+
+VOID PhCloseThemeData(
+    _In_ HTHEME ThemeHandle
+    )
+{
+    if (CloseThemeData_I)
+    {
+        CloseThemeData_I(ThemeHandle);
+    }
 }
 
 VOID PhSetControlTheme(
@@ -82,78 +137,89 @@ VOID PhSetControlTheme(
     _In_ PWSTR Theme
     )
 {
-    SetWindowTheme(Handle, Theme, NULL);
+    if (SetWindowTheme_I)
+    {
+        SetWindowTheme_I(Handle, Theme, NULL);
+    }
 }
 
-PVOID PhOpenThemeData(
-    _In_opt_ HWND WindowHandle,
-    _In_ PCWSTR ClassList,
-    _In_ LONG WindowDpi
+BOOLEAN PhIsThemeActive(
+    VOID
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HTHEME (WINAPI* OpenThemeDataForDpi_I)(
-        _In_opt_ HWND WindowHandle,
-        _In_ PCWSTR ClassList,
-        _In_ UINT DpiValue
-        ) = NULL;
-    static HTHEME (WINAPI* OpenThemeData_I)(
-        _In_opt_ HWND WindowHandle,
-        _In_ PCWSTR ClassList
-        ) = NULL;
+    if (!IsThemeActive_I)
+        return FALSE;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID baseAddress;
-
-        if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
-            baseAddress = PhLoadLibrary(L"uxtheme.dll");
-
-        if (baseAddress)
-        {
-            OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeDataForDpi", 0);
-            OpenThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "OpenThemeData", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (OpenThemeDataForDpi_I && WindowDpi)
-        return OpenThemeDataForDpi_I(WindowHandle, ClassList, WindowDpi);
-    if (OpenThemeData_I)
-        return OpenThemeData_I(WindowHandle, ClassList);
-
-    return NULL;
+    return !!IsThemeActive_I();
 }
 
-VOID PhCloseThemeData(
-    _In_ PVOID ThemeHandle
+BOOLEAN PhIsThemePartDefined(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HTHEME (WINAPI* CloseThemeData_I)(
-        _In_ HTHEME hTheme
-        ) = NULL;
+    if (!IsThemePartDefined_I)
+        return FALSE;
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID baseAddress;
+    return !!IsThemePartDefined_I(ThemeHandle, PartId, StateId);
+}
 
-        if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
-            baseAddress = PhLoadLibrary(L"uxtheme.dll");
+BOOLEAN PhGetThemeClass(
+    _In_ HTHEME ThemeHandle,
+    _Out_writes_z_(*ClassLength) PWSTR Class,
+    _In_ ULONG ClassLength
+    )
+{
+    if (!GetThemeClass_I)
+        return FALSE;
 
-        if (baseAddress)
-        {
-            CloseThemeData_I = PhGetDllBaseProcedureAddress(baseAddress, "CloseThemeData", 0);
-        }
+    return SUCCEEDED(GetThemeClass_I(ThemeHandle, Class, ClassLength));
+}
 
-        PhEndInitOnce(&initOnce);
-    }
+BOOLEAN PhGetThemeInt(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ INT PropId,
+    _Out_ PINT Value
+    )
+{
+    if (!GetThemeInt_I)
+        return FALSE;
 
-    if (CloseThemeData_I)
-    {
-        CloseThemeData_I(ThemeHandle);
-    }
+    return SUCCEEDED(GetThemeInt_I(ThemeHandle, PartId, StateId, PropId, Value));
+}
+
+BOOLEAN PhGetThemePartSize(
+    _In_ HTHEME ThemeHandle,
+    _In_opt_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_opt_ LPCRECT Rect,
+    _In_ THEMEPARTSIZE Flags,
+    _Out_ PSIZE Size
+    )
+{
+    if (!GetThemePartSize_I)
+        return FALSE;
+
+    return SUCCEEDED(GetThemePartSize_I(ThemeHandle, hdc, PartId, StateId, Rect, Flags, Size));
+}
+
+BOOLEAN PhDrawThemeBackground(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ LPCRECT Rect,
+    _In_opt_ LPCRECT ClipRect
+    )
+{
+    if (!DrawThemeBackground_I)
+        return FALSE;
+
+    return SUCCEEDED(DrawThemeBackground_I(ThemeHandle, hdc, PartId, StateId, Rect, ClipRect));
 }
 
 INT PhAddListViewColumn(
