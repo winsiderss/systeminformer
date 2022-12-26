@@ -10,7 +10,6 @@
  */
 
 #include <peview.h>
-#include <uxtheme.h>
 #include <vssym32.h>
 //#include <wincodec.h>
 
@@ -99,7 +98,7 @@ VOID PhpSearchInitializeTheme(
 
     borderX = PhGetSystemMetrics(SM_CXBORDER, dpiValue);
 
-    if (IsThemeActive())
+    if (PhIsThemeActive())
     {
         HTHEME themeDataHandle;
 
@@ -107,13 +106,13 @@ VOID PhpSearchInitializeTheme(
         {
             //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
 
-            if (!SUCCEEDED(GetThemeInt(
+            if (!PhGetThemeInt(
                 themeDataHandle,
                 EP_EDITBORDER_NOSCROLL,
                 EPSHV_NORMAL,
                 TMT_BORDERSIZE,
                 &Context->CXBorder
-                )))
+                ))
             {
                 Context->CXBorder = borderX * 2;
             }

@@ -141,7 +141,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
@@ -179,7 +179,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
@@ -216,7 +216,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineARM64</TargetMachine>
@@ -258,7 +258,7 @@
       <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -305,7 +305,7 @@
       <ControlFlowGuard>Guard</ControlFlowGuard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -350,7 +350,7 @@
       <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;uxtheme.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;comctl32.lib;dnsapi.lib;iphlpapi.lib;noarg.obj;noenv.obj;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;ws2_32.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

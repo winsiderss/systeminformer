@@ -16,7 +16,6 @@
 #include <treenew.h>
 
 #include <dwmapi.h>
-#include <uxtheme.h>
 #include <vsstyle.h>
 #include <vssym32.h>
 
@@ -239,15 +238,18 @@ VOID PhInitializeWindowTheme(
 
         if (PhBeginInitOnce(&initOnce))
         {
-            PVOID module;
-
             if (WindowsVersion >= WINDOWS_10_19H2)
             {
-                if (module = PhLoadLibrary(L"uxtheme.dll"))
+                PVOID baseAddress;
+
+                if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+                    baseAddress = PhLoadLibrary(L"uxtheme.dll");
+
+                if (baseAddress)
                 {
-                    AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(module, NULL, 133);
-                    SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(module, NULL, 135);
-                    //FlushMenuThemes_I = PhGetDllBaseProcedureAddress(module, NULL, 136);
+                    AllowDarkModeForWindow_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 133);
+                    SetPreferredAppMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 135);
+                    //FlushMenuThemes_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 136);
                 }
 
                 if (SetPreferredAppMode_I)
@@ -671,11 +673,7 @@ VOID PhInitializeWindowThemeMainMenu(
     _In_ HMENU MenuHandle
     )
 {
-    //static HBRUSH themeBrush = NULL;
     MENUINFO menuInfo;
-
-    //if (!themeBrush)
-    //    themeBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
 
     memset(&menuInfo, 0, sizeof(MENUINFO));
     menuInfo.cbSize = sizeof(MENUINFO);
@@ -1325,7 +1323,7 @@ BOOLEAN PhThemeWindowDrawItem(
 
                 rect.left = rect.right - PhGetDpi(25, dpiValue);
 
-                DrawThemeBackground(
+                PhDrawThemeBackground(
                     themeHandle,
                     DrawInfo->hDC, 
                     MENU_POPUPSUBMENU, 
@@ -1472,7 +1470,7 @@ BOOLEAN PhThemeWindowMeasureItem(
 //    if (htheme)
 //    {
 //        SIZE siz;
-//        GetThemePartSize(htheme, hdcScreen, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_DRAW, &siz);
+//        PhGetThemePartSize(htheme, hdcScreen, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_DRAW, &siz);
 //        cx = siz.cx;
 //        cy = siz.cy;
 //    }
@@ -1497,23 +1495,23 @@ BOOLEAN PhThemeWindowMeasureItem(
 //    if (htheme)
 //    {
 //        // Frame 1: Unchecked.
-//        DrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, &rc, NULL);
+//        PhDrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, &rc, NULL);
 //        PhOffsetRect(&rc, cx, 0);
 //
 //        // Frame 2: Checked.
-//        DrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_CHECKEDNORMAL, &rc, NULL);
+//        PhDrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_CHECKEDNORMAL, &rc, NULL);
 //        PhOffsetRect(&rc, cx, 0);
 //
 //        // Frame 3: Indeterminate.
-//        DrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_MIXEDNORMAL, &rc, NULL);
+//        PhDrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_MIXEDNORMAL, &rc, NULL);
 //        PhOffsetRect(&rc, cx, 0);
 //
 //        // Frame 4: Disabled, unchecked.
-//        DrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_UNCHECKEDDISABLED, &rc, NULL);
+//        PhDrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_UNCHECKEDDISABLED, &rc, NULL);
 //        PhOffsetRect(&rc, cx, 0);
 //
 //        // Frame 5: Disabled, checked.
-//        DrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_CHECKEDDISABLED, &rc, NULL);
+//        PhDrawThemeBackground(htheme, hdcMem, BP_CHECKBOX, CBS_CHECKEDDISABLED, &rc, NULL);
 //
 //        // Done with the theme.
 //        PhCloseThemeData(htheme);
@@ -1616,7 +1614,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                 {
                     SIZE checkBoxSize = { 0 };
 
-                    GetThemePartSize(
+                    PhGetThemePartSize(
                         themeHandle,
                         DrawInfo->hdc,
                         BP_CHECKBOX,
@@ -1632,7 +1630,7 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     //if (IsThemeBackgroundPartiallyTransparent(themeHandle, BP_CHECKBOX, state))
                     //    DrawThemeParentBackground(DrawInfo->hdr.hwndFrom, DrawInfo->hdc, NULL);
 
-                    DrawThemeBackground(
+                    PhDrawThemeBackground(
                         themeHandle,
                         DrawInfo->hdc,
                         BP_CHECKBOX,
@@ -1930,7 +1928,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 TB_GETBUTTONINFO,
                 (ULONG)DrawInfo->nmcd.dwItemSpec,
                 (LPARAM)&buttonInfo
-                ) == -1)
+                ) == INT_ERROR)
             {
                 break;
             }
@@ -2011,7 +2009,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
             SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
 
-            if (buttonInfo.iImage != -1)
+            if (buttonInfo.iImage != INT_ERROR)
             {
                 HIMAGELIST toolbarImageList;
 
@@ -2114,7 +2112,7 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
             groupInfo.cbSize = sizeof(LVGROUP);
             groupInfo.mask = LVGF_HEADER;
 
-            if (ListView_GetGroupInfo(DrawInfo->nmcd.hdr.hwndFrom, (ULONG)DrawInfo->nmcd.dwItemSpec, &groupInfo) != -1)
+            if (ListView_GetGroupInfo(DrawInfo->nmcd.hdr.hwndFrom, (ULONG)DrawInfo->nmcd.dwItemSpec, &groupInfo) != INT_ERROR)
             {
                 SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
                 SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowBackground2Color);
@@ -2296,7 +2294,6 @@ VOID ThemeWindowRenderGroupBoxControl(
     if (PhGetWindowTextToBuffer(WindowHandle, PH_GET_WINDOW_TEXT_INTERNAL, text, RTL_NUMBER_OF(text), &returnLength) == ERROR_SUCCESS)
     {
         SIZE nameSize = { 0 };
-        HFONT oldFont = NULL;
         RECT bufferRect;
 
         GetTextExtentPoint32(
@@ -2824,7 +2821,7 @@ VOID ThemeWindowRenderHeaderControl(
                 RECT sortArrowRect = headerRect;
                 SIZE sortArrowSize;
 
-                if (GetThemePartSize(
+                if (PhGetThemePartSize(
                     Context->ThemeHandle,
                     bufferDc,
                     HP_HEADERSORTARROW,
@@ -2837,7 +2834,7 @@ VOID ThemeWindowRenderHeaderControl(
                     sortArrowRect.bottom = sortArrowSize.cy;
                 }
 
-                DrawThemeBackground(
+                PhDrawThemeBackground(
                     Context->ThemeHandle,
                     bufferDc,
                     HP_HEADERSORTARROW,
@@ -2854,7 +2851,7 @@ VOID ThemeWindowRenderHeaderControl(
                 RECT sortArrowRect = headerRect;
                 SIZE sortArrowSize;
 
-                if (GetThemePartSize(
+                if (PhGetThemePartSize(
                     Context->ThemeHandle,
                     bufferDc,
                     HP_HEADERSORTARROW,
@@ -2867,7 +2864,7 @@ VOID ThemeWindowRenderHeaderControl(
                     sortArrowRect.bottom = sortArrowSize.cy;
                 }
 
-                DrawThemeBackground(
+                PhDrawThemeBackground(
                     Context->ThemeHandle,
                     bufferDc,
                     HP_HEADERSORTARROW,
@@ -3105,7 +3102,7 @@ INT ThemeWindowStatusBarUpdateRectToIndex(
         }
     }
 
-    return -1;
+    return INT_ERROR;
 }
 
 VOID ThemeWindowStatusBarDrawPart(
@@ -3197,7 +3194,7 @@ VOID ThemeWindowRenderStatusBar(
             //if (IsThemeBackgroundPartiallyTransparent(Context->ThemeHandle, SP_GRIPPER, 0))
             //    DrawThemeParentBackground(WindowHandle, bufferDc, NULL);
 
-            DrawThemeBackground(Context->ThemeHandle, bufferDc, SP_GRIPPER, 0, &sizeGripRect, &sizeGripRect);
+            PhDrawThemeBackground(Context->ThemeHandle, bufferDc, SP_GRIPPER, 0, &sizeGripRect, &sizeGripRect);
         }
         else
         {
@@ -3665,7 +3662,7 @@ VOID ThemeWindowRenderComboBox(
     {
         SIZE dropdownSize = { 0 };
 
-        GetThemePartSize(
+        PhGetThemePartSize(
             Context->ThemeHandle,
             bufferDc,
             CP_DROPDOWNBUTTONRIGHT,
@@ -3677,7 +3674,7 @@ VOID ThemeWindowRenderComboBox(
 
         bufferRect.left = clientRect->right - dropdownSize.cy;
 
-        DrawThemeBackground(
+        PhDrawThemeBackground(
             Context->ThemeHandle,
             bufferDc, 
             CP_DROPDOWNBUTTONRIGHT,
@@ -3744,7 +3741,7 @@ VOID ThemeWindowComboBoxExcludeRect(
             //INT borderSize = 0;
             //if (Context->ThemeHandle)
             //{
-            //    if (SUCCEEDED(GetThemeInt(Context->ThemeHandle, 0, 0, TMT_BORDERSIZE, &borderSize)))
+            //    if (PhGetThemeInt(Context->ThemeHandle, 0, 0, TMT_BORDERSIZE, &borderSize))
             //    {
             //        borderSize = borderSize * 2;
             //    }
