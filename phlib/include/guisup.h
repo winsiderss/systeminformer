@@ -48,15 +48,7 @@ PhGuiSupportInitialization(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhSetControlTheme(
-    _In_ HWND Handle,
-    _In_ PWSTR Theme
-    );
-
-PHLIBAPI
-PVOID
+HTHEME
 NTAPI
 PhOpenThemeData(
     _In_opt_ HWND WindowHandle,
@@ -68,7 +60,83 @@ PHLIBAPI
 VOID
 NTAPI
 PhCloseThemeData(
-    _In_ PVOID ThemeHandle
+    _In_ HTHEME ThemeHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetControlTheme(
+    _In_ HWND Handle,
+    _In_ PWSTR Theme
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemeActive(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemePartDefined(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThemeClass(
+    _In_ HTHEME ThemeHandle,
+    _Out_writes_z_(*ClassLength) PWSTR Class,
+    _In_ ULONG ClassLength
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThemeInt(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ INT PropId,
+    _Out_ PINT Value
+    );
+
+typedef enum _THEMEPARTSIZE
+{
+    THEMEPARTSIZE_MIN, // minimum size
+    THEMEPARTSIZE_TRUE, // size without stretching
+    THEMEPARTSIZE_DRAW // size that theme mgr will use to draw part
+} THEMEPARTSIZE;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThemePartSize(
+    _In_ HTHEME ThemeHandle,
+    _In_opt_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_opt_ LPCRECT Rect,
+    _In_ THEMEPARTSIZE Flags,
+    _Out_ PSIZE Size
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDrawThemeBackground(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ LPCRECT Rect,
+    _In_opt_ LPCRECT ClipRect
     );
 
 FORCEINLINE LONG_PTR PhGetWindowStyle(
