@@ -2445,6 +2445,14 @@ PhGetNumaProcessorNode(
     _Out_ PUSHORT NodeNumber
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessValidCallTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    );
+
 typedef struct _PH_SYSTEM_STORE_COMPRESSION_INFORMATION
 {
     ULONG CompressionPid;

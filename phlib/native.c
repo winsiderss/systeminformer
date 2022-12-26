@@ -13420,6 +13420,64 @@ NTSTATUS PhGetNumaProximityNode(
     return status;
 }
 
+
+// rev from SetProcessValidCallTargets (dmex)
+NTSTATUS PhSetProcessValidCallTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    )
+{
+    NTSTATUS status;
+    MEMORY_BASIC_INFORMATION basicInfo;
+    MEMORY_RANGE_ENTRY fgCallTargetRangeInfo;
+    CFG_CALL_TARGET_INFO cfgCallTargetInfo;
+    CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
+    ULONG numberOfEntriesProcessed = 0;
+
+    if (!NtSetInformationVirtualMemory_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        VirtualAddress,
+        MemoryBasicInformation, 
+        &basicInfo, 
+        sizeof(MEMORY_BASIC_INFORMATION), 
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    memset(&cfgCallTargetInfo, 0, sizeof(CFG_CALL_TARGET_INFO));
+    cfgCallTargetInfo.Offset = (ULONG_PTR)VirtualAddress - (ULONG_PTR)basicInfo.AllocationBase;
+    cfgCallTargetInfo.Flags = CFG_CALL_TARGET_VALID;
+
+    memset(&fgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
+    fgCallTargetRangeInfo.VirtualAddress = basicInfo.AllocationBase;
+    fgCallTargetRangeInfo.NumberOfBytes = basicInfo.RegionSize;
+
+    memset(&cfgCallTargetListInfo, 0, sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
+    cfgCallTargetListInfo.NumberOfEntries = 1;
+    cfgCallTargetListInfo.Reserved = 0;
+    cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
+    cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
+
+    status = NtSetInformationVirtualMemory_Import()(
+        ProcessHandle,
+        VmCfgCallTargetInformation,
+        1,
+        &fgCallTargetRangeInfo,
+        &cfgCallTargetListInfo,
+        sizeof(CFG_CALL_TARGET_LIST_INFORMATION)
+        );
+
+    if (status == STATUS_INVALID_PAGE_PROTECTION)
+        status = STATUS_SUCCESS;
+
+    return status;
+}
+
 NTSTATUS PhGetSystemCompressionStoreInformation(
     _Out_ PPH_SYSTEM_STORE_COMPRESSION_INFORMATION SystemCompressionStoreInformation
     )
