@@ -27,7 +27,7 @@ VOID EtpUpdateProcessInformation(
     VOID
     );
 
-BOOLEAN EtDiskExtEnabled = FALSE;
+BOOLEAN EtDiskCountersEnabled = FALSE;
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
 
@@ -71,7 +71,6 @@ VOID EtEtwStatisticsInitialization(
 {
     ULONG sampleCount;
 
-    EtDiskExtEnabled = PhWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64();
     sampleCount = PhGetIntegerSetting(L"SampleCount");
     PhInitializeCircularBuffer_ULONG(&EtDiskReadHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG(&EtDiskWriteHistory, sampleCount);
@@ -83,6 +82,11 @@ VOID EtEtwStatisticsInitialization(
     PhInitializeCircularBuffer_ULONG64(&PhMaxDiskUsageHistory, sampleCount);
     PhInitializeCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, sampleCount);
 #endif
+
+    if (PhWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+    {
+        EtDiskCountersEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_DISKPERFCOUNTERS);
+    }
 
     EtEtwMonitorInitialization();
 
@@ -277,7 +281,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
 
         block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
-        if (EtDiskExtEnabled)
+        if (EtDiskCountersEnabled)
         {
             ULONG64 diskReads = block->ProcessItem->DiskCounters.ReadOperationCount;
             ULONG64 diskWrites = block->ProcessItem->DiskCounters.WriteOperationCount;
