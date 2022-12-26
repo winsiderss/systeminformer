@@ -27,7 +27,6 @@
 #include <workqueue.h>
 
 #include <shlobj.h>
-#include <uxtheme.h>
 
 #include "..\resource.h"
 
