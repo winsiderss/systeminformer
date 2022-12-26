@@ -15,6 +15,7 @@ namespace CustomBuildTool
     {
         private static DateTime TimeStart;
         private static bool BuildNightly = false;
+        private static bool HaveArm64BuildTools = true;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildBranch = string.Empty;
         public static string BuildCommit = string.Empty;
@@ -228,6 +229,7 @@ namespace CustomBuildTool
                     Program.PrintColorMessage("VisualStudio: ", ConsoleColor.DarkGray, false);
                     Program.PrintColorMessage(instance.Name, ConsoleColor.Green, true);
                     //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.Green, true);
+                    HaveArm64BuildTools = instance.HasARM64BuildToolsComponents;
                 }
 
                 Program.PrintColorMessage(Environment.NewLine + "Building... ", ConsoleColor.DarkGray, false);
@@ -1099,6 +1101,16 @@ namespace CustomBuildTool
                 }
             }
 
+            if (!HaveArm64BuildTools)
+            {
+                Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false, Flags);
+                Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage("arm64", ConsoleColor.Green, false, Flags);
+                Program.PrintColorMessage(")... ", ConsoleColor.Cyan, false, Flags);
+                Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
+                return true;
+            }
+
             if (Flags.HasFlag(BuildFlags.BuildArm64bit))
             {
                 StringBuilder compilerOptions = new StringBuilder(0x100);
@@ -1137,7 +1149,6 @@ namespace CustomBuildTool
                     return false;
                 }
             }
-
 
             return true;
         }
