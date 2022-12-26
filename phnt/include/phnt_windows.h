@@ -19,6 +19,10 @@
 #endif
 #endif
 
+#ifndef INT_ERROR
+#define INT_ERROR (-1)
+#endif
+
 #ifndef INITGUID
 #define INITGUID
 #endif
