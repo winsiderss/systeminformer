@@ -152,11 +152,12 @@ namespace CustomBuildTool
         public string InstallationVersion { get; }
         //public string InstanceId { get; }
         public InstanceState State { get; }
-        //public List<VisualStudioPackage> Packages { get; }
+        public List<VisualStudioPackage> Packages { get; }
+        public bool HasARM64BuildToolsComponents { get; }
 
         public VisualStudioInstance()
         {
-            //this.Packages = new List<VisualStudioPackage>();
+            this.Packages = new List<VisualStudioPackage>();
         }
 
         public VisualStudioInstance(ISetupInstance2VTable* FromInstance, IntPtr SetupInstancePtr)
@@ -191,32 +192,38 @@ namespace CustomBuildTool
                 this.State = (InstanceState)State;
             }
 
-            //this.Packages = new List<VisualStudioPackage>();
-            //
-            //if (FromInstance->GetPackages(SetupInstancePtr, out IntPtr SetupPackagesArrayPtr) == NativeMethods.HRESULT_S_OK)
-            //{
-            //    if (NativeMethods.SafeArrayGetLBound(SetupPackagesArrayPtr, 1, out uint lbound) == NativeMethods.HRESULT_S_OK &&
-            //        NativeMethods.SafeArrayGetUBound(SetupPackagesArrayPtr, 1, out uint ubound) == NativeMethods.HRESULT_S_OK)
-            //    {
-            //        uint count = ubound - lbound + 1;
-            //
-            //        for (uint i = 0; i < count; i++)
-            //        {
-            //            if (NativeMethods.SafeArrayGetElement(
-            //                SetupPackagesArrayPtr,
-            //                ref i,
-            //                out IntPtr SetupPackagePtr
-            //                ) == NativeMethods.HRESULT_S_OK)
-            //            {
-            //                var package = *(ISetupPackageReferenceVTable**)SetupPackagePtr;
-            //
-            //                this.Packages.Add(new VisualStudioPackage(package, SetupPackagePtr));
-            //
-            //                package->Release(SetupPackagePtr);
-            //            }
-            //        }
-            //    }
-            //}
+            this.Packages = new List<VisualStudioPackage>();
+
+            if (FromInstance->GetPackages(SetupInstancePtr, out IntPtr SetupPackagesArrayPtr) == NativeMethods.HRESULT_S_OK)
+            {
+                if (NativeMethods.SafeArrayGetLBound(SetupPackagesArrayPtr, 1, out uint lbound) == NativeMethods.HRESULT_S_OK &&
+                    NativeMethods.SafeArrayGetUBound(SetupPackagesArrayPtr, 1, out uint ubound) == NativeMethods.HRESULT_S_OK)
+                {
+                    uint count = ubound - lbound + 1;
+
+                    for (uint i = 0; i < count; i++)
+                    {
+                        if (NativeMethods.SafeArrayGetElement(
+                            SetupPackagesArrayPtr,
+                            ref i,
+                            out IntPtr SetupPackagePtr
+                            ) == NativeMethods.HRESULT_S_OK)
+                        {
+                            var package = *(ISetupPackageReferenceVTable**)SetupPackagePtr;
+
+                            this.Packages.Add(new VisualStudioPackage(package, SetupPackagePtr));
+
+                            package->Release(SetupPackagePtr);
+                        }
+                    }
+                }
+            }
+
+            // https://learn.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community
+
+            this.HasARM64BuildToolsComponents = 
+                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Tools.ARM64", StringComparison.OrdinalIgnoreCase)) && 
+                this.Packages.Any(p => p.Id.Equals("Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", StringComparison.OrdinalIgnoreCase));
         }
 
         //private VisualStudioPackage GetLatestSdkPackage()
