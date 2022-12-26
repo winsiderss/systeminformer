@@ -497,12 +497,12 @@ VOID PhSetHeaderSortIcon(
     _In_ PH_SORT_ORDER Order
     )
 {
-    ULONG count;
-    ULONG i;
+    INT count;
+    INT i;
 
     count = Header_GetItemCount(hwnd);
 
-    if (count == -1)
+    if (count == INT_ERROR)
         return;
 
     for (i = 0; i < count; i++)

@@ -314,7 +314,7 @@ _Success_(return)
 BOOLEAN PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
-    _Out_ PVOID *Param
+    _Outptr_ PVOID *Param
     )
 {
     LVITEM item;
@@ -403,7 +403,7 @@ INT PhAddListViewGroup(
     group.iGroupId = GroupId;
     group.pszHeader = Text;
 
-    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
+    return (INT)ListView_InsertGroup(ListViewHandle, MAXUINT, &group);
 }
 
 INT PhAddListViewGroupItem(
@@ -566,7 +566,7 @@ PPH_STRING PhGetComboBoxString(
     PPH_STRING string;
     INT length;
 
-    if (Index == -1)
+    if (Index == INT_ERROR)
     {
         Index = ComboBox_GetCurSel(hwnd);
 
@@ -602,13 +602,13 @@ INT PhSelectComboBoxString(
 {
     if (Partial)
     {
-        return ComboBox_SelectString(hwnd, -1, String);
+        return ComboBox_SelectString(hwnd, INT_ERROR, String);
     }
     else
     {
         INT index;
 
-        index = ComboBox_FindStringExact(hwnd, -1, String);
+        index = ComboBox_FindStringExact(hwnd, INT_ERROR, String);
 
         if (index == CB_ERR)
             return CB_ERR;
@@ -627,9 +627,9 @@ PPH_STRING PhGetListBoxString(
     )
 {
     PPH_STRING string;
-    ULONG length;
+    INT length;
 
-    if (Index == -1)
+    if (Index == INT_ERROR)
     {
         Index = ListBox_GetCurSel(hwnd);
 
@@ -686,11 +686,11 @@ PVOID PhGetSelectedListViewItemParam(
 
     index = PhFindListViewItemByFlags(
         hWnd,
-        -1,
+        INT_ERROR,
         LVNI_SELECTED
         );
 
-    if (index != -1)
+    if (index != INT_ERROR)
     {
         if (PhGetListViewItemParam(
             hWnd,
@@ -716,13 +716,13 @@ VOID PhGetSelectedListViewItemParams(
     PVOID param;
 
     PhInitializeArray(&array, sizeof(PVOID), 2);
-    index = -1;
+    index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         hWnd,
         index,
         LVNI_SELECTED
-        )) != -1)
+        )) != INT_ERROR)
     {
         if (PhGetListViewItemParam(hWnd, index, &param))
             PhAddItemArray(&array, &param);
@@ -1542,7 +1542,7 @@ VOID PhLayoutManagerLayout(
     }
 }
 
-static BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
+BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -1555,13 +1555,13 @@ static BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
         entry1->PropertyHash == entry2->PropertyHash;
 }
 
-static ULONG NTAPI PhpWindowContextHashtableHashFunction(
+ULONG NTAPI PhpWindowContextHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
     PPH_WINDOW_PROPERTY_CONTEXT entry = Entry;
 
-    return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ PhHashInt32(entry->PropertyHash);
+    return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ entry->PropertyHash; // PhHashInt32
 }
 
 PVOID PhGetWindowContext(
@@ -1829,7 +1829,7 @@ VOID PhSetWindowAlwaysOnTop(
         );
 }
 
-static BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
+BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -1839,7 +1839,7 @@ static BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
         ((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry2)->WindowHandle;
 }
 
-static ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
+ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
@@ -2574,11 +2574,11 @@ CleanupExit:
 // Imagelist support
 
 HIMAGELIST PhImageListCreate(
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ UINT Flags,
-    _In_ UINT InitialCount,
-    _In_ UINT GrowCount
+    _In_ INT32 Width,
+    _In_ INT32 Height,
+    _In_ UINT32 Flags,
+    _In_ INT32 InitialCount,
+    _In_ INT32 GrowCount
     )
 {
     HRESULT status;
@@ -2618,7 +2618,7 @@ BOOLEAN PhImageListDestroy(
 
 BOOLEAN PhImageListSetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Count
+    _In_ UINT32 Count
     )
 {
     return SUCCEEDED(IImageList2_SetImageCount((IImageList2*)ImageListHandle, Count));
@@ -2626,7 +2626,7 @@ BOOLEAN PhImageListSetImageCount(
 
 BOOLEAN PhImageListGetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PUINT Count
+    _Out_ PINT32 Count
     )
 {
     return SUCCEEDED(IImageList2_GetImageCount((IImageList2*)ImageListHandle, Count));
@@ -2646,16 +2646,16 @@ BOOLEAN PhImageListSetBkColor(
         ));
 }
 
-UINT PhImageListAddIcon(
+INT32 PhImageListAddIcon(
     _In_ HIMAGELIST ImageListHandle,
     _In_ HICON IconHandle
     )
 {
-    INT index = -1;
+    INT32 index = INT_ERROR;
 
     IImageList2_ReplaceIcon(
         (IImageList2*)ImageListHandle,
-        UINT_MAX,
+        INT_ERROR,
         IconHandle,
         &index
         );
@@ -2663,13 +2663,13 @@ UINT PhImageListAddIcon(
     return index;
 }
 
-UINT PhImageListAddBitmap(
+INT32 PhImageListAddBitmap(
     _In_ HIMAGELIST ImageListHandle,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     )
 {
-    INT index = -1;
+    INT32 index = INT_ERROR;
 
     IImageList2_Add(
         (IImageList2*)ImageListHandle,
@@ -2683,7 +2683,7 @@ UINT PhImageListAddBitmap(
 
 BOOLEAN PhImageListRemoveIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index
+    _In_ INT32 Index
     )
 {
     return SUCCEEDED(IImageList2_Remove(
@@ -2694,8 +2694,8 @@ BOOLEAN PhImageListRemoveIcon(
 
 HICON PhImageListGetIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
-    _In_ UINT Flags
+    _In_ INT32 Index,
+    _In_ UINT32 Flags
     )
 {
     HICON iconhandle = NULL;
@@ -2712,8 +2712,8 @@ HICON PhImageListGetIcon(
 
 BOOLEAN PhImageListGetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PINT cx,
-    _Out_ PINT cy
+    _Out_ PINT32 cx,
+    _Out_ PINT32 cy
     )
 {
     return SUCCEEDED(IImageList2_GetIconSize(
@@ -2725,7 +2725,7 @@ BOOLEAN PhImageListGetIconSize(
 
 BOOLEAN PhImageListReplace(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
+    _In_ INT32 Index,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     )
@@ -2740,11 +2740,11 @@ BOOLEAN PhImageListReplace(
 
 BOOLEAN PhImageListDrawIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ UINT Style,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ UINT32 Style,
     _In_ BOOLEAN Disabled
     )
 {
@@ -2765,16 +2765,16 @@ BOOLEAN PhImageListDrawIcon(
 
 BOOLEAN PhImageListDrawEx(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ INT dx,
-    _In_ INT dy,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ INT32 dx,
+    _In_ INT32 dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
-    _In_ UINT Style,
-    _In_ DWORD State
+    _In_ UINT32 Style,
+    _In_ ULONG State
     )
 {
     IMAGELISTDRAWPARAMS imagelistDraw;
@@ -2798,8 +2798,8 @@ BOOLEAN PhImageListDrawEx(
 
 BOOLEAN PhImageListSetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT cx,
-    _In_ INT cy
+    _In_ INT32 cx,
+    _In_ INT32 cy
     )
 {
     return SUCCEEDED(IImageList2_SetIconSize((IImageList2*)ImageListHandle, cx, cy));

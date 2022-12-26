@@ -215,13 +215,13 @@ VOID FreeListViewRaplDeviceEntries(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PDV_RAPL_ID param;
 
@@ -309,7 +309,7 @@ VOID FindRaplDevices(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = 0;
+    ULONG deviceIndex = 0;
     PPH_LIST deviceList;
     PWSTR deviceInterfaceList;
     ULONG deviceInterfaceListLength = 0;
@@ -356,7 +356,7 @@ VOID FindRaplDevices(
             deviceInterface[1] = L'?';
 
         deviceEntry = PhAllocateZero(sizeof(RAPL_ENUM_ENTRY));
-        deviceEntry->DeviceIndex = ++index;
+        deviceEntry->DeviceIndex = ++deviceIndex;
         deviceEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
         deviceEntry->DevicePath = PhCreateString(deviceInterface);
         memset(deviceEntry->ChannelIndex, ULONG_MAX, sizeof(deviceEntry->ChannelIndex));
@@ -499,7 +499,7 @@ VOID FindRaplDevices(
     PhAcquireQueuedLockShared(&RaplDevicesListLock);
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        ULONG index = ULONG_MAX;
+        INT index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
 
@@ -510,7 +510,7 @@ VOID FindRaplDevices(
             Context->ListViewHandle,
             index,
             LVNI_ALL
-            )) != ULONG_MAX)
+            )) != INT_ERROR)
         {
             PDV_RAPL_ID param;
 

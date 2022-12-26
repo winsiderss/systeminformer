@@ -310,7 +310,6 @@ NTSTATUS UploadFileThreadStart(
 {
     NTSTATUS status = STATUS_SUCCESS;
     ULONG httpStatus = 0;
-    ULONG httpPostSeed = 0;
     ULONG totalUploadLength = 0;
     ULONG totalUploadedLength = 0;
     ULONG totalPostHeaderWritten = 0;

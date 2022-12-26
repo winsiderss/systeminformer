@@ -1048,16 +1048,15 @@ BOOLEAN PhGetListViewContextMenuPoint(
     INT selectedIndex;
     RECT bounds;
     RECT clientRect;
-    LONG dpiValue;
 
     // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
 
-    if ((selectedIndex = PhFindListViewItemByFlags(ListViewHandle, -1, LVNI_SELECTED)) != -1)
+    if ((selectedIndex = PhFindListViewItemByFlags(ListViewHandle, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
     {
         if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
         {
-            dpiValue = PhGetWindowDpi(ListViewHandle);
+            LONG dpiValue = PhGetWindowDpi(ListViewHandle);
 
             Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
             Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
@@ -1895,7 +1894,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
     lvHitInfo.pt = location;
 
-    if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == -1)
+    if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == INT_ERROR)
         return FALSE;
 
     memset(&headerItem, 0, sizeof(HDITEM));

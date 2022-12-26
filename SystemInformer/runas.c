@@ -1287,7 +1287,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         break;
 
                     // Fix up the user name if it doesn't have a domain.
-                    if (PhFindCharInString(username, 0, L'\\') == -1)
+                    if (PhFindCharInString(username, 0, L'\\') == SIZE_MAX)
                     {
                         PSID sid;
                         PPH_STRING newUserName;
@@ -1653,7 +1653,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     if (!context->ProcessId && GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                     {
-                        username = PH_AUTO(PhGetComboBoxString(context->UserComboBoxWindowHandle, -1));
+                        username = PH_AUTO(PhGetComboBoxString(context->UserComboBoxWindowHandle, INT_ERROR));
                     }
                     else if (!context->ProcessId && (
                         GET_WM_COMMAND_CMD(wParam, lParam) == CBN_EDITCHANGE ||

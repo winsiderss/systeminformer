@@ -92,12 +92,12 @@ VOID PhShowMemoryEditorDialog(
         PhSwapReference(&context->Title, Title);
         context->Flags = Flags;
 
-        context->WindowHandle = CreateDialogParam(
+        context->WindowHandle = PhCreateDialog(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_MEMEDIT),
             NULL,
             PhpMemoryEditorDlgProc,
-            (LPARAM)context
+            context
             );
 
         if (!context->LoadCompleted)
@@ -311,6 +311,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         PhaFormatString(L"%u bytes per row", bytesPerRow)->Buffer, FALSE);
                 }
             }
+
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             context->LoadCompleted = TRUE;
         }

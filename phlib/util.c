@@ -5697,7 +5697,7 @@ VOID PhSetFileDialogFileName(
     {
         OPENFILENAME *ofn = fileDialog->u.OpenFileName;
 
-        if (PhFindCharInStringRef(&fileName, L'/', FALSE) != -1 || PhFindCharInStringRef(&fileName, L'\"', FALSE) != -1)
+        if (PhFindCharInStringRef(&fileName, L'/', FALSE) != SIZE_MAX || PhFindCharInStringRef(&fileName, L'\"', FALSE) != SIZE_MAX)
         {
             // It refuses to take any filenames with a slash or quotation mark.
             return;

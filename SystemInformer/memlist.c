@@ -401,12 +401,12 @@ VOID PhRemoveMemoryNode(
     PhRemoveElementAvlTree(&List->Set, &MemoryNode->MemoryItem->Links);
     RemoveEntryList(&MemoryNode->MemoryItem->ListEntry);
 
-    if ((index = PhFindItemList(Context->RegionNodeList, MemoryNode)) != -1)
+    if ((index = PhFindItemList(Context->RegionNodeList, MemoryNode)) != ULONG_MAX)
         PhRemoveItemList(Context->RegionNodeList, index);
 
     if (MemoryNode->MemoryItem->AllocationBaseItem == MemoryNode->MemoryItem)
     {
-        if ((index = PhFindItemList(Context->AllocationBaseNodeList, MemoryNode->Parent)) != -1)
+        if ((index = PhFindItemList(Context->AllocationBaseNodeList, MemoryNode->Parent)) != ULONG_MAX)
             PhRemoveItemList(Context->AllocationBaseNodeList, index);
     }
 

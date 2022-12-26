@@ -270,13 +270,13 @@ INT_PTR CALLBACK PhpProcessMitigationPolicyDlgProc(
         break;
     case WM_DESTROY:
         {
-            ULONG index = -1;
+            INT index = INT_ERROR;
 
             while ((index = PhFindListViewItemByFlags(
                 context->ListViewHandle,
                 index,
                 LVNI_ALL
-                )) != -1)
+                )) != INT_ERROR)
             {
                 PMITIGATION_POLICY_ENTRY entry;
 

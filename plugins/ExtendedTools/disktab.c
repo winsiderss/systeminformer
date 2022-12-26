@@ -513,8 +513,8 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI EtpDiskTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_opt_ PVOID Context
     )
 {
@@ -525,9 +525,6 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
 
             if (!getChildren->Node)
             {
@@ -564,9 +561,6 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
-            if (!isLeaf)
-                break;
-
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
@@ -574,9 +568,6 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PET_DISK_ITEM diskItem;
-
-            if (!getCellText)
-                break;
 
             node = (PET_DISK_NODE)getCellText->Node;
             diskItem = node->DiskItem;
@@ -715,9 +706,6 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
-            if (!getNodeIcon)
-                break;
-
             node = (PET_DISK_NODE)getNodeIcon->Node;
             getNodeIcon->Icon = (HICON)node->DiskItem->ProcessIconIndex;
             getNodeIcon->Flags = TN_CACHE;
@@ -727,9 +715,6 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
             PPH_PROCESS_NODE processNode;
-
-            if (!getCellTooltip)
-                break;
 
             node = (PET_DISK_NODE)getCellTooltip->Node;
 
@@ -831,9 +816,6 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
-
-            if (!contextMenuEvent)
-                break;
 
             EtShowDiskContextMenu(WindowHandle, contextMenuEvent);
         }
@@ -1028,7 +1010,7 @@ VOID EtHandleDiskCommand(
                 fileName = PhReferenceObject(diskItem->FileNameWin32);
                 streamIndex = PhFindLastCharInStringRef(&fileName->sr, L':', FALSE);
 
-                if (streamIndex != -1 && streamIndex != 1)
+                if (streamIndex != SIZE_MAX && streamIndex != 1)
                 {
                     PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
                 }
@@ -1056,7 +1038,7 @@ VOID EtHandleDiskCommand(
                 fileName = PhReferenceObject(diskItem->FileNameWin32);
                 streamIndex = PhFindLastCharInStringRef(&fileName->sr, L':', FALSE);
 
-                if (streamIndex != -1 && streamIndex != 1)
+                if (streamIndex != SIZE_MAX && streamIndex != 1)
                 {
                     PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
                 }
@@ -1089,7 +1071,7 @@ VOID EtHandleDiskCommand(
                 fileName = PhReferenceObject(diskItem->FileNameWin32);
                 streamIndex = PhFindLastCharInStringRef(&fileName->sr, L':', FALSE);
 
-                if (streamIndex != -1 && streamIndex != 1)
+                if (streamIndex != SIZE_MAX && streamIndex != 1)
                 {
                     PhMoveReference(&fileName, PhSubstring(fileName, 0, streamIndex));
                 }

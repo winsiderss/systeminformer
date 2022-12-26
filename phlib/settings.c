@@ -992,8 +992,8 @@ VOID PhSaveWindowPlacementToSetting(
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
-    RECT rect;
-    LONG dpiValue;
+    //RECT rect;
+    LONG windowDpi;
 
     GetWindowPlacement(WindowHandle, &placement);
     windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
@@ -1005,14 +1005,13 @@ VOID PhSaveWindowPlacementToSetting(
         windowRectangle.Top += monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
     }
 
-    rect = PhRectangleToRect(windowRectangle);
-
-    dpiValue = PhGetWindowDpi(WindowHandle); // PhGetMonitorDpi(&rect);
+    //rect = PhRectangleToRect(windowRectangle);
+    windowDpi = PhGetWindowDpi(WindowHandle); // PhGetMonitorDpi(&rect);
 
     if (PositionSettingName)
         PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
     if (SizeSettingName)
-        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size, dpiValue);
+        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size, windowDpi);
 }
 
 BOOLEAN PhLoadListViewColumnSettings(
