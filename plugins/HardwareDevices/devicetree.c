@@ -2475,7 +2475,7 @@ BOOLEAN DevicesTabPageCallback(
             hwnd = CreateWindow(
                 PH_TREENEW_CLASSNAME,
                 NULL,
-                WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
+                WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER | thinRows | treelistBorder | treelistCustomColors,
                 0,
                 0,
                 3,
