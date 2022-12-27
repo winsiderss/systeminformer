@@ -1652,7 +1652,11 @@ VOID PhDeleteTreeNewFilterSupport(
     _In_ PPH_TN_FILTER_SUPPORT Support
     )
 {
+    if (!Support->FilterList)
+        return;
+
     PhDereferenceObject(Support->FilterList);
+    Support->FilterList = NULL;
 }
 
 PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
