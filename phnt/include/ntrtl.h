@@ -3497,6 +3497,17 @@ RtlFillMemoryUlonglong(
     _In_ ULONGLONG Pattern
     );
 #endif
+
+#if (PHNT_VERSION >= PHNT_19H2)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsZeroMemory(
+    _In_ PVOID Buffer,
+    _In_ SIZE_T Length
+    );
+#endif
+
 // Environment
 
 NTSYSAPI
@@ -6729,6 +6740,19 @@ RtlSelfRelativeToAbsoluteSD2(
     _Inout_ PULONG BufferSize
     );
 
+#if (PHNT_VERSION >= PHNT_19H2)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlNormalizeSecurityDescriptor(
+    _Inout_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    _In_ ULONG SecurityDescriptorLength,
+    _Out_opt_ PSECURITY_DESCRIPTOR *NewSecurityDescriptor,
+    _Out_opt_ PULONG NewSecurityDescriptorLength,
+    _In_ BOOLEAN CheckOnly
+    );
+#endif
+
 // Access masks
 
 #ifndef PHNT_NO_INLINE_ACCESSES_GRANTED
@@ -7648,6 +7672,21 @@ RtlQueryRegistryValuesEx(
     _In_ PVOID Context,
     _In_opt_ PVOID Environment
     );
+
+#if (PHNT_VERSION >= PHNT_REDSTONE4)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryRegistryValueWithFallback(
+    _In_opt_ HANDLE PrimaryHandle,
+    _In_opt_ HANDLE FallbackHandle,
+    _In_ PUNICODE_STRING ValueName,
+    _In_ ULONG ValueLength,
+    _Out_opt_ PULONG ValueType,
+    _Out_writes_bytes_to_(ValueLength, *ResultLength) PVOID ValueData,
+    _Out_range_(<= , ValueLength) PULONG ResultLength
+    );
+#endif
 
 NTSYSAPI
 NTSTATUS
@@ -9206,6 +9245,50 @@ RtlUnsubscribeWnfStateChangeNotification(
     _In_ PWNF_USER_CALLBACK Callback
     );
 
+#endif
+
+#if (PHNT_VERSION >= PHNT_21H1)
+typedef enum _RTL_SYSTEM_GLOBAL_DATA_ID 
+{
+    GlobalDataIdUnknown = 0,
+    GlobalDataIdRngSeedVersion,
+    GlobalDataIdInterruptTime,
+    GlobalDataIdTimeZoneBias,
+    GlobalDataIdImageNumberLow,
+    GlobalDataIdImageNumberHigh,
+    GlobalDataIdTimeZoneId,
+    GlobalDataIdNtMajorVersion,
+    GlobalDataIdNtMinorVersion,
+    GlobalDataIdSystemExpirationDate,
+    GlobalDataIdKdDebuggerEnabled,
+    GlobalDataIdCyclesPerYield,
+    GlobalDataIdSafeBootMode,
+    GlobalDataIdLastSystemRITEventTickCount,
+    GlobalDataIdConsoleSharedDataFlags,
+    GlobalDataIdNtSystemRootDrive,
+    GlobalDataIdQpcShift,
+    GlobalDataIdQpcBypassEnabled,
+    GlobalDataIdQpcData,
+    GlobalDataIdQpcBias
+} RTL_SYSTEM_GLOBAL_DATA_ID, *PRTL_SYSTEM_GLOBAL_DATA_ID;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetSystemGlobalData(
+    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
+    _Inout_ PVOID Buffer,
+    _In_ ULONG Size
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetSystemGlobalData(
+    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
+    _In_ PVOID Buffer,
+    _In_ ULONG Size
+    );
 #endif
 
 #endif
