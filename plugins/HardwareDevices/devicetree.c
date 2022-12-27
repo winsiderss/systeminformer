@@ -2504,7 +2504,8 @@ BOOLEAN DevicesTabPageCallback(
         return TRUE;
     case MainTabPageSaveSettings:
         {
-            DevicesTreeSaveSettings(DeviceTreeHandle);
+            if (DeviceTreeHandle)
+                DevicesTreeSaveSettings(DeviceTreeHandle);
         }
         return TRUE;
     case MainTabPageDestroy:
