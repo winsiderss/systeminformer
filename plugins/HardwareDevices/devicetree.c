@@ -2434,8 +2434,6 @@ VOID DevicesTreeDestroy(
         DeviceInterfaceNotification = NULL;
     }
 
-    DevicesTreeSaveSettings(DeviceTreeHandle);
-
     PhRemoveTreeNewFilter(&DeviceTreeFilterSupport, DeviceTreeFilterEntry);
     PhDeleteTreeNewFilterSupport(&DeviceTreeFilterSupport);
 
