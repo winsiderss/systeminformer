@@ -817,6 +817,8 @@ NTSTATUS UpdateDownloadThread(
 CleanupExit:
     if (httpContext)
         PhHttpSocketDestroy(httpContext);
+    if (hashContextLegacy)
+        UpdaterDestroyHash(hashContextLegacy);
     if (hashContext)
         UpdaterDestroyHash(hashContext);
     if (tempFileHandle)
@@ -995,9 +997,20 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)TaskDialogSubclassProc);
 
             if (context->StartupCheck)
+            {
                 ShowAvailableDialog(context);
+            }
             else
-                ShowCheckForUpdatesDialog(context);
+            {
+                if (PhGetIntegerSetting(SETTING_NAME_AUTO_CHECK_PAGE))
+                {
+                    ShowCheckingForUpdatesDialog(context);
+                }
+                else
+                {
+                    ShowCheckForUpdatesDialog(context);
+                }
+            }
         }
         break;
     }
