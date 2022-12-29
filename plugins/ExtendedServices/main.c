@@ -334,6 +334,20 @@ VOID NTAPI ServicePropertiesInitializingCallback(
         objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
     }
 
+    // Package
+    if (PhWindowsVersion >= WINDOWS_10_20H1 && objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.dwFlags = PSP_USETITLE;
+        propSheetPage.hInstance = PluginInstance->DllBase;
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVPACKAGE);
+        propSheetPage.pszTitle = L"Package";
+        propSheetPage.pfnDlgProc = EspPackageServiceDlgProc;
+        propSheetPage.lParam = (LPARAM)serviceItem;
+        objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+
     // PnP
     if (objectProperties->NumberOfPages < objectProperties->MaximumNumberOfPages)
     {
