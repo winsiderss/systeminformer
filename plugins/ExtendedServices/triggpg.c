@@ -28,7 +28,7 @@ NTSTATUS EspLoadTriggerInfo(
     SC_HANDLE serviceHandle;
 
     if (!(serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhDosErrorToNtStatus(GetLastError());
 
     EsLoadServiceTriggerInfo(Context->TriggerContext, serviceHandle);
     CloseServiceHandle(serviceHandle);

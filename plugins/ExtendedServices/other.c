@@ -134,7 +134,7 @@ NTSTATUS EspLoadOtherInfo(
     SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
 
     if (!(serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhDosErrorToNtStatus(GetLastError());
 
     // Preshutdown timeout
 
