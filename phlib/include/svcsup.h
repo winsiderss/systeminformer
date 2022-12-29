@@ -36,6 +36,13 @@ PhOpenService(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhCloseServiceHandle(
+    _In_ SC_HANDLE ServiceHandle
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhGetServiceConfig(

@@ -243,6 +243,13 @@ SC_HANDLE PhOpenService(
     return serviceHandle;
 }
 
+VOID PhCloseServiceHandle(
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    CloseServiceHandle(ServiceHandle);
+}
+
 PVOID PhGetServiceConfig(
     _In_ SC_HANDLE ServiceHandle
     )
