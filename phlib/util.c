@@ -1047,7 +1047,7 @@ BOOLEAN PhShowContinueStatus(
     statusMessage = PhGetStatusMessage(Status, Win32Result);
 
     if (Message && statusMessage)
-        result = PhShowMessage2(hWnd, TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Message, L"%s", statusMessage->Buffer);
+        result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CLOSE_BUTTON, TD_ERROR_ICON, Message, L"%s", statusMessage->Buffer);
     else if (Message)
         result = PhShowMessage2(hWnd, TDCBF_OK_BUTTON | TDCBF_CANCEL_BUTTON, TD_ERROR_ICON, L"", L"%s", Message);
     else if (statusMessage)
