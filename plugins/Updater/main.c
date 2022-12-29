@@ -113,6 +113,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_UPDATE_MODE, L"0" },
                 { IntegerSettingType, SETTING_NAME_UPDATE_AVAILABLE, L"0" },
                 { StringSettingType, SETTING_NAME_UPDATE_DATA, L"" },
+                { IntegerSettingType, SETTING_NAME_AUTO_CHECK_PAGE, L"0" }
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

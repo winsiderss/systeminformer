@@ -60,8 +60,10 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,142,10
     LTEXT           "Last update check: N/A",IDC_TEXT,7,7,276,8
     LTEXT           "Next update check: N/A",IDC_TEXT2,7,21,276,8
-    CONTROL         "Show update prompt before main window",IDC_AUTOCHECKBOX2,
+    CONTROL         "Show update prompt before main window",IDC_SHOWSTARTPROMPTCHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,160,10
+    CONTROL         "Skip check for updates and search automatically",IDC_SKIPWELCOMEPAGECHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,65,169,10
 END
 
 IDD_TEXT DIALOGEX 0, 0, 309, 176
@@ -137,6 +139,17 @@ BEGIN
     BEGIN
         VALUE "Translation", 0x0, 1200
     END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_OPTIONS AFX_DIALOG_LAYOUT
+BEGIN
+    0
 END
 
 #endif    // Neutral resources
