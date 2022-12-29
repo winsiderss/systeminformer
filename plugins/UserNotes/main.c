@@ -1018,7 +1018,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status = STATUS_RETRY;
-                IO_PRIORITY_HINT ioPriority;
+                IO_PRIORITY_HINT ioPriority = IoPriorityNormal;
 
                 if (processItem->QueryHandle)
                 {
@@ -1054,7 +1054,7 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status = STATUS_RETRY;
-                    IO_PRIORITY_HINT ioPriority;
+                    IO_PRIORITY_HINT ioPriority = PHAPP_ID_IOPRIORITY_NORMAL;
 
                     if (processItem->QueryHandle)
                     {
@@ -1187,7 +1187,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status = STATUS_RETRY;
-                KAFFINITY affinityMask;
+                KAFFINITY affinityMask = SIZE_MAX;
 
                 if (processItem->QueryHandle)
                 {
@@ -1242,7 +1242,7 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status = STATUS_RETRY;
-                    KAFFINITY affinityMask;
+                    KAFFINITY affinityMask = SIZE_MAX;
 
                     if (processItem->QueryHandle)
                     {
@@ -1296,7 +1296,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status = STATUS_RETRY;
-                ULONG pagePriority;
+                ULONG pagePriority = MEMORY_PRIORITY_NORMAL;
 
                 if (processItem->QueryHandle)
                 {
@@ -1332,7 +1332,7 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status = STATUS_RETRY;
-                    ULONG pagePriority;
+                    ULONG pagePriority = MEMORY_PRIORITY_NORMAL;
 
                     if (processItem->QueryHandle)
                     {
