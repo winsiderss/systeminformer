@@ -13379,7 +13379,7 @@ BOOLEAN PhGetNumaProcessorNode(
 
     while (
         numaProcessorMap.ActiveProcessorsGroupAffinity[processorNode].Group != ProcessorNumber->Group ||
-        (numaProcessorMap.ActiveProcessorsGroupAffinity[processorNode].Mask & ((KAFFINITY)1 << ProcessorNumber->Number)) == 0
+        (numaProcessorMap.ActiveProcessorsGroupAffinity[processorNode].Mask & AFFINITY_MASK(ProcessorNumber->Number)) == 0
         )
     {
         if (++processorNode > numaProcessorMap.HighestNodeNumber)

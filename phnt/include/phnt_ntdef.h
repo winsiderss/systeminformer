@@ -320,7 +320,10 @@ typedef struct _KSYSTEM_TIME
 
 #include <poppack.h>
 
-// NT macros used to test, set and clear flags
+#ifndef AFFINITY_MASK
+#define AFFINITY_MASK(n) ((KAFFINITY)1 << (n))
+#endif
+
 #ifndef FlagOn
 #define FlagOn(_F, _SF) ((_F) & (_SF))
 #endif

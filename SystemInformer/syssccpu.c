@@ -1655,7 +1655,7 @@ ULONG PhSipGetProcessorRelationshipIndex(
         PROCESSOR_RELATIONSHIP processor = processorInfo->Processor;
         //BOOLEAN hyperThreaded = processor.Flags & LTP_PC_SMT;
 
-        if (processor.GroupMask[0].Mask & ((KAFFINITY)1 << Index))
+        if (processor.GroupMask[0].Mask & AFFINITY_MASK(Index))
         {
             PhFree(logicalInformation);
             return index;
@@ -1746,7 +1746,7 @@ BOOLEAN PhInitializeHybridProcessorTypeCache(
             GROUP_AFFINITY threadGroup = { 0 };
             CPUID_HYBRID_INFORMATION hybridInfo = { 0 };
 
-            threadGroup.Mask = ((KAFFINITY)1 << i);
+            threadGroup.Mask = AFFINITY_MASK(i);
             threadGroup.Group = processorGroup;
 
             if (NT_SUCCESS(PhSetThreadGroupAffinity(NtCurrentThread(), threadGroup)))
