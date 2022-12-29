@@ -149,4 +149,13 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
     _In_ LPARAM lParam
     );
 
+// package
+
+INT_PTR CALLBACK EspPackageServiceDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 #endif
