@@ -174,8 +174,10 @@ ULONG PhTotalThreads = 0;
 ULONG PhTotalHandles = 0;
 ULONG PhTotalCpuQueueLength = 0;
 
-PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation = NULL;
-PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation = NULL;
+UCHAR PhDpcsProcessInformationBuffer[sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION)] = { 0 }; // HACK (dmex)
+UCHAR PhInterruptsProcessInformationBuffer[sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION)] = { 0 };
+PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation = (PSYSTEM_PROCESS_INFORMATION)PhDpcsProcessInformationBuffer;
+PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation = (PSYSTEM_PROCESS_INFORMATION)PhInterruptsProcessInformationBuffer;
 
 ULONG64 PhCpuTotalCycleDelta = 0; // real cycle time delta for this period
 PLARGE_INTEGER PhCpuIdleCycleTime = NULL; // cycle time for Idle
@@ -246,12 +248,10 @@ BOOLEAN PhProcessProviderInitialization(
 
     RtlInitializeSListHead(&PhProcessQueryDataListHead);
 
-    PhDpcsProcessInformation = PhAllocateZero(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
     RtlInitUnicodeString(&PhDpcsProcessInformation->ImageName, L"DPCs");
     PhDpcsProcessInformation->UniqueProcessId = DPCS_PROCESS_ID;
     PhDpcsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
 
-    PhInterruptsProcessInformation = PhAllocateZero(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
     RtlInitUnicodeString(&PhInterruptsProcessInformation->ImageName, L"Interrupts");
     PhInterruptsProcessInformation->UniqueProcessId = INTERRUPTS_PROCESS_ID;
     PhInterruptsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
