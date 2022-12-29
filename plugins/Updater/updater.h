@@ -85,7 +85,8 @@ typedef struct _PH_UPDATER_CONTEXT
             BOOLEAN HaveData : 1;
             BOOLEAN FixedWindowStyles : 1;
             BOOLEAN Cancel : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN DirectoryElevationRequired : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
