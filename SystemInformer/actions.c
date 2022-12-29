@@ -3315,7 +3315,7 @@ BOOLEAN PhUiStartServices(
             if (StartService(serviceHandle, 0, NULL))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3347,7 +3347,7 @@ BOOLEAN PhUiStartService(
         if (StartService(serviceHandle, 0, NULL))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3406,7 +3406,7 @@ BOOLEAN PhUiContinueServices(
             if (ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3440,7 +3440,7 @@ BOOLEAN PhUiContinueService(
         if (ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3499,7 +3499,7 @@ BOOLEAN PhUiPauseServices(
             if (ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3533,7 +3533,7 @@ BOOLEAN PhUiPauseService(
         if (ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3592,7 +3592,7 @@ BOOLEAN PhUiStopServices(
             if (ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3627,7 +3627,7 @@ BOOLEAN PhUiStopService(
         if (ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3689,7 +3689,7 @@ BOOLEAN PhUiDeleteService(
         if (DeleteService(serviceHandle))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3731,7 +3731,6 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
-
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG result;
