@@ -282,12 +282,12 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
 
                 PhInitializeStringBuilder(&sb, 0x100);
 
-                for (SIZE_T i = 0; i < entry->CommitMessageString->Length / sizeof(WCHAR); i++)
+                for (SIZE_T j = 0; j < entry->CommitMessageString->Length / sizeof(WCHAR); j++)
                 {
-                    if (entry->CommitMessageString->Data[i] == L'\n')
+                    if (entry->CommitMessageString->Data[j] == L'\n')
                         PhAppendStringBuilder2(&sb, L" ");
                     else
-                        PhAppendCharStringBuilder(&sb, entry->CommitMessageString->Data[i]);
+                        PhAppendCharStringBuilder(&sb, entry->CommitMessageString->Data[j]);
                 }
 
                 PhMoveReference(&entry->CommitMessageString, PhFinalStringBuilderString(&sb));

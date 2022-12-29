@@ -1593,7 +1593,6 @@ NTSTATUS DotNetSosTraceQueryThreadStart(
     _In_ PASMPAGE_QUERY_CONTEXT Context
     )
 {
-    BOOLEAN success = FALSE;
     PCLR_PROCESS_SUPPORT support;
     PPH_LIST appdomainlist = NULL;
 

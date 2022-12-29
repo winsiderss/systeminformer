@@ -266,7 +266,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             if (!(context->GraphState && context->GraphHandle))
                 break;
 
-            for (ULONG i = 0; i < context->NumberOfNodes; i++)
+            for (i = 0; i < context->NumberOfNodes; i++)
             {
                 context->GraphState[i].Valid = FALSE;
                 context->GraphState[i].TooltipIndex = ULONG_MAX;

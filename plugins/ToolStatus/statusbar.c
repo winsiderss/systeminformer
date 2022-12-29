@@ -515,7 +515,7 @@ VOID StatusBarUpdate(
 
                 if (tnHandle = GetCurrentTreeNewHandle())
                 {
-                    ULONG i;
+                    ULONG j;
                     ULONG visibleCount;
                     ULONG selectedCount;
                     PH_FORMAT format[2];
@@ -523,9 +523,9 @@ VOID StatusBarUpdate(
                     visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
                     selectedCount = 0;
 
-                    for (i = 0; i < visibleCount; i++)
+                    for (j = 0; j < visibleCount; j++)
                     {
-                        if (TreeNew_GetFlatNode(tnHandle, i)->Selected)
+                        if (TreeNew_GetFlatNode(tnHandle, j)->Selected)
                             selectedCount++;
                     }
 
@@ -590,9 +590,9 @@ VOID StatusBarUpdate(
                 PhGetSelectedProcessItems(&processes, &numberOfProcesses);
                 PhReferenceObjects(processes, numberOfProcesses);
 
-                for (ULONG i = 0; i < numberOfProcesses; i++)
+                for (ULONG j = 0; j < numberOfProcesses; j++)
                 {
-                    value += processes[i]->VmCounters.WorkingSetSize;
+                    value += processes[j]->VmCounters.WorkingSetSize;
                 }
 
                 if (value)
@@ -621,9 +621,9 @@ VOID StatusBarUpdate(
                 PhGetSelectedProcessItems(&processes, &numberOfProcesses);
                 PhReferenceObjects(processes, numberOfProcesses);
 
-                for (ULONG i = 0; i < numberOfProcesses; i++)
+                for (ULONG j = 0; j < numberOfProcesses; j++)
                 {
-                    value += processes[i]->VmCounters.PagefileUsage;
+                    value += processes[j]->VmCounters.PagefileUsage;
                 }
 
                 if (value)

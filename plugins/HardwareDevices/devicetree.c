@@ -1566,9 +1566,9 @@ VOID DeviceNodeDeleteProcedure(
             }
             else if (prop->Type == DevPropTypeStringList)
             {
-                for (ULONG i = 0; i < prop->StringList->Count; i++)
+                for (ULONG j = 0; j < prop->StringList->Count; j++)
                 {
-                    PhDereferenceObject(prop->StringList->Items[i]);
+                    PhDereferenceObject(prop->StringList->Items[j]);
                 }
 
                 PhDereferenceObject(prop->StringList);

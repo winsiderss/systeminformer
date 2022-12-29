@@ -125,16 +125,16 @@ VOID RaplDevicesUpdate(
                         {
                             entry->ChannelDataBufferLength = sizeof(EMI_CHANNEL_MEASUREMENT_DATA) * metadata->ChannelCount;
 
-                            for (ULONG i = 0; i < metadata->ChannelCount; i++)
+                            for (ULONG j = 0; j < metadata->ChannelCount; j++)
                             {
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PKG", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP0", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP1", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_DRAM", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = j;
 
                                 channels = EMI_CHANNEL_V2_NEXT_CHANNEL(channels);
                             }

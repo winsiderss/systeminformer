@@ -1708,21 +1708,21 @@ INT_PTR CALLBACK WepWindowsPageProc(
             case ID_WINDOW_GOTOTHREAD:
                 {
                     PWE_WINDOW_NODE selectedNode;
-                    PPH_PROCESS_ITEM processItem;
+                    PPH_PROCESS_ITEM selectedProcessItem;
                     PPH_PROCESS_PROPCONTEXT propContext;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
+                        if (selectedProcessItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
                         {
-                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), processItem))
+                            if (propContext = PhCreateProcessPropContext(WeGetMainWindowHandle(), selectedProcessItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);
                                 PhDereferenceObject(propContext);
                             }
 
-                            PhDereferenceObject(processItem);
+                            PhDereferenceObject(selectedProcessItem);
                         }
                         else
                         {

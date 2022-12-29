@@ -541,7 +541,7 @@ VOID EtProcessTreeNewMessage(
 
         while (listEntry != &EtProcessBlockListHead)
         {
-            PET_PROCESS_BLOCK block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+            block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
 
             if (block->ProcessItem->State & PH_PROCESS_ITEM_REMOVED)
             {
