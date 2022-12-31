@@ -48,17 +48,179 @@ typedef enum _DEVNODE_PROP_KEY
     DevKeyFirmwareDate,
     DevKeyFirmwareVersion,
     DevKeyFirmwareRevision,
-
     DevKeyHasProblem,
     DevKeyProblemCode,
     DevKeyProblemStatus,
     DevKeyDevNodeStatus,
     DevKeyDevCapabilities,
-
     DevKeyUpperFilters,
     DevKeyLowerFilters,
+    DevKeyHardwareIds,
+    DevKeyCompatibleIds,
+    DevKeyConfigFlags,
+    DevKeyUINumber,
+    DevKeyBusTypeGuid,
+    DevKeyLegacyBusType,
+    DevKeyBusNumber,
+    DevKeySecuritySDS,
+    DevKeyDevType,
+    DevKeyExclusive,
+    DevKeyCharacteristics,
+    DevKeyAddress,
+    DevKeyRemovalPolicy,
+    DevKeyRemovalPolicyDefault,
+    DevKeyRemovalPolicyOverride,
+    DevKeyInstallState,
+    DevKeyLocationPaths,
+    DevKeyBaseContainerId,
+    DevKeyEjectionRelations,
+    DevKeyRemovalRelations,
+    DevKeyPowerRelations,
+    DevKeyBusRelations,
+    DevKeyChildren,
+    DevKeySiblings,
+    DevKeyTransportRelations,
+    DevKeyReported,
+    DevKeyLegacy,
+    DevKeyContainerId,
+    DevKeyInLocalMachineContainer,
+    DevKeyModel,
+    DevKeyModelId,
+    DevKeyFriendlyNameAttributes,
+    DevKeyManufacturerAttributes,
+    DevKeyPresenceNotForDevice,
+    DevKeySignalStrength,
+    DevKeyIsAssociateableByUserAction,
+    DevKeyShowInUninstallUI,
+    DevKeyNumaProximityDomain,
+    DevKeyDHPRebalancePolicy,
+    DevKeyNumaNode,
+    DevKeyBusReportedDeviceDesc,
+    DevKeyIsPresent,
+    DevKeyConfigurationId,
+    DevKeyReportedDeviceIdsHash,
+    DevKeyBiosDeviceName,
+    DevKeyDriverProblemDesc,
+    DevKeyDebuggerSafe,
+    DevKeyPostInstallInProgress,
+    DevKeyStack,
+    DevKeyExtendedConfigurationIds,
+    DevKeyIsRebootRequired,
+    DevKeyDependencyProviders,
+    DevKeyDependencyDependents,
+    DevKeySoftRestartSupported,
+    DevKeyExtendedAddress,
+    DevKeyAssignedToGuest,
+    DevKeyCreatorProcessId,
+    DevKeyFirmwareVendor,
+    DevKeySessionId,
+    DevKeyDriverDesc,
+    DevKeyDriverInfPath,
+    DevKeyDriverInfSection,
+    DevKeyDriverInfSectionExt,
+    DevKeyMatchingDeviceId,
+    DevKeyDriverProvider,
+    DevKeyDriverPropPageProvider,
+    DevKeyDriverCoInstallers,
+    DevKeyResourcePickerTags,
+    DevKeyResourcePickerExceptions,
+    DevKeyDriverRank,
+    DevKeyDriverLogoLevel,
+    DevKeyNoConnectSound,
+    DevKeyGenericDriverInstalled,
+    DevKeyAdditionalSoftwareRequested,
+    DevKeySafeRemovalRequired,
+    DevKeySafeRemovalRequiredOverride,
+
+    DevKeyPkgModel,
+    DevKeyPkgVendorWebSite,
+    DevKeyPkgDetailedDescription,
+    DevKeyPkgDocumentationLink,
+    DevKeyPkgIcon,
+    DevKeyPkgBrandingIcon,
+
     DevKeyClassUpperFilters,
     DevKeyClassLowerFilters,
+    DevKeyClassSecuritySDS,
+    DevKeyClassDevType,
+    DevKeyClassExclusive,
+    DevKeyClassCharacteristics,
+    DevKeyClassName,
+    DevKeyClassClassName,
+    DevKeyClassIcon,
+    DevKeyClassClassInstaller,
+    DevKeyClassPropPageProvider,
+    DevKeyClassNoInstallClass,
+    DevKeyClassNoDisplayClass,
+    DevKeyClassSilentInstall,
+    DevKeyClassNoUseClass,
+    DevKeyClassDefaultService,
+    DevKeyClassIconPath,
+    DevKeyClassDHPRebalanceOptOut,
+    DevKeyClassClassCoInstallers,
+
+    DevKeyInterfaceFriendlyName,
+    DevKeyInterfaceEnabled,
+    DevKeyInterfaceClassGuid,
+    DevKeyInterfaceReferenceString,
+    DevKeyInterfaceRestricted,
+    DevKeyInterfaceUnrestrictedAppCapabilities,
+    DevKeyInterfaceSchematicName,
+
+    DevKeyInterfaceClassDefaultInterface,
+    DevKeyInterfaceClassName,
+
+    DevKeyContainerAddress,
+    DevKeyContainerDiscoveryMethod,
+    DevKeyContainerIsEncrypted,
+    DevKeyContainerIsAuthenticated,
+    DevKeyContainerIsConnected,
+    DevKeyContainerIsPaired,
+    DevKeyContainerIcon,
+    DevKeyContainerVersion,
+    DevKeyContainerLastSeen,
+    DevKeyContainerLastConnected,
+    DevKeyContainerIsShowInDisconnectedState,
+    DevKeyContainerIsLocalMachine,
+    DevKeyContainerMetadataPath,
+    DevKeyContainerIsMetadataSearchInProgress,
+    DevKeyContainerIsNotInterestingForDisplay,
+    DevKeyContainerLaunchDeviceStageOnDeviceConnect,
+    DevKeyContainerLaunchDeviceStageFromExplorer,
+    DevKeyContainerBaselineExperienceId,
+    DevKeyContainerIsDeviceUniquelyIdentifiable,
+    DevKeyContainerAssociationArray,
+    DevKeyContainerDeviceDescription1,
+    DevKeyContainerDeviceDescription2,
+    DevKeyContainerHasProblem,
+    DevKeyContainerIsSharedDevice,
+    DevKeyContainerIsNetworkDevice,
+    DevKeyContainerIsDefaultDevice,
+    DevKeyContainerMetadataCabinet,
+    DevKeyContainerRequiresPairingElevation,
+    DevKeyContainerExperienceId,
+    DevKeyContainerCategory,
+    DevKeyContainerCategoryDescSingular,
+    DevKeyContainerCategoryDescPlural,
+    DevKeyContainerCategoryIcon,
+    DevKeyContainerCategoryGroupDesc,
+    DevKeyContainerCategoryGroupIcon,
+    DevKeyContainerPrimaryCategory,
+    DevKeyContainerUnpairUninstall,
+    DevKeyContainerRequiresUninstallElevation,
+    DevKeyContainerDeviceFunctionSubRank,
+    DevKeyContainerAlwaysShowDeviceAsConnected,
+    DevKeyContainerConfigFlags,
+    DevKeyContainerPrivilegedPackageFamilyNames,
+    DevKeyContainerCustomPrivilegedPackageFamilyNames,
+    DevKeyContainerIsRebootRequired,
+    DevKeyContainerFriendlyName,
+    DevKeyContainerManufacturer,
+    DevKeyContainerModelName,
+    DevKeyContainerModelNumber,
+    DevKeyContainerInstallInProgress,
+
+    DevKeyObjectType,
 
     DevKeyPciInterruptSupport,
     DevKeyPciExpressCapabilityControl,
@@ -77,6 +239,7 @@ typedef enum _DEVNODE_PROP_KEY
 typedef enum _DEVNODE_PROP_TYPE
 {
     DevPropTypeString,
+    DevPropTypeUInt64,
     DevPropTypeUInt32,
     DevPropTypeInt32,
     DevPropTypeNTSTATUS,
@@ -106,8 +269,9 @@ typedef struct _DEVNODE_PROP
     union
     {
         PPH_STRING String;
-        LONG Int32;
+        ULONG64 UInt64;
         ULONG UInt32;
+        LONG Int32;
         NTSTATUS Status;
         GUID Guid;
         BOOLEAN Boolean;
@@ -276,6 +440,67 @@ BOOLEAN GetClassPropertyGuid(
     }
 
     RtlZeroMemory(Guid, sizeof(GUID));
+
+    return FALSE;
+}
+
+BOOLEAN GetDevicePropertyUInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _Out_ PULONG64 Value 
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(ULONG64);
+
+    result = SetupDiGetDevicePropertyW(
+        DeviceInfoSet,
+        DeviceInfoData,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(ULONG64),
+        &requiredLength,
+        0
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_UINT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
+
+    return FALSE;
+}
+
+BOOLEAN GetClassPropertyUInt64(
+    _In_ const GUID* ClassGuid,
+    _In_ const DEVPROPKEY* DeviceProperty,
+    _In_ ULONG Flags,
+    _Out_ PULONG64 Value 
+    )
+{
+    BOOL result;
+    DEVPROPTYPE devicePropertyType = DEVPROP_TYPE_EMPTY;
+    ULONG requiredLength = sizeof(ULONG64);
+
+    result = SetupDiGetClassPropertyW(
+        ClassGuid,
+        DeviceProperty,
+        &devicePropertyType,
+        (PBYTE)Value,
+        sizeof(ULONG64),
+        &requiredLength,
+        Flags
+        );
+    if (result && (devicePropertyType == DEVPROP_TYPE_UINT64))
+    {
+        return TRUE;
+    }
+
+    *Value = 0;
 
     return FALSE;
 }
@@ -626,7 +851,8 @@ BOOLEAN GetDevicePropertyString(
     if (result ||
         (requiredLength == 0) || 
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
-        (devicePropertyType != DEVPROP_TYPE_STRING))
+        ((devicePropertyType != DEVPROP_TYPE_STRING) &&
+         (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
     {
         goto Exit;
     }
@@ -684,7 +910,8 @@ BOOLEAN GetClassPropertyString(
     if (result ||
         (requiredLength == 0) || 
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
-        (devicePropertyType != DEVPROP_TYPE_STRING))
+        ((devicePropertyType != DEVPROP_TYPE_STRING) &&
+         (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
     {
         goto Exit;
     }
@@ -918,6 +1145,109 @@ VOID NTAPI DevPropFillString(
 }
 
 _Function_class_(DEVPROP_FILL_CALLBACK)
+VOID NTAPI DevPropFillUInt64(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = DevPropTypeUInt64;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = GetDevicePropertyUInt64(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->UInt64
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = GetClassPropertyUInt64(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->UInt64
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = GetClassPropertyUInt64(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->UInt64
+            );
+    }
+
+    if (Property->Valid)
+    {
+        PH_FORMAT format[1];
+
+        PhInitFormatI64U(&format[0], Property->UInt64);
+
+        Property->AsString = PhFormat(format, ARRAYSIZE(format), 1);
+    }
+}
+
+_Function_class_(DEVPROP_FILL_CALLBACK)
+VOID NTAPI DevPropFillUInt64Hex(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = DevPropTypeUInt64;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = GetDevicePropertyUInt64(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->UInt64
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = GetClassPropertyUInt64(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->UInt64
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = GetClassPropertyUInt64(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->UInt64
+            );
+    }
+
+    if (Property->Valid)
+    {
+        PH_FORMAT format[2];
+
+        PhInitFormatI64X(&format[1], Property->UInt64);
+
+        Property->AsString = PhFormat(format, ARRAYSIZE(format), 10);
+    }
+}
+
+
+_Function_class_(DEVPROP_FILL_CALLBACK)
 VOID NTAPI DevPropFillUInt32(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
@@ -962,7 +1292,7 @@ VOID NTAPI DevPropFillUInt32(
     {
         PH_FORMAT format[1];
 
-        PhInitFormatI64U(&format[0], Property->UInt32);
+        PhInitFormatU(&format[0], Property->UInt32);
 
         Property->AsString = PhFormat(format, ARRAYSIZE(format), 1);
     }
@@ -1065,7 +1395,7 @@ VOID NTAPI DevPropFillInt32(
     {
         PH_FORMAT format[1];
 
-        PhInitFormatI64D(&format[0], Property->Int32);
+        PhInitFormatD(&format[0], Property->Int32);
 
         Property->AsString = PhFormat(format, ARRAYSIZE(format), 1);
     }
@@ -1337,6 +1667,36 @@ DevPropFillStringList(
     }
 }
 
+_Function_class_(DEVPROP_FILL_CALLBACK)
+VOID
+NTAPI
+DevPropFillStringOrStringList(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    DevPropFillString(
+        DeviceInfoSet,
+        DeviceInfoData,
+        PropertyKey,
+        Property,
+        Flags
+        );
+    if (!Property->Valid)
+    {
+        DevPropFillStringList(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            Property,
+            Flags
+            );
+    }
+}
+
 static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
 {
     { L"Name", TRUE, 400, 0, DevKeyName, &DEVPKEY_NAME, DevPropFillString, 0 },
@@ -1361,18 +1721,185 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
     { L"Driver Date", FALSE, 80, 0, DevKeyDriverDate, &DEVPKEY_Device_DriverDate, DevPropFillTimeStamp, 0 },
     { L"Firmware Date", FALSE, 80, 0, DevKeyFirmwareDate, &DEVPKEY_Device_FirmwareDate, DevPropFillTimeStamp, 0 },
     { L"Firmware Version", FALSE, 80, 0, DevKeyFirmwareVersion, &DEVPKEY_Device_FirmwareVersion, DevPropFillString, 0 },
-    { L"Firmware Revision", FALSE, 80, 0, DevKeyFirmwareRevision, &DEVPKEY_Device_FirmwareVersion, DevPropFillString, 0 },
-
+    { L"Firmware Revision", FALSE, 80, 0, DevKeyFirmwareRevision, &DEVPKEY_Device_FirmwareRevision, DevPropFillString, 0 },
     { L"Has Problem", FALSE, 80, 0, DevKeyHasProblem, &DEVPKEY_Device_HasProblem, DevPropFillBoolean, 0 },
     { L"Problem Code", FALSE, 80, 0, DevKeyProblemCode, &DEVPKEY_Device_ProblemCode, DevPropFillUInt32, 0 },
     { L"Problem Status", FALSE, 80, 0, DevKeyProblemStatus, &DEVPKEY_Device_ProblemStatus, DevPropFillNTSTATUS, 0 },
     { L"Node Status Flags", FALSE, 80, 0, DevKeyDevNodeStatus, &DEVPKEY_Device_DevNodeStatus, DevPropFillUInt32Hex, 0 },
     { L"Capabilities", FALSE, 80, 0, DevKeyDevCapabilities, &DEVPKEY_Device_Capabilities, DevPropFillUInt32Hex, 0 },
-
     { L"Upper Filters", FALSE, 80, 0, DevKeyUpperFilters, &DEVPKEY_Device_UpperFilters, DevPropFillStringList, 0 },
     { L"Lower Filters", FALSE, 80, 0, DevKeyLowerFilters, &DEVPKEY_Device_LowerFilters, DevPropFillStringList, 0 },
+    { L"Hardware IDs ", FALSE, 80, 0, DevKeyHardwareIds, &DEVPKEY_Device_HardwareIds, DevPropFillStringList, 0 },
+    { L"Compatible IDs", FALSE, 80, 0, DevKeyCompatibleIds, &DEVPKEY_Device_CompatibleIds, DevPropFillStringList, 0 },
+    { L"Configuration Flags", FALSE, 80, 0, DevKeyConfigFlags, &DEVPKEY_Device_ConfigFlags, DevPropFillUInt32Hex, 0 },
+    { L"Number", FALSE, 80, 0, DevKeyUINumber, &DEVPKEY_Device_UINumber, DevPropFillUInt32, 0 },
+    { L"Bus Type GUID", FALSE, 80, 0, DevKeyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, DevPropFillGuid, 0 },
+    { L"Legacy Bus Type", FALSE, 80, 0, DevKeyLegacyBusType, &DEVPKEY_Device_LegacyBusType, DevPropFillUInt32, 0 },
+    { L"Bus Number", FALSE, 80, 0, DevKeyBusNumber, &DEVPKEY_Device_BusNumber, DevPropFillUInt32, 0 },
+    //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_Device_Security, NULL, 0 },               // DEVPROP_TYPE_SECURITY_DESCRIPTOR
+    { L"Security Descriptor", FALSE, 80, 0, DevKeySecuritySDS, &DEVPKEY_Device_SecuritySDS, DevPropFillString, 0 },
+    { L"Type", FALSE, 80, 0, DevKeyDevType, &DEVPKEY_Device_DevType, DevPropFillUInt32, 0 },
+    { L"Exclusive", FALSE, 80, 0, DevKeyExclusive, &DEVPKEY_Device_Exclusive, DevPropFillBoolean, 0 },
+    { L"Characteristics", FALSE, 80, 0, DevKeyCharacteristics, &DEVPKEY_Device_Characteristics, DevPropFillUInt32Hex, 0 },
+    { L"Address", FALSE, 80, 0, DevKeyAddress, &DEVPKEY_Device_Address, DevPropFillUInt32Hex, 0 },
+    //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_Device_PowerData, NULL, 0 },              // DEVPROP_TYPE_BINARY
+    { L"Removal Policy", FALSE, 80, 0, DevKeyRemovalPolicy, &DEVPKEY_Device_RemovalPolicy, DevPropFillUInt32, 0 },
+    { L"Removal Policy Default", FALSE, 80, 0, DevKeyRemovalPolicyDefault, &DEVPKEY_Device_RemovalPolicyDefault, DevPropFillUInt32, 0 },
+    { L"Removal Policy Override", FALSE, 80, 0, DevKeyRemovalPolicyOverride, &DEVPKEY_Device_RemovalPolicyOverride, DevPropFillUInt32, 0 },
+    { L"Install State", FALSE, 80, 0, DevKeyInstallState, &DEVPKEY_Device_InstallState, DevPropFillUInt32, 0 },
+    { L"Location Paths", FALSE, 80, 0, DevKeyLocationPaths, &DEVPKEY_Device_LocationPaths, DevPropFillStringList, 0 },
+    { L"Base Container ID", FALSE, 80, 0, DevKeyBaseContainerId, &DEVPKEY_Device_BaseContainerId, DevPropFillGuid, 0 },
+    { L"Ejection Relations", FALSE, 80, 0, DevKeyEjectionRelations, &DEVPKEY_Device_EjectionRelations, DevPropFillStringList, 0 },
+    { L"Removal Relations", FALSE, 80, 0, DevKeyRemovalRelations, &DEVPKEY_Device_RemovalRelations, DevPropFillStringList, 0 },
+    { L"Power Relations", FALSE, 80, 0, DevKeyPowerRelations, &DEVPKEY_Device_PowerRelations, DevPropFillStringList, 0 },
+    { L"Bus Relations", FALSE, 80, 0, DevKeyBusRelations, &DEVPKEY_Device_BusRelations, DevPropFillStringList, 0 },
+    { L"Children", FALSE, 80, 0, DevKeyChildren, &DEVPKEY_Device_Children, DevPropFillStringList, 0 },
+    { L"Siblings", FALSE, 80, 0, DevKeySiblings, &DEVPKEY_Device_Siblings, DevPropFillStringList, 0 },
+    { L"Transport Relations", FALSE, 80, 0, DevKeyTransportRelations, &DEVPKEY_Device_TransportRelations, DevPropFillStringList, 0 },
+    { L"Reported", FALSE, 80, 0, DevKeyReported, &DEVPKEY_Device_Reported, DevPropFillBoolean, 0 },
+    { L"Legacy", FALSE, 80, 0, DevKeyLegacy, &DEVPKEY_Device_Legacy, DevPropFillBoolean, 0 },
+    { L"Container ID", FALSE, 80, 0, DevKeyContainerId, &DEVPKEY_Device_ContainerId, DevPropFillGuid, 0 },
+    { L"Local Machine Container", FALSE, 80, 0, DevKeyInLocalMachineContainer, &DEVPKEY_Device_InLocalMachineContainer, DevPropFillBoolean, 0 },
+    { L"Model", FALSE, 80, 0, DevKeyModel, &DEVPKEY_Device_Model, DevPropFillString, 0 },
+    { L"Model ID", FALSE, 80, 0, DevKeyModelId, &DEVPKEY_Device_ModelId, DevPropFillGuid, 0 },
+    { L"Friendly Name Attributes", FALSE, 80, 0, DevKeyFriendlyNameAttributes, &DEVPKEY_Device_FriendlyNameAttributes, DevPropFillUInt32Hex, 0 },
+    { L"Manufacture Attributes", FALSE, 80, 0, DevKeyManufacturerAttributes, &DEVPKEY_Device_ManufacturerAttributes, DevPropFillUInt32Hex, 0 },
+    { L"Presence Not for Device", FALSE, 80, 0, DevKeyPresenceNotForDevice, &DEVPKEY_Device_PresenceNotForDevice, DevPropFillBoolean, 0 },
+    { L"Signal Strength", FALSE, 80, 0, DevKeySignalStrength, &DEVPKEY_Device_SignalStrength, DevPropFillInt32, 0 },
+    { L"Associateable by User Action", FALSE, 80, 0, DevKeyIsAssociateableByUserAction, &DEVPKEY_Device_IsAssociateableByUserAction, DevPropFillBoolean, 0 },
+    { L"Show Uninstall UI", FALSE, 80, 0, DevKeyShowInUninstallUI, &DEVPKEY_Device_ShowInUninstallUI, DevPropFillBoolean, 0 },
+    { L"Numa Proximity Default", FALSE, 80, 0, DevKeyNumaProximityDomain, &DEVPKEY_Device_Numa_Proximity_Domain, DevPropFillUInt32, 0 },
+    { L"DHP Rebalance Policy", FALSE, 80, 0, DevKeyDHPRebalancePolicy, &DEVPKEY_Device_DHP_Rebalance_Policy, DevPropFillUInt32, 0 },
+    { L"Numa Node", FALSE, 80, 0, DevKeyNumaNode, &DEVPKEY_Device_Numa_Node, DevPropFillUInt32, 0 },
+    { L"Bus Reported Description", FALSE, 80, 0, DevKeyBusReportedDeviceDesc, &DEVPKEY_Device_BusReportedDeviceDesc, DevPropFillString, 0 },
+    { L"Present", FALSE, 80, 0, DevKeyIsPresent, &DEVPKEY_Device_IsPresent, DevPropFillBoolean, 0 },
+    { L"Configuration ID", FALSE, 80, 0, DevKeyConfigurationId, &DEVPKEY_Device_ConfigurationId, DevPropFillString, 0 },
+    { L"Reported IDs Hash", FALSE, 80, 0, DevKeyReportedDeviceIdsHash, &DEVPKEY_Device_ReportedDeviceIdsHash, DevPropFillUInt32, 0 },
+    //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_Device_PhysicalDeviceLocation, NULL, 0 },    // DEVPROP_TYPE_BINARY
+    { L"BIOS Name", FALSE, 80, 0, DevKeyBiosDeviceName, &DEVPKEY_Device_BiosDeviceName, DevPropFillString, 0 },
+    { L"Problem Description", FALSE, 80, 0, DevKeyDriverProblemDesc, &DEVPKEY_Device_DriverProblemDesc, DevPropFillString, 0 },
+    { L"Debugger Safe", FALSE, 80, 0, DevKeyDebuggerSafe, &DEVPKEY_Device_DebuggerSafe, DevPropFillUInt32, 0 },
+    { L"Post Install in Progress", FALSE, 80, 0, DevKeyPostInstallInProgress, &DEVPKEY_Device_PostInstallInProgress, DevPropFillBoolean, 0 },
+    { L"Stack", FALSE, 80, 0, DevKeyStack, &DEVPKEY_Device_Stack, DevPropFillStringList, 0 },
+    { L"Extended Configuration IDs", FALSE, 80, 0, DevKeyExtendedConfigurationIds, &DEVPKEY_Device_ExtendedConfigurationIds, DevPropFillStringList, 0 },
+    { L"Reboot Required", FALSE, 80, 0, DevKeyIsRebootRequired, &DEVPKEY_Device_IsRebootRequired, DevPropFillBoolean, 0 },
+    { L"Dependency Providers", FALSE, 80, 0, DevKeyDependencyProviders, &DEVPKEY_Device_DependencyProviders, DevPropFillStringList, 0 },
+    { L"Dependency Dependents", FALSE, 80, 0, DevKeyDependencyDependents, &DEVPKEY_Device_DependencyDependents, DevPropFillStringList, 0 },
+    { L"Soft Restart Supported", FALSE, 80, 0, DevKeySoftRestartSupported, &DEVPKEY_Device_SoftRestartSupported, DevPropFillBoolean, 0 },
+    { L"Extended Address", FALSE, 80, 0, DevKeyExtendedAddress, &DEVPKEY_Device_ExtendedAddress, DevPropFillUInt64Hex, 0 },
+    { L"Assigned to Guest", FALSE, 80, 0, DevKeyAssignedToGuest, &DEVPKEY_Device_AssignedToGuest, DevPropFillBoolean, 0 },
+    { L"Creator Process ID", FALSE, 80, 0, DevKeyCreatorProcessId, &DEVPKEY_Device_CreatorProcessId, DevPropFillUInt32, 0 },
+    { L"Firmware Vendor", FALSE, 80, 0, DevKeyFirmwareVendor, &DEVPKEY_Device_FirmwareVendor, DevPropFillString, 0 },
+    { L"Session ID", FALSE, 80, 0, DevKeySessionId, &DEVPKEY_Device_SessionId, DevPropFillUInt32, 0 },
+    { L"Driver Description", FALSE, 80, 0, DevKeyDriverDesc, &DEVPKEY_Device_DriverDesc, DevPropFillString, 0 },
+    { L"Driver INF Path", FALSE, 80, 0, DevKeyDriverInfPath, &DEVPKEY_Device_DriverInfPath, DevPropFillString, 0 },
+    { L"Driver INF Section", FALSE, 80, 0, DevKeyDriverInfSection, &DEVPKEY_Device_DriverInfSection, DevPropFillString, 0 },
+    { L"Driver INF Section Extended", FALSE, 80, 0, DevKeyDriverInfSectionExt, &DEVPKEY_Device_DriverInfSectionExt, DevPropFillString, 0 },
+    { L"Matching ID", FALSE, 80, 0, DevKeyMatchingDeviceId, &DEVPKEY_Device_MatchingDeviceId, DevPropFillString, 0 },
+    { L"Driver Provider", FALSE, 80, 0, DevKeyDriverProvider, &DEVPKEY_Device_DriverProvider, DevPropFillString, 0 },
+    { L"Driver Property Page Provider", FALSE, 80, 0, DevKeyDriverPropPageProvider, &DEVPKEY_Device_DriverPropPageProvider, DevPropFillString, 0 },
+    { L"Driver Co-installers", FALSE, 80, 0, DevKeyDriverCoInstallers, &DEVPKEY_Device_DriverCoInstallers, DevPropFillStringList, 0 },
+    { L"Resource Picker Tags", FALSE, 80, 0, DevKeyResourcePickerTags, &DEVPKEY_Device_ResourcePickerTags, DevPropFillString, 0 },
+    { L"Resource Picker Exceptions", FALSE, 80, 0, DevKeyResourcePickerExceptions, &DEVPKEY_Device_ResourcePickerExceptions, DevPropFillString, 0 },
+    { L"Driver Rank", FALSE, 80, 0, DevKeyDriverRank, &DEVPKEY_Device_DriverRank, DevPropFillUInt32, 0 },
+    { L"Driver LOGO Level", FALSE, 80, 0, DevKeyDriverLogoLevel, &DEVPKEY_Device_DriverLogoLevel, DevPropFillUInt32, 0 },
+    { L"No Connect Sound", FALSE, 80, 0, DevKeyNoConnectSound, &DEVPKEY_Device_NoConnectSound, DevPropFillBoolean, 0 },
+    { L"Generic Driver Installed", FALSE, 80, 0, DevKeyGenericDriverInstalled, &DEVPKEY_Device_GenericDriverInstalled, DevPropFillBoolean, 0 },
+    { L"Additional Software Requested", FALSE, 80, 0, DevKeyAdditionalSoftwareRequested, &DEVPKEY_Device_AdditionalSoftwareRequested, DevPropFillBoolean, 0 },
+    { L"Safe Removal Required", FALSE, 80, 0, DevKeySafeRemovalRequired, &DEVPKEY_Device_SafeRemovalRequired, DevPropFillBoolean, 0 },
+    { L"Save Removal Required Override", FALSE, 80, 0, DevKeySafeRemovalRequiredOverride, &DEVPKEY_Device_SafeRemovalRequiredOverride, DevPropFillBoolean, 0 },
+
+    { L"Package Model", FALSE, 80, 0, DevKeyPkgModel, &DEVPKEY_DrvPkg_Model, DevPropFillString, 0 },
+    { L"Package Vendor Website", FALSE, 80, 0, DevKeyPkgVendorWebSite, &DEVPKEY_DrvPkg_VendorWebSite, DevPropFillString, 0 },
+    { L"Package Description", FALSE, 80, 0, DevKeyPkgDetailedDescription, &DEVPKEY_DrvPkg_DetailedDescription, DevPropFillString, 0 },
+    { L"Package Documentation", FALSE, 80, 0, DevKeyPkgDocumentationLink, &DEVPKEY_DrvPkg_DocumentationLink, DevPropFillString, 0 },
+    { L"Package Icon", FALSE, 80, 0, DevKeyPkgIcon, &DEVPKEY_DrvPkg_Icon, DevPropFillStringList, 0 },
+    { L"Package Branding Icon", FALSE, 80, 0, DevKeyPkgBrandingIcon, &DEVPKEY_DrvPkg_BrandingIcon, DevPropFillStringList, 0 },
+
     { L"Class Upper Filters", FALSE, 80, 0, DevKeyClassUpperFilters, &DEVPKEY_DeviceClass_UpperFilters, DevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
     { L"Class Lower Filters", FALSE, 80, 0, DevKeyClassLowerFilters, &DEVPKEY_DeviceClass_LowerFilters, DevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_DeviceClass_Security, NULL, 0 },    // DEVPROP_TYPE_SECURITY_DESCRIPTOR
+    { L"Class Security Descriptor", FALSE, 80, 0, DevKeyClassSecuritySDS, &DEVPKEY_DeviceClass_SecuritySDS, DevPropFillString, 0 },
+    { L"Class Type", FALSE, 80, 0, DevKeyClassDevType, &DEVPKEY_DeviceClass_DevType, DevPropFillUInt32, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Exclusive", FALSE, 80, 0, DevKeyClassExclusive, &DEVPKEY_DeviceClass_Exclusive, DevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Characteristics", FALSE, 80, 0, DevKeyClassCharacteristics, &DEVPKEY_DeviceClass_Characteristics, DevPropFillUInt32Hex, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Device Name", FALSE, 80, 0, DevKeyClassName, &DEVPKEY_DeviceClass_Name, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Name", FALSE, 80, 0, DevKeyClassClassName, &DEVPKEY_DeviceClass_ClassName, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Icon", FALSE, 80, 0, DevKeyClassIcon, &DEVPKEY_DeviceClass_Icon, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Installer", FALSE, 80, 0, DevKeyClassClassInstaller, &DEVPKEY_DeviceClass_ClassInstaller, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Property Page Provider", FALSE, 80, 0, DevKeyClassPropPageProvider, &DEVPKEY_DeviceClass_PropPageProvider, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class No Install", FALSE, 80, 0, DevKeyClassNoInstallClass, &DEVPKEY_DeviceClass_NoInstallClass, DevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class No Display", FALSE, 80, 0, DevKeyClassNoDisplayClass, &DEVPKEY_DeviceClass_NoDisplayClass, DevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Silent Install", FALSE, 80, 0, DevKeyClassSilentInstall, &DEVPKEY_DeviceClass_SilentInstall, DevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class No Use Class", FALSE, 80, 0, DevKeyClassNoUseClass, &DEVPKEY_DeviceClass_NoUseClass, DevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Default Service", FALSE, 80, 0, DevKeyClassDefaultService, &DEVPKEY_DeviceClass_DefaultService, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Icon Path", FALSE, 80, 0, DevKeyClassIconPath, &DEVPKEY_DeviceClass_IconPath, DevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class DHP Rebalance Opt-out", FALSE, 80, 0, DevKeyClassDHPRebalanceOptOut, &DEVPKEY_DeviceClass_DHPRebalanceOptOut, DevPropFillBoolean, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Class Co-installers", FALSE, 80, 0, DevKeyClassClassCoInstallers, &DEVPKEY_DeviceClass_ClassCoInstallers, DevPropFillStringList, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+
+    { L"Interface Friendly Name", FALSE, 80, 0, DevKeyInterfaceFriendlyName, &DEVPKEY_DeviceInterface_FriendlyName, DevPropFillString, 0 },
+    { L"Interface Enabled", FALSE, 80, 0, DevKeyInterfaceEnabled, &DEVPKEY_DeviceInterface_Enabled, DevPropFillBoolean, 0 },
+    { L"Interface Class GUID", FALSE, 80, 0, DevKeyInterfaceClassGuid, &DEVPKEY_DeviceInterface_ClassGuid, DevPropFillGuid, 0 },
+    { L"Interface Reference", FALSE, 80, 0, DevKeyInterfaceReferenceString, &DEVPKEY_DeviceInterface_ReferenceString, DevPropFillString, 0 },
+    { L"Interface Restricted", FALSE, 80, 0, DevKeyInterfaceRestricted, &DEVPKEY_DeviceInterface_Restricted, DevPropFillBoolean, 0 },
+    { L"Interface Unrestricted Application Capabilities", FALSE, 80, 0, DevKeyInterfaceUnrestrictedAppCapabilities, &DEVPKEY_DeviceInterface_UnrestrictedAppCapabilities, DevPropFillStringList, 0 },
+    { L"Interface Schematic Name", FALSE, 80, 0, DevKeyInterfaceSchematicName, &DEVPKEY_DeviceInterface_SchematicName, DevPropFillString, 0 },
+
+    { L"Interface Class Default Interface", FALSE, 80, 0, DevKeyInterfaceClassDefaultInterface, &DEVPKEY_DeviceInterfaceClass_DefaultInterface, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+    { L"Interface Class Name", FALSE, 80, 0, DevKeyInterfaceClassName, &DEVPKEY_DeviceInterfaceClass_Name, DevPropFillString, DEVPROP_FILL_FLAG_CLASS_INTERFACE | DEVPROP_FILL_FLAG_CLASS_INSTALLER },
+
+    { L"Container Address", FALSE, 80, 0, DevKeyContainerAddress, &DEVPKEY_DeviceContainer_Address, DevPropFillStringOrStringList, 0 },
+    { L"Container Discovery Method", FALSE, 80, 0, DevKeyContainerDiscoveryMethod, &DEVPKEY_DeviceContainer_DiscoveryMethod, DevPropFillStringList, 0 },
+    { L"Container Encrypted", FALSE, 80, 0, DevKeyContainerIsEncrypted, &DEVPKEY_DeviceContainer_IsEncrypted, DevPropFillBoolean, 0 },
+    { L"Container Authenticated", FALSE, 80, 0, DevKeyContainerIsAuthenticated, &DEVPKEY_DeviceContainer_IsAuthenticated, DevPropFillBoolean, 0 },
+    { L"Container Connected", FALSE, 80, 0, DevKeyContainerIsConnected, &DEVPKEY_DeviceContainer_IsConnected, DevPropFillBoolean, 0 },
+    { L"Container Paired", FALSE, 80, 0, DevKeyContainerIsPaired, &DEVPKEY_DeviceContainer_IsPaired, DevPropFillBoolean, 0 },
+    { L"Container Icon", FALSE, 80, 0, DevKeyContainerIcon, &DEVPKEY_DeviceContainer_Icon, DevPropFillString, 0 },
+    { L"Container Version", FALSE, 80, 0, DevKeyContainerVersion, &DEVPKEY_DeviceContainer_Version, DevPropFillString, 0 },
+    { L"Container Last Seen", FALSE, 80, 0, DevKeyContainerLastSeen, &DEVPKEY_DeviceContainer_Last_Seen, DevPropFillTimeStamp, 0 },
+    { L"Container Last Connected", FALSE, 80, 0, DevKeyContainerLastConnected, &DEVPKEY_DeviceContainer_Last_Connected, DevPropFillTimeStamp, 0 },
+    { L"Container Show in Disconnected State", FALSE, 80, 0, DevKeyContainerIsShowInDisconnectedState, &DEVPKEY_DeviceContainer_IsShowInDisconnectedState, DevPropFillBoolean, 0 },
+    { L"Container Local Machine", FALSE, 80, 0, DevKeyContainerIsLocalMachine, &DEVPKEY_DeviceContainer_IsLocalMachine, DevPropFillBoolean, 0 },
+    { L"Container Metadata Path", FALSE, 80, 0, DevKeyContainerMetadataPath, &DEVPKEY_DeviceContainer_MetadataPath, DevPropFillString, 0 },
+    { L"Container Metadata Search in Progress", FALSE, 80, 0, DevKeyContainerIsMetadataSearchInProgress, &DEVPKEY_DeviceContainer_IsMetadataSearchInProgress, DevPropFillBoolean, 0 },
+    //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_DeviceContainer_MetadataChecksum, NULL, 0 },            // DEVPROP_TYPE_BINARY
+    { L"Container Not Interesting For Display", FALSE, 80, 0, DevKeyContainerIsNotInterestingForDisplay, &DEVPKEY_DeviceContainer_IsNotInterestingForDisplay, DevPropFillBoolean, 0 },
+    { L"Container Launch on Connect", FALSE, 80, 0, DevKeyContainerLaunchDeviceStageOnDeviceConnect, &DEVPKEY_DeviceContainer_LaunchDeviceStageOnDeviceConnect, DevPropFillBoolean, 0 },
+    { L"Container Launch from Explorer", FALSE, 80, 0, DevKeyContainerLaunchDeviceStageFromExplorer, &DEVPKEY_DeviceContainer_LaunchDeviceStageFromExplorer, DevPropFillBoolean, 0 },
+    { L"Container Baseline Experience ID", FALSE, 80, 0, DevKeyContainerBaselineExperienceId, &DEVPKEY_DeviceContainer_BaselineExperienceId, DevPropFillGuid, 0 },
+    { L"Container Uniquely Identifiable", FALSE, 80, 0, DevKeyContainerIsDeviceUniquelyIdentifiable, &DEVPKEY_DeviceContainer_IsDeviceUniquelyIdentifiable, DevPropFillBoolean, 0 },
+    { L"Container Association", FALSE, 80, 0, DevKeyContainerAssociationArray, &DEVPKEY_DeviceContainer_AssociationArray, DevPropFillStringList, 0 },
+    { L"Container Description", FALSE, 80, 0, DevKeyContainerDeviceDescription1, &DEVPKEY_DeviceContainer_DeviceDescription1, DevPropFillString, 0 },
+    { L"Container Description Other", FALSE, 80, 0, DevKeyContainerDeviceDescription2, &DEVPKEY_DeviceContainer_DeviceDescription2, DevPropFillString, 0 },
+    { L"Container Has Problem", FALSE, 80, 0, DevKeyContainerHasProblem, &DEVPKEY_DeviceContainer_HasProblem, DevPropFillBoolean, 0 },
+    { L"Container Shared Device", FALSE, 80, 0, DevKeyContainerIsSharedDevice, &DEVPKEY_DeviceContainer_IsSharedDevice, DevPropFillBoolean, 0 },
+    { L"Container Network Device", FALSE, 80, 0, DevKeyContainerIsNetworkDevice, &DEVPKEY_DeviceContainer_IsNetworkDevice, DevPropFillBoolean, 0 },
+    { L"Container Default Device", FALSE, 80, 0, DevKeyContainerIsDefaultDevice, &DEVPKEY_DeviceContainer_IsDefaultDevice, DevPropFillBoolean, 0 },
+    { L"Container Metadata Cabinet", FALSE, 80, 0, DevKeyContainerMetadataCabinet, &DEVPKEY_DeviceContainer_MetadataCabinet, DevPropFillString, 0 },
+    { L"Container Requires Pairing Elevation", FALSE, 80, 0, DevKeyContainerRequiresPairingElevation, &DEVPKEY_DeviceContainer_RequiresPairingElevation, DevPropFillBoolean, 0 },
+    { L"Container Experience ID", FALSE, 80, 0, DevKeyContainerExperienceId, &DEVPKEY_DeviceContainer_ExperienceId, DevPropFillGuid, 0 },
+    { L"Container Category", FALSE, 80, 0, DevKeyContainerCategory, &DEVPKEY_DeviceContainer_Category, DevPropFillStringList, 0 },
+    { L"Container Category Description", FALSE, 80, 0, DevKeyContainerCategoryDescSingular, &DEVPKEY_DeviceContainer_Category_Desc_Singular, DevPropFillStringList, 0 },
+    { L"Container Category Description Plural", FALSE, 80, 0, DevKeyContainerCategoryDescPlural, &DEVPKEY_DeviceContainer_Category_Desc_Plural, DevPropFillStringList, 0 },
+    { L"Container Category Icon", FALSE, 80, 0, DevKeyContainerCategoryIcon, &DEVPKEY_DeviceContainer_Category_Icon, DevPropFillString, 0 },
+    { L"Container Category Group Description", FALSE, 80, 0, DevKeyContainerCategoryGroupDesc, &DEVPKEY_DeviceContainer_CategoryGroup_Desc, DevPropFillStringList, 0 },
+    { L"Container Category Group Icon", FALSE, 80, 0, DevKeyContainerCategoryGroupIcon, &DEVPKEY_DeviceContainer_CategoryGroup_Icon, DevPropFillString, 0 },
+    { L"Container Primary Category", FALSE, 80, 0, DevKeyContainerPrimaryCategory, &DEVPKEY_DeviceContainer_PrimaryCategory, DevPropFillString, 0 },
+    { L"Container Unpair Uninstall", FALSE, 80, 0, DevKeyContainerUnpairUninstall, &DEVPKEY_DeviceContainer_UnpairUninstall, DevPropFillBoolean, 0 },
+    { L"Container Requires Uninstall Elevation", FALSE, 80, 0, DevKeyContainerRequiresUninstallElevation, &DEVPKEY_DeviceContainer_RequiresUninstallElevation, DevPropFillBoolean, 0 },
+    { L"Container Function Sub-rank", FALSE, 80, 0, DevKeyContainerDeviceFunctionSubRank, &DEVPKEY_DeviceContainer_DeviceFunctionSubRank, DevPropFillUInt32, 0 },
+    { L"Container Always Show Connected ", FALSE, 80, 0, DevKeyContainerAlwaysShowDeviceAsConnected, &DEVPKEY_DeviceContainer_AlwaysShowDeviceAsConnected, DevPropFillBoolean, 0 },
+    { L"Container Control Flags", FALSE, 80, 0, DevKeyContainerConfigFlags, &DEVPKEY_DeviceContainer_ConfigFlags, DevPropFillUInt32Hex, 0 },
+    { L"Container Privileged Package Family Names", FALSE, 80, 0, DevKeyContainerPrivilegedPackageFamilyNames, &DEVPKEY_DeviceContainer_PrivilegedPackageFamilyNames, DevPropFillStringList, 0 },
+    { L"Container Custom Privileged Package Family Names", FALSE, 80, 0, DevKeyContainerCustomPrivilegedPackageFamilyNames, &DEVPKEY_DeviceContainer_CustomPrivilegedPackageFamilyNames, DevPropFillStringList, 0 },
+    { L"Container Reboot Required", FALSE, 80, 0, DevKeyContainerIsRebootRequired, &DEVPKEY_DeviceContainer_IsRebootRequired, DevPropFillBoolean, 0 },
+    { L"Container Friendly Name", FALSE, 80, 0, DevKeyContainerFriendlyName, &DEVPKEY_DeviceContainer_FriendlyName, DevPropFillString, 0 },
+    { L"Container Manufacture", FALSE, 80, 0, DevKeyContainerManufacturer, &DEVPKEY_DeviceContainer_Manufacturer, DevPropFillString, 0 },
+    { L"Container Model Name", FALSE, 80, 0, DevKeyContainerModelName, &DEVPKEY_DeviceContainer_ModelName, DevPropFillString, 0 },
+    { L"Container Model Number", FALSE, 80, 0, DevKeyContainerModelNumber, &DEVPKEY_DeviceContainer_ModelNumber, DevPropFillString, 0 },
+    { L"Container Install in Progress", FALSE, 80, 0, DevKeyContainerInstallInProgress, &DEVPKEY_DeviceContainer_InstallInProgress, DevPropFillBoolean, 0 },
+
+    { L"Object Type", FALSE, 80, 0, DevKeyObjectType, &DEVPKEY_DevQuery_ObjectType, DevPropFillUInt32, 0 },
 
     { L"PCI Interrupt Support", FALSE, 80, 0, DevKeyPciInterruptSupport, &DEVPKEY_PciDevice_InterruptSupport, DevPropFillUInt32Hex, 0 },
     { L"PCI Express Capability Control", FALSE, 80, 0, DevKeyPciExpressCapabilityControl, &DEVPKEY_PciRootBus_PCIExpressCapabilityControl, DevPropFillBoolean, 0 },
@@ -1905,6 +2432,9 @@ static int __cdecl DeviceTreeSortFunction(
         {
         case DevPropTypeString:
             sortResult = PhCompareString(lhs->String, rhs->String, TRUE);
+            break;
+        case DevPropTypeUInt64:
+            sortResult = uint64cmp(lhs->UInt64, rhs->UInt64);
             break;
         case DevPropTypeUInt32:
             sortResult = uint64cmp(lhs->UInt32, rhs->UInt32);
