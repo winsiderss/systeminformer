@@ -344,9 +344,9 @@ typedef struct _PEB32
 
     UNICODE_STRING32 CSDVersion;
 
-    WOW64_POINTER(PVOID) ActivationContextData;
+    WOW64_POINTER(PACTIVATION_CONTEXT_DATA) ActivationContextData;
     WOW64_POINTER(PVOID) ProcessAssemblyStorageMap;
-    WOW64_POINTER(PVOID) SystemDefaultActivationContextData;
+    WOW64_POINTER(PACTIVATION_CONTEXT_DATA) SystemDefaultActivationContextData;
     WOW64_POINTER(PVOID) SystemAssemblyStorageMap;
 
     WOW64_POINTER(SIZE_T) MinimumStackCommit;
