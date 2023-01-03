@@ -340,12 +340,6 @@ typedef struct _ACTIVATION_CONTEXT_DATA_COM_INTERFACE_REDIRECTION
 
 #define ACTIVATION_CONTEXT_DATA_COM_TYPE_LIBRARY_REDIRECTION_FORMAT_WHISTLER 1
 
-// LIBFLAGS oaidl.h
-#define LIBFLAG_FRESTRICTED 0x1
-#define LIBFLAG_FCONTROL 0x2
-#define LIBFLAG_FHIDDEN 0x4
-#define LIBFLAG_FHASDISKIMAGE 0x8
-
 typedef struct _ACTIVATION_CONTEXT_DATA_TYPE_LIBRARY_VERSION
 {
     USHORT Major;
@@ -359,7 +353,7 @@ typedef struct _ACTIVATION_CONTEXT_DATA_COM_TYPE_LIBRARY_REDIRECTION
     ULONG   NameLength;
     ULONG   NameOffset; // to WCHAR[], from section header
     USHORT  ResourceId;
-    USHORT  LibraryFlags; // LIBFLAG_*
+    USHORT  LibraryFlags; // LIBFLAG_* oaidl.h
     ULONG   HelpDirLength;
     ULONG   HelpDirOffset; // to WCHAR[], from this struct base
     ACTIVATION_CONTEXT_DATA_TYPE_LIBRARY_VERSION Version;
