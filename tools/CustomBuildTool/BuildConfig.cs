@@ -61,6 +61,7 @@ namespace CustomBuildTool
             "ntrtl.h",
             "ntsam.h",
             "ntseapi.h",
+            "ntsxs.h",
             "nttmapi.h",
             "nttp.h",
             "ntwow64.h",
