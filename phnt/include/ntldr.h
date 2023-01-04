@@ -669,7 +669,7 @@ LdrAddLoadAsDataTable(
     _In_ PWSTR FilePath,
     _In_ SIZE_T Size,
     _In_ HANDLE Handle,
-    _In_opt_ HANDLE ActCtx
+    _In_opt_ struct _ACTIVATION_CONTEXT *ActCtx
     );
 
 // private
