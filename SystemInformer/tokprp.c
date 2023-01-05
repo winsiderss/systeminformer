@@ -1907,6 +1907,8 @@ VOID PhpShowTokenAdvancedProperties(
         page.lParam = (LPARAM)Context;
         pages[numberOfPages++] = CreatePropertySheetPage(&page);
 
+        // AppModel Policy
+
         memset(&page, 0, sizeof(PROPSHEETPAGE));
         page.dwSize = sizeof(PROPSHEETPAGE);
         page.dwFlags = PSP_USETITLE;
@@ -3982,24 +3984,24 @@ typedef enum _AppModelPolicy_Type
     AppModelPolicy_Type_AppServiceLifetime = 28,
     AppModelPolicy_Type_WebPlatform = 29,
     AppModelPolicy_Type_WinInetStoragePartitioning = 30,
-    AppModelPolicy_Type_IndexerProtocolHandlerHost = 31,
+    AppModelPolicy_Type_IndexerProtocolHandlerHost = 31, // since RS2
     AppModelPolicy_Type_LoaderIncludeUserDirectories = 32,
     AppModelPolicy_Type_ConvertAppContainerToRestrictedAppContainer = 33,
     AppModelPolicy_Type_PackageMayContainPrivateMapiProvider = 34,
-    AppModelPolicy_Type_AdminProcessPackageClaims = 35,
+    AppModelPolicy_Type_AdminProcessPackageClaims = 35, // since RS3
     AppModelPolicy_Type_RegistryRedirectionBehavior = 36,
     AppModelPolicy_Type_BypassCreateProcessAppxExtension = 37,
     AppModelPolicy_Type_KnownFolderRedirection = 38,
     AppModelPolicy_Type_PrivateActivateAsPackageWinrtClasses = 39,
     AppModelPolicy_Type_AppPrivateFolderRedirection = 40,
     AppModelPolicy_Type_GlobalSystemAppDataAccess = 41,
-    AppModelPolicy_Type_ConsoleHandleInheritance = 42,
+    AppModelPolicy_Type_ConsoleHandleInheritance = 42, // since RS4
     AppModelPolicy_Type_ConsoleBufferAccess = 43,
     AppModelPolicy_Type_ConvertCallerTokenToUserTokenForDeployment = 44,
-    AppModelPolicy_Type_ShellExecuteRetrieveIdentityFromCurrentProcess = 45,
-    AppModelPolicy_Type_CodeIntegritySigning = 46,
+    AppModelPolicy_Type_ShellExecuteRetrieveIdentityFromCurrentProcess = 45, // since RS5
+    AppModelPolicy_Type_CodeIntegritySigning = 46, // since 19H1
     AppModelPolicy_Type_PTCActivation = 47,
-    AppModelPolicy_Type_ComIntraPackageRpcCall = 48,
+    AppModelPolicy_Type_ComIntraPackageRpcCall = 48, // since 20H1
     AppModelPolicy_Type_LoadUser32ShimOnWindowsCoreOS = 49,
     AppModelPolicy_Type_SecurityCapabilitiesOverride = 50,
     AppModelPolicy_Type_CurrentDirectoryOverride = 51,
@@ -4007,7 +4009,7 @@ typedef enum _AppModelPolicy_Type
     AppModelPolicy_Type_UseOriginalFileNameInTokenFQBNAttribute = 53,
     AppModelPolicy_Type_LoaderIncludeAlternateForwarders = 54,
     AppModelPolicy_Type_PullPackageDependencyData = 55,
-    AppModelPolicy_Type_AppInstancingErrorBehavior = 56,
+    AppModelPolicy_Type_AppInstancingErrorBehavior = 56, // since WIN11
     AppModelPolicy_Type_BackgroundTaskRegistrationType = 57,
     AppModelPolicy_Type_ModsPowerNotification = 58,
     AppModelPolicy_Type_Count = 58,
@@ -4197,6 +4199,19 @@ NTSTATUS PhGetAppModelPolicy(
 
     if (GetAppModelPolicy_I)
     {
+        // GetAppModelPolicy doesn't perform range checks and will read out-of-bound
+        // and return garbage if we ask it about a not-yet-supported policy type (diversenok)
+        if ((PolicyType >= AppModelPolicy_Type_AppInstancingErrorBehavior && WindowsVersion < WINDOWS_11) ||
+            (PolicyType >= AppModelPolicy_Type_ComIntraPackageRpcCall && WindowsVersion < WINDOWS_10_20H1) ||
+            (PolicyType >= AppModelPolicy_Type_CodeIntegritySigning && WindowsVersion < WINDOWS_10_19H1) ||
+            (PolicyType >= AppModelPolicy_Type_ShellExecuteRetrieveIdentityFromCurrentProcess && WindowsVersion < WINDOWS_10_RS5) ||
+            (PolicyType >= AppModelPolicy_Type_ConsoleHandleInheritance && WindowsVersion < WINDOWS_10_RS4) ||
+            (PolicyType >= AppModelPolicy_Type_AdminProcessPackageClaims && WindowsVersion < WINDOWS_10_RS3) ||
+            (PolicyType >= AppModelPolicy_Type_IndexerProtocolHandlerHost && WindowsVersion < WINDOWS_10_RS2))
+        {
+            return STATUS_INVALID_INFO_CLASS;
+        }
+
         return GetAppModelPolicy_I(TokenHandle, PolicyType, PolicyValue);
     }
 
