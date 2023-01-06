@@ -2532,8 +2532,20 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 {
                     if (!node)
                     {
-                        getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->DeviceRootList->Items;
-                        getChildren->NumberOfChildren = DeviceTree->DeviceRootList->Count;
+                        if (PhGetIntegerSetting(SETTING_NAME_DEVICE_SHOW_ROOT))
+                        {
+                            getChildren->Children = (PPH_TREENEW_NODE*)DeviceTree->DeviceRootList->Items;
+                            getChildren->NumberOfChildren = DeviceTree->DeviceRootList->Count;
+                        }
+                        else if (DeviceTree->DeviceRootList->Count)
+                        {
+                            PDEVICE_NODE root;
+                            
+                            root = DeviceTree->DeviceRootList->Items[0];
+
+                            getChildren->Children = (PPH_TREENEW_NODE*)root->Children->Items;
+                            getChildren->NumberOfChildren = root->Children->Count;
+                        }
                     }
                     else
                     {
