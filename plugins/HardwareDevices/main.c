@@ -652,6 +652,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"aaffff" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"000000" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHT_COLOR, L"00aaff" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);

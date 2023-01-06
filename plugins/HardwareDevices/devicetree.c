@@ -291,7 +291,6 @@ typedef struct _DEVICE_NODE
     struct _DEVICE_NODE* Parent;
     struct _DEVICE_NODE* Sibling;
     struct _DEVICE_NODE* Child;
-    struct _DEVICE_NODE* Interfaces;
 
     HDEVINFO DeviceInfoHandle;
     SP_DEVINFO_DATA DeviceInfoData;
@@ -2142,6 +2141,24 @@ VOID DeviceTreeDeleteProcedure(
     }
 }
 
+static int __cdecl DeviceListSortByNameFunction(
+    const void* Left,
+    const void* Right
+    )
+{
+    PDEVICE_NODE lhsNode;
+    PDEVICE_NODE rhsNode;
+    PDEVNODE_PROP lhs;
+    PDEVNODE_PROP rhs;
+
+    lhsNode = *(PDEVICE_NODE*)Left;
+    rhsNode = *(PDEVICE_NODE*)Right;
+    lhs = GetDeviceNodeProperty(lhsNode, DevKeyName);
+    rhs = GetDeviceNodeProperty(rhsNode, DevKeyName);
+
+    return PhCompareStringWithNull(lhs->AsString, rhs->AsString, TRUE);
+}
+
 PDEVICE_TREE CreateDeviceTree(
     VOID
     )
@@ -2266,11 +2283,14 @@ PDEVICE_TREE CreateDeviceTree(
             child = child->Sibling;
         }
 
-        child = node->Interfaces;
-        while (child)
+        if (PhGetIntegerSetting(SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME))
         {
-            PhAddItemList(node->Children, child);
-            child = child->Interfaces;
+            qsort(
+                node->Children->Items,
+                node->Children->Count,
+                sizeof(PVOID),
+                DeviceListSortByNameFunction
+                );
         }
     }
 
