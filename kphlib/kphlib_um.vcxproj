@@ -282,6 +282,7 @@
     <ClInclude Include="include\kphapi.h" />
     <ClInclude Include="include\kphmsg.h" />
     <ClInclude Include="include\kphlibbase.h" />
+    <ClInclude Include="include\kphmsgdefs.h" />
     <ClInclude Include="include\kphmsgdyn.h" />
     <ClInclude Include="include\kphmsgfill.h" />
     <ClInclude Include="include\kphmsgstatic.h" />

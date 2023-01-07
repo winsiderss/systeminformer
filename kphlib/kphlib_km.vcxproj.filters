@@ -30,6 +30,9 @@
     <ClInclude Include="kphdyn.c">
       <Filter>SourceFiles</Filter>
     </ClInclude>
+    <ClInclude Include="include\kphlibbase.h">
+      <Filter>HeaderFiles</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="HeaderFiles">

@@ -2830,7 +2830,7 @@ ULONG64 PhGetTokenSecurityAttributeValueUlong64(
     _In_ ULONG ValueIndex
     )
 {
-    ULONG64 value = ULONG64_MAX;
+    ULONG64 value = MAXULONG64;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
 
     if (NT_SUCCESS(PhGetTokenSecurityAttributes(TokenHandle, &info)))
