@@ -284,8 +284,8 @@ VOID PhShowMemoryListCommand(
 
                 SetCursor(LoadCursor(NULL, IDC_WAIT));
                 status = PhSetSystemFileCacheSize(
-                    SIZE_T_MAX,
-                    SIZE_T_MAX,
+                    MAXSIZE_T,
+                    MAXSIZE_T,
                     0
                     );
                 SetCursor(LoadCursor(NULL, IDC_ARROW));

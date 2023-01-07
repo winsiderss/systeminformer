@@ -269,6 +269,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kphapi.h" />
+    <ClInclude Include="include\kphlibbase.h" />
     <ClInclude Include="include\kphmsg.h" />
     <ClInclude Include="include\kphmsgbase.h" />
     <ClInclude Include="include\kphmsgdyn.h" />
