@@ -20,3 +20,11 @@ jobs:
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_verbose.cmd
+  build_driver:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Driver
+      shell: cmd
+      working-directory: ${{github.workspace}}
+      run: build\build_zdriver.cmd prefast
