@@ -10,12 +10,12 @@
  */
 
 #pragma once
+
 #ifdef _KERNEL_MODE
 #define PHNT_MODE PHNT_MODE_KERNEL
 #endif
 #pragma warning(push)
 #pragma warning(disable : 4201)
-#include <phnt.h>
 
 #define KPH_PROTECTION_SUPPRESSED 0
 
