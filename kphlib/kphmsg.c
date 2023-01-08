@@ -10,6 +10,7 @@
  *
  */
 
+#include <kphlibbase.h>
 #include <kphmsg.h>
 
 #define KPH_MESSAGE_VESRSION 1
@@ -23,7 +24,7 @@ VOID KphMsgQuerySystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     )
 {
-#if _KERNEL_MODE
+#ifdef _KERNEL_MODE
     KeQuerySystemTime(SystemTime);
 #else
     do

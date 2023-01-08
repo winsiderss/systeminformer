@@ -33,13 +33,6 @@ NTSTATUS KphMsgDynAddUnicodeString(
     );
 
 _Must_inspect_result_
-NTSTATUS KphMsgDynAddUnicodeString(
-    _Inout_ PKPH_MESSAGE Message,
-    _In_ KPH_MESSAGE_FIELD_ID FieldId,
-    _In_ PCUNICODE_STRING String
-    );
-
-_Must_inspect_result_
 NTSTATUS KphMsgDynGetUnicodeString(
     _In_ PCKPH_MESSAGE Message,
     _In_ KPH_MESSAGE_FIELD_ID FieldId,

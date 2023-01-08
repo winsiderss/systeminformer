@@ -9,6 +9,7 @@
  *
  */
 
+#include <kphlibbase.h>
 #include <kphmsgdyn.h>
 
 #ifndef _KERNEL_MODE
