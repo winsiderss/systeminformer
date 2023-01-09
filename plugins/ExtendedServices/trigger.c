@@ -966,7 +966,6 @@ VOID EspFixServiceTriggerControls(
             {
                 PETW_PUBLISHER_ENTRY entries;
                 ULONG numberOfEntries;
-                ULONG i;
 
                 ComboBox_AddString(subTypeComboBox, L"Custom");
 
