@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2018-2020
+ *     dmex    2018-2023
  *
  */
 
@@ -30,6 +30,7 @@ VOID PhpEscapeStringForCsv(
 
     length = String->Length / sizeof(WCHAR);
     runStart = NULL;
+    runLength = 0;
 
     for (i = 0; i < length; i++)
     {
@@ -326,12 +327,13 @@ PPH_STRING PhGetTreeNewText(
             PhInitializeEmptyStringRef(&getCellText.Text);
             TreeNew_GetCellText(TreeNewHandle, &getCellText);
 
-            // Ignore empty columns. -dmex
+            // Ignore empty columns. (dmex)
             if (getCellText.Text.Length != 0)
             {
                 PhAppendStringBuilder(&stringBuilder, &getCellText.Text);
-                PhAppendStringBuilder2(&stringBuilder, L", ");
             }
+
+            PhAppendStringBuilder2(&stringBuilder, L", ");
         }
 
         // Remove the trailing comma and space.
