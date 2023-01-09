@@ -86,8 +86,8 @@ NtRaiseException(
     _In_ BOOLEAN FirstChance
     );
 
-__analysis_noreturn
 NTSYSCALLAPI
+DECLSPEC_NORETURN
 VOID
 NTAPI
 RtlAssert(
