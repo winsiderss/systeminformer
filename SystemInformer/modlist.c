@@ -14,7 +14,6 @@
 #include <modlist.h>
 
 #include <emenu.h>
-#include <mapimg.h>
 #include <settings.h>
 #include <verify.h>
 

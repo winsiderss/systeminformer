@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -14,7 +14,6 @@
 #include <phsettings.h>
 #include <phsvccl.h>
 #include <actions.h>
-#include <appresolver.h>
 #include <emenu.h>
 #include <mainwnd.h>
 #include <procprv.h>

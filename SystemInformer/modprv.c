@@ -6,12 +6,11 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
-#include <appresolver.h>
 #include <modprv.h>
 
 #include <mapimg.h>

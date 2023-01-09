@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2019-2022
+ *     dmex    2019-2023
  *
  */
 
 #include <phapp.h>
 #include <phsvc.h>
-#include <apiimport.h>
 #include <extmgri.h>
 #include <lsasup.h>
 #include <phplug.h>
