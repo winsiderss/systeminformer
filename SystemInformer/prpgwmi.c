@@ -1339,26 +1339,19 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_WMI_CONTEXT context = Context;
     PPHP_PROCESS_WMI_TREENODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPHP_PROCESS_WMI_TREENODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -1390,21 +1383,14 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPHP_PROCESS_WMI_TREENODE)isLeaf->Node;
+
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPHP_PROCESS_WMI_TREENODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -1431,10 +1417,6 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPHP_PROCESS_WMI_TREENODE)getNodeColor->Node;
 
             if (
@@ -1466,18 +1448,12 @@ BOOLEAN NTAPI PhpWmiProviderTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            if (!contextMenuEvent)
-                break;
-
             SendMessage(context->WindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenuEvent);
         }
         return TRUE;
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {

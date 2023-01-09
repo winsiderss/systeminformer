@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -971,26 +971,19 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
-)
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
 {
     PPH_ENVIRONMENT_CONTEXT context = Context;
     PPHP_PROCESS_ENVIRONMENT_TREENODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -1036,10 +1029,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -1051,10 +1040,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -1075,10 +1060,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPHP_PROCESS_ENVIRONMENT_TREENODE)getNodeColor->Node;
 
             //if (node->HasChildren)
@@ -1125,9 +1106,6 @@ BOOLEAN NTAPI PhpEnvironmentTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {

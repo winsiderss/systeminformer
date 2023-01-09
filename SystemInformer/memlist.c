@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2015
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -38,9 +38,9 @@ LONG PhpMemoryTreeNewPostSortFunction(
 BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 VOID PhInitializeMemoryList(
@@ -717,16 +717,14 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPH_MEMORY_LIST_CONTEXT context = Context;
     PPH_MEMORY_NODE node;
 
-    if (!context)
-        return TRUE;
     if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
@@ -735,10 +733,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPH_MEMORY_NODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -807,10 +801,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPH_MEMORY_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -823,9 +813,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_MEMORY_ITEM memoryItem;
-
-            if (!getCellText)
-                break;
 
             node = (PPH_MEMORY_NODE)getCellText->Node;
             memoryItem = node->MemoryItem;
@@ -914,9 +901,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_MEMORY_ITEM memoryItem;
 
-            if (!getNodeColor)
-                break;
-
             node = (PPH_MEMORY_NODE)getNodeColor->Node;
             memoryItem = node->MemoryItem;
 
@@ -978,9 +962,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
 
-            if (!keyEvent)
-                break;
-
             switch (keyEvent->VirtualKey)
             {
             case 'C':
@@ -1019,10 +1000,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     case TreeNewLeftDoubleClick:
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
-
-            if (!mouseEvent)
-                break;
-
             node = (PPH_MEMORY_NODE)mouseEvent->Node;
 
             if (node && node->IsAllocationBase)
@@ -1034,9 +1011,6 @@ BOOLEAN NTAPI PhpMemoryTreeNewCallback(
     case TreeNewContextMenu:
         {
             PPH_TREENEW_CONTEXT_MENU contextMenu = Parameter1;
-
-            if (!contextMenu)
-                break;
 
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, (LPARAM)contextMenu);
         }

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2020
+ *     dmex    2017-2023
  *
  */
 
@@ -142,8 +142,8 @@ VOID PhCmSetNotifyPlugin(
 BOOLEAN PhCmForwardMessage(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_ PPH_CM_MANAGER Manager
     )
 {
@@ -160,9 +160,6 @@ BOOLEAN PhCmForwardMessage(
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PH_TREENEW_COLUMN tnColumn;
             PPH_CM_COLUMN column;
-
-            if (!getCellText)
-                return FALSE;
 
             if (getCellText->Id < Manager->MinId)
                 return FALSE;

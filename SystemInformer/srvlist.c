@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -51,8 +51,8 @@ LONG PhpServiceTreeNewPostSortFunction(
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_opt_ PVOID Context
     );
 
@@ -597,8 +597,8 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_opt_ PVOID Context
     )
 {
@@ -612,9 +612,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
 
             if (!getChildren->Node)
             {
@@ -666,9 +663,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
-            if (!isLeaf)
-                break;
-
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
@@ -676,9 +670,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_SERVICE_ITEM serviceItem;
-
-            if (!getCellText)
-                break;
 
             node = (PPH_SERVICE_NODE)getCellText->Node;
             serviceItem = node->ServiceItem;
@@ -805,10 +796,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     case TreeNewGetNodeIcon:
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
-
-            if (!getNodeIcon)
-                break;
-
             node = (PPH_SERVICE_NODE)getNodeIcon->Node;
 
             if (node->ServiceItem->IconEntry)
@@ -830,9 +817,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_SERVICE_ITEM serviceItem;
-
-            if (!getNodeColor)
-                break;
 
             node = (PPH_SERVICE_NODE)getNodeColor->Node;
             serviceItem = node->ServiceItem;
@@ -862,10 +846,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
-
-            if (!getCellTooltip)
-                break;
-
             node = (PPH_SERVICE_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0)
@@ -891,9 +871,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             PPH_SERVICE_ITEM serviceItem;
             RECT rect;
-
-            if (!customDraw)
-                break;
 
             node = (PPH_SERVICE_NODE)customDraw->Node;
             serviceItem = node->ServiceItem;
@@ -933,9 +910,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
