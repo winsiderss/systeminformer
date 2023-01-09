@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -54,7 +54,7 @@ typedef struct _PH_PROCESS_WMI_CONTEXT
 
 typedef struct _PH_WMI_ENTRY
 {
-    PPH_STRING InstancePath;
+    //PPH_STRING InstancePath;
     PPH_STRING RelativePath;
     PPH_STRING ProviderName;
     PPH_STRING ProviderNamespace;
@@ -144,6 +144,37 @@ PVOID PhpGetWmiProviderDllBase(
     return imageBaseAddress;
 }
 
+PVOID PhpGetWmiUtilsDllBase(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID imageBaseAddress = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING systemDirectory;
+        PPH_STRING systemFileName;
+
+        if (systemDirectory = PhGetSystemDirectory())
+        {
+            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wmiutils.dll"))
+            {
+                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
+                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
+
+                PhDereferenceObject(systemFileName);
+            }
+
+            PhDereferenceObject(systemDirectory);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return imageBaseAddress;
+}
+
 PPH_STRING PhGetWbemClassObjectString(
     _In_ IWbemClassObject* WbemClassObject,
     _In_ PCWSTR Name
@@ -214,7 +245,7 @@ HRESULT PhpWmiProviderExecMethod(
         goto CleanupExit;
 
     querySelectString = PhConcatStrings2(
-        L"SELECT Namespace,Provider,User,__PATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
+        L"SELECT Namespace,Provider,User,__RELPATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
         ProcessIdString
         );
 
@@ -238,7 +269,7 @@ HRESULT PhpWmiProviderExecMethod(
         PPH_STRING namespacePath = NULL;
         PPH_STRING providerName = NULL;
         PPH_STRING userName = NULL;
-        PPH_STRING instancePath = NULL;
+        PPH_STRING relativePath = NULL;
         ULONG count = 0;
 
         if (FAILED(IEnumWbemClassObject_Next(wbemEnumerator, WBEM_INFINITE, 1, &wbemClassObject, &count)))
@@ -249,9 +280,9 @@ HRESULT PhpWmiProviderExecMethod(
         namespacePath = PhGetWbemClassObjectString(wbemClassObject, L"Namespace");
         providerName = PhGetWbemClassObjectString(wbemClassObject, L"Provider");
         userName = PhGetWbemClassObjectString(wbemClassObject, L"User");
-        instancePath = PhGetWbemClassObjectString(wbemClassObject, L"__PATH");
+        relativePath = PhGetWbemClassObjectString(wbemClassObject, L"__RELPATH");
 
-        if (namespacePath && providerName && userName && instancePath)
+        if (namespacePath && providerName && userName && relativePath)
         {
             if (
                 PhEqualString(Entry->ProviderNamespace, namespacePath, FALSE) &&
@@ -259,7 +290,7 @@ HRESULT PhpWmiProviderExecMethod(
                 PhEqualString(Entry->UserName, userName, FALSE)
                 )
             {
-                BSTR wbemPathString = SysAllocStringLen(PhGetString(instancePath), (UINT32)instancePath->Length / sizeof(WCHAR));
+                BSTR wbemPathString = SysAllocStringLen(PhGetString(relativePath), (UINT32)relativePath->Length / sizeof(WCHAR));
                 BSTR wbemMethodString = SysAllocStringLen(Method->Buffer, (UINT32)Method->Length / sizeof(WCHAR));
 
                 status = IWbemServices_ExecMethod(
@@ -278,8 +309,8 @@ HRESULT PhpWmiProviderExecMethod(
             }
         }
 
-        if (instancePath)
-            PhDereferenceObject(instancePath);
+        if (relativePath)
+            PhDereferenceObject(relativePath);
         if (userName)
             PhDereferenceObject(userName);
         if (providerName)
@@ -506,7 +537,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
         goto CleanupExit;
 
     querySelectString = PhConcatStrings2(
-        L"SELECT Namespace,Provider,User,__RELPATH,__PATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
+        L"SELECT Namespace,Provider,User,__RELPATH,__RELPATH FROM Msft_Providers WHERE HostProcessIdentifier = ",
         ProcessItem->ProcessIdString
         );
 
@@ -541,7 +572,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
         entry->ProviderNamespace = PhGetWbemClassObjectString(wbemClassObject, L"Namespace");
         entry->ProviderName = PhGetWbemClassObjectString(wbemClassObject, L"Provider");
         entry->UserName = PhGetWbemClassObjectString(wbemClassObject, L"User");
-        entry->InstancePath = PhGetWbemClassObjectString(wbemClassObject, L"__PATH");
+        //entry->InstancePath = PhGetWbemClassObjectString(wbemClassObject, L"__PATH");
         entry->RelativePath = PhGetWbemClassObjectString(wbemClassObject, L"__RELPATH");
         IWbemClassObject_Release(wbemClassObject);
 
@@ -903,8 +934,8 @@ VOID PhQueryWmiHostProcessString(
                 PhGetStringOrEmpty(entry->FileName)
                 );
 
-            if (entry->InstancePath)
-                PhDereferenceObject(entry->InstancePath);
+            //if (entry->InstancePath)
+            //    PhDereferenceObject(entry->InstancePath);
             if (entry->RelativePath)
                 PhDereferenceObject(entry->RelativePath);
             if (entry->ProviderName)
@@ -977,6 +1008,52 @@ VOID PhpRefreshWmiProvidersList(
     TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
+VOID PhpShowWmiProviderStatus(
+    _In_opt_ HWND hWnd,
+    _In_opt_ PWSTR Message,
+    _In_ HRESULT Win32Result
+    )
+{
+    PPH_STRING statusMessage;
+
+    statusMessage = PhGetMessage(
+        PhpGetWmiUtilsDllBase(), 
+        0xb, 
+        PhGetUserDefaultLangID(), 
+        Win32Result
+        );
+
+    if (PhIsNullOrEmptyString(statusMessage))
+    {
+        PhMoveReference(&statusMessage, PhGetStatusMessage(0, HRESULT_CODE(Win32Result)));
+    }
+
+    if (statusMessage)
+    {
+        if (Message)
+        {
+            PhShowError2(hWnd, Message, L"%s", statusMessage->Buffer);
+        }
+        else
+        {
+            PhShowError(hWnd, L"%s", statusMessage->Buffer);
+        }
+
+        PhDereferenceObject(statusMessage);
+    }
+    else
+    {
+        if (Message)
+        {
+            PhShowError(hWnd, L"%s", Message);
+        }
+        else
+        {
+            PhShowError(hWnd, L"%s", L"Unable to perform the operation.");
+        }
+    }
+}
+
 VOID PhpShowWmiProviderNodeContextMenu(
     _In_ PPH_PROCESS_WMI_CONTEXT Context,
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
@@ -1027,13 +1104,40 @@ VOID PhpShowWmiProviderNodeContextMenu(
             switch (selectedItem->Id)
             {
             case 1:
-                PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Suspend"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+                {
+                    HRESULT status;
+
+                    status = PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Suspend"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+
+                    if (FAILED(status))
+                    {
+                        PhpShowWmiProviderStatus(Context->WindowHandle, L"Unable to perform the operation.", status);
+                    }
+                }
                 break;
             case 2:
-                PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Resume"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+                {
+                    HRESULT status;
+
+                    status = PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Resume"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+
+                    if (FAILED(status))
+                    {
+                        PhpShowWmiProviderStatus(Context->WindowHandle, L"Unable to perform the operation.", status);
+                    }
+                }
                 break;
             case 3:
-                PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Unload"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+                {
+                    HRESULT status;
+
+                    status = PhpWmiProviderExecMethod(&(PH_STRINGREF)PH_STRINGREF_INIT(L"Unload"), Context->ProcessItem->ProcessIdString, nodes[0]->Provider);
+
+                    if (FAILED(status))
+                    {
+                        PhpShowWmiProviderStatus(Context->WindowHandle, L"Unable to perform the operation.", status);
+                    }
+                }
                 break;
             case 4:
                 {
@@ -1148,14 +1252,14 @@ BOOLEAN PhpWmiProviderNodeHashtableEqualFunction(
     PPHP_PROCESS_WMI_TREENODE node1 = *(PPHP_PROCESS_WMI_TREENODE*)Entry1;
     PPHP_PROCESS_WMI_TREENODE node2 = *(PPHP_PROCESS_WMI_TREENODE*)Entry2;
 
-    return PhEqualStringRef(&node1->Provider->InstancePath->sr, &node2->Provider->InstancePath->sr, TRUE);
+    return PhEqualStringRef(&node1->Provider->RelativePath->sr, &node2->Provider->RelativePath->sr, TRUE);
 }
 
 ULONG PhpWmiProviderNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRefEx(&(*(PPHP_PROCESS_WMI_TREENODE*)Entry)->Provider->InstancePath->sr, TRUE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&(*(PPHP_PROCESS_WMI_TREENODE*)Entry)->Provider->RelativePath->sr, TRUE, PH_STRING_HASH_X65599);
 }
 
 VOID PhpDestroyWmiProviderNode(
@@ -1164,8 +1268,6 @@ VOID PhpDestroyWmiProviderNode(
 {
     if (Node->Provider)
     {
-        if (Node->Provider->InstancePath)
-            PhDereferenceObject(Node->Provider->InstancePath);
         if (Node->Provider->RelativePath)
             PhDereferenceObject(Node->Provider->RelativePath);
         if (Node->Provider->ProviderName)
@@ -1209,14 +1311,14 @@ PPHP_PROCESS_WMI_TREENODE PhpAddWmiProviderNode(
 
 PPHP_PROCESS_WMI_TREENODE PhpFindWmiProviderNode(
     _In_ PPH_PROCESS_WMI_CONTEXT Context,
-    _In_ PWSTR InstancePath
+    _In_ PWSTR RelativePath
     )
 {
     PHP_PROCESS_WMI_TREENODE lookupNode;
     PPHP_PROCESS_WMI_TREENODE lookupNodePtr = &lookupNode;
     PPHP_PROCESS_WMI_TREENODE *node;
 
-    PhInitializeStringRefLongHint(&lookupNode.Provider->InstancePath->sr, InstancePath);
+    PhInitializeStringRefLongHint(&lookupNode.Provider->RelativePath->sr, RelativePath);
 
     node = (PPHP_PROCESS_WMI_TREENODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
@@ -1524,14 +1626,14 @@ PPHP_PROCESS_WMI_TREENODE PhpGetSelectedWmiProviderNode(
     _In_ PPH_PROCESS_WMI_CONTEXT Context
     )
 {
-    PPHP_PROCESS_WMI_TREENODE environmentNode = NULL;
+    PPHP_PROCESS_WMI_TREENODE node = NULL;
 
     for (ULONG i = 0; i < Context->NodeList->Count; i++)
     {
-        environmentNode = Context->NodeList->Items[i];
+        node = Context->NodeList->Items[i];
 
-        if (environmentNode->Node.Selected)
-            return environmentNode;
+        if (node->Node.Selected)
+            return node;
     }
 
     return NULL;
@@ -1579,7 +1681,7 @@ VOID PhpInitializeWmiProviderTree(
 
     Context->NodeList = PhCreateList(10);
     Context->NodeHashtable = PhCreateHashtable(
-        sizeof(PHP_PROCESS_WMI_TREENODE),
+        sizeof(PPHP_PROCESS_WMI_TREENODE),
         PhpWmiProviderNodeHashtableEqualFunction,
         PhpWmiProviderNodeHashtableHashFunction,
         10
