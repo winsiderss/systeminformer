@@ -24,7 +24,7 @@
 PPH_OBJECT_TYPE PhpProcessPropContextType = NULL;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType = NULL;
 PPH_OBJECT_TYPE PhpProcessPropPageWaitContextType = NULL;
-PH_STRINGREF PhpLoadingText = PH_STRINGREF_INIT(L"Loading...");
+PH_STRINGREF PhProcessPropPageLoadingText = PH_STRINGREF_INIT(L"Loading...");
 static RECT MinimumSize = { -1, -1, -1, -1 };
 SLIST_HEADER WaitContextQueryListHead;
 
