@@ -113,3 +113,4 @@ tools/GenerateZw/GenerateZw/bin/Release/*
 !tools/delaylib/bin/
 
 !tools/thirdparty/bin/
+!tools/thirdparty/bin/Debug*/*.pdb
