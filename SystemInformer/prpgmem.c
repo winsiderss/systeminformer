@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -558,7 +558,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
             // Initialize the list.
             PhInitializeMemoryList(hwndDlg, memoryContext->TreeNewHandle, &memoryContext->ListContext);
-            TreeNew_SetEmptyText(memoryContext->TreeNewHandle, &PhpLoadingText, 0);
+            TreeNew_SetEmptyText(memoryContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
 
             memoryContext->AllocationFilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.AllocationTreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
             memoryContext->FilterEntry = PhAddTreeNewFilter(&memoryContext->ListContext.TreeFilterSupport, PhpMemoryTreeFilterCallback, memoryContext);
