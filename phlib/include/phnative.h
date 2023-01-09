@@ -1059,7 +1059,7 @@ PVOID
 NTAPI
 PhGetModuleProcAddress(
     _In_ PWSTR ModuleName,
-    _In_ PSTR ProcName
+    _In_opt_ PSTR ProcedureName
     );
 
 PHLIBAPI

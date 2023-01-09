@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -5854,9 +5854,12 @@ PVOID PhGetDllHandle(
 
 PVOID PhGetModuleProcAddress(
     _In_ PWSTR ModuleName,
-    _In_ PSTR ProcedureName
+    _In_opt_ PSTR ProcedureName
     )
 {
+    if (IS_INTRESOURCE(ProcedureName))
+        return PhGetDllProcedureAddress(ModuleName, NULL, PtrToUshort(ProcedureName));
+
     return PhGetDllProcedureAddress(ModuleName, ProcedureName, 0);
 
     //PVOID module;
