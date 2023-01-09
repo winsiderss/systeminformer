@@ -83,8 +83,8 @@ NTSTATUS KphpFilterDeviceIoControl(
     _In_ ULONG IoControlCode,
     _In_reads_bytes_(InBufferSize) PVOID InBuffer,
     _In_ ULONG InBufferSize,
-    _Out_writes_bytes_to_opt_(OutBufferSize, *BytesReturned) PVOID OutBuffer,
-    _In_ ULONG OutBufferSize,
+    _Out_writes_bytes_to_opt_(OutputBufferSize, *BytesReturned) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferSize,
     _Out_opt_ PULONG BytesReturned,
     _Inout_opt_ LPOVERLAPPED Overlapped
     )
@@ -110,8 +110,8 @@ NTSTATUS KphpFilterDeviceIoControl(
                                      IoControlCode,
                                      InBuffer,
                                      InBufferSize,
-                                     OutBuffer,
-                                     OutBufferSize);
+                                     OutputBuffer,
+                                     OutputBufferSize);
         }
         else
         {
@@ -123,8 +123,8 @@ NTSTATUS KphpFilterDeviceIoControl(
                                            IoControlCode,
                                            InBuffer,
                                            InBufferSize,
-                                           OutBuffer,
-                                           OutBufferSize);
+                                           OutputBuffer,
+                                           OutputBufferSize);
         }
 
         if (NT_INFORMATION(status) && BytesReturned)
@@ -146,8 +146,8 @@ NTSTATUS KphpFilterDeviceIoControl(
                                      IoControlCode,
                                      InBuffer,
                                      InBufferSize,
-                                     OutBuffer,
-                                     OutBufferSize);
+                                     OutputBuffer,
+                                     OutputBufferSize);
         }
         else
         {
@@ -159,8 +159,8 @@ NTSTATUS KphpFilterDeviceIoControl(
                                            IoControlCode,
                                            InBuffer,
                                            InBufferSize,
-                                           OutBuffer,
-                                           OutBufferSize);
+                                           OutputBuffer,
+                                           OutputBufferSize);
         }
 
         if (status == STATUS_PENDING)
@@ -198,8 +198,8 @@ NTSTATUS KphpFilterSendMessage(
     _In_ HANDLE Port,
     _In_reads_bytes_(InBufferSize) PVOID InBuffer,
     _In_ ULONG InBufferSize,
-    _Out_writes_bytes_to_opt_(OutBufferSize,*BytesReturned) PVOID OutBuffer,
-    _In_ ULONG OutBufferSize,
+    _Out_writes_bytes_to_opt_(OutBufferSize,*BytesReturned) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferSize,
     _Out_ PULONG BytesReturned
     )
 {
@@ -207,8 +207,8 @@ NTSTATUS KphpFilterSendMessage(
                                      FLT_CTL_SEND_MESSAGE,
                                      InBuffer,
                                      InBufferSize,
-                                     OutBuffer,
-                                     OutBufferSize,
+                                     OutputBuffer,
+                                     OutputBufferSize,
                                      BytesReturned,
                                      NULL);
 }
