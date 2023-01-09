@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2012
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -708,8 +708,6 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
     PPH_THREAD_LIST_CONTEXT context = Context;
     PPH_THREAD_NODE node;
 
-    if (!context)
-        return FALSE;
     if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &context->Cm))
         return TRUE;
 
