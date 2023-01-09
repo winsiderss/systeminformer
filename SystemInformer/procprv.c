@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *     jxy-s   2020-2021
  *
  */
@@ -45,7 +45,6 @@
 #include <phsettings.h>
 #include <procprv.h>
 
-#include <appresolver.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>

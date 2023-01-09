@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -14,7 +14,6 @@
 
 #include <svcsup.h>
 #include <verify.h>
-#include <lsasup.h>
 
 #include <phplug.h>
 #include <phsettings.h>

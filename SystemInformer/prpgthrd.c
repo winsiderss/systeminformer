@@ -6,15 +6,13 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
 #include <phapp.h>
 #include <procprp.h>
 #include <procprpp.h>
-#include <kphuser.h>
-
 #include <cpysave.h>
 #include <emenu.h>
 #include <secedit.h>
