@@ -1138,7 +1138,16 @@ typedef struct _FILE_FS_FULL_SIZE_INFORMATION
 typedef struct _FILE_FS_OBJECTID_INFORMATION
 {
     UCHAR ObjectId[16];
-    UCHAR ExtendedInfo[48];
+    union
+    {
+        struct
+        {
+            UCHAR BirthVolumeId[16];
+            UCHAR BirthObjectId[16];
+            UCHAR DomainId[16];
+        };
+        UCHAR ExtendedInfo[48];
+    };
 } FILE_FS_OBJECTID_INFORMATION, *PFILE_FS_OBJECTID_INFORMATION;
 
 // private
