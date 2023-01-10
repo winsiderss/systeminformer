@@ -21,7 +21,7 @@ extern HANDLE PhSvcTimeoutCancelEventHandle;
 
 ULONG PhSvcApiThreadContextTlsIndex;
 HANDLE PhSvcApiPortHandle;
-ULONG PhSvcApiNumberOfClients = 0;
+volatile LONG PhSvcApiNumberOfClients = 0;
 
 NTSTATUS PhSvcApiPortInitialization(
     _In_ PUNICODE_STRING PortName

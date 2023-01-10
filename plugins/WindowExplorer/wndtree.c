@@ -367,10 +367,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PWE_WINDOW_NODE)getChildren->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
