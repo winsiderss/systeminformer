@@ -848,17 +848,12 @@ VOID PhpProcessQueryStage1(
     }
 
     // Immersive
-    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && processItem->IsPackagedProcess && !processItem->IsSubsystemProcess)
+    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && processItem->IsPackagedProcess)
     {
         Data->IsImmersive = !!PhIsImmersiveProcess(processHandleLimited);
     }
 
-    // Package full name
-    //if (processHandleLimited && ((WindowsVersion >= WINDOWS_8 && Data->IsImmersive) || WindowsVersion >= WINDOWS_10))
-    //{
-    //    Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
-    //}
-
+    // Filtered
     if (processHandleLimited && processItem->IsHandleValid)
     {
         OBJECT_BASIC_INFORMATION basicInfo;
@@ -2025,7 +2020,7 @@ VOID PhpGetProcessThreadInformation(
         *ProcessorQueueLength = processorQueueLength;
 }
 
-#if _M_ARM64
+#ifdef _ARM64_
 VOID PhpEstimateIdleCyclesForARM(
     _Inout_ PULONG64 TotalCycles,
     _Inout_ PULONG64 IdleCycles
@@ -2232,7 +2227,7 @@ VOID PhProcessProviderUpdate(
         process->UniqueProcessKey = (ULONG_PTR)pidBuckets[bucketIndex];
         pidBuckets[bucketIndex] = process;
 
-#if _M_ARM64 // see: PhpEstimateIdleCyclesForARM (jxy-s)
+#ifdef _ARM64_ // see: PhpEstimateIdleCyclesForARM (jxy-s)
         if (PhEnableCycleCpuUsage && process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
 #else
         if (PhEnableCycleCpuUsage)
@@ -2386,7 +2381,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-#if _M_ARM64
+#ifdef _ARM64_
     if (PhEnableCycleCpuUsage)
         PhpEstimateIdleCyclesForARM(&sysTotalCycleTime, &sysIdleCycleTime);
 #endif
