@@ -6879,6 +6879,7 @@ RtlSelfRelativeToAbsoluteSD2(
     );
 
 #if (PHNT_VERSION >= PHNT_19H2)
+__drv_maxIRQL(APC_LEVEL)
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -9383,50 +9384,6 @@ RtlUnsubscribeWnfStateChangeNotification(
     _In_ PWNF_USER_CALLBACK Callback
     );
 
-#endif
-
-#if (PHNT_VERSION >= PHNT_21H1)
-typedef enum _RTL_SYSTEM_GLOBAL_DATA_ID 
-{
-    GlobalDataIdUnknown = 0,
-    GlobalDataIdRngSeedVersion,
-    GlobalDataIdInterruptTime,
-    GlobalDataIdTimeZoneBias,
-    GlobalDataIdImageNumberLow,
-    GlobalDataIdImageNumberHigh,
-    GlobalDataIdTimeZoneId,
-    GlobalDataIdNtMajorVersion,
-    GlobalDataIdNtMinorVersion,
-    GlobalDataIdSystemExpirationDate,
-    GlobalDataIdKdDebuggerEnabled,
-    GlobalDataIdCyclesPerYield,
-    GlobalDataIdSafeBootMode,
-    GlobalDataIdLastSystemRITEventTickCount,
-    GlobalDataIdConsoleSharedDataFlags,
-    GlobalDataIdNtSystemRootDrive,
-    GlobalDataIdQpcShift,
-    GlobalDataIdQpcBypassEnabled,
-    GlobalDataIdQpcData,
-    GlobalDataIdQpcBias
-} RTL_SYSTEM_GLOBAL_DATA_ID, *PRTL_SYSTEM_GLOBAL_DATA_ID;
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-RtlGetSystemGlobalData(
-    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
-    _Inout_ PVOID Buffer,
-    _In_ ULONG Size
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-RtlSetSystemGlobalData(
-    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
-    _In_ PVOID Buffer,
-    _In_ ULONG Size
-    );
 #endif
 
 #endif
