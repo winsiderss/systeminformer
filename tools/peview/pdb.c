@@ -15,6 +15,7 @@
 #include <dbghelp.h>
 #define COM_NO_WINDOWS_H 1
 #include "dia2.h"
+#include "dia3.h"
 
 ULONG SearchResultsAddIndex = 0;
 PPH_LIST SearchResults = NULL;

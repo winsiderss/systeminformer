@@ -182,6 +182,9 @@
     <ClInclude Include="include\dia2.h">
       <Filter>Header Files\DIA-SDK</Filter>
     </ClInclude>
+    <ClInclude Include="include\dia3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="peview.rc">
