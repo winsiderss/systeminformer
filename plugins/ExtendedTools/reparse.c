@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -48,8 +48,8 @@ typedef struct _REPARSE_LISTVIEW_ENTRY
 #define FILE_LAYOUT_ENTRY_VERSION 0x1
 #define STREAM_LAYOUT_ENTRY_VERSION 0x1
 #define PH_FIRST_LAYOUT_ENTRY(LayoutEntry) \
-    ((PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET(LayoutEntry, \
-    ((PQUERY_FILE_LAYOUT_OUTPUT)LayoutEntry)->FirstFileOffset)))
+    ((PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET((LayoutEntry), \
+    ((PQUERY_FILE_LAYOUT_OUTPUT)(LayoutEntry))->FirstFileOffset)))
 #define PH_NEXT_LAYOUT_ENTRY(LayoutEntry) ( \
     ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset ? \
     (PFILE_LAYOUT_ENTRY)(PTR_ADD_OFFSET((LayoutEntry), \
@@ -1482,33 +1482,51 @@ INT_PTR CALLBACK EtReparseDlgProc(
                                             {
                                             case ID_REPARSE_POINTS:
                                                 {
-                                                    NTSTATUS status;
-
-                                                    status = EtDeleteFileReparsePoint(entry);
-
-                                                    if (NT_SUCCESS(status))
+                                                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                                        hwndDlg,
+                                                        L"remove",
+                                                        L"the repase point",
+                                                        L"The repase point will be permanently deleted.",
+                                                        FALSE
+                                                        ))
                                                     {
-                                                        PhRemoveListViewItem(context->ListViewHandle, index);
-                                                    }
-                                                    else
-                                                    {
-                                                        PhShowStatus(hwndDlg, L"Unable to remove the reparse point.", status, 0);
+                                                        NTSTATUS status;
+
+                                                        status = EtDeleteFileReparsePoint(entry);
+
+                                                        if (NT_SUCCESS(status))
+                                                        {
+                                                            PhRemoveListViewItem(context->ListViewHandle, index);
+                                                        }
+                                                        else
+                                                        {
+                                                            PhShowStatus(hwndDlg, L"Unable to remove the reparse point.", status, 0);
+                                                        }
                                                     }
                                                 }
                                                 break;
                                             case ID_REPARSE_OBJID:
                                                 {
-                                                    NTSTATUS status;
-
-                                                    status = EtDeleteFileObjectId(entry);
-
-                                                    if (NT_SUCCESS(status))
+                                                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+                                                        hwndDlg,
+                                                        L"remove",
+                                                        L"the object identifier",
+                                                        L"The object identifier will be permanently deleted.",
+                                                        FALSE
+                                                        ))
                                                     {
-                                                        PhRemoveListViewItem(context->ListViewHandle, index);
-                                                    }
-                                                    else
-                                                    {
-                                                        PhShowStatus(hwndDlg, L"Unable to remove the object identifier.", status, 0);
+                                                        NTSTATUS status;
+
+                                                        status = EtDeleteFileObjectId(entry);
+
+                                                        if (NT_SUCCESS(status))
+                                                        {
+                                                            PhRemoveListViewItem(context->ListViewHandle, index);
+                                                        }
+                                                        else
+                                                        {
+                                                            PhShowStatus(hwndDlg, L"Unable to remove the object identifier.", status, 0);
+                                                        }
                                                     }
                                                 }
                                                 break;
