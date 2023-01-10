@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2012-2022
+ *     dmex    2012-2023
  *
  */
 
@@ -95,20 +95,21 @@ typedef enum _PH_NETWORK_ACTION
 typedef struct _NETWORK_PING_CONTEXT
 {
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND StatusHandle;
     HWND PingGraphHandle;
     HFONT FontHandle;
 
     ULONG Timeout;
-    FLOAT CurrentPingMs;
     ULONG MinPingScaling;
-    ULONG HashFailCount;
-    ULONG UnknownAddrCount;
+    volatile LONG HashFailCount;
+    volatile LONG UnknownAddrCount;
+    volatile LONG PingSentCount;
+    volatile LONG PingRecvCount;
+    volatile LONG PingLossCount;
+    FLOAT CurrentPingMs;
     FLOAT PingMinMs;
     FLOAT PingMaxMs;
-    ULONG PingSentCount;
-    ULONG PingRecvCount;
-    ULONG PingLossCount;
 
     PH_NETWORK_ACTION Action;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -118,16 +119,19 @@ typedef struct _NETWORK_PING_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     PH_IP_ENDPOINT RemoteEndpoint;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
+    ULONG RemoteAddressStringLength;
+    WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
 } NETWORK_PING_CONTEXT, *PNETWORK_PING_CONTEXT;
 
 // ping.c
 
 VOID ShowPingWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 VOID ShowPingWindowFromAddress(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
@@ -136,6 +140,7 @@ VOID ShowPingWindowFromAddress(
 typedef struct _NETWORK_WHOIS_CONTEXT
 {
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND RichEditHandle;
     HFONT FontHandle;
 
@@ -143,7 +148,8 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 
     PH_IP_ENDPOINT RemoteEndpoint;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN + sizeof(UNICODE_NULL)];
+    ULONG RemoteAddressStringLength;
+    WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
 } NETWORK_WHOIS_CONTEXT, *PNETWORK_WHOIS_CONTEXT;
 
 // TDM_NAVIGATE_PAGE can not be called from other threads without comctl32.dll throwing access violations
@@ -153,10 +159,12 @@ typedef struct _NETWORK_WHOIS_CONTEXT
     SendMessage(WindowHandle, TDM_NAVIGATE_PAGE, 0, (LPARAM)Config);
 
 VOID ShowWhoisWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 VOID ShowWhoisWindowFromAddress(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
@@ -165,6 +173,7 @@ VOID ShowWhoisWindowFromAddress(
 typedef struct _NETWORK_TRACERT_CONTEXT
 {
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND SearchboxHandle;
     HWND TreeNewHandle;
     HFONT FontHandle;
@@ -183,14 +192,17 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     PPH_LIST NodeRootList;
 
     PH_IP_ENDPOINT RemoteEndpoint;
-    WCHAR IpAddressString[INET6_ADDRSTRLEN + 1];
+    ULONG RemoteAddressStringLength;
+    WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
 
 VOID ShowTracertWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
 
 VOID ShowTracertWindowFromAddress(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
@@ -295,6 +307,7 @@ VOID NetworkToolsGeoDbFlushCache(
 typedef struct _PH_UPDATER_CONTEXT
 {
     HWND DialogHandle;
+    HWND ParentWindowHandle;
     WNDPROC DefaultWindowProc;
     ULONG ErrorCode;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;

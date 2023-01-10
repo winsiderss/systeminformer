@@ -635,7 +635,7 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
             UpdateDialogHandle = context->DialogHandle = hwndDlg;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             // Create the Taskdialog icons
             PhSetApplicationWindowIcon(hwndDlg);
@@ -666,6 +666,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     PhInitializeAutoPool(&autoPool);
 
     context = CreateUpdateContext();
+    context->ParentWindowHandle = Parameter;
 
     config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.pszContent = L"Initializing...";
@@ -693,7 +694,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //info.lpFile = L"ProcessHacker.exe";
     //info.lpParameters = L"-plugin " PLUGIN_NAME L":UpdateGeoIp";
     //info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
-    //info.nShow = SW_SHOW;
+    //info.nShow = SW_SHOWNORMAL;
     //info.hwnd = Parameter;
     //info.lpVerb = L"runas";
     //
@@ -713,7 +714,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //            PhShellProcessHacker(
     //                Parameter,
     //                NULL,
-    //                SW_SHOW,
+    //                SW_SHOWNORMAL,
     //                0,
     //                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
     //                0,
@@ -794,7 +795,7 @@ VOID ShowGeoLiteUpdateDialog(
 
         if (!UpdateDialogThreadHandle)
         {
-            if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoLiteUpdateTaskDialogThread, NULL)))
+            if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, GeoLiteUpdateTaskDialogThread, ParentWindowHandle)))
             {
                 PhShowError(ParentWindowHandle, L"%s", L"Unable to create the window.");
                 return;
