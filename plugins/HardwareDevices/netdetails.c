@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2020
+ *     dmex    2015-2023
  *
  */
 
@@ -38,10 +38,16 @@ VOID NetAdapterAddListViewItemGroups(
 
     PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_STATE, L"State", NULL);
     //PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, L"Connectivity");
-    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPADDRESS, L"IP address", NULL);
-    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_SUBNET, L"Subnet mask", NULL);
-    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_GATEWAY, L"Default gateway", NULL);
-    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_DNS, L"DNS", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV4ADDRESS, L"IPv4 address", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV4SUBNET, L"IPv4 subnet mask", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV4GATEWAY, L"IPv4 default gateway", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV4DNS, L"IPv4 DNS address", NULL);
+
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV6ADDRESS, L"IPv6 address", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV6TEMPADDRESS, L"IPv6 address (temporary)", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV6GATEWAY, L"IPv6 default gateway", NULL);
+    PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_IPV6DNS, L"IPv6 DNS address", NULL);
+
     PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_DOMAIN, L"Domain", NULL);
 
     PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ADAPTER, NETADAPTER_DETAILS_INDEX_LINKSPEED, L"Link speed", NULL);
@@ -88,7 +94,7 @@ PVOID NetAdapterGetAddresses(
     _In_ ULONG Family
     )
 {
-    ULONG flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_FRIENDLY_NAME | GAA_FLAG_INCLUDE_ALL_INTERFACES;
+    ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_FRIENDLY_NAME | GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_ALL_INTERFACES;
     ULONG bufferLength = 0;
     PIP_ADAPTER_ADDRESSES buffer;
 
@@ -111,10 +117,14 @@ VOID NetAdapterEnumerateAddresses(
     _In_ PVOID AddressesBuffer,
     _In_ ULONG64 InterfaceLuid,
     _In_ PPH_STRING_BUILDER DomainBuffer,
-    _In_ PPH_STRING_BUILDER IpAddressBuffer,
+    _In_ PPH_STRING_BUILDER Ipv4AddressBuffer,
+    _In_ PPH_STRING_BUILDER Ipv6AddressBuffer,
+    _In_ PPH_STRING_BUILDER Ipv6TempAddressBuffer,
     _In_ PPH_STRING_BUILDER SubnetAddressBuffer,
-    _In_ PPH_STRING_BUILDER GatewayAddressBuffer,
-    _In_ PPH_STRING_BUILDER DnsAddressBuffer
+    _In_ PPH_STRING_BUILDER Ipv4GatewayAddressBuffer,
+    _In_ PPH_STRING_BUILDER Ipv6GatewayAddressBuffer,
+    _In_ PPH_STRING_BUILDER Ipv4DnsAddressBuffer,
+    _In_ PPH_STRING_BUILDER Ipv6DnsAddressBuffer
     )
 {
     PIP_ADAPTER_ADDRESSES addressesBuffer;
@@ -140,17 +150,29 @@ VOID NetAdapterEnumerateAddresses(
                 IN_ADDR subnetMask = { 0 };
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
                 WCHAR subnetAddressString[INET_ADDRSTRLEN] = L"";
+                ULONG ipv4AddressStringLength = RTL_NUMBER_OF(ipv4AddressString);
+                ULONG subnetAddressStringLength = RTL_NUMBER_OF(subnetAddressString);
 
                 ipv4SockAddr = (PSOCKADDR_IN)unicastAddress->Address.lpSockaddr;
 
-                if (RtlIpv4AddressToString(&ipv4SockAddr->sin_addr, ipv4AddressString))
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                    &ipv4SockAddr->sin_addr,
+                    0,
+                    ipv4AddressString,
+                    &ipv4AddressStringLength
+                    )))
                 {
-                    PhAppendFormatStringBuilder(IpAddressBuffer, L"%s, ", ipv4AddressString);
+                    PhAppendFormatStringBuilder(Ipv4AddressBuffer, L"%s, ", ipv4AddressString);
                 }
 
                 ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
 
-                if (RtlIpv4AddressToString(&subnetMask, subnetAddressString))
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                    &subnetMask,
+                    0,
+                    subnetAddressString,
+                    &subnetAddressStringLength
+                    )))
                 {
                     PhAppendFormatStringBuilder(SubnetAddressBuffer, L"%s, ", subnetAddressString);
                 }
@@ -159,12 +181,26 @@ VOID NetAdapterEnumerateAddresses(
             {
                 PSOCKADDR_IN6 ipv6SockAddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+                ULONG ipv6AddressStringLength = RTL_NUMBER_OF(ipv6AddressString);
 
                 ipv6SockAddr = (PSOCKADDR_IN6)unicastAddress->Address.lpSockaddr;
 
-                if (RtlIpv6AddressToString(&ipv6SockAddr->sin6_addr, ipv6AddressString))
+                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                    &ipv6SockAddr->sin6_addr,
+                    ipv6SockAddr->sin6_scope_id,
+                    0,
+                    ipv6AddressString,
+                    &ipv6AddressStringLength
+                    )))
                 {
-                    PhAppendFormatStringBuilder(IpAddressBuffer, L"%s, ", ipv6AddressString);
+                    if (unicastAddress->SuffixOrigin == IpSuffixOriginRandom)
+                    {
+                        PhAppendFormatStringBuilder(Ipv6TempAddressBuffer, L"%s, ", ipv6AddressString);
+                    }
+                    else
+                    {
+                        PhAppendFormatStringBuilder(Ipv6AddressBuffer, L"%s, ", ipv6AddressString);
+                    }
                 }
             }
         }
@@ -175,24 +211,37 @@ VOID NetAdapterEnumerateAddresses(
             {
                 PSOCKADDR_IN ipv4SockAddr;
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+                ULONG ipv4AddressStringLength = RTL_NUMBER_OF(ipv4AddressString);
 
                 ipv4SockAddr = (PSOCKADDR_IN)gatewayAddress->Address.lpSockaddr;
 
-                if (RtlIpv4AddressToString(&ipv4SockAddr->sin_addr, ipv4AddressString))
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                    &ipv4SockAddr->sin_addr,
+                    0,
+                    ipv4AddressString,
+                    &ipv4AddressStringLength
+                    )))
                 {
-                    PhAppendFormatStringBuilder(GatewayAddressBuffer, L"%s, ", ipv4AddressString);
+                    PhAppendFormatStringBuilder(Ipv4GatewayAddressBuffer, L"%s, ", ipv4AddressString);
                 }
             }
             else if (gatewayAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
                 PSOCKADDR_IN6 ipv6SockAddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+                ULONG ipv6AddressStringLength = RTL_NUMBER_OF(ipv6AddressString);
 
                 ipv6SockAddr = (PSOCKADDR_IN6)gatewayAddress->Address.lpSockaddr;
 
-                if (RtlIpv6AddressToString(&ipv6SockAddr->sin6_addr, ipv6AddressString))
+                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                    &ipv6SockAddr->sin6_addr,
+                    ipv6SockAddr->sin6_scope_id,
+                    0,
+                    ipv6AddressString,
+                    &ipv6AddressStringLength
+                    )))
                 {
-                    PhAppendFormatStringBuilder(GatewayAddressBuffer, L"%s, ", ipv6AddressString);
+                    PhAppendFormatStringBuilder(Ipv6GatewayAddressBuffer, L"%s, ", ipv6AddressString);
                 }
             }
         }
@@ -203,24 +252,37 @@ VOID NetAdapterEnumerateAddresses(
             {
                 PSOCKADDR_IN ipv4SockAddr;
                 WCHAR ipv4AddressString[INET_ADDRSTRLEN] = L"";
+                ULONG ipv4AddressStringLength = RTL_NUMBER_OF(ipv4AddressString);
 
                 ipv4SockAddr = (PSOCKADDR_IN)dnsAddress->Address.lpSockaddr;
 
-                if (RtlIpv4AddressToString(&ipv4SockAddr->sin_addr, ipv4AddressString))
+                if (NT_SUCCESS(RtlIpv4AddressToStringEx(
+                    &ipv4SockAddr->sin_addr,
+                    0,
+                    ipv4AddressString,
+                    &ipv4AddressStringLength
+                    )))
                 {
-                    PhAppendFormatStringBuilder(DnsAddressBuffer, L"%s, ", ipv4AddressString);
+                    PhAppendFormatStringBuilder(Ipv4DnsAddressBuffer, L"%s, ", ipv4AddressString);
                 }
             }
             else if (dnsAddress->Address.lpSockaddr->sa_family == AF_INET6)
             {
                 PSOCKADDR_IN6 ipv6SockAddr;
                 WCHAR ipv6AddressString[INET6_ADDRSTRLEN] = L"";
+                ULONG ipv6AddressStringLength = RTL_NUMBER_OF(ipv6AddressString);
 
                 ipv6SockAddr = (PSOCKADDR_IN6)dnsAddress->Address.lpSockaddr;
 
-                if (RtlIpv6AddressToString(&ipv6SockAddr->sin6_addr, ipv6AddressString))
+                if (NT_SUCCESS(RtlIpv6AddressToStringEx(
+                    &ipv6SockAddr->sin6_addr,
+                    ipv6SockAddr->sin6_scope_id,
+                    0,
+                    ipv6AddressString,
+                    &ipv6AddressStringLength
+                    )))
                 {
-                    PhAppendFormatStringBuilder(DnsAddressBuffer, L"%s, ", ipv6AddressString);
+                    PhAppendFormatStringBuilder(Ipv6DnsAddressBuffer, L"%s, ", ipv6AddressString);
                 }
             }
         }
@@ -233,21 +295,33 @@ VOID NetAdapterLookupConfig(
 {
     PVOID addressesBuffer = NULL;
     PPH_STRING domainString = NULL;
-    PPH_STRING ipAddressString = NULL;
+    PPH_STRING ipv4AddressString = NULL;
+    PPH_STRING ipv6AddressString = NULL;
+    PPH_STRING ipv6TempAddressString = NULL;
     PPH_STRING subnetAddressString = NULL;
-    PPH_STRING gatewayAddressString = NULL;
-    PPH_STRING dnsAddressString = NULL;
+    PPH_STRING ipv4gatewayAddressString = NULL;
+    PPH_STRING ipv6gatewayAddressString = NULL;
+    PPH_STRING ipv4dnsAddressString = NULL;
+    PPH_STRING ipv6dnsAddressString = NULL;
     PH_STRING_BUILDER domainBuffer;
-    PH_STRING_BUILDER ipAddressBuffer;
+    PH_STRING_BUILDER ipv4AddressBuffer;
+    PH_STRING_BUILDER ipv6AddressBuffer;
+    PH_STRING_BUILDER ipv6TempAddressBuffer;
     PH_STRING_BUILDER subnetAddressBuffer;
-    PH_STRING_BUILDER gatewayAddressBuffer;
-    PH_STRING_BUILDER dnsAddressBuffer;
+    PH_STRING_BUILDER ipv4gatewayAddressBuffer;
+    PH_STRING_BUILDER ipv6gatewayAddressBuffer;
+    PH_STRING_BUILDER ipv4dnsAddressBuffer;
+    PH_STRING_BUILDER ipv6dnsAddressBuffer;
 
     PhInitializeStringBuilder(&domainBuffer, 0x100);
-    PhInitializeStringBuilder(&ipAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&ipv4AddressBuffer, 0x100);
+    PhInitializeStringBuilder(&ipv6AddressBuffer, 0x100);
+    PhInitializeStringBuilder(&ipv6TempAddressBuffer, 0x100);
     PhInitializeStringBuilder(&subnetAddressBuffer, 0x100);
-    PhInitializeStringBuilder(&gatewayAddressBuffer, 0x100);
-    PhInitializeStringBuilder(&dnsAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&ipv4gatewayAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&ipv6gatewayAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&ipv4dnsAddressBuffer, 0x100);
+    PhInitializeStringBuilder(&ipv6dnsAddressBuffer, 0x100);
 
     if (addressesBuffer = NetAdapterGetAddresses(AF_INET))
     {
@@ -255,10 +329,15 @@ VOID NetAdapterLookupConfig(
             addressesBuffer,
             Context->AdapterId.InterfaceLuid.Value,
             &domainBuffer,
-            &ipAddressBuffer,
+            &ipv4AddressBuffer,
+            &ipv6AddressBuffer,
+            &ipv6TempAddressBuffer,
             &subnetAddressBuffer,
-            &gatewayAddressBuffer,
-            &dnsAddressBuffer);
+            &ipv4gatewayAddressBuffer,
+            &ipv6gatewayAddressBuffer,
+            &ipv4dnsAddressBuffer,
+            &ipv6dnsAddressBuffer
+            );
 
         PhFree(addressesBuffer);
     }
@@ -269,43 +348,70 @@ VOID NetAdapterLookupConfig(
             addressesBuffer,
             Context->AdapterId.InterfaceLuid.Value,
             &domainBuffer,
-            &ipAddressBuffer,
+            &ipv4AddressBuffer,
+            &ipv6AddressBuffer,
+            &ipv6TempAddressBuffer,
             &subnetAddressBuffer,
-            &gatewayAddressBuffer,
-            &dnsAddressBuffer);
+            &ipv4gatewayAddressBuffer,
+            &ipv6gatewayAddressBuffer,
+            &ipv4dnsAddressBuffer,
+            &ipv6dnsAddressBuffer
+            );
 
         PhFree(addressesBuffer);
     }
 
     if (domainBuffer.String->Length > 2)
         PhRemoveEndStringBuilder(&domainBuffer, 2);
-    if (ipAddressBuffer.String->Length > 2)
-        PhRemoveEndStringBuilder(&ipAddressBuffer, 2);
+    if (ipv4AddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipv4AddressBuffer, 2);
+    if (ipv6AddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipv6AddressBuffer, 2);
+    if (ipv6TempAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipv6TempAddressBuffer, 2);
     if (subnetAddressBuffer.String->Length > 2)
         PhRemoveEndStringBuilder(&subnetAddressBuffer, 2);
-    if (gatewayAddressBuffer.String->Length > 2)
-        PhRemoveEndStringBuilder(&gatewayAddressBuffer, 2);
-    if (dnsAddressBuffer.String->Length > 2)
-        PhRemoveEndStringBuilder(&dnsAddressBuffer, 2);
+    if (ipv4gatewayAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipv4gatewayAddressBuffer, 2);
+    if (ipv6gatewayAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipv6gatewayAddressBuffer, 2);
+    if (ipv4dnsAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipv4dnsAddressBuffer, 2);
+    if (ipv6dnsAddressBuffer.String->Length > 2)
+        PhRemoveEndStringBuilder(&ipv6dnsAddressBuffer, 2);
 
     domainString = PhFinalStringBuilderString(&domainBuffer);
-    ipAddressString = PhFinalStringBuilderString(&ipAddressBuffer);
+    ipv4AddressString = PhFinalStringBuilderString(&ipv4AddressBuffer);
+    ipv6AddressString = PhFinalStringBuilderString(&ipv6AddressBuffer);
+    ipv6TempAddressString = PhFinalStringBuilderString(&ipv6TempAddressBuffer);
     subnetAddressString = PhFinalStringBuilderString(&subnetAddressBuffer);
-    gatewayAddressString = PhFinalStringBuilderString(&gatewayAddressBuffer);
-    dnsAddressString = PhFinalStringBuilderString(&dnsAddressBuffer);
+    ipv4gatewayAddressString = PhFinalStringBuilderString(&ipv4gatewayAddressBuffer);
+    ipv6gatewayAddressString = PhFinalStringBuilderString(&ipv6gatewayAddressBuffer);
+    ipv4dnsAddressString = PhFinalStringBuilderString(&ipv4dnsAddressBuffer);
+    ipv6dnsAddressString = PhFinalStringBuilderString(&ipv6dnsAddressBuffer);
 
     //PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_CONNECTIVITY, 1, internet ? L"Internet" : L"Local");
-    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPADDRESS, 1, ipAddressString->Buffer);
-    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SUBNET, 1, subnetAddressString->Buffer);
-    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_GATEWAY, 1, gatewayAddressString->Buffer);
-    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DNS, 1, dnsAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV4ADDRESS, 1, ipv4AddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV4SUBNET, 1, subnetAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV4GATEWAY, 1, ipv4gatewayAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV4DNS, 1, ipv4dnsAddressString->Buffer);
+
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV6ADDRESS, 1, ipv6AddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV6TEMPADDRESS, 1, ipv6TempAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV6GATEWAY, 1, ipv6gatewayAddressString->Buffer);
+    PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_IPV6DNS, 1, ipv6dnsAddressString->Buffer);
+
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_DOMAIN, 1, domainString->Buffer);
 
     PhDeleteStringBuilder(&domainBuffer);
-    PhDeleteStringBuilder(&ipAddressBuffer);
+    PhDeleteStringBuilder(&ipv4AddressBuffer);
+    PhDeleteStringBuilder(&ipv6AddressBuffer);
+    PhDeleteStringBuilder(&ipv6TempAddressBuffer);
     PhDeleteStringBuilder(&subnetAddressBuffer);
-    PhDeleteStringBuilder(&gatewayAddressBuffer);
-    PhDeleteStringBuilder(&dnsAddressBuffer);
+    PhDeleteStringBuilder(&ipv4gatewayAddressBuffer);
+    PhDeleteStringBuilder(&ipv6gatewayAddressBuffer);
+    PhDeleteStringBuilder(&ipv4dnsAddressBuffer);
+    PhDeleteStringBuilder(&ipv6dnsAddressBuffer);
 }
 
 VOID NETIOAPI_API_ NetAdapterChangeCallback(
