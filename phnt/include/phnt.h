@@ -59,7 +59,7 @@
 #endif
 
 #ifndef PHNT_VERSION
-#define PHNT_VERSION PHNT_THRESHOLD
+#define PHNT_VERSION PHNT_WIN11
 #endif
 
 // Options
