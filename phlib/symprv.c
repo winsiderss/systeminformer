@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -477,9 +477,9 @@ VOID PhpSymbolProviderCompleteInitialization(
         PPH_STRING dbghelpName;
         PPH_STRING symsrvName;
 
-#if defined(_M_AMD64)
+#if defined(_AMD64_)
         PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x64\\"));
-#elif defined(_M_ARM64)
+#elif defined(_ARM64_)
         PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\arm64\\"));
 #else
         PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x86\\"));

@@ -2139,7 +2139,7 @@ VOID PhMwpLoadSettings(
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
-#if _M_ARM64
+#ifdef _ARM64_
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableArmCycleCpuUsage");
 #else
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");

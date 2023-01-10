@@ -1098,7 +1098,7 @@ VOID PhSipUpdateCpuPanel(
     LARGE_INTEGER performanceCounterTicks;
     ULONG64 timeStampCounterStart;
     ULONG64 timeStampCounterEnd;
-#if _M_ARM64
+#ifdef _ARM64_
     ULONG64 currentExceptionLevel;
 #else
     INT cpubrand[4];
@@ -1300,7 +1300,7 @@ VOID PhSipUpdateCpuPanel(
     PhQueryPerformanceCounter(&performanceCounterStart, NULL);
     timeStampCounterStart = PhReadTimeStampCounter();
     MemoryBarrier();
-#if _M_ARM64
+#ifdef _ARM64_
     // 0b11    0b000    0b0100    0b0010    0b010    CurrentEL     Current Exception Level
     currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
 #else
@@ -1313,7 +1313,7 @@ VOID PhSipUpdateCpuPanel(
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 
     if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 &&
-#if _M_ARM64
+#ifdef _ARM64_
         currentExceptionLevel == MAXULONG64
 #else
         cpubrand[0] == 0 && cpubrand[3] == 0
