@@ -891,8 +891,9 @@ VOID ToolbarSaveButtonSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_TOOLBAR_CONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID ReBarLoadLayoutSettings(
@@ -1006,8 +1007,9 @@ VOID ReBarSaveLayoutSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveEndStringBuilder(&stringBuilder, 1);
 
-    settingsString = PH_AUTO(PhFinalStringBuilderString(&stringBuilder));
+    settingsString = PhFinalStringBuilderString(&stringBuilder);
     PhSetStringSetting2(SETTING_NAME_REBAR_CONFIG, &settingsString->sr);
+    PhDereferenceObject(settingsString);
 }
 
 VOID RebarAdjustBandHeightLayout(

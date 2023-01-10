@@ -365,13 +365,13 @@ VOID StatusBarUpdate(
     );
 
 VOID StatusBarShowMenu(
-    VOID
+    _In_ HWND WindowHandle
     );
 
 // customizetb.c
 
 VOID ToolBarShowCustomizeDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // customizesb.c
@@ -398,7 +398,7 @@ typedef enum _ID_STATUS
 } ID_STATUS;
 
 VOID StatusBarShowCustomizeDialog(
-    VOID
+    _In_ HWND ParentWindowHandle
     );
 
 // Shared by customizetb.c and customizesb.c
@@ -428,11 +428,13 @@ typedef struct _CUSTOMIZE_CONTEXT
     HBRUSH BrushPushed;
     HBRUSH BrushHot;
     COLORREF TextColor;
+
+    LONG WindowDpi;
     INT CXWidth;
     INT ImageWidth;
     INT ImageHeight;
 
-    HWND DialogHandle;
+    HWND WindowHandle;
     HWND AvailableListHandle;
     HWND CurrentListHandle;
     HWND MoveUpButtonHandle;
