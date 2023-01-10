@@ -19,7 +19,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -201,6 +200,26 @@ BEGIN
     LTEXT           "Static",IDC_MESSAGE,7,7,268,8
 END
 
+IDD_SRVPACKAGE DIALOGEX 0, 0, 282, 218
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Package"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "AppUserModelId:",IDC_STATIC,7,117,56,8
+    EDITTEXT        IDC_AUMID,7,128,268,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Package name:",IDC_STATIC,7,145,50,8
+    EDITTEXT        IDC_PACKAGENAME,7,156,268,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Internal state directory:",IDC_STATIC,7,7,78,8
+    EDITTEXT        IDC_ISOLATEDSTATE,7,17,268,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Shared state directory:",IDC_STATIC,7,34,76,8
+    EDITTEXT        IDC_SHAREDSTATE,7,44,268,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Internal state key:",IDC_STATIC,7,62,61,8
+    EDITTEXT        IDC_REGISOLATED,7,73,268,12,ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "None",IDC_CANCELBTN,225,197,50,14,NOT WS_VISIBLE
+    LTEXT           "Shared state key:",IDC_STATIC,7,90,58,8
+    EDITTEXT        IDC_REGSHARED,7,100,268,12,ES_AUTOHSCROLL | ES_READONLY
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -297,10 +316,84 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 211
     END
+
+    IDD_SRVPACKAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 275
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 211
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 3,0,0,0
+ PRODUCTVERSION 3,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "System Informer"
+            VALUE "FileDescription", "System Informer"
+            VALUE "FileVersion", "3.0.0.0"
+            VALUE "InternalName", "ExtendedServices.dll"
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "OriginalFilename", "ExtendedServices.dll"
+            VALUE "ProductName", "System Informer"
+            VALUE "ProductVersion", "3.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_SRVPNP AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_SRVPACKAGE AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
 

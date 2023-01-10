@@ -212,7 +212,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             ULONG x;
             ULONG i;
 
-            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+            for (i = 0; i < EtGpuTotalNodeCount; i++)
             {
                 GraphState[i].Valid = FALSE;
                 GraphState[i].TooltipIndex = ULONG_MAX;

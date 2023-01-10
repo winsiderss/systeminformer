@@ -261,13 +261,9 @@ VOID FreeListViewAdapterEntries(
     _In_ PDV_NETADAPTER_CONTEXT Context
     )
 {
-    ULONG index = -1;
+    INT index = INT_ERROR;
 
-    while ((index = PhFindListViewItemByFlags(
-        Context->ListViewHandle,
-        index,
-        LVNI_ALL
-        )) != -1)
+    while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
         PDV_NETADAPTER_ID param;
 
@@ -605,7 +601,7 @@ VOID FindNetworkAdapters(
 
     for (ULONG i = 0; i < NetworkAdaptersList->Count; i++)
     {
-        ULONG index = ULONG_MAX;
+        INT index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_NETADAPTER_ENTRY entry = PhReferenceObjectSafe(NetworkAdaptersList->Items[i]);
 
@@ -616,7 +612,7 @@ VOID FindNetworkAdapters(
             Context->ListViewHandle,
             index,
             LVNI_ALL
-            )) != ULONG_MAX)
+            )) != INT_ERROR)
         {
             PDV_NETADAPTER_ID param;
 

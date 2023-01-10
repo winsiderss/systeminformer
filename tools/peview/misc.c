@@ -61,7 +61,6 @@ PPH_STRING PvResolveReparsePointTarget(
     PREPARSE_DATA_BUFFER reparseBuffer;
     ULONG reparseLength;
     HANDLE fileHandle;
-    IO_STATUS_BLOCK isb;
 
     if (PhIsNullOrEmptyString(FileName))
         return NULL;
@@ -82,17 +81,14 @@ PPH_STRING PvResolveReparsePointTarget(
     reparseLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
     reparseBuffer = PhAllocateZero(reparseLength);
 
-    if (NT_SUCCESS(NtFsControlFile(
+    if (NT_SUCCESS(PhDeviceIoControlFile(
         fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
         FSCTL_GET_REPARSE_POINT,
         NULL,
         0,
         reparseBuffer,
-        reparseLength
+        reparseLength,
+        NULL
         )))
     {
         if (
@@ -212,7 +208,7 @@ BOOLEAN PvInsertCopyListViewEMenuItem(
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
     lvHitInfo.pt = location;
 
-    if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == -1)
+    if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == INT_ERROR)
         return FALSE;
 
     memset(headerText, 0, sizeof(headerText));
@@ -304,15 +300,14 @@ BOOLEAN PvGetListViewContextMenuPoint(
     INT selectedIndex;
     RECT bounds;
     RECT clientRect;
-    LONG dpiValue;
 
     // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
-    if ((selectedIndex = PhFindListViewItemByFlags(ListViewHandle, -1, LVNI_SELECTED)) != -1)
+    if ((selectedIndex = PhFindListViewItemByFlags(ListViewHandle, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
     {
         if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
         {
-            dpiValue = PhGetWindowDpi(ListViewHandle);
+            LONG dpiValue = PhGetWindowDpi(ListViewHandle);
 
             Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
             Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;

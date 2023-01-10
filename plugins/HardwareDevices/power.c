@@ -88,39 +88,32 @@ VOID RaplDevicesUpdate(
 
             if (entry->DeviceHandle && !entry->CheckedDeviceSupport)
             {
-                IO_STATUS_BLOCK isb;
                 EMI_METADATA_SIZE metadataSize;
                 EMI_METADATA_V2* metadata;
 
                 memset(&metadataSize, 0, sizeof(EMI_METADATA_SIZE));
 
-                if (NT_SUCCESS(NtDeviceIoControlFile(
+                if (NT_SUCCESS(PhDeviceIoControlFile(
                     entry->DeviceHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
                     IOCTL_EMI_GET_METADATA_SIZE,
                     NULL,
                     0,
                     &metadataSize,
-                    sizeof(EMI_METADATA_SIZE)
+                    sizeof(EMI_METADATA_SIZE),
+                    NULL
                     )))
                 {
                     metadata = PhAllocate(metadataSize.MetadataSize);
                     memset(metadata, 0, metadataSize.MetadataSize);
 
-                    if (NT_SUCCESS(NtDeviceIoControlFile(
+                    if (NT_SUCCESS(PhDeviceIoControlFile(
                         entry->DeviceHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &isb,
                         IOCTL_EMI_GET_METADATA,
                         NULL,
                         0,
                         metadata,
-                        metadataSize.MetadataSize
+                        metadataSize.MetadataSize,
+                        NULL
                         )))
                     {
                         EMI_CHANNEL_V2* channels = metadata->Channels;
@@ -132,16 +125,16 @@ VOID RaplDevicesUpdate(
                         {
                             entry->ChannelDataBufferLength = sizeof(EMI_CHANNEL_MEASUREMENT_DATA) * metadata->ChannelCount;
 
-                            for (ULONG i = 0; i < metadata->ChannelCount; i++)
+                            for (ULONG j = 0; j < metadata->ChannelCount; j++)
                             {
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PKG", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_PACKAGE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP0", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_CORE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_PP1", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_GPUDISCRETE] = j;
                                 if (PhEqualStringZ(channels->ChannelName, L"RAPL_Package0_DRAM", TRUE))
-                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = i;
+                                    entry->ChannelIndex[EV_EMI_DEVICE_INDEX_DIMM] = j;
 
                                 channels = EMI_CHANNEL_V2_NEXT_CHANNEL(channels);
                             }
@@ -169,24 +162,19 @@ VOID RaplDevicesUpdate(
         {
             if (entry->DeviceSupported)
             {
-                IO_STATUS_BLOCK isb;
-
                 if (!entry->ChannelDataBuffer)
                 {
                     entry->ChannelDataBuffer = PhAllocateZero(entry->ChannelDataBufferLength);
                 }
 
-                if (entry->ChannelDataBuffer && NT_SUCCESS(NtDeviceIoControlFile(
+                if (entry->ChannelDataBuffer && NT_SUCCESS(PhDeviceIoControlFile(
                     entry->DeviceHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
                     IOCTL_EMI_GET_MEASUREMENT,
                     NULL,
                     0,
                     entry->ChannelDataBuffer,
-                    entry->ChannelDataBufferLength
+                    entry->ChannelDataBufferLength,
+                    NULL
                     )))
                 {
                     RaplDeviceSampleData(entry, entry->ChannelDataBuffer, EV_EMI_DEVICE_INDEX_PACKAGE);

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -14,7 +14,6 @@
 
 #include <svcsup.h>
 #include <verify.h>
-#include <lsasup.h>
 
 #include <phplug.h>
 #include <phsettings.h>
@@ -29,11 +28,6 @@ VOID PhpFillUmdfDrivers(
     );
 
 VOID PhpFillRunningTasks(
-    _In_ PPH_PROCESS_ITEM Process,
-    _Inout_ PPH_STRING_BUILDER Tasks
-    );
-
-VOID PhpFillMicrosoftEdge(
     _In_ PPH_PROCESS_ITEM Process,
     _Inout_ PPH_STRING_BUILDER Tasks
     );
@@ -333,23 +327,23 @@ PPH_STRING PhGetProcessTooltipText(
             validForMs = 10 * 1000; // 10 seconds
         }
         break;
-    case EdgeProcessType:
-        {
-            PH_STRING_BUILDER container;
-
-            PhInitializeStringBuilder(&container, 40);
-
-            PhpFillMicrosoftEdge(Process, &container);
-
-            if (container.String->Length != 0)
-            {
-                PhAppendStringBuilder2(&stringBuilder, L"Edge:\n");
-                PhAppendStringBuilder(&stringBuilder, &container.String->sr);
-            }
-
-            PhDeleteStringBuilder(&container);
-        }
-        break;
+    //case EdgeProcessType:
+    //    {
+    //        PH_STRING_BUILDER container;
+    //
+    //        PhInitializeStringBuilder(&container, 40);
+    //
+    //        PhpFillMicrosoftEdge(Process, &container);
+    //
+    //        if (container.String->Length != 0)
+    //        {
+    //            PhAppendStringBuilder2(&stringBuilder, L"Edge:\n");
+    //            PhAppendStringBuilder(&stringBuilder, &container.String->sr);
+    //        }
+    //
+    //        PhDeleteStringBuilder(&container);
+    //    }
+    //    break;
     case WmiProviderHostType:
         {
             PH_STRING_BUILDER provider;
@@ -454,12 +448,12 @@ PPH_STRING PhGetProcessTooltipText(
         if (Process->IsDotNet)
             PhAppendStringBuilder2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)
+        {
             if (Process->ElevationType == TokenElevationTypeFull)
                 PhAppendStringBuilder2(&notes, L"    Process is full elevated.\n");
-            else if (Process->ElevationType == TokenElevationTypeLimited) // OrbbQ3 - should never be the case
+            else if (Process->ElevationType == TokenElevationTypeLimited)
                 PhAppendStringBuilder2(&notes, L"    Process is limited elevated.\n");
-            else
-                PhAppendStringBuilder2(&notes, L"    Process is per default elevated.\n");
+        }
         if (Process->IsImmersive)
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");
         if (Process->IsInJob)
@@ -688,73 +682,71 @@ VOID PhpFillRunningTasks(
     }
 }
 
-VOID PhpFillMicrosoftEdge(
-    _In_ PPH_PROCESS_ITEM Process,
-    _Inout_ PPH_STRING_BUILDER Containers
-    )
-{
-    HANDLE tokenHandle;
-    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
-    PPH_STRING appContainerSid = NULL;
-
-    if (NT_SUCCESS(PhOpenProcessToken(
-        Process->QueryHandle,
-        TOKEN_QUERY,
-        &tokenHandle
-        )))
-    {
-        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenAppContainerSid, &appContainerInfo)))
-        {
-            if (appContainerInfo->TokenAppContainer)
-                appContainerSid = PhSidToStringSid(appContainerInfo->TokenAppContainer);
-
-            PhFree(appContainerInfo);
-        }
-    }
-
-    if (appContainerSid)
-    {
-        static PH_STRINGREF managerSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194");
-        static PH_STRINGREF extensionsSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1206159417-1570029349-2913729690-1184509225");
-        static PH_STRINGREF serviceUiSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3513710562-3729412521-1863153555-1462103995");
-        static PH_STRINGREF chakraJitSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1821068571-1793888307-623627345-1529106238");
-        static PH_STRINGREF flashSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3859068477-1314311106-1651661491-1685393560");
-        static PH_STRINGREF backgroundTabPool1Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-4256926629-1688279915-2739229046-3928706915");
-        static PH_STRINGREF backgroundTabPool2Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-2385269614-3243675-834220592-3047885450");
-        static PH_STRINGREF backgroundTabPool3Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-355265979-2879959831-980936148-1241729999");
-
-        if (PhEqualStringRef(&appContainerSid->sr, &managerSid, FALSE))
-        {
-            PhAppendStringBuilder2(Containers, L"    Microsoft Edge Manager\n");
-        }
-        else if (PhEqualStringRef(&appContainerSid->sr, &extensionsSid, FALSE))
-        {
-            PhAppendStringBuilder2(Containers, L"    Browser Extensions\n");
-        }
-        else if (PhEqualStringRef(&appContainerSid->sr, &serviceUiSid, FALSE))
-        {
-            PhAppendStringBuilder2(Containers, L"    User Interface Service\n");
-        }
-        else if (PhEqualStringRef(&appContainerSid->sr, &chakraJitSid, FALSE))
-        {
-            PhAppendStringBuilder2(Containers, L"    Chakra Jit Compiler\n");
-        }
-        else if (PhEqualStringRef(&appContainerSid->sr, &flashSid, FALSE))
-        {
-            PhAppendStringBuilder2(Containers, L"    Adobe Flash Player\n");
-        }
-        else if (
-            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool1Sid, FALSE) ||
-            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool2Sid, FALSE) ||
-            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool3Sid, FALSE)
-            )
-        {
-            PhAppendStringBuilder2(Containers, L"    Background Tab Pool\n");
-        }
-
-        PhDereferenceObject(appContainerSid);
-    }
-}
+//VOID PhpFillMicrosoftEdge(
+//    _In_ PPH_PROCESS_ITEM Process,
+//    _Inout_ PPH_STRING_BUILDER Containers
+//    )
+//{
+//    HANDLE tokenHandle;
+//    PSID appContainerInfo;
+//    PPH_STRING appContainerSid = NULL;
+//
+//    if (NT_SUCCESS(PhOpenProcessToken(
+//        Process->QueryHandle,
+//        TOKEN_QUERY,
+//        &tokenHandle
+//        )))
+//    {
+//        if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerInfo)))
+//        {
+//            appContainerSid = PhSidToStringSid(appContainerInfo);
+//            PhFree(appContainerInfo);
+//        }
+//    }
+//
+//    if (appContainerSid)
+//    {
+//        static PH_STRINGREF managerSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194");
+//        static PH_STRINGREF extensionsSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1206159417-1570029349-2913729690-1184509225");
+//        static PH_STRINGREF serviceUiSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3513710562-3729412521-1863153555-1462103995");
+//        static PH_STRINGREF chakraJitSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-1821068571-1793888307-623627345-1529106238");
+//        static PH_STRINGREF flashSid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-3859068477-1314311106-1651661491-1685393560");
+//        static PH_STRINGREF backgroundTabPool1Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-4256926629-1688279915-2739229046-3928706915");
+//        static PH_STRINGREF backgroundTabPool2Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-2385269614-3243675-834220592-3047885450");
+//        static PH_STRINGREF backgroundTabPool3Sid = PH_STRINGREF_INIT(L"S-1-15-2-3624051433-2125758914-1423191267-1740899205-1073925389-3782572162-737981194-355265979-2879959831-980936148-1241729999");
+//
+//        if (PhEqualStringRef(&appContainerSid->sr, &managerSid, FALSE))
+//        {
+//            PhAppendStringBuilder2(Containers, L"    Microsoft Edge Manager\n");
+//        }
+//        else if (PhEqualStringRef(&appContainerSid->sr, &extensionsSid, FALSE))
+//        {
+//            PhAppendStringBuilder2(Containers, L"    Browser Extensions\n");
+//        }
+//        else if (PhEqualStringRef(&appContainerSid->sr, &serviceUiSid, FALSE))
+//        {
+//            PhAppendStringBuilder2(Containers, L"    User Interface Service\n");
+//        }
+//        else if (PhEqualStringRef(&appContainerSid->sr, &chakraJitSid, FALSE))
+//        {
+//            PhAppendStringBuilder2(Containers, L"    Chakra Jit Compiler\n");
+//        }
+//        else if (PhEqualStringRef(&appContainerSid->sr, &flashSid, FALSE))
+//        {
+//            PhAppendStringBuilder2(Containers, L"    Adobe Flash Player\n");
+//        }
+//        else if (
+//            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool1Sid, FALSE) ||
+//            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool2Sid, FALSE) ||
+//            PhEqualStringRef(&appContainerSid->sr, &backgroundTabPool3Sid, FALSE)
+//            )
+//        {
+//            PhAppendStringBuilder2(Containers, L"    Background Tab Pool\n");
+//        }
+//
+//        PhDereferenceObject(appContainerSid);
+//    }
+//}
 
 VOID PhpFillWmiProviderHost(
     _In_ PPH_PROCESS_ITEM Process,

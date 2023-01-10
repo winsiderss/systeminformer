@@ -151,12 +151,12 @@ NTSTATUS EspLoadRecoveryInfo(
     ULONG i;
 
     if (!(serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhDosErrorToNtStatus(GetLastError());
 
     if (!(failureActions = PhQueryServiceVariableSize(serviceHandle, SERVICE_CONFIG_FAILURE_ACTIONS)))
     {
         CloseServiceHandle(serviceHandle);
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhDosErrorToNtStatus(GetLastError());
     }
 
     // Failure action types

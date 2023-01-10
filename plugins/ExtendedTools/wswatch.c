@@ -268,7 +268,7 @@ static VOID EtpProcessSymbolLookupResults(
         result = CONTAINING_RECORD(listEntry, SYMBOL_LOOKUP_RESULT, ListEntry);
         listEntry = listEntry->Next;
 
-        lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, -1, result->Address);
+        lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, result->Address);
 
         PhSetListViewSubItem(
             Context->ListViewHandle,
@@ -371,7 +371,7 @@ static BOOLEAN EtpUpdateWsWatch(
         {
             newCount = PtrToUlong(*entry) + 1;
             *entry = UlongToPtr(newCount);
-            lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, -1, wsWatchInfo->BasicInfo.FaultingPc);
+            lvItemIndex = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, wsWatchInfo->BasicInfo.FaultingPc);
         }
         else
         {
@@ -626,9 +626,9 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                             INT lvItemIndex;
                             PPH_STRING fileNameWin32;
 
-                            lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, -1, entry);
+                            lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, entry);
 
-                            if (lvItemIndex == -1)
+                            if (lvItemIndex == INT_ERROR)
                                 break;
 
                             fileNameWin32 = PhGetListViewItemText(context->ListViewHandle, lvItemIndex, 1);
@@ -687,7 +687,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
             if (!(listviewItem = PhGetSelectedListViewItemParam(context->ListViewHandle)))
                 break;
-            if ((lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, -1, listviewItem)) == -1)
+            if ((lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, listviewItem)) == INT_ERROR)
                 break;
 
             fileNameWin32 = PhGetListViewItemText(context->ListViewHandle, lvItemIndex, 1);

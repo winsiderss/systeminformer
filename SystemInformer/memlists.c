@@ -165,13 +165,13 @@ VOID PhShowMemoryListCommand(
     PPH_EMENU_ITEM selectedItem;
 
     menu = PhCreateEMenu();
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMBINEMEMORYLISTS, L"&Combine memory lists", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMBINEMEMORYLISTS, L"&Combine memory pages", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMPRESSIONSTORE, L"Empty &compression cache", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_SYSTEMFILECACHE, L"Empty system &file cache", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYWORKINGSETS, L"Empty &working sets", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_COMPRESSIONSTORE, L"Empty &compression working sets", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYMODIFIEDPAGELIST, L"Empty &modified page list", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYSTANDBYLIST, L"Empty &standby list", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_EMPTYPRIORITY0STANDBYLIST, L"Empty &priority 0 standby list", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_EMPTY_SYSTEMFILECACHE, L"Empty system &file cache", NULL, NULL), ULONG_MAX);
 
     if (ShowTopAlign)
     {
@@ -284,8 +284,8 @@ VOID PhShowMemoryListCommand(
 
                 SetCursor(LoadCursor(NULL, IDC_WAIT));
                 status = PhSetSystemFileCacheSize(
-                    SIZE_T_MAX,
-                    SIZE_T_MAX,
+                    MAXSIZE_T,
+                    MAXSIZE_T,
                     0
                     );
                 SetCursor(LoadCursor(NULL, IDC_ARROW));
@@ -294,9 +294,10 @@ VOID PhShowMemoryListCommand(
                 {
                     PhShowInformation2(
                         ParentWindow,
-                        L"System file cache has been cleared.",
-                        L"Flushed: %s",
-                        PhaFormatSize(cacheInfo.CurrentSize, ULONG_MAX)->Buffer
+                        L"System file cache flushed",
+                        L"%s (%llu pages)",
+                        PhaFormatSize(cacheInfo.CurrentSize, ULONG_MAX)->Buffer,
+                        cacheInfo.CurrentSize / PAGE_SIZE
                         );
                 }
                 else

@@ -120,6 +120,8 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     AddRemoveDeviceChangeCallback();
+    if (PhWindowsVersion >= WINDOWS_10)
+        InitializeDevicesTab();
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
@@ -559,10 +561,10 @@ VOID ShowDeviceMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 3, L"Uninstall", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     subMenu = PhCreateEMenuItem(0, 0, L"Open key", NULL, NULL);
-    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 4, L"Hardware", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 5, L"Software", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 6, L"User", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, 7, L"Config", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, HW_KEY_INDEX_HARDWARE, L"Hardware", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, HW_KEY_INDEX_SOFTWARE, L"Software", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, HW_KEY_INDEX_USER, L"User", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, HW_KEY_INDEX_CONFIG, L"Config", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, subMenu, ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 10, L"Properties", NULL, NULL), ULONG_MAX);
@@ -595,10 +597,10 @@ VOID ShowDeviceMenu(
                 }
             }
             break;
-        case 4:
-        case 5:
-        case 6:
-        case 7:
+        case HW_KEY_INDEX_HARDWARE:
+        case HW_KEY_INDEX_SOFTWARE:
+        case HW_KEY_INDEX_USER:
+        case HW_KEY_INDEX_CONFIG:
             HardwareDeviceOpenKey(ParentWindow, DeviceInstance, selectedItem->Id);
             break;
         case 10:
@@ -638,6 +640,20 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_GRAPHICS_LIST, L"" },
                 { IntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_GRAPHICS_NODES_WINDOW_SIZE, L"@96|850,490" },
+                { IntegerPairSettingType, SETTING_NAME_DEVICE_TREE_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_DEVICE_TREE_WINDOW_SIZE, L"@96|1065,627" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_TREE_AUTO_REFRESH, L"1" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED, L"0" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, L"0" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, L"0" },
+                { IntegerPairSettingType, SETTING_NAME_DEVICE_TREE_SORT, L"0,0" },
+                { StringSettingType, SETTING_NAME_DEVICE_TREE_COLUMNS, L"" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_PROBLEM_COLOR, L"283cff" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"aaffff" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"000000" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHT_COLOR, L"00aaff" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"1" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -646,7 +662,7 @@ LOGICAL DllMain(
                 return FALSE;
 
             info->DisplayName = L"Hardware Devices";
-            info->Author = L"dmex, wj32";
+            info->Author = L"dmex, wj32, jxy-s";
             info->Description = L"Plugin for monitoring hardware devices like Disk drives and Network adapters via the System Information window.";
 
             PhRegisterCallback(

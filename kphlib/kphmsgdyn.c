@@ -9,7 +9,13 @@
  *
  */
 
+#include <kphlibbase.h>
 #include <kphmsgdyn.h>
+
+#ifndef _KERNEL_MODE
+#include <intsafe.h>
+#define RtlULongAdd ULongAdd
+#endif
 
 #include <pshpack1.h>
 typedef struct _KPH_DYN_DATA_BUFFER

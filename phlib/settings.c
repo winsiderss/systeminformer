@@ -602,10 +602,7 @@ VOID PhConvertIgnoredSettings(
 {
     PPH_SETTING ignoredSetting;
     PPH_SETTING setting;
-    LONG dpiValue;
     ULONG i;
-
-    dpiValue = PhGetSystemDpi();
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -623,7 +620,7 @@ VOID PhConvertIgnoredSettings(
                 setting->Type,
                 &((PPH_STRING)ignoredSetting->u.Pointer)->sr,
                 ignoredSetting->u.Pointer,
-                dpiValue,
+                PhSystemDpi,
                 setting
                 ))
             {
@@ -631,7 +628,7 @@ VOID PhConvertIgnoredSettings(
                     setting->Type,
                     &setting->DefaultValue,
                     NULL,
-                    dpiValue,
+                    PhSystemDpi,
                     setting
                     );
             }
@@ -656,11 +653,8 @@ NTSTATUS PhLoadSettings(
     PPH_SETTING setting;
     PPH_STRING settingName;
     PPH_STRING settingValue;
-    LONG dpiValue;
 
     PhpClearIgnoredSettings();
-
-    dpiValue = PhGetSystemDpi();
 
     if (!NT_SUCCESS(status = PhLoadXmlObjectFromFile(FileName, &topNode)))
         return status;
@@ -688,7 +682,7 @@ NTSTATUS PhLoadSettings(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
-                        dpiValue,
+                        PhSystemDpi,
                         setting
                         ))
                     {
@@ -696,7 +690,7 @@ NTSTATUS PhLoadSettings(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
-                            dpiValue,
+                            PhSystemDpi,
                             setting
                             );
                     }
@@ -858,16 +852,13 @@ VOID PhAddSetting(
     )
 {
     PH_SETTING setting;
-    LONG dpiValue;
 
     setting.Type = Type;
     setting.Name = *Name;
     setting.DefaultValue = *DefaultValue;
     memset(&setting.u, 0, sizeof(setting.u));
 
-    dpiValue = PhGetSystemDpi();
-
-    PhSettingFromString(Type, &setting.DefaultValue, NULL, dpiValue, &setting);
+    PhSettingFromString(Type, &setting.DefaultValue, NULL, PhSystemDpi, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
 }
@@ -992,8 +983,8 @@ VOID PhSaveWindowPlacementToSetting(
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
-    RECT rect;
-    LONG dpiValue;
+    //RECT rect;
+    LONG windowDpi;
 
     GetWindowPlacement(WindowHandle, &placement);
     windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
@@ -1005,14 +996,13 @@ VOID PhSaveWindowPlacementToSetting(
         windowRectangle.Top += monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
     }
 
-    rect = PhRectangleToRect(windowRectangle);
-
-    dpiValue = PhGetWindowDpi(WindowHandle); // PhGetMonitorDpi(&rect);
+    //rect = PhRectangleToRect(windowRectangle);
+    windowDpi = PhGetWindowDpi(WindowHandle); // PhGetMonitorDpi(&rect);
 
     if (PositionSettingName)
         PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
     if (SizeSettingName)
-        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size, dpiValue);
+        PhSetScalableIntegerPairSetting2(SizeSettingName, windowRectangle.Size, windowDpi);
 }
 
 BOOLEAN PhLoadListViewColumnSettings(

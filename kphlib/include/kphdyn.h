@@ -9,8 +9,6 @@
 
 #pragma once
 
-#include <kphlibbase.h>
-
 #define KPH_DYN_CONFIGURATION_VERSION 5
 
 #define KPH_DYN_CI_INVALID ((SHORT)-1)

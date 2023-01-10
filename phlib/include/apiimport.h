@@ -60,6 +60,15 @@ typedef NTSTATUS (NTAPI *_NtQueryOpenSubKeysEx)(
     _Out_ PULONG RequiredSize
     );
 
+typedef NTSTATUS (NTAPI* _NtSetInformationVirtualMemory)(
+    _In_ HANDLE ProcessHandle,
+    _In_ VIRTUAL_MEMORY_INFORMATION_CLASS VmInformationClass,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_reads_ (NumberOfEntries) PMEMORY_RANGE_ENTRY VirtualAddresses,
+    _In_reads_bytes_ (VmInformationLength) PVOID VmInformation,
+    _In_ ULONG VmInformationLength
+    );
+
 typedef NTSTATUS (NTAPI* _NtCreateProcessStateChange)(
     _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -133,14 +142,6 @@ typedef BOOL (WINAPI* _ConvertStringSecurityDescriptorToSecurityDescriptorW)(
     _In_ DWORD StringSDRevision,
     _Outptr_ PSECURITY_DESCRIPTOR *SecurityDescriptor,
     _Out_opt_ PULONG SecurityDescriptorSize
-    );
-
-typedef HRESULT (WINAPI* _SHGetFolderPathW)(
-    _Reserved_ HWND hwnd,
-    _In_ INT csidl,
-    _In_opt_ HANDLE hToken,
-    _In_ ULONG dwFlags,
-    _Out_writes_(MAX_PATH) LPWSTR pszPath
     );
 
 typedef HRESULT (WINAPI* _SHAutoComplete)(
@@ -244,6 +245,7 @@ PH_DECLARE_IMPORT(NtQueryDefaultLocale);
 PH_DECLARE_IMPORT(NtQueryDefaultUILanguage);
 PH_DECLARE_IMPORT(NtTraceControl);
 PH_DECLARE_IMPORT(NtQueryOpenSubKeysEx);
+PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(NtCreateProcessStateChange);
 PH_DECLARE_IMPORT(NtChangeProcessState);
 
@@ -263,7 +265,6 @@ PH_DECLARE_IMPORT(DnsWriteQuestionToBuffer_W);
 PH_DECLARE_IMPORT(DnsFree);
 
 PH_DECLARE_IMPORT(SHAutoComplete);
-PH_DECLARE_IMPORT(SHGetFolderPathW);
 PH_DECLARE_IMPORT(SHGetFileInfoW);
 
 PH_DECLARE_IMPORT(PssCaptureSnapshot);

@@ -14,8 +14,6 @@
 #define IDC_CPU                         112
 #define IDC_PRIVATEBYTES                113
 #define IDC_IO                          114
-#define IDB_CROSS                       117
-#define IDB_TICK                        118
 #define IDC_MEMORY                      120
 #define IDD_ABOUT                       121
 #define IDC_NEWOBJECTS                  121
@@ -90,9 +88,9 @@
 #define IDD_MINIINFO                    207
 #define IDD_MINIINFO_LIST               210
 #define IDD_MITIGATION                  215
+#define IDD_TOKAPPPOLICY                216
 #define IDI_PIN                         216
 #define IDI_FOLDER                      217
-#define IDI_PENCIL                      218
 #define IDI_MAGNIFIER                   219
 #define IDD_EDITENV                     221
 #define IDB_SEARCH_ACTIVE               223
@@ -112,6 +110,8 @@
 #define IDD_PROCVDMHOST                 257
 #define IDD_OPTSYMBOLS                  258
 #define IDI_UACSHIELD                   261
+#define IDB_SEARCH_ACTIVE_SMALL         265
+#define IDB_SEARCH_INACTIVE_SMALL       266
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -787,7 +787,7 @@
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        265
+#define _APS_NEXT_RESOURCE_VALUE        267
 #define _APS_NEXT_COMMAND_VALUE         40298
 #define _APS_NEXT_CONTROL_VALUE         1415
 #define _APS_NEXT_SYMED_VALUE           170

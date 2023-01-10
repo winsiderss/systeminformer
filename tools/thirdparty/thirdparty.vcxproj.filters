@@ -43,6 +43,9 @@
     <Filter Include="sha256">
       <UniqueIdentifier>{164d4efe-d2ce-4920-a31f-d76cad99228b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="detours">
+      <UniqueIdentifier>{8e0a677b-267b-49fa-ad3a-4c80f411cc2b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -369,6 +372,28 @@
     <ClCompile Include="sha256\sha256.c">
       <Filter>sha256</Filter>
     </ClCompile>
+    <ClCompile Include="detours\detours.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="detours\disasm.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="detours\disolarm.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="detours\disolarm64.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="detours\disolia64.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="detours\disolx64.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="detours\disolx86.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="detours\modules.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -730,6 +755,9 @@
     </ClInclude>
     <ClInclude Include="sha256\sha256.h">
       <Filter>sha256</Filter>
+    </ClInclude>
+    <ClInclude Include="detours\detours.h">
+      <Filter>detours</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

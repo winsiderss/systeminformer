@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -133,6 +133,7 @@ VOID NTAPI MenuItemCallback(
                 ((PPH_MODULE_ITEM)menuItem->Context)->Name
                 );
         }
+        break;
     case ID_REPARSE_POINTS:
     case ID_REPARSE_OBJID:
     case ID_REPARSE_SDDL:
@@ -1054,6 +1055,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_DISK_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_DISK_TREE_LIST_SORT, L"4,2" }, // 4, DescendingSortOrder
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPUPERFCOUNTERS, L"1" },
+                { IntegerSettingType, SETTING_NAME_ENABLE_DISKPERFCOUNTERS, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_GPU_MONITOR, L"1" },
                 { IntegerSettingType, SETTING_NAME_ENABLE_FPS_MONITOR, L"0" },

@@ -12,21 +12,12 @@
 #include <peview.h>
 #include <bcrypt.h>
 #include "..\thirdparty\tlsh\tlsh_wrapper.h"
+#include "..\thirdparty\ssdeep\fuzzy.h"
 
 #include <wincrypt.h>
 #include <wintrust.h>
 
 #define WM_PV_HASH_FINISHED (WM_APP + 701)
-
-extern NTSTATUS fuzzy_hash_file(
-    _In_ HANDLE FileHandle,
-    _Out_ PPH_STRING* HashResult
-    );
-extern BOOLEAN fuzzy_hash_buffer(
-    _In_ PBYTE Buffer,
-    _In_ ULONGLONG BufferLength,
-    _Out_ PPH_STRING* HashResult
-    );
 
 typedef struct _PV_PE_HASHWND_CONTEXT
 {
@@ -46,6 +37,43 @@ typedef struct _PV_HASH_CONTEXT
     PVOID HashObject;
     PVOID Hash;
 } PV_HASH_CONTEXT, *PPV_HASH_CONTEXT;
+
+typedef struct _PV_PE_HASH_RESULTS
+{
+    BOOLEAN ImageHasImports;
+
+    PPH_STRING Crc32HashString;
+    PPH_STRING Md5HashString;
+    PPH_STRING Sha1HashString;
+    PPH_STRING Sha2HashString;
+    PPH_STRING Sha384HashString;
+    PPH_STRING Sha512HashString;
+    PPH_STRING AuthentihashSha1String;
+    PPH_STRING AuthentihashSha256String;
+    PPH_STRING WdaghashSha1String;
+    PPH_STRING WdaghashSha256String;
+    PPH_STRING ImphashString;
+    PPH_STRING ImphashFuzzyString;
+    PPH_STRING ImpMsftHashString;
+    PPH_STRING SsdeepHashString;
+    PPH_STRING TlshHashString;
+
+    PPH_LIST PageHashList;
+} PV_PE_HASH_RESULTS, *PPV_PE_HASH_RESULTS;
+
+#include <pshpack1.h>
+typedef struct _SPC_PE_IMAGE_PAGE_HASHES_V1
+{
+    ULONG PageOffset;
+    BYTE PageHash[20]; // SHA-1
+} SPC_PE_IMAGE_PAGE_HASHES_V1, *PSPC_PE_IMAGE_PAGE_HASHES_V1;
+
+typedef struct _SPC_PE_IMAGE_PAGE_HASHES_V2
+{
+    ULONG PageOffset;
+    BYTE PageHash[32]; // SHA-256
+} SPC_PE_IMAGE_PAGE_HASHES_V2, *PSPC_PE_IMAGE_PAGE_HASHES_V2;
+#include <poppack.h>
 
 typedef enum _PV_HASHLIST_CATEGORY
 {
@@ -192,12 +220,7 @@ PPH_STRING PvGetFinalHash(
         0
         )))
     {
-        PPH_STRING string;
-
-        string = PhBufferToHexString(HashContext->Hash, HashContext->HashSize);
-        _wcsupr(string->Buffer);
-
-        return string;
+        return PhBufferToHexString(HashContext->Hash, HashContext->HashSize);
     }
 
     return NULL;
@@ -246,26 +269,12 @@ NTSTATUS PvHashMappedImageData(
     return status;
 }
 
-#include <pshpack1.h>
-typedef struct _SPC_PE_IMAGE_PAGE_HASHES_V1
-{
-    ULONG PageOffset;
-    BYTE PageHash[20]; // SHA-1
-} SPC_PE_IMAGE_PAGE_HASHES_V1, *PSPC_PE_IMAGE_PAGE_HASHES_V1;
-
-typedef struct _SPC_PE_IMAGE_PAGE_HASHES_V2
-{
-    ULONG PageOffset;
-    BYTE PageHash[32]; // SHA-256
-} SPC_PE_IMAGE_PAGE_HASHES_V2, *PSPC_PE_IMAGE_PAGE_HASHES_V2;
-#include <poppack.h>
-
 // rev from "signtool verify /ph /v C:\\Windows\\explorer.exe" (dmex)
-VOID PvEnumSpcAuthenticodePageHashes(
-    _In_ HWND ListViewHandle,
-    _In_ PULONG Count
+PPH_LIST PvEnumSpcAuthenticodePageHashes(
+    VOID
     )
 {
+    PPH_LIST pageHashList = NULL;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     HCRYPTMSG cryptMessageHandle = NULL;
     PVOID cryptInnerContentBuffer = NULL;
@@ -316,7 +325,7 @@ VOID PvEnumSpcAuthenticodePageHashes(
     }
 
     if (!cryptMessageHandle)
-        return;
+        goto CleanupExit;
 
     if (!CryptMsgGetParam(
         cryptMessageHandle,
@@ -381,6 +390,8 @@ VOID PvEnumSpcAuthenticodePageHashes(
         ULONG spcSerializedObjectAttributesLength = 0;
         PCRYPT_ATTRIBUTES spcSerializedObjectAttributesBuffer = NULL;
 
+        pageHashList = PhCreateList(100);
+
         if (CryptDecodeObjectEx(
             X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
             PKCS_ATTRIBUTES,
@@ -421,19 +432,12 @@ VOID PvEnumSpcAuthenticodePageHashes(
                     for (ULONG k = 0; k < count; k++)
                     {
                         PSPC_PE_IMAGE_PAGE_HASHES_V1 entry = PTR_ADD_OFFSET(spcImagePageHashesBuffer->pbData, sizeof(SPC_PE_IMAGE_PAGE_HASHES_V1) * k);
-                        PPH_STRING hashString;
-                        INT lvItemIndex;
-                        WCHAR number[PH_PTR_STR_LEN_1];
+                        PSPC_PE_IMAGE_PAGE_HASHES_V2 thunk;
 
-                        PhPrintUInt32(number, ++(*Count));
-                        lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_PAGEHASH, MAXINT, number, NULL);
-                        PhPrintPointer(number, UlongToPtr(entry->PageOffset));
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, number);
-
-                        hashString = PhBufferToHexString(entry->PageHash, sizeof(entry->PageHash));
-                        _wcsupr(hashString->Buffer);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(hashString));
-                        PhDereferenceObject(hashString);
+                        thunk = PhAllocateZero(sizeof(SPC_PE_IMAGE_PAGE_HASHES_V2));
+                        thunk->PageOffset = entry->PageOffset;
+                        memcpy_s(thunk->PageHash, sizeof(thunk->PageHash), entry->PageHash, sizeof(entry->PageHash));
+                        PhAddItemList(pageHashList, thunk);
                     }
                 }
                 else if (PhEqualBytesZ(spcSerializedObjectBuffer.pszObjId, SPC_PE_IMAGE_PAGE_HASHES_V2_OBJID, FALSE))
@@ -443,19 +447,8 @@ VOID PvEnumSpcAuthenticodePageHashes(
                     for (ULONG k = 0; k < count; k++)
                     {
                         PSPC_PE_IMAGE_PAGE_HASHES_V2 entry = PTR_ADD_OFFSET(spcImagePageHashesBuffer->pbData, sizeof(SPC_PE_IMAGE_PAGE_HASHES_V2) * k);
-                        PPH_STRING hashString;
-                        INT lvItemIndex;
-                        WCHAR number[PH_PTR_STR_LEN_1];
 
-                        PhPrintUInt32(number, ++(*Count));
-                        lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_PAGEHASH, MAXINT, number, NULL);
-                        PhPrintPointer(number, UlongToPtr(entry->PageOffset));
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, number);
-
-                        hashString = PhBufferToHexString(entry->PageHash, sizeof(entry->PageHash));
-                        _wcsupr(hashString->Buffer);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(hashString));
-                        PhDereferenceObject(hashString);
+                        PhAddItemList(pageHashList, PhAllocateCopy(entry, sizeof(SPC_PE_IMAGE_PAGE_HASHES_V2)));
                     }
                 }
 
@@ -486,6 +479,8 @@ CleanupExit:
     {
         CryptMsgClose(cryptMessageHandle);
     }
+
+    return pageHashList;
 }
 
 VOID PvGetFileHashes(
@@ -506,8 +501,9 @@ VOID PvGetFileHashes(
     ULONG crc32Hash = 0;
     ULONG returnLength;
     IO_STATUS_BLOCK isb;
-    BYTE buffer[PAGE_SIZE];
+    PBYTE buffer;
 
+    buffer = PhAllocate(PAGE_SIZE * 2);
     hashContextMd5 = PvCreateHashHandle(BCRYPT_MD5_ALGORITHM);
     hashContextSha1 = PvCreateHashHandle(BCRYPT_SHA1_ALGORITHM);
     hashContextSha256 = PvCreateHashHandle(BCRYPT_SHA256_ALGORITHM);
@@ -521,7 +517,7 @@ VOID PvGetFileHashes(
         NULL,
         &isb,
         buffer,
-        PAGE_SIZE,
+        PAGE_SIZE * 2,
         NULL,
         NULL
         )))
@@ -551,6 +547,7 @@ VOID PvGetFileHashes(
     PvDestroyHashHandle(hashContextSha256);
     PvDestroyHashHandle(hashContextSha1);
     PvDestroyHashHandle(hashContextMd5);
+    PhFree(buffer);
 }
 
 NTSTATUS PvGetMappedImageMicrosoftImpHash(
@@ -569,12 +566,7 @@ NTSTATUS PvGetMappedImageMicrosoftImpHash(
 
     if (NT_SUCCESS(status))
     {
-        PPH_STRING string;
-
-        string = PhBufferToHexString(importTableMd5Hash, sizeof(importTableMd5Hash));
-        _wcsupr(string->Buffer);
-
-        *HashResult = string;
+        *HashResult = PhBufferToHexString(importTableMd5Hash, sizeof(importTableMd5Hash));
         return STATUS_SUCCESS;
     }
 
@@ -1111,31 +1103,35 @@ BOOLEAN PvGetMappedImageImphash(
     return TRUE;
 }
 
-VOID PvEnumFileHashes(
-    _In_ HWND ListViewHandle
+NTSTATUS PvPeFileHashThread(
+    _In_ PPV_PE_HASHWND_CONTEXT Context
     )
 {
-    ULONG count = 0;
     HANDLE fileHandle;
-    INT lvItemIndex;
+    BOOLEAN checkImports = !!PhGetMappedImageDirectoryEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_IMPORT);
+    PPH_LIST pagehashesList = NULL;
     PPH_STRING crc32HashString = NULL;
     PPH_STRING md5HashString = NULL;
     PPH_STRING sha1HashString = NULL;
     PPH_STRING sha2HashString = NULL;
     PPH_STRING sha384HashString = NULL;
     PPH_STRING sha512HashString = NULL;
-    PPH_STRING authentihashString = NULL;
+    PPH_STRING authentihashSha1String = NULL;
+    PPH_STRING authentihashSha256String = NULL;
+    PPH_STRING wdaghashSha1String = NULL;
+    PPH_STRING wdaghashSha256String = NULL;
     PPH_STRING imphashString = NULL;
     PPH_STRING imphashFuzzyString = NULL;
     PPH_STRING impMsftHashString = NULL;
     PPH_STRING ssdeepHashString = NULL;
     PPH_STRING tlshHashString = NULL;
-    WCHAR number[PH_PTR_STR_LEN_1];
+
+    // File hashes
 
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_READ_DATA | SYNCHRONIZE,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
@@ -1152,8 +1148,11 @@ VOID PvEnumFileHashes(
             &sha512HashString
             );
 
-        PhSetFilePosition(fileHandle, NULL);
-        PvGetMappedImageMicrosoftImpHash(fileHandle, &impMsftHashString);
+        if (checkImports)
+        {
+            PhSetFilePosition(fileHandle, NULL);
+            PvGetMappedImageMicrosoftImpHash(fileHandle, &impMsftHashString);
+        }
 
         PhSetFilePosition(fileHandle, NULL);
         fuzzy_hash_file(fileHandle, &ssdeepHashString);
@@ -1163,6 +1162,15 @@ VOID PvEnumFileHashes(
 
         NtClose(fileHandle);
     }
+
+    // Import hashes
+
+    if (checkImports)
+    {
+        PvGetMappedImageImphash(&imphashString, &imphashFuzzyString);
+    }
+
+    // Fuzzy hashes
 
     if (PhIsNullOrEmptyString(ssdeepHashString))
     {
@@ -1174,243 +1182,78 @@ VOID PvEnumFileHashes(
         PvGetTlshBufferHash(PvMappedImage.ViewBase, PvMappedImage.Size, &tlshHashString);
     }
 
-    // File hashes
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_CRC32, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"CRC32");
-
-    if (!PhIsNullOrEmptyString(crc32HashString))
-    {
-        _wcsupr(crc32HashString->Buffer);
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(crc32HashString));
-        PhDereferenceObject(crc32HashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_MD5, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"MD5");
-
-    if (!PhIsNullOrEmptyString(md5HashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(md5HashString));
-        PhDereferenceObject(md5HashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA1, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SHA-1");
-
-    if (!PhIsNullOrEmptyString(sha1HashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(sha1HashString));
-        PhDereferenceObject(sha1HashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA256, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SHA-256");
-
-    if (!PhIsNullOrEmptyString(sha2HashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(sha2HashString));
-        PhDereferenceObject(sha2HashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA348, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SHA-384");
-
-    if (!PhIsNullOrEmptyString(sha384HashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(sha384HashString));
-        PhDereferenceObject(sha384HashString);
-    }
-    else
-    {
-
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA512, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SHA-512");
-
-    if (!PhIsNullOrEmptyString(sha512HashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(sha512HashString));
-        PhDereferenceObject(sha512HashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    // Import hashes
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASH, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Imphash");
-
-    if (PvGetMappedImageImphash(&imphashString, &imphashFuzzyString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetStringOrDefault(imphashString, L"ERROR"));
-        PhClearReference(&imphashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASHMSFT, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Imphash (Microsoft)");
-
-    if (!PhIsNullOrEmptyString(impMsftHashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(impMsftHashString));
-        PhDereferenceObject(impMsftHashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_IMPFUZZY, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Impfuzzy");
-
-    if (!PhIsNullOrEmptyString(imphashFuzzyString)) // HACK
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(imphashFuzzyString));
-        PhClearReference(&imphashFuzzyString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    // SSDEEP
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_SSDEEP, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"SSDEEP");
-
-    if (!PhIsNullOrEmptyString(ssdeepHashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(ssdeepHashString));
-        PhDereferenceObject(ssdeepHashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    // TLSH
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_TLSH, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"TLSH");
-
-    if (!PhIsNullOrEmptyString(tlshHashString))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(tlshHashString));
-        PhDereferenceObject(tlshHashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
     // Authentihash (Authenticode)
 
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA1, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Authentihash (SHA1)");
-
-    if (authentihashString = PvGetMappedImageAuthentihash(BCRYPT_SHA1_ALGORITHM))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(authentihashString));
-        PhDereferenceObject(authentihashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA256, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"Authentihash (SHA2)");
-
-    if (authentihashString = PvGetMappedImageAuthentihash(BCRYPT_SHA256_ALGORITHM))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(authentihashString));
-        PhDereferenceObject(authentihashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
+    authentihashSha1String = PvGetMappedImageAuthentihash(BCRYPT_SHA1_ALGORITHM);
+    authentihashSha256String = PvGetMappedImageAuthentihash(BCRYPT_SHA256_ALGORITHM);
 
     // Page hash (WDAC)
 
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_WDACPAGEHASH, PV_HASHLIST_INDEX_WDACPAGEHASH_SHA1, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"WDAC (SHA1)");
-
-    if (authentihashString = PvGetMappedImageWdacPageHash(BCRYPT_SHA1_ALGORITHM))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(authentihashString));
-        PhDereferenceObject(authentihashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
-
-    PhPrintUInt32(number, ++count);
-    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, PV_HASHLIST_CATEGORY_WDACPAGEHASH, PV_HASHLIST_INDEX_WDACPAGEHASH_SHA256, number, NULL);
-    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, L"WDAC (SHA2)");
-
-    if (authentihashString = PvGetMappedImageWdacPageHash(BCRYPT_SHA256_ALGORITHM))
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(authentihashString));
-        PhDereferenceObject(authentihashString);
-    }
-    else
-    {
-        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ERROR");
-    }
+    wdaghashSha1String = PvGetMappedImageWdacPageHash(BCRYPT_SHA1_ALGORITHM);
+    wdaghashSha256String = PvGetMappedImageWdacPageHash(BCRYPT_SHA256_ALGORITHM);
 
     // Page hash (Authenticode)
 
-    PvEnumSpcAuthenticodePageHashes(ListViewHandle, &count);
+    pagehashesList = PvEnumSpcAuthenticodePageHashes();
+
+    // Update results...
+    {
+        PPV_PE_HASH_RESULTS results;
+
+        results = PhAllocateZero(sizeof(PV_PE_HASH_RESULTS));
+        results->ImageHasImports = checkImports;
+        results->Crc32HashString = crc32HashString;
+        results->Md5HashString = md5HashString;
+        results->Sha1HashString = sha1HashString;
+        results->Sha2HashString = sha2HashString;
+        results->Sha384HashString = sha384HashString;
+        results->Sha512HashString = sha512HashString;
+        results->AuthentihashSha1String = authentihashSha1String;
+        results->AuthentihashSha256String = authentihashSha256String;
+        results->WdaghashSha1String = wdaghashSha1String;
+        results->WdaghashSha256String = wdaghashSha256String;
+        results->ImphashString = imphashString;
+        results->ImphashFuzzyString = imphashFuzzyString;
+        results->ImpMsftHashString = impMsftHashString;
+        results->SsdeepHashString = ssdeepHashString;
+        results->TlshHashString = tlshHashString;
+        results->PageHashList = pagehashesList;
+
+        PostMessage(Context->WindowHandle, WM_PV_HASH_FINISHED, 0, (LPARAM)results);
+    }
+
+    return STATUS_SUCCESS;
 }
 
-NTSTATUS PvPeFileHashThread(
-    _In_ PPV_PE_HASHWND_CONTEXT Context
+VOID PvPeHashesAddListViewItem(
+    _In_ HWND ListViewHandle,
+    _In_ INT ListViewGroup,
+    _In_ INT ListViewIndex,
+    _In_ PULONG Count,
+    _In_ BOOLEAN UpperCase,
+    _In_opt_ PWSTR ErrorText,
+    _In_ PWSTR Text,
+    _In_opt_ PPH_STRING Result
     )
 {
-    PvEnumFileHashes(Context->ListViewHandle);
+    INT lvItemIndex;
+    WCHAR number[PH_PTR_STR_LEN_1];
 
-    PostMessage(Context->WindowHandle, WM_PV_HASH_FINISHED, 0, 0);
-    return STATUS_SUCCESS;
+    PhPrintUInt32(number, ++(*Count));
+    lvItemIndex = PhAddListViewGroupItem(ListViewHandle, ListViewGroup, ListViewIndex, number, NULL);
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, Text);
+
+    if (!PhIsNullOrEmptyString(Result))
+    {
+        if (UpperCase) _wcsupr(Result->Buffer);
+
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(Result));
+        PhDereferenceObject(Result);
+    }
+    else
+    {
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, ErrorText ? ErrorText : L"ERROR");
+    }
 }
 
 INT_PTR CALLBACK PvpPeHashesDlgProc(
@@ -1469,8 +1312,6 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhAddListViewGroup(context->ListViewHandle, PV_HASHLIST_CATEGORY_WDACPAGEHASH, L"Page hashes (WDAC)");
             PhAddListViewGroup(context->ListViewHandle, PV_HASHLIST_CATEGORY_PAGEHASH, L"Page hashes (Authenticode)");
 
-            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
-            ListView_DeleteAllItems(context->ListViewHandle);
             PhCreateThread2(PvPeFileHashThread, context);
 
             PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
@@ -1480,6 +1321,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
         {
             PhSaveListViewColumnsToSetting(L"ImageHashesListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -1506,6 +1348,23 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
         break;
     case WM_NOTIFY:
         {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case LVN_GETEMPTYMARKUP:
+                {
+                    NMLVEMPTYMARKUP* listview = (NMLVEMPTYMARKUP*)lParam;
+
+                    listview->dwFlags = EMF_CENTERED;
+                    wcsncpy_s(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Generating hashes...", _TRUNCATE);
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                    return TRUE;
+                }
+                break;
+            }
+
             PvHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
@@ -1527,6 +1386,71 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
         break;
     case WM_PV_HASH_FINISHED:
         {
+            PPV_PE_HASH_RESULTS results = (PPV_PE_HASH_RESULTS)lParam;
+            ULONG count = 0;
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+            ListView_DeleteAllItems(context->ListViewHandle);
+
+            // File hashes
+
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_CRC32, &count, TRUE, NULL, L"CRC32", results->Crc32HashString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_MD5, &count, TRUE, NULL, L"MD5", results->Md5HashString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA1, &count, TRUE, NULL, L"SHA-1", results->Sha1HashString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA256, &count, TRUE, NULL, L"SHA-256", results->Sha2HashString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA348, &count, TRUE, NULL, L"SHA-384", results->Sha384HashString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FILEHASH, PV_HASHLIST_INDEX_SHA512, &count, TRUE, NULL, L"SHA-512", results->Sha512HashString);
+
+            // Import hashes
+
+            if (results->ImageHasImports)
+            {
+                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASH, &count, FALSE, NULL, L"Imphash", results->ImphashString);
+                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASHMSFT, &count, TRUE, NULL, L"Imphash (Microsoft)", results->ImpMsftHashString);
+                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_IMPFUZZY, &count, FALSE, NULL, L"Impfuzzy", results->ImphashFuzzyString);
+            }
+            else
+            {
+                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASH, &count, FALSE, L"N/A", L"Imphash", NULL);
+                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_IMPORTHASH, PV_HASHLIST_INDEX_IMPHASHMSFT, &count, FALSE, L"N/A", L"Imphash (Microsoft)", NULL);
+                PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_IMPFUZZY, &count, FALSE, L"N/A", L"Impfuzzy", NULL);
+            }
+
+            // Fuzzy hashes
+
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_SSDEEP, &count, FALSE, NULL, L"SSDEEP", results->SsdeepHashString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_TLSH, &count, FALSE, NULL, L"TLSH", results->TlshHashString);
+
+            // Authentihash (Authenticode)
+
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA1, &count, TRUE, NULL, L"Authentihash (SHA-1)", results->AuthentihashSha1String);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_AUTHENTIHASH, PV_HASHLIST_INDEX_AUTHENTIHASH_SHA256, &count, TRUE, NULL, L"Authentihash (SHA-256)", results->AuthentihashSha256String);
+
+            // Page hash (WDAC)
+
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_WDACPAGEHASH, PV_HASHLIST_INDEX_WDACPAGEHASH_SHA1, &count, TRUE, NULL, L"WDAC (SHA-1)", results->WdaghashSha1String);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_WDACPAGEHASH, PV_HASHLIST_INDEX_WDACPAGEHASH_SHA256, &count, TRUE, NULL, L"WDAC (SHA-256)", results->WdaghashSha256String);
+
+            // Page hash (Authenticode)
+
+            if (results->PageHashList)
+            {
+                for (ULONG i = 0; i < results->PageHashList->Count; i++)
+                {
+                    PSPC_PE_IMAGE_PAGE_HASHES_V2 entry = results->PageHashList->Items[i];
+                    PPH_STRING hashString;
+                    WCHAR number[PH_PTR_STR_LEN_1];
+
+                    PhPrintPointer(number, UlongToPtr(entry->PageOffset));
+                    hashString = PhBufferToHexString(entry->PageHash, sizeof(entry->PageHash));
+
+                    PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_PAGEHASH, MAXINT, &count, TRUE, NULL, number, hashString);
+                    PhFree(entry);
+                }
+
+                PhDereferenceObject(results->PageHashList);
+            }
+
             ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
         }
         break;

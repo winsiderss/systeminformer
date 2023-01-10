@@ -301,7 +301,7 @@ ULONG CALLBACK PvUnhandledExceptionCallback(
     PPH_STRING message;
 
     if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
-        errorMessage = PhGetStatusMessage(0, WIN32_FROM_NTSTATUS(ExceptionInfo->ExceptionRecord->ExceptionCode));
+        errorMessage = PhGetStatusMessage(0, PhNtStatusToDosError(ExceptionInfo->ExceptionRecord->ExceptionCode));
     else
         errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
 
@@ -336,7 +336,7 @@ BOOLEAN PvInitializeExceptionPolicy(
 
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
-        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        ClearFlag(errorMode, SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 

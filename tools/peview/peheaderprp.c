@@ -946,6 +946,8 @@ INT_PTR CALLBACK PvPeHeadersDlgProc(
         {
             PhSaveListViewGroupStatesToSetting(L"ImageHeadersListViewGroupStates", context->ListViewHandle);
             PhSaveListViewColumnsToSetting(L"ImageHeadersListViewColumns", context->ListViewHandle);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:

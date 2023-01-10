@@ -2435,7 +2435,7 @@ BOOLEAN PhUiRestartProcess(
         // is located in the current user registry hive. This is especially noticeable when we're running elevated with a
         // different user on the same desktop session via UAC over-the-shoulder elevation and try to restart notepad.exe
         // so we're required to impersonate the token before restarting full-trust immersive/store processes... sigh. (dmex)
-        if (PhIsTokenFullTrustAppPackage(tokenHandle))
+        if (PhIsTokenFullTrustPackage(tokenHandle))
         {
             NtClose(tokenHandle);
             tokenHandle = NULL;
@@ -2680,6 +2680,15 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
             PROCESS_SET_QUOTA,
             Processes[i]->ProcessId
             );
+
+        if ((status == STATUS_ACCESS_DENIED) && (KphLevel() == KphLevelMax))
+        {
+            status = PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_LIMITED_INFORMATION, // HACK for KphProcessEmptyWorkingSet (dmex)
+                Processes[i]->ProcessId
+                );
+        }
 
         if (NT_SUCCESS(status))
         {
@@ -3306,7 +3315,7 @@ BOOLEAN PhUiStartServices(
             if (StartService(serviceHandle, 0, NULL))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3338,7 +3347,7 @@ BOOLEAN PhUiStartService(
         if (StartService(serviceHandle, 0, NULL))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3397,7 +3406,7 @@ BOOLEAN PhUiContinueServices(
             if (ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3431,7 +3440,7 @@ BOOLEAN PhUiContinueService(
         if (ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3490,7 +3499,7 @@ BOOLEAN PhUiPauseServices(
             if (ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3524,7 +3533,7 @@ BOOLEAN PhUiPauseService(
         if (ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3583,7 +3592,7 @@ BOOLEAN PhUiStopServices(
             if (ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
                 success = TRUE;
 
-            CloseServiceHandle(serviceHandle);
+            PhCloseServiceHandle(serviceHandle);
         }
 
         if (!success)
@@ -3618,7 +3627,7 @@ BOOLEAN PhUiStopService(
         if (ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3680,7 +3689,7 @@ BOOLEAN PhUiDeleteService(
         if (DeleteService(serviceHandle))
             success = TRUE;
 
-        CloseServiceHandle(serviceHandle);
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!success)
@@ -3722,7 +3731,6 @@ BOOLEAN PhUiCloseConnections(
     _In_ ULONG NumberOfConnections
     )
 {
-
     BOOLEAN success = TRUE;
     BOOLEAN cancelled = FALSE;
     ULONG result;

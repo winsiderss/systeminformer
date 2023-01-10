@@ -1,9 +1,7 @@
 #ifndef _PH_EMENU_H
 #define _PH_EMENU_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #define PH_EMENU_DISABLED 0x1
 #define PH_EMENU_CHECKED 0x2
@@ -159,7 +157,7 @@ VOID PhLoadResourceEMenuItem(
     _Inout_ PPH_EMENU_ITEM MenuItem,
     _In_ HINSTANCE InstanceHandle,
     _In_ PWSTR Resource,
-    _In_ ULONG SubMenuIndex
+    _In_ INT SubMenuIndex
     );
 
 #define PH_EMENU_SHOW_SEND_COMMAND 0x1
@@ -250,8 +248,6 @@ VOID PhSetEnabledEMenuItem(
         Item->Flags |= PH_EMENU_DISABLED;
 }
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

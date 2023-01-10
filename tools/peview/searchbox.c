@@ -10,9 +10,8 @@
  */
 
 #include <peview.h>
-#include <uxtheme.h>
 #include <vssym32.h>
-#include <wincodec.h>
+//#include <wincodec.h>
 
 typedef struct _EDIT_CONTEXT
 {
@@ -40,12 +39,6 @@ typedef struct _EDIT_CONTEXT
     HIMAGELIST ImageListHandle;
     PPH_STRING CueBannerText;
 } EDIT_CONTEXT, *PEDIT_CONTEXT;
-
-HICON PhpSearchBitmapToIcon(
-    _In_ HBITMAP BitmapHandle,
-    _In_ INT Width,
-    _In_ INT Height
-    );
 
 VOID PhpSearchFreeTheme(
     _Inout_ PEDIT_CONTEXT Context
@@ -105,26 +98,26 @@ VOID PhpSearchInitializeTheme(
 
     borderX = PhGetSystemMetrics(SM_CXBORDER, dpiValue);
 
-    if (IsThemeActive())
+    if (PhIsThemeActive())
     {
         HTHEME themeDataHandle;
 
-        if (themeDataHandle = OpenThemeData(WindowHandle, VSCLASS_EDIT))
+        if (themeDataHandle = PhOpenThemeData(WindowHandle, VSCLASS_EDIT, dpiValue))
         {
             //IsThemePartDefined_I(themeDataHandle, EP_EDITBORDER_NOSCROLL, EPSHV_NORMAL);
 
-            if (!SUCCEEDED(GetThemeInt(
+            if (!PhGetThemeInt(
                 themeDataHandle,
                 EP_EDITBORDER_NOSCROLL,
                 EPSHV_NORMAL,
                 TMT_BORDERSIZE,
                 &Context->CXBorder
-                )))
+                ))
             {
                 Context->CXBorder = borderX * 2;
             }
 
-            CloseThemeData(themeDataHandle);
+            PhCloseThemeData(themeDataHandle);
         }
         else
         {
@@ -135,148 +128,6 @@ VOID PhpSearchInitializeTheme(
     {
         Context->CXBorder = borderX * 2;
     }
-}
-
-HBITMAP PhLoadPngImageFromResource(
-    _In_ PVOID DllBase,
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ PCWSTR Name,
-    _In_ BOOLEAN RGBAImage
-    )
-{
-    BOOLEAN success = FALSE;
-    UINT frameCount = 0;
-    ULONG resourceLength = 0;
-    WICInProcPointer resourceBuffer = NULL;
-    HDC screenHdc;
-    BITMAPINFO bitmapInfo;
-    HBITMAP bitmapHandle = NULL;
-    PVOID bitmapBuffer = NULL;
-    IWICStream* wicStream = NULL;
-    IWICBitmapSource* wicBitmapSource = NULL;
-    IWICBitmapDecoder* wicDecoder = NULL;
-    IWICBitmapFrameDecode* wicFrame = NULL;
-    IWICImagingFactory* wicFactory = NULL;
-    IWICBitmapScaler* wicScaler = NULL;
-    WICPixelFormatGUID pixelFormat;
-    WICRect rect = { 0, 0, Width, Height };
-
-    // Load the resource
-    if (!PhLoadResource(DllBase, Name, L"PNG", &resourceLength, &resourceBuffer))
-        goto CleanupExit;
-
-    // Create the ImagingFactory
-    if (FAILED(PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicFactory)))
-        goto CleanupExit;
-
-    // Create the Stream
-    if (FAILED(IWICImagingFactory_CreateStream(wicFactory, &wicStream)))
-        goto CleanupExit;
-
-    // Initialize the Stream from Memory
-    if (FAILED(IWICStream_InitializeFromMemory(wicStream, resourceBuffer, resourceLength)))
-        goto CleanupExit;
-
-    if (FAILED(IWICImagingFactory_CreateDecoder(wicFactory, &GUID_ContainerFormatPng, NULL, &wicDecoder)))
-        goto CleanupExit;
-
-    if (FAILED(IWICBitmapDecoder_Initialize(wicDecoder, (IStream*)wicStream, WICDecodeMetadataCacheOnLoad)))
-        goto CleanupExit;
-
-    // Get the Frame count
-    if (FAILED(IWICBitmapDecoder_GetFrameCount(wicDecoder, &frameCount)) || frameCount < 1)
-        goto CleanupExit;
-
-    // Get the Frame
-    if (FAILED(IWICBitmapDecoder_GetFrame(wicDecoder, 0, &wicFrame)))
-        goto CleanupExit;
-
-    // Get the WicFrame image format
-    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicFrame, &pixelFormat)))
-        goto CleanupExit;
-
-    // Check if the image format is supported:
-    if (IsEqualGUID(&pixelFormat, RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA))
-    {
-        wicBitmapSource = (IWICBitmapSource*)wicFrame;
-    }
-    else
-    {
-        IWICFormatConverter* wicFormatConverter = NULL;
-
-        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicFactory, &wicFormatConverter)))
-            goto CleanupExit;
-
-        if (FAILED(IWICFormatConverter_Initialize(
-            wicFormatConverter,
-            (IWICBitmapSource*)wicFrame,
-            RGBAImage ? &GUID_WICPixelFormat32bppPRGBA : &GUID_WICPixelFormat32bppPBGRA,
-            WICBitmapDitherTypeNone,
-            NULL,
-            0.0,
-            WICBitmapPaletteTypeCustom
-            )))
-        {
-            IWICFormatConverter_Release(wicFormatConverter);
-            goto CleanupExit;
-        }
-
-        // Convert the image to the correct format:
-        IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource);
-
-        // Cleanup the converter.
-        IWICFormatConverter_Release(wicFormatConverter);
-
-        // Dispose the old frame now that the converted frame is in wicBitmapSource.
-        IWICBitmapFrameDecode_Release(wicFrame);
-    }
-
-    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bitmapInfo.bmiHeader.biPlanes = 1;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
-    bitmapInfo.bmiHeader.biWidth = rect.Width;
-    bitmapInfo.bmiHeader.biHeight = -((LONG)rect.Height);
-    bitmapInfo.bmiHeader.biBitCount = 32;
-
-    screenHdc = GetDC(NULL);
-    bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
-    ReleaseDC(NULL, screenHdc);
-
-    // Check if it's the same rect as the requested size.
-    //if (width != rect.Width || height != rect.Height)
-    if (FAILED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicScaler)))
-        goto CleanupExit;
-    if (FAILED(IWICBitmapScaler_Initialize(wicScaler, wicBitmapSource, rect.Width, rect.Height, WICBitmapInterpolationModeFant)))
-        goto CleanupExit;
-    if (FAILED(IWICBitmapScaler_CopyPixels(wicScaler, &rect, rect.Width * sizeof(RGBQUAD), rect.Width * rect.Height * sizeof(RGBQUAD), (PBYTE)bitmapBuffer)))
-        goto CleanupExit;
-
-    success = TRUE;
-
-CleanupExit:
-
-    if (wicScaler)
-        IWICBitmapScaler_Release(wicScaler);
-
-    if (wicBitmapSource)
-        IWICBitmapSource_Release(wicBitmapSource);
-
-    if (wicStream)
-        IWICStream_Release(wicStream);
-
-    if (wicDecoder)
-        IWICBitmapDecoder_Release(wicDecoder);
-
-    if (wicFactory)
-        IWICImagingFactory_Release(wicFactory);
-
-    if (success)
-        return bitmapHandle;
-
-    if (bitmapHandle) DeleteBitmap(bitmapHandle);
-    return NULL;
 }
 
 VOID PhpSearchInitializeImages(
@@ -302,7 +153,7 @@ VOID PhpSearchInitializeImages(
         );
     PhImageListSetImageCount(Context->ImageListHandle, 2);
 
-    if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), TRUE))
+    if (bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight))
     {
         PhImageListReplace(Context->ImageListHandle, 0, bitmap, NULL);
         DeleteBitmap(bitmap);
@@ -312,7 +163,7 @@ VOID PhpSearchInitializeImages(
         PhSetImageListBitmap(Context->ImageListHandle, 0, PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_BMP));
     }
 
-    if (bitmap = PhLoadPngImageFromResource(PhInstanceHandle, Context->ImageWidth, Context->ImageHeight, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), TRUE))
+    if (bitmap = PhLoadImageFormatFromResource(PhInstanceHandle, MAKEINTRESOURCE(IDB_SEARCH_INACTIVE), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight))
     {
         PhImageListReplace(Context->ImageListHandle, 1, bitmap, NULL);
         DeleteBitmap(bitmap);
@@ -595,11 +446,10 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (updateRegion == (HRGN)1) // HRGN_FULL
                 updateRegion = NULL;
 
-            // Note the use of undocumented flags below. GetDCEx doesn't work without these.
-            flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | 0x10000;
+            flags = DCX_WINDOW | DCX_LOCKWINDOWUPDATE | DCX_USESTYLE;
 
             if (updateRegion)
-                flags |= DCX_INTERSECTRGN | 0x40000;
+                flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
 
             if (hdc = GetDCEx(hWnd, updateRegion, flags))
             {
@@ -985,32 +835,6 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     }
 
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
-}
-
-HICON PhpSearchBitmapToIcon(
-    _In_ HBITMAP BitmapHandle,
-    _In_ INT Width,
-    _In_ INT Height
-    )
-{
-    HICON icon;
-    HDC screenDc;
-    HBITMAP screenBitmap;
-    ICONINFO iconInfo = { 0 };
-
-    screenDc = CreateCompatibleDC(NULL);
-    screenBitmap = CreateCompatibleBitmap(screenDc, Width, Height);
-
-    iconInfo.fIcon = TRUE;
-    iconInfo.hbmColor = BitmapHandle;
-    iconInfo.hbmMask = screenBitmap;
-
-    icon = CreateIconIndirect(&iconInfo);
-
-    DeleteBitmap(screenBitmap);
-    DeleteDC(screenDc);
-
-    return icon;
 }
 
 VOID PvCreateSearchControl(

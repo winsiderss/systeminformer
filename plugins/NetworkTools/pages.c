@@ -73,7 +73,7 @@ HRESULT CALLBACK CheckingForUpdatesDbCallbackProc(
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
             PhReferenceObject(context);
-            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), GeoLiteUpdateThread, context);
+            PhCreateThread2(GeoLiteUpdateThread, context);
         }
         break;
     }

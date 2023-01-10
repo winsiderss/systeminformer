@@ -1,9 +1,7 @@
 #ifndef _PH_PHNATIVE_H
 #define _PH_PHNATIVE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 /** The PID of the idle process. */
 #define SYSTEM_IDLE_PROCESS_ID ((HANDLE)0)
@@ -494,6 +492,60 @@ PhGetTokenTrustLevel(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetTokenAppContainerSid(
+    _In_ HANDLE TokenHandle,
+    _Out_ PSID* AppContainerSid
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenSecurityAttributes(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_SECURITY_ATTRIBUTES_INFORMATION* SecurityAttributes
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsTokenFullTrustPackage(
+    _In_ HANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetTokenIsLessPrivilegedAppContainer(
+    _In_ HANDLE TokenHandle,
+    _Out_ PBOOLEAN IsLessPrivilegedAppContainer
+    );
+
+PHLIBAPI
+ULONG64
+NTAPI
+PhGetTokenSecurityAttributeValueUlong64(
+    _In_ HANDLE TokenHandle,
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG ValueIndex
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetTokenPackageFullName(
+    _In_ HANDLE TokenHandle
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetProcessPackageFullName(
+    _In_ HANDLE ProcessHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetTokenNamedObjectPath(
     _In_ HANDLE TokenHandle,
     _In_opt_ PSID Sid,
@@ -668,6 +720,14 @@ PhSetFileAllocationSize(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFileIndexNumber(
+    _In_ HANDLE FileHandle,
+    _Out_ PFILE_INTERNAL_INFORMATION IndexNumber
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhDeleteFile(
     _In_ HANDLE FileHandle
     );
@@ -693,7 +753,7 @@ NTSTATUS
 NTAPI
 PhGetFileId(
     _In_ HANDLE FileHandle,
-    _Out_ PFILE_ID_INFORMATION *FileId
+    _Out_ PFILE_ID_INFORMATION FileId
     );
 
 PHLIBAPI
@@ -999,7 +1059,7 @@ PVOID
 NTAPI
 PhGetModuleProcAddress(
     _In_ PWSTR ModuleName,
-    _In_ PSTR ProcName
+    _In_opt_ PSTR ProcedureName
     );
 
 PHLIBAPI
@@ -1628,7 +1688,7 @@ PhCreateFileWin32(
     _Out_ PHANDLE FileHandle,
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions
@@ -1642,7 +1702,7 @@ PhCreateFileWin32Ex(
     _In_ PWSTR FileName,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ PLARGE_INTEGER AllocationSize,
-    _In_opt_ ULONG FileAttributes,
+    _In_ ULONG FileAttributes,
     _In_ ULONG ShareAccess,
     _In_ ULONG CreateDisposition,
     _In_ ULONG CreateOptions,
@@ -1692,6 +1752,7 @@ PhOpenFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRINGREF FileName,
     _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
     _In_ ULONG ShareAccess,
     _In_ ULONG OpenOptions,
     _Out_opt_ PULONG OpenStatus
@@ -1793,7 +1854,8 @@ NTSTATUS
 NTAPI
 PhMoveFileWin32(
     _In_ PWSTR OldFileName,
-    _In_ PWSTR NewFileName
+    _In_ PWSTR NewFileName,
+    _In_ BOOLEAN FailIfExists
     );
 
 PHLIBAPI
@@ -2383,6 +2445,14 @@ PhGetNumaProcessorNode(
     _Out_ PUSHORT NodeNumber
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetProcessValidCallTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    );
+
 typedef struct _PH_SYSTEM_STORE_COMPRESSION_INFORMATION
 {
     ULONG CompressionPid;
@@ -2415,8 +2485,19 @@ PhSetSystemFileCacheSize(
     _In_ ULONG Flags
     );
 
-#ifdef __cplusplus
-}
-#endif
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDeviceIoControlFile(
+    _In_ HANDLE DeviceHandle,
+    _In_ ULONG IoControlCode,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_to_opt_(OutputBufferLength, *ReturnLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+EXTERN_C_END
 
 #endif

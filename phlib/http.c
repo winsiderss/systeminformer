@@ -439,9 +439,53 @@ BOOLEAN PhHttpSocketQueryHeaderUlong(
     _Out_ PULONG HeaderValue
     )
 {
+    //ULONG queryFlags = 0;
+    //ULONG headerValue = 0;
+    //ULONG valueLength = sizeof(ULONG);
+    //
+    //PhMapFlags1(
+    //    &queryFlags,
+    //    QueryValue,
+    //    PhpHttpHeaderQueryMappings,
+    //    RTL_NUMBER_OF(PhpHttpHeaderQueryMappings)
+    //    );
+    //
+    //if (WinHttpQueryHeaders(
+    //    HttpContext->RequestHandle,
+    //    queryFlags | WINHTTP_QUERY_FLAG_NUMBER,
+    //    WINHTTP_HEADER_NAME_BY_INDEX,
+    //    &headerValue,
+    //    &valueLength,
+    //    WINHTTP_NO_HEADER_INDEX
+    //    ))
+    //{
+    //    *HeaderValue = headerValue;
+    //    return TRUE;
+    //}
+
+    ULONG64 headerValue;
+
+    if (PhHttpSocketQueryHeaderUlong64(HttpContext, QueryValue, &headerValue))
+    {
+        if (headerValue <= ULONG_MAX)
+        {
+            *HeaderValue = (ULONG)headerValue;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhHttpSocketQueryHeaderUlong64(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ ULONG QueryValue,
+    _Out_ PULONG64 HeaderValue
+    )
+{
     ULONG queryFlags = 0;
-    ULONG headerValue = 0;
-    ULONG valueLength = sizeof(ULONG);
+    ULONG valueLength = 0x100;
+    WCHAR valueBuffer[0x100];
 
     PhMapFlags1(
         &queryFlags,
@@ -450,43 +494,56 @@ BOOLEAN PhHttpSocketQueryHeaderUlong(
         RTL_NUMBER_OF(PhpHttpHeaderQueryMappings)
         );
 
+    // Note: The WINHTTP_QUERY_FLAG_NUMBER flag returns invalid integers when
+    // querying some types with ULONG64 like WINHTTP_QUERY_STATUS_CODE. So we'll
+    // do the conversion for improved reliability and performance. (dmex)
+
     if (WinHttpQueryHeaders(
         HttpContext->RequestHandle,
-        queryFlags | WINHTTP_QUERY_FLAG_NUMBER,
+        queryFlags,
         WINHTTP_HEADER_NAME_BY_INDEX,
-        &headerValue,
+        valueBuffer,
         &valueLength,
         WINHTTP_NO_HEADER_INDEX
         ))
     {
-        *HeaderValue = headerValue;
-        return TRUE;
+        PH_STRINGREF string;
+        ULONG64 integer;
+
+        string.Buffer = valueBuffer;
+        string.Length = valueLength;
+
+        if (PhStringToInteger64(&string, 10, &integer))
+        {
+            *HeaderValue = integer;
+            return TRUE;
+        }
     }
 
     return FALSE;
 }
 
-ULONG PhHttpSocketQueryStatusCode(
-    _In_ PPH_HTTP_CONTEXT HttpContext
-    )
-{
-    ULONG headerValue = 0;
-    ULONG valueLength = sizeof(ULONG);
-
-    if (WinHttpQueryHeaders(
-        HttpContext->RequestHandle,
-        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-        WINHTTP_HEADER_NAME_BY_INDEX,
-        &headerValue,
-        &valueLength,
-        WINHTTP_NO_HEADER_INDEX
-        ))
-    {
-        return headerValue;
-    }
-
-    return ULONG_MAX;
-}
+//ULONG PhHttpSocketQueryStatusCode(
+//    _In_ PPH_HTTP_CONTEXT HttpContext
+//    )
+//{
+//    ULONG headerValue = 0;
+//    ULONG valueLength = sizeof(ULONG);
+//    
+//    if (WinHttpQueryHeaders(
+//        HttpContext->RequestHandle,
+//        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+//        WINHTTP_HEADER_NAME_BY_INDEX,
+//        &headerValue,
+//        &valueLength,
+//        WINHTTP_NO_HEADER_INDEX
+//        ))
+//    {
+//        return headerValue;
+//    }
+//
+//    return ULONG_MAX;
+//}
 
 PVOID PhHttpSocketQueryOption(
     _In_ PPH_HTTP_CONTEXT HttpContext,
@@ -654,7 +711,7 @@ NTSTATUS PhHttpSocketDownloadToFile(
     NTSTATUS status;
     HANDLE fileHandle;
     LARGE_INTEGER fileSize;
-    ULONG numberOfBytesTotal = 0;
+    ULONG64 numberOfBytesTotal = 0;
     ULONG numberOfBytesRead = 0;
     ULONG64 numberOfBytesReadTotal = 0;
     ULONG64 timeTicks;
@@ -667,14 +724,14 @@ NTSTATUS PhHttpSocketDownloadToFile(
 
     PhQuerySystemTime(&timeStart);
 
-    if (!PhHttpSocketQueryHeaderUlong(HttpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &numberOfBytesTotal))
+    if (!PhHttpSocketQueryHeaderUlong64(HttpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &numberOfBytesTotal))
         return PhGetLastWin32ErrorAsNtStatus();
 
     if (numberOfBytesTotal == 0)
         return STATUS_UNSUCCESSFUL;
 
     fileName = PhGetTemporaryDirectoryRandomAlphaFileName();
-    fileSize.QuadPart = numberOfBytesTotal;
+    fileSize.QuadPart = (LONGLONG)numberOfBytesTotal;
 
     if (PhIsNullOrEmptyString(fileName))
         return STATUS_UNSUCCESSFUL;
@@ -734,7 +791,7 @@ NTSTATUS PhHttpSocketDownloadToFile(
             context.ReadLength = numberOfBytesReadTotal;
             context.TotalLength = numberOfBytesTotal;
             context.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);
-            context.Percent = (((DOUBLE)numberOfBytesReadTotal / numberOfBytesTotal) * 100);
+            context.Percent = (((DOUBLE)numberOfBytesReadTotal / (DOUBLE)numberOfBytesTotal) * 100);
 
             if (!Callback(&context, Context))
                 break;
@@ -759,7 +816,7 @@ NTSTATUS PhHttpSocketDownloadToFile(
 
         if (NT_SUCCESS(status))
         {
-            status = PhMoveFileWin32(PhGetString(fileName), PhGetStringRefZ(FileName));
+            status = PhMoveFileWin32(PhGetString(fileName), PhGetStringRefZ(FileName), FALSE);
         }
     }
 

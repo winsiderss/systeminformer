@@ -175,7 +175,7 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
     );
 #endif
 
-extern PH_STRINGREF PhpLoadingText;
+extern PH_STRINGREF PhProcessPropPageLoadingText;
 
 #define WM_PH_THREADS_UPDATED (WM_APP + 200)
 #define WM_PH_THREAD_SELECTION_CHANGED (WM_APP + 201)

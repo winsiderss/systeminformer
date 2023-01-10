@@ -1,11 +1,7 @@
 #ifndef _PH_PHUTIL_H
 #define _PH_PHUTIL_H
 
-#include <shellscalingapi.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 extern WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
@@ -202,8 +198,8 @@ BOOL
 NTAPI
 PhGetSystemParametersInfo(
     _In_ INT Action,
-	_In_ UINT Param1,
-	_Pre_maybenull_ _Post_valid_ PVOID Param2,
+    _In_ UINT Param1,
+    _Pre_maybenull_ _Post_valid_ PVOID Param2,
     _In_opt_ LONG DpiValue
     );
 
@@ -456,6 +452,18 @@ NTAPI
 PhGenerateGuid(
     _Out_ PGUID Guid
     );
+
+FORCEINLINE
+VOID
+NTAPI
+PhReverseGuid(
+    _Inout_ PGUID Guid
+    )
+{
+    Guid->Data1 = _byteswap_ulong(Guid->Data1);
+    Guid->Data2 = _byteswap_ushort(Guid->Data2);
+    Guid->Data3 = _byteswap_ushort(Guid->Data3);
+}
 
 PHLIBAPI
 VOID
@@ -869,9 +877,22 @@ PhGetTemporaryDirectoryRandomAlphaFileName(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetApplicationDataDirectory(
+PhGetRoamingAppDataDirectory(
     _In_ PPH_STRINGREF FileName
     );
+
+FORCEINLINE
+PPH_STRING
+PhGetRoamingAppDataDirectoryZ(
+    _In_ PWSTR String
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+
+    return PhGetRoamingAppDataDirectory(&string);
+}
 
 PHLIBAPI
 PPH_STRING
@@ -881,11 +902,28 @@ PhGetApplicationDataFileName(
     _In_ BOOLEAN NativeFileName
     );
 
+DECLSPEC_SELECTANY GUID FOLDERID_LocalAppData = { 0xF1B32785, 0x6FBA, 0x4FCF, 0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91 };
+DECLSPEC_SELECTANY GUID FOLDERID_RoamingAppData = { 0x3EB685DB, 0x65F9, 0x4CF6, 0xA0, 0x3A, 0xE3, 0xEF, 0x65, 0x72, 0x9F, 0x3D };
+DECLSPEC_SELECTANY GUID FOLDERID_ProgramFiles = { 0x905e63b6, 0xc1bf, 0x494e, 0xb2, 0x9c, 0x65, 0xb7, 0x32, 0xd3, 0xd2, 0x1a };
+
+#define PH_KF_FLAG_FORCE_PACKAGE_REDIRECTION 0x1
+#define PH_KF_FLAG_FORCE_APPCONTAINER_REDIRECTION 0x2
+
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetKnownLocation(
-    _In_ ULONG Folder,
+PhGetKnownFolderPath(
+    _In_ PGUID Folder,
+    _In_opt_ PWSTR AppendPath
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetKnownFolderPathEx(
+    _In_ PGUID Folder,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
     _In_opt_ PWSTR AppendPath
     );
 
@@ -1868,6 +1906,7 @@ NTSTATUS
 NTAPI
 PhCreateProcessRedirection(
     _In_ PPH_STRING CommandLine,
+    _In_opt_ PPH_STRINGREF CommandInput,
     _Out_opt_ PPH_STRING* CommandOutput
     );
 
@@ -1896,8 +1935,6 @@ PhUpdateProcThreadAttribute(
     _In_ SIZE_T BufferLength
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

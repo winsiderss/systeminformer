@@ -11,9 +11,9 @@
 
 #include <peview.h>
 #include <symprv.h>
-#include <uxtheme.h>
 
 #include <dbghelp.h>
+#define COM_NO_WINDOWS_H 1
 #include "dia2.h"
 
 ULONG SearchResultsAddIndex = 0;

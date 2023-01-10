@@ -6,12 +6,11 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
 #include <phapp.h>
-#include <appresolver.h>
 #include <modprv.h>
 
 #include <mapimg.h>
@@ -131,55 +130,42 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     if (processItem = PhReferenceProcessItem(ProcessId))
     {
         PhSetReference(&moduleProvider->ProcessFileName, processItem->FileName);
+        PhSetReference(&moduleProvider->PackageFullName, processItem->PackageFullName);
+        moduleProvider->IsSubsystemProcess = !!processItem->IsSubsystemProcess;
         PhDereferenceObject(processItem);
     }
 
-    if (WindowsVersion >= WINDOWS_8 && moduleProvider->ProcessHandle)
+    if (WindowsVersion >= WINDOWS_8_1 && moduleProvider->ProcessHandle)
     {
-        moduleProvider->PackageFullName = PhGetProcessPackageFullName(moduleProvider->ProcessHandle);
+        BOOLEAN cfguardEnabled;
 
-        if (WindowsVersion >= WINDOWS_8_1)
+        if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(moduleProvider->ProcessHandle, &cfguardEnabled)))
         {
-            BOOLEAN cfguardEnabled;
-
-            if (NT_SUCCESS(PhGetProcessIsCFGuardEnabled(moduleProvider->ProcessHandle, &cfguardEnabled)))
-            {
-                moduleProvider->ControlFlowGuardEnabled = cfguardEnabled;
-            }
+            moduleProvider->ControlFlowGuardEnabled = cfguardEnabled;
         }
     }
 
-    if (WindowsVersion >= WINDOWS_10 && moduleProvider->ProcessHandle)
+    if (WindowsVersion >= WINDOWS_10_20H1 && moduleProvider->ProcessHandle)
     {
-        PROCESS_EXTENDED_BASIC_INFORMATION basicInfo;
-
-        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(moduleProvider->ProcessHandle, &basicInfo)))
+        if (moduleProvider->ProcessId == SYSTEM_PROCESS_ID)
         {
-            moduleProvider->IsSubsystemProcess = !!basicInfo.IsSubsystemProcess;
-        }
+            SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
 
-        if (WindowsVersion >= WINDOWS_10_20H1)
-        {
-            if (moduleProvider->ProcessId == SYSTEM_PROCESS_ID)
+            if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
             {
-                SYSTEM_SHADOW_STACK_INFORMATION shadowStackInformation;
-
-                if (NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStackInformation)))
-                {
-                    moduleProvider->CetEnabled = !!shadowStackInformation.KernelCetEnabled;
-                    moduleProvider->CetStrictModeEnabled = TRUE; // Kernel CET is always strict (TheEragon)
-                }
+                moduleProvider->CetEnabled = !!shadowStackInformation.KernelCetEnabled;
+                moduleProvider->CetStrictModeEnabled = TRUE; // Kernel CET is always strict (TheEragon)
             }
-            else
-            {
-                BOOLEAN cetEnabled;
-                BOOLEAN cetStrictModeEnabled;
+        }
+        else
+        {
+            BOOLEAN cetEnabled;
+            BOOLEAN cetStrictModeEnabled;
 
-                if (NT_SUCCESS(PhGetProcessIsCetEnabled(moduleProvider->ProcessHandle, &cetEnabled, &cetStrictModeEnabled)))
-                {
-                    moduleProvider->CetEnabled = cetEnabled;
-                    moduleProvider->CetStrictModeEnabled = cetStrictModeEnabled;
-                }
+            if (NT_SUCCESS(PhGetProcessIsCetEnabled(moduleProvider->ProcessHandle, &cetEnabled, &cetStrictModeEnabled)))
+            {
+                moduleProvider->CetEnabled = cetEnabled;
+                moduleProvider->CetStrictModeEnabled = cetStrictModeEnabled;
             }
         }
     }

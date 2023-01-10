@@ -384,26 +384,19 @@ VOID UpdateThreadStackNode(
 BOOLEAN NTAPI ThreadStackTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_STACK_CONTEXT context = Context;
     PPH_STACK_TREE_ROOT_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPH_STACK_TREE_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -443,10 +436,6 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPH_STACK_TREE_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -455,10 +444,6 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPH_STACK_TREE_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -512,10 +497,6 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPH_STACK_TREE_ROOT_NODE)getNodeColor->Node;
 
             if (context->HighlightInlineFrames && PhIsStackFrameTypeInline(node->StackFrame.InlineFrameContext))
@@ -557,9 +538,6 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
 
-            if (!keyEvent)
-                break;
-
             switch (keyEvent->VirtualKey)
             {
             case VK_F5:
@@ -592,10 +570,6 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
     case TreeNewGetCellTooltip:
         {
             PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
-
-            if (!getCellTooltip)
-                break;
-
             node = (PPH_STACK_TREE_ROOT_NODE)getCellTooltip->Node;
 
             if (getCellTooltip->Column->Id != 0)

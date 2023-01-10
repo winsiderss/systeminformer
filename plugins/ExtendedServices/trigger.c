@@ -818,9 +818,9 @@ VOID EsHandleEventServiceTrigger(
             PES_TRIGGER_INFO info;
             ULONG index;
 
-            lvItemIndex = PhFindListViewItemByFlags(Context->TriggersLv, -1, LVNI_SELECTED);
+            lvItemIndex = PhFindListViewItemByFlags(Context->TriggersLv, INT_ERROR, LVNI_SELECTED);
 
-            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
+            if (lvItemIndex != INT_ERROR && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
             {
                 index = PhFindItemList(Context->InfoList, info);
 
@@ -869,9 +869,9 @@ VOID EsHandleEventServiceTrigger(
             PES_TRIGGER_INFO info;
             ULONG index;
 
-            lvItemIndex = PhFindListViewItemByFlags(Context->TriggersLv, -1, LVNI_SELECTED);
+            lvItemIndex = PhFindListViewItemByFlags(Context->TriggersLv, INT_ERROR, LVNI_SELECTED);
 
-            if (lvItemIndex != -1 && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
+            if (lvItemIndex != INT_ERROR && PhGetListViewItemParam(Context->TriggersLv, lvItemIndex, (PVOID *)&info))
             {
                 index = PhFindItemList(Context->InfoList, info);
 
@@ -966,7 +966,6 @@ VOID EspFixServiceTriggerControls(
             {
                 PETW_PUBLISHER_ENTRY entries;
                 ULONG numberOfEntries;
-                ULONG i;
 
                 ComboBox_AddString(subTypeComboBox, L"Custom");
 
@@ -1328,10 +1327,10 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     ULONG index;
 
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                    lvItemIndex = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(lvHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (
-                        lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data) &&
+                        lvItemIndex != INT_ERROR && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data) &&
                         data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING // editing binary values is not supported
                         )
                     {
@@ -1371,9 +1370,9 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     ULONG index;
 
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                    lvItemIndex = PhFindListViewItemByFlags(lvHandle, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(lvHandle, INT_ERROR, LVNI_SELECTED);
 
-                    if (lvItemIndex != -1 && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data))
+                    if (lvItemIndex != INT_ERROR && PhGetListViewItemParam(lvHandle, lvItemIndex, (PVOID *)&data))
                     {
                         index = PhFindItemList(context->EditingInfo->DataList, data);
 

@@ -1,13 +1,9 @@
 #ifndef _PH_PHGUI_H
 #define _PH_PHGUI_H
 
-#pragma once
-
 #include <commctrl.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 // guisup
 
@@ -42,15 +38,116 @@ typedef HANDLE HTHEME;
 #define DCX_USESTYLE 0x00010000
 #define DCX_NODELETERGN 0x00040000
 
+#define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
+
+extern LONG PhSystemDpi;
+extern PH_INTEGER_PAIR PhSmallIconSize;
+extern PH_INTEGER_PAIR PhLargeIconSize;
+
 PHLIBAPI
-VOID PhGuiSupportInitialization(
+VOID
+NTAPI
+PhGuiSupportInitialization(
     VOID
     );
 
 PHLIBAPI
-VOID PhSetControlTheme(
+VOID
+NTAPI
+PhGuiSupportUpdateSystemMetrics(
+    VOID
+    );
+
+PHLIBAPI
+HTHEME
+NTAPI
+PhOpenThemeData(
+    _In_opt_ HWND WindowHandle,
+    _In_ PCWSTR ClassList,
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhCloseThemeData(
+    _In_ HTHEME ThemeHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetControlTheme(
     _In_ HWND Handle,
     _In_ PWSTR Theme
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemeActive(
+    VOID
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhIsThemePartDefined(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThemeClass(
+    _In_ HTHEME ThemeHandle,
+    _Out_writes_z_(*ClassLength) PWSTR Class,
+    _In_ ULONG ClassLength
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThemeInt(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ INT PropId,
+    _Out_ PINT Value
+    );
+
+typedef enum _THEMEPARTSIZE
+{
+    THEMEPARTSIZE_MIN, // minimum size
+    THEMEPARTSIZE_TRUE, // size without stretching
+    THEMEPARTSIZE_DRAW // size that theme mgr will use to draw part
+} THEMEPARTSIZE;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetThemePartSize(
+    _In_ HTHEME ThemeHandle,
+    _In_opt_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_opt_ LPCRECT Rect,
+    _In_ THEMEPARTSIZE Flags,
+    _Out_ PSIZE Size
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDrawThemeBackground(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ LPCRECT Rect,
+    _In_opt_ LPCRECT ClipRect
     );
 
 FORCEINLINE LONG_PTR PhGetWindowStyle(
@@ -152,7 +249,7 @@ FORCEINLINE VOID PhSetListViewStyle(
     ListView_SetExtendedListViewStyleEx(
         Handle,
         style,
-        -1
+        INT_ERROR
         );
 }
 
@@ -212,7 +309,7 @@ NTAPI
 PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
-    _Out_ PVOID *Param
+    _Outptr_ PVOID *Param
     );
 
 PHLIBAPI
@@ -365,7 +462,7 @@ HICON PhLoadIcon(
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
     _In_opt_ ULONG Height,
-    _In_opt_ LONG dpiValue
+    _In_opt_ LONG SystemDpi
     );
 
 PHLIBAPI
@@ -972,13 +1069,6 @@ PhWindowNotifyTopMostEvent(
     );
 
 PHLIBAPI
-HANDLE
-NTAPI
-PhGetGlobalTimerQueue(
-    VOID
-    );
-
-PHLIBAPI
 BOOLEAN
 NTAPI
 PhIsImmersiveProcess(
@@ -993,7 +1083,6 @@ typedef enum _PH_PROCESS_DPI_AWARENESS
     PH_PROCESS_DPI_AWARENESS_PER_MONITOR_AWARE_V2 = 3,
     PH_PROCESS_DPI_AWARENESS_UNAWARE_GDISCALED = 4,
 } PH_PROCESS_DPI_AWARENESS, *PPH_PROCESS_DPI_AWARENESS;
-
 
 _Success_(return)
 PHLIBAPI
@@ -1042,7 +1131,7 @@ PhExtractIconEx(
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall,
-    _In_ LONG dpiValue
+    _In_ LONG SystemDpi
     );
 
 // Imagelist support
@@ -1051,11 +1140,11 @@ PHLIBAPI
 HIMAGELIST
 NTAPI
 PhImageListCreate(
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ UINT Flags,
-    _In_ UINT InitialCount,
-    _In_ UINT GrowCount
+    _In_ INT32 Width,
+    _In_ INT32 Height,
+    _In_ UINT32 Flags,
+    _In_ INT32 InitialCount,
+    _In_ INT32 GrowCount
     );
 
 PHLIBAPI
@@ -1070,7 +1159,7 @@ BOOLEAN
 NTAPI
 PhImageListSetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Count
+    _In_ UINT32 Count
     );
 
 PHLIBAPI
@@ -1078,7 +1167,7 @@ BOOLEAN
 NTAPI
 PhImageListGetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PUINT Count
+    _Out_ PINT32 Count
     );
 
 PHLIBAPI
@@ -1094,14 +1183,14 @@ BOOLEAN
 NTAPI
 PhImageListRemoveIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index
+    _In_ INT32 Index
     );
 
 #define PhImageListRemoveAll(ImageListHandle) \
-    PhImageListRemoveIcon((ImageListHandle), -1)
+    PhImageListRemoveIcon((ImageListHandle), INT_ERROR)
 
 PHLIBAPI
-UINT
+INT32
 NTAPI
 PhImageListAddIcon(
     _In_ HIMAGELIST ImageListHandle,
@@ -1109,7 +1198,7 @@ PhImageListAddIcon(
     );
 
 PHLIBAPI
-UINT
+INT32
 NTAPI
 PhImageListAddBitmap(
     _In_ HIMAGELIST ImageListHandle,
@@ -1122,8 +1211,17 @@ HICON
 NTAPI
 PhImageListGetIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
-    _In_ UINT Flags
+    _In_ INT32 Index,
+    _In_ UINT32 Flags
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListGetIconSize(
+    _In_ HIMAGELIST ImageListHandle,
+    _Out_ PINT32 cx,
+    _Out_ PINT32 cy
     );
 
 PHLIBAPI
@@ -1131,7 +1229,7 @@ BOOLEAN
 NTAPI
 PhImageListReplace(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
+    _In_ INT32 Index,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     );
@@ -1141,11 +1239,11 @@ BOOLEAN
 NTAPI
 PhImageListDrawIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ UINT Style,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ UINT32 Style,
     _In_ BOOLEAN Disabled
     );
 
@@ -1154,16 +1252,16 @@ BOOLEAN
 NTAPI
 PhImageListDrawEx(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ INT dx,
-    _In_ INT dy,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ INT32 dx,
+    _In_ INT32 dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
     _In_ UINT Style,
-    _In_ DWORD State
+    _In_ ULONG State
     );
 
 PHLIBAPI
@@ -1171,8 +1269,8 @@ BOOLEAN
 NTAPI
 PhImageListSetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT cx,
-    _In_ INT cy
+    _In_ INT32 cx,
+    _In_ INT32 cy
     );
 
 PHLIBAPI
@@ -1209,12 +1307,55 @@ PhCustomDrawTreeTimeLine(
     _In_ PLARGE_INTEGER CreateTime
     );
 
+// Windows Imaging Component (WIC) bitmap support
+
+typedef enum _PH_IMAGE_FORMAT_TYPE
+{
+    PH_IMAGE_FORMAT_TYPE_NONE,
+    PH_IMAGE_FORMAT_TYPE_ICO,
+    PH_IMAGE_FORMAT_TYPE_BMP,
+    PH_IMAGE_FORMAT_TYPE_JPG,
+    PH_IMAGE_FORMAT_TYPE_PNG,
+} PH_IMAGE_FORMAT_TYPE, *PPH_IMAGE_FORMAT_TYPE;
+
+PHLIBAPI
+HBITMAP
+NTAPI
+PhLoadImageFormatFromResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_ PH_IMAGE_FORMAT_TYPE Format,
+    _In_ UINT Width,
+    _In_ UINT Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
+PhLoadImageFromResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_ UINT Width,
+    _In_ UINT Height
+    );
+
+PHLIBAPI
+HBITMAP
+NTAPI
+PhLoadImageFromFile(
+    _In_ PWSTR FileName,
+    _In_ UINT Width,
+    _In_ UINT Height
+    );
+
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 PHLIBAPI extern HFONT PhMonospaceFont; // phapppub
-PHLIBAPI extern HBRUSH PhMenuBackgroundBrush;
+PHLIBAPI extern HBRUSH PhThemeWindowBackgroundBrush;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
 extern COLORREF PhThemeWindowTextColor;
@@ -1269,6 +1410,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhThemeWindowDrawItem(
+    _In_ HWND WindowHandle,
     _In_ PDRAWITEMSTRUCT DrawInfo
     );
 
@@ -1369,8 +1511,26 @@ PhOffsetRect(
     Rect->bottom += dy;
 }
 
-#ifdef __cplusplus
+FORCEINLINE
+BOOLEAN
+PhPtInRect(
+    _In_ PRECT Rect,
+    _In_ POINT Point
+    )
+{
+    return Point.x >= Rect->left && Point.x < Rect->right &&
+        Point.y >= Rect->top && Point.y < Rect->bottom;
 }
-#endif
+
+// directdraw.cpp
+
+HICON PhGdiplusConvertBitmapToIcon(
+    _In_ HBITMAP Bitmap,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ COLORREF Background
+    );
+
+EXTERN_C_END
 
 #endif

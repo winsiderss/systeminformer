@@ -417,26 +417,26 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
                 knownProcessType = UmdfHostProcessType;
             else if (PhEqualStringRef2(&name, L"\\wbem\\WmiPrvSE.exe", TRUE))
                 knownProcessType = WmiProviderHostType;
-            else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS5
-                knownProcessType = EdgeProcessType;
-            else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeSH.exe", TRUE)) // RS5
-                knownProcessType = EdgeProcessType;
+            //else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS5
+            //    knownProcessType = EdgeProcessType;
+            //else if (PhEqualStringRef2(&name, L"\\MicrosoftEdgeSH.exe", TRUE)) // RS5
+            //    knownProcessType = EdgeProcessType;
 #ifdef _M_IX86
             else if (PhEqualStringRef2(&name, L"\\ntvdm.exe", TRUE))
                 knownProcessType = NtVdmHostProcessType;
 #endif
         }
-        else
-        {
-            if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS4
-                knownProcessType = EdgeProcessType;
-            else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
-                knownProcessType = EdgeProcessType;
-            else if (PhEndsWithStringRef2(&name, L"\\ServiceWorkerHost.exe", TRUE))
-                knownProcessType = EdgeProcessType;
-            else if (PhEndsWithStringRef2(&name, L"\\Windows.WARP.JITService.exe", TRUE))
-                knownProcessType = EdgeProcessType;
-        }
+        //else
+        //{
+        //    if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdgeCP.exe", TRUE)) // RS4
+        //        knownProcessType = EdgeProcessType;
+        //    else if (PhEndsWithStringRef2(&name, L"\\MicrosoftEdge.exe", TRUE))
+        //        knownProcessType = EdgeProcessType;
+        //    else if (PhEndsWithStringRef2(&name, L"\\ServiceWorkerHost.exe", TRUE))
+        //        knownProcessType = EdgeProcessType;
+        //    else if (PhEndsWithStringRef2(&name, L"\\Windows.WARP.JITService.exe", TRUE))
+        //        knownProcessType = EdgeProcessType;
+        //}
     }
 
     PhDereferenceObject(fileName);
@@ -1048,16 +1048,15 @@ BOOLEAN PhGetListViewContextMenuPoint(
     INT selectedIndex;
     RECT bounds;
     RECT clientRect;
-    LONG dpiValue;
 
     // The user pressed a key to display the context menu.
     // Suggest where the context menu should display.
 
-    if ((selectedIndex = PhFindListViewItemByFlags(ListViewHandle, -1, LVNI_SELECTED)) != -1)
+    if ((selectedIndex = PhFindListViewItemByFlags(ListViewHandle, INT_ERROR, LVNI_SELECTED)) != INT_ERROR)
     {
         if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
         {
-            dpiValue = PhGetWindowDpi(ListViewHandle);
+            LONG dpiValue = PhGetWindowDpi(ListViewHandle);
 
             Point->x = bounds.left + PhGetSystemMetrics(SM_CXSMICON, dpiValue) / 2;
             Point->y = bounds.top + PhGetSystemMetrics(SM_CYSMICON, dpiValue) / 2;
@@ -1653,7 +1652,11 @@ VOID PhDeleteTreeNewFilterSupport(
     _In_ PPH_TN_FILTER_SUPPORT Support
     )
 {
+    if (!Support->FilterList)
+        return;
+
     PhDereferenceObject(Support->FilterList);
+    Support->FilterList = NULL;
 }
 
 PPH_TN_FILTER_ENTRY PhAddTreeNewFilter(
@@ -1895,7 +1898,7 @@ BOOLEAN PhInsertCopyListViewEMenuItem(
     memset(&lvHitInfo, 0, sizeof(LVHITTESTINFO));
     lvHitInfo.pt = location;
 
-    if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == -1)
+    if (ListView_SubItemHitTest(ListViewHandle, &lvHitInfo) == INT_ERROR)
         return FALSE;
 
     memset(&headerItem, 0, sizeof(HDITEM));
@@ -2219,7 +2222,7 @@ HICON PhGetApplicationIcon(
     static HICON largeIcon = NULL;
     static LONG systemDpi = 0;
 
-    if (systemDpi != PhGetSystemDpi())
+    if (systemDpi != PhSystemDpi)
     {
         if (smallIcon)
         {
@@ -2232,7 +2235,7 @@ HICON PhGetApplicationIcon(
             largeIcon = NULL;
         }
 
-        systemDpi = PhGetSystemDpi();
+        systemDpi = PhSystemDpi;
     }
 
     if (!smallIcon || !largeIcon)
@@ -2300,24 +2303,69 @@ BOOLEAN PhWordMatchStringZ(
     return PhWordMatchStringRef(&SearchText->sr, &text);
 }
 
-//#include <wuapi.h>
 //BOOLEAN PhIsSystemRebootRequired(
 //    VOID
 //    )
 //{
-//    VARIANT_BOOL rebootRequired = VARIANT_FALSE;
-//    ISystemInformation* systemInformation = NULL;
+//    static PH_STRINGREF keyRootPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate");
+//    static PH_STRINGREF keyAuPath = PH_STRINGREF_INIT(L"Auto Update\\RebootRequired");
+//    static PH_STRINGREF keyOrcPath = PH_STRINGREF_INIT(L"Orchestrator\\RebootRequired");
+//    BOOLEAN keyRebootRequired = FALSE;
+//    HANDLE keyRootHandle;
+//    HANDLE keyHandle;
 //
-//    if (SUCCEEDED(PhGetClassObject(
-//        L"wuapi.dll",
-//        &CLSID_SystemInformation,
-//        &IID_ISystemInformation,
-//        &systemInformation
+//    if (NT_SUCCESS(PhOpenKey(
+//        &keyRootHandle,
+//        KEY_READ,
+//        PH_KEY_LOCAL_MACHINE,
+//        &keyRootPath,
+//        0
 //        )))
 //    {
-//        ISystemInformation_get_RebootRequired(systemInformation, &rebootRequired);
-//        ISystemInformation_Release(systemInformation);
+//        if (NT_SUCCESS(PhOpenKey(
+//            &keyHandle,
+//            KEY_READ,
+//            keyRootHandle,
+//            &keyAuPath,
+//            0
+//            )))
+//        {
+//            keyRebootRequired = TRUE;
+//            NtClose(keyHandle);
+//        }
+//
+//        if (NT_SUCCESS(PhOpenKey(
+//            &keyHandle,
+//            KEY_READ,
+//            keyRootHandle,
+//            &keyOrcPath,
+//            0
+//            )))
+//        {
+//            keyRebootRequired = TRUE;
+//            NtClose(keyHandle);
+//        }
+//
+//        NtClose(keyRootHandle);
 //    }
 //
-//    return rebootRequired == VARIANT_TRUE;
+//    //#include <wuapi.h>
+//    //ISystemInformation* systemInformation = NULL;
+//    //
+//    //if (SUCCEEDED(PhGetClassObject(
+//    //    L"wuapi.dll",
+//    //    &CLSID_SystemInformation,
+//    //    &IID_ISystemInformation,
+//    //    &systemInformation
+//    //    )))
+//    //{
+//    //    VARIANT_BOOL rebootRequiredVariant = VARIANT_FALSE;
+//    //
+//    //    ISystemInformation_get_RebootRequired(systemInformation, &rebootRequiredVariant);
+//    //    ISystemInformation_Release(systemInformation);
+//    //
+//    //    keyRebootRequired = rebootRequiredVariant == VARIANT_TRUE;
+//    //}
+//
+//    return keyRebootRequired;
 //}

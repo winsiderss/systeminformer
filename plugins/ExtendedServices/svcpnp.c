@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     wj32    2021
+ *     dmex    2022
  *
  */
 
@@ -403,7 +403,7 @@ VOID EspLoadDeviceInstanceImage(
 
                 if (PhExtractIconEx(dllIconPath, FALSE, (INT)index, &smallIcon, NULL, dpiValue))
                 {
-                    UINT imageIndex = PhImageListAddIcon(Context->ImageList, smallIcon);
+                    INT imageIndex = PhImageListAddIcon(Context->ImageList, smallIcon);
                     PhSetListViewItemImageIndex(Context->ListViewHandle, ItemIndex, imageIndex);
                     DestroyIcon(smallIcon);
                 }
@@ -707,13 +707,9 @@ VOID EspFreeListViewDiskDriveEntries(
     _In_ PPNP_SERVICE_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
-    while ((index = PhFindListViewItemByFlags(
-        Context->ListViewHandle,
-        index,
-        LVNI_ALL
-        )) != ULONG_MAX)
+    while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
         PPH_STRING param;
 
@@ -761,8 +757,6 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
 
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");

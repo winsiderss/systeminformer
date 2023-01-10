@@ -57,11 +57,6 @@ static BOOL (WINAPI* AppContainerFreeMemory_I)(
     _Frees_ptr_opt_ PVOID Memory
     ) = NULL;
 
-static HRESULT (WINAPI* AppPolicyGetWindowingModel_I)(
-    _In_ HANDLE ProcessTokenHandle,
-    _Out_ AppPolicyWindowingModel *ProcessWindowingModelPolicy
-    ) = NULL;
-
 // rev
 static NTSTATUS (NTAPI* PsmGetKeyFromProcess_I)(
     _In_ HANDLE ProcessHandle,
@@ -89,6 +84,95 @@ static NTSTATUS (NTAPI* PsmGetPackageFullNameFromKey_I)(
     _Out_ PVOID NameBuffer,
     _Inout_ PULONG NameLength
     ) = NULL;
+
+// "168EB462-775F-42AE-9111-D714B2306C2E"
+static CLSID CLSID_IDesktopAppXActivator_I = { 0x168EB462, 0x775F, 0x42AE, { 0x91, 0x11, 0xD7, 0x14, 0xB2, 0x30, 0x6C, 0x2E } };
+// "72e3a5b0-8fea-485c-9f8b-822b16dba17f"
+static IID IID_IDesktopAppXActivator1_I = { 0x72e3a5b0, 0x8fea, 0x485c, { 0x9f, 0x8b, 0x82, 0x2b, 0x16, 0xdb, 0xa1, 0x7f } };
+// "F158268A-D5A5-45CE-99CF-00D6C3F3FC0A"
+static IID IID_IDesktopAppXActivator2_I = { 0xF158268A, 0xD5A5, 0x45CE, { 0x99, 0xCF, 0x00, 0xD6, 0xC3, 0xF3, 0xFC, 0x0A } };
+
+typedef enum _DESKTOP_APPX_ACTIVATE_OPTIONS
+{
+    DAXAO_NONE = 0,
+    DAXAO_ELEVATE = 1,
+    DAXAO_NONPACKAGED_EXE = 2,
+    DAXAO_NONPACKAGED_EXE_PROCESS_TREE = 4,
+    DAXAO_NONPACKAGED_EXE_FLAGS = 6,
+    DAXAO_NO_ERROR_UI = 8,
+    DAXAO_CHECK_FOR_APPINSTALLER_UPDATES = 16,
+    DAXAO_CENTENNIAL_PROCESS = 32,
+    DAXAO_UNIVERSAL_PROCESS = 64,
+    DAXAO_WIN32ALACARTE_PROCESS = 128,
+    DAXAO_RUNTIME_BEHAVIOR_FLAGS = 224,
+    DAXAO_PARTIAL_TRUST = 256,
+    DAXAO_UNIVERSAL_CONSOLE = 512,
+    DAXAO_APP_SILO = 1024,
+    DAXAO_TRUST_LEVEL_FLAGS = 1280
+} DESKTOP_APPX_ACTIVATE_OPTIONS, *PDESKTOP_APPX_ACTIVATE_OPTIONS;
+
+#undef INTERFACE
+#define INTERFACE IDesktopAppXActivator
+DECLARE_INTERFACE_IID(IDesktopAppXActivator, IUnknown)
+{
+    BEGIN_INTERFACE
+
+    // IUnknown
+    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+    STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+    // IDesktopAppXActivator1
+
+    STDMETHOD(Activate)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR PackageRelativeExecutable,
+        _In_ PWSTR Arguments,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    STDMETHOD(ActivateWithOptions)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
+        _In_opt_ ULONG ParentProcessId,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    // IDesktopAppXActivator2
+
+    STDMETHOD(ActivateWithOptionsAndArgs)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_opt_ ULONG ParentProcessId,
+        _In_opt_ PVOID ActivatedEventArgs,
+        _Out_ PHANDLE ProcessHandle
+        ) PURE;
+
+    STDMETHOD(ActivateWithOptionsArgsWorkingDirectoryShowWindow)(THIS,
+        _In_ PWSTR ApplicationUserModelId,
+        _In_ PWSTR Executable,
+        _In_ PWSTR Arguments,
+        _In_ ULONG ActivationOptions, // DESKTOP_APPX_ACTIVATE_OPTIONS
+        _In_opt_ ULONG ParentProcessId,
+        _In_opt_ PVOID ActivatedEventArgs,
+        _In_ PWSTR WorkingDirectory,
+        _In_ ULONG ShowWindow,
+        _Out_ PHANDLE ProcessHandle) PURE;
+
+    END_INTERFACE
+};
+
+#define IDesktopAppXActivator_QueryInterface(This, riid, ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This, riid, ppvObject))
+#define IDesktopAppXActivator_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IDesktopAppXActivator_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IDesktopAppXActivator_ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle) \
+    ((This)->lpVtbl->ActivateWithOptions(This, ApplicationUserModelId, Executable, Arguments, ActivationOptions, ParentProcessId, ProcessHandle))
 
 typedef enum _START_MENU_APP_ITEMS_FLAGS
 {
@@ -314,8 +398,8 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems61, IUnknown)
     // IStartMenuAppItems61
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ REFIID riid,
-        _Outptr_ IEnumObjects **ppvObject
+        _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
+        _Outptr_ PVOID *ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
@@ -352,8 +436,8 @@ DECLARE_INTERFACE_IID(IStartMenuAppItems62, IUnknown)
     // IStartMenuAppItems62
     STDMETHOD(EnumItems)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
-        _In_ REFIID riid,
-        _Outptr_ IEnumObjects **ppvObject
+        _In_ REFIID riid, // IID_IEnumObjects, IID_IObjectCollection
+        _Outptr_ PVOID *ppvObject
         ) PURE;
     STDMETHOD(GetItem)(THIS,
         _In_ START_MENU_APP_ITEMS_FLAGS Flags,
@@ -525,13 +609,13 @@ DECLARE_INTERFACE_IID(IResourceMap, IUnknown)
     ((This)->lpVtbl->GetFilePathForContextByUri(This))
 
 // Note: Documented PKEY_AppUserModel_XYZ keys can be found in propkey.h
+DEFINE_PROPERTYKEY(PKEY_AppUserModel_ID, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 5);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_HostEnvironment, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 14);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageInstallPath, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 15);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFamilyName, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 17);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_ParentID, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 19);
 DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFullName, 0x9F4C2855, 0x9F79, 0x4B39, 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3, 21);
 // PKEY_AppUserModel_ExcludeFromShowInNewInstall {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 8
-//2 PKEY_AppUserModel_ID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 5
 //3 PKEY_AppUserModel_IsDestListSeparator {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 6
 //4 PKEY_AppUserModel_IsDualMode {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 11
 //5 PKEY_AppUserModel_PreventPinning {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 9
@@ -540,19 +624,14 @@ DEFINE_PROPERTYKEY(PKEY_AppUserModel_PackageFullName, 0x9F4C2855, 0x9F79, 0x4B39
 //8 PKEY_AppUserModel_RelaunchIconResource {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 3
 //9 PKEY_AppUserModel_StartPinOption {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 12
 //10 PKEY_AppUserModel_ToastActivatorCLSID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 26
-//11 PKEY_AppUserModel_PackageInstallPath {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 15
 //12 PKEY_AppUserModel_RecordState {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 16
-//13 PKEY_AppUserModel_PackageFullName {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 21
 //14 PKEY_AppUserModel_DestListProvidedTitle {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 27
 //15 PKEY_AppUserModel_DestListProvidedDescription {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 28
-//16 PKEY_AppUserModel_ParentID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 19
-//17 PKEY_AppUserModel_HostEnvironment {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 14
 //18 PKEY_AppUserModel_Relevance {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 13
 //19 PKEY_AppUserModel_PackageRelativeApplicationID {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 22
 //20 PKEY_AppUserModel_ExcludedFromLauncher {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 23
 //21 PKEY_AppUserModel_DestListLogoUri {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 29
 //22 PKEY_AppUserModel_ActivationContext {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 20
-//23 PKEY_AppUserModel_PackageFamilyName {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 17
 //24 PKEY_AppUserModel_BestShortcut {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 10
 //25 PKEY_AppUserModel_IsDestListLink {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 7
 //26 PKEY_AppUserModel_InstalledBy {9f4c2855-9f79-4b39-a8d0-e1d42de1d5f3} 18

@@ -20,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -61,8 +60,10 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,142,10
     LTEXT           "Last update check: N/A",IDC_TEXT,7,7,276,8
     LTEXT           "Next update check: N/A",IDC_TEXT2,7,21,276,8
-    CONTROL         "Show update prompt before main window",IDC_AUTOCHECKBOX2,
+    CONTROL         "Show update prompt before main window",IDC_SHOWSTARTPROMPTCHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,160,10
+    CONTROL         "Skip check for updates and search automatically",IDC_SKIPWELCOMEPAGECHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,65,169,10
 END
 
 IDD_TEXT DIALOGEX 0, 0, 309, 176
@@ -102,6 +103,56 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 3,0,0,0
+ PRODUCTVERSION 3,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "System Informer"
+            VALUE "FileDescription", "System Informer"
+            VALUE "FileVersion", "3.0.0.0"
+            VALUE "InternalName", "Updater.dll"
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "OriginalFilename", "Updater.dll"
+            VALUE "ProductName", "System Informer"
+            VALUE "ProductVersion", "3.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
 

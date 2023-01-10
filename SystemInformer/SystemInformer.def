@@ -240,6 +240,7 @@ EXPORTS
     PhCreateNamedPipe
     PhCreatePipe
     PhConnectPipe
+    PhDeviceIoControlFile
     PhDeleteDirectoryWin32
     PhDeleteFileWin32
     PhDeleteValueKey
@@ -314,6 +315,8 @@ EXPORTS
     PhMoveFileWin32
     PhOpenKey
     PhOpenDriver
+    PhOpenFile
+    PhOpenFileById
     PhOpenProcess
     PhOpenThread
     PhOpenThreadProcess
@@ -413,7 +416,7 @@ EXPORTS
     PhGetFileVersionInfoString
     PhGetFileVersionInfoString2
     PhGetFullPath
-    PhGetKnownLocation
+    PhGetKnownFolderPath
     PhGetMessage
     PhGetNtMessage
     PhGetStatusMessage
@@ -562,6 +565,7 @@ EXPORTS
     PhInitializeLayoutManager
     PhLayoutManagerLayout
     PhLoadIcon
+    PhLoadImageFormatFromResource
     PhLoadListViewColumnSettings
     PhModalPropertySheet
     PhRemoveListViewItem
@@ -595,7 +599,6 @@ EXPORTS
     PhInitializeWindowThemeStatusBar
     PhInitializeWindowThemeRebar
     PhInitializeThemeWindowHeader
-    PhGetGlobalTimerQueue
     PhImageListCreate
     PhImageListDestroy
     PhImageListSetImageCount
@@ -808,6 +811,7 @@ EXPORTS
     PhHttpSocketQueryHeaders
     PhHttpSocketQueryHeaderString
     PhHttpSocketQueryHeaderUlong
+    PhHttpSocketQueryHeaderUlong64
     PhHttpSocketQueryOptionString
     PhHttpSocketReadDataToBuffer
     PhHttpSocketDownloadString

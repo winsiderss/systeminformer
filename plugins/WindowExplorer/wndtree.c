@@ -38,14 +38,11 @@ BOOLEAN WepEnableWindowIcons = FALSE;
 
 BOOLEAN WeWindowTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
-    PWE_WINDOW_TREE_CONTEXT context = Context;
     PWE_WINDOW_NODE windowNode = (PWE_WINDOW_NODE)Node;
-
-    if (!context)
-        return FALSE;
+    PWE_WINDOW_TREE_CONTEXT context = Context;
 
     if (PhIsNullOrEmptyString(context->SearchboxText))
         return TRUE;
@@ -357,18 +354,13 @@ END_SORT_FUNCTION
 BOOLEAN NTAPI WepWindowTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
-    PWE_WINDOW_TREE_CONTEXT context;
+    PWE_WINDOW_TREE_CONTEXT context = Context;
     PWE_WINDOW_NODE node;
-
-    context = Context;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
@@ -427,10 +419,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PWE_WINDOW_NODE)isLeaf->Node;
 
             if (context->TreeNewSortOrder == NoSortOrder)
@@ -442,10 +430,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PWE_WINDOW_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -475,10 +459,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PWE_WINDOW_NODE)getNodeColor->Node;
 
             if (!node->WindowVisible)
@@ -496,8 +476,6 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
-            if (!getNodeIcon)
-                break;
             if (!WepEnableWindowIcons)
                 break;
 

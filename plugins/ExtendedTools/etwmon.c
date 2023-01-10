@@ -191,7 +191,7 @@ VOID EtStartEtwSession(
     //    eventTraceStackTracingInfo->TraceHandle = EtpSessionHandle;
     //    eventTraceStackTracingInfo->HookId[0] = PERFINFO_LOG_TYPE_FILENAME_CREATE;
     //
-    //    EtEtwStatus = WIN32_FROM_NTSTATUS(NtSetSystemInformation(
+    //    EtEtwStatus = PhNtStatusToDosError(NtSetSystemInformation(
     //        SystemPerformanceTraceInformation,
     //        eventTraceStackTracingInfo,
     //        sizeof(eventBuffer)
@@ -210,7 +210,7 @@ VOID EtStartEtwSession(
         //NtQuerySystemInformation(SystemPerformanceTraceInformation, &eventTraceGroupMaskInfo, sizeof(eventTraceGroupMaskInfo), 0);
         PERFINFO_OR_GROUP_WITH_GROUPMASK(eventTraceInfoMask, &eventTraceGroupMaskInfo.EventTraceGroupMasks);
 
-        EtEtwStatus = WIN32_FROM_NTSTATUS(NtSetSystemInformation(
+        EtEtwStatus = PhNtStatusToDosError(NtSetSystemInformation(
             SystemPerformanceTraceInformation,
             &eventTraceGroupMaskInfo,
             sizeof(EVENT_TRACE_GROUPMASK_INFORMATION)

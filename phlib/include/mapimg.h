@@ -1,9 +1,7 @@
 #ifndef _PH_MAPIMG_H
 #define _PH_MAPIMG_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 #include <exlf.h>
 #include <exprodid.h>
@@ -1004,8 +1002,6 @@ VOID PhFreeMappedWslImageDynamic(
     _In_ PPH_LIST ImageDynamic
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

@@ -33,7 +33,8 @@ ULONG StatusBarItems[MAX_STATUSBAR_ITEMS] =
     ID_STATUS_IO_W,
     ID_STATUS_MAX_CPU_PROCESS,
     ID_STATUS_MAX_IO_PROCESS,
-    ID_STATUS_SELECTEDWORKINGSET
+    ID_STATUS_SELECTEDWORKINGSET,
+    ID_STATUS_SELECTEDPRIVATEBYTES,
 };
 
 VOID StatusBarLoadDefault(
@@ -53,7 +54,7 @@ VOID StatusBarLoadSettings(
     VOID
     )
 {
-    ULONG64 buttonCount = 0;
+    LONG64 buttonCount = 0;
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
     PH_STRINGREF part;
@@ -182,6 +183,8 @@ PWSTR StatusBarGetText(
         return L"Max. I/O process";
     case ID_STATUS_SELECTEDWORKINGSET:
         return L"Selected process WS";
+    case ID_STATUS_SELECTEDPRIVATEBYTES:
+        return L"Selected process private bytes";
     }
 
     return L"ERROR";
@@ -280,7 +283,7 @@ VOID StatusBarUpdate(
                 PH_FORMAT format[3];
 
                 PhInitFormatS(&format[0], L"CPU usage: ");
-                PhInitFormatF(&format[1], (DOUBLE)cpuUsage * 100, 2);
+                PhInitFormatF(&format[1], cpuUsage * 100, 2);
                 PhInitFormatS(&format[2], L"%");
 
                 PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
@@ -413,7 +416,7 @@ VOID StatusBarUpdate(
                         PhInitFormatS(&format[1], L" (");
                         PhInitFormatI64U(&format[2], HandleToUlong(processItem->ProcessId));
                         PhInitFormatS(&format[3], L"): ");
-                        PhInitFormatF(&format[4], (DOUBLE)processItem->CpuUsage * 100, 2);
+                        PhInitFormatF(&format[4], processItem->CpuUsage * 100, 2);
                         PhInitFormatS(&format[5], L"%");
 
                         PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
@@ -424,7 +427,7 @@ VOID StatusBarUpdate(
 
                         PhInitFormatSR(&format[0], processItem->ProcessName->sr);
                         PhInitFormatS(&format[1], L": ");
-                        PhInitFormatF(&format[2], (DOUBLE)processItem->CpuUsage * 100, 2);
+                        PhInitFormatF(&format[2], processItem->CpuUsage * 100, 2);
                         PhInitFormatS(&format[3], L"%)");
 
                         PhFormatToBuffer(format, RTL_NUMBER_OF(format), text[count], sizeof(text[count]), &textLength[count]);
@@ -512,7 +515,7 @@ VOID StatusBarUpdate(
 
                 if (tnHandle = GetCurrentTreeNewHandle())
                 {
-                    ULONG i;
+                    ULONG j;
                     ULONG visibleCount;
                     ULONG selectedCount;
                     PH_FORMAT format[2];
@@ -520,9 +523,9 @@ VOID StatusBarUpdate(
                     visibleCount = TreeNew_GetFlatNodeCount(tnHandle);
                     selectedCount = 0;
 
-                    for (i = 0; i < visibleCount; i++)
+                    for (j = 0; j < visibleCount; j++)
                     {
-                        if (TreeNew_GetFlatNode(tnHandle, i)->Selected)
+                        if (TreeNew_GetFlatNode(tnHandle, j)->Selected)
                             selectedCount++;
                     }
 
@@ -587,9 +590,9 @@ VOID StatusBarUpdate(
                 PhGetSelectedProcessItems(&processes, &numberOfProcesses);
                 PhReferenceObjects(processes, numberOfProcesses);
 
-                for (ULONG i = 0; i < numberOfProcesses; i++)
+                for (ULONG j = 0; j < numberOfProcesses; j++)
                 {
-                    value += processes[i]->VmCounters.WorkingSetSize;
+                    value += processes[j]->VmCounters.WorkingSetSize;
                 }
 
                 if (value)
@@ -601,6 +604,37 @@ VOID StatusBarUpdate(
                 else
                 {
                     PhInitFormatS(&format[0], L"Selected WS: N/A");
+                    PhFormatToBuffer(format, 1, text[count], sizeof(text[count]), &textLength[count]);
+                }
+
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
+            break;
+        case ID_STATUS_SELECTEDPRIVATEBYTES:
+            {
+                PPH_PROCESS_ITEM* processes;
+                ULONG numberOfProcesses;
+                SIZE_T value = 0;
+                PH_FORMAT format[2];
+
+                PhGetSelectedProcessItems(&processes, &numberOfProcesses);
+                PhReferenceObjects(processes, numberOfProcesses);
+
+                for (ULONG j = 0; j < numberOfProcesses; j++)
+                {
+                    value += processes[j]->VmCounters.PagefileUsage;
+                }
+
+                if (value)
+                {
+                    PhInitFormatS(&format[0], L"Selected private bytes: ");
+                    PhInitFormatSize(&format[1], value);
+                    PhFormatToBuffer(format, 2, text[count], sizeof(text[count]), &textLength[count]);
+                }
+                else
+                {
+                    PhInitFormatS(&format[0], L"Selected private bytes: N/A");
                     PhFormatToBuffer(format, 1, text[count], sizeof(text[count]), &textLength[count]);
                 }
 
@@ -640,10 +674,16 @@ VOID StatusBarUpdate(
 
     ReleaseDC(StatusBarHandle, hdc);
 
+    // Note: Suspend redrawing until after updating the statusbar text
+    // otherwise SB_SETTEXT repaints multiple times during our loop. (dmex)
+    SendMessage(StatusBarHandle, WM_SETREDRAW, FALSE, 0);
     SendMessage(StatusBarHandle, SB_SETPARTS, count, (LPARAM)widths);
 
     for (i = 0; i < count; i++)
     {
         SendMessage(StatusBarHandle, SB_SETTEXT, i, (LPARAM)text[i]);
     }
+
+    SendMessage(StatusBarHandle, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(StatusBarHandle, NULL, TRUE);
 }

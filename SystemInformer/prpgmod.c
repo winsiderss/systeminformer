@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -648,7 +648,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             // Initialize the list.
             PhInitializeModuleList(hwndDlg, modulesContext->TreeNewHandle, &modulesContext->ListContext);
-            TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &PhpLoadingText, 0);
+            TreeNew_SetEmptyText(modulesContext->TreeNewHandle, &PhProcessPropPageLoadingText, 0);
             PhInitializeProviderEventQueue(&modulesContext->EventQueue, 100);
             modulesContext->LastRunStatus = -1;
             modulesContext->ErrorMessage = NULL;

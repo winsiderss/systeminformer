@@ -12,9 +12,7 @@
 #ifndef _PH_WSLSUP_H
 #define _PH_WSLSUP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 _Success_(return)
 BOOLEAN PhInitializeLxssImageVersionInfo(
@@ -29,8 +27,6 @@ BOOLEAN PhCreateProcessLxss(
     _Out_ PPH_STRING *Result
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

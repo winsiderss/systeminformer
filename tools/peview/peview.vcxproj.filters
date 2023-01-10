@@ -160,7 +160,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="volatileprp.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -185,6 +185,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="peview.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="version.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

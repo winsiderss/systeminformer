@@ -39,7 +39,6 @@ END
 
 3 TEXTINCLUDE 
 BEGIN
-    "\r\n"
     "\0"
 END
 
@@ -62,8 +61,6 @@ IDI_COG                 ICON                    "resources\\cog.ico"
 IDI_PIN                 ICON                    "resources\\pin.ico"
 
 IDI_FOLDER              ICON                    "resources\\folder.ico"
-
-IDI_PENCIL              ICON                    "resources\\pencil.ico"
 
 IDI_MAGNIFIER           ICON                    "resources\\magnifier.ico"
 
@@ -951,6 +948,14 @@ BEGIN
     CONTROL         "",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0x32,0,0,270,228
 END
 
+IDD_TOKAPPPOLICY DIALOGEX 0, 0, 270, 228
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Policy"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"PhTreeNew",WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP | 0xa,0,0,270,228
+END
+
 IDD_SYSINFO_CPU DIALOGEX 0, 0, 316, 195
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_CONTROLPARENT
@@ -1344,14 +1349,14 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Live kernel dump"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "Use dump storage stack",IDC_DUMPSTACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,62,93,10
-    CONTROL         "Compress memory pages",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,96,10
-    CONTROL         "Include UserSpace memory pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,21,124,10
-    CONTROL         "Include Hypervisor memory pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,35,125,10
+    CONTROL         "Use dump storage stack",IDC_DUMPSTACK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,177,10
+    CONTROL         "Compress memory pages",IDC_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,177,10
+    CONTROL         "Include UserSpace memory pages",IDC_USERMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,177,10
+    CONTROL         "Include Hypervisor memory pages",IDC_HYPERVISOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,177,10
     DEFPUSHBUTTON   "Save",IDOK,80,76,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,134,76,50,14
     CONTROL         "Include kernel thread stacks",IDC_DUMPKERNELTHREADSTACKS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,49,106,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,177,10
 END
 
 IDD_HEAPS DIALOGEX 0, 0, 343, 268
@@ -1992,10 +1997,6 @@ END
 // Bitmap
 //
 
-IDB_CROSS               BITMAP                  "resources\\cross.bmp"
-
-IDB_TICK                BITMAP                  "resources\\tick.bmp"
-
 IDB_SEARCH_ACTIVE_BMP   BITMAP                  "resources\\active_search.bmp"
 
 IDB_SEARCH_INACTIVE_BMP BITMAP                  "resources\\inactive_search.bmp"
@@ -2010,6 +2011,10 @@ IDB_SEARCH_ACTIVE       PNG                     "resources\\active_search.png"
 
 IDB_SEARCH_INACTIVE     PNG                     "resources\\inactive_search.png"
 
+IDB_SEARCH_ACTIVE_SMALL PNG                     "resources\\active_search_small.png"
+
+IDB_SEARCH_INACTIVE_SMALL PNG                     "resources\\inactive_search_small.png"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2020,4 +2025,5 @@ IDR_RT_MANIFEST         RT_MANIFEST             "SystemInformer.manifest"
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
 

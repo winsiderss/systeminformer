@@ -522,7 +522,7 @@ NTSTATUS PhGetMappedImageDataEntry(
 
         dataDirectory = &optionalHeader->DataDirectory[Index];
 
-        if (dataDirectory->VirtualAddress)
+        if (dataDirectory->VirtualAddress && dataDirectory->Size)
         {
             *Entry = dataDirectory;
             return STATUS_SUCCESS;
@@ -540,14 +540,14 @@ NTSTATUS PhGetMappedImageDataEntry(
 
         dataDirectory = &optionalHeader->DataDirectory[Index];
 
-        if (dataDirectory->VirtualAddress)
+        if (dataDirectory->VirtualAddress && dataDirectory->Size)
         {
             *Entry = dataDirectory;
             return STATUS_SUCCESS;
         }
     }
 
-    return STATUS_INVALID_PARAMETER;
+    return STATUS_NOT_FOUND;
 }
 
 PVOID PhGetMappedImageDirectoryEntry(
@@ -3241,65 +3241,66 @@ BOOLEAN PhGetMappedImagePogoEntryByName(
 {
     ULONG debugEntryLength;
     PIMAGE_DEBUG_POGO_SIGNATURE debugEntry;
+    PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
 
-    if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
+    if (!NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         MappedImage,
         IMAGE_DEBUG_TYPE_POGO,
         &debugEntryLength,
         &debugEntry
         )))
     {
-        PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
+        return FALSE;
+    }
 
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return FALSE;
+    }
+
+    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
+    {
+        // The signature can be zero but still contain valid entries.
+        if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
+            return FALSE;
+    }
+
+    debugPogoEntry = PTR_ADD_OFFSET(debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+
+    while ((ULONG_PTR)debugPogoEntry < (ULONG_PTR)PTR_ADD_OFFSET(debugEntry, debugEntryLength))
+    {
         __try
         {
-            PhpMappedImageProbe(MappedImage, debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
+            PhpMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             return FALSE;
         }
 
-        if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU)
+        if (!(debugPogoEntry->Rva && debugPogoEntry->Size))
+            break;
+
+        if (PhEqualBytesZ(debugPogoEntry->Name, Name, TRUE))
         {
-            // The signature can be zero but still contain valid entries.
-            if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
-                return FALSE;
+            if (DataLength)
+            {
+                *DataLength = debugPogoEntry->Size;
+            }
+
+            if (DataBuffer)
+            {
+                *DataBuffer = PTR_ADD_OFFSET(MappedImage->ViewBase, debugPogoEntry->Rva);
+            }
+
+            return TRUE;
         }
 
-        debugPogoEntry = PTR_ADD_OFFSET(debugEntry, sizeof(IMAGE_DEBUG_POGO_SIGNATURE));
-
-        while ((ULONG_PTR)debugPogoEntry < (ULONG_PTR)PTR_ADD_OFFSET(debugEntry, debugEntryLength))
-        {
-            __try
-            {
-                PhpMappedImageProbe(MappedImage, debugPogoEntry, sizeof(IMAGE_DEBUG_POGO_ENTRY));
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                return FALSE;
-            }
-
-            if (!(debugPogoEntry->Rva && debugPogoEntry->Size))
-                break;
-
-            if (PhEqualBytesZ(debugPogoEntry->Name, Name, TRUE))
-            {
-                if (DataLength)
-                {
-                    *DataLength = debugPogoEntry->Size;
-                }
-
-                if (DataBuffer)
-                {
-                    *DataBuffer = PTR_ADD_OFFSET(MappedImage->ViewBase, debugPogoEntry->Rva);
-                }
-
-                return TRUE;
-            }
-
-            debugPogoEntry = PTR_ADD_OFFSET(debugPogoEntry, ALIGN_UP(UFIELD_OFFSET(IMAGE_DEBUG_POGO_ENTRY, Name) + strlen(debugPogoEntry->Name) + sizeof(ANSI_NULL), ULONG));
-        }
+        debugPogoEntry = PTR_ADD_OFFSET(debugPogoEntry, ALIGN_UP(UFIELD_OFFSET(IMAGE_DEBUG_POGO_ENTRY, Name) + strlen(debugPogoEntry->Name) + sizeof(ANSI_NULL), ULONG));
     }
 
     return FALSE;

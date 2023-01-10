@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -24,10 +24,8 @@
 #include <treenew.h>
 #include <settings.h>
 #include <symprv.h>
-#include <workqueue.h>
 
 #include <shlobj.h>
-#include <uxtheme.h>
 
 #include "..\resource.h"
 

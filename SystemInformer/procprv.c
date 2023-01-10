@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *     jxy-s   2020-2021
  *
  */
@@ -44,7 +44,6 @@
 #include <phapp.h>
 #include <phsettings.h>
 #include <procprv.h>
-#include <appresolver.h>
 
 #include <hndlinfo.h>
 #include <kphuser.h>
@@ -77,7 +76,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     PH_IMAGE_VERSION_INFO VersionInfo;
 
     HANDLE ConsoleHostProcessId;
-    PPH_STRING PackageFullName;
     PPH_STRING UserName;
 
     union
@@ -164,6 +162,7 @@ BOOLEAN PhEnableProcessExtension = TRUE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
 ULONG PhProcessProviderFlagsMask = 0;
+LONG PhProcessImageListWindowDpi = 96;
 
 PVOID PhProcessInformation = NULL; // only can be used if running on same thread as process provider
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
@@ -174,8 +173,10 @@ ULONG PhTotalThreads = 0;
 ULONG PhTotalHandles = 0;
 ULONG PhTotalCpuQueueLength = 0;
 
-PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation = NULL;
-PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation = NULL;
+UCHAR PhDpcsProcessInformationBuffer[sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION)] = { 0 }; // HACK (dmex)
+UCHAR PhInterruptsProcessInformationBuffer[sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION)] = { 0 };
+PSYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation = (PSYSTEM_PROCESS_INFORMATION)PhDpcsProcessInformationBuffer;
+PSYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation = (PSYSTEM_PROCESS_INFORMATION)PhInterruptsProcessInformationBuffer;
 
 ULONG64 PhCpuTotalCycleDelta = 0; // real cycle time delta for this period
 PLARGE_INTEGER PhCpuIdleCycleTime = NULL; // cycle time for Idle
@@ -246,12 +247,10 @@ BOOLEAN PhProcessProviderInitialization(
 
     RtlInitializeSListHead(&PhProcessQueryDataListHead);
 
-    PhDpcsProcessInformation = PhAllocateZero(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
     RtlInitUnicodeString(&PhDpcsProcessInformation->ImageName, L"DPCs");
     PhDpcsProcessInformation->UniqueProcessId = DPCS_PROCESS_ID;
     PhDpcsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
 
-    PhInterruptsProcessInformation = PhAllocateZero(sizeof(SYSTEM_PROCESS_INFORMATION) + sizeof(SYSTEM_PROCESS_INFORMATION_EXTENSION));
     RtlInitUnicodeString(&PhInterruptsProcessInformation->ImageName, L"Interrupts");
     PhInterruptsProcessInformation->UniqueProcessId = INTERRUPTS_PROCESS_ID;
     PhInterruptsProcessInformation->InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
@@ -716,9 +715,13 @@ VOID PhpProcessQueryStage1(
     {
         if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(&processItem->FileName->sr))
         {
-            LONG dpiValue = PhGetSystemDpi();
-
-            Data->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue);
+            Data->IconEntry = PhImageListExtractIcon(
+                processItem->FileName,
+                TRUE, 
+                processItem->ProcessId,
+                processItem->PackageFullName, 
+                PhProcessImageListWindowDpi
+                );
 
             PhInitializeImageVersionInfoCached(
                 &Data->VersionInfo,
@@ -845,16 +848,16 @@ VOID PhpProcessQueryStage1(
     }
 
     // Immersive
-    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && !processItem->IsSubsystemProcess)
+    if (processHandleLimited && WindowsVersion >= WINDOWS_8 && processItem->IsPackagedProcess && !processItem->IsSubsystemProcess)
     {
         Data->IsImmersive = !!PhIsImmersiveProcess(processHandleLimited);
     }
 
     // Package full name
-    if (processHandleLimited && ((WindowsVersion >= WINDOWS_8 && Data->IsImmersive) || WindowsVersion >= WINDOWS_10))
-    {
-        Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
-    }
+    //if (processHandleLimited && ((WindowsVersion >= WINDOWS_8 && Data->IsImmersive) || WindowsVersion >= WINDOWS_10))
+    //{
+    //    Data->PackageFullName = PhGetProcessPackageFullName(processHandleLimited);
+    //}
 
     if (processHandleLimited && processItem->IsHandleValid)
     {
@@ -1121,7 +1124,6 @@ VOID PhpFillProcessItemStage1(
     processItem->IconEntry = Data->IconEntry;
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
-    processItem->PackageFullName = Data->PackageFullName;
     processItem->IsDotNet = Data->IsDotNet;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
@@ -1235,6 +1237,7 @@ VOID PhpFillProcessItem(
             ProcessItem->IsSecureProcess = basicInfo.IsSecureProcess;
             ProcessItem->IsSubsystemProcess = basicInfo.IsSubsystemProcess;
             ProcessItem->IsWow64 = basicInfo.IsWow64Process;
+            ProcessItem->IsPackagedProcess = basicInfo.IsStronglyNamed;
             ProcessItem->IsWow64Valid = TRUE;
         }
     }
@@ -1326,6 +1329,12 @@ VOID PhpFillProcessItem(
             {
                 ProcessItem->IntegrityLevel = integrityLevel;
                 ProcessItem->IntegrityString = integrityString;
+            }
+
+            // Package name
+            if (WindowsVersion >= WINDOWS_8 && ProcessItem->IsPackagedProcess)
+            {
+                ProcessItem->PackageFullName = PhGetTokenPackageFullName(tokenHandle);
             }
 
             NtClose(tokenHandle);
@@ -2016,6 +2025,95 @@ VOID PhpGetProcessThreadInformation(
         *ProcessorQueueLength = processorQueueLength;
 }
 
+#if _M_ARM64
+VOID PhpEstimateIdleCyclesForARM(
+    _Inout_ PULONG64 TotalCycles,
+    _Inout_ PULONG64 IdleCycles
+    )
+{
+    // EXPERIMENTAL (jxy-s)
+    //
+    // The kernel uses PMCCNTR_EL0 for CycleTime in threads and the processor control blocks.
+    // Here is a snippet from ntoskrnl!KiIdleLoop:
+    /*
+00000001`404f45a0 d53b9d0b mrs         x11,PMCCNTR_EL0    // x11 gets current cycle count
+00000001`404f45a4 f947a668 ldr         x8,[x19,#0xF48]    // x8 gets _KPRCB.StartCycles
+00000001`404f45a8 cb08016a sub         x10,x11,x8         // x10 gets relative cycles from StartCycle to current cycle count
+00000001`404f45ac f94026a9 ldr         x9,[x21,#0x48]     // x9 gets _KPRCB.IdleThread.CycleTime
+00000001`404f45b0 8b0a0128 add         x8,x9,x10          // x8 gets idle thread cycle time (x9) plus cycle increment (x10)
+00000001`404f45b4 f90026a8 str         x8,[x21,#0x48]     // stores new idle thread cycle time in _KPRCB.IdleThread.CycleTime
+00000001`404f45b8 f907a66b str         x11,[x19,#0xF48]   // stores the last cycle time fetch in the _KPRCB.StartCycles
+    */
+    // The idle logic in the HAL is here:
+    /*
+ntoskrnl!HalProcessorIdle:
+00000001`4048fbf0 d503237f pacibsp
+00000001`4048fbf4 a9bf7bfd stp         fp,lr,[sp,#-0x10]!
+00000001`4048fbf8 910003fd mov         fp,sp
+00000001`4048fbfc 940013df bl          ntoskrnl!HalpTimerResetProfileAdjustment (00000001`40494b78)
+00000001`4048fc00 d5033f9f dsb         sy
+00000001`4048fc04 d503207f wfi
+00000001`4048fc08 a8c17bfd ldp         fp,lr,[sp],#0x10
+00000001`4048fc0c d50323ff autibsp
+00000001`4048fc10 d65f03c0 ret
+    */
+    // This dictates that the CPU should enter WFI (Wait For Interrupt) mode. In this mode the
+    // CPU clock is disabled and the PMCCNTR register is not being updated, from the docs: 
+    /*
+All counters are subject to any changes in clock frequency, including clock stopping caused by
+the WFI and WFE instructions. This means that it is CONSTRAINED UNPREDICTABLE whether or not
+PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instructions.
+    */
+    // Arguably, the kernel is doing the right thing here, the idle threads are taking less cycle 
+    // time and the KTHREAD reflects this accurately. However, due to the way cycle-based CPU
+    // usage is implemented for other architectures it assumes on the idle thread cycles are
+    // the cycles *not* spent using the CPU, this assumption is incorrect for ARM.
+    //
+    // The most accurate represetnation of the utilization of the CPU for ARM would show
+    // the idle process CPU usage *below* what is "not being used" by other processes. Since
+    // this would indicate the idle thread being in the WFI state and not using CPU cycles.
+    // For cycle-based CPU to make sense for ARM, we need a way to get or estimate the amount
+    // of cycles the CPU would have used by the idle threads if WFI was mode was not entered.
+    //
+    // This experimental estimate achieves that. It will show the idle process utilization 
+    // accurately (given the estimate and what the kernel tracks/reports), and generally retain
+    // the cycle-based CPU benefits. Arguably, we are in some capacity reverting to the
+    // time-based CPU usage calculation by relying on the time to generate the estimate, but
+    // again it comes with the benefit of more realistically reporting the idle threads given 
+    // what is tracked/reported by the kernel. 
+    //
+    // let x = Unknown Idle Cycles
+    // let y = "Total" Cycles (missing idle cycles)
+    // let a = Time Idle
+    // let b = Time Kernel
+    // let c = Time User
+    //
+    // x / (y + x) = CycleUsage
+    // a / (a + b + c) = TimeUsage
+    //
+    // Assume: CycleUsage ~= TimeUsage
+    // Then:  x / (y + x) ~= a / (a + b + c)
+    //
+    // We know y, a, b, and c. So we need to solve for x.
+    //
+    // x / (y + x) ~= a / (a + b + c)
+    //
+    // x ~= a * (y + x) / (a + b + c)
+    // x * (a + b + c) ~= a * (y + x)
+    // x * (a + b + c) ~= (a * y) + (a * x)
+    // x * (a + b + c) - (a * x) ~= (a * y)
+    // x * ((a + b + c) - a) ~= (a * y)
+    // x ~= (a * y) / ((a + b + c) - a)
+    // 
+    // x ~= (a * y) / (b + c)
+    //
+    *IdleCycles = (PhCpuIdleCycleDelta.Delta * *TotalCycles) / (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta);
+
+    // We still need to add in the idle cycle time to the "total" since it wasn't complete yet.
+    *TotalCycles += *IdleCycles;
+}
+#endif
+
 VOID PhProcessProviderUpdate(
     _In_ PVOID Object
     )
@@ -2134,7 +2232,11 @@ VOID PhProcessProviderUpdate(
         process->UniqueProcessKey = (ULONG_PTR)pidBuckets[bucketIndex];
         pidBuckets[bucketIndex] = process;
 
+#if _M_ARM64 // see: PhpEstimateIdleCyclesForARM (jxy-s)
+        if (PhEnableCycleCpuUsage && process->UniqueProcessId != SYSTEM_IDLE_PROCESS_ID)
+#else
         if (PhEnableCycleCpuUsage)
+#endif
         {
             PPH_PROCESS_ITEM processItem;
 
@@ -2283,6 +2385,11 @@ VOID PhProcessProviderUpdate(
             PhDereferenceObject(processesToRemove);
         }
     }
+
+#if _M_ARM64
+    if (PhEnableCycleCpuUsage)
+        PhpEstimateIdleCyclesForARM(&sysTotalCycleTime, &sysIdleCycleTime);
+#endif
 
     // Go through the queued process query data.
     PhFlushProcessQueryData();
@@ -3407,12 +3514,11 @@ VOID PhProcessImageListInitialization(
 {
     HICON iconSmall;
     HICON iconLarge;
-    LONG dpiValue;
 
     if (!PhImageListItemType)
         PhImageListItemType = PhCreateObjectType(L"ImageListItem", 0, PhpImageListItemDeleteProcedure);
 
-    dpiValue = PhGetWindowDpi(hwnd);
+    PhProcessImageListWindowDpi = PhGetWindowDpi(hwnd);
 
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_IMAGELIST_ITEM* entry;
@@ -3441,27 +3547,27 @@ VOID PhProcessImageListInitialization(
     if (PhProcessLargeImageList) PhImageListDestroy(PhProcessLargeImageList);
     if (PhProcessSmallImageList) PhImageListDestroy(PhProcessSmallImageList);
     PhProcessLargeImageList = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXICON, dpiValue),
-        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        PhGetSystemMetrics(SM_CXICON, PhProcessImageListWindowDpi),
+        PhGetSystemMetrics(SM_CYICON, PhProcessImageListWindowDpi),
         ILC_MASK | ILC_COLOR32,
         100,
         100);
     PhProcessSmallImageList = PhImageListCreate(
-        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+        PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi),
+        PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi),
         ILC_MASK | ILC_COLOR32,
         100,
         100);
 
-    PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
-    PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
+    //PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
+    //PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
 
     PhGetStockApplicationIcon(&iconSmall, &iconLarge);
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
 
-    iconLarge = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
-    iconSmall = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
+    iconLarge = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_LARGE, 0, 0, PhProcessImageListWindowDpi);
+    iconSmall = PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_COG), PH_LOAD_ICON_SIZE_SMALL, 0, 0, PhProcessImageListWindowDpi);
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
     DestroyIcon(iconLarge);
@@ -3474,8 +3580,7 @@ VOID PhProcessImageListInitialization(
             PPH_STRING filename = fileNames->Items[i];
             PPH_IMAGELIST_ITEM iconEntry;
 
-            dpiValue = PhGetSystemDpi();
-            iconEntry = PhImageListExtractIcon(filename, TRUE, dpiValue);
+            iconEntry = PhImageListExtractIcon(filename, TRUE, 0, NULL, PhProcessImageListWindowDpi);
 
             if (iconEntry)
             {
@@ -3484,9 +3589,9 @@ VOID PhProcessImageListInitialization(
 
                 PhEnumProcessItems(&processes, &numberOfProcesses);
 
-                for (ULONG i = 0; i < numberOfProcesses; i++)
+                for (ULONG j = 0; j < numberOfProcesses; j++)
                 {
-                    PPH_PROCESS_ITEM process = processes[i];
+                    PPH_PROCESS_ITEM process = processes[j];
 
                     if (process->FileName && PhEqualString(process->FileName, filename, TRUE))
                     {
@@ -3531,7 +3636,9 @@ ULONG PhImageListCacheHashtableHashFunction(
 PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     _In_ PPH_STRING FileName,
     _In_ BOOLEAN NativeFileName,
-    _In_ LONG dpiValue
+    _In_opt_ HANDLE ProcessId,
+    _In_opt_ PPH_STRING PackageFullName,
+    _In_ LONG SystemDpi
     )
 {
     HICON largeIcon = NULL;
@@ -3564,14 +3671,39 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
 
-    PhExtractIconEx(
-        FileName,
-        NativeFileName,
-        0,
-        &largeIcon,
-        &smallIcon,
-        dpiValue
-        );
+#ifdef PH_ENABLE_PACKAGE_ICON_EXTRACT
+    if (ProcessId && PackageFullName)
+    {
+        if (!PhAppResolverGetPackageIcon(
+            ProcessId,
+            PackageFullName,
+            &largeIcon,
+            &smallIcon,
+            SystemDpi
+            ))
+        {
+            PhExtractIconEx(
+                FileName,
+                NativeFileName,
+                0,
+                &largeIcon,
+                &smallIcon,
+                SystemDpi
+                );
+        }
+    }
+    else
+#endif
+    {
+        PhExtractIconEx(
+            FileName,
+            NativeFileName,
+            0,
+            &largeIcon,
+            &smallIcon,
+            SystemDpi
+            );
+    }
 
     PhAcquireQueuedLockExclusive(&PhImageListCacheHashtableLock);
 

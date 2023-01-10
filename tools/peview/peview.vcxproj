@@ -74,8 +74,6 @@
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -134,7 +132,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -142,14 +140,14 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -171,7 +169,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -179,14 +177,14 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX64</TargetMachine>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -207,7 +205,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -215,13 +213,13 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineARM64</TargetMachine>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -233,7 +231,6 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
@@ -244,10 +241,10 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <SDLCheck>true</SDLCheck>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -258,15 +255,15 @@
       <TargetMachine>MachineX86</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -278,7 +275,6 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CallingConvention>StdCall</CallingConvention>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -289,10 +285,10 @@
       <SDLCheck>true</SDLCheck>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <GuardEHContMetadata>true</GuardEHContMetadata>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -303,15 +299,15 @@
       <TargetMachine>MachineX64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -323,7 +319,6 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <TreatWarningAsError>true</TreatWarningAsError>
       <StringPooling>true</StringPooling>
@@ -331,11 +326,11 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <SDLCheck>true</SDLCheck>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /d1nodatetime /d1trimfile:"$(SolutionDir)\" %(AdditionalOptions)</AdditionalOptions>
       <GuardSignedReturns>true</GuardSignedReturns>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;uxtheme.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;noarg.obj;noenv.obj;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalManifestDependencies>
       </AdditionalManifestDependencies>
@@ -346,14 +341,14 @@
       <TargetMachine>MachineARM64</TargetMachine>
       <SetChecksum>true</SetChecksum>
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;uxtheme.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalCompilerOptions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -433,6 +428,4 @@
     <Image Include="resources\SystemInformer.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
 </Project>

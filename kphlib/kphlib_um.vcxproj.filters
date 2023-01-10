@@ -30,6 +30,9 @@
     <ClInclude Include="include\kphdyn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\kphmsgdefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kphmsgdyn.c">

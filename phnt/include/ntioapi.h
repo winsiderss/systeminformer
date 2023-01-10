@@ -297,7 +297,15 @@ typedef struct _FILE_STANDARD_INFORMATION_EX
 
 typedef struct _FILE_INTERNAL_INFORMATION
 {
-    LARGE_INTEGER IndexNumber;
+    union
+    {
+        LARGE_INTEGER IndexNumber; // private
+        struct
+        {
+            LONGLONG MftRecordIndex : 48; // rev
+            LONGLONG SequenceNumber : 16; // rev
+        };
+    };
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
 
 typedef struct _FILE_EA_INFORMATION
@@ -718,7 +726,15 @@ typedef struct _FILE_VOLUME_NAME_INFORMATION
 typedef struct _FILE_ID_INFORMATION
 {
     ULONGLONG VolumeSerialNumber;
-    FILE_ID_128 FileId;
+    union
+    {
+        FILE_ID_128 FileId; // private
+        struct
+        {
+            LONGLONG FileIdLowPart : 64; // rev
+            LONGLONG FileIdHighPart : 64; // rev
+        };
+    };
 } FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
 
 typedef struct _FILE_ID_EXTD_DIR_INFORMATION
@@ -1122,7 +1138,16 @@ typedef struct _FILE_FS_FULL_SIZE_INFORMATION
 typedef struct _FILE_FS_OBJECTID_INFORMATION
 {
     UCHAR ObjectId[16];
-    UCHAR ExtendedInfo[48];
+    union
+    {
+        struct
+        {
+            UCHAR BirthVolumeId[16];
+            UCHAR BirthObjectId[16];
+            UCHAR DomainId[16];
+        };
+        UCHAR ExtendedInfo[48];
+    };
 } FILE_FS_OBJECTID_INFORMATION, *PFILE_FS_OBJECTID_INFORMATION;
 
 // private
@@ -2379,16 +2404,16 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 // on the persistent memory device.  The cached and memory mapped IO to user files wouldn't
 // generate paging IO.
 //
-#define DO_VERIFY_VOLUME                    0x00000002      
-#define DO_BUFFERED_IO                      0x00000004      
-#define DO_EXCLUSIVE                        0x00000008      
-#define DO_DIRECT_IO                        0x00000010      
-#define DO_MAP_IO_BUFFER                    0x00000020      
-#define DO_DEVICE_INITIALIZING              0x00000080      
-#define DO_SHUTDOWN_REGISTERED              0x00000800      
-#define DO_BUS_ENUMERATED_DEVICE            0x00001000      
-#define DO_POWER_PAGABLE                    0x00002000      
-#define DO_POWER_INRUSH                     0x00004000      
-#define DO_DEVICE_TO_BE_RESET               0x04000000      
-#define DO_DAX_VOLUME                       0x10000000  
+#define DO_VERIFY_VOLUME                    0x00000002
+#define DO_BUFFERED_IO                      0x00000004
+#define DO_EXCLUSIVE                        0x00000008
+#define DO_DIRECT_IO                        0x00000010
+#define DO_MAP_IO_BUFFER                    0x00000020
+#define DO_DEVICE_INITIALIZING              0x00000080
+#define DO_SHUTDOWN_REGISTERED              0x00000800
+#define DO_BUS_ENUMERATED_DEVICE            0x00001000
+#define DO_POWER_PAGABLE                    0x00002000
+#define DO_POWER_INRUSH                     0x00004000
+#define DO_DEVICE_TO_BE_RESET               0x04000000
+#define DO_DAX_VOLUME                       0x10000000
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)

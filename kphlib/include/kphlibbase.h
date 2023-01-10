@@ -11,9 +11,5 @@
 #pragma warning(disable : 4115)
 #include <phnt_windows.h>
 #include <phnt.h>
-#include <intsafe.h>
-
-#define RtlULongAdd ULongAdd
-
 #pragma warning(pop)
 #endif

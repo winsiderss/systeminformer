@@ -14,6 +14,7 @@
 #include <colorbox.h>
 #include <hexedit.h>
 #include <hndlinfo.h>
+#include <objbase.h>
 
 #include <extmgri.h>
 #include <mainwnd.h>
@@ -21,8 +22,6 @@
 #include <phsettings.h>
 #include <phsvc.h>
 #include <procprv.h>
-
-#include <shlobj.h>
 
 #include <ksisup.h>
 #include <settings.h>
@@ -129,6 +128,7 @@ INT WINAPI wWinMain(
         PhExitApplication(PhRunAsServiceStart(PhStartupParameters.RunAsServiceMode));
     }
 
+    PhGuiSupportInitialization();
     PhpInitializeSettings();
 
     if (PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
@@ -176,7 +176,6 @@ INT WINAPI wWinMain(
     PhInitializeAutoPool(&BaseAutoPool);
 
     PhInitializeCommonControls();
-    PhGuiSupportInitialization();
     PhTreeNewInitialization();
     PhGraphControlInitialization();
     PhHexEditInitialization();
@@ -608,9 +607,18 @@ BOOLEAN PhInitializeDirectoryPolicy(
 {
     PPH_STRING applicationDirectory;
     UNICODE_STRING applicationDirectoryUs;
+    PH_STRINGREF currentDirectory;
 
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
         return FALSE;
+
+    PhUnicodeStringToStringRef(&NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath, &currentDirectory);
+
+    if (PhEqualStringRef(&applicationDirectory->sr, &currentDirectory, TRUE))
+    {
+        PhDereferenceObject(applicationDirectory);
+        return TRUE;
+    }
 
     if (!PhStringRefToUnicodeString(&applicationDirectory->sr, &applicationDirectoryUs))
     {
@@ -712,7 +720,7 @@ ULONG CALLBACK PhpUnhandledExceptionCallback(
     PPH_STRING message;
 
     if (NT_NTWIN32(ExceptionInfo->ExceptionRecord->ExceptionCode))
-        errorMessage = PhGetStatusMessage(0, WIN32_FROM_NTSTATUS(ExceptionInfo->ExceptionRecord->ExceptionCode));
+        errorMessage = PhGetStatusMessage(0, PhNtStatusToDosError(ExceptionInfo->ExceptionRecord->ExceptionCode));
     else
         errorMessage = PhGetStatusMessage(ExceptionInfo->ExceptionRecord->ExceptionCode, 0);
 
@@ -819,7 +827,7 @@ BOOLEAN PhInitializeExceptionPolicy(
 
     if (NT_SUCCESS(PhGetProcessErrorMode(NtCurrentProcess(), &errorMode)))
     {
-        errorMode &= ~(SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+        ClearFlag(errorMode, SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
         PhSetProcessErrorMode(NtCurrentProcess(), errorMode);
     }
 
@@ -1141,7 +1149,6 @@ VOID PhpInitializeSettings(
 
     if (!PhStartupParameters.NoSettings)
     {
-        static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
         static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
         PPH_STRING settingsFileName;
 
@@ -1183,7 +1190,12 @@ VOID PhpInitializeSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
+#if !defined(PH_BUILD_MSIX)
+            static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
             PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
+#else
+            PhSettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+#endif
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))

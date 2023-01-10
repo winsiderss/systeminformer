@@ -66,8 +66,8 @@ VOID PhCmSetNotifyPlugin(
 BOOLEAN PhCmForwardMessage(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_ PPH_CM_MANAGER Manager
     );
 

@@ -154,6 +154,8 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
+
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -452,6 +454,10 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
         {
             if ((HWND)lParam == GetDlgItem(hwndDlg, IDC_DESCRIPTION))
@@ -461,18 +467,19 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     SetTextColor((HDC)wParam, RGB(0xff, 0x00, 0x00));
                 }
 
-                SetBkColor((HDC)wParam, GetSysColor(COLOR_3DFACE));
+                SetBkColor((HDC)wParam, GetSysColor(COLOR_WINDOW));
 
-                return (INT_PTR)GetSysColorBrush(COLOR_3DFACE);
+                return (INT_PTR)GetSysColorBrush(COLOR_WINDOW);
             }
+
+            return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
         }
-        break;
     }
 
     return FALSE;
 }
 
-static COLORREF NTAPI PhpHiddenProcessesColorFunction(
+COLORREF NTAPI PhpHiddenProcessesColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
     _In_opt_ PVOID Context
@@ -492,7 +499,7 @@ static COLORREF NTAPI PhpHiddenProcessesColorFunction(
     return GetSysColor(COLOR_WINDOW);
 }
 
-static BOOLEAN NTAPI PhpHiddenProcessesCallback(
+BOOLEAN NTAPI PhpHiddenProcessesCallback(
     _In_ PPH_HIDDEN_PROCESS_ENTRY Process,
     _In_opt_ PVOID Context
     )
@@ -521,7 +528,7 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
     return TRUE;
 }
 
-static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
+PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     _In_ PPH_HIDDEN_PROCESS_ENTRY Entry
     )
 {
@@ -637,7 +644,7 @@ static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
         dpiValue = PhGetWindowDpi(PhGetMainWindowHandle());
 
         // Small icon, large icon.
-        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, dpiValue))
+        if (processItem->IconEntry = PhImageListExtractIcon(processItem->FileName, TRUE, processItem->ProcessId, processItem->PackageFullName, dpiValue))
         {
             processItem->SmallIconIndex = processItem->IconEntry->SmallIconIndex;
             processItem->LargeIconIndex = processItem->IconEntry->LargeIconIndex;
@@ -745,7 +752,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
 
                 if (times.ExitTime.QuadPart != 0)
                     entry.Type = TerminatedProcess;
-                else if (PhFindItemList(pids, UlongToHandle(pid)) != -1)
+                else if (PhFindItemList(pids, UlongToHandle(pid)) != ULONG_MAX)
                     entry.Type = NormalProcess;
                 else
                     entry.Type = HiddenProcess;
@@ -768,7 +775,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
                 entry.FileName = PhGetFileName(fileName);
                 PhDereferenceObject(fileName);
 
-                if (PhFindItemList(pids, UlongToHandle(pid)) != -1)
+                if (PhFindItemList(pids, UlongToHandle(pid)) != ULONG_MAX)
                     entry.Type = NormalProcess;
                 else
                     entry.Type = HiddenProcess;
@@ -844,7 +851,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
 
             if (times.ExitTime.QuadPart != 0)
                 entry.Type = TerminatedProcess;
-            else if (context && PhFindItemList(context->Pids, Handle->ProcessId) != -1)
+            else if (context && PhFindItemList(context->Pids, Handle->ProcessId) != ULONG_MAX)
                 entry.Type = NormalProcess;
             else
                 entry.Type = HiddenProcess;
@@ -911,7 +918,6 @@ NTSTATUS PhpEnumHiddenProcessHandles(
     _In_opt_ PVOID Context
     )
 {
-#if (PHNT_VERSION >= PHNT_WIN7)
     NTSTATUS status;
     HANDLE processHandle;
 
@@ -991,9 +997,6 @@ NTSTATUS PhpEnumHiddenProcessHandles(
         status = STATUS_SUCCESS; // HACK
 
     return status;
-#else
-    return STATUS_UNSUCCESSFUL;
-#endif
 }
 
 NTSTATUS PhpEnumHiddenSubKeyHandles(
@@ -1590,7 +1593,7 @@ NTSTATUS PhEnumCsrProcessHandles(
                     continue;
 
                 // Avoid duplicate PIDs.
-                if (PhFindItemList(pids, handle.ProcessId) != -1)
+                if (PhFindItemList(pids, handle.ProcessId) != ULONG_MAX)
                     continue;
 
                 PhAddItemList(pids, handle.ProcessId);

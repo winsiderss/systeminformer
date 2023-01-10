@@ -34,6 +34,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableBreakOnTermination", L"0");
     PhpAddIntegerSetting(L"EnableBootObjectsEnumerate", L"0");
     PhpAddIntegerSetting(L"EnableCycleCpuUsage", L"1");
+    PhpAddIntegerSetting(L"EnableArmCycleCpuUsage", L"0");
     PhpAddIntegerSetting(L"EnableImageCoherencySupport", L"0");
     PhpAddIntegerSetting(L"EnableInstantTooltips", L"0");
     PhpAddIntegerSetting(L"EnableHeapReflection", L"0");
@@ -112,6 +113,8 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"IconTogglesVisibility", L"1");
     PhpAddIntegerSetting(L"IconTransparencyEnabled", L"0");
     //PhpAddIntegerSetting(L"IconTransparency", L"255");
+    PhpAddIntegerPairSetting(L"InformationWindowPosition", L"0,0");
+    PhpAddScalableIntegerPairSetting(L"InformationWindowSize", L"@96|140,190");
     PhpAddIntegerSetting(L"ImageCoherencyScanLevel", L"1");
     PhpAddStringSetting(L"JobListViewColumns", L"");
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512

@@ -108,6 +108,7 @@ NTSTATUS ExtractUpdateToFile(
 
     status = PhCreateProcessRedirection(
         commandLine,
+        NULL,
         NULL
         );
 
@@ -496,7 +497,7 @@ BOOLEAN MoveUpdateToFile(
 
     // Move the update from the cache to the correct location.
 
-    if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(UpdateFileName), PhGetString(existingFileName))))
+    if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(UpdateFileName), PhGetString(existingFileName), FALSE)))
     {
         Context->ErrorCode = PhNtStatusToDosError(status);
         goto CleanupExit;

@@ -134,7 +134,7 @@ NTSTATUS EspLoadOtherInfo(
     SERVICE_LAUNCH_PROTECTED_INFO launchProtectedInfo;
 
     if (!(serviceHandle = PhOpenService(Context->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG)))
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhDosErrorToNtStatus(GetLastError());
 
     // Preshutdown timeout
 
@@ -518,9 +518,9 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
                     PPH_STRING privilegeString;
                     ULONG index;
 
-                    lvItemIndex = PhFindListViewItemByFlags(context->PrivilegesLv, -1, LVNI_SELECTED);
+                    lvItemIndex = PhFindListViewItemByFlags(context->PrivilegesLv, INT_ERROR, LVNI_SELECTED);
 
-                    if (lvItemIndex != -1 && PhGetListViewItemParam(context->PrivilegesLv, lvItemIndex, (PVOID *)&privilegeString))
+                    if (lvItemIndex != INT_ERROR && PhGetListViewItemParam(context->PrivilegesLv, lvItemIndex, (PVOID *)&privilegeString))
                     {
                         index = PhFindItemList(context->PrivilegeList, privilegeString);
 

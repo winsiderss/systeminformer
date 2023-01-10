@@ -11,23 +11,18 @@
 
 #include "updater.h"
 
-static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
-{
-    { IDYES, L"Install" }
-};
-
-BOOLEAN UpdaterCheckApplicationDirectory(
+BOOLEAN UpdateCheckDirectoryElevationRequired(
     VOID
     )
 {
-    static PH_STRINGREF fileNameStringRef = PH_STRINGREF_INIT(L"\\test");
+    static PH_STRINGREF checkFileName = PH_STRINGREF_INIT(L"elevation_check");
     HANDLE fileHandle;
     PPH_STRING fileName;
 
-    fileName = PhGetApplicationDirectoryFileName(&fileNameStringRef, TRUE);
+    fileName = PhGetApplicationDirectoryFileName(&checkFileName, TRUE);
 
     if (PhIsNullOrEmptyString(fileName))
-        return FALSE;
+        return TRUE;
 
     if (NT_SUCCESS(PhCreateFile(
         &fileHandle,
@@ -41,11 +36,11 @@ BOOLEAN UpdaterCheckApplicationDirectory(
     {
         PhDereferenceObject(fileName);
         NtClose(fileHandle);
-        return TRUE;
+        return FALSE;
     }
 
     PhDereferenceObject(fileName);
-    return FALSE;
+    return TRUE;
 }
 
 HRESULT CALLBACK FinalTaskDialogCallbackProc(
@@ -62,7 +57,9 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            if (!UpdaterCheckApplicationDirectory())
+            context->DirectoryElevationRequired = !!UpdateCheckDirectoryElevationRequired();
+
+            if (context->DirectoryElevationRequired)
             {
                 SendMessage(hwndDlg, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
             }
@@ -94,7 +91,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
                     PhGetString(context->SetupFilePath),
                     PhGetString(parameters),
                     SW_SHOW,
-                    PH_SHELL_EXECUTE_NOZONECHECKS | PH_SHELL_EXECUTE_NOASYNC | (UpdaterCheckApplicationDirectory() ? 0 : PH_SHELL_EXECUTE_ADMIN),
+                    PH_SHELL_EXECUTE_NOZONECHECKS | PH_SHELL_EXECUTE_NOASYNC | (context->DirectoryElevationRequired ? PH_SHELL_EXECUTE_ADMIN : 0),
                     0,
                     NULL
                     ))
@@ -139,6 +136,10 @@ VOID ShowUpdateInstallDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
+    TASKDIALOG_BUTTON TaskDialogButtonArray[] =
+    {
+        { IDYES, L"Install" }
+    };
     TASKDIALOGCONFIG config;
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));

@@ -31,6 +31,7 @@ HWND ServiceTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
 INT SelectedTabIndex = 0;
 ULONG ProcessesUpdatedCount = 0;
+ULONG MaxInitializationDelay = 3;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
 BOOLEAN EnableThemeSupport = FALSE;
@@ -94,7 +95,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (ProcessesUpdatedCount != 3)
+    if (ProcessesUpdatedCount != MaxInitializationDelay)
     {
         ProcessesUpdatedCount++;
         return;
@@ -632,22 +633,36 @@ LRESULT CALLBACK MainWndSubclassProc(
             // Update fonts/sizes for new DPI.
             if (ToolBarHandle)
             {
+                SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
+            }
+
+            if (StatusBarHandle)
+            {
+                SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
+            }
+
+            ToolbarLoadSettings(TRUE);
+
+            // Update fonts/sizes for new DPI.
+            if (ToolBarHandle)
+            {
                 LONG toolbarButtonHeight;
 
-                SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
-
+                USHORT toolbarButtonSize = HIWORD((ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0));
                 toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-                toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
+                toolbarButtonHeight = __max(toolbarButtonSize, toolbarButtonHeight);
 
-                RebarAdjustBandHeightLayout(toolbarButtonHeight);
+                if (toolbarButtonHeight < 22)
+                    toolbarButtonHeight = 22; // 22/default toolbar button height
+
                 SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+                RebarAdjustBandHeightLayout(toolbarButtonHeight);
+                SendMessage(RebarHandle, WM_SIZE, 0, 0);
             }
 
             if (StatusBarHandle)
             {
                 LONG statusbarButtonHeight;
-
-                SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
 
                 statusbarButtonHeight = ToolStatusGetWindowFontSize(StatusBarHandle, ToolbarWindowFont);
                 statusbarButtonHeight = __max(23, statusbarButtonHeight); // 23/default statusbar height
@@ -656,8 +671,6 @@ LRESULT CALLBACK MainWndSubclassProc(
                 //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
                 StatusBarUpdate(TRUE);
             }
-
-            ToolbarLoadSettings(TRUE);
 
             if (oldFont) DeleteFont(oldFont);
 
@@ -1598,7 +1611,7 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI MainMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
+    _In_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
@@ -1609,9 +1622,6 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_EMENU_ITEM mainMenuItem;
     PPH_EMENU_ITEM searchMenuItem;
     PPH_EMENU_ITEM lockMenuItem;
-
-    if (!menuInfo)
-        return;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
         return;
@@ -1652,6 +1662,11 @@ VOID NTAPI LoadCallback(
     EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
     TabInfoHashtable = PhCreateSimpleHashtable(3);
+
+    // Note: The initialization delay improves performance during application
+    // launch and was made configurable per feature request. (dmex)
+    MaxInitializationDelay = PhGetIntegerSetting(SETTING_NAME_DELAYED_INITIALIZATION_MAX);
+    MaxInitializationDelay = __max(0, __min(MaxInitializationDelay, 5));
 
     ToolbarGraphsInitialize();
 }
@@ -1758,9 +1773,6 @@ VOID NTAPI MenuItemCallback(
             {
                 PPH_TOOLBAR_GRAPH icon;
 
-                if (!menuItem->Context)
-                    break;
-
                 icon = menuItem->Context;
                 ToolbarSetVisibleGraph(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
 
@@ -1809,6 +1821,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_SEARCHBOXDISPLAYMODE, L"0" },
                 { IntegerSettingType, SETTING_NAME_TASKBARDISPLAYSTYLE, L"0" },
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
+                { IntegerSettingType, SETTING_NAME_DELAYED_INITIALIZATION_MAX, L"3" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },

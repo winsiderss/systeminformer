@@ -215,13 +215,13 @@ VOID FreeListViewRaplDeviceEntries(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = ULONG_MAX;
+    INT index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         Context->ListViewHandle,
         index,
         LVNI_ALL
-        )) != ULONG_MAX)
+        )) != INT_ERROR)
     {
         PDV_RAPL_ID param;
 
@@ -309,7 +309,7 @@ VOID FindRaplDevices(
     _In_ PDV_RAPL_OPTIONS_CONTEXT Context
     )
 {
-    ULONG index = 0;
+    ULONG deviceIndex = 0;
     PPH_LIST deviceList;
     PWSTR deviceInterfaceList;
     ULONG deviceInterfaceListLength = 0;
@@ -356,7 +356,7 @@ VOID FindRaplDevices(
             deviceInterface[1] = L'?';
 
         deviceEntry = PhAllocateZero(sizeof(RAPL_ENUM_ENTRY));
-        deviceEntry->DeviceIndex = ++index;
+        deviceEntry->DeviceIndex = ++deviceIndex;
         deviceEntry->DeviceName = PhCreateString2(&deviceDescription->sr);
         deviceEntry->DevicePath = PhCreateString(deviceInterface);
         memset(deviceEntry->ChannelIndex, ULONG_MAX, sizeof(deviceEntry->ChannelIndex));
@@ -371,22 +371,18 @@ VOID FindRaplDevices(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            IO_STATUS_BLOCK isb;
             EMI_VERSION version;
 
             memset(&version, 0, sizeof(EMI_VERSION));
 
-            if (NT_SUCCESS(NtDeviceIoControlFile(
+            if (NT_SUCCESS(PhDeviceIoControlFile(
                 deviceHandle,
-                NULL,
-                NULL,
-                NULL,
-                &isb,
                 IOCTL_EMI_GET_VERSION,
                 NULL,
                 0,
                 &version,
-                sizeof(EMI_VERSION)
+                sizeof(EMI_VERSION),
+                NULL
                 )))
             {
                 if (version.EmiVersion == EMI_VERSION_V2)
@@ -402,33 +398,27 @@ VOID FindRaplDevices(
 
                 memset(&metadataSize, 0, sizeof(EMI_METADATA_SIZE));
 
-                if (NT_SUCCESS(NtDeviceIoControlFile(
+                if (NT_SUCCESS(PhDeviceIoControlFile(
                     deviceHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
                     IOCTL_EMI_GET_METADATA_SIZE,
                     NULL,
                     0,
                     &metadataSize,
-                    sizeof(EMI_METADATA_SIZE)
+                    sizeof(EMI_METADATA_SIZE),
+                    NULL
                     )))
                 {
                     metadata = PhAllocate(metadataSize.MetadataSize);
                     memset(metadata, 0, metadataSize.MetadataSize);
 
-                    if (NT_SUCCESS(NtDeviceIoControlFile(
+                    if (NT_SUCCESS(PhDeviceIoControlFile(
                         deviceHandle,
-                        NULL,
-                        NULL,
-                        NULL,
-                        &isb,
                         IOCTL_EMI_GET_METADATA,
                         NULL,
                         0,
                         metadata,
-                        metadataSize.MetadataSize
+                        metadataSize.MetadataSize,
+                        NULL
                         )))
                     {
                         EMI_CHANNEL_V2* channels = metadata->Channels;
@@ -509,7 +499,7 @@ VOID FindRaplDevices(
     PhAcquireQueuedLockShared(&RaplDevicesListLock);
     for (ULONG i = 0; i < RaplDevicesList->Count; i++)
     {
-        ULONG index = ULONG_MAX;
+        INT index = INT_ERROR;
         BOOLEAN found = FALSE;
         PDV_RAPL_ENTRY entry = PhReferenceObjectSafe(RaplDevicesList->Items[i]);
 
@@ -520,7 +510,7 @@ VOID FindRaplDevices(
             Context->ListViewHandle,
             index,
             LVNI_ALL
-            )) != ULONG_MAX)
+            )) != INT_ERROR)
         {
             PDV_RAPL_ID param;
 

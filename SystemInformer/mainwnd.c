@@ -292,6 +292,8 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
+            PhGuiSupportUpdateSystemMetrics();
+
             if (PhGetIntegerSetting(L"EnableWindowText"))
             {
                 PhSetApplicationWindowIcon(PhMainWndHandle);
@@ -1656,7 +1658,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiStartServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiStartService(WindowHandle, serviceItems[0]);
+            else
+                PhUiStartServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
@@ -1670,7 +1675,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiContinueServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiContinueService(WindowHandle, serviceItems[0]);
+            else
+                PhUiContinueServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
@@ -1684,7 +1692,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiPauseServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiPauseService(WindowHandle, serviceItems[0]);
+            else
+                PhUiPauseServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
@@ -1698,7 +1709,10 @@ VOID PhMwpOnCommand(
             PhGetSelectedServiceItems(&serviceItems, &numberOfServiceItems);
             PhReferenceObjects(serviceItems, numberOfServiceItems);
 
-            PhUiStopServices(WindowHandle, serviceItems, numberOfServiceItems);
+            if (numberOfServiceItems == 1) // phsvc elevation (dmex)
+                PhUiStopService(WindowHandle, serviceItems[0]);
+            else
+                PhUiStopServices(WindowHandle, serviceItems, numberOfServiceItems);
 
             PhDereferenceObjects(serviceItems, numberOfServiceItems);
             PhFree(serviceItems);
@@ -1987,7 +2001,7 @@ VOID PhMwpOnInitMenuPopup(
     if (PhEnableThemeSupport)
     {
         menuInfo.fMask |= MIM_BACKGROUND;
-        menuInfo.hbrBack = PhMenuBackgroundBrush;
+        menuInfo.hbrBack = PhThemeWindowBackgroundBrush;
     }
 
     SetMenuInfo(Menu, &menuInfo);
@@ -2125,7 +2139,11 @@ VOID PhMwpLoadSettings(
     opacity = PhGetIntegerSetting(L"MainWindowOpacity");
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
+#if _M_ARM64
+    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableArmCycleCpuUsage");
+#else
     PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
+#endif
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableNetworkBoundConnections = !!PhGetIntegerSetting(L"EnableNetworkBoundConnections");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");

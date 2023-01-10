@@ -473,7 +473,7 @@ NTSTATUS PhSaveXmlObjectToFile(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (mxmlSaveFd(XmlRootObject, fileHandle, XmlSaveCallback) == -1)
+    if (mxmlSaveFd(XmlRootObject, fileHandle, XmlSaveCallback) == INT_ERROR)
     {
         status = STATUS_UNSUCCESSFUL;
     }

@@ -242,7 +242,6 @@ VOID InitializeDbPath(
     VOID
     )
 {
-    static PH_STRINGREF databaseFilePath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\usernotesdb.xml");
     static PH_STRINGREF databaseFileName = PH_STRINGREF_INIT(L"usernotesdb.xml");
     PPH_STRING fileName;
 
@@ -254,8 +253,12 @@ VOID InitializeDbPath(
     }
     else
     {
+#if !defined(PH_BUILD_MSIX)
+        static PH_STRINGREF databaseFilePath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\usernotesdb.xml");
         PhMoveReference(&fileName, PhExpandEnvironmentStrings(&databaseFilePath));
-
+#else
+        PhMoveReference(&fileName, PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml"));
+#endif
         SetDbPath(fileName);
     }
 }
@@ -1015,7 +1018,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status = STATUS_RETRY;
-                IO_PRIORITY_HINT ioPriority;
+                IO_PRIORITY_HINT ioPriority = IoPriorityNormal;
 
                 if (processItem->QueryHandle)
                 {
@@ -1051,7 +1054,7 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status = STATUS_RETRY;
-                    IO_PRIORITY_HINT ioPriority;
+                    IO_PRIORITY_HINT ioPriority = PHAPP_ID_IOPRIORITY_NORMAL;
 
                     if (processItem->QueryHandle)
                     {
@@ -1184,7 +1187,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status = STATUS_RETRY;
-                KAFFINITY affinityMask;
+                KAFFINITY affinityMask = SIZE_MAX;
 
                 if (processItem->QueryHandle)
                 {
@@ -1239,7 +1242,7 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status = STATUS_RETRY;
-                    KAFFINITY affinityMask;
+                    KAFFINITY affinityMask = SIZE_MAX;
 
                     if (processItem->QueryHandle)
                     {
@@ -1293,7 +1296,7 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status = STATUS_RETRY;
-                ULONG pagePriority;
+                ULONG pagePriority = MEMORY_PRIORITY_NORMAL;
 
                 if (processItem->QueryHandle)
                 {
@@ -1329,7 +1332,7 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status = STATUS_RETRY;
-                    ULONG pagePriority;
+                    ULONG pagePriority = MEMORY_PRIORITY_NORMAL;
 
                     if (processItem->QueryHandle)
                     {

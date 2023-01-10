@@ -7,14 +7,13 @@
  *
  *     wj32    2010
  *     evilpie 2010
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include <phapp.h>
 #include <phplug.h>
 #include <phsettings.h>
-#include <apiimport.h>
 #include <extmgri.h>
 #include <netprv.h>
 #include <procprv.h>

@@ -37,6 +37,7 @@
 #define SETTING_NAME_UPDATE_MODE (PLUGIN_NAME L".UpdateMode")
 #define SETTING_NAME_UPDATE_AVAILABLE (PLUGIN_NAME L".UpdateAvailable")
 #define SETTING_NAME_UPDATE_DATA (PLUGIN_NAME L".UpdateData")
+#define SETTING_NAME_AUTO_CHECK_PAGE (PLUGIN_NAME L".AutoCheckPage")
 #define SETTING_NAME_CHANGELOG_WINDOW_POSITION (PLUGIN_NAME L".ChangelogWindowPosition")
 #define SETTING_NAME_CHANGELOG_WINDOW_SIZE (PLUGIN_NAME L".ChangelogWindowSize")
 #define SETTING_NAME_CHANGELOG_COLUMNS (PLUGIN_NAME L".ChangelogListColumns")
@@ -85,7 +86,8 @@ typedef struct _PH_UPDATER_CONTEXT
             BOOLEAN HaveData : 1;
             BOOLEAN FixedWindowStyles : 1;
             BOOLEAN Cancel : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN DirectoryElevationRequired : 1;
+            BOOLEAN Spare : 4;
         };
     };
 

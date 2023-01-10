@@ -98,8 +98,6 @@
     <_NT_TARGET_VERSION>0xA000004</_NT_TARGET_VERSION>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -168,7 +166,6 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
-      <EntryPointSymbol />
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -183,7 +180,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <WppEnabled>true</WppEnabled>
@@ -191,16 +188,14 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
-      <EntryPointSymbol />
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -232,7 +227,6 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
-      <EntryPointSymbol />
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -264,7 +258,6 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
-      <EntryPointSymbol />
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -279,7 +272,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /Z7 /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
       <GuardEHContMetadata>true</GuardEHContMetadata>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
@@ -288,16 +281,14 @@
       <WppFileExtensions>.c.cpp.h.hpp</WppFileExtensions>
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:retpoline /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
       <CETCompat>true</CETCompat>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
-      <EntryPointSymbol />
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -312,7 +303,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /Z7 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <StringPooling>true</StringPooling>
       <WppEnabled>true</WppEnabled>
@@ -321,15 +312,13 @@
       <WppPreserveExtensions>.c.cpp.h.hpp</WppPreserveExtensions>
       <DisableSpecificWarnings>4201</DisableSpecificWarnings>
       <GuardSignedReturns>true</GuardSignedReturns>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
     </ClCompile>
     <Link>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /EMITTOOLVERSIONINFO:NO /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/INTEGRITYCHECK /BREPRO /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(SolutionDir)..\kphlib\bin\$(Configuration)$(PlatformArchitecture)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <NoEntryPoint>true</NoEntryPoint>
       <ModuleDefinitionFile>ksidll.def</ModuleDefinitionFile>
-      <EntryPointSymbol />
     </Link>
     <ResourceCompile>
       <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
@@ -349,6 +338,4 @@
     <None Include="ksidll.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
 </Project>

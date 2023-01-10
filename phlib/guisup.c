@@ -15,13 +15,13 @@
 #include <guisup.h>
 #include <mapimg.h>
 #include <settings.h>
-#include <fastlock.h>
 #include <guisupp.h>
 
 #include <math.h>
 #include <commoncontrols.h>
 #include <shellapi.h>
-#include <uxtheme.h>
+#include <shellscalingapi.h>
+#include <wincodec.h>
 
 BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -48,6 +48,9 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
+LONG PhSystemDpi = 96;
+PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
+PH_INTEGER_PAIR PhLargeIconSize = { 32, 32 };
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -58,10 +61,23 @@ static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static PPH_HASHTABLE WindowContextHashTable = NULL;
 static PH_QUEUED_LOCK WindowContextListLock = PH_QUEUED_LOCK_INIT;
 
+static _OpenThemeDataForDpi OpenThemeDataForDpi_I = NULL;
+static _OpenThemeData OpenThemeData_I = NULL;
+static _CloseThemeData CloseThemeData_I = NULL;
+static _SetWindowTheme SetWindowTheme_I = NULL;
+static _IsThemeActive IsThemeActive_I = NULL;
+static _IsThemePartDefined IsThemePartDefined_I = NULL;
+static _GetThemeClass GetThemeClass_I = NULL;
+static _GetThemeInt GetThemeInt_I = NULL;
+static _GetThemePartSize GetThemePartSize_I = NULL;
+static _DrawThemeBackground DrawThemeBackground_I = NULL;
+
 VOID PhGuiSupportInitialization(
     VOID
     )
 {
+    PVOID uxthemeHandle;
+
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
         PhpWindowCallbackHashtableEqualFunction,
@@ -74,6 +90,62 @@ VOID PhGuiSupportInitialization(
         PhpWindowContextHashtableHashFunction,
         10
         );
+
+    if (uxthemeHandle = PhLoadLibrary(L"uxtheme.dll"))
+    {
+        OpenThemeDataForDpi_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeDataForDpi", 0);
+        OpenThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "OpenThemeData", 0);
+        CloseThemeData_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "CloseThemeData", 0);
+        SetWindowTheme_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "SetWindowTheme", 0);
+        IsThemeActive_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemeActive", 0);
+        IsThemePartDefined_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemePartDefined", 0);
+        GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeClass", 0);
+        GetThemeInt_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeInt", 0);
+        GetThemePartSize_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemePartSize", 0);
+        DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
+    }
+
+    PhGuiSupportUpdateSystemMetrics();
+}
+
+VOID PhGuiSupportUpdateSystemMetrics(
+    VOID
+    )
+{
+    PhSystemDpi = PhGetSystemDpi();
+    PhSmallIconSize.X = PhGetSystemMetrics(SM_CXSMICON, PhSystemDpi);
+    PhSmallIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, PhSystemDpi);
+    PhLargeIconSize.X = PhGetSystemMetrics(SM_CXICON, PhSystemDpi);
+    PhLargeIconSize.Y = PhGetSystemMetrics(SM_CYICON, PhSystemDpi);
+}
+
+HTHEME PhOpenThemeData(
+    _In_opt_ HWND WindowHandle,
+    _In_ PCWSTR ClassList,
+    _In_ LONG WindowDpi
+    )
+{
+    if (OpenThemeDataForDpi_I && WindowDpi)
+    {
+        return OpenThemeDataForDpi_I(WindowHandle, ClassList, WindowDpi);
+    }
+
+    if (OpenThemeData_I)
+    {
+        return OpenThemeData_I(WindowHandle, ClassList);
+    }
+
+    return NULL;
+}
+
+VOID PhCloseThemeData(
+    _In_ HTHEME ThemeHandle
+    )
+{
+    if (CloseThemeData_I)
+    {
+        CloseThemeData_I(ThemeHandle);
+    }
 }
 
 VOID PhSetControlTheme(
@@ -81,7 +153,89 @@ VOID PhSetControlTheme(
     _In_ PWSTR Theme
     )
 {
-    SetWindowTheme(Handle, Theme, NULL);
+    if (SetWindowTheme_I)
+    {
+        SetWindowTheme_I(Handle, Theme, NULL);
+    }
+}
+
+BOOLEAN PhIsThemeActive(
+    VOID
+    )
+{
+    if (!IsThemeActive_I)
+        return FALSE;
+
+    return !!IsThemeActive_I();
+}
+
+BOOLEAN PhIsThemePartDefined(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId
+    )
+{
+    if (!IsThemePartDefined_I)
+        return FALSE;
+
+    return !!IsThemePartDefined_I(ThemeHandle, PartId, StateId);
+}
+
+BOOLEAN PhGetThemeClass(
+    _In_ HTHEME ThemeHandle,
+    _Out_writes_z_(*ClassLength) PWSTR Class,
+    _In_ ULONG ClassLength
+    )
+{
+    if (!GetThemeClass_I)
+        return FALSE;
+
+    return SUCCEEDED(GetThemeClass_I(ThemeHandle, Class, ClassLength));
+}
+
+BOOLEAN PhGetThemeInt(
+    _In_ HTHEME ThemeHandle,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ INT PropId,
+    _Out_ PINT Value
+    )
+{
+    if (!GetThemeInt_I)
+        return FALSE;
+
+    return SUCCEEDED(GetThemeInt_I(ThemeHandle, PartId, StateId, PropId, Value));
+}
+
+BOOLEAN PhGetThemePartSize(
+    _In_ HTHEME ThemeHandle,
+    _In_opt_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_opt_ LPCRECT Rect,
+    _In_ THEMEPARTSIZE Flags,
+    _Out_ PSIZE Size
+    )
+{
+    if (!GetThemePartSize_I)
+        return FALSE;
+
+    return SUCCEEDED(GetThemePartSize_I(ThemeHandle, hdc, PartId, StateId, Rect, Flags, Size));
+}
+
+BOOLEAN PhDrawThemeBackground(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ INT PartId,
+    _In_ INT StateId,
+    _In_ LPCRECT Rect,
+    _In_opt_ LPCRECT ClipRect
+    )
+{
+    if (!DrawThemeBackground_I)
+        return FALSE;
+
+    return SUCCEEDED(DrawThemeBackground_I(ThemeHandle, hdc, PartId, StateId, Rect, ClipRect));
 }
 
 INT PhAddListViewColumn(
@@ -97,7 +251,7 @@ INT PhAddListViewColumn(
     LVCOLUMN column;
     LONG dpiValue;
 
-    dpiValue = PhGetDpiValue(ListViewHandle, NULL);
+    dpiValue = PhGetWindowDpi(ListViewHandle);
 
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
@@ -176,7 +330,7 @@ _Success_(return)
 BOOLEAN PhGetListViewItemParam(
     _In_ HWND ListViewHandle,
     _In_ INT Index,
-    _Out_ PVOID *Param
+    _Outptr_ PVOID *Param
     )
 {
     LVITEM item;
@@ -265,7 +419,7 @@ INT PhAddListViewGroup(
     group.iGroupId = GroupId;
     group.pszHeader = Text;
 
-    return (INT)ListView_InsertGroup(ListViewHandle, MAXINT, &group);
+    return (INT)ListView_InsertGroup(ListViewHandle, MAXUINT, &group);
 }
 
 INT PhAddListViewGroupItem(
@@ -426,9 +580,9 @@ PPH_STRING PhGetComboBoxString(
     )
 {
     PPH_STRING string;
-    ULONG length;
+    INT length;
 
-    if (Index == -1)
+    if (Index == INT_ERROR)
     {
         Index = ComboBox_GetCurSel(hwnd);
 
@@ -464,18 +618,20 @@ INT PhSelectComboBoxString(
 {
     if (Partial)
     {
-        return ComboBox_SelectString(hwnd, -1, String);
+        return ComboBox_SelectString(hwnd, INT_ERROR, String);
     }
     else
     {
         INT index;
 
-        index = ComboBox_FindStringExact(hwnd, -1, String);
+        index = ComboBox_FindStringExact(hwnd, INT_ERROR, String);
 
         if (index == CB_ERR)
             return CB_ERR;
 
         ComboBox_SetCurSel(hwnd, index);
+
+        InvalidateRect(hwnd, NULL, TRUE);
 
         return index;
     }
@@ -487,9 +643,9 @@ PPH_STRING PhGetListBoxString(
     )
 {
     PPH_STRING string;
-    ULONG length;
+    INT length;
 
-    if (Index == -1)
+    if (Index == INT_ERROR)
     {
         Index = ListBox_GetCurSel(hwnd);
 
@@ -546,11 +702,11 @@ PVOID PhGetSelectedListViewItemParam(
 
     index = PhFindListViewItemByFlags(
         hWnd,
-        -1,
+        INT_ERROR,
         LVNI_SELECTED
         );
 
-    if (index != -1)
+    if (index != INT_ERROR)
     {
         if (PhGetListViewItemParam(
             hWnd,
@@ -576,13 +732,13 @@ VOID PhGetSelectedListViewItemParams(
     PVOID param;
 
     PhInitializeArray(&array, sizeof(PVOID), 2);
-    index = -1;
+    index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(
         hWnd,
         index,
         LVNI_SELECTED
-        )) != -1)
+        )) != INT_ERROR)
     {
         if (PhGetListViewItemParam(hWnd, index, &param))
             PhAddItemArray(&array, &param);
@@ -663,7 +819,7 @@ HICON PhLoadIcon(
     _In_ ULONG Flags,
     _In_opt_ ULONG Width,
     _In_opt_ ULONG Height,
-    _In_opt_ LONG DpiValue
+    _In_opt_ LONG SystemDpi
     )
 {
     PHP_ICON_ENTRY entry;
@@ -687,7 +843,7 @@ HICON PhLoadIcon(
         entry.Name = Name;
         entry.Width = PhpGetIconEntrySize(Width, Flags);
         entry.Height = PhpGetIconEntrySize(Height, Flags);
-        entry.DpiValue = DpiValue;
+        entry.DpiValue = SystemDpi;
         actualEntry = PhFindEntryHashtable(SharedIconCacheHashtable, &entry);
 
         if (actualEntry)
@@ -702,13 +858,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CYICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
         }
 
         if (LoadIconWithScaleDown)
@@ -726,13 +882,13 @@ HICON PhLoadIcon(
     {
         if (Flags & PH_LOAD_ICON_SIZE_SMALL)
         {
-            width = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CXSMICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CXSMICON, SystemDpi);
         }
         else
         {
-            width = PhGetSystemMetrics(SM_CXICON, DpiValue);
-            height = PhGetSystemMetrics(SM_CYICON, DpiValue);
+            width = PhGetSystemMetrics(SM_CXICON, SystemDpi);
+            height = PhGetSystemMetrics(SM_CYICON, SystemDpi);
         }
 
         icon = LoadImage(ImageBaseAddress, Name, IMAGE_ICON, width, height, 0);
@@ -780,8 +936,6 @@ VOID PhGetStockApplicationIcon(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        LONG dpiValue = PhGetSystemDpi();
-
         if (WindowsVersion < WINDOWS_10)
         {
             PPH_STRING systemDirectory;
@@ -807,9 +961,9 @@ VOID PhGetStockApplicationIcon(
 
         // Fallback icons
         if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, dpiValue);
+            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, PhSystemDpi);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, dpiValue);
+            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, PhSystemDpi);
 
         PhEndInitOnce(&initOnce);
     }
@@ -1402,7 +1556,7 @@ VOID PhLayoutManagerLayout(
     }
 }
 
-static BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
+BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -1415,13 +1569,13 @@ static BOOLEAN NTAPI PhpWindowContextHashtableEqualFunction(
         entry1->PropertyHash == entry2->PropertyHash;
 }
 
-static ULONG NTAPI PhpWindowContextHashtableHashFunction(
+ULONG NTAPI PhpWindowContextHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
     PPH_WINDOW_PROPERTY_CONTEXT entry = Entry;
 
-    return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ PhHashInt32(entry->PropertyHash);
+    return PhHashIntPtr((ULONG_PTR)entry->WindowHandle) ^ entry->PropertyHash; // PhHashInt32
 }
 
 PVOID PhGetWindowContext(
@@ -1689,7 +1843,7 @@ VOID PhSetWindowAlwaysOnTop(
         );
 }
 
-static BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
+BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
     )
@@ -1699,7 +1853,7 @@ static BOOLEAN NTAPI PhpWindowCallbackHashtableEqualFunction(
         ((PPH_PLUGIN_WINDOW_CALLBACK_REGISTRATION)Entry2)->WindowHandle;
 }
 
-static ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
+ULONG NTAPI PhpWindowCallbackHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
@@ -1793,23 +1947,6 @@ HICON PhGetInternalWindowIcon(
         return NULL;
 
     return InternalGetWindowIcon_I(WindowHandle, Type);
-}
-
-HANDLE PhGetGlobalTimerQueue(
-    VOID
-    )
-{
-    static HANDLE PhTimerQueueHandle = NULL;
-    static PH_INITONCE PhTimerQueueHandleInitOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&PhTimerQueueHandleInitOnce))
-    {
-        RtlCreateTimerQueue(&PhTimerQueueHandle);
-
-        PhEndInitOnce(&PhTimerQueueHandleInitOnce);
-    }
-
-    return PhTimerQueueHandle;
 }
 
 BOOLEAN PhIsImmersiveProcess(
@@ -2298,7 +2435,7 @@ BOOLEAN PhExtractIconEx(
     _In_ INT32 IconIndex,
     _Out_opt_ HICON *IconLarge,
     _Out_opt_ HICON *IconSmall,
-    _In_ LONG dpiValue
+    _In_ LONG SystemDpi
     )
 {
     NTSTATUS status;
@@ -2383,8 +2520,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXICON, dpiValue),
-                PhGetSystemMetrics(SM_CYICON, dpiValue),
+                PhGetSystemMetrics(SM_CXICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYICON, SystemDpi),
                 LR_DEFAULTCOLOR
                 );
         }
@@ -2395,8 +2532,8 @@ BOOLEAN PhExtractIconEx(
                 &mappedImage,
                 resourceDirectory,
                 iconDirectoryResource,
-                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                PhGetSystemMetrics(SM_CXSMICON, SystemDpi),
+                PhGetSystemMetrics(SM_CYSMICON, SystemDpi),
                 LR_DEFAULTCOLOR
                 );
         }
@@ -2451,11 +2588,11 @@ CleanupExit:
 // Imagelist support
 
 HIMAGELIST PhImageListCreate(
-    _In_ UINT Width,
-    _In_ UINT Height,
-    _In_ UINT Flags,
-    _In_ UINT InitialCount,
-    _In_ UINT GrowCount
+    _In_ INT32 Width,
+    _In_ INT32 Height,
+    _In_ UINT32 Flags,
+    _In_ INT32 InitialCount,
+    _In_ INT32 GrowCount
     )
 {
     HRESULT status;
@@ -2483,8 +2620,7 @@ HIMAGELIST PhImageListCreate(
     if (FAILED(status))
         return NULL;
 
-    // Win32 HIMAGELIST is always a pointer to the IImageList interface. (dmex)
-    return (HIMAGELIST)imageList;
+    return IImageListToHIMAGELIST(imageList);
 }
 
 BOOLEAN PhImageListDestroy(
@@ -2496,7 +2632,7 @@ BOOLEAN PhImageListDestroy(
 
 BOOLEAN PhImageListSetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Count
+    _In_ UINT32 Count
     )
 {
     return SUCCEEDED(IImageList2_SetImageCount((IImageList2*)ImageListHandle, Count));
@@ -2504,7 +2640,7 @@ BOOLEAN PhImageListSetImageCount(
 
 BOOLEAN PhImageListGetImageCount(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PUINT Count
+    _Out_ PINT32 Count
     )
 {
     return SUCCEEDED(IImageList2_GetImageCount((IImageList2*)ImageListHandle, Count));
@@ -2524,16 +2660,16 @@ BOOLEAN PhImageListSetBkColor(
         ));
 }
 
-UINT PhImageListAddIcon(
+INT32 PhImageListAddIcon(
     _In_ HIMAGELIST ImageListHandle,
     _In_ HICON IconHandle
     )
 {
-    INT index = -1;
+    INT32 index = INT_ERROR;
 
     IImageList2_ReplaceIcon(
         (IImageList2*)ImageListHandle,
-        UINT_MAX,
+        INT_ERROR,
         IconHandle,
         &index
         );
@@ -2541,13 +2677,13 @@ UINT PhImageListAddIcon(
     return index;
 }
 
-UINT PhImageListAddBitmap(
+INT32 PhImageListAddBitmap(
     _In_ HIMAGELIST ImageListHandle,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     )
 {
-    INT index = -1;
+    INT32 index = INT_ERROR;
 
     IImageList2_Add(
         (IImageList2*)ImageListHandle,
@@ -2561,7 +2697,7 @@ UINT PhImageListAddBitmap(
 
 BOOLEAN PhImageListRemoveIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index
+    _In_ INT32 Index
     )
 {
     return SUCCEEDED(IImageList2_Remove(
@@ -2572,8 +2708,8 @@ BOOLEAN PhImageListRemoveIcon(
 
 HICON PhImageListGetIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
-    _In_ UINT Flags
+    _In_ INT32 Index,
+    _In_ UINT32 Flags
     )
 {
     HICON iconhandle = NULL;
@@ -2590,8 +2726,8 @@ HICON PhImageListGetIcon(
 
 BOOLEAN PhImageListGetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _Out_ PINT cx,
-    _Out_ PINT cy
+    _Out_ PINT32 cx,
+    _Out_ PINT32 cy
     )
 {
     return SUCCEEDED(IImageList2_GetIconSize(
@@ -2603,7 +2739,7 @@ BOOLEAN PhImageListGetIconSize(
 
 BOOLEAN PhImageListReplace(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ UINT Index,
+    _In_ INT32 Index,
     _In_ HBITMAP BitmapImage,
     _In_opt_ HBITMAP BitmapMask
     )
@@ -2618,11 +2754,11 @@ BOOLEAN PhImageListReplace(
 
 BOOLEAN PhImageListDrawIcon(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ UINT Style,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ UINT32 Style,
     _In_ BOOLEAN Disabled
     )
 {
@@ -2643,16 +2779,16 @@ BOOLEAN PhImageListDrawIcon(
 
 BOOLEAN PhImageListDrawEx(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT Index,
+    _In_ INT32 Index,
     _In_ HDC Hdc,
-    _In_ INT x,
-    _In_ INT y,
-    _In_ INT dx,
-    _In_ INT dy,
+    _In_ INT32 x,
+    _In_ INT32 y,
+    _In_ INT32 dx,
+    _In_ INT32 dy,
     _In_ COLORREF BackColor,
     _In_ COLORREF ForeColor,
-    _In_ UINT Style,
-    _In_ DWORD State
+    _In_ UINT32 Style,
+    _In_ ULONG State
     )
 {
     IMAGELISTDRAWPARAMS imagelistDraw;
@@ -2676,8 +2812,8 @@ BOOLEAN PhImageListDrawEx(
 
 BOOLEAN PhImageListSetIconSize(
     _In_ HIMAGELIST ImageListHandle,
-    _In_ INT cx,
-    _In_ INT cy
+    _In_ INT32 cx,
+    _In_ INT32 cy
     )
 {
     return SUCCEEDED(IImageList2_SetIconSize((IImageList2*)ImageListHandle, cx, cy));
@@ -2742,6 +2878,7 @@ VOID PhCustomDrawTreeTimeLine(
     RECT rect = CellRect;
     RECT borderRect = CellRect;
     FLOAT percent = 0;
+    FLOAT percentabs = 0;
     LARGE_INTEGER systemTime;
     LARGE_INTEGER startTime;
     LARGE_INTEGER createTime;
@@ -2792,18 +2929,19 @@ VOID PhCustomDrawTreeTimeLine(
 
     // Note: Time is 8 bytes, Float is 4 bytes. Use DOUBLE type at some stage. (dmex)
     percent = (FLOAT)createTime.QuadPart / (FLOAT)startTime.QuadPart * 100.f;
+    percentabs = fabsf(percent);
 
     if (!(Flags & PH_DRAW_TIMELINE_OVERFLOW))
     {
         // Prevent overflow from changing the system time to an earlier date. (dmex)
-        if (fabsf(percent) > 100.f)
+        if (percentabs > 100.f)
             percent = 100.f;
-        if (fabsf(percent) < 0.0005f)
+        if (percentabs < 0.0005f)
             percent = 0.f;
     }
 
     if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
-        FillRect(Hdc, &rect, PhMenuBackgroundBrush);
+        FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
     else
         FillRect(Hdc, &rect, GetSysColorBrush(COLOR_WINDOW));
 
@@ -2812,7 +2950,7 @@ VOID PhCustomDrawTreeTimeLine(
 
     if (Flags & PH_DRAW_TIMELINE_DARKTHEME)
     {
-        FillRect(Hdc, &rect, PhMenuBackgroundBrush);
+        FillRect(Hdc, &rect, PhThemeWindowBackgroundBrush);
 
         if (Flags & PH_DRAW_TIMELINE_OVERFLOW) // System threads created before startup. (dmex)
             SetDCBrushColor(Hdc, percent > 100.f ? RGB(128, 128, 128) : RGB(0, 130, 135));
@@ -2836,9 +2974,9 @@ VOID PhCustomDrawTreeTimeLine(
     if (Flags & PH_DRAW_TIMELINE_OVERFLOW)
     {
         // Prevent overflow from changing the system time to an earlier date. (dmex)
-        if (fabsf(percent) > 100.f)
+        if (percentabs > 100.f)
             percent = 100.f;
-        if (fabsf(percent) < 0.0005f)
+        if (percentabs < 0.0005f)
             percent = 0.f;
     }
 
@@ -2860,4 +2998,486 @@ VOID PhCustomDrawTreeTimeLine(
     PhInflateRect(&borderRect, -1, -1);
     borderRect.bottom += 1;
     FrameRect(Hdc, &borderRect, GetStockBrush(GRAY_BRUSH));
+}
+
+// Windows Imaging Component (WIC) bitmap support 
+
+static PVOID PhpGetWicImagingFactoryInterface(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID wicImagingFactory = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion > WINDOWS_8)
+            PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory2, &IID_IWICImagingFactory, &wicImagingFactory);
+        else
+            PhGetClassObject(L"windowscodecs.dll", &CLSID_WICImagingFactory1, &IID_IWICImagingFactory, &wicImagingFactory);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return wicImagingFactory;
+}
+
+static PGUID PhpGetImageFormatDecoderType(
+    _In_ PH_IMAGE_FORMAT_TYPE Format
+    )
+{
+    switch (Format)
+    {
+    case PH_IMAGE_FORMAT_TYPE_ICO:
+        return (PGUID)&GUID_ContainerFormatIco;
+    case PH_IMAGE_FORMAT_TYPE_BMP:
+        return (PGUID)&GUID_ContainerFormatBmp;
+    case PH_IMAGE_FORMAT_TYPE_JPG:
+        return (PGUID)&GUID_ContainerFormatJpeg;
+    case PH_IMAGE_FORMAT_TYPE_PNG:
+        return (PGUID)&GUID_ContainerFormatPng;
+    }
+
+    return (PGUID)&GUID_ContainerFormatRaw;
+}
+
+HBITMAP PhLoadImageFormatFromResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_ PH_IMAGE_FORMAT_TYPE Format,
+    _In_ UINT Width,
+    _In_ UINT Height
+    )
+{
+    BOOLEAN success = FALSE;
+    HBITMAP bitmapHandle = NULL;
+    ULONG resourceLength = 0;
+    WICInProcPointer resourceBuffer = NULL;
+    PVOID bitmapBuffer = NULL;
+    IWICImagingFactory* wicImageFactory = NULL;
+    IWICStream* wicBitmapStream = NULL;
+    IWICBitmapSource* wicBitmapSource = NULL;
+    IWICBitmapDecoder* wicBitmapDecoder = NULL;
+    IWICBitmapFrameDecode* wicBitmapFrame = NULL;
+    WICPixelFormatGUID pixelFormat;
+    UINT sourceWidth = 0;
+    UINT sourceHeight = 0;
+
+    if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
+        goto CleanupExit;
+
+    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
+        goto CleanupExit;
+    if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, resourceBuffer, resourceLength)))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateDecoder(wicImageFactory, PhpGetImageFormatDecoderType(Format), &GUID_VendorMicrosoft, &wicBitmapDecoder)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapDecoder_Initialize(wicBitmapDecoder, (IStream*)wicBitmapStream, WICDecodeMetadataCacheOnDemand)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicBitmapFrame, &pixelFormat)))
+        goto CleanupExit;
+
+    if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA)) // CreateDIBSection format
+    {
+        if (FAILED(IWICBitmapFrameDecode_QueryInterface(wicBitmapFrame, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+    }
+    else
+    {
+        IWICFormatConverter* wicFormatConverter = NULL;
+
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
+            goto CleanupExit;
+
+        if (FAILED(IWICFormatConverter_Initialize(
+            wicFormatConverter,
+            (IWICBitmapSource*)wicBitmapFrame,
+            &GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.0f,
+            WICBitmapPaletteTypeCustom
+            )))
+        {
+            IWICFormatConverter_Release(wicFormatConverter);
+            goto CleanupExit;
+        }
+
+        if (FAILED(IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+
+        IWICFormatConverter_Release(wicFormatConverter);
+    }
+
+    {
+        BITMAPINFO bitmapInfo;
+        HDC screenHdc;
+
+        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+        bitmapInfo.bmiHeader.biWidth = Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
+        bitmapInfo.bmiHeader.biBitCount = 32;
+
+        screenHdc = GetDC(NULL);
+        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
+        ReleaseDC(NULL, screenHdc);
+    }
+
+    if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
+    {
+        if (SUCCEEDED(IWICBitmapSource_CopyPixels(
+            wicBitmapSource,
+            NULL,
+            Width * sizeof(RGBQUAD),
+            Width * Height * sizeof(RGBQUAD),
+            bitmapBuffer
+            )))
+        {
+            success = TRUE;
+        }
+    }
+    else
+    {
+        IWICBitmapScaler* wicBitmapScaler = NULL;
+
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
+        {
+            if (SUCCEEDED(IWICBitmapScaler_Initialize(
+                wicBitmapScaler,
+                wicBitmapSource,
+                Width,
+                Height,
+                WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
+                )))
+            {
+                if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
+                    wicBitmapScaler,
+                    NULL,
+                    Width * sizeof(RGBQUAD),
+                    Width * Height * sizeof(RGBQUAD),
+                    bitmapBuffer
+                    )))
+                {
+                    success = TRUE;
+                }
+            }
+
+            IWICBitmapScaler_Release(wicBitmapScaler);
+        }
+    }
+
+CleanupExit:
+
+    if (wicBitmapSource)
+        IWICBitmapSource_Release(wicBitmapSource);
+    if (wicBitmapDecoder)
+        IWICBitmapDecoder_Release(wicBitmapDecoder);
+    if (wicBitmapFrame)
+        IWICBitmapFrameDecode_Release(wicBitmapFrame);
+    if (wicBitmapStream)
+        IWICStream_Release(wicBitmapStream);
+
+    if (!success)
+    {
+        if (bitmapHandle) DeleteBitmap(bitmapHandle);
+        return NULL;
+    }
+
+    return bitmapHandle;
+}
+
+// Load image and auto-detect the format (dmex)
+HBITMAP PhLoadImageFromResource(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_ UINT Width,
+    _In_ UINT Height
+    )
+{
+    BOOLEAN success = FALSE;
+    HBITMAP bitmapHandle = NULL;
+    ULONG resourceLength = 0;
+    WICInProcPointer resourceBuffer = NULL;
+    PVOID bitmapBuffer = NULL;
+    IWICImagingFactory* wicImageFactory = NULL;
+    IWICStream* wicBitmapStream = NULL;
+    IWICBitmapSource* wicBitmapSource = NULL;
+    IWICBitmapDecoder* wicBitmapDecoder = NULL;
+    IWICBitmapFrameDecode* wicBitmapFrame = NULL;
+    WICPixelFormatGUID pixelFormat;
+    UINT sourceWidth = 0;
+    UINT sourceHeight = 0;
+
+    if (!PhLoadResource(DllBase, Name, Type, &resourceLength, &resourceBuffer))
+        goto CleanupExit;
+
+    if (!(wicImageFactory = PhpGetWicImagingFactoryInterface()))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateStream(wicImageFactory, &wicBitmapStream)))
+        goto CleanupExit;
+    if (FAILED(IWICStream_InitializeFromMemory(wicBitmapStream, resourceBuffer, resourceLength)))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateDecoderFromStream(wicImageFactory, (IStream*)wicBitmapStream, &GUID_VendorMicrosoft, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicBitmapFrame, &pixelFormat)))
+        goto CleanupExit;
+
+    if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+    {
+        if (FAILED(IWICBitmapFrameDecode_QueryInterface(wicBitmapFrame, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+    }
+    else
+    {
+        IWICFormatConverter* wicFormatConverter = NULL;
+
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicImageFactory, &wicFormatConverter)))
+            goto CleanupExit;
+
+        if (FAILED(IWICFormatConverter_Initialize(
+            wicFormatConverter,
+            (IWICBitmapSource*)wicBitmapFrame,
+            &GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.0f,
+            WICBitmapPaletteTypeCustom
+            )))
+        {
+            IWICFormatConverter_Release(wicFormatConverter);
+            goto CleanupExit;
+        }
+
+        if (FAILED(IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+
+        IWICFormatConverter_Release(wicFormatConverter);
+    }
+
+    {
+        BITMAPINFO bitmapInfo;
+        HDC screenHdc;
+
+        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+        bitmapInfo.bmiHeader.biWidth = Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
+        bitmapInfo.bmiHeader.biBitCount = 32;
+
+        screenHdc = GetDC(NULL);
+        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
+        ReleaseDC(NULL, screenHdc);
+    }
+
+    if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
+    {
+        if (SUCCEEDED(IWICBitmapSource_CopyPixels(
+            wicBitmapSource, 
+            NULL, 
+            Width * sizeof(RGBQUAD), 
+            Width * Height * sizeof(RGBQUAD),
+            bitmapBuffer
+            )))
+        {
+            success = TRUE;
+        }
+    }
+    else
+    {
+        IWICBitmapScaler* wicBitmapScaler = NULL;
+
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicImageFactory, &wicBitmapScaler)))
+        {
+            if (SUCCEEDED(IWICBitmapScaler_Initialize(
+                wicBitmapScaler,
+                wicBitmapSource,
+                Width, 
+                Height, 
+                WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
+                )))
+            {
+                if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
+                    wicBitmapScaler, 
+                    NULL, 
+                    Width * sizeof(RGBQUAD), 
+                    Width * Height * sizeof(RGBQUAD),
+                    bitmapBuffer
+                    )))
+                {
+                    success = TRUE;
+                }
+            }
+
+            IWICBitmapScaler_Release(wicBitmapScaler);
+        }
+    }
+
+CleanupExit:
+
+    if (wicBitmapSource)
+        IWICBitmapSource_Release(wicBitmapSource);
+    if (wicBitmapDecoder)
+        IWICBitmapDecoder_Release(wicBitmapDecoder);
+    if (wicBitmapFrame)
+        IWICBitmapFrameDecode_Release(wicBitmapFrame);
+    if (wicBitmapStream)
+        IWICStream_Release(wicBitmapStream);
+
+    if (!success)
+    {
+        if (bitmapHandle) DeleteBitmap(bitmapHandle);
+        return NULL;
+    }
+
+    return bitmapHandle;
+}
+
+// Load image and auto-detect the format (dmex)
+HBITMAP PhLoadImageFromFile(
+    _In_ PWSTR FileName,
+    _In_ UINT Width,
+    _In_ UINT Height
+    )
+{
+    BOOLEAN success = FALSE;
+    HBITMAP bitmapHandle = NULL;
+    PVOID bitmapBuffer = NULL;
+    IWICImagingFactory* wicFactory = NULL;
+    IWICBitmapSource* wicBitmapSource = NULL;
+    IWICBitmapDecoder* wicBitmapDecoder = NULL;
+    IWICBitmapFrameDecode* wicBitmapFrame = NULL;
+    WICPixelFormatGUID pixelFormat;
+    UINT sourceWidth = 0;
+    UINT sourceHeight = 0;
+
+    if (!(wicFactory = PhpGetWicImagingFactoryInterface()))
+        goto CleanupExit;
+    if (FAILED(IWICImagingFactory_CreateDecoderFromFilename(wicFactory, FileName, &GUID_VendorMicrosoft, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &wicBitmapDecoder)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapDecoder_GetFrame(wicBitmapDecoder, 0, &wicBitmapFrame)))
+        goto CleanupExit;
+    if (FAILED(IWICBitmapFrameDecode_GetPixelFormat(wicBitmapFrame, &pixelFormat)))
+        goto CleanupExit;
+
+    if (IsEqualGUID(&pixelFormat, &GUID_WICPixelFormat32bppBGRA))
+    {
+        if (FAILED(IWICBitmapFrameDecode_QueryInterface(wicBitmapFrame, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+    }
+    else
+    {
+        IWICFormatConverter* wicFormatConverter = NULL;
+
+        if (FAILED(IWICImagingFactory_CreateFormatConverter(wicFactory, &wicFormatConverter)))
+            goto CleanupExit;
+
+        if (FAILED(IWICFormatConverter_Initialize(
+            wicFormatConverter,
+            (IWICBitmapSource*)wicBitmapFrame,
+            &GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone,
+            NULL,
+            0.0f,
+            WICBitmapPaletteTypeCustom
+            )))
+        {
+            IWICFormatConverter_Release(wicFormatConverter);
+            goto CleanupExit;
+        }
+
+        if (FAILED(IWICFormatConverter_QueryInterface(wicFormatConverter, &IID_IWICBitmapSource, &wicBitmapSource)))
+            goto CleanupExit;
+
+        IWICFormatConverter_Release(wicFormatConverter);
+    }
+
+    {
+        BITMAPINFO bitmapInfo;
+        HDC screenHdc;
+
+        memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+        bitmapInfo.bmiHeader.biWidth = Width;
+        bitmapInfo.bmiHeader.biHeight = -((LONG)Height);
+        bitmapInfo.bmiHeader.biBitCount = 32;
+
+        screenHdc = GetDC(NULL);
+        bitmapHandle = CreateDIBSection(screenHdc, &bitmapInfo, DIB_RGB_COLORS, &bitmapBuffer, NULL, 0);
+        ReleaseDC(NULL, screenHdc);
+    }
+
+    if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
+    {
+        if (SUCCEEDED(IWICBitmapSource_CopyPixels(
+            wicBitmapSource,
+            NULL,
+            Width * sizeof(RGBQUAD),
+            Width * Height * sizeof(RGBQUAD),
+            bitmapBuffer
+            )))
+        {
+            success = TRUE;
+        }
+    }
+    else
+    {
+        IWICBitmapScaler* wicBitmapScaler = NULL;
+
+        if (SUCCEEDED(IWICImagingFactory_CreateBitmapScaler(wicFactory, &wicBitmapScaler)))
+        {
+            if (SUCCEEDED(IWICBitmapScaler_Initialize(
+                wicBitmapScaler,
+                wicBitmapSource,
+                Width,
+                Height,
+                WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
+                )))
+            {
+                if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
+                    wicBitmapScaler,
+                    NULL,
+                    Width * sizeof(RGBQUAD),
+                    Width * Height * sizeof(RGBQUAD),
+                    bitmapBuffer
+                    )))
+                {
+                    success = TRUE;
+                }
+            }
+
+            IWICBitmapScaler_Release(wicBitmapScaler);
+        }
+    }
+
+CleanupExit:
+
+    if (wicBitmapSource)
+        IWICBitmapSource_Release(wicBitmapSource);
+    if (wicBitmapDecoder)
+        IWICBitmapDecoder_Release(wicBitmapDecoder);
+    if (wicBitmapFrame)
+        IWICBitmapFrameDecode_Release(wicBitmapFrame);
+
+    if (!success)
+    {
+        if (bitmapHandle) DeleteBitmap(bitmapHandle);
+        return NULL;
+    }
+
+    return bitmapHandle;
 }

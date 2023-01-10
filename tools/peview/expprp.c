@@ -330,6 +330,8 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
         {
             PhSaveSettingsExportList(context);
             PvDeleteExportTree(context);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_SHOWWINDOW:

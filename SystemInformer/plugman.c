@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -266,26 +266,19 @@ VOID UpdatePluginsNode(
 BOOLEAN NTAPI PluginsTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGMAN_CONTEXT context = Context;
     PPH_PLUGIN_TREE_ROOT_NODE node;
-
-    if (!context)
-        return FALSE;
 
     switch (Message)
     {
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PPH_PLUGIN_TREE_ROOT_NODE)getChildren->Node;
 
             if (!getChildren->Node)
@@ -316,10 +309,6 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
-
-            if (!isLeaf)
-                break;
-
             node = (PPH_PLUGIN_TREE_ROOT_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = TRUE;
@@ -328,10 +317,6 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PPH_PLUGIN_TREE_ROOT_NODE)getCellText->Node;
 
             switch (getCellText->Id)
@@ -352,10 +337,6 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PPH_PLUGIN_TREE_ROOT_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
@@ -371,9 +352,6 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -425,9 +403,6 @@ BOOLEAN NTAPI PluginsTreeNewCallback(
         {
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             RECT rect;
-
-            if (!customDraw)
-                break;
 
             rect = customDraw->CellRect;
             node = (PPH_PLUGIN_TREE_ROOT_NODE)customDraw->Node;

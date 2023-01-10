@@ -868,12 +868,12 @@ VOID PhSipUpdateMemoryPanel(
 
         PhSipGetPoolLimits(&paged, &nonPaged);
 
-        if (paged != SIZE_T_MAX)
+        if (paged != MAXSIZE_T)
             pagedLimit = PhaFormatSize(paged, ULONG_MAX)->Buffer;
         else
             pagedLimit = KphLevel() ? L"no symbols" : L"no driver";
 
-        if (nonPaged != SIZE_T_MAX)
+        if (nonPaged != MAXSIZE_T)
             nonPagedLimit = PhaFormatSize(nonPaged, ULONG_MAX)->Buffer;
         else
             nonPagedLimit = L"N/A";
@@ -1049,8 +1049,8 @@ VOID PhSipGetPoolLimits(
     _Out_ PSIZE_T NonPaged
     )
 {
-    SIZE_T paged = SIZE_T_MAX;
-    SIZE_T nonPaged = SIZE_T_MAX;
+    SIZE_T paged = MAXSIZE_T;
+    SIZE_T nonPaged = MAXSIZE_T;
 
     if (MmSizeOfPagedPoolInBytes && (KphLevel() >= KphLevelMed))
     {

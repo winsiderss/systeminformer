@@ -609,8 +609,8 @@ int __cdecl EtFwNodeNoOrderSortFunction(
 BOOLEAN NTAPI FwTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_opt_ PVOID Context
     )
 {
@@ -621,10 +621,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            if (!getChildren)
-                break;
-
             node = (PFW_EVENT_ITEM)getChildren->Node;
 
             if (FwTreeNewSortOrder == NoSortOrder)
@@ -687,19 +683,12 @@ BOOLEAN NTAPI FwTreeNewCallback(
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
 
-            if (!isLeaf)
-                break;
-
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
-
-            if (!getCellText)
-                break;
-
             node = (PFW_EVENT_ITEM)getCellText->Node;
 
             switch (getCellText->Id)
@@ -1109,10 +1098,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
     case TreeNewGetNodeIcon:
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = (PPH_TREENEW_GET_NODE_ICON)Parameter1;
-
-            if (!getNodeIcon)
-                break;
-
             node = (PFW_EVENT_ITEM)getNodeIcon->Node;
 
             getNodeIcon->Flags = TN_CACHE;
@@ -1121,10 +1106,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = (PPH_TREENEW_GET_NODE_COLOR)Parameter1;
-
-            if (!getNodeColor)
-                break;
-
             node = (PFW_EVENT_ITEM)getNodeColor->Node;
 
             switch (node->Type)
@@ -1151,9 +1132,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
     case TreeNewKeyDown:
         {
             PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
-
-            if (!keyEvent)
-                break;
 
             switch (keyEvent->VirtualKey)
             {
@@ -1199,9 +1177,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
         {
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
-            if (!contextMenuEvent)
-                break;
-
             ShowFwContextMenu(WindowHandle, contextMenuEvent);
         }
         return TRUE;
@@ -1219,9 +1194,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
             RECT rect;
             LONG dpiValue;
 
-            if (!customDraw)
-                break;
-
             hdc = customDraw->Dc;
             rect = customDraw->CellRect;
             node = (PFW_EVENT_ITEM)customDraw->Node;
@@ -1231,7 +1203,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             {
                 if (node->RemoteCountryName)
                 {
-                    if (node->CountryIconIndex != INT_MAX)
+                    if (node->CountryIconIndex != INT_ERROR)
                     {
                         rect.left += PhGetDpi(TNP_CELL_LEFT_MARGIN, dpiValue);
                         EtFwDrawCountryIcon(hdc, rect, node->CountryIconIndex);

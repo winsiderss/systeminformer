@@ -492,7 +492,7 @@ VOID NTAPI NetworkItemCreateCallback(
     _In_ PVOID Object,
     _In_ PH_EM_OBJECT_TYPE ObjectType,
     _In_ PVOID Extension
-)
+    )
 {
     PPH_NETWORK_ITEM networkItem = Object;
     PNETWORK_EXTENSION extension = Extension;
@@ -500,7 +500,7 @@ VOID NTAPI NetworkItemCreateCallback(
     memset(extension, 0, sizeof(NETWORK_EXTENSION));
 
     extension->NetworkItem = networkItem;
-    extension->CountryIconIndex = INT_MAX;
+    extension->CountryIconIndex = INT_ERROR;
 
     if (NetworkExtensionEnabled)
     {
@@ -793,7 +793,7 @@ VOID NTAPI TreeNewMessageCallback(
             // Draw the column data
             if (extension->RemoteCountryName)
             {
-                if (extension->CountryIconIndex != INT_MAX)
+                if (extension->CountryIconIndex != INT_ERROR)
                 {
                     DrawCountryIcon(hdc, rect, extension->CountryIconIndex);
                     rect.left += 16 + 2;

@@ -106,11 +106,11 @@ EXTERN_C HRESULT PvGetClrImageImports(
     _Out_ PPH_LIST* ClrImportsList
     )
 {
-    IMetaDataDispenser* metaDataDispenser = reinterpret_cast<IMetaDataDispenser*>(ClrMetaDataDispenser);
+    IMetaDataDispenser* metaDataDispenser = static_cast<IMetaDataDispenser*>(ClrMetaDataDispenser);
     IMetaDataImport* metaDataImport = nullptr;
     IMetaDataTables* metaDataTables = nullptr;
-    PPH_LIST clrImportsList = nullptr;
-    HRESULT status = E_FAIL;
+    PPH_LIST clrImportsList;
+    HRESULT status;
     ULONG rowModuleCount = 0;
     ULONG rowModuleColumns = 0;
     ULONG rowImportCount = 0;

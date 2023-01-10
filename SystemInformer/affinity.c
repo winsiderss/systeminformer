@@ -538,7 +538,7 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     for (ULONG i = 0; i < MAXIMUM_PROC_PER_GROUP; i++)
                     {
                         if (Button_GetCheck(context->CpuControlList->Items[i]) == BST_CHECKED)
-                            affinityMask |= (KAFFINITY)1 << i;
+                            affinityMask |= AFFINITY_MASK(i);
                     }
 
                     if (context->GroupComboHandle)

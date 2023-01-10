@@ -1093,12 +1093,14 @@ VOID PhSipUpdateCpuPanel(
     SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
     ULONG logicalInformationLength = 0;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
-#ifndef _ARM64_
     LARGE_INTEGER performanceCounterStart;
     LARGE_INTEGER performanceCounterEnd;
     LARGE_INTEGER performanceCounterTicks;
     ULONG64 timeStampCounterStart;
     ULONG64 timeStampCounterEnd;
+#if _M_ARM64
+    ULONG64 currentExceptionLevel;
+#else
     INT cpubrand[4];
 #endif
     PH_FORMAT format[5];
@@ -1294,20 +1296,32 @@ VOID PhSipUpdateCpuPanel(
             PhSetWindowText(CpuPanelLogicalLabel, PhaFormatUInt64(processorLogicalCount, TRUE)->Buffer);
     }
 
-#ifndef _ARM64_
     // Do not optimize (dmex)
     PhQueryPerformanceCounter(&performanceCounterStart, NULL);
     timeStampCounterStart = PhReadTimeStampCounter();
     MemoryBarrier();
+#if _M_ARM64
+    // 0b11    0b000    0b0100    0b0010    0b010    CurrentEL     Current Exception Level
+    currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
+#else
     CpuIdEx(cpubrand, 0, 0);
+#endif
     MemoryBarrier();
     timeStampCounterEnd = PhReadTimeStampCounter();
     MemoryBarrier();
     PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 
-    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 && cpubrand[0] == 0 && cpubrand[3] == 0)
+    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 &&
+#if _M_ARM64
+        currentExceptionLevel == MAXULONG64
+#else
+        cpubrand[0] == 0 && cpubrand[3] == 0
+#endif
+        )
+    {
         performanceCounterTicks.QuadPart = 0;
+    }
 
     PhInitFormatI64UGroupDigits(&format[0], performanceCounterTicks.QuadPart);
     PhInitFormatS(&format[1], L" | ");
@@ -1317,9 +1331,6 @@ VOID PhSipUpdateCpuPanel(
         PhSetWindowText(CpuPanelLatencyLabel, formatBuffer);
     else
         PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(performanceCounterTicks.QuadPart, TRUE)->Buffer);
-#else
-    PhSetWindowText(CpuPanelLatencyLabel, PhaFormatUInt64(PhTotalCpuQueueLength, TRUE)->Buffer);
-#endif
 }
 
 PPH_PROCESS_RECORD PhSipReferenceMaxCpuRecord(
@@ -1644,7 +1655,7 @@ ULONG PhSipGetProcessorRelationshipIndex(
         PROCESSOR_RELATIONSHIP processor = processorInfo->Processor;
         //BOOLEAN hyperThreaded = processor.Flags & LTP_PC_SMT;
 
-        if (processor.GroupMask[0].Mask & ((KAFFINITY)1 << Index))
+        if (processor.GroupMask[0].Mask & AFFINITY_MASK(Index))
         {
             PhFree(logicalInformation);
             return index;
@@ -1735,7 +1746,7 @@ BOOLEAN PhInitializeHybridProcessorTypeCache(
             GROUP_AFFINITY threadGroup = { 0 };
             CPUID_HYBRID_INFORMATION hybridInfo = { 0 };
 
-            threadGroup.Mask = ((KAFFINITY)1 << i);
+            threadGroup.Mask = AFFINITY_MASK(i);
             threadGroup.Group = processorGroup;
 
             if (NT_SUCCESS(PhSetThreadGroupAffinity(NtCurrentThread(), threadGroup)))

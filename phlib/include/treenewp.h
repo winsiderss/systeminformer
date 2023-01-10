@@ -157,6 +157,10 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG SystemDragY;
     RECT DragRect;
 
+    LONG WindowDpi;
+    LONG SmallIconWidth;
+    LONG SmallIconHeight;
+
     LONG EnableRedraw;
     HRGN SuspendUpdateRegion;
 
@@ -179,8 +183,17 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HeaderHotColumn : 16; // HACK (dmex)
         };
     };
+
     HTHEME HeaderThemeHandle;
     HFONT HeaderBoldFontHandle;
+    HDC HeaderBufferedDc;
+    HBITMAP HeaderBufferedOldBitmap;
+    HBITMAP HeaderBufferedBitmap;
+    RECT HeaderBufferedContextRect;
+
+    ULONG HeaderColumnCacheMax;
+    PPH_STRINGREF HeaderStringCache;
+    PVOID HeaderTextCache;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -239,6 +252,11 @@ VOID PhTnpOnSettingChange(
     );
 
 VOID PhTnpOnThemeChanged(
+    _In_ HWND hwnd,
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpOnDpiChanged(
     _In_ HWND hwnd,
     _In_ PPH_TREENEW_CONTEXT Context
     );
@@ -802,14 +820,10 @@ VOID PhTnpGetMessagePos(
 BOOLEAN PhTnpGetColumnHeaderText(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ PPH_TREENEW_COLUMN Column,
-    _In_ PWSTR TextCache,
-    _In_ ULONG TextCacheSize,
     _Out_ PPH_STRINGREF Text
     );
 
 // Macros
-
-#define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented
 
 #define TNP_CELL_LEFT_MARGIN 6
 #define TNP_CELL_RIGHT_MARGIN 6

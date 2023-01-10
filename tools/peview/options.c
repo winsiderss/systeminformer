@@ -265,7 +265,8 @@ INT_PTR CALLBACK PvOptionsWndProc(
         break;
     case WM_DESTROY:
         {
-            NOTHING;
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
         }
         break;
     case WM_DPICHANGED:
@@ -344,7 +345,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
                     lvHitInfo.pt = itemActivate->ptAction;
 
-                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != -1)
+                    if (ListView_HitTest(GetDlgItem(hwndDlg, IDC_SETTINGS), &lvHitInfo) != INT_ERROR)
                     {
                         // Ignore click notifications for the listview checkbox region.
                         if (!(lvHitInfo.flags & LVHT_ONITEMSTATEICON))

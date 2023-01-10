@@ -87,6 +87,10 @@ static PH_TN_FILTER_SUPPORT FilterSupport;
 
 BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need to be processed
+static ULONG PhProcessTreeColumnHeaderCacheLength = 0;
+static PVOID PhProcessTreeColumnHeaderCache = NULL;
+static ULONG PhProcessTreeColumnHeaderTextCacheLength = 0;
+static PVOID PhProcessTreeColumnHeaderTextCache = NULL;
 
 static HDC GraphContext = NULL;
 static ULONG GraphContextWidth = 0;
@@ -94,8 +98,6 @@ static ULONG GraphContextHeight = 0;
 static HBITMAP GraphOldBitmap = NULL;
 static HBITMAP GraphBitmap = NULL;
 static PVOID GraphBits = NULL;
-
-static FLOAT LowImageCoherencyThreshold = 0.5f; /**< Limit for displaying "low image coherency" */
 
 VOID PhProcessTreeListInitialization(
     VOID
@@ -250,6 +252,29 @@ VOID PhInitializeProcessTreeList(
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
 }
 
+VOID PhInitializeProcessTreeColumnHeaderCache(
+    VOID
+    )
+{
+    PH_TREENEW_SET_HEADER_CACHE processTreeColumnHeaderCache;
+    ULONG columnCount = TreeNew_GetColumnCount(ProcessTreeListHandle);
+
+    // TODO: This creates a text cache for all columns wasting space since
+    // only some provide header text support. We should switch to the same treenode
+    // caching where nodes provide the cache instead of the control. (dmex)
+
+    PhProcessTreeColumnHeaderCacheLength = columnCount * sizeof(PH_STRINGREF);
+    PhProcessTreeColumnHeaderCache = PhAllocateZero(PhProcessTreeColumnHeaderCacheLength);
+
+    PhProcessTreeColumnHeaderTextCacheLength = columnCount * (PH_TREENEW_HEADER_TEXT_SIZE_MAX * sizeof(WCHAR));
+    PhProcessTreeColumnHeaderTextCache = PhAllocateZero(PhProcessTreeColumnHeaderTextCacheLength);
+
+    processTreeColumnHeaderCache.HeaderTreeColumnMax = columnCount;
+    processTreeColumnHeaderCache.HeaderTreeColumnStringCache = PhProcessTreeColumnHeaderCache;
+    processTreeColumnHeaderCache.HeaderTreeColumnTextCache = PhProcessTreeColumnHeaderTextCache;
+    TreeNew_SetColumnTextCache(ProcessTreeListHandle, &processTreeColumnHeaderCache);
+}
+
 VOID PhLoadSettingsProcessTreeUpdateMask(
     VOID
     )
@@ -275,6 +300,8 @@ VOID PhLoadSettingsProcessTreeUpdateMask(
         SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
+
+    PhInitializeProcessTreeColumnHeaderCache();
 }
 
 VOID PhLoadSettingsProcessTreeList(
@@ -667,7 +694,11 @@ VOID PhTickProcessNodes(
     BOOLEAN fullyInvalidated;
     RECT rect;
 
-    // Text invalidation, node updates
+    // Header text invalidation (dmex)
+
+    memset(PhProcessTreeColumnHeaderCache, 0, PhProcessTreeColumnHeaderCacheLength);
+
+    // Node text invalidation, node updates
 
     for (i = 0; i < ProcessNodeList->Count; i++)
     {
@@ -1201,7 +1232,6 @@ static VOID PhpUpdateProcessNodeAppId(
                 //if (WindowsVersion >= WINDOWS_8 && ProcessNode->ProcessItem->IsImmersive)
                 //{
                 //    HANDLE tokenHandle;
-                //    PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
                 //
                 //    if (NT_SUCCESS(PhOpenProcessToken(
                 //        ProcessNode->ProcessItem->QueryHandle,
@@ -1209,39 +1239,7 @@ static VOID PhpUpdateProcessNodeAppId(
                 //        &tokenHandle
                 //        )))
                 //    {
-                //        // rev from GetApplicationUserModelId
-                //        if (NT_SUCCESS(PhQueryTokenVariableSize(tokenHandle, TokenSecurityAttributes, &info)))
-                //        {
-                //            for (ULONG i = 0; i < info->AttributeCount; i++)
-                //            {
-                //                static UNICODE_STRING attributeNameUs = RTL_CONSTANT_STRING(L"WIN://SYSAPPID");
-                //                PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-                //
-                //                if (RtlEqualUnicodeString(&attribute->Name, &attributeNameUs, FALSE))
-                //                {
-                //                    if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
-                //                    {
-                //                        PPH_STRING attributeValue1;
-                //                        PPH_STRING attributeValue2;
-                //
-                //                        attributeValue1 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[1]));
-                //                        attributeValue2 = PH_AUTO(PhCreateStringFromUnicodeString(&attribute->Values.pString[2]));
-                //
-                //                        ProcessNode->AppIdText = PhConcatStrings(
-                //                            3,
-                //                            attributeValue2->Buffer,
-                //                            L"!",
-                //                            attributeValue1->Buffer
-                //                            );
-                //
-                //                        break;
-                //                    }
-                //                }
-                //            }
-                //
-                //            PhFree(info);
-                //        }
-                //
+                //        ProcessNode->AppIdText = PhGetTokenPackageApplicationUserModelId(tokenHandle);
                 //        NtClose(tokenHandle);
                 //    }
                 //}
@@ -1857,7 +1855,7 @@ BEGIN_SORT_FUNCTION(Elevation)
         break;
     }
 
-    sortResult = intcmp(key1, key2);
+    sortResult = uintcmp(key1, key2);
 }
 END_SORT_FUNCTION
 
@@ -1873,7 +1871,7 @@ BEGIN_SORT_FUNCTION(WindowStatus)
 {
     PhpUpdateProcessNodeWindow(node1);
     PhpUpdateProcessNodeWindow(node2);
-    sortResult = intcmp(node1->WindowHung, node2->WindowHung);
+    sortResult = ucharcmp(node1->WindowHung, node2->WindowHung);
 
     // Make sure all processes with windows get grouped together.
     if (sortResult == 0)
@@ -3735,6 +3733,35 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             node->CpuGraphBuffers.Data1, drawInfo.LineDataCount);
                         PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
                             node->CpuGraphBuffers.Data2, drawInfo.LineDataCount);
+
+                        if (PhCsEnableGraphMaxScale)
+                        {
+                            FLOAT max = 0;
+
+                            for (ULONG i = 0; i < drawInfo.LineDataCount; i++)
+                            {
+                                FLOAT data = node->CpuGraphBuffers.Data1[i] +
+                                    node->CpuGraphBuffers.Data2[i]; // HACK
+
+                                if (max < data)
+                                    max = data;
+                            }
+
+                            if (max != 0)
+                            {
+                                PhDivideSinglesBySingle(
+                                    node->CpuGraphBuffers.Data1,
+                                    max,
+                                    drawInfo.LineDataCount
+                                    );
+                                PhDivideSinglesBySingle(
+                                    node->CpuGraphBuffers.Data2,
+                                    max,
+                                    drawInfo.LineDataCount
+                                    );
+                            }
+                        }
+
                         node->CpuGraphBuffers.Valid = TRUE;
                     }
                 }
@@ -4820,6 +4847,8 @@ BOOLEAN PhpShouldShowImageCoherency(
     _In_ BOOLEAN CheckThreshold
     )
 {
+    static FLOAT LowImageCoherencyThreshold = 0.5f; /**< Limit for displaying "low image coherency" */
+
     if (PhCsImageCoherencyScanLevel == 0)
     {
         //

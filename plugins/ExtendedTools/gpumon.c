@@ -1116,7 +1116,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
         temperature = 0.0f;
         fanRpm = 0;
 
-        for (ULONG i = 0; i < EtpGpuAdapterList->Count; i++)
+        for (i = 0; i < EtpGpuAdapterList->Count; i++)
         {
             PETP_GPU_ADAPTER gpuAdapter;
             D3DKMT_HANDLE adapterHandle;

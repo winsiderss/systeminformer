@@ -85,6 +85,7 @@ VOID PvpPeEnumerateFilePropStore(
                 if (SUCCEEDED(IPropertyStore_GetAt(propstore, i, &propkey)))
                 {
                     INT lvItemIndex;
+                    IPropertyDescription* propertyDescriptionPtr = NULL;
                     PROPVARIANT propKeyVariant = { 0 };
                     PWSTR propKeyName;
                     WCHAR number[PH_INT32_STR_LEN_1];
@@ -94,23 +95,7 @@ VOID PvpPeEnumerateFilePropStore(
 
                     if (SUCCEEDED(PSGetNameFromPropertyKey(&propkey, &propKeyName)))
                     {
-                        IPropertyDescription* propertyDescriptionPtr = NULL;
-
                         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, propKeyName);
-
-                        if (SUCCEEDED(PSGetPropertyDescriptionByName(propKeyName, &IID_IPropertyDescription, &propertyDescriptionPtr)))
-                        {
-                            PWSTR propertyLabel = NULL;
-
-                            if (SUCCEEDED(IPropertyDescription_GetDisplayName(propertyDescriptionPtr, &propertyLabel)))
-                            {
-                                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, propertyLabel);
-                                CoTaskMemFree(propertyLabel);
-                            }
-
-                            IPropertyDescription_Release(propertyDescriptionPtr);
-                        }
-
                         CoTaskMemFree(propKeyName);
                     }
                     else
@@ -132,6 +117,19 @@ VOID PvpPeEnumerateFilePropStore(
                         }
 
                         PropVariantClear(&propKeyVariant);
+                    }
+
+                    if (SUCCEEDED(PSGetPropertyDescription(&propkey, &IID_IPropertyDescription, &propertyDescriptionPtr)))
+                    {
+                        PWSTR propertyLabel = NULL;
+
+                        if (SUCCEEDED(IPropertyDescription_GetDisplayName(propertyDescriptionPtr, &propertyLabel)))
+                        {
+                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, propertyLabel);
+                            CoTaskMemFree(propertyLabel);
+                        }
+
+                        IPropertyDescription_Release(propertyDescriptionPtr);
                     }
                 }
             }
@@ -204,6 +202,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;

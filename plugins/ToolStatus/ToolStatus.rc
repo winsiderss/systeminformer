@@ -19,7 +19,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
-
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -64,8 +63,10 @@ BEGIN
     CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,81,113,10
     LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,7,157,18
-    COMBOBOX        IDC_CURRENT,7,115,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Select the graph for the taskbar window icon:",IDC_STATIC,7,104,147,8
+    COMBOBOX        IDC_CURRENT,7,121,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select the graph for the taskbar window icon:",IDC_STATIC,7,110,147,8
+    CONTROL         "Enable large toolbar icons",IDC_ENABLE_LARGETOOLBARICON,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,94,98,10
 END
 
 IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 188
@@ -224,6 +225,56 @@ IDI_APPLICATION_GET     ICON                    "resources\\application_get.ico"
 IDI_LIGHTBULB_OFF       ICON                    "resources\\lightbulb_off.ico"
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 3,0,0,0
+ PRODUCTVERSION 3,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "000004b0"
+        BEGIN
+            VALUE "CompanyName", "System Informer"
+            VALUE "FileDescription", "System Informer"
+            VALUE "FileVersion", "3.0.0.0"
+            VALUE "InternalName", "ToolStatus.dll"
+            VALUE "LegalCopyright", "Copyright (c) Winsider Seminars & Solutions, Inc.  All rights reserved."
+            VALUE "OriginalFilename", "ToolStatus.dll"
+            VALUE "ProductName", "System Informer"
+            VALUE "ProductVersion", "3.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0, 1200
+    END
+END
+
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
 

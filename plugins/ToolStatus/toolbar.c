@@ -101,11 +101,18 @@ VOID RebarCreateOrUpdateWindow(
     {
         if (!ToolBarImageList || DpiChanged)
         {
-            LONG dpiValue;
+            LONG windowDpi = PhGetWindowDpi(PhMainWndHandle);
 
-            dpiValue = PhGetWindowDpi(PhMainWndHandle);
-            ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-            ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+            if (ToolStatusConfig.ToolBarLargeIcons)
+            {
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXICON, windowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYICON, windowDpi);
+            }
+            else
+            {
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, windowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, windowDpi);
+            }
 
             if (ToolBarImageList) PhImageListDestroy(ToolBarImageList);
             ToolBarImageList = PhImageListCreate(
@@ -118,16 +125,19 @@ VOID RebarCreateOrUpdateWindow(
 
         if (DpiChanged)
         {
-            SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+            if (ToolBarHandle)
+            {
+                SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
-            // Remove all buttons.
-            INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+                // Remove all buttons.
+                INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
 
-            while (buttonCount--)
-                SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+                while (buttonCount--)
+                    SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
 
-            // Re-add/update buttons.
-            ToolbarLoadButtonSettings();
+                // Re-add/update buttons.
+                ToolbarLoadButtonSettings();
+            }
         }
     }
 
@@ -178,8 +188,8 @@ VOID RebarCreateOrUpdateWindow(
             ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
             LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
 
-            if (RebarBandExists (REBAR_BAND_ID_TOOLBAR))
-                RebarBandRemove (REBAR_BAND_ID_TOOLBAR);
+            if (RebarBandExists(REBAR_BAND_ID_TOOLBAR))
+                RebarBandRemove(REBAR_BAND_ID_TOOLBAR);
 
             RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, LOWORD(toolbarButtonSize), __max(HIWORD(toolbarButtonSize), toolbarButtonHeight));
 
@@ -340,7 +350,7 @@ VOID ToolbarLoadSettings(
             };
 
             // Get settings for first button
-            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
+            if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
                 break;
 
             // Skip separator buttons
@@ -518,7 +528,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_ARROW_REFRESH_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_ARROW_REFRESH), DpiValue);
@@ -535,7 +545,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_COG_EDIT_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_COG_EDIT), DpiValue);
@@ -552,7 +562,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_FIND_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_FIND), DpiValue);
@@ -569,7 +579,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_CHART_LINE_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CHART_LINE), DpiValue);
@@ -586,7 +596,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_TBAPPLICATION_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_TBAPPLICATION), DpiValue);
@@ -603,7 +613,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_APPLICATION_GO_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GO), DpiValue);
@@ -620,7 +630,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_CROSS_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_CROSS), DpiValue);
@@ -637,7 +647,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_APPLICATION_GET_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_APPLICATION_GET), DpiValue);
@@ -654,7 +664,7 @@ HBITMAP ToolbarGetImage(
                 else
                     id = IDB_LIGHTBULB_OFF_MODERN_DARK;
 
-                return PhLoadPngImageFromResource(PluginInstance->DllBase, ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(id), FALSE);
+                return PhLoadImageFormatFromResource(PluginInstance->DllBase, MAKEINTRESOURCE(id), L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, ToolBarImageSize.cx, ToolBarImageSize.cy);
             }
 
             return ToolbarLoadImageFromIcon(ToolBarImageSize.cx, ToolBarImageSize.cy, MAKEINTRESOURCE(IDI_LIGHTBULB_OFF), DpiValue);
@@ -868,7 +878,7 @@ VOID ToolbarSaveButtonSettings(
             TBIF_BYINDEX | TBIF_IMAGE | TBIF_STYLE | TBIF_COMMAND
         };
 
-        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == -1)
+        if (SendMessage(ToolBarHandle, TB_GETBUTTONINFO, index, (LPARAM)&buttonInfo) == INT_ERROR)
             break;
 
         PhAppendFormatStringBuilder(

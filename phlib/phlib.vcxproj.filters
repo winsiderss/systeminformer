@@ -161,6 +161,9 @@
     <ClCompile Include="kphcomms.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="directdraw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">

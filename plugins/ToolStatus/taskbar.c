@@ -11,6 +11,8 @@
 
 #include "toolstatus.h"
 
+#include <malloc.h>
+
 PH_TASKBAR_ICON TaskbarListIconType = TASKBAR_ICON_NONE;
 BOOLEAN TaskbarIsDirty = FALSE;
 BOOLEAN TaskbarMainWndExiting = FALSE;

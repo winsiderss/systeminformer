@@ -19,8 +19,6 @@
 #include <settings.h>
 
 #include <shobjidl.h>
-#include <uxtheme.h>
-#include <vssym32.h>
 
 #include "resource.h"
 #include <toolstatusintf.h>
@@ -31,6 +29,7 @@
 #define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_TOOLBAR_GRAPH_CONFIG (PLUGIN_NAME L".ToolbarGraphConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
+#define SETTING_NAME_DELAYED_INITIALIZATION_MAX (PLUGIN_NAME L".DelayConfig")
 //#define SETTING_NAME_TOOLBAR_THEME (PLUGIN_NAME L".ToolbarTheme")
 #define SETTING_NAME_TOOLBARDISPLAYSTYLE (PLUGIN_NAME L".ToolbarDisplayStyle")
 #define SETTING_NAME_SEARCHBOXDISPLAYMODE (PLUGIN_NAME L".SearchBoxDisplayMode")
@@ -40,7 +39,7 @@
 #define MAX_DEFAULT_TOOLBAR_ITEMS 11
 #define MAX_DEFAULT_STATUSBAR_ITEMS 3
 #define MAX_TOOLBAR_ITEMS 13
-#define MAX_STATUSBAR_ITEMS 15
+#define MAX_STATUSBAR_ITEMS 16
 
 #define TIDC_FINDWINDOW (WM_APP + 1)
 #define TIDC_FINDWINDOWTHREAD (WM_APP + 2)
@@ -109,7 +108,8 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG AutoHideMenu : 1;
         ULONG Reserved : 4;
         ULONG SearchAutoFocus : 1;
-        ULONG Spare : 20;
+        ULONG ToolBarLargeIcons : 1;
+        ULONG Spare : 19;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -393,7 +393,8 @@ typedef enum _ID_STATUS
     ID_STATUS_NUMBEROFSELECTEDITEMS,
     ID_STATUS_INTERVALSTATUS,
     ID_STATUS_FREEMEMORY,
-    ID_STATUS_SELECTEDWORKINGSET
+    ID_STATUS_SELECTEDWORKINGSET,
+    ID_STATUS_SELECTEDPRIVATEBYTES,
 } ID_STATUS;
 
 VOID StatusBarShowCustomizeDialog(
