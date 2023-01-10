@@ -1,9 +1,7 @@
 #ifndef _PH_PHDK_H
 #define _PH_PHDK_H
 
-#pragma once
-
-#define PHNT_VERSION PHNT_WIN7
+#define PHNT_VERSION PHNT_WIN11
 #define PHAPPAPI __declspec(dllimport)
 
 #include "ph.h"
