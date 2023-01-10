@@ -47,7 +47,7 @@ static PH_STRINGREF DangerousProcesses[] =
 };
 
 static PPH_STRING DebuggerCommand = NULL;
-static ULONG PhSvcReferenceCount = 0;
+static volatile LONG PhSvcReferenceCount = 0;
 static PH_PHSVC_MODE PhSvcCurrentMode;
 static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
 

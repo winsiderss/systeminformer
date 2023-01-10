@@ -208,7 +208,7 @@ typedef struct _PH_PROCESS_ITEM
 
     // Misc.
 
-    ULONG JustProcessed;
+    volatile LONG JustProcessed;
     PH_EVENT Stage1Event;
 
     PPH_POINTER_LIST ServiceList;
