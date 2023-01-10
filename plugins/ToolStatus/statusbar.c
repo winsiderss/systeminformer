@@ -191,7 +191,7 @@ PWSTR StatusBarGetText(
 }
 
 VOID StatusBarShowMenu(
-    VOID
+    _In_ HWND WindowHandle
     )
 {
     PPH_EMENU menu;
@@ -207,7 +207,7 @@ VOID StatusBarShowMenu(
 
     selectedItem = PhShowEMenu(
         menu,
-        PhMainWndHandle,
+        WindowHandle,
         PH_EMENU_SHOW_LEFTRIGHT,
         PH_ALIGN_LEFT | PH_ALIGN_BOTTOM,
         cursorPos.x,
@@ -216,7 +216,7 @@ VOID StatusBarShowMenu(
 
     if (selectedItem && selectedItem->Id != ULONG_MAX)
     {
-        StatusBarShowCustomizeDialog();
+        StatusBarShowCustomizeDialog(WindowHandle);
 
         StatusBarUpdate(TRUE);
     }

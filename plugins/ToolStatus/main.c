@@ -325,7 +325,7 @@ VOID ShowCustomizeMenu(
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
             {
-                ToolBarShowCustomizeDialog();
+                ToolBarShowCustomizeDialog(WindowHandle);
             }
             break;
         case COMMAND_ID_GRAPHS_CUSTOMIZE:
@@ -1166,7 +1166,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                 case NM_RCLICK:
                     {
-                        StatusBarShowMenu();
+                        StatusBarShowMenu(hWnd);
                     }
                     break;
                 }
@@ -1690,12 +1690,12 @@ VOID NTAPI MenuItemCallback(
 
                 if (ToolStatusConfig.AutoHideMenu)
                 {
-                    SetMenu(PhMainWndHandle, NULL);
+                    SetMenu(menuItem->OwnerWindow, NULL);
                 }
                 else
                 {
-                    SetMenu(PhMainWndHandle, MainMenu);
-                    DrawMenuBar(PhMainWndHandle);
+                    SetMenu(menuItem->OwnerWindow, MainMenu);
+                    DrawMenuBar(menuItem->OwnerWindow);
                 }
             }
             break;
@@ -1712,7 +1712,7 @@ VOID NTAPI MenuItemCallback(
                 {
                     // Adding the Searchbox makes it focused,
                     // reset the focus back to the main window.
-                    SetFocus(PhMainWndHandle);
+                    SetFocus(menuItem->OwnerWindow);
                 }
             }
             break;
@@ -1766,7 +1766,7 @@ VOID NTAPI MenuItemCallback(
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
             {
-                ToolBarShowCustomizeDialog();
+                ToolBarShowCustomizeDialog(menuItem->OwnerWindow);
             }
             break;
         case COMMAND_ID_GRAPHS_CUSTOMIZE:
