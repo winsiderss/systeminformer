@@ -98,16 +98,23 @@ HRESULT CALLBACK RestartDbTaskDialogCallbackProc(
             if ((INT)wParam == IDYES)
             {
                 ProcessHacker_PrepareForEarlyShutdown();
-                PhShellProcessHacker(
-                    PhMainWndHandle,
+
+                if (PhShellProcessHacker(
+                    context->ParentWindowHandle,
                     NULL,
-                    SW_SHOW,
+                    SW_SHOWNORMAL,
                     0,
                     PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                     0,
                     NULL
-                    );
-                ProcessHacker_Destroy();
+                    ))
+                {
+                    ProcessHacker_Destroy();
+                }
+                else
+                {
+                    ProcessHacker_CancelEarlyShutdown();
+                }
             }
         }
         break;
