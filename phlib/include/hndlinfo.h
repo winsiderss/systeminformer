@@ -85,11 +85,11 @@ PhGetHandleInformationEx(
     );
 
 #define PH_FIRST_OBJECT_TYPE(ObjectTypes) \
-    PTR_ADD_OFFSET(ObjectTypes, ALIGN_UP(sizeof(OBJECT_TYPES_INFORMATION), ULONG_PTR))
+    PTR_ADD_OFFSET((ObjectTypes), ALIGN_UP(sizeof(OBJECT_TYPES_INFORMATION), ULONG_PTR))
 
 #define PH_NEXT_OBJECT_TYPE(ObjectType) \
-    PTR_ADD_OFFSET(ObjectType, sizeof(OBJECT_TYPE_INFORMATION) + \
-    ALIGN_UP(ObjectType->TypeName.MaximumLength, ULONG_PTR))
+    PTR_ADD_OFFSET((ObjectType), sizeof(OBJECT_TYPE_INFORMATION) + \
+    ALIGN_UP((ObjectType)->TypeName.MaximumLength, ULONG_PTR))
 
 PHLIBAPI
 NTSTATUS

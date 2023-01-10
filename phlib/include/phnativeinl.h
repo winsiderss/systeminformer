@@ -196,6 +196,7 @@ PhGetProcessPeb(
 
     if (NT_SUCCESS(status))
     {
+        // No PEB for System and minimal/pico processes. (dmex)
         if (!basicInfo.PebBaseAddress)
             return STATUS_UNSUCCESSFUL;
 

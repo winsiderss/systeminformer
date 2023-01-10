@@ -12255,7 +12255,6 @@ NTSTATUS PhGetThreadStackLimits(
     NTSTATUS status;
     THREAD_BASIC_INFORMATION basicInfo;
     NT_TIB ntTib;
-    //PVOID deallocationStack;
 #ifdef _WIN64
     BOOLEAN isWow64 = FALSE;
 #endif
@@ -12277,14 +12276,6 @@ NTSTATUS PhGetThreadStackLimits(
             sizeof(NT_TIB32),
             NULL
             );
-
-        //status = NtReadVirtualMemory(
-        //    ProcessHandle,
-        //    PTR_ADD_OFFSET(WOW64_GET_TEB32(basicInfo.TebBaseAddress), UFIELD_OFFSET(TEB32, DeallocationStack)),
-        //    &deallocationStack,
-        //    sizeof(ULONG),
-        //    NULL
-        //    );
     }
     else
 #endif
@@ -12296,14 +12287,6 @@ NTSTATUS PhGetThreadStackLimits(
             sizeof(NT_TIB),
             NULL
             );
-
-        //status = NtReadVirtualMemory(
-        //    ProcessHandle,
-        //    PTR_ADD_OFFSET(basicInfo.TebBaseAddress, UFIELD_OFFSET(TEB, DeallocationStack)),
-        //    &deallocationStack,
-        //    sizeof(PVOID),
-        //    NULL
-        //    );
     }
 
     if (NT_SUCCESS(status))
