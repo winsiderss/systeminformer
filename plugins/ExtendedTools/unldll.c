@@ -442,7 +442,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_UNLOADED_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_UNLOADED_WINDOW_POSITION, SETTING_NAME_UNLOADED_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle); // GetParent(hwndDlg)
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             if (!NT_SUCCESS(status = EtpRefreshUnloadedDlls(hwndDlg, context)))
             {

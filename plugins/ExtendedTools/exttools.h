@@ -1020,14 +1020,17 @@ VOID EtFwDrawCountryIcon(
     );
 
 VOID EtFwShowPingWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
 VOID EtFwShowTracerWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
 VOID EtFwShowWhoisWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
@@ -1065,8 +1068,8 @@ VOID UpdateFwNode(
 BOOLEAN NTAPI FwTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
     _In_opt_ PVOID Context
     );
 

@@ -1400,7 +1400,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowPingWindow(entry->RemoteEndpoint);
+                EtFwShowPingWindow(GetParent(TreeWindowHandle), entry->RemoteEndpoint);
             }
         }
         break;
@@ -1410,7 +1410,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowTracerWindow(entry->RemoteEndpoint);
+                EtFwShowTracerWindow(GetParent(TreeWindowHandle), entry->RemoteEndpoint);
             }
         }
         break;
@@ -1420,7 +1420,7 @@ VOID EtFwHandleFwCommand(
 
             if (entry = EtFwGetSelectedFwItem())
             {
-                EtFwShowWhoisWindow(entry->RemoteEndpoint);
+                EtFwShowWhoisWindow(GetParent(TreeWindowHandle), entry->RemoteEndpoint);
             }
         }
         break;
@@ -1573,7 +1573,7 @@ VOID ShowFwContextMenu(
 
         if (item = PhShowEMenu(
             menu,
-            PhMainWndHandle,
+            TreeWindowHandle,
             PH_EMENU_SHOW_LEFTRIGHT,
             PH_ALIGN_LEFT | PH_ALIGN_TOP,
             ContextMenuEvent->Location.x,

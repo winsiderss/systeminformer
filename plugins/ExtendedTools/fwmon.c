@@ -892,12 +892,15 @@ typedef VOID (NTAPI* PNETWORKTOOLS_DRAW_COUNTRYICON)(
     _In_ INT Index
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_PING)(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_TRACERT)(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_WHOIS)(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
@@ -941,27 +944,30 @@ VOID EtFwDrawCountryIcon(
 }
 
 VOID EtFwShowPingWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
-        EtFwGetPluginInterface()->ShowPingWindow(Endpoint);
+        EtFwGetPluginInterface()->ShowPingWindow(ParentWindowHandle, Endpoint);
 }
 
 VOID EtFwShowTracerWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
-        EtFwGetPluginInterface()->ShowTracertWindow(Endpoint);
+        EtFwGetPluginInterface()->ShowTracertWindow(ParentWindowHandle, Endpoint);
 }
 
 VOID EtFwShowWhoisWindow(
+    _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
     )
 {
     if (EtFwGetPluginInterface())
-        EtFwGetPluginInterface()->ShowWhoisWindow(Endpoint);
+        EtFwGetPluginInterface()->ShowWhoisWindow(ParentWindowHandle, Endpoint);
 }
 
 typedef struct _ETFW_FILTER_DISPLAY_CONTEXT
