@@ -402,6 +402,7 @@
     <ClCompile Include="jobprp.c" />
     <ClCompile Include="kdump.c" />
     <ClCompile Include="ksisup.c" />
+    <ClCompile Include="ksyscall.c" />
     <ClCompile Include="log.c" />
     <ClCompile Include="logwnd.c" />
     <ClCompile Include="main.c" />
