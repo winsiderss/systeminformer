@@ -507,9 +507,6 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
     //    PhFree(objectTypes);
     //}
 
-    // TODO
-    // NtQuerySystemInformation(SystemObjectInformation);
-
     return S_OK;
 }
 

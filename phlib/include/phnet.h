@@ -48,7 +48,6 @@ FORCEINLINE BOOLEAN PhEqualIpAddress(
     if (Address1->Type != Address2->Type)
         return FALSE;
 
-    // TODO: Remove the below commented code if the ADDR_EQUAL macros work -dmex
     if (Address1->Type == PH_IPV4_NETWORK_TYPE)
     {
         return IN4_ADDR_EQUAL(&Address1->InAddr, &Address2->InAddr);

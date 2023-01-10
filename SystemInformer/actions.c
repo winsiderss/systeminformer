@@ -706,66 +706,6 @@ BOOLEAN PhUiRestartComputer(
                 {
                     PhShowStatus(WindowHandle, L"Unable to configure the advanced boot options.", status, 0);
                 }
-
-                //static PH_STRINGREF bcdeditFileNameSr = PH_STRINGREF_INIT(L"\\System32\\bcdedit.exe");
-                //PH_STRINGREF systemRootString;
-                //PPH_STRING bcdeditFileName;
-                //HANDLE processHandle = NULL;
-                //BOOLEAN success = FALSE;
-                //
-                //PhGetSystemRoot(&systemRootString);
-                //bcdeditFileName = PhConcatStringRef2(&systemRootString, &bcdeditFileNameSr);
-                //
-                //if (PhShellExecuteEx(
-                //    WindowHandle,
-                //    PhGetString(bcdeditFileName),
-                //    L"/set {current} onetimeadvancedoptions on",
-                //    SW_HIDE,
-                //    PH_SHELL_EXECUTE_ADMIN,
-                //    INFINITE,
-                //    &processHandle
-                //    ))
-                //{
-                //    if (processHandle)
-                //    {
-                //        PROCESS_BASIC_INFORMATION processInfo;
-                //
-                //        if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &processInfo)))
-                //        {
-                //            success = !!(processInfo.ExitStatus == ERROR_SUCCESS); // bcdedit doesn't return error codes. (dmex)
-                //        }
-                //
-                //        NtClose(processHandle);
-                //    }
-                //
-                //    if (success)
-                //    {
-                //        ULONG status = PhInitiateShutdown(PH_SHUTDOWN_RESTART);
-                //
-                //        if (status != ERROR_SUCCESS)
-                //        {
-                //            PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, status);
-                //        }
-                //
-                //        PhDereferenceObject(bcdeditFileName);
-                //        return TRUE;
-                //    }
-                //    else
-                //    {
-                //        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", STATUS_UNSUCCESSFUL, 0);
-                //    }
-                //}
-                //else
-                //{
-                //    ULONG status = GetLastError();
-                //
-                //    if (status != ERROR_CANCELLED) // User cancelled the UAC prompt. (dmex)
-                //    {
-                //        PhShowStatus(WindowHandle, L"Unable to configure the advanced boot option.", 0, status);
-                //    }
-                //}
-                //
-                //PhDereferenceObject(bcdeditFileName);
             }
         }
         break;

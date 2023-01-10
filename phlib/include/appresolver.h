@@ -71,6 +71,7 @@ PPH_LIST PhGetPackageAssetsFromResourceFile(
     _In_ PWSTR FilePath
     );
 
+_Success_(return)
 BOOLEAN PhAppResolverGetPackageIcon(
     _In_ HANDLE ProcessId,
     _In_ PPH_STRING PackageFullName,

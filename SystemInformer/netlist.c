@@ -286,7 +286,7 @@ VOID PhpRemoveNetworkNode(
 
     // Remove from list and cleanup.
 
-    if ((index = PhFindItemList(NetworkNodeList, NetworkNode)) != -1)
+    if ((index = PhFindItemList(NetworkNodeList, NetworkNode)) != ULONG_MAX)
         PhRemoveItemList(NetworkNodeList, index);
 
     if (NetworkNode->ProcessNameText) PhDereferenceObject(NetworkNode->ProcessNameText);
