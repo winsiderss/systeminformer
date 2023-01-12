@@ -191,19 +191,19 @@ typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
 
 // Object attributes
 
-#define OBJ_PROTECT_CLOSE 0x00000001
-#define OBJ_INHERIT 0x00000002
-#define OBJ_AUDIT_OBJECT_CLOSE 0x00000004
-#define OBJ_PERMANENT 0x00000010
-#define OBJ_EXCLUSIVE 0x00000020
-#define OBJ_CASE_INSENSITIVE 0x00000040
-#define OBJ_OPENIF 0x00000080
-#define OBJ_OPENLINK 0x00000100
-#define OBJ_KERNEL_HANDLE 0x00000200
-#define OBJ_FORCE_ACCESS_CHECK 0x00000400
-#define OBJ_IGNORE_IMPERSONATED_DEVICEMAP 0x00000800
-#define OBJ_DONT_REPARSE 0x00001000
-#define OBJ_VALID_ATTRIBUTES 0x00001ff2
+#define OBJ_PROTECT_CLOSE                   0x00000001L
+#define OBJ_INHERIT                         0x00000002L
+#define OBJ_AUDIT_OBJECT_CLOSE              0x00000004L
+#define OBJ_PERMANENT                       0x00000010L
+#define OBJ_EXCLUSIVE                       0x00000020L
+#define OBJ_CASE_INSENSITIVE                0x00000040L
+#define OBJ_OPENIF                          0x00000080L
+#define OBJ_OPENLINK                        0x00000100L
+#define OBJ_KERNEL_HANDLE                   0x00000200L
+#define OBJ_FORCE_ACCESS_CHECK              0x00000400L
+#define OBJ_IGNORE_IMPERSONATED_DEVICEMAP   0x00000800L
+#define OBJ_DONT_REPARSE                    0x00001000L
+#define OBJ_VALID_ATTRIBUTES                0x00001FF2L
 
 typedef struct _OBJECT_ATTRIBUTES
 {
@@ -335,6 +335,11 @@ typedef struct _KSYSTEM_TIME
 #endif
 #ifndef ClearFlag
 #define ClearFlag(_F, _SF) ((_F) &= ~(_SF))
+#endif
+
+#ifndef STATIC_ASSERT
+#define STATIC_ASSERT(expression) \
+    static_assert(expression, #expression)
 #endif
 
 #endif
