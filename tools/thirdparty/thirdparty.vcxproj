@@ -365,6 +365,7 @@
     <ClCompile Include="tlsh\tlsh_impl.cpp" />
     <ClCompile Include="tlsh\tlsh_util.cpp" />
     <ClCompile Include="tlsh\tlsh_wrapper.cpp" />
+    <ClCompile Include="zydis\Zydis.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="capstone\arch\AArch64\AArch64AddressingModes.h" />
@@ -488,6 +489,7 @@
     <ClInclude Include="tlsh\tlsh_win_version.h" />
     <ClInclude Include="tlsh\tlsh_wrapper.h" />
     <ClInclude Include="tlsh\win_version.h" />
+    <ClInclude Include="zydis\Zydis.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="capstone\arch\AArch64\AArch64GenAsmWriter.inc" />

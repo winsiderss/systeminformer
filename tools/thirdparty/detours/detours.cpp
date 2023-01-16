@@ -18,6 +18,18 @@
 
 #define NOTHROW
 
+
+void* __cdecl operator new(size_t _Size)
+{
+    return PhAllocateZero(_Size);
+}
+
+void __cdecl operator delete(void* _Block) noexcept
+{
+    PhFree(_Block);
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 //
 struct _DETOUR_ALIGN
@@ -1156,9 +1168,9 @@ struct DETOUR_REGION
 };
 typedef DETOUR_REGION * PDETOUR_REGION;
 
-static ULONG DETOUR_REGION_SIGNATURE = 'Rrtd';
-static ULONG DETOUR_REGION_SIZE = 0x10000;
-static ULONG DETOUR_TRAMPOLINES_PER_REGION = (DETOUR_REGION_SIZE / sizeof(DETOUR_TRAMPOLINE)) - 1;
+static constexpr ULONG DETOUR_REGION_SIGNATURE = 'Rrtd';
+static constexpr ULONG DETOUR_REGION_SIZE = 0x10000;
+static constexpr ULONG DETOUR_TRAMPOLINES_PER_REGION = (DETOUR_REGION_SIZE / sizeof(DETOUR_TRAMPOLINE)) - 1;
 static PDETOUR_REGION s_pRegions = nullptr;            // List of all regions.
 static PDETOUR_REGION s_pRegion = nullptr;             // Default region.
 
@@ -1168,8 +1180,8 @@ static NTSTATUS detour_writable_trampoline_regions()
     // Mark all of the regions as writable.
     for (PDETOUR_REGION pRegion = s_pRegions; pRegion != nullptr; pRegion = pRegion->pNext) 
     {
-        ULONG dwOld;
         NTSTATUS status;
+        ULONG protection = 0;
         PVOID address = pRegion;
         SIZE_T size = DETOUR_REGION_SIZE;
 
@@ -1178,7 +1190,7 @@ static NTSTATUS detour_writable_trampoline_regions()
             &address,
             &size,
             PAGE_EXECUTE_READWRITE, 
-            &dwOld
+            &protection
             );
 
         if (!NT_SUCCESS(status))
@@ -1193,8 +1205,18 @@ static void detour_runnable_trampoline_regions()
     // Mark all of the regions as executable.
     for (PDETOUR_REGION pRegion = s_pRegions; pRegion != nullptr; pRegion = pRegion->pNext)
     {
-        DWORD dwOld;
-        VirtualProtect(pRegion, DETOUR_REGION_SIZE, PAGE_EXECUTE_READ, &dwOld);
+        ULONG protection = 0;
+        PVOID address = pRegion;
+        SIZE_T size = DETOUR_REGION_SIZE;
+
+        NtProtectVirtualMemory(
+            NtCurrentProcess(),
+            &address,
+            &size,
+            PAGE_EXECUTE_READ,
+            &protection
+            );
+
         NtFlushInstructionCache(NtCurrentProcess(), pRegion, DETOUR_REGION_SIZE);
     }
 }
@@ -1253,15 +1275,24 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
 
         if (mbi.State == MEM_FREE && mbi.RegionSize >= DETOUR_REGION_SIZE) 
         {
-            PVOID pv = VirtualAlloc(pbTry,
-                                    DETOUR_REGION_SIZE,
-                                    MEM_COMMIT|MEM_RESERVE,
-                                    PAGE_EXECUTE_READWRITE);
-            if (pv != nullptr) 
+            NTSTATUS status;
+            SIZE_T size = DETOUR_REGION_SIZE;
+            PVOID address = pbTry;
+
+            status = NtAllocateVirtualMemory(
+                NtCurrentProcess(),
+                &address,
+                0,
+                &size,
+                MEM_COMMIT | MEM_RESERVE,
+                PAGE_EXECUTE_READWRITE
+                );
+
+            if (NT_SUCCESS(status))
             {
-                return pv;
+                return address;
             }
-            else if (GetLastError() == ERROR_DYNAMIC_CODE_BLOCKED) 
+            else if (status == STATUS_DYNAMIC_CODE_BLOCKED)
             {
                 return nullptr;
             }
@@ -1273,6 +1304,7 @@ static PVOID detour_alloc_region_from_lo(PBYTE pbLo, PBYTE pbHi)
             pbTry = detour_alloc_round_up_to_region(static_cast<PBYTE>(PTR_ADD_OFFSET(mbi.BaseAddress, mbi.RegionSize)));
         }
     }
+
     return nullptr;
 }
 
@@ -1289,7 +1321,9 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
         MEMORY_BASIC_INFORMATION mbi;
 
         DETOUR_TRACE(("  Try %p\n", pbTry));
-        if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound) {
+
+        if (pbTry >= s_pSystemRegionLowerBound && pbTry <= s_pSystemRegionUpperBound) 
+        {
             // Skip region reserved for system DLLs, but preserve address space entropy.
             pbTry -= 0x08000000;
             continue;
@@ -1308,16 +1342,28 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
 
         if (mbi.State == MEM_FREE && mbi.RegionSize >= DETOUR_REGION_SIZE) 
         {
-            PVOID pv = VirtualAlloc(pbTry,
-                                    DETOUR_REGION_SIZE,
-                                    MEM_COMMIT|MEM_RESERVE,
-                                    PAGE_EXECUTE_READWRITE);
-            if (pv != nullptr) {
-                return pv;
+            NTSTATUS status;
+            SIZE_T size = DETOUR_REGION_SIZE;
+            PVOID address = pbTry;
+
+            status = NtAllocateVirtualMemory(
+                NtCurrentProcess(),
+                &address,
+                0,
+                &size,
+                MEM_COMMIT | MEM_RESERVE,
+                PAGE_EXECUTE_READWRITE
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                return address;
             }
-            else if (GetLastError() == ERROR_DYNAMIC_CODE_BLOCKED) {
+            else if (status == STATUS_DYNAMIC_CODE_BLOCKED)
+            {
                 return nullptr;
             }
+
             pbTry -= DETOUR_REGION_SIZE;
         }
         else 
@@ -1325,6 +1371,7 @@ static PVOID detour_alloc_region_from_hi(PBYTE pbLo, PBYTE pbHi)
             pbTry = detour_alloc_round_down_to_region(static_cast<PBYTE>(mbi.AllocationBase) - DETOUR_REGION_SIZE);
         }
     }
+
     return nullptr;
 }
 
@@ -1516,14 +1563,26 @@ static void detour_free_unused_trampoline_regions()
     PDETOUR_REGION *ppRegionBase = &s_pRegions;
     PDETOUR_REGION pRegion = s_pRegions;
 
-    while (pRegion != nullptr) {
-        if (detour_is_region_empty(pRegion)) {
+    while (pRegion != nullptr) 
+    {
+        if (detour_is_region_empty(pRegion)) 
+        {
             *ppRegionBase = pRegion->pNext;
 
-            VirtualFree(pRegion, 0, MEM_RELEASE);
+            PVOID address = pRegion;
+            SIZE_T size = 0;
+
+            NtFreeVirtualMemory(
+                NtCurrentProcess(),
+                &address, 
+                &size, 
+                MEM_RELEASE
+                );
+
             s_pRegion = nullptr;
         }
-        else {
+        else 
+        {
             ppRegionBase = &pRegion->pNext;
         }
         pRegion = *ppRegionBase;
@@ -1632,8 +1691,17 @@ NTSTATUS NTAPI DetourTransactionAbort()
     for (DetourOperation *o = s_pPendingOperations; o != nullptr;) 
     {
         // We don't care if this fails, because the code is still accessible.
-        DWORD dwOld;
-        VirtualProtect(o->pbTarget, o->pTrampoline->cbRestore, o->dwPerm, &dwOld);
+        ULONG protection = 0;
+        PVOID address = o->pbTarget;
+        SIZE_T size = o->pTrampoline->cbRestore;
+
+        NtProtectVirtualMemory(
+            NtCurrentProcess(),
+            &address,
+            &size,
+            o->dwPerm,
+            &protection
+            );
 
         if (!o->fIsRemove) 
         {
@@ -1925,10 +1993,23 @@ typedef ULONG_PTR DETOURS_EIP_TYPE;
     for (o = s_pPendingOperations; o != nullptr;)
     {
         // We don't care if this fails, because the code is still accessible.
-        DWORD dwOld;
+        ULONG protection = 0;
+        PVOID address = o->pbTarget;
+        SIZE_T size = o->pTrampoline->cbRestore;
 
-        VirtualProtect(o->pbTarget, o->pTrampoline->cbRestore, o->dwPerm, &dwOld);
-        NtFlushInstructionCache(NtCurrentProcess(), o->pbTarget, o->pTrampoline->cbRestore);
+        NtProtectVirtualMemory(
+            NtCurrentProcess(),
+            &address,
+            &size,
+            o->dwPerm,
+            &protection
+            );
+
+        NtFlushInstructionCache(
+            NtCurrentProcess(), 
+            o->pbTarget, 
+            o->pTrampoline->cbRestore
+            );
 
         if (o->fIsRemove && o->pTrampoline) 
         {
@@ -2349,8 +2430,9 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
 
     (void)pbTrampoline;
 
+
     NTSTATUS status;
-    DWORD dwOld = 0;
+    ULONG protection = 0;
     PVOID address = pbTarget;
     SIZE_T size = cbTarget;
 
@@ -2359,10 +2441,11 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
         &address,
         &size,
         PAGE_EXECUTE_READWRITE,
-        &dwOld
+        &protection
         );
 
-    if (!NT_SUCCESS(status)) {
+    if (!NT_SUCCESS(status)) 
+    {
         error = status;
         DETOUR_BREAK();
         goto fail;
@@ -2392,7 +2475,7 @@ NTSTATUS WINAPI DetourAttachEx(_Inout_ PVOID *ppPointer,
     o->ppbPointer = reinterpret_cast<PBYTE*>(ppPointer);
     o->pTrampoline = pTrampoline;
     o->pbTarget = pbTarget;
-    o->dwPerm = dwOld;
+    o->dwPerm = protection;
     o->pNext = s_pPendingOperations;
     s_pPendingOperations = o;
 
@@ -2518,8 +2601,8 @@ NTSTATUS WINAPI DetourDetach(_Inout_ PVOID *ppPointer, _In_ PVOID pDetour)
         }
     }
 
-    DWORD dwOld = 0;
     NTSTATUS status;
+    ULONG protection = 0;
     PVOID address = pbTarget;
     SIZE_T size = cbTarget;
 
@@ -2528,7 +2611,7 @@ NTSTATUS WINAPI DetourDetach(_Inout_ PVOID *ppPointer, _In_ PVOID pDetour)
         &address,
         &size,
         PAGE_EXECUTE_READWRITE,
-        &dwOld
+        &protection
         );
 
     if (!NT_SUCCESS(status)) 
@@ -2542,7 +2625,7 @@ NTSTATUS WINAPI DetourDetach(_Inout_ PVOID *ppPointer, _In_ PVOID pDetour)
     o->ppbPointer = reinterpret_cast<PBYTE*>(ppPointer);
     o->pTrampoline = pTrampoline;
     o->pbTarget = pbTarget;
-    o->dwPerm = dwOld;
+    o->dwPerm = protection;
     o->pNext = s_pPendingOperations;
     s_pPendingOperations = o;
 

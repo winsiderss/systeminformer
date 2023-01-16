@@ -547,6 +547,7 @@ EXPORTS
     PhBitmapSetAlpha
     PhCreateDialog
     PhDeleteLayoutManager
+    PhDialogBox
     PhEnumWindows
     PhEnumChildWindows
     PhFindListViewItemByFlags

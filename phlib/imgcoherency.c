@@ -6,7 +6,7 @@
  * Authors:
  *
  *     jxy-s   2020-2022
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -52,7 +52,7 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
 *
 * \return Number of bytes to skip, 0 does not skip bytes.
 */
-typedef ULONG(CALLBACK* PPH_IMGCOHERENCY_SKIP_BYTE_CALLBACK)(
+typedef ULONG (CALLBACK* PPH_IMGCOHERENCY_SKIP_BYTE_CALLBACK)(
     _In_ ULONG Rva,
     _In_opt_ PVOID Context
     );
@@ -292,7 +292,7 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
 * \param[in] RightBuffer - Second buffer to inspect.
 * \param[in] RightCount - Number of bytes in the second buffer.
 * \param[in,out] Context - Context to be updated during inspection.
-* \param[in,opt] Rva - RVA from which the buffers were retrieved, informs skip callback.
+* \param[in] Rva - RVA from which the buffers were retrieved, informs skip callback.
 * \param[in] SkipCallback - Optional, if provided the skip callback is invoked
 * for each inspected byte, the callback may return any number of bytes to skip.
 * \param[in] SkipCallbackContext - Optional, callback context passed to the skip callback.

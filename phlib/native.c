@@ -3910,6 +3910,44 @@ NTSTATUS PhGetFileUsn(
     return status;
 }
 
+NTSTATUS PhSetFileBypassIO(
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN Enable
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK ioStatusBlock;
+    FS_BPIO_INPUT bypassIoInput;
+    FS_BPIO_OUTPUT bypassIoOutput;
+
+    // https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/bypassio
+    memset(&bypassIoInput, 0, sizeof(FS_BPIO_INPUT));
+    bypassIoInput.Operation = Enable ? FS_BPIO_OP_ENABLE : FS_BPIO_OP_DISABLE;
+    memset(&bypassIoOutput, 0, sizeof(FS_BPIO_OUTPUT));
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &ioStatusBlock,
+        FSCTL_MANAGE_BYPASS_IO,
+        &bypassIoInput,
+        sizeof(bypassIoInput),
+        &bypassIoOutput,
+        sizeof(bypassIoOutput)
+        );
+
+#ifdef DEBUG
+    if (bypassIoOutput.OutFlags != FSBPIO_OUTFL_COMPATIBLE_STORAGE_DRIVER) // NT_SUCCESS(bypassIoOutput.Enable.OpStatus)
+    {
+        dprintf("BypassIO failed: (%S) %S\n", bypassIoOutput.Enable.FailingDriverName, bypassIoOutput.Enable.FailureReason);
+    }
+#endif
+
+    return status;
+}
+
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     _In_ HANDLE TransactionManagerHandle,
     _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
@@ -9212,6 +9250,74 @@ NTSTATUS PhCreateFileWin32Ex(
     return status;
 }
 
+NTSTATUS PhCreateFileWin32ExAlt(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_ ULONG CreateFlags,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _Out_opt_ PULONG CreateStatus
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    EXTENDED_CREATE_INFORMATION extendedInfo;
+
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    memset(&extendedInfo, 0, sizeof(EXTENDED_CREATE_INFORMATION));
+    extendedInfo.ExtendedCreateFlags = CreateFlags;
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        AllocationSize,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions | FILE_CONTAINS_EXTENDED_CREATE_INFORMATION,
+        &extendedInfo,
+        sizeof(EXTENDED_CREATE_INFORMATION)
+        );
+
+    RtlFreeUnicodeString(&fileName);
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    if (CreateStatus)
+        *CreateStatus = (ULONG)ioStatusBlock.Information;
+
+    return status;
+}
+
 NTSTATUS PhCreateFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRINGREF FileName,
@@ -9441,6 +9547,62 @@ NTSTATUS PhOpenFileById(
         &ioStatusBlock,
         ShareAccess,
         OpenOptions | FILE_OPEN_BY_FILE_ID
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    return status;
+}
+
+// rev from ReOpenFile
+/**
+ * Reopens the specified file handle with different access rights, sharing mode, and flags.
+ * Note: This function creates new FILE_OBJECTs compared to other functions simply referencing the existing object. 
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param OriginalFileHandle A handle to the object to be reopened.
+ * \param DesiredAccess The desired access to the file.
+ * \param ShareAccess The file access granted to other threads.
+ * \param OpenOptions The options to apply when the file is opened.
+ */
+NTSTATUS PhReOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ HANDLE OriginalFileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    RtlInitEmptyUnicodeString(&fileName, NULL, 0); // required
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        OriginalFileHandle,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        0,
+        ShareAccess,
+        FILE_OPEN,
+        OpenOptions,
+        NULL,
+        0
         );
 
     if (NT_SUCCESS(status))
