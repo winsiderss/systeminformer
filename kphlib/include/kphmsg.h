@@ -139,7 +139,7 @@ typedef struct _KPH_MESSAGE
     union
     {
         //
-        // Message form user
+        // Message from user
         //
         union
         {
