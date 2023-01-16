@@ -292,7 +292,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PhGuiSupportUpdateSystemMetrics();
+            PhGuiSupportUpdateSystemMetrics(hWnd);
 
             if (PhGetIntegerSetting(L"EnableWindowText"))
             {
