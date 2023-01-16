@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -62,12 +62,12 @@ VOID PhShowProcessAffinityDialog(
     context.ProcessItem = ProcessItem;
     context.ThreadItem = ThreadItem;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_AFFINITY),
         ParentWindowHandle,
         PhpProcessAffinityDlgProc,
-        (LPARAM)&context
+        &context
         );
 }
 
@@ -84,12 +84,12 @@ BOOLEAN PhShowProcessAffinityDialog2(
     context.ProcessItem = ProcessItem;
     context.ThreadItem = NULL;
 
-    if (DialogBoxParam(
+    if (PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_AFFINITY),
         ParentWindowHandle,
         PhpProcessAffinityDlgProc,
-        (LPARAM)&context
+        &context
         ) == IDOK)
     {
         *NewAffinityMask = context.NewAffinityMask;
@@ -136,12 +136,12 @@ VOID PhShowThreadAffinityDialog(
         }
     }
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_AFFINITY),
         ParentWindowHandle,
         PhpProcessAffinityDlgProc,
-        (LPARAM)&context
+        &context
         );
 }
 

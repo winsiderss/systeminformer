@@ -971,10 +971,11 @@ VOID ToolBarShowCustomizeDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_CUSTOMIZE_TB),
         ParentWindowHandle,
-        CustomizeToolbarDialogProc
+        CustomizeToolbarDialogProc,
+        NULL
         );
 }

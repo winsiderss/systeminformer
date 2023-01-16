@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -509,12 +509,12 @@ VOID PhShowMemoryStringDialog(
     context.ProcessId = ProcessItem->ProcessId;
     context.ProcessHandle = processHandle;
 
-    if (DialogBoxParam(
+    if (PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_MEMSTRING),
         ParentWindowHandle,
         PhpMemoryStringDlgProc,
-        (LPARAM)&context
+        &context
         ) != IDOK)
     {
         NtClose(processHandle);

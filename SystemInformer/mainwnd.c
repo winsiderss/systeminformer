@@ -1275,7 +1275,7 @@ VOID PhMwpOnCommand(
                     ProcessHacker_PrepareForEarlyShutdown();
 
                     if (PhShellProcessHacker(
-                        PhMainWndHandle,
+                        WindowHandle,
                         NULL,
                         SW_SHOW,
                         PH_SHELL_EXECUTE_NOZONECHECKS,

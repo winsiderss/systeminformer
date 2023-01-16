@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -77,12 +77,12 @@ VOID PhShowHandleStatisticsDialog(
 
     memset(&context.Entries, 0, sizeof(context.Entries));
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_HANDLESTATS),
         ParentWindowHandle,
         PhpHandleStatisticsDlgProc,
-        (LPARAM)&context
+        &context
         );
 
     for (i = 0; i < MAX_OBJECT_TYPE_NUMBER; i++)
