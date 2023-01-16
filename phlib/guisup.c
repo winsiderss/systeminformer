@@ -105,18 +105,55 @@ VOID PhGuiSupportInitialization(
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
     }
 
-    PhGuiSupportUpdateSystemMetrics();
+    PhGuiSupportUpdateSystemMetrics(NULL);
 }
 
 VOID PhGuiSupportUpdateSystemMetrics(
-    VOID
+    _In_opt_ HWND WindowHandle
     )
 {
-    PhSystemDpi = PhGetSystemDpi();
+    PhSystemDpi = WindowHandle ? PhGetWindowDpi(WindowHandle) : PhGetSystemDpi();
     PhSmallIconSize.X = PhGetSystemMetrics(SM_CXSMICON, PhSystemDpi);
     PhSmallIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, PhSystemDpi);
     PhLargeIconSize.X = PhGetSystemMetrics(SM_CXICON, PhSystemDpi);
     PhLargeIconSize.Y = PhGetSystemMetrics(SM_CYICON, PhSystemDpi);
+}
+
+VOID PhInitializeFont(
+    _In_ HWND WindowHandle
+    )
+{
+    LONG windowDpi = PhGetWindowDpi(WindowHandle);
+    HFONT oldFont = PhApplicationFont;
+
+    if (
+        !(PhApplicationFont = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH, windowDpi)) &&
+        !(PhApplicationFont = PhCreateFont(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH, windowDpi))
+        )
+    {
+        PhApplicationFont = PhCreateMessageFont(windowDpi);
+    }
+
+    if (oldFont) DeleteFont(oldFont);
+}
+
+VOID PhInitializeMonospaceFont(
+    _In_ HWND WindowHandle
+    )
+{
+    LONG windowDpi = PhGetWindowDpi(WindowHandle);
+    HFONT oldFont = PhMonospaceFont;
+
+    if (
+        !(PhMonospaceFont = PhCreateFont(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN, windowDpi)) &&
+        !(PhMonospaceFont = PhCreateFont(L"Courier New", 9, FW_DONTCARE, FF_MODERN, windowDpi)) &&
+        !(PhMonospaceFont = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN, windowDpi))
+        )
+    {
+        PhMonospaceFont = GetStockFont(SYSTEM_FIXED_FONT);
+    }
+
+    if (oldFont) DeleteFont(oldFont);
 }
 
 HTHEME PhOpenThemeData(

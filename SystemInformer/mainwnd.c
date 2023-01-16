@@ -292,7 +292,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
-            PhGuiSupportUpdateSystemMetrics();
+            PhGuiSupportUpdateSystemMetrics(hWnd);
 
             if (PhGetIntegerSetting(L"EnableWindowText"))
             {
@@ -1275,7 +1275,7 @@ VOID PhMwpOnCommand(
                     ProcessHacker_PrepareForEarlyShutdown();
 
                     if (PhShellProcessHacker(
-                        PhMainWndHandle,
+                        WindowHandle,
                         NULL,
                         SW_SHOW,
                         PH_SHELL_EXECUTE_NOZONECHECKS,
@@ -3776,7 +3776,6 @@ VOID PhMwpInvokeUpdateWindowFont(
     HFONT newFont;
     PPH_STRING fontHexString;
     LOGFONT font;
-    LONG dpiValue;
 
     fontHexString = PhaGetStringSetting(L"Font");
 
@@ -3790,11 +3789,9 @@ VOID PhMwpInvokeUpdateWindowFont(
     }
     else
     {
-        dpiValue = PhGetWindowDpi(PhMainWndHandle);
+        LONG windowDpi = PhGetWindowDpi(PhMainWndHandle);
 
-        if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &font, dpiValue))
-            return;
-        if (!(newFont = CreateFontIndirect(&font)))
+        if (!(newFont = PhCreateIconTitleFont(windowDpi)))
             return;
     }
 

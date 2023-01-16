@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -118,12 +118,12 @@ VOID PhShowProcessMitigationPolicyDialog(
                 }
             }
 
-            DialogBoxParam(
+            PhDialogBox(
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDD_MITIGATION),
                 ParentWindowHandle,
                 PhpProcessMitigationPolicyDlgProc,
-                (LPARAM)&context
+                &context
                 );
 
             for (policy = 0; policy < MaxProcessMitigationPolicy; policy++)

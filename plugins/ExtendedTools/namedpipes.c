@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020-2022
+ *     dmex    2020-2023
  *
  */
 
@@ -212,11 +212,11 @@ VOID EtShowPipeEnumDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_PIPEDIALOG),
         NULL,
         EtPipeEnumDlgProc,
-        (LPARAM)ParentWindowHandle
+        ParentWindowHandle
         );
 }

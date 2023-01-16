@@ -184,12 +184,12 @@ VOID PhShowRunAsDialog(
     _In_opt_ HANDLE ProcessId
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_RUNAS),
         PhCsForceNoParent ? NULL : ParentWindowHandle,
         PhpRunAsDlgProc,
-        (LPARAM)ProcessId
+        ProcessId
         );
 }
 
@@ -197,11 +197,12 @@ BOOLEAN PhShowRunFileDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    if (DialogBox(
+    if (PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_RUNFILEDLG),
         ParentWindowHandle,
-        PhpRunFileWndProc
+        PhpRunFileWndProc,
+        NULL
         ) == IDOK)
     {
         return TRUE;

@@ -243,12 +243,12 @@ LimitedDump:
 
     PhCreateThread2(PhpProcessMiniDumpTaskDialogThread, context);
 
-    //DialogBoxParam(
+    //PhDialogBox(
     //    PhInstanceHandle,
     //    MAKEINTRESOURCE(IDD_PROGRESS),
     //    NULL,
     //    PhpProcessMiniDumpDlgProc,
-    //    (LPARAM)context
+    //    context
     //    );
 }
 

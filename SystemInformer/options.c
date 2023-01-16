@@ -402,7 +402,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                         if (!PhIsNullOrEmptyString(PhSettingsFileName))
                             PhSaveSettings(&PhSettingsFileName->sr);
 
-                        PhShellProcessHacker(
+                        if (PhShellProcessHacker(
                             PhMainWndHandle,
                             L"-v -newinstance",
                             SW_SHOW,
@@ -410,8 +410,14 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                             0,
                             NULL
-                            );
-                        ProcessHacker_Destroy();
+                            ))
+                        {
+                            ProcessHacker_Destroy();
+                        }
+                        else
+                        {
+                            ProcessHacker_CancelEarlyShutdown();
+                        }
                     }
                 }
                 break;
@@ -3161,12 +3167,12 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
                     if (node = GetSelectedOptionsAdvancedNode(context))
                     {
-                        DialogBoxParam(
+                        PhDialogBox(
                             PhInstanceHandle,
                             MAKEINTRESOURCE(IDD_EDITENV),
                             hwndDlg,
                             PhpOptionsAdvancedEditDlgProc,
-                            (LPARAM)node->Setting
+                            node->Setting
                             );
 
                         PhMoveReference(

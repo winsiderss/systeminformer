@@ -382,10 +382,11 @@ VOID PvShowOptionsWindow(
     _In_ HWND ParentWindow
     )
 {
-    DialogBox(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_OPTIONS),
         ParentWindow,
-        PvOptionsWndProc
+        PvOptionsWndProc,
+        NULL
         );
 }

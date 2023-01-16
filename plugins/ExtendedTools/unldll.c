@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2016-2021
+ *     dmex    2016-2023
  *
  */
 
@@ -65,12 +65,12 @@ VOID EtShowUnloadedDllsDialog(
         return;
     }
 
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_UNLOADEDDLLS),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
         EtpUnloadedDllsDlgProc,
-        (LPARAM)context
+        context
         );
 }
 

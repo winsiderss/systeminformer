@@ -1536,12 +1536,12 @@ INT_PTR CALLBACK EtReparseDlgProc(
 
                                                     if (fileNames = EtFindVolumeFilesWithSecurityId(entry->RootDirectory, (ULONG)entry->FileReference))
                                                     {
-                                                        DialogBoxParam(
+                                                        PhDialogBox(
                                                             PluginInstance->DllBase,
                                                             MAKEINTRESOURCE(IDD_REPARSEDIALOG),
                                                             NULL,
                                                             EtFindSecurityIdsDlgProc,
-                                                            (LPARAM)fileNames
+                                                            fileNames
                                                             );
                                                     }
                                                     else
@@ -1589,11 +1589,11 @@ VOID EtShowReparseDialog(
     _In_ PVOID Context
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_REPARSEDIALOG),
         NULL,
         EtReparseDlgProc,
-        (LPARAM)Context
+        Context
         );
 }

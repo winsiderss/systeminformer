@@ -156,12 +156,12 @@ VOID PhShowProcessHeapsDialog(
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->IsWow64 = !!ProcessItem->IsWow64;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_HEAPS),
         NULL,
         PhpProcessHeapsDlgProc,
-        (LPARAM)context
+        context
         );
 }
 

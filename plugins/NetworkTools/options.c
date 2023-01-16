@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2012-2022
+ *     dmex    2012-2023
  *
  */
 
@@ -161,10 +161,11 @@ VOID ShowGeoLiteConfigDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_OPTIONSKEY),
         ParentWindowHandle,
-        OptionsGeoLiteDlgProc
+        OptionsGeoLiteDlgProc,
+        NULL
         );
 }

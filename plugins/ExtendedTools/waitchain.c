@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2013-2022
+ *     dmex    2013-2023
  *
  */
 
@@ -1074,11 +1074,11 @@ VOID EtShowWaitChainDialog(
 {
     PhReferenceObject(Context);
 
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WCT_DIALOG),
         NULL,
         WaitChainDlgProc,
-        (LPARAM)Context
+        Context
         );
 }

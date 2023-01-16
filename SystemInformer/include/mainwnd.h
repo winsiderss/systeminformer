@@ -104,8 +104,8 @@ PhPluginInvokeWindowCallback(
     ((HFONT)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_FONT, 0, 0))
 #define ProcessHacker_Invoke(Function, Parameter) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_INVOKE, (PVOID)(ULONG_PTR)(Parameter), (PVOID)(ULONG_PTR)(Function))
-#define ProcessHacker_CreateTabPage(Template) \
-    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
+//#define ProcessHacker_CreateTabPage(Template) \
+//    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_CREATE_TAB_PAGE, 0, (PVOID)(ULONG_PTR)(Template))
 #define ProcessHacker_Refresh() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_REFRESH, 0, 0)
 #define ProcessHacker_GetUpdateAutomatically() \

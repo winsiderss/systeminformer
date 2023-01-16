@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2020-2021
+ *     dmex    2020-2023
  *
  */
 
@@ -38,12 +38,12 @@ VOID PhShowProcessRecordDialog(
     memset(&context, 0, sizeof(PROCESS_RECORD_CONTEXT));
     context.Record = Record;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_PROCRECORD),
         ParentWindowHandle,
         PhpProcessRecordDlgProc,
-        (LPARAM)&context
+        &context
         );
 }
 

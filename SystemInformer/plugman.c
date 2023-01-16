@@ -683,11 +683,12 @@ INT_PTR CALLBACK PhPluginsDlgProc(
             {
             case IDC_DISABLED:
                 {
-                    DialogBox(
+                    PhDialogBox(
                         PhInstanceHandle,
                         MAKEINTRESOURCE(IDD_PLUGINSDISABLED),
                         hwndDlg,
-                        PhpPluginsDisabledDlgProc
+                        PhpPluginsDisabledDlgProc,
+                        NULL
                         );
 
                     ClearPluginsTree(context);
@@ -764,12 +765,12 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                             break;
                         case PH_PLUGIN_TREE_ITEM_MENU_PROPERTIES:
                             {
-                                DialogBoxParam(
+                                PhDialogBox(
                                     PhInstanceHandle,
                                     MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
                                     hwndDlg,
                                     PhpPluginPropertiesDlgProc,
-                                    (LPARAM)selectedNode->PluginInstance
+                                    selectedNode->PluginInstance
                                     );
                             }
                             break;
@@ -785,12 +786,12 @@ INT_PTR CALLBACK PhPluginsDlgProc(
                     if (!selectedNode)
                         break;
 
-                    DialogBoxParam(
+                    PhDialogBox(
                         PhInstanceHandle,
                         MAKEINTRESOURCE(IDD_PLUGINPROPERTIES),
                         hwndDlg,
                         PhpPluginPropertiesDlgProc,
-                        (LPARAM)selectedNode->PluginInstance
+                        selectedNode->PluginInstance
                         );
                 }
                 break;

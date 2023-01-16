@@ -645,10 +645,11 @@ VOID StatusBarShowCustomizeDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_CUSTOMIZE_SB),
         ParentWindowHandle,
-        CustomizeStatusBarDialogProc
+        CustomizeStatusBarDialogProc,
+        NULL
         );
 }

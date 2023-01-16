@@ -55,7 +55,21 @@ PHLIBAPI
 VOID
 NTAPI
 PhGuiSupportUpdateSystemMetrics(
-    VOID
+    _In_opt_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeFont(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeMonospaceFont(
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI
@@ -1474,6 +1488,137 @@ CALLBACK
 PhThemeWindowDrawToolbar(
     _In_ LPNMTBCUSTOMDRAW DrawInfo
     );
+
+// Font support
+
+FORCEINLINE
+HFONT
+PhCreateFont(
+    _In_opt_ PWSTR Name,
+    _In_ ULONG Size,
+    _In_ ULONG Weight,
+    _In_ ULONG PitchAndFamily,
+    _In_ LONG dpiValue
+    )
+{
+    return CreateFont(
+        -(LONG)PhMultiplyDivide(Size, dpiValue, 72),
+        0,
+        0,
+        0,
+        Weight,
+        FALSE,
+        FALSE,
+        FALSE,
+        ANSI_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY,
+        PitchAndFamily,
+        Name
+        );
+}
+
+FORCEINLINE
+HFONT
+PhCreateCommonFont(
+    _In_ LONG Size,
+    _In_ INT Weight,
+    _In_opt_ HWND hwnd,
+    _In_ LONG dpiValue
+    )
+{
+    HFONT fontHandle;
+    LOGFONT logFont;
+
+    if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
+        return NULL;
+
+    fontHandle = CreateFont(
+        -PhMultiplyDivideSigned(Size, dpiValue, 72),
+        0,
+        0,
+        0,
+        Weight,
+        FALSE,
+        FALSE,
+        FALSE,
+        ANSI_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY,
+        DEFAULT_PITCH,
+        logFont.lfFaceName
+        );
+
+    if (!fontHandle)
+        return NULL;
+
+    if (hwnd)
+        SetWindowFont(hwnd, fontHandle, TRUE);
+
+    return fontHandle;
+}
+
+FORCEINLINE
+HFONT
+PhCreateIconTitleFont(
+    _In_opt_ LONG WindowDpi
+    )
+{
+    LOGFONT logFont;
+
+    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
+        return CreateFontIndirect(&logFont);
+
+    return NULL;
+}
+
+FORCEINLINE
+HFONT
+PhCreateMessageFont(
+    _In_opt_ LONG WindowDpi
+    )
+{
+    NONCLIENTMETRICS metrics = { sizeof(metrics) };
+
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, WindowDpi))
+        return CreateFontIndirect(&metrics.lfMessageFont);
+
+    return NULL;
+}
+
+FORCEINLINE
+HFONT
+PhDuplicateFont(
+    _In_ HFONT Font
+    )
+{
+    LOGFONT logFont;
+
+    if (GetObject(Font, sizeof(LOGFONT), &logFont))
+        return CreateFontIndirect(&logFont);
+
+    return NULL;
+}
+
+FORCEINLINE
+HFONT
+PhDuplicateFontWithNewWeight(
+    _In_ HFONT Font,
+    _In_ LONG NewWeight
+    )
+{
+    LOGFONT logFont;
+
+    if (GetObject(Font, sizeof(LOGFONT), &logFont))
+    {
+        logFont.lfWeight = NewWeight;
+        return CreateFontIndirect(&logFont);
+    }
+
+    return NULL;
+}
 
 FORCEINLINE
 HFONT

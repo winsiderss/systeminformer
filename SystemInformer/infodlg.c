@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -208,11 +208,11 @@ VOID PhShowInformationDialog(
     context.String = String;
     context.Flags = Flags;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_INFORMATION),
         ParentWindowHandle,
         PhpInformationDlgProc,
-        (LPARAM)&context
+        &context
         );
 }

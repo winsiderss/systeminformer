@@ -351,12 +351,12 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 break;
             case IDC_RESTARTCOMPUTEROPTIONS:
                 {
-                    DialogBoxParam(
+                    PhDialogBox(
                         PluginInstance->DllBase,
                         MAKEINTRESOURCE(IDD_RESTARTCOMP),
                         hwndDlg,
                         RestartComputerDlgProc,
-                        (LPARAM)context
+                        context
                         );
                 }
                 break;

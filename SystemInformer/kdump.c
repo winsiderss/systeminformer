@@ -422,10 +422,11 @@ VOID PhShowLiveDumpDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_LIVEDUMP),
         NULL,
-        PhpLiveDumpDlgProc
+        PhpLiveDumpDlgProc,
+        NULL
         );
 }

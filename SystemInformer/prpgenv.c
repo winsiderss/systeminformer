@@ -644,12 +644,12 @@ INT_PTR PhpShowEditEnvDialog(
     context.Name = Name;
     context.Value = Value;
 
-    result = DialogBoxParam(
+    result = PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_EDITENV),
         ParentWindowHandle,
         PhpEditEnvDlgProc,
-        (LPARAM)&context
+        &context
         );
 
     if (Refresh)

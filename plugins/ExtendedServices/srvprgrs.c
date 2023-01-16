@@ -134,11 +134,11 @@ VOID EsRestartServiceWithProgress(
     context.Starting = FALSE;
     context.DisableTimer = FALSE;
 
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_SRVPROGRESS),
         hWnd,
         EspRestartServiceDlgProc,
-        (LPARAM)&context
+        &context
         );
 }

@@ -198,7 +198,7 @@ NTSTATUS KphpFilterSendMessage(
     _In_ HANDLE Port,
     _In_reads_bytes_(InBufferSize) PVOID InBuffer,
     _In_ ULONG InBufferSize,
-    _Out_writes_bytes_to_opt_(OutBufferSize,*BytesReturned) PVOID OutputBuffer,
+    _Out_writes_bytes_to_opt_(OutputBufferSize, *BytesReturned) PVOID OutputBuffer,
     _In_ ULONG OutputBufferSize,
     _Out_ PULONG BytesReturned
     )
