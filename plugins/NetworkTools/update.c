@@ -5,12 +5,11 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "nettools.h"
-#include <commonutil.h>
 
 HWND UpdateDialogHandle = NULL;
 HANDLE UpdateDialogThreadHandle = NULL;
@@ -672,7 +671,6 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     config.pszContent = L"Initializing...";
     config.lpCallbackData = (LONG_PTR)context;
     config.pfCallback = TaskDialogBootstrapCallback;
-    config.hwndParent = Parameter;
 
     TaskDialogIndirect(&config, NULL, NULL, NULL);
 
