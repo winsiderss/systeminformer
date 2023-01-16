@@ -2683,7 +2683,10 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     ULONG_PTR DefaultThreadpoolCpuSetMasks;
     ULONG DefaultThreadpoolCpuSetMaskCount;
     ULONG DefaultThreadpoolThreadMaximum;
+    ULONG HeapMemoryTypeMask; // WIN11
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
+
+STATIC_ASSERT(sizeof(RTL_USER_PROCESS_PARAMETERS) == 0x448);
 
 #define RTL_USER_PROC_PARAMS_NORMALIZED 0x00000001
 #define RTL_USER_PROC_PROFILE_USER 0x00000002
@@ -8240,9 +8243,7 @@ NTAPI
 RtlQueryPerformanceCounter(
     _Out_ PLARGE_INTEGER PerformanceCounter
     );
-#endif
 
-#if (PHNT_VERSION >= PHNT_WIN7)
 // rev
 NTSYSAPI
 LOGICAL
@@ -8273,6 +8274,8 @@ typedef enum _IMAGE_MITIGATION_POLICY
     ImageSehopPolicy, // RTL_IMAGE_MITIGATION_SEHOP_POLICY
     ImageHeapPolicy, // RTL_IMAGE_MITIGATION_HEAP_POLICY
     ImageUserShadowStackPolicy, // RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
+    ImageRedirectionTrustPolicy, // RTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY
+    ImageUserPointerAuthPolicy, // RTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY
     MaxImageMitigationPolicy
 } IMAGE_MITIGATION_POLICY;
 
@@ -8399,6 +8402,19 @@ typedef struct _RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
     RTL_IMAGE_MITIGATION_POLICY BlockNonCetBinaries;
 } RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY, *PRTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY;
 
+// rev
+typedef struct _RTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY
+{
+    RTL_IMAGE_MITIGATION_POLICY BlockUntrustedRedirections;
+} RTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY, *PRTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY;
+
+// rev
+typedef struct _RTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY
+{
+    RTL_IMAGE_MITIGATION_POLICY PointerAuthUserIp;
+} RTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY, *PRTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY;
+
+// rev
 typedef enum _RTL_IMAGE_MITIGATION_OPTION_STATE
 {
     RtlMitigationOptionStateNotConfigured,
@@ -9382,6 +9398,26 @@ NTSTATUS
 NTAPI
 RtlUnsubscribeWnfStateChangeNotification(
     _In_ PWNF_USER_CALLBACK Callback
+    );
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtCopyFileChunk(
+    _In_ HANDLE SourceHandle,
+    _In_ HANDLE DestinationHandle,
+    _In_opt_ HANDLE Event,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ ULONG Length,
+    _In_ PLARGE_INTEGER SourceOffset,
+    _In_ PLARGE_INTEGER DestOffset,
+    _In_opt_ PGUID SourceKey,
+    _In_opt_ PGUID DestKey,
+    _In_ ULONG Flags
     );
 
 #endif
