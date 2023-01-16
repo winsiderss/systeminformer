@@ -55,7 +55,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhGuiSupportUpdateSystemMetrics(
-    VOID
+    _In_opt_ HWND WindowHandle
     );
 
 PHLIBAPI

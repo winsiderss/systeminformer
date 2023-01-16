@@ -105,14 +105,14 @@ VOID PhGuiSupportInitialization(
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
     }
 
-    PhGuiSupportUpdateSystemMetrics();
+    PhGuiSupportUpdateSystemMetrics(NULL);
 }
 
 VOID PhGuiSupportUpdateSystemMetrics(
-    VOID
+    _In_opt_ HWND WindowHandle
     )
 {
-    PhSystemDpi = PhGetSystemDpi();
+    PhSystemDpi = WindowHandle ? PhGetWindowDpi(WindowHandle) : PhGetSystemDpi();
     PhSmallIconSize.X = PhGetSystemMetrics(SM_CXSMICON, PhSystemDpi);
     PhSmallIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, PhSystemDpi);
     PhLargeIconSize.X = PhGetSystemMetrics(SM_CXICON, PhSystemDpi);
