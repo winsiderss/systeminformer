@@ -1712,6 +1712,22 @@ PhCreateFileWin32Ex(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateFileWin32ExAlt(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_ ULONG CreateFlags,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _Out_opt_ PULONG CreateStatus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhCreateFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRINGREF FileName,

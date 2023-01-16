@@ -9212,6 +9212,74 @@ NTSTATUS PhCreateFileWin32Ex(
     return status;
 }
 
+NTSTATUS PhCreateFileWin32ExAlt(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_ ULONG CreateFlags,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _Out_opt_ PULONG CreateStatus
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    EXTENDED_CREATE_INFORMATION extendedInfo;
+
+    status = RtlDosPathNameToNtPathName_U_WithStatus(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    memset(&extendedInfo, 0, sizeof(EXTENDED_CREATE_INFORMATION));
+    extendedInfo.ExtendedCreateFlags = CreateFlags;
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        AllocationSize,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions | FILE_CONTAINS_EXTENDED_CREATE_INFORMATION,
+        &extendedInfo,
+        sizeof(EXTENDED_CREATE_INFORMATION)
+        );
+
+    RtlFreeUnicodeString(&fileName);
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    if (CreateStatus)
+        *CreateStatus = (ULONG)ioStatusBlock.Information;
+
+    return status;
+}
+
 NTSTATUS PhCreateFile(
     _Out_ PHANDLE FileHandle,
     _In_ PPH_STRINGREF FileName,
