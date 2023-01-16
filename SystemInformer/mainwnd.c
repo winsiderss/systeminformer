@@ -3776,7 +3776,6 @@ VOID PhMwpInvokeUpdateWindowFont(
     HFONT newFont;
     PPH_STRING fontHexString;
     LOGFONT font;
-    LONG dpiValue;
 
     fontHexString = PhaGetStringSetting(L"Font");
 
@@ -3790,11 +3789,9 @@ VOID PhMwpInvokeUpdateWindowFont(
     }
     else
     {
-        dpiValue = PhGetWindowDpi(PhMainWndHandle);
+        LONG windowDpi = PhGetWindowDpi(PhMainWndHandle);
 
-        if (!PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &font, dpiValue))
-            return;
-        if (!(newFont = CreateFontIndirect(&font)))
+        if (!(newFont = PhCreateIconTitleFont(windowDpi)))
             return;
     }
 

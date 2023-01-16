@@ -124,14 +124,6 @@ PhUnregisterMessageLoopFilter(
     );
 // end_phapppub
 
-VOID PhInitializeFont(
-    _In_ HWND hwnd
-    );
-
-VOID PhInitializeMonospaceFont(
-    _In_ HWND hwnd
-    );
-
 // plugin
 
 extern PH_AVL_TREE PhPluginsByName;

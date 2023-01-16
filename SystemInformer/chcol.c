@@ -110,24 +110,6 @@ static ULONG IndexOfStringInList(
     return ULONG_MAX;
 }
 
-static HFONT PhpColumnsGetCurrentFont(
-    _In_ HWND hwnd
-    )
-{
-    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-    HFONT font;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(hwnd);
-
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
-        font = CreateFontIndirect(&metrics.lfMessageFont);
-    else
-        font = NULL;
-
-    return font;
-}
-
 VOID PhpColumnsResetListBox(
     _In_ HWND ListBoxHandle,
     _In_ PPH_STRING SearchboxText,
@@ -213,7 +195,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             context->SearchActiveHandle = GetDlgItem(hwndDlg, IDC_FILTER);
             context->InactiveListArray = PhCreateList(1);
             context->ActiveListArray = PhCreateList(1);
-            context->ControlFont = PhpColumnsGetCurrentFont(hwndDlg);
+            context->ControlFont = PhCreateMessageFont(dpiValue);
             context->InactiveSearchboxText = PhReferenceEmptyString();
             context->ActiveSearchboxText = PhReferenceEmptyString();
 
@@ -345,7 +327,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
     case WM_DPICHANGED:
         {
             if (context->ControlFont) DeleteFont(context->ControlFont);
-            context->ControlFont = PhpColumnsGetCurrentFont(hwndDlg);
+            context->ControlFont = PhCreateMessageFont(LOWORD(wParam));
 
             ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
             ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));

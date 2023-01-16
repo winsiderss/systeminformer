@@ -220,8 +220,6 @@ COLORREF PhThemeWindowBackground2Color = RGB(65, 65, 65);
 COLORREF PhThemeWindowHighlightColor = RGB(128, 128, 128);
 COLORREF PhThemeWindowHighlight2Color = RGB(143, 143, 143);
 COLORREF PhThemeWindowTextColor = RGB(0xff, 0xff, 0xff); // RGB(255, 69, 0)
-HFONT PhpListViewFontHandle = NULL;
-HFONT PhpMenuFontHandle = NULL;
 
 VOID PhInitializeWindowTheme(
     _In_ HWND WindowHandle,
@@ -1094,6 +1092,7 @@ BOOLEAN PhThemeWindowDrawItem(
             RECT rect = DrawInfo->rcItem;
             LONG dpiValue = PhGetWindowDpi(WindowHandle);
             ULONG drawTextFlags = DT_SINGLELINE | DT_NOCLIP;
+            HFONT fontHandle;
             HFONT oldFont = NULL;
 
             if (DrawInfo->itemState & ODS_NOACCEL)
@@ -1101,9 +1100,9 @@ BOOLEAN PhThemeWindowDrawItem(
                 drawTextFlags |= DT_HIDEPREFIX;
             }
 
-            if (PhpMenuFontHandle)
+            if (fontHandle = PhCreateMessageFont(dpiValue))
             {
-                oldFont = SelectFont(DrawInfo->hDC, PhpMenuFontHandle);
+                oldFont = SelectFont(DrawInfo->hDC, fontHandle);
             }
 
             //FillRect(
@@ -1337,6 +1336,11 @@ BOOLEAN PhThemeWindowDrawItem(
 
             ExcludeClipRect(DrawInfo->hDC, rect.left, rect.top, rect.right, rect.bottom); // exclude last
 
+            if (fontHandle)
+            {
+                DeleteFont(fontHandle);
+            }
+
             return TRUE;
         }
     case ODT_COMBOBOX:
@@ -1393,17 +1397,10 @@ BOOLEAN PhThemeWindowMeasureItem(
         }
         else if (menuItemInfo->Text)
         {
+            HFONT fontHandle;
             HDC hdc;
 
-            if (!PhpMenuFontHandle)
-            {
-                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-
-                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
-                {
-                    PhpMenuFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
-                }
-            }
+            fontHandle = PhCreateMessageFont(dpiValue);
 
             if (hdc = GetDC(WindowHandle))
             {
@@ -1417,9 +1414,9 @@ BOOLEAN PhThemeWindowMeasureItem(
                 text = menuItemInfo->Text;
                 textCount = PhCountStringZ(text);
 
-                if (PhpMenuFontHandle)
+                if (fontHandle)
                 {
-                    oldFont = SelectFont(hdc, PhpMenuFontHandle);
+                    oldFont = SelectFont(hdc, fontHandle);
                 }
 
                 if ((menuItemInfo->Flags & PH_EMENU_MAINMENU) == PH_EMENU_MAINMENU)
@@ -1445,6 +1442,11 @@ BOOLEAN PhThemeWindowMeasureItem(
                 }
 
                 ReleaseDC(WindowHandle, hdc);
+            }
+
+            if (fontHandle)
+            {
+                DeleteFont(fontHandle);
             }
         }
 
@@ -2089,9 +2091,9 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
     case CDDS_PREPAINT:
         {
             LONG dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
+            HFONT fontHandle = NULL;
             LVGROUP groupInfo;
 
-            if (!PhpListViewFontHandle)
             {
                 NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
 
@@ -2100,13 +2102,13 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
                     metrics.lfMessageFont.lfHeight = PhGetDpi(-11, dpiValue);
                     metrics.lfMessageFont.lfWeight = FW_BOLD;
 
-                    PhpListViewFontHandle = CreateFontIndirect(&metrics.lfMessageFont);
+                    fontHandle = CreateFontIndirect(&metrics.lfMessageFont);
                 }
             }
 
             SetBkMode(DrawInfo->nmcd.hdc, TRANSPARENT);
             //SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
-            SelectFont(DrawInfo->nmcd.hdc, PhpListViewFontHandle);
+            SelectFont(DrawInfo->nmcd.hdc, fontHandle);
 
             memset(&groupInfo, 0, sizeof(LVGROUP));
             groupInfo.cbSize = sizeof(LVGROUP);
@@ -2135,6 +2137,11 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
                         );
                     DrawInfo->rcText.left -= PhGetDpi(10, dpiValue);
                 }
+            }
+
+            if (fontHandle)
+            {
+                DeleteFont(fontHandle);
             }
         }
         return CDRF_SKIPDEFAULT;

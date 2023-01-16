@@ -59,6 +59,20 @@ PhGuiSupportUpdateSystemMetrics(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhInitializeFont(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeMonospaceFont(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
 HTHEME
 NTAPI
 PhOpenThemeData(
@@ -1548,14 +1562,27 @@ PhCreateCommonFont(
 
 FORCEINLINE
 HFONT
+PhCreateIconTitleFont(
+    _In_opt_ LONG WindowDpi
+    )
+{
+    LOGFONT logFont;
+
+    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
+        return CreateFontIndirect(&logFont);
+
+    return NULL;
+}
+
+FORCEINLINE
+HFONT
 PhCreateMessageFont(
-    _In_opt_ HWND WindowHandle
+    _In_opt_ LONG WindowDpi
     )
 {
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
-    LONG dpi = WindowHandle ? PhGetWindowDpi(WindowHandle) : PhGetSystemDpi();
 
-    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpi))
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, WindowDpi))
         return CreateFontIndirect(&metrics.lfMessageFont);
 
     return NULL;
