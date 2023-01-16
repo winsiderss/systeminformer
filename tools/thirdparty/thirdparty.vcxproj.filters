@@ -46,6 +46,9 @@
     <Filter Include="detours">
       <UniqueIdentifier>{8e0a677b-267b-49fa-ad3a-4c80f411cc2b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="zydis">
+      <UniqueIdentifier>{eb165962-c40f-479c-96f2-bbe8f3617100}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="jsonc\arraylist.c">
@@ -393,7 +396,12 @@
     <ClCompile Include="detours\disolx86.cpp">
       <Filter>detours</Filter>
     </ClCompile>
-    <ClCompile Include="detours\modules.cpp" />
+    <ClCompile Include="detours\modules.cpp">
+      <Filter>detours</Filter>
+    </ClCompile>
+    <ClCompile Include="zydis\Zydis.c">
+      <Filter>zydis</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mxml\config.h">
@@ -758,6 +766,9 @@
     </ClInclude>
     <ClInclude Include="detours\detours.h">
       <Filter>detours</Filter>
+    </ClInclude>
+    <ClInclude Include="zydis\Zydis.h">
+      <Filter>zydis</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
