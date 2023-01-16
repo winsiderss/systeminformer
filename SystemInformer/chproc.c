@@ -45,12 +45,12 @@ BOOLEAN PhShowChooseProcessDialog(
     context.Message = Message;
     context.ProcessId = NULL;
 
-    if (DialogBoxParam(
+    if (PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CHOOSEPROCESS),
         ParentWindowHandle,
         PhpChooseProcessDlgProc,
-        (LPARAM)&context
+        &context
         ) == IDOK)
     {
         *ProcessId = context.ProcessId;

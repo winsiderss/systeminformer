@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
@@ -69,12 +69,12 @@ VOID TaskDialogLinkClicked(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_TEXT),
         Context->DialogHandle,
         TextDlgProc,
-        (LPARAM)Context
+        Context
         );
 }
 

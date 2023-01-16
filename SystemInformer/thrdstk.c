@@ -885,12 +885,12 @@ VOID PhShowThreadStackDialog(
     context->ThreadProvider = ThreadProvider;
     context->SymbolProvider = ThreadProvider->SymbolProvider;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_THRDSTACK),
         ParentWindowHandle,
         PhpThreadStackDlgProc,
-        (LPARAM)context
+        context
         );
 }
 

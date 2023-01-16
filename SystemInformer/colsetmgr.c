@@ -265,12 +265,12 @@ VOID PhShowColumnSetEditorDialog(
     _In_ PWSTR SettingName
     )
 {
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_COLUMNSETS),
         ParentWindowHandle,
         PhpColumnSetEditorDlgProc,
-        (LPARAM)SettingName
+        SettingName
         );
 }
 

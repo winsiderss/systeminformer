@@ -780,12 +780,12 @@ VOID EsHandleEventServiceTrigger(
             Context->EditingInfo->Subtype = &Context->EditingInfo->SubtypeBuffer;
             Context->EditingInfo->Action = SERVICE_TRIGGER_ACTION_SERVICE_START;
 
-            if (DialogBoxParam(
+            if (PhDialogBox(
                 PluginInstance->DllBase,
                 MAKEINTRESOURCE(IDD_SRVTRIGGER),
                 Context->WindowHandle,
                 EspServiceTriggerDlgProc,
-                (LPARAM)Context
+                Context
                 ) == IDOK)
             {
                 PWSTR triggerString;
@@ -828,12 +828,12 @@ VOID EsHandleEventServiceTrigger(
                 {
                     Context->EditingInfo = EspCloneTriggerInfo(info);
 
-                    if (DialogBoxParam(
+                    if (PhDialogBox(
                         PluginInstance->DllBase,
                         MAKEINTRESOURCE(IDD_SRVTRIGGER),
                         Context->WindowHandle,
                         EspServiceTriggerDlgProc,
-                        (LPARAM)Context
+                        Context
                         ) == IDOK)
                     {
                         PWSTR triggerString;
@@ -1290,12 +1290,12 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
                     context->EditingValue = PhReferenceEmptyString();
 
-                    if (DialogBoxParam(
+                    if (PhDialogBox(
                         PluginInstance->DllBase,
                         MAKEINTRESOURCE(IDD_VALUE),
                         hwndDlg,
                         ValueDlgProc,
-                        (LPARAM)context
+                        context
                         ) == IDOK)
                     {
                         PES_TRIGGER_DATA data;
@@ -1340,12 +1340,12 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
                         {
                             context->EditingValue = EspConvertNullsToNewLines(data->String);
 
-                            if (DialogBoxParam(
+                            if (PhDialogBox(
                                 PluginInstance->DllBase,
                                 MAKEINTRESOURCE(IDD_VALUE),
                                 hwndDlg,
                                 ValueDlgProc,
-                                (LPARAM)context
+                                context
                                 ) == IDOK)
                             {
                                 PPH_STRING text;

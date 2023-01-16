@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -354,12 +354,12 @@ VOID EtShowFirmwareDialog(
 
     if (PhIsFirmwareSupported())
     {
-        DialogBoxParam(
+        PhDialogBox(
             PluginInstance->DllBase,
             MAKEINTRESOURCE(IDD_FIRMWARE),
             NULL,
             EtFirmwareDlgProc,
-            (LPARAM)ParentWindowHandle
+            ParentWindowHandle
             );
     }
     else

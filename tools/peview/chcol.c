@@ -61,12 +61,12 @@ VOID PvShowChooseColumnsDialog(
     else
         return;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CHOOSECOLUMNS),
         ParentWindowHandle,
         PvColumnsDlgProc,
-        (LPARAM)&context
+        &context
         );
 
     PhDereferenceObject(context.Columns);

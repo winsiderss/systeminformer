@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -60,12 +60,12 @@ VOID PhShowChooseColumnsDialog(
     else
         return;
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CHOOSECOLUMNS),
         ParentWindowHandle,
         PhpColumnsDlgProc,
-        (LPARAM)&context
+        &context
         );
 
     PhDereferenceObject(context.Columns);

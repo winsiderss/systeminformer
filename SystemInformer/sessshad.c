@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  */
 
 #include <phapp.h>
@@ -106,12 +106,12 @@ VOID PhShowSessionShadowDialog(
         return;
     }
 
-    DialogBoxParam(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SHADOWSESSION),
         ParentWindowHandle,
         PhpSessionShadowDlgProc,
-        (LPARAM)SessionId
+        UlongToPtr(SessionId)
         );
 }
 

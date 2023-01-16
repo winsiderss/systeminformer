@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2019
+ *     dmex    2019-2023
  *
  */
 
@@ -28,11 +28,12 @@ VOID PhShowCreateServiceDialog(
     _In_ HWND ParentWindowHandle
     )
 {
-    DialogBox(
+    PhDialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_CREATESERVICE),
         PhCsForceNoParent ? NULL : ParentWindowHandle,
-        PhpCreateServiceDlgProc
+        PhpCreateServiceDlgProc,
+        NULL
         );
 }
 

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -95,12 +95,12 @@ VOID EtShowWsWatchDialog(
         return;
     }
 
-    DialogBoxParam(
+    PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WSWATCH),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : ParentWindowHandle,
         EtpWsWatchDlgProc,
-        (LPARAM)context
+        context
         );
 }
 
