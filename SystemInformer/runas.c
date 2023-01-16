@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -602,12 +602,12 @@ VOID PhpFreeProgramsComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
-    ULONG total;
+    INT total;
 
     if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
         return;
 
-    for (ULONG i = 0; i < total; i++)
+    for (INT i = 0; i < total; i++)
     {
         ComboBox_DeleteString(ComboBoxHandle, i);
     }
@@ -617,12 +617,12 @@ static VOID PhpFreeAccountsComboBox(
     _In_ HWND ComboBoxHandle
     )
 {
-    ULONG total;
+    INT total;
 
     if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
         return;
 
-    for (ULONG i = 0; i < total; i++)
+    for (INT i = 0; i < total; i++)
     {
         ComboBox_DeleteString(ComboBoxHandle, i);
     }
@@ -760,8 +760,8 @@ static VOID PhpFreeSessionsComboBox(
     )
 {
     PPH_RUNAS_SESSION_ITEM entry;
-    ULONG total;
-    ULONG i;
+    INT total;
+    INT i;
 
     if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
         return;
@@ -940,8 +940,8 @@ static VOID PhpFreeDesktopsComboBox(
     )
 {
     PPH_RUNAS_DESKTOP_ITEM entry;
-    ULONG total;
-    ULONG i;
+    INT total;
+    INT i;
 
     if ((total = ComboBox_GetCount(ComboBoxHandle)) == CB_ERR)
         return;
@@ -1428,7 +1428,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
                                 startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
                                 startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-                                startupInfo.StartupInfo.wShowWindow = SW_SHOWDEFAULT;
+                                startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
 
                                 status = PhOpenProcess(
                                     &processHandle,
@@ -2225,7 +2225,7 @@ NTSTATUS PhpRunAsShellExecute(
     info.lpParameters = Parameters;
     info.lpDirectory = PhGetString(parentDirectory);
     info.fMask = SEE_MASK_FLAG_NO_UI;
-    info.nShow = SW_SHOWDEFAULT;
+    info.nShow = SW_SHOWNORMAL;
     info.hwnd = hWnd;
 
     if (Elevated)
@@ -2423,7 +2423,7 @@ NTSTATUS PhpRunFileProgram(
         memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
         startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
         startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-        startupInfo.StartupInfo.wShowWindow = SW_SHOWDEFAULT;
+        startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
         parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
 
         // NOTE: CreateProcess has an issue when launching processes with execution aliases
@@ -2632,7 +2632,7 @@ NTSTATUS RunAsCreateProcessThread(
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
     startupInfo.StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
-    startupInfo.StartupInfo.wShowWindow = SW_SHOWDEFAULT;
+    startupInfo.StartupInfo.wShowWindow = SW_SHOWNORMAL;
 
     if (!(serviceHandle = PhOpenService(L"TrustedInstaller", SERVICE_QUERY_STATUS | SERVICE_START)))
     {
