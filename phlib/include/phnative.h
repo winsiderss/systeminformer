@@ -1800,6 +1800,17 @@ PhOpenFileById(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhReOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ HANDLE OriginalFileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhQueryFullAttributesFileWin32(
     _In_ PWSTR FileName,
     _Out_ PFILE_NETWORK_OPEN_INFORMATION FileInformation

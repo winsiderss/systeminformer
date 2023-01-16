@@ -9519,6 +9519,62 @@ NTSTATUS PhOpenFileById(
     return status;
 }
 
+// rev from ReOpenFile
+/**
+ * Reopens the specified file handle with different access rights, sharing mode, and flags.
+ * Note: This function creates new FILE_OBJECTs compared to other functions simply referencing the existing object. 
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param OriginalFileHandle A handle to the object to be reopened.
+ * \param DesiredAccess The desired access to the file.
+ * \param ShareAccess The file access granted to other threads.
+ * \param OpenOptions The options to apply when the file is opened.
+ */
+NTSTATUS PhReOpenFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ HANDLE OriginalFileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG OpenOptions
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    RtlInitEmptyUnicodeString(&fileName, NULL, 0); // required
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        OriginalFileHandle,
+        NULL
+        );
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        0,
+        ShareAccess,
+        FILE_OPEN,
+        OpenOptions,
+        NULL,
+        0
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    return status;
+}
+
 /**
  * Queries file attributes.
  *
