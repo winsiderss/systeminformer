@@ -1180,6 +1180,31 @@ HWND PhCreateWindow(
         );
 }
 
+INT_PTR PhDialogBox(
+    _In_ PVOID Instance,
+    _In_ PWSTR Template,
+    _In_opt_ HWND ParentWindow,
+    _In_ DLGPROC DialogProc,
+    _In_opt_ PVOID Parameter
+    )
+{
+    PDLGTEMPLATEEX dialogTemplate;
+    INT_PTR dialogResult;
+
+    if (!PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate))
+        return INT_ERROR;
+
+    dialogResult = DialogBoxIndirectParam(
+        Instance,
+        (LPDLGTEMPLATE)dialogTemplate,
+        ParentWindow,
+        DialogProc,
+        (LPARAM)Parameter
+        );
+
+    return dialogResult;
+}
+
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     )
