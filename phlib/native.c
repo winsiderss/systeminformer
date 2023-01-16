@@ -3910,6 +3910,44 @@ NTSTATUS PhGetFileUsn(
     return status;
 }
 
+NTSTATUS PhSetFileBypassIO(
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN Enable
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK ioStatusBlock;
+    FS_BPIO_INPUT bypassIoInput;
+    FS_BPIO_OUTPUT bypassIoOutput;
+
+    // https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/bypassio
+    memset(&bypassIoInput, 0, sizeof(FS_BPIO_INPUT));
+    bypassIoInput.Operation = Enable ? FS_BPIO_OP_ENABLE : FS_BPIO_OP_DISABLE;
+    memset(&bypassIoOutput, 0, sizeof(FS_BPIO_OUTPUT));
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &ioStatusBlock,
+        FSCTL_MANAGE_BYPASS_IO,
+        &bypassIoInput,
+        sizeof(bypassIoInput),
+        &bypassIoOutput,
+        sizeof(bypassIoOutput)
+        );
+
+#ifdef DEBUG
+    if (bypassIoOutput.OutFlags != FSBPIO_OUTFL_COMPATIBLE_STORAGE_DRIVER) // NT_SUCCESS(bypassIoOutput.Enable.OpStatus)
+    {
+        dprintf("BypassIO failed: (%S) %S\n", bypassIoOutput.Enable.FailingDriverName, bypassIoOutput.Enable.FailureReason);
+    }
+#endif
+
+    return status;
+}
+
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     _In_ HANDLE TransactionManagerHandle,
     _In_ TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
