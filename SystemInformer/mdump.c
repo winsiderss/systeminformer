@@ -6,13 +6,13 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include <phapp.h>
-#include <apiimport.h>
 #include <appresolver.h>
+#include <settings.h>
 
 #include <dbghelp.h>
 #include <symprv.h>
@@ -34,11 +34,11 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING FileName;
     PPH_STRING ErrorMessage;
-    MINIDUMP_TYPE DumpType;
-    WNDPROC DefaultTaskDialogWindowProc;
+    ULONG DumpType;
 
     HANDLE ProcessHandle;
     HANDLE FileHandle;
+    HANDLE KernelFileHandle;
 
     union
     {
@@ -54,6 +54,7 @@ typedef struct _PH_PROCESS_MINIDUMP_CONTEXT
     };
 
     ULONG64 LastTickCount;
+    WNDPROC DefaultTaskDialogWindowProc;
 } PH_PROCESS_MINIDUMP_CONTEXT, *PPH_PROCESS_MINIDUMP_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
@@ -125,6 +126,8 @@ VOID PhpProcessMiniDumpContextDeleteProcedure(
 
     if (context->FileHandle)
         NtClose(context->FileHandle);
+    if (context->KernelFileHandle)
+        NtClose(context->KernelFileHandle);
     if (context->ProcessHandle)
         NtClose(context->ProcessHandle);
     if (context->FileName)
@@ -353,6 +356,45 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
             message = PhFormat(format, RTL_NUMBER_OF(format), 0);
         }
         break;
+    case WriteKernelMinidumpCallback:
+        {
+            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+                break;
+
+            HANDLE kernelDumpFileHandle;
+            PPH_STRING kernelDumpFileName;
+
+            kernelDumpFileName = PhGetBaseName(context->FileName);
+            PhMoveReference(&kernelDumpFileName, PhConcatStringRefZ(&kernelDumpFileName->sr, L"kernel.dmp"));
+
+            if (NT_SUCCESS(PhCreateFileWin32(
+                &kernelDumpFileHandle,
+                PhGetString(kernelDumpFileName),
+                FILE_GENERIC_WRITE | DELETE,
+                FILE_ATTRIBUTE_NORMAL,
+                0,
+                FILE_OVERWRITE_IF,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                )))
+            {
+                context->KernelFileHandle = kernelDumpFileHandle;
+                CallbackOutput->Handle = kernelDumpFileHandle;
+            }
+        }
+        break;
+    case KernelMinidumpStatusCallback:
+        {
+            PH_FORMAT format[2];
+
+            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+                break;
+
+            PhInitFormatS(&format[0], L"Processing kernel minidump");
+            PhInitFormatS(&format[1], L"...");
+
+            message = PhFormat(format, RTL_NUMBER_OF(format), 0);
+        }
+        break;
     }
 
     if (message)
@@ -424,13 +466,16 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         PhAppResolverBeginCrashDumpTaskByHandle(context->ProcessHandle, &packageTaskHandle);
     }
 
-    if (NT_SUCCESS(PhCreateProcessSnapshot(
-        &snapshotHandle,
-        context->ProcessHandle,
-        context->ProcessId
-        )))
+    if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
     {
-        context->IsProcessSnapshot = TRUE;
+        if (NT_SUCCESS(PhCreateProcessSnapshot(
+            &snapshotHandle,
+            context->ProcessHandle,
+            context->ProcessId
+            )))
+        {
+            context->IsProcessSnapshot = TRUE;
+        }
     }
 
     if (PhWriteMiniDumpProcess(
