@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -14,6 +14,7 @@
 #include <guisup.h>
 
 #include <shobjidl.h>
+#include <shlobj_core.h>
 
 #include <appresolverp.h>
 #include <appresolver.h>
@@ -903,6 +904,7 @@ HRESULT PhAppResolverGetEdpContextForProcess(
     return status;
 }
 
+// Note: IStartMenuAppItems_EnumItems doesn't return immersive items on Win11 (dmex)
 //VOID PhEnumerateStartMenuAppUserModelIds(VOID)
 //{
 //    PVOID startMenuInterface;
@@ -955,6 +957,136 @@ HRESULT PhAppResolverGetEdpContextForProcess(
 //
 //    IStartMenuAppItems_Release(startMenuEnumObjects);
 //}
+
+DEFINE_GUID(FOLDERID_AppsFolder, 0x1e87508d, 0x89c2, 0x42f0, 0x8a, 0x7e, 0x64, 0x5a, 0x0f, 0x50, 0xca, 0x58);
+DEFINE_GUID(BHID_EnumItems, 0x94f60519, 0x2850, 0x4924, 0xaa, 0x5a, 0xd1, 0x5e, 0x84, 0x86, 0x80, 0x39);
+DEFINE_GUID(BHID_PropertyStore, 0x0384e1a4, 0x1523, 0x439c, 0xa4, 0xc8, 0xab, 0x91, 0x10, 0x52, 0xf5, 0x86);
+
+static BOOLEAN PhParseStartMenuAppShellItem(
+    _In_ IShellItem2* ShellItem,
+    _In_ PPH_LIST List
+    )
+{
+    PROPVARIANT packageHostEnvironment = { 0 };
+    PWSTR packageAppUserModelID = NULL;
+    PWSTR packageInstallPath = NULL;
+    PWSTR packageFullName = NULL;
+    PWSTR packageSmallLogoPath = NULL;
+    PWSTR packageLongDisplayName = NULL;
+
+    if (FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
+        return FALSE;
+    if (!(V_VT(&packageHostEnvironment) == VT_UI4 && V_UI4(&packageHostEnvironment)))
+        return FALSE;
+
+    IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_ID, &packageAppUserModelID);
+    IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_PackageInstallPath, &packageInstallPath);
+    IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_PackageFullName, &packageFullName);
+    IShellItem2_GetString(ShellItem, &PKEY_Tile_SmallLogoPath, &packageSmallLogoPath);
+    IShellItem2_GetString(ShellItem, &PKEY_Tile_LongDisplayName, &packageLongDisplayName);
+
+    if (packageAppUserModelID && 
+        packageInstallPath && 
+        packageFullName && 
+        packageSmallLogoPath && 
+        packageLongDisplayName)
+    {
+        PPH_APPUSERMODELID_ENUM_ENTRY entry;
+
+        entry = PhAllocateZero(sizeof(PH_APPUSERMODELID_ENUM_ENTRY));
+        entry->AppUserModelId = PhCreateString(packageAppUserModelID);
+        entry->DisplayName = PhCreateString(packageLongDisplayName);
+        entry->PackageInstallPath = PhCreateString(packageInstallPath);
+        entry->PackageFullName = PhCreateString(packageFullName);
+        entry->SmallLogoPath = PhCreateString(packageSmallLogoPath);
+        PhAddItemList(List, entry);
+
+        return TRUE;
+    }
+
+    if (packageAppUserModelID)
+        CoTaskMemFree(packageAppUserModelID);
+    if (packageInstallPath)
+        CoTaskMemFree(packageInstallPath);
+    if (packageFullName)
+        CoTaskMemFree(packageFullName);
+    if (packageSmallLogoPath)
+        CoTaskMemFree(packageSmallLogoPath);
+    if (packageLongDisplayName)
+        CoTaskMemFree(packageLongDisplayName);
+    return FALSE;
+}
+
+PPH_LIST PhEnumerateApplicationUserModelIds(
+    VOID
+    )
+{
+    HRESULT status;
+    PPH_LIST list = NULL;
+    IShellItem2* shellKnownFolderItem = NULL;
+    IEnumShellItems* shellEnumFolderItem = NULL;
+
+    status = SHGetKnownFolderItem(
+        &FOLDERID_AppsFolder,
+        KF_FLAG_DONT_VERIFY,
+        NULL,
+        &IID_IShellItem2, 
+        &shellKnownFolderItem
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    status = IShellItem2_BindToHandler(
+        shellKnownFolderItem,
+        NULL, 
+        &BHID_EnumItems, 
+        &IID_IEnumShellItems,
+        &shellEnumFolderItem
+        );
+
+    if (FAILED(status))
+        goto CleanupExit;
+
+    list = PhCreateList(10);
+
+    while (TRUE)
+    {
+        ULONG count = 0;
+        IShellItem* itemlist[10];
+
+        if (FAILED(IEnumShellItems_Next(shellEnumFolderItem, 10, itemlist, &count)))
+            break;
+        if (count == 0)
+            break;
+
+        for (ULONG i = 0; i < count; i++)
+        {
+            IShellItem2* item;
+
+            if (SUCCEEDED(IShellItem_QueryInterface(itemlist[i], &IID_IShellItem2, &item)))
+            {
+                PhParseStartMenuAppShellItem(item, list);
+
+                IShellItem2_Release(item);
+            }
+
+            IShellItem_Release(itemlist[i]);
+        }
+    }
+
+CleanupExit:
+    if (shellEnumFolderItem)
+    {
+        IEnumShellItems_Release(shellEnumFolderItem);
+    }
+    if (shellKnownFolderItem)
+    {
+        IShellItem2_Release(shellKnownFolderItem);
+    }
+
+    return list;
+}
 
 HRESULT PhAppResolverGetPackageResourceFilePath(
     _In_ PPH_STRING PackageFullName,
