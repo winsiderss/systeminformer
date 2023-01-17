@@ -117,7 +117,7 @@ BOOLEAN
 NTAPI
 PhGetThemeClass(
     _In_ HTHEME ThemeHandle,
-    _Out_writes_z_(*ClassLength) PWSTR Class,
+    _Out_writes_(ClassLength) PWSTR Class,
     _In_ ULONG ClassLength
     );
 

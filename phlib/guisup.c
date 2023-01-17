@@ -99,10 +99,14 @@ VOID PhGuiSupportInitialization(
         SetWindowTheme_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "SetWindowTheme", 0);
         IsThemeActive_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemeActive", 0);
         IsThemePartDefined_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemePartDefined", 0);
-        GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeClass", 0);
         GetThemeInt_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeInt", 0);
         GetThemePartSize_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemePartSize", 0);
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, NULL, 74);
+        }
     }
 
     PhGuiSupportUpdateSystemMetrics(NULL);
@@ -220,7 +224,7 @@ BOOLEAN PhIsThemePartDefined(
 
 BOOLEAN PhGetThemeClass(
     _In_ HTHEME ThemeHandle,
-    _Out_writes_z_(*ClassLength) PWSTR Class,
+    _Out_writes_(ClassLength) PWSTR Class,
     _In_ ULONG ClassLength
     )
 {
