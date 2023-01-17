@@ -312,7 +312,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"KphPortName", L"");
     PhpAddStringSetting(L"KphAltitude", L"385400");
     PhpAddIntegerSetting(L"KphDisableImageLoadProtection", L"0");
-    PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"1");
+    PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
     PhpAddIntegerSetting(L"KsiUnloadOnExitTest", L"0");
 }
 
