@@ -33,17 +33,32 @@ typedef BOOLEAN (NTAPI* PPH_ENUM_SD_ENTRY)(
 
 typedef struct _REPARSE_WINDOW_CONTEXT
 {
+    HWND WindowHandle;
     HWND ListViewHandle;
     ULONG MenuItemIndex;
     PH_LAYOUT_MANAGER LayoutManager;
     ULONG Count;
+    PPH_LIST Items;
 } REPARSE_WINDOW_CONTEXT, *PREPARSE_WINDOW_CONTEXT;
 
 typedef struct _REPARSE_LISTVIEW_ENTRY
 {
     LONGLONG FileReference;
     PPH_STRING RootDirectory;
+    PPH_STRING BestObjectName;
+
+    PPH_STRING VolumeName;
+    PPH_STRING SidFullName;
+    PPH_STRING SDDLString;
+    ULONG Tag;
+    ULONG Hash;
+    ULONG SecurityId;
+    ULONG Length;
+    UCHAR ObjectId[16];
 } REPARSE_LISTVIEW_ENTRY, *PREPARSE_LISTVIEW_ENTRY;
+
+#define ET_REPARSE_UPDATE_MSG (WM_APP + 1)
+#define ET_REPARSE_UPDATE_ERROR (WM_APP + 2)
 
 #define FILE_LAYOUT_ENTRY_VERSION 0x1
 #define STREAM_LAYOUT_ENTRY_VERSION 0x1
@@ -683,10 +698,8 @@ BOOLEAN NTAPI EtEnumVolumeReparseCallback(
 
     if (context)
     {
-        INT index;
         PREPARSE_LISTVIEW_ENTRY entry;
         PPH_STRING rootFileName = NULL;
-        WCHAR number[PH_PTR_STR_LEN_1];
 
         objectName = NULL;
 
@@ -705,13 +718,10 @@ BOOLEAN NTAPI EtEnumVolumeReparseCallback(
 
         entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
         entry->FileReference = Information->FileReference;
+        entry->Tag = Information->Tag;
         entry->RootDirectory = rootFileName;
-
-        PhPrintUInt32(number, ++context->Count);
-        index = PhAddListViewItem(context->ListViewHandle, MAXINT, number, entry);
-        PhSetListViewSubItem(context->ListViewHandle, index, 1, PhaFormatString(L"%I64u (0x%I64x)", Information->FileReference, Information->FileReference)->Buffer);
-        PhSetListViewSubItem(context->ListViewHandle, index, 2, EtReparseTagToString(Information->Tag));
-        PhSetListViewSubItem(context->ListViewHandle, index, 3, PhGetStringOrEmpty(bestObjectName));
+        PhSetReference(&entry->BestObjectName, bestObjectName);
+        PhAddItemList(context->Items, entry);
     }
 
     PhClearReference(&bestObjectName);
@@ -764,10 +774,8 @@ BOOLEAN NTAPI EtEnumVolumeObjectIdCallback(
 
     if (context)
     {
-        INT index;
         PREPARSE_LISTVIEW_ENTRY entry;
         PPH_STRING rootFileName = NULL;
-        WCHAR number[PH_PTR_STR_LEN_1];
 
         if (NT_SUCCESS(PhGetHandleInformation(
             NtCurrentProcess(),
@@ -785,24 +793,10 @@ BOOLEAN NTAPI EtEnumVolumeObjectIdCallback(
         entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
         entry->FileReference = Information->FileReference;
         entry->RootDirectory = rootFileName;
+        PhSetReference(&entry->BestObjectName, bestObjectName);
+        memcpy_s(entry->ObjectId, sizeof(entry->ObjectId), Information->ObjectId, sizeof(Information->ObjectId));
 
-        PhPrintUInt32(number, ++context->Count);
-        index = PhAddListViewItem(context->ListViewHandle, MAXINT, number, entry);
-        PhSetListViewSubItem(context->ListViewHandle, index, 1, PhaFormatString(L"%I64u (0x%I64x)", Information->FileReference, Information->FileReference)->Buffer);
-
-        {
-            PPH_STRING string;
-            PGUID guid = (PGUID)Information->ObjectId;
-
-            // The swap returns the same value as 'fsutil objectid query filepath' (dmex)
-            PhReverseGuid(guid);
-
-            string = PhFormatGuid(guid);
-            PhSetListViewSubItem(context->ListViewHandle, index, 2, PhGetStringOrEmpty(string));
-            PhDereferenceObject(string);
-        }
-
-        PhSetListViewSubItem(context->ListViewHandle, index, 3, PhGetStringOrEmpty(bestObjectName));
+        PhAddItemList(context->Items, entry);
     }
 
     PhClearReference(&bestObjectName);
@@ -817,11 +811,10 @@ BOOLEAN NTAPI EtEnumVolumeSecurityDescriptorsCallback(
     )
 {
     PREPARSE_WINDOW_CONTEXT context = Context;
-    INT index;
+    PREPARSE_LISTVIEW_ENTRY entry;
     PPH_STRING objectName = NULL;
     PPH_STRING rootFileName = NULL;
     PPH_STRING volumeName = NULL;
-    WCHAR number[PH_PTR_STR_LEN_1];
 
     if (NT_SUCCESS(PhGetHandleInformation(
         NtCurrentProcess(),
@@ -837,22 +830,16 @@ BOOLEAN NTAPI EtEnumVolumeSecurityDescriptorsCallback(
         volumeName = PhGetFileName(rootFileName);
     }
 
-    PREPARSE_LISTVIEW_ENTRY entry;
-
     entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
     entry->FileReference = SDEntry->SecurityId;
     entry->RootDirectory = rootFileName;
-
-    PhPrintUInt32(number, ++context->Count);
-    index = PhAddListViewItem(context->ListViewHandle, MAXINT, number, entry);
-    PhSetListViewSubItem(context->ListViewHandle, index, 1, PhGetStringOrEmpty(volumeName));
-    PhSetListViewSubItem(context->ListViewHandle, index, 2, PhaFormatUInt64(SDEntry->SecurityId, FALSE)->Buffer);
-    PhSetListViewSubItem(context->ListViewHandle, index, 3, PhaFormatUInt64(SDEntry->Hash, FALSE)->Buffer);
-    PhSetListViewSubItem(context->ListViewHandle, index, 4, PhaFormatUInt64(SDEntry->Length, FALSE)->Buffer);
+    PhSetReference(&entry->VolumeName, volumeName);
+    entry->SecurityId = SDEntry->SecurityId;
+    entry->Hash = SDEntry->Hash;
+    entry->Length = SDEntry->Length;
 
     if (RtlValidSecurityDescriptor(SDEntry->Descriptor))
     {
-        PPH_STRING securityDescriptorString;
         ULONG stringSecurityDescriptorLength = 0;
         PWSTR stringSecurityDescriptor = NULL;
         PSID owner = NULL;
@@ -862,13 +849,7 @@ BOOLEAN NTAPI EtEnumVolumeSecurityDescriptorsCallback(
 
         if (owner)
         {
-            PPH_STRING fullName = PhGetSidFullName(owner, TRUE, NULL);
-
-            if (fullName)
-            {
-                PhSetListViewSubItem(context->ListViewHandle, index, 5, fullName->Buffer);
-                PhDereferenceObject(fullName);
-            }
+            entry->SidFullName = PhGetSidFullName(owner, TRUE, NULL);
         }
 
         if (ConvertSecurityDescriptorToStringSecurityDescriptor(
@@ -885,12 +866,11 @@ BOOLEAN NTAPI EtEnumVolumeSecurityDescriptorsCallback(
             &stringSecurityDescriptorLength
             ))
         {
-            securityDescriptorString = PhCreateStringEx(stringSecurityDescriptor, stringSecurityDescriptorLength * sizeof(WCHAR));
-            PhSetListViewSubItem(context->ListViewHandle, index, 6, securityDescriptorString->Buffer);
-            PhDereferenceObject(securityDescriptorString);
-
+            entry->SDDLString = PhCreateStringEx(stringSecurityDescriptor, stringSecurityDescriptorLength * sizeof(WCHAR));
             LocalFree(stringSecurityDescriptor);
         }
+
+        PhAddItemList(context->Items, entry);
     }
 
     return TRUE;
@@ -1076,10 +1056,9 @@ BOOLEAN NTAPI EtEnumDirectoryObjectsCallback(
 }
 
 NTSTATUS EtEnumerateVolumeDirectoryObjects(
-    _In_opt_ PVOID Context
+    _In_ PREPARSE_WINDOW_CONTEXT Context
     )
 {
-    PREPARSE_WINDOW_CONTEXT context = Context;
     NTSTATUS status;
     HANDLE directoryHandle;
     OBJECT_ATTRIBUTES objectAttributes;
@@ -1102,11 +1081,6 @@ NTSTATUS EtEnumerateVolumeDirectoryObjects(
 
     if (NT_SUCCESS(status))
     {
-        if (context)
-        {
-            context->Count = 0;
-        }
-
         PhEnumDirectoryObjects(
             directoryHandle,
             EtEnumDirectoryObjectsCallback,
@@ -1116,6 +1090,11 @@ NTSTATUS EtEnumerateVolumeDirectoryObjects(
         NtClose(directoryHandle);
     }
 
+    if (NT_SUCCESS(status))
+        PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_MSG, 0, 0);
+    else
+        PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_ERROR, 0, status);
+
     return status;
 }
 
@@ -1123,21 +1102,37 @@ VOID EtFreeReparseListViewEntries(
     _In_ PREPARSE_WINDOW_CONTEXT Context
     )
 {
-    INT index = INT_ERROR;
+    //INT index = INT_ERROR;
+    //
+    //while ((index = PhFindListViewItemByFlags(
+    //    Context->ListViewHandle,
+    //    index,
+    //    LVNI_ALL
+    //    )) != INT_ERROR)
+    //{
+    //    PREPARSE_LISTVIEW_ENTRY param;
+    //
+    //    if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
+    //    {
+    //        PhClearReference(&param->RootDirectory);
+    //        PhFree(param);
+    //    }
+    //}
 
-    while ((index = PhFindListViewItemByFlags(
-        Context->ListViewHandle,
-        index,
-        LVNI_ALL
-        )) != INT_ERROR)
+    if (Context->Items)
     {
-        PREPARSE_LISTVIEW_ENTRY param;
-
-        if (PhGetListViewItemParam(Context->ListViewHandle, index, &param))
+        for (ULONG i = 0; i < Context->Items->Count; i++)
         {
-            PhClearReference(&param->RootDirectory);
-            PhFree(param);
+            PREPARSE_LISTVIEW_ENTRY entry = Context->Items->Items[i];
+
+            if (entry->RootDirectory)
+                PhDereferenceObject(entry->RootDirectory);
+
+            PhFree(entry);
         }
+
+        PhDereferenceObject(Context->Items);
+        Context->Items = NULL;
     }
 }
 
@@ -1277,9 +1272,9 @@ INT_PTR CALLBACK EtReparseDlgProc(
     {
     case WM_INITDIALOG:
         {
-            NTSTATUS status;
-
+            context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_REPARSE_LIST);
+            context->Items = PhCreateList(100);
 
             switch (context->MenuItemIndex)
             {
@@ -1338,12 +1333,8 @@ INT_PTR CALLBACK EtReparseDlgProc(
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
-            status = EtEnumerateVolumeDirectoryObjects(context);
-
-            if (!NT_SUCCESS(status))
-            {
-                PhShowStatus(NULL, L"Unable to enumerate the objects.", status, 0);
-            }
+            EnableWindow(GetDlgItem(hwndDlg, IDRETRY), FALSE);
+            PhCreateThread2(EtEnumerateVolumeDirectoryObjects, context);
         }
         break;
     case WM_SIZE:
@@ -1375,6 +1366,100 @@ INT_PTR CALLBACK EtReparseDlgProc(
             PhFree(context);
         }
         break;
+    case ET_REPARSE_UPDATE_MSG:
+        {
+            WCHAR number[PH_PTR_STR_LEN_1];
+            INT index;
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+
+            switch (context->MenuItemIndex)
+            {
+            case ID_REPARSE_POINTS:
+                {
+                    if (context->Items)
+                    {
+                        for (ULONG i = 0; i < context->Items->Count; i++)
+                        {
+                            PREPARSE_LISTVIEW_ENTRY entry = context->Items->Items[i];
+
+                            PhPrintUInt32(number, ++context->Count);
+                            index = PhAddListViewItem(context->ListViewHandle, MAXINT, number, entry);
+                            PhSetListViewSubItem(context->ListViewHandle, index, 1, PhaFormatString(L"%I64u (0x%I64x)", entry->FileReference, entry->FileReference)->Buffer);
+                            PhSetListViewSubItem(context->ListViewHandle, index, 2, EtReparseTagToString(entry->Tag));
+                            PhSetListViewSubItem(context->ListViewHandle, index, 3, PhGetStringOrEmpty(entry->BestObjectName));
+                        }
+                    }
+                }
+                break;
+            case ID_REPARSE_OBJID:
+                {
+                    if (context->Items)
+                    {
+                        for (ULONG i = 0; i < context->Items->Count; i++)
+                        {
+                            PREPARSE_LISTVIEW_ENTRY entry = context->Items->Items[i];
+
+                            PhPrintUInt32(number, ++context->Count);
+                            index = PhAddListViewItem(context->ListViewHandle, MAXINT, number, entry);
+                            PhSetListViewSubItem(context->ListViewHandle, index, 1, PhaFormatString(L"%I64u (0x%I64x)", entry->FileReference, entry->FileReference)->Buffer);
+
+                            {
+                                PPH_STRING string;
+                                PGUID guid = (PGUID)entry->ObjectId;
+
+                                // The swap returns the same value as 'fsutil objectid query filepath' (dmex)
+                                PhReverseGuid(guid);
+
+                                string = PhFormatGuid(guid);
+                                PhSetListViewSubItem(context->ListViewHandle, index, 2, PhGetStringOrEmpty(string));
+                                PhDereferenceObject(string);
+                            }
+
+                            PhSetListViewSubItem(context->ListViewHandle, index, 3, PhGetStringOrEmpty(entry->BestObjectName));
+                        }
+                    }
+                }
+                break;
+            case ID_REPARSE_SDDL:
+                {
+                    if (context->Items)
+                    {
+                        for (ULONG i = 0; i < context->Items->Count; i++)
+                        {
+                            PREPARSE_LISTVIEW_ENTRY entry = context->Items->Items[i];
+
+                            PhPrintUInt32(number, ++context->Count);
+                            index = PhAddListViewItem(context->ListViewHandle, MAXINT, number, entry);
+                            PhSetListViewSubItem(context->ListViewHandle, index, 1, PhGetStringOrEmpty(entry->VolumeName));
+                            PhSetListViewSubItem(context->ListViewHandle, index, 2, PhaFormatUInt64(entry->SecurityId, FALSE)->Buffer);
+                            PhSetListViewSubItem(context->ListViewHandle, index, 3, PhaFormatUInt64(entry->Hash, FALSE)->Buffer);
+                            PhSetListViewSubItem(context->ListViewHandle, index, 4, PhaFormatUInt64(entry->Length, FALSE)->Buffer);
+                            PhSetListViewSubItem(context->ListViewHandle, index, 5, PhGetStringOrEmpty(entry->SidFullName));
+                            PhSetListViewSubItem(context->ListViewHandle, index, 6, PhGetStringOrEmpty(entry->SDDLString));
+                        }
+                    }
+                }
+                break;
+            }
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+
+            EnableWindow(GetDlgItem(hwndDlg, IDRETRY), TRUE);
+        }
+        break;
+    case ET_REPARSE_UPDATE_ERROR:
+        {
+            NTSTATUS status = (NTSTATUS)lParam;
+
+            if (!NT_SUCCESS(status))
+            {
+                PhShowStatus(hwndDlg, L"Unable to enumerate the objects.", status, 0);
+            }
+
+            EnableWindow(GetDlgItem(hwndDlg, IDRETRY), TRUE);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -1384,18 +1469,15 @@ INT_PTR CALLBACK EtReparseDlgProc(
                 break;
             case IDRETRY:
                 {
-                    NTSTATUS status;
-
                     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
                     EtFreeReparseListViewEntries(context);
                     ListView_DeleteAllItems(context->ListViewHandle);
-                    status = EtEnumerateVolumeDirectoryObjects(context);
+                    context->Count = 0;
+                    context->Items = PhCreateList(100);
                     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-                    if (!NT_SUCCESS(status))
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to enumerate the objects.", status, 0);
-                    }
+                    EnableWindow(GetDlgItem(hwndDlg, IDRETRY), FALSE);
+                    PhCreateThread2(EtEnumerateVolumeDirectoryObjects, context);
                 }
                 break;
             }
