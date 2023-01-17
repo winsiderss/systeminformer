@@ -1375,6 +1375,96 @@ PhLoadImageFromFile(
     _In_ UINT Height
     );
 
+// Acrylic support
+
+// https://gist.github.com/ysc3839/b08d2bff1c7dacde529bed1d37e85ccf
+typedef enum _WINDOWCOMPOSITIONATTRIBUTE
+{
+    WCA_UNDEFINED = 0,
+    WCA_NCRENDERING_ENABLED = 1,
+    WCA_NCRENDERING_POLICY = 2,
+    WCA_TRANSITIONS_FORCEDISABLED = 3,
+    WCA_ALLOW_NCPAINT = 4,
+    WCA_CAPTION_BUTTON_BOUNDS = 5,
+    WCA_NONCLIENT_RTL_LAYOUT = 6,
+    WCA_FORCE_ICONIC_REPRESENTATION = 7,
+    WCA_EXTENDED_FRAME_BOUNDS = 8,
+    WCA_HAS_ICONIC_BITMAP = 9,
+    WCA_THEME_ATTRIBUTES = 10,
+    WCA_NCRENDERING_EXILED = 11,
+    WCA_NCADORNMENTINFO = 12,
+    WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
+    WCA_VIDEO_OVERLAY_ACTIVE = 14,
+    WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
+    WCA_DISALLOW_PEEK = 16,
+    WCA_CLOAK = 17,
+    WCA_CLOAKED = 18,
+    WCA_ACCENT_POLICY = 19,
+    WCA_FREEZE_REPRESENTATION = 20,
+    WCA_EVER_UNCLOAKED = 21,
+    WCA_VISUAL_OWNER = 22,
+    WCA_HOLOGRAPHIC = 23,
+    WCA_EXCLUDED_FROM_DDA = 24,
+    WCA_PASSIVEUPDATEMODE = 25,
+    WCA_USEDARKMODECOLORS = 26,
+    WCA_CORNER_STYLE = 27,
+    WCA_PART_COLOR = 28,
+    WCA_DISABLE_MOVESIZE_FEEDBACK = 29,
+    WCA_LAST
+} WINDOWCOMPOSITIONATTRIBUTE;
+
+typedef struct _WINDOWCOMPOSITIONATTRIBUTEDATA
+{
+    WINDOWCOMPOSITIONATTRIBUTE Attribute;
+    PVOID Data;
+    SIZE_T Length;
+} WINDOWCOMPOSITIONATTRIBUTEDATA, *PWINDOWCOMPOSITIONATTRIBUTEDATA;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetWindowCompositionAttribute(
+    _In_ HWND WindowHandle,
+    _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+    );
+
+// TODO: https://stackoverflow.com/questions/12304848/fast-algorithm-to-invert-an-argb-color-value-to-abgr/42133405#42133405
+FORCEINLINE ULONG MakeARGB(
+    _In_ BYTE a, 
+    _In_ BYTE r,
+    _In_ BYTE g,
+    _In_ BYTE b)
+{
+    return (((ULONG)(b) << 0) | ((ULONG)(g) << 8) | ((ULONG)(r) << 16) | ((ULONG)(a) << 24));
+}
+
+FORCEINLINE ULONG MakeABGR(
+    _In_ BYTE a, 
+    _In_ BYTE b, 
+    _In_ BYTE g,
+    _In_ BYTE r)
+{
+    return (((ULONG)(a) << 24) | ((ULONG)(b) << 16) | ((ULONG)(g) << 8) | ((ULONG)(r) << 0));
+}
+
+FORCEINLINE ULONG MakeARGBFromCOLORREF(_In_ BYTE Alpha, _In_ COLORREF rgb)
+{
+    return MakeARGB(Alpha, GetRValue(rgb), GetGValue(rgb), GetBValue(rgb));
+}
+
+FORCEINLINE ULONG MakeABGRFromCOLORREF(_In_ BYTE Alpha, _In_ COLORREF rgb)
+{
+    return MakeABGR(Alpha, GetBValue(rgb), GetGValue(rgb), GetRValue(rgb));
+}
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetWindowAcrylicCompositionColor(
+    _In_ HWND WindowHandle,
+    _In_ ULONG GradientColor
+    );
+
 // theme support (theme.c)
 
 PHLIBAPI extern HFONT PhApplicationFont; // phapppub
