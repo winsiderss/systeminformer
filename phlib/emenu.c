@@ -456,7 +456,7 @@ HMENU PhEMenuToHMenu(
         menuInfo.fMask = MIM_STYLE;
         menuInfo.dwStyle = MNS_CHECKORBMP;
 
-        if (WindowsVersion < WINDOWS_10_19H2 && PhGetIntegerSetting(L"EnableThemeSupport"))
+        if ((WindowsVersion < WINDOWS_10_19H2 || PhGetIntegerSetting(L"EnableThemeAcrylicSupport")) && PhGetIntegerSetting(L"EnableThemeSupport"))
         {
             menuInfo.fMask |= MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
             menuInfo.hbrBack = PhThemeWindowBackgroundBrush;

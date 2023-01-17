@@ -88,7 +88,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
     _In_ LPARAM lParam
     );
 LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
@@ -213,6 +213,7 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
 ULONG PhpThemeColorMode = 0;
 BOOLEAN PhpThemeEnable = FALSE;
 BOOLEAN PhpThemeBorderEnable = TRUE;
+//ULONG PhTaskDialogThemeHookIndex = 0;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhThemeWindowBackgroundColor = RGB(43, 43, 43);
@@ -229,6 +230,8 @@ VOID PhInitializeWindowTheme(
     PhpThemeColorMode = 1;// PhGetIntegerSetting(L"GraphColorMode");
     PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
+    //if (PhTaskDialogThemeHookIndex == 0)
+    //    PhTaskDialogThemeHookIndex = TlsAlloc();
 
     if (EnableThemeSupport && WindowsVersion >= WINDOWS_10_RS5)
     {
@@ -394,6 +397,29 @@ VOID PhReInitializeWindowTheme(
     } while (currentWindow);
 
     InvalidateRect(WindowHandle, NULL, FALSE);
+}
+
+VOID PhInitializeTaskDialogTheme(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN EnableThemeSupport
+    )
+{
+    if (EnableThemeSupport)
+    {
+        PhInitializeWindowTheme(WindowHandle, EnableThemeSupport);
+    }
+
+    //if (PhTaskDialogThemeHookIndex)
+    //{
+    //    if (EnableThemeSupport)
+    //    {
+    //        TlsSetValue(PhTaskDialogThemeHookIndex, UlongToPtr(1));
+    //    }
+    //    else
+    //    {
+    //        TlsSetValue(PhTaskDialogThemeHookIndex, UlongToPtr(0));
+    //    }
+    //}
 }
 
 HRESULT PhSetWindowThemeAttribute(
@@ -774,8 +800,11 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
         }
-    
-        //PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+
+        //if (PhTaskDialogThemeHookIndex && TlsGetValue(PhTaskDialogThemeHookIndex))
+        //{
+        //    PhInitializeThemeWindowButton(WindowHandle);
+        //}
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
     {
@@ -1092,19 +1121,19 @@ BOOLEAN PhThemeWindowDrawItem(
             RECT rect = DrawInfo->rcItem;
             LONG dpiValue = PhGetWindowDpi(WindowHandle);
             ULONG drawTextFlags = DT_SINGLELINE | DT_NOCLIP;
-            HFONT fontHandle;
-            HFONT oldFont = NULL;
+            //HFONT fontHandle;
+            //HFONT oldFont = NULL;
 
             if (DrawInfo->itemState & ODS_NOACCEL)
             {
                 drawTextFlags |= DT_HIDEPREFIX;
             }
 
-            if (fontHandle = PhCreateMessageFont(dpiValue))
-            {
-                oldFont = SelectFont(DrawInfo->hDC, fontHandle);
-            }
-
+            //if (fontHandle = PhCreateMessageFont(dpiValue))
+            //{
+            //    oldFont = SelectFont(DrawInfo->hDC, fontHandle);
+            //}
+            //
             //FillRect(
             //    DrawInfo->hDC,
             //    &DrawInfo->rcItem,
@@ -1308,10 +1337,10 @@ BOOLEAN PhThemeWindowDrawItem(
                     );
             }
 
-            if (oldFont)
-            {
-                SelectFont(DrawInfo->hDC, oldFont);
-            }
+            //if (oldFont)
+            //{
+            //    SelectFont(DrawInfo->hDC, oldFont);
+            //}
 
             if (menuItemInfo->Items && menuItemInfo->Items->Count && (menuItemInfo->Flags & PH_EMENU_MAINMENU) != PH_EMENU_MAINMENU)
             {
@@ -1336,10 +1365,10 @@ BOOLEAN PhThemeWindowDrawItem(
 
             ExcludeClipRect(DrawInfo->hDC, rect.left, rect.top, rect.right, rect.bottom); // exclude last
 
-            if (fontHandle)
-            {
-                DeleteFont(fontHandle);
-            }
+            //if (fontHandle)
+            //{
+            //    DeleteFont(fontHandle);
+            //}
 
             return TRUE;
         }
@@ -1388,7 +1417,7 @@ BOOLEAN PhThemeWindowMeasureItem(
         PPH_EMENU_ITEM menuItemInfo = (PPH_EMENU_ITEM)DrawInfo->itemData;
         LONG dpiValue = PhGetWindowDpi(WindowHandle);
 
-        DrawInfo->itemWidth = PhGetDpi(150, dpiValue);
+        DrawInfo->itemWidth = PhGetDpi(100, dpiValue);
         DrawInfo->itemHeight = PhGetDpi(100, dpiValue);
 
         if ((menuItemInfo->Flags & PH_EMENU_SEPARATOR) == PH_EMENU_SEPARATOR)
@@ -1397,27 +1426,27 @@ BOOLEAN PhThemeWindowMeasureItem(
         }
         else if (menuItemInfo->Text)
         {
-            HFONT fontHandle;
+            //HFONT fontHandle;
             HDC hdc;
 
-            fontHandle = PhCreateMessageFont(dpiValue);
+            //fontHandle = PhCreateMessageFont(dpiValue);
 
             if (hdc = GetDC(WindowHandle))
             {
                 PWSTR text;
                 SIZE_T textCount;
                 SIZE textSize;
-                HFONT oldFont = NULL;
+                //HFONT oldFont = NULL;
                 INT cyborder = PhGetSystemMetrics(SM_CYBORDER, dpiValue);
                 INT cymenu = PhGetSystemMetrics(SM_CYMENU, dpiValue);
 
                 text = menuItemInfo->Text;
                 textCount = PhCountStringZ(text);
 
-                if (fontHandle)
-                {
-                    oldFont = SelectFont(hdc, fontHandle);
-                }
+                //if (fontHandle)
+                //{
+                //    oldFont = SelectFont(hdc, fontHandle);
+                //}
 
                 if ((menuItemInfo->Flags & PH_EMENU_MAINMENU) == PH_EMENU_MAINMENU)
                 {
@@ -1436,18 +1465,18 @@ BOOLEAN PhThemeWindowMeasureItem(
                     }
                 }
 
-                if (oldFont)
-                {
-                    SelectFont(hdc, oldFont);
-                }
+                //if (oldFont)
+                //{
+                //    SelectFont(hdc, oldFont);
+                //}
 
                 ReleaseDC(WindowHandle, hdc);
             }
 
-            if (fontHandle)
-            {
-                DeleteFont(fontHandle);
-            }
+            //if (fontHandle)
+            //{
+            //    DeleteFont(fontHandle);
+            //}
         }
 
         return TRUE;
