@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -93,12 +93,12 @@ typedef struct _HANDLE_PROPERTIES_CONTEXT
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
     PH_LAYOUT_MANAGER LayoutManager;
-    ULONG ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
+    INT ListViewRowCache[PH_HANDLE_GENERAL_INDEX_MAXIMUM];
 } HANDLE_PROPERTIES_CONTEXT, *PHANDLE_PROPERTIES_CONTEXT;
 
 #define PH_FILEMODE_ASYNC 0x01000000
 #define PhFileModeUpdAsyncFlag(mode) \
-    (mode & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? mode &~ PH_FILEMODE_ASYNC: mode | PH_FILEMODE_ASYNC)
+    ((mode) & (FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT) ? (mode) &~ PH_FILEMODE_ASYNC: (mode) | PH_FILEMODE_ASYNC)
 
 PH_ACCESS_ENTRY FileModeAccessEntries[6] =
 {
