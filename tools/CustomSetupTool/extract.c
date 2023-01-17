@@ -12,147 +12,6 @@
 #include "setup.h"
 #include "..\thirdparty\miniz\miniz.h"
 
-BOOLEAN SetupOverwriteFile(
-    _In_ PPH_STRING FileName,
-    _In_ PVOID Buffer,
-    _In_ ULONG BufferLength 
-    )
-{
-    BOOLEAN result;
-    HANDLE fileHandle;
-    LARGE_INTEGER allocationSize;
-    IO_STATUS_BLOCK isb;
-
-    allocationSize.QuadPart = BufferLength;
-
-    if (!NT_SUCCESS(PhCreateFileWin32Ex(
-        &fileHandle,
-        PhGetString(FileName),
-        FILE_GENERIC_WRITE,
-        &allocationSize,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OVERWRITE_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-        NULL
-        )))
-    {
-        fileHandle = NULL;
-        result = FALSE;
-        goto CleanupExit;
-    }
-
-    if (!NT_SUCCESS(NtWriteFile(
-        fileHandle,
-        NULL,
-        NULL,
-        NULL,
-        &isb,
-        Buffer,
-        BufferLength,
-        NULL,
-        NULL
-        )))
-    {
-        result = FALSE;
-        goto CleanupExit;
-    }
-
-    if (isb.Information != BufferLength)
-    {
-        result = FALSE;
-        goto CleanupExit;
-    }
-
-    result = TRUE;
-
-CleanupExit:
-
-    if (fileHandle)
-        NtClose(fileHandle);
-
-    return result;
-}
-
-BOOLEAN SetupHashFile(
-    _In_ PPH_STRING FileName,
-    _Out_writes_all_(256 / 8) PBYTE Buffer
-    )
-{
-    BOOLEAN result;
-    NTSTATUS status;
-    HANDLE fileHandle;
-    IO_STATUS_BLOCK iosb;
-    PH_HASH_CONTEXT hashContext;
-    LARGE_INTEGER fileSize;
-    ULONG64 bytesRemaining;
-    BYTE buffer[PAGE_SIZE];
-
-    RtlZeroMemory(Buffer, 256 / 8);
-
-    status = PhCreateFileWin32Ex(
-        &fileHandle,
-        PhGetString(FileName),
-        FILE_GENERIC_READ,
-        NULL,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-        NULL
-        );
-    if (!NT_SUCCESS(status))
-    {
-        fileHandle = NULL;
-        result = FALSE;
-        goto CleanupExit;
-    }
-
-    status = PhGetFileSize(fileHandle, &fileSize);
-    if (!NT_SUCCESS(status))
-    {
-        result = FALSE;
-        goto CleanupExit;
-    }
-
-    bytesRemaining = fileSize.QuadPart;
-
-    PhInitializeHash(&hashContext, Sha256HashAlgorithm);
-
-    while (bytesRemaining)
-    {
-        status = NtReadFile(
-            fileHandle,
-            NULL,
-            NULL,
-            NULL,
-            &iosb,
-            buffer,
-            sizeof(buffer),
-            NULL,
-            NULL
-            );
-
-        if (!NT_SUCCESS(status))
-        {
-            result = FALSE;
-            goto CleanupExit;
-        }
-
-        PhUpdateHash(&hashContext, buffer, (ULONG)iosb.Information);
-        bytesRemaining -= (ULONG)iosb.Information;
-    }
-
-    result = PhFinalHash(&hashContext, Buffer, 256 / 8, NULL);
-
-CleanupExit:
-
-    if (fileHandle)
-        NtClose(fileHandle);
-
-    return result;
-}
-
 BOOLEAN SetupUpdateKsi(
     _Inout_ PPH_SETUP_CONTEXT Context,
     _In_ PPH_STRING FileName,
@@ -215,30 +74,25 @@ CleanupExit:
     return result;
 }
 
-typedef
-BOOL
-WINAPI
-IS_WOW64_PROCESS2(
-    _In_ HANDLE hProcess,
-    _Out_ USHORT* pProcessMachine,
-    _Out_opt_ USHORT* pNativeMachine
-    );
-typedef IS_WOW64_PROCESS2* PIS_WOW64_PROCESS2;
-
-USHORT GetNativeArchitecture(
+USHORT SetupGetCurrentArchitecture(
     VOID
     )
 {
+    static BOOL (WINAPI* IsWow64Process2_I)(
+        _In_ HANDLE ProcessHandle,
+        _Out_ PUSHORT ProcessMachine,
+        _Out_opt_ PUSHORT NativeMachine
+        ) = NULL;
     USHORT processMachine;
     USHORT nativeMachine;
     SYSTEM_INFO info;
-    PIS_WOW64_PROCESS2 isWow64Process2 = NULL;
-    HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
 
-    if (kernel32)
-        isWow64Process2 = (PIS_WOW64_PROCESS2)GetProcAddress(kernel32, "IsWow64Process2");
+    if (!IsWow64Process2_I)
+    {
+        IsWow64Process2_I = PhGetModuleProcAddress(L"kernel32.dll", "IsWow64Process2");
+    }
 
-    if (isWow64Process2 && isWow64Process2(NtCurrentProcess(), &processMachine, &nativeMachine))
+    if (IsWow64Process2_I && IsWow64Process2_I(NtCurrentProcess(), &processMachine, &nativeMachine))
     {
         switch (nativeMachine)
         {
@@ -248,8 +102,6 @@ USHORT GetNativeArchitecture(
             return PROCESSOR_ARCHITECTURE_AMD64;
         case IMAGE_FILE_MACHINE_ARM64:
             return PROCESSOR_ARCHITECTURE_ARM64;
-        default:
-            break;
         }
     }
 
@@ -265,11 +117,11 @@ BOOLEAN SetupExtractBuild(
     mz_bool status = MZ_FALSE;
     ULONG64 totalLength = 0;
     ULONG64 currentLength = 0;
-    mz_zip_archive zip_archive = { 0 };
+    mz_zip_archive zipFileArchive = { 0 };
     PPH_STRING extractPath = NULL;
     USHORT nativeArchitecture;
 
-    nativeArchitecture = GetNativeArchitecture();
+    nativeArchitecture = SetupGetCurrentArchitecture();
 
 #ifdef PH_BUILD_API
     ULONG resourceLength;
@@ -278,41 +130,25 @@ BOOLEAN SetupExtractBuild(
     if (!PhLoadResource(PhInstanceHandle, MAKEINTRESOURCE(IDR_BIN_DATA), RT_RCDATA, &resourceLength, &resourceBuffer))
         return FALSE;
 
-    if (!(status = mz_zip_reader_init_mem(&zip_archive, resourceBuffer, resourceLength, 0)))
+    if (!(status = mz_zip_reader_init_mem(&zipFileArchive, resourceBuffer, resourceLength, 0)))
     {
         Context->ErrorCode = ERROR_PATH_NOT_FOUND;
         goto CleanupExit;
     }
 #else
-    PPH_BYTES zipPathUtf8;
-
-    if (PhIsNullOrEmptyString(Context->FilePath))
+    if (!(status = mz_zip_reader_init_mem(&zipFileArchive, Context->ZipDownloadBuffer, Context->ZipDownloadBufferLength, 0)))
     {
         Context->ErrorCode = ERROR_PATH_NOT_FOUND;
         goto CleanupExit;
     }
-
-    zipPathUtf8 = PhConvertUtf16ToUtf8(PhGetString(Context->FilePath));
-
-    if (!(status = mz_zip_reader_init_file(&zip_archive, zipPathUtf8->Buffer, 0)))
-    {
-        Context->ErrorCode = ERROR_FILE_CORRUPT;
-        goto CleanupExit;
-    }
-
-    PhDereferenceObject(zipPathUtf8);
 #endif
 
-    // Remove outdated files
-    //for (ULONG i = 0; i < ARRAYSIZE(SetupRemoveFiles); i++)
-    //    SetupDeleteDirectoryFile(SetupRemoveFiles[i].FileName);
-
-    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zipFileArchive); i++)
     {
         mz_zip_archive_file_stat zipFileStat;
         PPH_STRING fileName;
 
-        if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
+        if (!mz_zip_reader_file_stat(&zipFileArchive, i, &zipFileStat))
             continue;
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
@@ -344,21 +180,19 @@ BOOLEAN SetupExtractBuild(
         totalLength += zipFileStat.m_uncomp_size;
     }
 
-    //SendMessage(Context->ExtractPageHandle, WM_START_SETUP, 0, 0);
-    //SendMessage(context->ProgressHandle, PBM_SETRANGE32, 0, (LPARAM)ExtractTotalLength);
     SendMessage(Context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
 
-    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip_archive); i++)
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zipFileArchive); i++)
     {
         PVOID buffer = NULL;
-        ULONG bufferLength = 0;
+        size_t zipFileBufferLength = 0;
         PPH_STRING fileName = NULL;
         PPH_STRING fullSetupPath = NULL;
         mz_ulong zipFileCrc32 = 0;
         ULONG indexOfFileName = ULONG_MAX;
         mz_zip_archive_file_stat zipFileStat;
 
-        if (!mz_zip_reader_file_stat(&zip_archive, i, &zipFileStat))
+        if (!mz_zip_reader_file_stat(&zipFileArchive, i, &zipFileStat))
             continue;
 
         fileName = PhConvertUtf8ToUtf16(zipFileStat.m_filename);
@@ -396,18 +230,13 @@ BOOLEAN SetupExtractBuild(
                 PhMoveReference(&fileName, PhSubstring(fileName, 5, (fileName->Length / sizeof(WCHAR)) - 5));
         }
 
-        if (!(buffer = mz_zip_reader_extract_to_heap(
-            &zip_archive,
-            zipFileStat.m_file_index,
-            &bufferLength,
-            0
-            )))
+        if (!(buffer = mz_zip_reader_extract_to_heap(&zipFileArchive, zipFileStat.m_file_index, &zipFileBufferLength, 0)))
         {
             Context->ErrorCode = ERROR_FILE_INVALID;
             goto CleanupExit;
         }
 
-        if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, bufferLength)) != zipFileStat.m_crc32)
+        if ((zipFileCrc32 = mz_crc32(zipFileCrc32, buffer, zipFileBufferLength)) != zipFileStat.m_crc32)
         {
             Context->ErrorCode = ERROR_CRC;
             goto CleanupExit;
@@ -425,7 +254,7 @@ BOOLEAN SetupExtractBuild(
 
             if (indexOfFileName == ULONG_MAX)
             {
-                Context->ErrorCode = ERROR_FILE_CORRUPT;
+                Context->ErrorCode = ERROR_FILENAME_EXCED_RANGE;
                 goto CleanupExit;
             }
 
@@ -462,20 +291,20 @@ BOOLEAN SetupExtractBuild(
         //    PhDereferenceObject(backupFilePath);
         //}
 
-        if (!SetupOverwriteFile(extractPath, buffer, bufferLength))
+        if (!SetupOverwriteFile(extractPath, buffer, zipFileBufferLength))
         {
             if (!PhEndsWithString2(extractPath, L"\\ksi.dll", FALSE) ||
-                !SetupUpdateKsi(Context, extractPath, buffer, bufferLength))
+                !SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength))
             {
-                Context->ErrorCode = ERROR_FILE_CORRUPT;
+                Context->ErrorCode = ERROR_PATH_BUSY;
                 goto CleanupExit;
             }
         }
 
-        currentLength += bufferLength;
+        currentLength += zipFileBufferLength;
 
         {
-            FLOAT percent = ((FLOAT)((double)currentLength / (double)totalLength) * 100);
+            ULONG64 percent = 100 * currentLength / totalLength;
             PH_FORMAT format[7];
             WCHAR string[MAX_PATH];
             PPH_STRING baseName = PhGetBaseName(extractPath);
@@ -493,24 +322,28 @@ BOOLEAN SetupExtractBuild(
             PhInitFormatS(&format[2], L" of ");
             PhInitFormatSize(&format[3], totalLength);
             PhInitFormatS(&format[4], L" (");
-            PhInitFormatF(&format[5], percent, 1);
+            PhInitFormatI64U(&format[5], percent);
             PhInitFormatS(&format[6], L"%)");
 
-            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), string, sizeof(string), NULL))
+            if (PhFormatToBuffer(format, ARRAYSIZE(format), string, sizeof(string), NULL))
             {
                 SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)string);
             }
 
-            SendMessage(Context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)percent, 0);
+            SendMessage(Context->DialogHandle, TDM_SET_PROGRESS_BAR_POS, (WPARAM)(INT)percent, 0);
 
             if (baseName)
                 PhDereferenceObject(baseName);
+
+#ifdef FORCE_TEST_UPDATE_LOCAL_INSTALL
+            PhDelayExecution(100);
+#endif
         }
 
         mz_free(buffer);
     }
 
-    mz_zip_reader_end(&zip_archive);
+    mz_zip_reader_end(&zipFileArchive);
 
     if (extractPath)
         PhDereferenceObject(extractPath);
@@ -519,7 +352,7 @@ BOOLEAN SetupExtractBuild(
 
 CleanupExit:
 
-    mz_zip_reader_end(&zip_archive);
+    mz_zip_reader_end(&zipFileArchive);
 
     if (extractPath)
         PhDereferenceObject(extractPath);
