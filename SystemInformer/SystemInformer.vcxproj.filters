@@ -318,6 +318,9 @@
     <ClCompile Include="ksisup.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="delayhook.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="ksyscall.c">
       <Filter>System Informer</Filter>
     </ClCompile>

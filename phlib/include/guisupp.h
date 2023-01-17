@@ -67,7 +67,7 @@ typedef HRESULT (WINAPI *_DrawThemeText)(
 
 typedef HRESULT (WINAPI* _GetThemeClass)(
     _In_ HTHEME ThemeHandle,
-    _Out_writes_z_(*BufferLength) PWSTR Buffer,
+    _Out_writes_(BufferLength) PWSTR Buffer,
     _In_ ULONG BufferLength
     );
 

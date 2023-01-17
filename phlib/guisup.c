@@ -99,10 +99,14 @@ VOID PhGuiSupportInitialization(
         SetWindowTheme_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "SetWindowTheme", 0);
         IsThemeActive_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemeActive", 0);
         IsThemePartDefined_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "IsThemePartDefined", 0);
-        GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeClass", 0);
         GetThemeInt_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemeInt", 0);
         GetThemePartSize_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "GetThemePartSize", 0);
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(uxthemeHandle, "DrawThemeBackground", 0);
+
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            GetThemeClass_I = PhGetDllBaseProcedureAddress(uxthemeHandle, NULL, 74);
+        }
     }
 
     PhGuiSupportUpdateSystemMetrics(NULL);
@@ -220,7 +224,7 @@ BOOLEAN PhIsThemePartDefined(
 
 BOOLEAN PhGetThemeClass(
     _In_ HTHEME ThemeHandle,
-    _Out_writes_z_(*ClassLength) PWSTR Class,
+    _Out_writes_(ClassLength) PWSTR Class,
     _In_ ULONG ClassLength
     )
 {
@@ -3542,4 +3546,81 @@ CleanupExit:
     }
 
     return bitmapHandle;
+}
+
+typedef enum _ACCENT_STATE
+{
+    ACCENT_DISABLED,
+    ACCENT_ENABLE_GRADIENT = 1,
+    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+    ACCENT_ENABLE_BLURBEHIND = 3,
+    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+    ACCENT_ENABLE_HOSTBACKDROP = 5,
+    ACCENT_INVALID_STATE
+} ACCENT_STATE;
+
+typedef enum _ACCENT_FLAG
+{
+    ACCENT_NONE,
+    ACCENT_WINDOWS11_LUMINOSITY = 0x2,
+    ACCENT_BORDER_LEFT = 0x20,
+    ACCENT_BORDER_TOP = 0x40,
+    ACCENT_BORDER_RIGHT = 0x80,
+    ACCENT_BORDER_BOTTOM = 0x100,
+    ACCENT_BORDER_ALL = (ACCENT_BORDER_LEFT | ACCENT_BORDER_TOP | ACCENT_BORDER_RIGHT | ACCENT_BORDER_BOTTOM)
+} ACCENT_FLAG;
+
+typedef struct _ACCENT_POLICY
+{
+    ACCENT_STATE AccentState;
+    ULONG AccentFlags;
+    ULONG GradientColor;
+    ULONG AnimationId;
+} ACCENT_POLICY;
+
+BOOLEAN PhSetWindowCompositionAttribute(
+    _In_ HWND WindowHandle,
+    _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI* SetWindowCompositionAttribute_I)(
+        _In_ HWND WindowHandle,
+        _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        SetWindowCompositionAttribute_I = PhGetDllProcedureAddress(L"user32.dll", "SetWindowCompositionAttribute", 0);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (SetWindowCompositionAttribute_I)
+    {
+        return !!SetWindowCompositionAttribute_I(WindowHandle, AttributeData);
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhSetWindowAcrylicCompositionColor(
+    _In_ HWND WindowHandle, 
+    _In_ ULONG GradientColor
+    )
+{
+    ACCENT_POLICY policy = 
+    {
+        ACCENT_ENABLE_ACRYLICBLURBEHIND,
+        ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL,
+        GradientColor,
+        0
+    };
+    WINDOWCOMPOSITIONATTRIBUTEDATA attribute =
+    {
+        WCA_ACCENT_POLICY,
+        &policy,
+        sizeof(ACCENT_POLICY)
+    };
+
+    return PhSetWindowCompositionAttribute(WindowHandle, &attribute);
 }
