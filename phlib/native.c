@@ -430,7 +430,7 @@ NTSTATUS PhTerminateProcessAlternative(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "RtlExitUserProcess",
@@ -442,7 +442,7 @@ NTSTATUS PhTerminateProcessAlternative(
     if (!NT_SUCCESS(status))
         return status;
 #else
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\ntdll.dll",
         "RtlExitUserProcess",
@@ -1531,20 +1531,20 @@ NTSTATUS PhSetEnvironmentVariable(
     )
 {
     NTSTATUS status;
-    UNICODE_STRING variableNameUs;
-    UNICODE_STRING variableValueUs;
+    UNICODE_STRING variableName;
+    UNICODE_STRING variableValue;
 
-    PhStringRefToUnicodeString(Name, &variableNameUs);
+    PhStringRefToUnicodeString(Name, &variableName);
 
     if (Value)
-        PhStringRefToUnicodeString(Value, &variableValueUs);
+        PhStringRefToUnicodeString(Value, &variableValue);
     else
-        RtlInitEmptyUnicodeString(&variableValueUs, NULL, 0);
+        RtlInitEmptyUnicodeString(&variableValue, NULL, 0);
 
     status = RtlSetEnvironmentVariable(
         Environment,
-        &variableNameUs,
-        &variableValueUs
+        &variableName,
+        &variableValue
         );
 
     return status;
@@ -1937,7 +1937,7 @@ NTSTATUS PhLoadDllProcess(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
         "LoadLibraryW",
@@ -1946,7 +1946,7 @@ NTSTATUS PhLoadDllProcess(
         NULL
         );
 #else
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\kernel32.dll",
         "LoadLibraryW",
@@ -2088,7 +2088,7 @@ NTSTATUS PhUnloadDllProcess(
     }
 
 #ifdef _WIN64
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "LdrUnloadDll",
@@ -2097,7 +2097,7 @@ NTSTATUS PhUnloadDllProcess(
         NULL
         );
 #else
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\ntdll.dll",
         "LdrUnloadDll",
@@ -2195,7 +2195,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "RtlExitUserThread",
@@ -2207,7 +2207,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
         "SetEnvironmentVariableW",
@@ -2219,7 +2219,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 #else
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\ntdll.dll",
         "RtlExitUserThread",
@@ -2231,7 +2231,7 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\kernel32.dll",
         "SetEnvironmentVariableW",
@@ -2957,23 +2957,23 @@ NTSTATUS PhGetTokenNamedObjectPath(
     )
 {
     NTSTATUS status;
-    UNICODE_STRING objectPathUs;
+    UNICODE_STRING objectPath;
 
     if (!RtlGetTokenNamedObjectPath_Import())
         return STATUS_NOT_SUPPORTED;
 
-    RtlInitEmptyUnicodeString(&objectPathUs, NULL, 0);
+    RtlInitEmptyUnicodeString(&objectPath, NULL, 0);
 
     status = RtlGetTokenNamedObjectPath_Import()(
         TokenHandle,
         Sid,
-        &objectPathUs
+        &objectPath
         );
 
     if (NT_SUCCESS(status))
     {
-        *ObjectPath = PhCreateStringFromUnicodeString(&objectPathUs);
-        RtlFreeUnicodeString(&objectPathUs);
+        *ObjectPath = PhCreateStringFromUnicodeString(&objectPath);
+        RtlFreeUnicodeString(&objectPath);
     }
 
     return status;
@@ -2987,24 +2987,24 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
     )
 {
     NTSTATUS status;
-    UNICODE_STRING objectPathUs;
+    UNICODE_STRING objectPath;
 
     if (!RtlGetAppContainerNamedObjectPath_Import())
         return STATUS_UNSUCCESSFUL;
 
-    RtlInitEmptyUnicodeString(&objectPathUs, NULL, 0);
+    RtlInitEmptyUnicodeString(&objectPath, NULL, 0);
 
     status = RtlGetAppContainerNamedObjectPath_Import()(
         TokenHandle,
         AppContainerSid,
         RelativePath,
-        &objectPathUs
+        &objectPath
         );
 
     if (NT_SUCCESS(status))
     {
-        *ObjectPath = PhCreateStringFromUnicodeString(&objectPathUs);
-        RtlFreeUnicodeString(&objectPathUs);
+        *ObjectPath = PhCreateStringFromUnicodeString(&objectPath);
+        RtlFreeUnicodeString(&objectPath);
     }
 
     return status;
@@ -5984,7 +5984,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
  * space of the process.
  * \param DllBase A variable which receives the base address of the DLL containing the procedure.
  */
-NTSTATUS PhGetProcedureAddressRemoteStringRef(
+NTSTATUS PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PSTR ProcedureName,
@@ -12063,7 +12063,7 @@ NTSTATUS PhGetProcessCodePage(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
         "NlsAnsiCodePage",
@@ -12075,7 +12075,7 @@ NTSTATUS PhGetProcessCodePage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 #else
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\ntdll.dll",
         "NlsAnsiCodePage",
@@ -12172,7 +12172,7 @@ NTSTATUS PhGetProcessConsoleCodePage(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
         ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
@@ -12184,7 +12184,7 @@ NTSTATUS PhGetProcessConsoleCodePage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 #else
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\kernel32.dll",
         ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
@@ -12288,7 +12288,7 @@ NTSTATUS PhGetProcessSystemDllInitBlock(
     PPS_SYSTEM_DLL_INIT_BLOCK ldrInitBlock;
     PVOID ldrInitBlockAddress;
 
-    status = PhGetProcedureAddressRemote(
+    status = PhGetProcedureAddressRemoteZ(
         ProcessHandle,
         L"\\SystemRoot\\System32\\ntdll.dll",
         "LdrSystemDllInitBlock",

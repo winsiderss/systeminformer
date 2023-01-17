@@ -285,7 +285,7 @@ EXPORTS
     PhGetNamedPipeClientProcessId
     PhGetNamedPipeServerProcessId
     PhGetProcedureAddress
-    PhGetProcedureAddressRemoteStringRef
+    PhGetProcedureAddressRemote
     PhGetProcessCommandLine
     PhGetProcessDepStatus
     PhGetProcessDeviceMap
