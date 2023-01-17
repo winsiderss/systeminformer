@@ -1574,6 +1574,45 @@ INT_PTR CALLBACK EtReparseDlgProc(
                             {
                             case 1:
                                 {
+                                    BOOLEAN delete = TRUE;
+
+                                    switch (context->MenuItemIndex)
+                                    {
+                                    case ID_REPARSE_POINTS:
+                                        {
+                                            if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                                                hwndDlg,
+                                                L"remove",
+                                                L"the repase point",
+                                                L"The repase point will be permanently deleted.",
+                                                FALSE
+                                                ))
+                                            {
+                                                delete = FALSE;
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    case ID_REPARSE_OBJID:
+                                        {
+                                            if (PhGetIntegerSetting(L"EnableWarnings") && !PhShowConfirmMessage(
+                                                hwndDlg,
+                                                L"remove",
+                                                L"the object identifier",
+                                                L"The object identifier will be permanently deleted.",
+                                                FALSE
+                                                ))
+                                            {
+                                                delete = FALSE;
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                    }
+
+                                    if (!delete)
+                                        break;
+
                                     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
 
                                     for (ULONG i = 0; i < numberOfItems; i++)
@@ -1587,51 +1626,33 @@ INT_PTR CALLBACK EtReparseDlgProc(
                                             {
                                             case ID_REPARSE_POINTS:
                                                 {
-                                                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-                                                        hwndDlg,
-                                                        L"remove",
-                                                        L"the repase point",
-                                                        L"The repase point will be permanently deleted.",
-                                                        FALSE
-                                                        ))
+                                                    NTSTATUS status;
+
+                                                    status = EtDeleteFileReparsePoint(entry);
+
+                                                    if (NT_SUCCESS(status))
                                                     {
-                                                        NTSTATUS status;
-
-                                                        status = EtDeleteFileReparsePoint(entry);
-
-                                                        if (NT_SUCCESS(status))
-                                                        {
-                                                            PhRemoveListViewItem(context->ListViewHandle, index);
-                                                        }
-                                                        else
-                                                        {
-                                                            PhShowStatus(hwndDlg, L"Unable to remove the reparse point.", status, 0);
-                                                        }
+                                                        PhRemoveListViewItem(context->ListViewHandle, index);
+                                                    }
+                                                    else
+                                                    {
+                                                        PhShowStatus(hwndDlg, L"Unable to remove the reparse point.", status, 0);
                                                     }
                                                 }
                                                 break;
                                             case ID_REPARSE_OBJID:
                                                 {
-                                                    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
-                                                        hwndDlg,
-                                                        L"remove",
-                                                        L"the object identifier",
-                                                        L"The object identifier will be permanently deleted.",
-                                                        FALSE
-                                                        ))
+                                                    NTSTATUS status;
+
+                                                    status = EtDeleteFileObjectId(entry);
+
+                                                    if (NT_SUCCESS(status))
                                                     {
-                                                        NTSTATUS status;
-
-                                                        status = EtDeleteFileObjectId(entry);
-
-                                                        if (NT_SUCCESS(status))
-                                                        {
-                                                            PhRemoveListViewItem(context->ListViewHandle, index);
-                                                        }
-                                                        else
-                                                        {
-                                                            PhShowStatus(hwndDlg, L"Unable to remove the object identifier.", status, 0);
-                                                        }
+                                                        PhRemoveListViewItem(context->ListViewHandle, index);
+                                                    }
+                                                    else
+                                                    {
+                                                        PhShowStatus(hwndDlg, L"Unable to remove the object identifier.", status, 0);
                                                     }
                                                 }
                                                 break;
