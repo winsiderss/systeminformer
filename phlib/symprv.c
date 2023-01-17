@@ -1788,7 +1788,7 @@ BOOLEAN PhWriteMiniDumpProcess(
 /**
  * Converts a STACKFRAME64 structure to a PH_THREAD_STACK_FRAME structure.
  *
- * \param StackFrame64 A pointer to the STACKFRAME64 structure to convert.
+ * \param StackFrame A pointer to the STACKFRAME64 structure to convert.
  * \param Flags Flags to set in the resulting structure.
  * \param ThreadStackFrame A pointer to the resulting PH_THREAD_STACK_FRAME structure.
  */
