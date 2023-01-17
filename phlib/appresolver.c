@@ -1182,6 +1182,7 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
     return status;
 }
 
+_Success_(return)
 BOOLEAN PhAppResolverGetPackageIcon(
     _In_ HANDLE ProcessId,
     _In_ PPH_STRING PackageFullName,
