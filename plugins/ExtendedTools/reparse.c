@@ -1198,6 +1198,64 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR hdr = (LPNMHDR)lParam;
+
+            switch (hdr->code)
+            {
+            case NM_RCLICK:
+                {
+                    if (hdr->hwndFrom == context->ListViewHandle)
+                    {
+                        POINT point;
+                        PPH_EMENU menu;
+                        ULONG numberOfItems;
+                        PVOID* listviewItems;
+                        PPH_EMENU_ITEM selectedItem;
+
+                        PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
+                        if (numberOfItems == 0)
+                            break;
+
+                        menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, USHRT_MAX, L"&Copy", NULL, NULL), ULONG_MAX);
+                        PhInsertCopyListViewEMenuItem(menu, USHRT_MAX, context->ListViewHandle);
+
+                        GetCursorPos(&point);
+                        selectedItem = PhShowEMenu(
+                            menu,
+                            hwndDlg,
+                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            point.x,
+                            point.y
+                            );
+
+                        if (selectedItem && selectedItem->Id != ULONG_MAX)
+                        {
+                            if (PhHandleCopyListViewEMenuItem(selectedItem))
+                                break;
+
+                            switch (selectedItem->Id)
+                            {
+                            case USHRT_MAX:
+                                {
+                                    PhCopyListView(context->ListViewHandle);
+                                }
+                                break;
+                            }
+                        }
+
+                        PhDestroyEMenu(menu);
+
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -1586,7 +1644,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                                                         PhDialogBox(
                                                             PluginInstance->DllBase,
                                                             MAKEINTRESOURCE(IDD_REPARSEDIALOG),
-                                                            NULL,
+                                                            hwndDlg,
                                                             EtFindSecurityIdsDlgProc,
                                                             fileNames
                                                             );
