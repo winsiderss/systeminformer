@@ -695,7 +695,7 @@ BOOLEAN NTAPI EtEnumVolumeReparseCallback(
 
         if (NT_SUCCESS(PhQueryObjectName(RootDirectory, &objectName)))
         {
-            PhMoveReference(&rootFileName, PhGetFileName(objectName));
+            PhMoveReference(&rootFileName, objectName);
         }
 
         entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
@@ -753,7 +753,7 @@ BOOLEAN NTAPI EtEnumVolumeObjectIdCallback(
 
         if (NT_SUCCESS(PhQueryObjectName(RootDirectory, &objectName)))
         {
-            PhMoveReference(&rootFileName, PhGetFileName(objectName));
+            PhMoveReference(&rootFileName, objectName);
         }
 
         entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
@@ -791,7 +791,7 @@ BOOLEAN NTAPI EtEnumVolumeSecurityDescriptorsCallback(
     entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
     entry->FileReference = SDEntry->SecurityId;
     entry->RootDirectory = rootFileName;
-    PhSetReference(&entry->VolumeName, volumeName);
+    entry->VolumeName = volumeName;
     entry->SecurityId = SDEntry->SecurityId;
     entry->Hash = SDEntry->Hash;
     entry->Length = SDEntry->Length;
