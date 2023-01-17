@@ -756,23 +756,23 @@ VOID PhInitializeCapabilitySidCache(
             BYTE capabilitySidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
             PSID capabilityGroupSid = (PSID)capabilityGroupSidBuffer;
             PSID capabilitySid = (PSID)capabilitySidBuffer;
-            UNICODE_STRING capabilityNameUs;
+            UNICODE_STRING capabilityName;
 
             if (PhEndsWithStringRef2(&namePart, L"\r", FALSE))
                 namePart.Length -= sizeof(WCHAR);
 
-            if (!PhStringRefToUnicodeString(&namePart, &capabilityNameUs))
+            if (!PhStringRefToUnicodeString(&namePart, &capabilityName))
                 continue;
 
             if (NT_SUCCESS(RtlDeriveCapabilitySidsFromName_Import()(
-                &capabilityNameUs,
+                &capabilityName,
                 capabilityGroupSid,
                 capabilitySid
                 )))
             {
                 PH_CAPABILITY_ENTRY entry;
 
-                entry.Name = PhCreateStringFromUnicodeString(&capabilityNameUs);
+                entry.Name = PhCreateStringFromUnicodeString(&capabilityName);
                 entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, RtlLengthSid(capabilityGroupSid));
                 entry.CapabilitySid = PhAllocateCopy(capabilitySid, RtlLengthSid(capabilitySid));
 

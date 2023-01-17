@@ -1082,7 +1082,7 @@ PhGetProcedureAddress(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhGetProcedureAddressRemoteStringRef(
+PhGetProcedureAddressRemote(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRINGREF FileName,
     _In_opt_ PSTR ProcedureName,
@@ -1094,7 +1094,7 @@ PhGetProcedureAddressRemoteStringRef(
 FORCEINLINE
 NTSTATUS
 NTAPI
-PhGetProcedureAddressRemote(
+PhGetProcedureAddressRemoteZ(
     _In_ HANDLE ProcessHandle,
     _In_ PWSTR FileName,
     _In_opt_ PSTR ProcedureName,
@@ -1107,7 +1107,7 @@ PhGetProcedureAddressRemote(
 
     PhInitializeStringRef(&fileName, FileName);
 
-    return PhGetProcedureAddressRemoteStringRef(
+    return PhGetProcedureAddressRemote(
         ProcessHandle,
         &fileName,
         ProcedureName,
