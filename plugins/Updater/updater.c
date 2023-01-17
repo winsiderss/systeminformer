@@ -237,41 +237,6 @@ PPH_STRING UpdateWindowsString(
     }
 
     return buildString;
-
-    //
-    // NOTE: Some security products have started randomizing the build string located in the registry
-    // breaking the version check that blocks updates that are not compatible with old and unsupported
-    // versions of Windows. (dmex)
-    //
-    //static PH_STRINGREF keyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion");
-    //HANDLE keyHandle;
-    //PPH_STRING buildLabHeader = NULL;
-    //
-    //if (NT_SUCCESS(PhOpenKey(
-    //    &keyHandle,
-    //    KEY_READ,
-    //    PH_KEY_LOCAL_MACHINE,
-    //    &keyName,
-    //    0
-    //    )))
-    //{
-    //    PPH_STRING buildLabString;
-    //
-    //    if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLabEx"))
-    //    {
-    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
-    //        PhDereferenceObject(buildLabString);
-    //    }
-    //    else if (buildLabString = PhQueryRegistryString(keyHandle, L"BuildLab"))
-    //    {
-    //        buildLabHeader = PhConcatStrings2(L"SystemInformer-OsBuild: ", buildLabString->Buffer);
-    //        PhDereferenceObject(buildLabString);
-    //    }
-    //
-    //    NtClose(keyHandle);
-    //}
-    //
-    //return buildLabHeader;
 }
 
 ULONG64 ParseVersionString(
@@ -553,23 +518,23 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
-static PPH_STRING UpdaterParseDownloadFileName(
+PPH_STRING UpdateParseDownloadFileName(
     _In_ PPH_STRING DownloadUrlPath
     )
 {
     PH_STRINGREF pathPart;
-    PH_STRINGREF baseNamePart;
-    PPH_STRING filePath;
+    PH_STRINGREF namePart;
     PPH_STRING downloadFileName;
+    PPH_STRING localfileName;
 
-    if (!PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, L'/', &pathPart, &baseNamePart))
+    if (!PhSplitStringRefAtLastChar(&DownloadUrlPath->sr, L'/', &pathPart, &namePart))
         return NULL;
 
-    downloadFileName = PhCreateString2(&baseNamePart);
-    filePath = PhCreateCacheFile(downloadFileName);
+    downloadFileName = PhCreateString2(&namePart);
+    localfileName = PhCreateCacheFile(downloadFileName);
     PhDereferenceObject(downloadFileName);
 
-    return filePath;
+    return localfileName;
 }
 
 NTSTATUS UpdateDownloadThread(
@@ -586,6 +551,7 @@ NTSTATUS UpdateDownloadThread(
     PPH_STRING downloadUrlPath = NULL;
     PUPDATER_HASH_CONTEXT hashContext = NULL;
     PUPDATER_HASH_CONTEXT hashContextLegacy = NULL;
+    ULONG contentLength = 0;
     USHORT httpPort = 0;
     LARGE_INTEGER timeNow;
     LARGE_INTEGER timeStart;
@@ -649,57 +615,47 @@ NTSTATUS UpdateDownloadThread(
         context->ErrorCode = GetLastError();
         goto CleanupExit;
     }
-    else
+
+    if (!PhHttpSocketQueryHeaderUlong(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &contentLength))
     {
+        context->ErrorCode = GetLastError();
+        goto CleanupExit;
+    }
+
+    {
+        LARGE_INTEGER allocationSize;
         ULONG bytesDownloaded = 0;
         ULONG downloadedBytes = 0;
-        ULONG contentLength = 0;
         PPH_STRING status;
         IO_STATUS_BLOCK isb;
         BYTE buffer[PAGE_SIZE];
 
         status = PhFormatString(L"Downloading release %s...", PhGetStringOrEmpty(context->Version));
-
         SendMessage(context->DialogHandle, TDM_SET_MARQUEE_PROGRESS_BAR, FALSE, 0);
         SendMessage(context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)status->Buffer);
         PhDereferenceObject(status);
 
-        if (!PhHttpSocketQueryHeaderUlong(
-            httpContext,
-            PH_HTTP_QUERY_CONTENT_LENGTH,
-            &contentLength
-            ))
-        {
-            context->ErrorCode = GetLastError();
+        // Create the local path string.
+        context->SetupFilePath = UpdateParseDownloadFileName(downloadUrlPath);
+        if (PhIsNullOrEmptyString(context->SetupFilePath))
             goto CleanupExit;
-        }
-        else
+
+        allocationSize.QuadPart = contentLength;
+
+        // Create the temporary output file.
+        if (!NT_SUCCESS(PhCreateFileWin32Ex(
+            &tempFileHandle,
+            PhGetString(context->SetupFilePath),
+            FILE_GENERIC_WRITE,
+            &allocationSize,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ,
+            FILE_OVERWRITE_IF,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL
+            )))
         {
-            LARGE_INTEGER allocationSize;
-
-            // Create the local path string.
-            context->SetupFilePath = UpdaterParseDownloadFileName(downloadUrlPath);
-
-            if (PhIsNullOrEmptyString(context->SetupFilePath))
-                goto CleanupExit;
-
-            allocationSize.QuadPart = contentLength;
-
-            // Create the temporary output file.
-            if (!NT_SUCCESS(PhCreateFileWin32Ex(
-                &tempFileHandle,
-                PhGetString(context->SetupFilePath),
-                FILE_GENERIC_WRITE,
-                &allocationSize,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_READ,
-                FILE_OVERWRITE_IF,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                NULL
-                )))
-            {
-                goto CleanupExit;
-            }
+            goto CleanupExit;
         }
 
         assert((context->Type == UpdaterTypeNightly) || (context->Type == UpdaterTypeRelease));
@@ -713,9 +669,15 @@ NTSTATUS UpdateDownloadThread(
         // Start the clock.
         PhQuerySystemTime(&timeStart);
 
-        // Download the data.
-        while (PhHttpSocketReadData(httpContext, buffer, PAGE_SIZE, &bytesDownloaded))
+        while (TRUE)
         {
+            // Download the data.
+            if (!PhHttpSocketReadData(httpContext, buffer, PAGE_SIZE, &bytesDownloaded))
+            {
+                context->ErrorCode = GetLastError();
+                goto CleanupExit;
+            }
+
             // If we get zero bytes, the file was uploaded or there was an error
             if (bytesDownloaded == 0)
                 break;
