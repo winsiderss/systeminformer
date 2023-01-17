@@ -16,10 +16,10 @@ NTSTATUS SetupUninstallBuild(
     )
 {
     // Stop the application.
-    if (!ShutdownApplication())
+    if (!SetupShutdownApplication(Context))
         goto CleanupExit;
 
-    // Stop the kernel driver(s).
+    // Stop the kernel driver.
     if (!SetupUninstallDriver(Context))
         goto CleanupExit;
 
@@ -149,7 +149,7 @@ HRESULT CALLBACK TaskDialogUninstallCallbackProc(
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
-            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), SetupUninstallBuild, context);
+            PhCreateThread2(SetupUninstallBuild, context);
         }
         break;
     }
@@ -260,7 +260,7 @@ VOID ShowUninstallPageDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
     config.hMainIcon = Context->IconLargeHandle;
     config.pButtons = buttonArray;
-    config.cButtons = RTL_NUMBER_OF(buttonArray);
+    config.cButtons = ARRAYSIZE(buttonArray);
     config.pfCallback = TaskDialogUninstallConfirmCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
 

@@ -15,19 +15,20 @@ NTSTATUS SetupUpdateBuild(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    // Stop System Informer.
-    if (!ShutdownApplication())
+    // Create the folder.
+    if (!NT_SUCCESS(PhCreateDirectoryWin32(Context->SetupInstallPath)))
     {
         Context->ErrorCode = ERROR_INVALID_DATA;
         goto CleanupExit;
     }
 
-    // Stop the kernel driver(s).
-    if (!SetupUninstallDriver(Context))
-    {
-        Context->ErrorCode = ERROR_INVALID_DATA;
+    // Stop the application.
+    if (!SetupShutdownApplication(Context))
         goto CleanupExit;
-    }
+
+    // Stop the kernel driver.
+    if (!SetupUninstallDriver(Context))
+        goto CleanupExit;
 
     // Upgrade the legacy settings file.
     SetupUpgradeSettingsFile();
@@ -35,13 +36,6 @@ NTSTATUS SetupUpdateBuild(
     // Remove the previous installation.
     //if (Context->SetupResetSettings)
     //    PhDeleteDirectory(Context->SetupInstallPath);
-
-    // Create the install folder path.
-    if (!NT_SUCCESS(PhCreateDirectoryWin32(Context->SetupInstallPath)))
-    {
-        Context->ErrorCode = ERROR_INVALID_DATA;
-        goto CleanupExit;
-    }
 
     // Create the uninstaller.
     if (!SetupCreateUninstallFile(Context))
@@ -59,7 +53,7 @@ NTSTATUS SetupUpdateBuild(
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();
 
-    // Setup new installation.
+    // Extract the updated files.
     if (!SetupExtractBuild(Context))
         goto CleanupExit;
 
@@ -89,7 +83,7 @@ HRESULT CALLBACK SetupUpdatingTaskDialogCallbackProc(
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
-            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), SetupUpdateBuild, context);
+            PhCreateThread2(SetupUpdateBuild, context);
         }
         break;
     }
@@ -216,7 +210,7 @@ VOID ShowUpdateErrorPageDialog(
     config.pfCallback = SetupErrorTaskDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)Context;
     config.pButtons = TaskDialogButtonArray;
-    config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
+    config.cButtons = ARRAYSIZE(TaskDialogButtonArray);
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Error updating to the latest version.";
