@@ -662,17 +662,9 @@ BOOLEAN NTAPI EtEnumVolumeReparseCallback(
 
     if (NT_SUCCESS(status))
     {
-        if (NT_SUCCESS(PhGetHandleInformation(
-            NtCurrentProcess(),
-            reparseHandle,
-            ULONG_MAX,
-            NULL,
-            NULL,
-            NULL,
-            &objectName
-            )))
+        if (NT_SUCCESS(PhQueryObjectName(reparseHandle, &objectName)))
         {
-            bestObjectName = objectName;
+            PhMoveReference(&bestObjectName, PhGetFileName(objectName));
         }
 
         //PREPARSE_DATA_BUFFER reparseBuffer;
@@ -701,19 +693,9 @@ BOOLEAN NTAPI EtEnumVolumeReparseCallback(
         PREPARSE_LISTVIEW_ENTRY entry;
         PPH_STRING rootFileName = NULL;
 
-        objectName = NULL;
-
-        if (NT_SUCCESS(PhGetHandleInformation(
-            NtCurrentProcess(),
-            RootDirectory,
-            ULONG_MAX,
-            NULL,
-            NULL,
-            &objectName,
-            NULL
-            )))
+        if (NT_SUCCESS(PhQueryObjectName(RootDirectory, &objectName)))
         {
-            rootFileName = objectName;
+            PhMoveReference(&rootFileName, PhGetFileName(objectName));
         }
 
         entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
@@ -756,17 +738,9 @@ BOOLEAN NTAPI EtEnumVolumeObjectIdCallback(
 
     if (NT_SUCCESS(status))
     {
-        if (NT_SUCCESS(PhGetHandleInformation(
-            NtCurrentProcess(),
-            reparseHandle,
-            ULONG_MAX,
-            NULL,
-            NULL,
-            NULL,
-            &objectName
-            )))
+        if (NT_SUCCESS(PhQueryObjectName(reparseHandle, &objectName)))
         {
-            bestObjectName = objectName;
+            PhMoveReference(&bestObjectName, PhGetFileName(objectName));
         }
 
         NtClose(reparseHandle);
@@ -777,17 +751,9 @@ BOOLEAN NTAPI EtEnumVolumeObjectIdCallback(
         PREPARSE_LISTVIEW_ENTRY entry;
         PPH_STRING rootFileName = NULL;
 
-        if (NT_SUCCESS(PhGetHandleInformation(
-            NtCurrentProcess(),
-            RootDirectory,
-            ULONG_MAX,
-            NULL,
-            NULL,
-            &objectName,
-            NULL
-            )))
+        if (NT_SUCCESS(PhQueryObjectName(RootDirectory, &objectName)))
         {
-            rootFileName = objectName;
+            PhMoveReference(&rootFileName, PhGetFileName(objectName));
         }
 
         entry = PhAllocateZero(sizeof(REPARSE_LISTVIEW_ENTRY));
@@ -816,15 +782,7 @@ BOOLEAN NTAPI EtEnumVolumeSecurityDescriptorsCallback(
     PPH_STRING rootFileName = NULL;
     PPH_STRING volumeName = NULL;
 
-    if (NT_SUCCESS(PhGetHandleInformation(
-        NtCurrentProcess(),
-        RootDirectory,
-        ULONG_MAX,
-        NULL,
-        NULL,
-        &objectName,
-        NULL
-        )))
+    if (NT_SUCCESS(PhQueryObjectName(RootDirectory, &objectName)))
     {
         rootFileName = objectName;
         volumeName = PhGetFileName(rootFileName);
