@@ -1127,7 +1127,14 @@ VOID EtFreeReparseListViewEntries(
 
             if (entry->RootDirectory)
                 PhDereferenceObject(entry->RootDirectory);
-
+            if (entry->BestObjectName)
+                PhDereferenceObject(entry->BestObjectName);
+            if (entry->VolumeName)
+                PhDereferenceObject(entry->VolumeName);
+            if (entry->SidFullName)
+                PhDereferenceObject(entry->SidFullName);
+            if (entry->SDDLString)
+                PhDereferenceObject(entry->SDDLString);
             PhFree(entry);
         }
 
