@@ -621,6 +621,7 @@ EXPORTS
     PhGetEtwPublisherName
     PhGetHandleInformation
     PhGetHandleInformationEx
+    PhQueryObjectName
     PhStdGetClientIdName
 
 ; lsasup

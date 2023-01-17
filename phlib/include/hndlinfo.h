@@ -19,6 +19,14 @@ PhSetHandleClientIdFunction(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryObjectName(
+    _In_ HANDLE Handle,
+    _Out_ PPH_STRING* ObjectName
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetEtwPublisherName(
