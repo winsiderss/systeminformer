@@ -11,7 +11,6 @@
 
 #include <phapp.h>
 #include <apiimport.h>
-#include <phsettings.h>
 
 #include <vsstyle.h>
 
@@ -42,7 +41,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
                     SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
-            if (PhEnableThemeSupport)
+            if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
                 HFONT fontHandle;
                 LONG windowDpi = PhGetWindowDpi(WindowHandle);
@@ -62,7 +61,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         break;
     case WM_DESTROY:
         {
-            if (PhEnableThemeSupport)
+            if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
                 HFONT fontHandle;
 
@@ -252,7 +251,7 @@ HRESULT PhDrawThemeBackgroundHook(
     _In_ LPCRECT ClipRect
     )
 {
-    if (WindowsVersion >= WINDOWS_11 && PhEnableThemeSupport && PhGetIntegerSetting(L"EnableThemeAcrylicSupport"))
+    if (WindowsVersion >= WINDOWS_11)
     {
         WCHAR className[MAX_PATH];
 
@@ -579,7 +578,7 @@ VOID PhRegisterDetoursHooks(
     if (!NT_SUCCESS(status = DetourTransactionBegin()))
         goto CleanupExit;
 
-    if (PhEnableThemeSupport || PhGetIntegerSetting(L"EnableThemeAcrylicSupport"))
+    if (PhGetIntegerSetting(L"EnableThemeSupport") || PhGetIntegerSetting(L"EnableThemeAcrylicSupport"))
     {
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDrawThemeBackground, (PVOID)PhDrawThemeBackgroundHook)))
             goto CleanupExit;
@@ -610,7 +609,7 @@ VOID PhInitializeSuperclassControls(
     VOID
     )
 {
-    if (PhEnableThemeSupport || PhGetIntegerSetting(L"EnableStreamerMode"))
+    if (PhGetIntegerSetting(L"EnableThemeSupport") || PhGetIntegerSetting(L"EnableStreamerMode"))
     {
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();
