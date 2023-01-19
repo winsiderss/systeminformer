@@ -191,6 +191,74 @@ NTSTATUS KphpFilterDeviceIoControl(
 }
 
 /**
+ * Rev from FilterLoad/FilterUnload (dmex)
+ *
+ * \param[in] ServiceName The service name from HKLM\\System\\CurrentControlSet\\Services\\<ServiceName>.
+ * \param[in] LoadDriver TRUE to load the kernel driver, FALSE to unload the kernel driver. 
+ * 
+ * \remarks The caller must have SE_LOAD_DRIVER_PRIVILEGE.
+ * \remarks This ioctl is a kernel wrapper around NtLoadDriver and NtUnloadDriver.
+ * 
+ * \return Successful or errant status.
+ */
+NTSTATUS KphFilterLoadUnload(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ BOOLEAN LoadDriver
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+    ULONG filterNameBufferLength;
+    PFILTER_LOADUNLOAD filterNameBuffer;
+
+    RtlInitUnicodeString(&objectName, L"\\FileSystem\\Filters\\FltMgr");
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE | (WindowsVersion < WINDOWS_10 ? 0 : OBJ_DONT_REPARSE),
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileHandle,
+        FILE_WRITE_DATA | SYNCHRONIZE,
+        &objectAttributes,
+        &ioStatusBlock,
+        FILE_SHARE_WRITE,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    filterNameBufferLength = UFIELD_OFFSET(FILTER_LOADUNLOAD, Name[ServiceName->Length]) + sizeof(UNICODE_NULL);
+    filterNameBuffer = PhAllocateZero(filterNameBufferLength);
+    filterNameBuffer->Length = (USHORT)ServiceName->Length;
+    RtlCopyMemory(filterNameBuffer->Name, ServiceName->Buffer, ServiceName->Length);
+
+    status = NtDeviceIoControlFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &ioStatusBlock,
+        LoadDriver ? FLT_CTL_LOAD : FLT_CTL_UNLOAD,
+        filterNameBuffer,
+        filterNameBufferLength,
+        NULL,
+        0
+        );
+
+    NtClose(fileHandle);
+
+    return status;
+}
+
+/**
  * \brief Wrapper which is essentially FilterSendMessage.
  *
  * \param[in] Port Filter port handle.
