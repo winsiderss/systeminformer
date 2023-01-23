@@ -22,6 +22,9 @@
 //#define KSI_DEBUG_DELAY_SPLASHSCREEN 1
 #endif
 
+BOOLEAN KsiEnableLoadNative = FALSE;
+BOOLEAN KsiEnableLoadFilter = FALSE;
+
 VOID PhShowKsiStatus(
     VOID
     )
@@ -256,7 +259,7 @@ PPH_STRING PhGetKsiServiceName(
 }
 
 NTSTATUS KsiInitializeCallbackThread(
-    _In_ PVOID CallbackContext
+    _In_opt_ PVOID CallbackContext
     )
 {
     static PH_STRINGREF driverExtension = PH_STRINGREF_INIT(L".sys");
@@ -297,6 +300,8 @@ NTSTATUS KsiInitializeCallbackThread(
         config.ObjectName = &objectName->sr;
         config.PortName = &portName->sr;
         config.Altitude = &altitudeName->sr;
+        config.EnableNativeLoad = KsiEnableLoadNative;
+        config.EnableFilterLoad = KsiEnableLoadFilter;
         config.DisableImageLoadProtection = disableImageLoadProtection;
         config.Callback = KsiCommsCallback;
         status = KphConnect(&config);
@@ -451,6 +456,9 @@ VOID PhInitializeKsi(
         return;
     }
 
+    KsiEnableLoadNative = !!PhGetIntegerSetting(L"KsiEnableLoadNative");
+    KsiEnableLoadFilter = !!PhGetIntegerSetting(L"KsiEnableLoadFilter");
+
     if (PhGetIntegerSetting(L"KsiEnableSplashScreen"))
         KsiShowInitializingSplashScreen();
     else
@@ -461,17 +469,19 @@ VOID PhDestroyKsi(
     VOID
     )
 {
+    NTSTATUS status;
     PPH_STRING ksiServiceName;
+    KPH_CONFIG_PARAMETERS config = { 0 };
 
     if (!KphCommsIsConnected())
         return;
+    if (!(ksiServiceName = PhGetKsiServiceName()))
+        return;
 
-    // KphCommsStop();
-
-    if (ksiServiceName = PhGetKsiServiceName())
-    {
-        KphServiceStop(&ksiServiceName->sr);
-    }
+    config.ServiceName = &ksiServiceName->sr;
+    config.EnableNativeLoad = KsiEnableLoadNative;
+    config.EnableFilterLoad = KsiEnableLoadFilter;
+    status = KphServiceStop(&config);
 }
 
 _Success_(return)
