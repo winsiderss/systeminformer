@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -184,7 +184,7 @@ NTSTATUS LoadDb(
     if (!topNode)
         return STATUS_FILE_CORRUPT_ERROR;
 
-    LockDb();
+    //LockDb();
 
     for (currentNode = PhGetXmlNodeFirstChild(topNode); currentNode; currentNode = PhGetXmlNodeNextChild(currentNode))
     {
@@ -312,9 +312,16 @@ NTSTATUS LoadDb(
         PhClearReference(&boost);
     }
 
-    UnlockDb();
+    //UnlockDb();
 
     PhFreeXmlObject(topNode);
+
+    // Check if we loaded any objects (dmex)
+    if (GetNumberOfDbObjects() == 0)
+    {
+        // Delete the empty DB to improve performance (dmex)
+        PhDeleteFileWin32(PhGetString(ObjectDbPath));
+    }
 
     return STATUS_SUCCESS;
 }
@@ -362,6 +369,14 @@ NTSTATUS SaveDb(
     PVOID topNode;
     ULONG enumerationKey = 0;
     PDB_OBJECT *object;
+
+    // Skip saving the DB when there's no objects (dmex)
+    if (GetNumberOfDbObjects() == 0)
+    {
+        // Delete the DB if the user removed all objects (dmex)
+        PhDeleteFileWin32(PhGetString(ObjectDbPath));    
+        return STATUS_SUCCESS;
+    }
 
     topNode = PhCreateXmlNode(NULL, "objects");
 
