@@ -6602,8 +6602,6 @@ PPH_STRING PhCreateCacheFile(
         HANDLE fileHandle;
         PPH_STRING applicationDirectory;
         PPH_STRING applicationFileName;
-        PH_STRINGREF randomAlphaStringRef;
-        WCHAR randomAlphaString[32] = L"";
 
         PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
         randomAlphaStringRef.Buffer = randomAlphaString;
@@ -6686,7 +6684,6 @@ VOID PhClearCacheDirectory(
     PPH_STRING fileName;
     PPH_STRING settingsFileName;
     PPH_STRING cacheDirectory;
-    WCHAR alphastring[16] = L"";
 
     fileName = PhGetApplicationFileName();
     settingsFileName = PhConcatStringRef2(&fileName->sr, &settingsSuffix);
