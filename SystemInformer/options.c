@@ -1039,55 +1039,55 @@ VOID PhpSetDefaultTaskManager(
     }
 }
 
-BOOLEAN PhpIsExploitProtectionEnabled(
-    VOID
-    )
-{
-    BOOLEAN enabled = FALSE;
-    HANDLE keyHandle;
-    PPH_STRING directory = NULL;
-    PPH_STRING fileName = NULL;
-    PPH_STRING keyName;
-
-    PhMoveReference(&directory, PhCreateString2(&TaskMgrImageOptionsKeyName));
-    PhMoveReference(&directory, PhGetBaseDirectory(directory));
-    PhMoveReference(&fileName, PhGetApplicationFileNameWin32());
-    PhMoveReference(&fileName, PhGetBaseName(fileName));
-    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
-
-    if (NT_SUCCESS(PhOpenKey(
-        &keyHandle,
-        KEY_READ,
-        PH_KEY_LOCAL_MACHINE,
-        &keyName->sr,
-        0
-        )))
-    {
-        PH_STRINGREF valueName;
-        PKEY_VALUE_PARTIAL_INFORMATION buffer;
-
-        enabled = !(PhQueryRegistryUlong64(keyHandle, L"MitigationOptions") == ULLONG_MAX);
-        PhInitializeStringRef(&valueName, L"MitigationOptions");
-
-        if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
-        {
-            if (buffer->Type == REG_BINARY && buffer->DataLength)
-            {
-                enabled = TRUE;
-            }
-
-            PhFree(buffer);
-        }
-
-        NtClose(keyHandle);
-    }
-
-    PhDereferenceObject(keyName);
-    PhDereferenceObject(fileName);
-    PhDereferenceObject(directory);
-
-    return enabled;
-}
+//BOOLEAN PhpIsExploitProtectionEnabled(
+//    VOID
+//    )
+//{
+//    BOOLEAN enabled = FALSE;
+//    HANDLE keyHandle;
+//    PPH_STRING directory = NULL;
+//    PPH_STRING fileName = NULL;
+//    PPH_STRING keyName;
+//
+//    PhMoveReference(&directory, PhCreateString2(&TaskMgrImageOptionsKeyName));
+//    PhMoveReference(&directory, PhGetBaseDirectory(directory));
+//    PhMoveReference(&fileName, PhGetApplicationFileNameWin32());
+//    PhMoveReference(&fileName, PhGetBaseName(fileName));
+//    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
+//
+//    if (NT_SUCCESS(PhOpenKey(
+//        &keyHandle,
+//        KEY_READ,
+//        PH_KEY_LOCAL_MACHINE,
+//        &keyName->sr,
+//        0
+//        )))
+//    {
+//        PH_STRINGREF valueName;
+//        PKEY_VALUE_PARTIAL_INFORMATION buffer;
+//
+//        enabled = !(PhQueryRegistryUlong64(keyHandle, L"MitigationOptions") == ULLONG_MAX);
+//        PhInitializeStringRef(&valueName, L"MitigationOptions");
+//
+//        if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+//        {
+//            if (buffer->Type == REG_BINARY && buffer->DataLength)
+//            {
+//                enabled = TRUE;
+//            }
+//
+//            PhFree(buffer);
+//        }
+//
+//        NtClose(keyHandle);
+//    }
+//
+//    PhDereferenceObject(keyName);
+//    PhDereferenceObject(fileName);
+//    PhDereferenceObject(directory);
+//
+//    return enabled;
+//}
 
 NTSTATUS PhpSetExploitProtectionEnabled(
     _In_ BOOLEAN Enabled)
@@ -1101,44 +1101,44 @@ NTSTATUS PhpSetExploitProtectionEnabled(
     PPH_STRING fileName;
     PPH_STRING keyName;
 
-    directory = PH_AUTO(PhCreateString2(&TaskMgrImageOptionsKeyName));
-    directory = PH_AUTO(PhGetBaseDirectory(directory));
-    fileName = PH_AUTO(PhGetApplicationFileNameWin32());
-    fileName = PH_AUTO(PhGetBaseName(fileName));
-    keyName = PH_AUTO(PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr));
+    directory = PhCreateString2(&TaskMgrImageOptionsKeyName);
+    PhMoveReference(&directory, PhGetBaseDirectory(directory));
+    fileName = PhGetApplicationFileNameWin32();
+    PhMoveReference(&fileName, PhGetBaseName(fileName));
+    keyName = PhConcatStringRef3(&directory->sr, &PhNtPathSeperatorString, &fileName->sr);
 
-    if (Enabled)
-    {
-        status = PhCreateKey(
-            &keyHandle,
-            KEY_WRITE,
-            PH_KEY_LOCAL_MACHINE,
-            &keyName->sr,
-            OBJ_OPENIF,
-            0,
-            NULL
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
-            {
-                PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
-                PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
-            }, sizeof(ULONG64));
-
-            NtClose(keyHandle);
-        }
-    }
-    else
+    //if (Enabled)
+    //{
+    //    status = PhCreateKey(
+    //        &keyHandle,
+    //        KEY_WRITE,
+    //        PH_KEY_LOCAL_MACHINE,
+    //        &keyName->sr,
+    //        OBJ_OPENIF,
+    //        0,
+    //        NULL
+    //        );
+    //
+    //    if (NT_SUCCESS(status))
+    //    {
+    //        status = PhSetValueKey(keyHandle, &valueName, REG_QWORD, &(ULONG64)
+    //        {
+    //            PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_FONT_DISABLE_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON |
+    //            PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_PREFER_SYSTEM32_ALWAYS_ON,
+    //        }, sizeof(ULONG64));
+    //
+    //        NtClose(keyHandle);
+    //    }
+    //}
+    //else
     {
         status = PhOpenKey(
             &keyHandle,
@@ -1165,7 +1165,7 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 
             if (PhSplitStringRefAtString(&keyName->sr, &replacementToken, TRUE, &stringBefore, &stringAfter))
             {
-                keyName = PH_AUTO(PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
+                PhMoveReference(&keyName, PhConcatStringRef3(&stringBefore, &wow6432Token, &stringAfter));
 
                 status = PhOpenKey(
                     &keyHandle,
@@ -1187,6 +1187,10 @@ NTSTATUS PhpSetExploitProtectionEnabled(
 
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
         status = STATUS_SUCCESS;
+
+    PhDereferenceObject(keyName);
+    PhDereferenceObject(fileName);
+    PhDereferenceObject(directory);
 
     return status;
 }
@@ -1374,7 +1378,6 @@ typedef enum _PHP_OPTIONS_INDEX
     PHP_OPTIONS_INDEX_START_HIDDEN,
     PHP_OPTIONS_INDEX_ENABLE_WARNINGS,
     PHP_OPTIONS_INDEX_ENABLE_DRIVER,
-    PHP_OPTIONS_INDEX_ENABLE_MITIGATION,
     PHP_OPTIONS_INDEX_ENABLE_MONOSPACE,
     PHP_OPTIONS_INDEX_ENABLE_PLUGINS,
     PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS,
@@ -1420,7 +1423,6 @@ static VOID PhpAdvancedPageLoad(
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"Start hidden", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"Enable warnings", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"Enable kernel-mode driver", NULL);
-    PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MITIGATION, L"Enable mitigation policy", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"Enable monospace fonts", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"Enable plugins", NULL);
     PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_UNDECORATE_SYMBOLS, L"Enable undecorated symbols", NULL);
@@ -1486,8 +1488,6 @@ static VOID PhpAdvancedPageLoad(
 
     if (CurrentUserRunPresent)
         ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON, TRUE);
-    if (PhpIsExploitProtectionEnabled())
-        ListView_SetCheckState(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MITIGATION, TRUE);
     if (PhGetIntegerSetting(L"EnableAdvancedOptions"))
         PhpOptionsShowHideTreeViewItem(FALSE);
 }
@@ -1936,22 +1936,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                             {
                                 switch (listView->iItem)
                                 {
-                                case PHP_OPTIONS_INDEX_ENABLE_MITIGATION:
-                                    {
-                                        if (!PhGetOwnTokenAttributes().Elevated)
-                                        {
-                                            PhShowInformation2(
-                                                PhOptionsWindowHandle,
-                                                L"Unable to change mitigation policy.",
-                                                L"%s",
-                                                L"You need to disable this option with administrative privileges."
-                                                );
-
-                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-                                            return TRUE;
-                                        }
-                                    }
-                                    break;
                                 case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
                                     {
                                         if (!PhGetOwnTokenAttributes().Elevated)
@@ -2052,35 +2036,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         }
                                     }
                                     break;
-                                case PHP_OPTIONS_INDEX_ENABLE_MITIGATION:
-                                    {
-                                        NTSTATUS status;
-
-                                        if (!PhGetOwnTokenAttributes().Elevated)
-                                        {
-                                            PhShowInformation2(
-                                                PhOptionsWindowHandle,
-                                                L"Unable to enable mitigation policy.",
-                                                L"%s",
-                                                L"You need to enable this option with administrative privileges."
-                                                );
-
-                                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
-                                            return TRUE;
-                                        }
-
-                                        status = PhpSetExploitProtectionEnabled(TRUE);
-
-                                        if (NT_SUCCESS(status))
-                                        {
-                                            RestartRequired = TRUE;
-                                        }
-                                        else
-                                        {
-                                            PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
-                                        }
-                                    }
-                                    break;
                                 case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
                                     {
                                         NTSTATUS status;
@@ -2135,8 +2090,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                     break;
                                 case PHP_OPTIONS_INDEX_ENABLE_START_ASADMIN:
                                     break;
-                                case PHP_OPTIONS_INDEX_ENABLE_MITIGATION:
-                                    break;
                                 case PHP_OPTIONS_INDEX_ENABLE_SILENT_CRASH_NOTIFY:
                                     break;
                                 }
@@ -2156,22 +2109,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                                         if (!!PhGetIntegerSetting(L"EnableStartAsAdmin"))
                                         {
                                             PhDeleteAdminTask(&SI_RUNAS_ADMIN_TASK_NAME);
-                                        }
-                                    }
-                                    break;
-                                case PHP_OPTIONS_INDEX_ENABLE_MITIGATION:
-                                    {
-                                        NTSTATUS status;
-
-                                        status = PhpSetExploitProtectionEnabled(FALSE);
-
-                                        if (NT_SUCCESS(status))
-                                        {
-                                            RestartRequired = TRUE;
-                                        }
-                                        else
-                                        {
-                                            PhShowStatus(hwndDlg, L"Unable to change mitigation policy.", status, 0);
                                         }
                                     }
                                     break;

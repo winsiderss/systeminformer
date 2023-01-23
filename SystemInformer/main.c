@@ -201,8 +201,6 @@ INT WINAPI wWinMain(
         PhLoadPlugins();
     }
 
-    PhInitializeMitigationSignaturePolicy();
-
     if (PhStartupParameters.PhSvc)
     {
         MSG message;
@@ -850,148 +848,193 @@ BOOLEAN PhInitializeMitigationPolicy(
     VOID
     )
 {
-#ifndef DEBUG
-    BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
-#define DEFAULT_MITIGATION_POLICY_FLAGS \
-    (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
-     PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
-     PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON | \
-     PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON | \
-     PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON | \
-     PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON | \
-     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
-     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
-    static PH_STRINGREF nompCommandlinePart = PH_STRINGREF_INIT(L" -nomp");
-    static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
-    BOOLEAN success = TRUE;
-    PH_STRINGREF commandlineSr;
-    PPH_STRING commandline = NULL;
-    ULONG64 options[2] = { 0 };
-    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
-    STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
+    // The kernel driver preforms the mitigiations and these policies are deprecated. (dmex)
+    extern NTSTATUS PhpSetExploitProtectionEnabled(_In_ BOOLEAN Enabled);
+    PROCESS_MITIGATION_POLICY_INFORMATION policy = { 0 };
+    NTSTATUS status;
 
-    if (WindowsVersion < WINDOWS_10_RS3)
-        return TRUE;
-    if (!PhpIsExploitProtectionEnabled())
-        return TRUE;
+    policy.Policy = ProcessDynamicCodePolicy;
 
-    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandlineSr)))
-        goto CleanupExit;
-    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != SIZE_MAX)
-        goto CleanupExit;
-    if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
-        goto CleanupExit;
-
-    commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
-
-    if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(NtCurrentProcess(), &LdrSystemDllInitBlock_I)))
-    {
-        if (RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
-        {
-            if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
-                goto CleanupExit;
-        }
-    }
-
-    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 2)))
-        goto CleanupExit;
-
-    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
-        startupInfo.lpAttributeList,
-        PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
-        &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS },
-        sizeof(ULONG64)
-        )))
-    {
-        goto CleanupExit;
-    }
-
-    {
-        PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoAttribute;
-
-        bnoAttribute.IsolationEnabled = TRUE;
-        wcsncpy_s(bnoAttribute.IsolationPrefix, RTL_NUMBER_OF(bnoAttribute.IsolationPrefix), L"SystemInformer", _TRUNCATE);
-
-        if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
-            startupInfo.lpAttributeList,
-            PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
-            &bnoAttribute,
-            sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE)
-            )))
-        {
-            goto CleanupExit;
-        }
-    }
-
-    if (NT_SUCCESS(PhCreateProcessWin32Ex(
-        NULL,
-        PhGetString(commandline),
-        NULL,
-        NULL,
-        &startupInfo.StartupInfo,
-        PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB,
-        NULL,
-        NULL,
-        NULL,
+    status = NtQueryInformationProcess(
+        NtCurrentProcess(),
+        ProcessMitigationPolicy,
+        &policy,
+        sizeof(policy),
         NULL
-        )))
+        );
+
+    if (NT_SUCCESS(status))
     {
-        success = FALSE;
+        if (policy.DynamicCodePolicy.ProhibitDynamicCode)
+        {
+            status = PhpSetExploitProtectionEnabled(FALSE);
+
+            if (NT_SUCCESS(status))
+            {
+                PhShellProcessHacker(
+                    NULL,
+                    NULL,
+                    SW_SHOW,
+                    0,
+                    PH_SHELL_APP_PROPAGATE_PARAMETERS,
+                    0,
+                    NULL
+                    );
+
+                PhExitApplication(STATUS_SUCCESS);
+            }
+        }
     }
 
-CleanupExit:
-
-    if (commandline)
-        PhDereferenceObject(commandline);
-
-    if (startupInfo.lpAttributeList)
-        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
-
-    return success;
-#else
-    return TRUE;
-#endif
-}
-
-BOOLEAN PhInitializeMitigationSignaturePolicy(
-    VOID
-    )
-{
-#ifndef DEBUG
-    BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
-    // Starting with Win10 20H1 processes with uiAccess=true override the ProcessExtensionPointDisablePolicy
-    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled
-    // the MicrosoftSignedOnly policy causing an infinite loop of APC messages and hook DLL loading/unloading
-    // inside user32!_ClientLoadLibrary while calling the GetMessageW API for the window message loop.
-    // ...
-    // 1) GetMessageW processes the APC message for loading the window hook DLL with user32!_ClientLoadLibrary.
-    // 2) user32!_ClientLoadLibrary calls LoadLibraryEx with the DLL path.
-    // 3) LoadLibraryEx returns an error loading the window hook DLL because we enabled MicrosoftSignedOnly.
-    // 4) SetWindowsHookEx ignores the result and re-queues the APC message from step 1.
-    // ...
-    // Mouse/keyboard/window messages passing through GetMessageW generate large volumes of calls to LoadLibraryEx
-    // making the application unresponsive as each message processes the APC message and loads/unloads the hook DLL...
-    // So don't use MicrosoftSignedOnly on versions of Windows where Process Hacker becomes unresponsive
-    // because a third party application called SetWindowsHookEx on the machine. (dmex)
-    if (
-        WindowsVersion >= WINDOWS_10 &&
-        PhpIsExploitProtectionEnabled()
-        //WindowsVersion != WINDOWS_10_20H1 &&
-        //WindowsVersion != WINDOWS_10_20H2
-        )
+    if (!NT_SUCCESS(status))
     {
-        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
-
-        policyInfo.Policy = ProcessSignaturePolicy;
-        policyInfo.SignaturePolicy.Flags = 0;
-        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
-
-        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+        PhShowStatus(NULL, L"Unable to deprecate mitigation policy", status, 0);
     }
-#endif
 
     return TRUE;
+
+//#ifndef DEBUG
+//    BOOLEAN PhpIsExploitProtectionEnabled(VOID);
+//#define DEFAULT_MITIGATION_POLICY_FLAGS \
+//    (PROCESS_CREATION_MITIGATION_POLICY_HEAP_TERMINATE_ALWAYS_ON | \
+//     PROCESS_CREATION_MITIGATION_POLICY_BOTTOM_UP_ASLR_ALWAYS_ON | \
+//     PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON | \
+//     PROCESS_CREATION_MITIGATION_POLICY_EXTENSION_POINT_DISABLE_ALWAYS_ON | \
+//     PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON | \
+//     PROCESS_CREATION_MITIGATION_POLICY_CONTROL_FLOW_GUARD_ALWAYS_ON | \
+//     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_REMOTE_ALWAYS_ON | \
+//     PROCESS_CREATION_MITIGATION_POLICY_IMAGE_LOAD_NO_LOW_LABEL_ALWAYS_ON)
+//    static PH_STRINGREF nompCommandlinePart = PH_STRINGREF_INIT(L" -nomp");
+//    static PH_STRINGREF rasCommandlinePart = PH_STRINGREF_INIT(L" -ras");
+//    BOOLEAN success = TRUE;
+//    PH_STRINGREF commandlineSr;
+//    PPH_STRING commandline = NULL;
+//    ULONG64 options[2] = { 0 };
+//    PS_SYSTEM_DLL_INIT_BLOCK (*LdrSystemDllInitBlock_I) = NULL;
+//    STARTUPINFOEX startupInfo = { sizeof(STARTUPINFOEX) };
+//
+//    if (WindowsVersion < WINDOWS_10_RS3)
+//        return TRUE;
+//    if (!PhpIsExploitProtectionEnabled())
+//        return TRUE;
+//
+//    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandlineSr)))
+//        goto CleanupExit;
+//    if (PhFindStringInStringRef(&commandlineSr, &rasCommandlinePart, FALSE) != SIZE_MAX)
+//        goto CleanupExit;
+//    if (PhEndsWithStringRef(&commandlineSr, &nompCommandlinePart, FALSE))
+//        goto CleanupExit;
+//
+//    commandline = PhConcatStringRef2(&commandlineSr, &nompCommandlinePart);
+//
+//    if (NT_SUCCESS(PhGetProcessSystemDllInitBlock(NtCurrentProcess(), &LdrSystemDllInitBlock_I)))
+//    {
+//        if (RTL_CONTAINS_FIELD(LdrSystemDllInitBlock_I, LdrSystemDllInitBlock_I->Size, MitigationOptionsMap))
+//        {
+//            if ((LdrSystemDllInitBlock_I->MitigationOptionsMap.Map[0] & DEFAULT_MITIGATION_POLICY_FLAGS) == DEFAULT_MITIGATION_POLICY_FLAGS)
+//                goto CleanupExit;
+//        }
+//    }
+//
+//    if (!NT_SUCCESS(PhInitializeProcThreadAttributeList(&startupInfo.lpAttributeList, 2)))
+//        goto CleanupExit;
+//
+//    if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
+//        startupInfo.lpAttributeList,
+//        PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
+//        &(ULONG64){ DEFAULT_MITIGATION_POLICY_FLAGS },
+//        sizeof(ULONG64)
+//        )))
+//    {
+//        goto CleanupExit;
+//    }
+//
+//    {
+//        PROC_THREAD_BNOISOLATION_ATTRIBUTE bnoAttribute;
+//
+//        bnoAttribute.IsolationEnabled = TRUE;
+//        wcsncpy_s(bnoAttribute.IsolationPrefix, RTL_NUMBER_OF(bnoAttribute.IsolationPrefix), L"SystemInformer", _TRUNCATE);
+//
+//        if (!NT_SUCCESS(PhUpdateProcThreadAttribute(
+//            startupInfo.lpAttributeList,
+//            PROC_THREAD_ATTRIBUTE_BNO_ISOLATION,
+//            &bnoAttribute,
+//            sizeof(PROC_THREAD_BNOISOLATION_ATTRIBUTE)
+//            )))
+//        {
+//            goto CleanupExit;
+//        }
+//    }
+//
+//    if (NT_SUCCESS(PhCreateProcessWin32Ex(
+//        NULL,
+//        PhGetString(commandline),
+//        NULL,
+//        NULL,
+//        &startupInfo.StartupInfo,
+//        PH_CREATE_PROCESS_EXTENDED_STARTUPINFO | PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB,
+//        NULL,
+//        NULL,
+//        NULL,
+//        NULL
+//        )))
+//    {
+//        success = FALSE;
+//    }
+//
+//CleanupExit:
+//
+//    if (commandline)
+//        PhDereferenceObject(commandline);
+//
+//    if (startupInfo.lpAttributeList)
+//        PhDeleteProcThreadAttributeList(startupInfo.lpAttributeList);
+//
+//    return success;
+//#else
+//    return TRUE;
+//#endif
 }
+
+//BOOLEAN PhInitializeMitigationSignaturePolicy(
+//    VOID
+//    )
+//{
+//#ifndef DEBUG
+//    BOOLEAN PhpIsExploitProtectionEnabled(VOID); // Forwarded from options.c (dmex)
+//    // Starting with Win10 20H1 processes with uiAccess=true override the ProcessExtensionPointDisablePolicy
+//    // blocking hook DLL injection and inject the window hook anyway. This override doesn't check if the process has also enabled
+//    // the MicrosoftSignedOnly policy causing an infinite loop of APC messages and hook DLL loading/unloading
+//    // inside user32!_ClientLoadLibrary while calling the GetMessageW API for the window message loop.
+//    // ...
+//    // 1) GetMessageW processes the APC message for loading the window hook DLL with user32!_ClientLoadLibrary.
+//    // 2) user32!_ClientLoadLibrary calls LoadLibraryEx with the DLL path.
+//    // 3) LoadLibraryEx returns an error loading the window hook DLL because we enabled MicrosoftSignedOnly.
+//    // 4) SetWindowsHookEx ignores the result and re-queues the APC message from step 1.
+//    // ...
+//    // Mouse/keyboard/window messages passing through GetMessageW generate large volumes of calls to LoadLibraryEx
+//    // making the application unresponsive as each message processes the APC message and loads/unloads the hook DLL...
+//    // So don't use MicrosoftSignedOnly on versions of Windows where Process Hacker becomes unresponsive
+//    // because a third party application called SetWindowsHookEx on the machine. (dmex)
+//    if (
+//        WindowsVersion >= WINDOWS_10 &&
+//        PhpIsExploitProtectionEnabled()
+//        //WindowsVersion != WINDOWS_10_20H1 &&
+//        //WindowsVersion != WINDOWS_10_20H2
+//        )
+//    {
+//        PROCESS_MITIGATION_POLICY_INFORMATION policyInfo;
+//
+//        policyInfo.Policy = ProcessSignaturePolicy;
+//        policyInfo.SignaturePolicy.Flags = 0;
+//        policyInfo.SignaturePolicy.MicrosoftSignedOnly = TRUE;
+//
+//        NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
+//    }
+//#endif
+//
+//    return TRUE;
+//}
 
 BOOLEAN PhInitializeComPolicy(
     VOID
