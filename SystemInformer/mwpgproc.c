@@ -779,7 +779,6 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_CREATEDUMPFILE, L"Create dump fi&le...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_DEBUG, L"De&bug", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_VIRTUALIZATION, L"Virtuali&zation", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_BOOST, L"&Boost", NULL, NULL), ULONG_MAX);
@@ -817,6 +816,7 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_REDUCEWORKINGSET, L"Reduce working &set", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_RUNAS, L"&Run as...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_MISCELLANEOUS_RUNASTHISUSER, L"Run &as this user...", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_VIRTUALIZATION, L"Virtuali&zation", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_WINDOW, L"&Window", NULL, NULL);
