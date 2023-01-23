@@ -248,6 +248,27 @@ LONG PhGetTaskbarDpi(
     //    }
     //}
 
+    // SHAppBarMessage requires SendMessage and very slow (dmex)
+    if (dpi == 0)
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        static RECT taskbarRect = { 0 };
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            APPBARDATA appbarData = { sizeof(APPBARDATA) };
+
+            if (SHAppBarMessage(ABM_GETTASKBARPOS, &appbarData))
+            {
+                taskbarRect = appbarData.rc;
+            }
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        dpi = PhGetMonitorDpi(&taskbarRect);
+    }
+
     if (dpi == 0)
     {
         dpi = PhGetDpiValue(NULL, NULL);
