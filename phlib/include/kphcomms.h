@@ -15,6 +15,11 @@
 #include <ph.h>
 #include <kphmsg.h>
 
+NTSTATUS KphFilterLoadUnload(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ BOOLEAN LoadDriver
+    );
+
 typedef
 VOID (NTAPI *PKPH_COMMS_CALLBACK)(
     _In_ ULONG_PTR ReplyToken,

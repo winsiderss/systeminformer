@@ -313,6 +313,8 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"KphAltitude", L"385400");
     PhpAddIntegerSetting(L"KphDisableImageLoadProtection", L"0");
     PhpAddIntegerSetting(L"KsiEnableSplashScreen", L"0");
+    PhpAddIntegerSetting(L"KsiEnableLoadNative", L"0");
+    PhpAddIntegerSetting(L"KsiEnableLoadFilter", L"0");
     PhpAddIntegerSetting(L"KsiUnloadOnExitTest", L"0");
 }
 
