@@ -5774,7 +5774,7 @@ RtlSecondsSince1970ToTime(
 
 #if (PHNT_VERSION >= PHNT_WIN8)
 NTSYSAPI
-ULONGLONG
+LARGE_INTEGER
 NTAPI
 RtlGetSystemTimePrecise(
     VOID
