@@ -17,7 +17,7 @@
 
 struct TraceProperties : public EVENT_TRACE_PROPERTIES
 {
-    wchar_t mSessionName[MAX_PATH];
+    wchar_t mSessionName[sizeof(L"SiPresentTraceSession")];
 };
 
 static LARGE_INTEGER TraceStartQpc = {};
