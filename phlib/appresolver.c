@@ -1146,10 +1146,10 @@ HRESULT PhAppResolverGetPackageStartMenuPropertyStore(
     IPropertyStore* propertyStore = NULL;
 
     if (!(startMenuInterface = PhpQueryStartMenuCacheInterface()))
-        return S_FALSE;
+        return E_FAIL;
 
     if (!PhAppResolverGetAppIdForProcess(ProcessId, &applicationUserModelId))
-        return S_FALSE;
+        return E_FAIL;
 
     if (WindowsVersion < WINDOWS_8)
     {
