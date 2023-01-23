@@ -6,7 +6,7 @@
  * Authors:
  *
  *     jxy-s   2022
- *     dmex    2022
+ *     dmex    2022-2023
  *
  */
 
@@ -43,16 +43,53 @@ PH_FREE_LIST KphpCommsReplyFreeList;
 #define KPH_COMMS_THREAD_SCALE  2
 #define KPH_COMMS_MAX_MESSAGES  1024
 
+// rev
 typedef struct _FILTER_PORT_EA
 {
     PUNICODE_STRING PortName;
-    PVOID Unknown;
+    PUNICODE_STRING64 PortName64;
     USHORT SizeOfContext;
-    BYTE Padding[6];
+    BYTE Padding[6]; // not-used (uninitialized heap bytes)
     BYTE ConnectionContext[ANYSIZE_ARRAY];
 } FILTER_PORT_EA, *PFILTER_PORT_EA;
 
+// FILE_FULL_EA_INFORMATION (symbols)
+typedef struct _FILTER_PORT_FULL_EA
+{
+    ULONG NextEntryOffset; // 0
+    UCHAR Flags;           // 0
+    UCHAR EaNameLength;    // sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)
+    USHORT EaValueLength;  // RTL_SIZEOF_THROUGH_FIELD(FILTER_PORT_EA, Padding) + SizeOfContext
+    CHAR EaName[8];        // FLTPORT\0
+    FILTER_PORT_EA EaValue;
+} FILTER_PORT_FULL_EA, *PFILTER_PORT_FULL_EA;
+
 #define FLT_PORT_EA_NAME "FLTPORT"
+
+#define FILTER_PORT_EA_SIZE \
+    (sizeof(FILE_FULL_EA_INFORMATION) + (sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)))
+#define FILTER_PORT_EA_VALUE_SIZE \
+    RTL_SIZEOF_THROUGH_FIELD(FILTER_PORT_EA, Padding)
+//#define FILTER_PORT_EA_VALUE_OFFSET \
+//    (FIELD_OFFSET(FILE_FULL_EA_INFORMATION, EaName) + sizeof(FLT_PORT_EA_NAME))
+//#define FILTER_PORT_EA_VALUE_SIZE \
+//    (FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.ConnectionContext) - FILTER_PORT_EA_VALUE_OFFSET)
+
+#ifdef _WIN64
+C_ASSERT(FILTER_PORT_EA_SIZE == 19); // 0x13
+C_ASSERT(FILTER_PORT_EA_VALUE_SIZE == 24); // 0x18
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName) == 16); // 0x10
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName64) == 24); // 0x18
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.SizeOfContext) == 32); // 0x20
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.ConnectionContext) == 40); // 0x28
+#else
+C_ASSERT(FILTER_PORT_EA_SIZE == 19); // 0x13
+C_ASSERT(FILTER_PORT_EA_VALUE_SIZE == 16); // 0x18
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName) == 16); // 0x10
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.PortName64) == 20); // 0x14
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.SizeOfContext) == 24); // 0x18
+C_ASSERT(FIELD_OFFSET(FILTER_PORT_FULL_EA, EaValue.ConnectionContext) == 32); // 0x20
+#endif
 
 typedef struct _FILTER_LOADUNLOAD
 {
@@ -213,6 +250,13 @@ NTSTATUS KphFilterLoadUnload(
     IO_STATUS_BLOCK ioStatusBlock;
     ULONG filterNameBufferLength;
     PFILTER_LOADUNLOAD filterNameBuffer;
+    SECURITY_QUALITY_OF_SERVICE filterSecurityQos =
+    {
+        sizeof(SECURITY_QUALITY_OF_SERVICE),
+        SecurityImpersonation,
+        SECURITY_DYNAMIC_TRACKING,
+        TRUE
+    };
 
     RtlInitUnicodeString(&objectName, L"\\FileSystem\\Filters\\FltMgr");
     InitializeObjectAttributes(
@@ -222,14 +266,20 @@ NTSTATUS KphFilterLoadUnload(
         NULL,
         NULL
         );
+    objectAttributes.SecurityQualityOfService = &filterSecurityQos;
 
-    status = NtOpenFile(
+    status = NtCreateFile(
         &fileHandle,
-        FILE_WRITE_DATA | SYNCHRONIZE,
+        FILE_READ_ATTRIBUTES | GENERIC_WRITE | SYNCHRONIZE,
         &objectAttributes,
         &ioStatusBlock,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_WRITE,
-        FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL,
+        0
         );
 
     if (!NT_SUCCESS(status))
@@ -254,6 +304,7 @@ NTSTATUS KphFilterLoadUnload(
         );
 
     NtClose(fileHandle);
+    PhFree(filterNameBuffer);
 
     return status;
 }
@@ -370,6 +421,7 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectName;
     UNICODE_STRING portName;
+    UNICODE_STRING64 portName64;
     ULONG eaLength;
     PFILE_FULL_EA_INFORMATION ea;
     PFILTER_PORT_EA eaValue;
@@ -384,18 +436,19 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     }
 
     if (!PhStringRefToUnicodeString(PortName, &portName))
-    {
         return STATUS_NAME_TOO_LONG;
-    }
+
+    portName64.Buffer = (ULONGLONG)portName.Buffer;
+    portName64.Length = portName.Length;
+    portName64.MaximumLength = portName.MaximumLength;
 
     //
     // Build the filter EA, this contains the port name and the context.
     //
 
-    eaLength = (sizeof(FILE_FULL_EA_INFORMATION)
-             + sizeof(FILTER_PORT_EA)
-             + ARRAYSIZE(FLT_PORT_EA_NAME)
-             + SizeOfContext);
+    eaLength = FILTER_PORT_EA_SIZE 
+             + FILTER_PORT_EA_VALUE_SIZE 
+             + SizeOfContext;
 
     ea = PhAllocateZeroSafe(eaLength);
     if (!ea)
@@ -404,13 +457,13 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     }
 
     ea->Flags = 0;
-    ea->EaNameLength = ARRAYSIZE(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL);
-    RtlCopyMemory(ea->EaName, FLT_PORT_EA_NAME, ARRAYSIZE(FLT_PORT_EA_NAME));
-    ea->EaValueLength = sizeof(FILTER_PORT_EA) + SizeOfContext;
-    eaValue = PTR_ADD_OFFSET(ea->EaName, ea->EaNameLength + sizeof(ANSI_NULL));
-    eaValue->Unknown = NULL;
-    eaValue->SizeOfContext = SizeOfContext;
+    ea->EaNameLength = sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL);
+    ea->EaValueLength = FILTER_PORT_EA_VALUE_SIZE + SizeOfContext;
+    RtlCopyMemory(ea->EaName, FLT_PORT_EA_NAME, sizeof(FLT_PORT_EA_NAME));
+    eaValue = PTR_ADD_OFFSET(ea->EaName, sizeof(FLT_PORT_EA_NAME));
     eaValue->PortName = &portName;
+    eaValue->PortName64 = &portName64;
+    eaValue->SizeOfContext = SizeOfContext;
 
     if (SizeOfContext > 0)
     {
