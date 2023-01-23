@@ -53,6 +53,8 @@ typedef struct _FILTER_PORT_EA
     BYTE ConnectionContext[ANYSIZE_ARRAY];
 } FILTER_PORT_EA, *PFILTER_PORT_EA;
 
+#define FLT_PORT_CONTEXT_MAX 0xFFE8
+
 // FILE_FULL_EA_INFORMATION (symbols)
 typedef struct _FILTER_PORT_FULL_EA
 {
@@ -429,11 +431,14 @@ NTSTATUS KphpFilterConnectCommunicationPort(
 
     *Port = NULL;
 
-    if (((SizeOfContext > 0) && !ConnectionContext) ||
-        ((SizeOfContext == 0) && ConnectionContext))
+    if ((SizeOfContext > 0 && !ConnectionContext) ||
+        (SizeOfContext == 0 && ConnectionContext))
     {
         return STATUS_INVALID_PARAMETER;
     }
+
+    if (SizeOfContext >= FLT_PORT_CONTEXT_MAX)
+        return STATUS_INTEGER_OVERFLOW;
 
     if (!PhStringRefToUnicodeString(PortName, &portName))
         return STATUS_NAME_TOO_LONG;
