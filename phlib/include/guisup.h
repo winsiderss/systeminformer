@@ -93,7 +93,7 @@ VOID
 NTAPI
 PhSetControlTheme(
     _In_ HWND Handle,
-    _In_ PWSTR Theme
+    _In_opt_ PCWSTR Theme
     );
 
 PHLIBAPI
@@ -112,15 +112,17 @@ PhIsThemePartDefined(
     _In_ INT StateId
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetThemeClass(
     _In_ HTHEME ThemeHandle,
-    _Out_writes_(ClassLength) PWSTR Class,
+    _Out_writes_z_(ClassLength) PWSTR Class,
     _In_ ULONG ClassLength
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -139,6 +141,7 @@ typedef enum _THEMEPARTSIZE
     THEMEPARTSIZE_DRAW // size that theme mgr will use to draw part
 } THEMEPARTSIZE;
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
