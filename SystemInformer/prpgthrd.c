@@ -891,7 +891,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     // We can't use cycle time for protected processes (without KSystemInformer). (wj32)
                     if (processItem->IsProtectedProcess)
                     {
-                        threadsContext->ListContext.UseCycleTime = FALSE;
+                        // Windows 10 allows elevated processes to query cycle time for protected processes (dmex)
+                        if (WindowsVersion < WINDOWS_10 || !PhGetOwnTokenAttributes().Elevated)
+                        {
+                            threadsContext->ListContext.UseCycleTime = FALSE;
+                        }
                     }
 
                     NtClose(processHandle);
