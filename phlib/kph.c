@@ -57,15 +57,12 @@ NTSTATUS KphConnect(
 
     // Try to start the service, if it exists.
 
-    if (scmHandle = PhGetServiceManagerHandle())
+    if (serviceHandle = PhOpenService(PhGetStringRefZ(Config->ServiceName), SERVICE_START))
     {
-        if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(Config->ServiceName), SERVICE_START))
-        {
-            if (StartService(serviceHandle, 0, NULL))
-                started = TRUE;
+        if (StartService(serviceHandle, 0, NULL))
+            started = TRUE;
 
-            CloseServiceHandle(serviceHandle);
-        }
+        PhCloseServiceHandle(serviceHandle);
     }
 
     if (!started && PhDoesFileExistWin32(PhGetStringRefZ(Config->FileName)))
@@ -520,23 +517,15 @@ NTSTATUS KphServiceStop(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
 
-    if (scmHandle = PhGetServiceManagerHandle())
+    if (serviceHandle = PhOpenService(PhGetStringRefZ(ServiceName), SERVICE_STOP))
     {
-        if (serviceHandle = OpenService(scmHandle, PhGetStringRefZ(ServiceName), SERVICE_STOP))
-        {
-            SERVICE_STATUS serviceStatus;
+        SERVICE_STATUS serviceStatus;
 
-            ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
 
-            CloseServiceHandle(serviceHandle);
-        }
-        else
-        {
-            status = PhGetLastWin32ErrorAsNtStatus();
-        }
+        PhCloseServiceHandle(serviceHandle);
     }
     else
     {
