@@ -35,6 +35,10 @@
 #endif
 #endif
 
+#ifndef ENABLE_RTL_NUMBER_OF_V2
+#define ENABLE_RTL_NUMBER_OF_V2
+#endif
+
 #ifndef INITGUID
 #define INITGUID
 #endif
