@@ -613,13 +613,12 @@ PPH_STRING PhGetPackageAppDataPath(
     )
 {
     static PH_STRINGREF attributeName = PH_STRINGREF_INIT(L"WIN://SYSAPPID");
-    static PH_STRINGREF localAppDataPackages = PH_STRINGREF_INIT(L"%APPDATALOCAL%\\Packages\\");
     PPH_STRING packageAppDataPath = NULL;
     PPH_STRING localAppDataPath;
     PTOKEN_SECURITY_ATTRIBUTES_INFORMATION info;
     HANDLE tokenHandle;
 
-    localAppDataPath = PhExpandEnvironmentStrings(&localAppDataPackages);
+    localAppDataPath = PhGetKnownLocationZ(PH_FOLDERID_LocalAppData, L"\\Packages\\");
 
     if (PhIsNullOrEmptyString(localAppDataPath))
         return NULL;

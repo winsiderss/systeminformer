@@ -1197,7 +1197,7 @@ VOID PhpInitializeSettings(
             static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
             PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
 #else
-            PhSettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+            PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
 #endif
         }
 
