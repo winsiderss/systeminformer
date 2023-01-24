@@ -213,82 +213,82 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION
 
 typedef enum _FILE_INFORMATION_CLASS
 {
-    FileDirectoryInformation = 1, // FILE_DIRECTORY_INFORMATION
-    FileFullDirectoryInformation, // FILE_FULL_DIR_INFORMATION
-    FileBothDirectoryInformation, // FILE_BOTH_DIR_INFORMATION
-    FileBasicInformation, // FILE_BASIC_INFORMATION
-    FileStandardInformation, // FILE_STANDARD_INFORMATION
-    FileInternalInformation, // FILE_INTERNAL_INFORMATION
-    FileEaInformation, // FILE_EA_INFORMATION
-    FileAccessInformation, // FILE_ACCESS_INFORMATION
-    FileNameInformation, // FILE_NAME_INFORMATION
-    FileRenameInformation, // FILE_RENAME_INFORMATION // 10
-    FileLinkInformation, // FILE_LINK_INFORMATION
-    FileNamesInformation, // FILE_NAMES_INFORMATION
-    FileDispositionInformation, // FILE_DISPOSITION_INFORMATION
-    FilePositionInformation, // FILE_POSITION_INFORMATION
-    FileFullEaInformation, // FILE_FULL_EA_INFORMATION
-    FileModeInformation, // FILE_MODE_INFORMATION
-    FileAlignmentInformation, // FILE_ALIGNMENT_INFORMATION
-    FileAllInformation, // FILE_ALL_INFORMATION
-    FileAllocationInformation, // FILE_ALLOCATION_INFORMATION
-    FileEndOfFileInformation, // FILE_END_OF_FILE_INFORMATION // 20
-    FileAlternateNameInformation, // FILE_NAME_INFORMATION
-    FileStreamInformation, // FILE_STREAM_INFORMATION
-    FilePipeInformation, // FILE_PIPE_INFORMATION
-    FilePipeLocalInformation, // FILE_PIPE_LOCAL_INFORMATION
-    FilePipeRemoteInformation, // FILE_PIPE_REMOTE_INFORMATION
-    FileMailslotQueryInformation, // FILE_MAILSLOT_QUERY_INFORMATION
-    FileMailslotSetInformation, // FILE_MAILSLOT_SET_INFORMATION
-    FileCompressionInformation, // FILE_COMPRESSION_INFORMATION
-    FileObjectIdInformation, // FILE_OBJECTID_INFORMATION
-    FileCompletionInformation, // FILE_COMPLETION_INFORMATION // 30
-    FileMoveClusterInformation, // FILE_MOVE_CLUSTER_INFORMATION
-    FileQuotaInformation, // FILE_QUOTA_INFORMATION
-    FileReparsePointInformation, // FILE_REPARSE_POINT_INFORMATION
-    FileNetworkOpenInformation, // FILE_NETWORK_OPEN_INFORMATION
-    FileAttributeTagInformation, // FILE_ATTRIBUTE_TAG_INFORMATION
+    FileDirectoryInformation = 1, // q: FILE_DIRECTORY_INFORMATION
+    FileFullDirectoryInformation, // q: FILE_FULL_DIR_INFORMATION
+    FileBothDirectoryInformation, // q: FILE_BOTH_DIR_INFORMATION
+    FileBasicInformation, // q; s: FILE_BASIC_INFORMATION; s (requires FILE_WRITE_ATTRIBUTES)
+    FileStandardInformation, // q: FILE_STANDARD_INFORMATION
+    FileInternalInformation, // q: FILE_INTERNAL_INFORMATION
+    FileEaInformation, // q: FILE_EA_INFORMATION
+    FileAccessInformation, // q: FILE_ACCESS_INFORMATION
+    FileNameInformation, // q: FILE_NAME_INFORMATION
+    FileRenameInformation, // q; s: FILE_RENAME_INFORMATION; s (requires DELETE) // 10
+    FileLinkInformation, // q: FILE_LINK_INFORMATION
+    FileNamesInformation, // q: FILE_NAMES_INFORMATION
+    FileDispositionInformation, // q; s: FILE_DISPOSITION_INFORMATION; s (requires DELETE)
+    FilePositionInformation, // q: FILE_POSITION_INFORMATION
+    FileFullEaInformation, // q: FILE_FULL_EA_INFORMATION
+    FileModeInformation, // q: FILE_MODE_INFORMATION
+    FileAlignmentInformation, // q: FILE_ALIGNMENT_INFORMATION
+    FileAllInformation, // q: FILE_ALL_INFORMATION
+    FileAllocationInformation, // q: FILE_ALLOCATION_INFORMATION
+    FileEndOfFileInformation, // q; s: FILE_END_OF_FILE_INFORMATION; s (requires FILE_WRITE_DATA) // 20
+    FileAlternateNameInformation, // q: FILE_NAME_INFORMATION
+    FileStreamInformation, // q: FILE_STREAM_INFORMATION
+    FilePipeInformation, // q: FILE_PIPE_INFORMATION
+    FilePipeLocalInformation, // q: FILE_PIPE_LOCAL_INFORMATION
+    FilePipeRemoteInformation, // q: FILE_PIPE_REMOTE_INFORMATION
+    FileMailslotQueryInformation, // q: FILE_MAILSLOT_QUERY_INFORMATION
+    FileMailslotSetInformation, // q: FILE_MAILSLOT_SET_INFORMATION
+    FileCompressionInformation, // q: FILE_COMPRESSION_INFORMATION
+    FileObjectIdInformation, // q: FILE_OBJECTID_INFORMATION
+    FileCompletionInformation, // q: FILE_COMPLETION_INFORMATION // 30
+    FileMoveClusterInformation, // q: FILE_MOVE_CLUSTER_INFORMATION
+    FileQuotaInformation, // q: FILE_QUOTA_INFORMATION
+    FileReparsePointInformation, // q: FILE_REPARSE_POINT_INFORMATION
+    FileNetworkOpenInformation, // q: FILE_NETWORK_OPEN_INFORMATION
+    FileAttributeTagInformation, // q: FILE_ATTRIBUTE_TAG_INFORMATION
     FileTrackingInformation, // FILE_TRACKING_INFORMATION
     FileIdBothDirectoryInformation, // FILE_ID_BOTH_DIR_INFORMATION
     FileIdFullDirectoryInformation, // FILE_ID_FULL_DIR_INFORMATION
-    FileValidDataLengthInformation, // FILE_VALID_DATA_LENGTH_INFORMATION
-    FileShortNameInformation, // FILE_NAME_INFORMATION // 40
-    FileIoCompletionNotificationInformation, // FILE_IO_COMPLETION_NOTIFICATION_INFORMATION // since VISTA
-    FileIoStatusBlockRangeInformation, // FILE_IOSTATUSBLOCK_RANGE_INFORMATION
-    FileIoPriorityHintInformation, // FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX
-    FileSfioReserveInformation, // FILE_SFIO_RESERVE_INFORMATION
-    FileSfioVolumeInformation, // FILE_SFIO_VOLUME_INFORMATION
-    FileHardLinkInformation, // FILE_LINKS_INFORMATION
-    FileProcessIdsUsingFileInformation, // FILE_PROCESS_IDS_USING_FILE_INFORMATION
-    FileNormalizedNameInformation, // FILE_NAME_INFORMATION
-    FileNetworkPhysicalNameInformation, // FILE_NETWORK_PHYSICAL_NAME_INFORMATION
-    FileIdGlobalTxDirectoryInformation, // FILE_ID_GLOBAL_TX_DIR_INFORMATION // since WIN7 // 50
-    FileIsRemoteDeviceInformation, // FILE_IS_REMOTE_DEVICE_INFORMATION
+    FileValidDataLengthInformation, // q; s: FILE_VALID_DATA_LENGTH_INFORMATION; s (requires FILE_WRITE_DATA and/or SeManageVolumePrivilege)
+    FileShortNameInformation, // q; s: FILE_NAME_INFORMATION; s (requires DELETE) // 40
+    FileIoCompletionNotificationInformation, // q: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION // since VISTA
+    FileIoStatusBlockRangeInformation, // q: FILE_IOSTATUSBLOCK_RANGE_INFORMATION
+    FileIoPriorityHintInformation, // q; s: FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX
+    FileSfioReserveInformation, // q: FILE_SFIO_RESERVE_INFORMATION
+    FileSfioVolumeInformation, // q: FILE_SFIO_VOLUME_INFORMATION
+    FileHardLinkInformation, // q: FILE_LINKS_INFORMATION
+    FileProcessIdsUsingFileInformation, // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION
+    FileNormalizedNameInformation, // q: FILE_NAME_INFORMATION
+    FileNetworkPhysicalNameInformation, // q: FILE_NETWORK_PHYSICAL_NAME_INFORMATION
+    FileIdGlobalTxDirectoryInformation, // q: FILE_ID_GLOBAL_TX_DIR_INFORMATION // since WIN7 // 50
+    FileIsRemoteDeviceInformation, // q: FILE_IS_REMOTE_DEVICE_INFORMATION
     FileUnusedInformation,
-    FileNumaNodeInformation, // FILE_NUMA_NODE_INFORMATION
-    FileStandardLinkInformation, // FILE_STANDARD_LINK_INFORMATION
-    FileRemoteProtocolInformation, // FILE_REMOTE_PROTOCOL_INFORMATION
+    FileNumaNodeInformation, // q: FILE_NUMA_NODE_INFORMATION
+    FileStandardLinkInformation, // q: FILE_STANDARD_LINK_INFORMATION
+    FileRemoteProtocolInformation, // q: FILE_REMOTE_PROTOCOL_INFORMATION
     FileRenameInformationBypassAccessCheck, // (kernel-mode only); FILE_RENAME_INFORMATION // since WIN8
     FileLinkInformationBypassAccessCheck, // (kernel-mode only); FILE_LINK_INFORMATION
-    FileVolumeNameInformation, // FILE_VOLUME_NAME_INFORMATION
-    FileIdInformation, // FILE_ID_INFORMATION
-    FileIdExtdDirectoryInformation, // FILE_ID_EXTD_DIR_INFORMATION // 60
-    FileReplaceCompletionInformation, // FILE_COMPLETION_INFORMATION // since WINBLUE
-    FileHardLinkFullIdInformation, // FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
-    FileIdExtdBothDirectoryInformation, // FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
-    FileDispositionInformationEx, // FILE_DISPOSITION_INFO_EX // since REDSTONE
-    FileRenameInformationEx, // FILE_RENAME_INFORMATION_EX
+    FileVolumeNameInformation, // q: FILE_VOLUME_NAME_INFORMATION
+    FileIdInformation, // q: FILE_ID_INFORMATION
+    FileIdExtdDirectoryInformation, // q: FILE_ID_EXTD_DIR_INFORMATION // 60
+    FileReplaceCompletionInformation, // q; s: FILE_COMPLETION_INFORMATION // since WINBLUE
+    FileHardLinkFullIdInformation, // q: FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
+    FileIdExtdBothDirectoryInformation, // q: FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
+    FileDispositionInformationEx, // q; s: FILE_DISPOSITION_INFO_EX; s (requires DELETE) // since REDSTONE
+    FileRenameInformationEx, // q: FILE_RENAME_INFORMATION_EX
     FileRenameInformationExBypassAccessCheck, // (kernel-mode only); FILE_RENAME_INFORMATION_EX
-    FileDesiredStorageClassInformation, // FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
-    FileStatInformation, // FILE_STAT_INFORMATION
-    FileMemoryPartitionInformation, // FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
-    FileStatLxInformation, // FILE_STAT_LX_INFORMATION // since REDSTONE4 // 70
-    FileCaseSensitiveInformation, // FILE_CASE_SENSITIVE_INFORMATION
-    FileLinkInformationEx, // FILE_LINK_INFORMATION_EX // since REDSTONE5
+    FileDesiredStorageClassInformation, // q: FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
+    FileStatInformation, // q: FILE_STAT_INFORMATION
+    FileMemoryPartitionInformation, // q: FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
+    FileStatLxInformation, // q: FILE_STAT_LX_INFORMATION // since REDSTONE4 // 70
+    FileCaseSensitiveInformation, // q; s: FILE_CASE_SENSITIVE_INFORMATION; s (requires FILE_WRITE_ATTRIBUTES)
+    FileLinkInformationEx, // q; s: FILE_LINK_INFORMATION_EX // since REDSTONE5
     FileLinkInformationExBypassAccessCheck, // (kernel-mode only); FILE_LINK_INFORMATION_EX
-    FileStorageReserveIdInformation, // FILE_SET_STORAGE_RESERVE_ID_INFORMATION
-    FileCaseSensitiveInformationForceAccessCheck, // FILE_CASE_SENSITIVE_INFORMATION
-    FileKnownFolderInformation, // FILE_KNOWN_FOLDER_INFORMATION // since WIN11
+    FileStorageReserveIdInformation, // q: FILE_SET_STORAGE_RESERVE_ID_INFORMATION
+    FileCaseSensitiveInformationForceAccessCheck, // q; s: FILE_CASE_SENSITIVE_INFORMATION; s (requires FILE_WRITE_ATTRIBUTES)
+    FileKnownFolderInformation, // q; s: FILE_KNOWN_FOLDER_INFORMATION // since WIN11
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
