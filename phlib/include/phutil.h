@@ -902,6 +902,32 @@ PhGetApplicationDataFileName(
     _In_ BOOLEAN NativeFileName
     );
 
+#define PH_FOLDERID_LocalAppData 1
+#define PH_FOLDERID_RoamingAppData 2
+#define PH_FOLDERID_ProgramFiles 3
+ 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetKnownLocation(
+    _In_ ULONG Folder,
+    _In_opt_ PPH_STRINGREF AppendPath
+    );
+
+FORCEINLINE
+PPH_STRING
+PhGetKnownLocationZ(
+    _In_ ULONG Folder,
+    _In_ PWSTR AppendPath
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, AppendPath);
+
+    return PhGetKnownLocation(Folder, &string);
+}
+
 DECLSPEC_SELECTANY GUID FOLDERID_LocalAppData = { 0xF1B32785, 0x6FBA, 0x4FCF, 0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91 };
 DECLSPEC_SELECTANY GUID FOLDERID_RoamingAppData = { 0x3EB685DB, 0x65F9, 0x4CF6, 0xA0, 0x3A, 0xE3, 0xEF, 0x65, 0x72, 0x9F, 0x3D };
 DECLSPEC_SELECTANY GUID FOLDERID_ProgramFiles = { 0x905e63b6, 0xc1bf, 0x494e, 0xb2, 0x9c, 0x65, 0xb7, 0x32, 0xd3, 0xd2, 0x1a };
@@ -914,7 +940,7 @@ PPH_STRING
 NTAPI
 PhGetKnownFolderPath(
     _In_ PGUID Folder,
-    _In_opt_ PWSTR AppendPath
+    _In_opt_ PPH_STRINGREF AppendPath
     );
 
 PHLIBAPI
@@ -924,8 +950,38 @@ PhGetKnownFolderPathEx(
     _In_ PGUID Folder,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
-    _In_opt_ PWSTR AppendPath
+    _In_opt_ PPH_STRINGREF AppendPath
     );
+
+FORCEINLINE
+PPH_STRING
+PhGetKnownFolderPathZ(
+    _In_ PGUID Folder,
+    _In_ PWSTR AppendPath
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, AppendPath);
+
+    return PhGetKnownFolderPath(Folder, &string);
+}
+
+FORCEINLINE
+PPH_STRING
+PhGetKnownFolderPathExZ(
+    _In_ PGUID Folder,
+    _In_ ULONG Flags,
+    _In_opt_ HANDLE TokenHandle,
+    _In_ PWSTR AppendPath
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, AppendPath);
+
+    return PhGetKnownFolderPathEx(Folder, Flags, TokenHandle, &string);
+}
 
 PHLIBAPI
 NTSTATUS

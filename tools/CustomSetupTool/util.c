@@ -137,7 +137,7 @@ VOID SetupDeleteAppdataDirectory(
 {
     PPH_STRING appdataDirectory;
 
-    if (appdataDirectory = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\"))
+    if (appdataDirectory = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\"))
     {
         PhDeleteDirectoryWin32(appdataDirectory);
         PhDereferenceObject(appdataDirectory);
@@ -338,7 +338,7 @@ VOID SetupSetWindowsOptions(
     PPH_STRING clientPathString;
     PPH_STRING string;
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
     {
         clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
@@ -353,7 +353,7 @@ VOID SetupSetWindowsOptions(
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
     {
         clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\peview.exe");
 
@@ -368,7 +368,7 @@ VOID SetupSetWindowsOptions(
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
     {
         clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
 
@@ -545,19 +545,19 @@ VOID SetupDeleteWindowsOptions(
     PPH_STRING string;
     HANDLE keyHandle;
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
@@ -606,7 +606,7 @@ VOID SetupChangeNotifyShortcuts(
 {
     PPH_STRING string;
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
     {
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
@@ -616,7 +616,7 @@ VOID SetupChangeNotifyShortcuts(
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
     {
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
@@ -626,7 +626,7 @@ VOID SetupChangeNotifyShortcuts(
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPath(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
     {
         if (PhDoesFileExistWin32(PhGetString(string)))
         {
@@ -676,9 +676,9 @@ VOID SetupUpgradeSettingsFile(
     PPH_STRING legacyNightlyFileName;
     PPH_STRING legacySettingsFileName;
 
-    settingsFilePath = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
-    legacyNightlyFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\Process Hacker\\settings.xml");
-    legacySettingsFileName = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\Process Hacker 2\\settings.xml");
+    settingsFilePath = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
+    legacyNightlyFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker\\settings.xml");
+    legacySettingsFileName = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\Process Hacker 2\\settings.xml");
 
     if (settingsFilePath && legacyNightlyFileName)
     {

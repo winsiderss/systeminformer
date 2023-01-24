@@ -3469,14 +3469,7 @@ PPH_STRING PhGetRoamingAppDataDirectory(
     PPH_STRING roamingAppDataFileName = NULL;
     PPH_STRING roamingAppDataDirectory;
 
-#if !defined(PH_BUILD_MSIX)
-    static PH_STRINGREF directoryPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\");
-    roamingAppDataDirectory = PhExpandEnvironmentStrings(&directoryPath);
-#else
-    roamingAppDataDirectory = PhGetKnownFolderPath(&FOLDERID_RoamingAppData, L"\\SystemInformer\\");
-#endif
-
-    if (roamingAppDataDirectory)
+    if (roamingAppDataDirectory = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\"))
     {
         roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
         PhReferenceObject(roamingAppDataDirectory);
@@ -3574,9 +3567,63 @@ PPH_STRING PhGetApplicationDataFileName(
 //    return NULL;
 //}
 
+PPH_STRING PhGetKnownLocation(
+    _In_ ULONG Folder,
+    _In_opt_ PPH_STRINGREF AppendPath
+    )
+{
+#if !defined(PH_BUILD_MSIX)
+    PPH_STRING value = NULL;
+
+    switch (Folder)
+    {
+    case PH_FOLDERID_LocalAppData:
+        {
+            static PH_STRINGREF name = PH_STRINGREF_INIT(L"LOCALAPPDATA");
+            PhQueryEnvironmentVariable(NULL, &name, &value);
+            //value = PhExpandEnvironmentStringsZ(L"%LOCALAPPDATA%");
+        }
+        break;
+    case PH_FOLDERID_RoamingAppData:
+        {
+            static PH_STRINGREF name = PH_STRINGREF_INIT(L"APPDATA");
+            PhQueryEnvironmentVariable(NULL, &name, &value);
+            //value = PhExpandEnvironmentStringsZ(L"%APPDATA%");
+        }
+        break;
+    //case PH_FOLDERID_ProgramFiles:
+    //    {
+    //        static PH_STRINGREF name = PH_STRINGREF_INIT(L"ProgramFiles");
+    //        PhQueryEnvironmentVariable(NULL, &name, &value);
+    //        //value = PhExpandEnvironmentStringsZ(L"%ProgramFiles%");
+    //    }
+    //    break;
+    }
+
+    if (value && AppendPath)
+    {
+        PhMoveReference(&value, PhConcatStringRef2(&value->sr, AppendPath));
+    }
+
+    return value;
+#else
+    switch (Folder)
+    {
+    case PH_FOLDERID_LocalAppData:
+        return PhGetKnownFolderPath(&FOLDERID_LocalAppData, AppendPath);
+    case PH_FOLDERID_RoamingAppData:
+        return PhGetKnownFolderPath(&FOLDERID_RoamingAppData, AppendPath);
+    //case PH_FOLDERID_ProgramFiles:
+    //    return PhGetKnownFolderPath(&FOLDERID_ProgramFiles, AppendPath);
+    }
+
+    return NULL;
+#endif
+}
+
 PPH_STRING PhGetKnownFolderPath(
     _In_ PGUID Folder,
-    _In_opt_ PWSTR AppendPath
+    _In_opt_ PPH_STRINGREF AppendPath
     )
 {
     return PhGetKnownFolderPathEx(Folder, 0, NULL, AppendPath);
@@ -3592,7 +3639,7 @@ PPH_STRING PhGetKnownFolderPathEx(
     _In_ PGUID Folder,
     _In_ ULONG Flags,
     _In_opt_ HANDLE TokenHandle,
-    _In_opt_ PWSTR AppendPath
+    _In_opt_ PPH_STRINGREF AppendPath
     )
 {
     PPH_STRING path;
@@ -3615,7 +3662,7 @@ PPH_STRING PhGetKnownFolderPathEx(
     }
 
     knownFolderLength = PhCountStringZ(knownFolderBuffer) * sizeof(WCHAR);
-    knownAppendLength = AppendPath ? PhCountStringZ(AppendPath) * sizeof(WCHAR) : 0;
+    knownAppendLength = AppendPath ? AppendPath->Length : 0;
 
     path = PhCreateStringEx(NULL, knownFolderLength + knownAppendLength);
     memcpy(
@@ -3628,7 +3675,7 @@ PPH_STRING PhGetKnownFolderPathEx(
     {
         memcpy(
             PTR_ADD_OFFSET(path->Buffer, knownFolderLength),
-            AppendPath,
+            AppendPath->Buffer,
             knownAppendLength
             );
     }
