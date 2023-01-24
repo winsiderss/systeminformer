@@ -1136,6 +1136,7 @@ BOOLEAN PhShowConfirmMessage(
         config.cButtons = 2;
         config.pButtons = buttons;
         config.nDefaultButton = IDYES;
+        config.cxWidth = 200;
 
         if (SUCCEEDED(TaskDialogIndirect(
             &config,
