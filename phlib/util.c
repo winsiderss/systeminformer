@@ -3573,39 +3573,84 @@ PPH_STRING PhGetKnownLocation(
     )
 {
 #if !defined(PH_BUILD_MSIX)
-    PPH_STRING value = NULL;
-
     switch (Folder)
     {
     case PH_FOLDERID_LocalAppData:
         {
-            static PH_STRINGREF name = PH_STRINGREF_INIT(L"LOCALAPPDATA");
-            PhQueryEnvironmentVariable(NULL, &name, &value);
-            //value = PhExpandEnvironmentStringsZ(L"%LOCALAPPDATA%");
+            static UNICODE_STRING variableName = RTL_CONSTANT_STRING(L"LOCALAPPDATA");
+            UNICODE_STRING variableValue;
+            WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
+
+            RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
+
+            if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(
+                NULL,
+                &variableName,
+                &variableValue
+                )))
+            {
+                if (AppendPath)
+                {
+                    PH_STRINGREF string;
+
+                    string.Buffer = variableValue.Buffer;
+                    string.Length = variableValue.Length;
+
+                    return PhConcatStringRef2(&string, AppendPath);
+                }
+                else
+                {
+                    return PhCreateStringFromUnicodeString(&variableValue);
+                }
+            }
         }
         break;
     case PH_FOLDERID_RoamingAppData:
         {
-            static PH_STRINGREF name = PH_STRINGREF_INIT(L"APPDATA");
-            PhQueryEnvironmentVariable(NULL, &name, &value);
-            //value = PhExpandEnvironmentStringsZ(L"%APPDATA%");
+            static UNICODE_STRING variableName = RTL_CONSTANT_STRING(L"APPDATA");
+            UNICODE_STRING variableValue;
+            WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
+
+            RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
+
+            if (NT_SUCCESS(RtlQueryEnvironmentVariable_U(
+                NULL,
+                &variableName,
+                &variableValue
+                )))
+            {
+                if (AppendPath)
+                {
+                    PH_STRINGREF string;
+
+                    string.Buffer = variableValue.Buffer;
+                    string.Length = variableValue.Length;
+
+                    return PhConcatStringRef2(&string, AppendPath);
+                }
+                else
+                {
+                    return PhCreateStringFromUnicodeString(&variableValue);
+                }
+            }
         }
         break;
     //case PH_FOLDERID_ProgramFiles:
     //    {
-    //        static PH_STRINGREF name = PH_STRINGREF_INIT(L"ProgramFiles");
-    //        PhQueryEnvironmentVariable(NULL, &name, &value);
-    //        //value = PhExpandEnvironmentStringsZ(L"%ProgramFiles%");
+    //        PPH_STRING value;
+    //
+    //        if (value = PhExpandEnvironmentStringsZ(L"%ProgramFiles%"))
+    //        {
+    //            if (AppendPath)
+    //            {
+    //                PhMoveReference(&value, PhConcatStringRef2(&value->sr, AppendPath));
+    //            }
+    //
+    //            return value;
+    //        }
     //    }
     //    break;
     }
-
-    if (value && AppendPath)
-    {
-        PhMoveReference(&value, PhConcatStringRef2(&value->sr, AppendPath));
-    }
-
-    return value;
 #else
     switch (Folder)
     {
@@ -3616,9 +3661,8 @@ PPH_STRING PhGetKnownLocation(
     //case PH_FOLDERID_ProgramFiles:
     //    return PhGetKnownFolderPath(&FOLDERID_ProgramFiles, AppendPath);
     }
-
-    return NULL;
 #endif
+    return NULL;
 }
 
 PPH_STRING PhGetKnownFolderPath(
