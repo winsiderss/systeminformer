@@ -538,7 +538,7 @@ NtAllocateVirtualMemory(
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
-NTSYSAPI
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtAllocateVirtualMemoryEx(
@@ -575,7 +575,7 @@ NtReadVirtualMemory(
 
 #if (PHNT_VERSION >= PHNT_WIN11)
 // rev
-NTSYSAPI
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReadVirtualMemoryEx(
@@ -770,7 +770,7 @@ NtMapViewOfSection(
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
-NTSYSAPI
+NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtMapViewOfSectionEx(
