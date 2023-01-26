@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -171,7 +171,7 @@ ACCESS_ENTRIES(Key)
     { L"Full control", KEY_ALL_ACCESS, TRUE, TRUE },
     { L"Read", KEY_READ, TRUE, FALSE },
     { L"Write", KEY_WRITE, TRUE, FALSE },
-    { L"Execute", KEY_EXECUTE, TRUE, FALSE },
+    //{ L"Execute", KEY_EXECUTE, TRUE, FALSE }, // KEY_EXECUTE has the same value as KEY_READ (dmex)
     { L"Enumerate subkeys", KEY_ENUMERATE_SUB_KEYS, FALSE, TRUE },
     { L"Query values", KEY_QUERY_VALUE, FALSE, TRUE },
     { L"Notify", KEY_NOTIFY, FALSE, TRUE },
