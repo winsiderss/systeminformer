@@ -182,7 +182,11 @@ NTSTATUS LoadDb(
         return status;
 
     if (!topNode)
+    {
+        // Delete the corrupted file. (dmex)
+        PhDeleteFileWin32(PhGetString(ObjectDbPath));
         return STATUS_FILE_CORRUPT_ERROR;
+    }
 
     //LockDb();
 
@@ -373,8 +377,11 @@ NTSTATUS SaveDb(
     // Skip saving the DB when there's no objects (dmex)
     if (GetNumberOfDbObjects() == 0)
     {
-        // Delete the DB if the user removed all objects (dmex)
-        PhDeleteFileWin32(PhGetString(ObjectDbPath));    
+        // Delete the empty DB to improve performance (dmex)
+        if (PhDoesFileExistWin32(PhGetString(ObjectDbPath)))
+        {
+            PhDeleteFileWin32(PhGetString(ObjectDbPath));
+        }
         return STATUS_SUCCESS;
     }
 
