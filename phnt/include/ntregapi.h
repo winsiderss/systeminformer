@@ -59,11 +59,11 @@ typedef struct _KEY_FULL_INFORMATION
     ULONG ClassOffset;
     ULONG ClassLength;
     ULONG SubKeys;
-    ULONG MaxNameLen;
-    ULONG MaxClassLen;
+    ULONG MaxNameLength;
+    ULONG MaxClassLength;
     ULONG Values;
-    ULONG MaxValueNameLen;
-    ULONG MaxValueDataLen;
+    ULONG MaxValueNameLength;
+    ULONG MaxValueDataLength;
     WCHAR Class[1];
 } KEY_FULL_INFORMATION, *PKEY_FULL_INFORMATION;
 
@@ -78,10 +78,10 @@ typedef struct _KEY_CACHED_INFORMATION
     LARGE_INTEGER LastWriteTime;
     ULONG TitleIndex;
     ULONG SubKeys;
-    ULONG MaxNameLen;
+    ULONG MaxNameLength;
     ULONG Values;
-    ULONG MaxValueNameLen;
-    ULONG MaxValueDataLen;
+    ULONG MaxValueNameLength;
+    ULONG MaxValueDataLength;
     ULONG NameLength;
     _Field_size_bytes_(NameLength) WCHAR Name[1];
 } KEY_CACHED_INFORMATION, *PKEY_CACHED_INFORMATION;
@@ -486,7 +486,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCompressKey(
-    _In_ HANDLE Key
+    _In_ HANDLE KeyHandle
     );
 
 NTSYSCALLAPI
