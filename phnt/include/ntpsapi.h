@@ -166,7 +166,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessHandleCheckingMode, // qs: ULONG; s: 0 disables, otherwise enables
     ProcessKeepAliveCount, // q: PROCESS_KEEPALIVE_COUNT_INFORMATION
     ProcessRevokeFileHandles, // s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
-    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL
+    ProcessWorkingSetControl, // s: PROCESS_WORKING_SET_CONTROL (requires SeDebugPrivilege)
     ProcessHandleTable, // q: ULONG[] // since WINBLUE
     ProcessCheckStackExtentsMode, // qs: ULONG // KPROCESS->CheckStackExtents (CFG)
     ProcessCommandLineInformation, // q: UNICODE_STRING // 60
@@ -218,7 +218,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessAltPrefetchParam, // since 22H1
     ProcessAssignCpuPartitions,
     ProcessPriorityClassEx, // s: PROCESS_PRIORITY_CLASS_EX
-    ProcessMembershipInformation,
+    ProcessMembershipInformation, // PROCESS_MEMBERSHIP_INFORMATION
     ProcessEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ProcessEffectivePagePriority, // q: ULONG
     MaxProcessInfoClass
@@ -1019,6 +1019,12 @@ typedef struct _PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
 //    ULONG Reserved2;
 //    PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE Ranges;
 //} PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION, *PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION;
+ 
+// private
+typedef struct _PROCESS_MEMBERSHIP_INFORMATION
+{
+    ULONG ServerSiloId;
+} PROCESS_MEMBERSHIP_INFORMATION, *PPROCESS_MEMBERSHIP_INFORMATION;
 
 // end_private
 
