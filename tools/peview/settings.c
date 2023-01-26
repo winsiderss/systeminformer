@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -25,6 +25,7 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableLegacyPropertiesDialog", L"0");
     PhpAddIntegerSetting(L"EnableSecurityAdvancedDialog", L"1");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
+    PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"1");
     PhpAddIntegerSetting(L"EnableTreeListBorder", L"1");
     PhpAddIntegerSetting(L"EnableVersionSupport", L"0");
     PhpAddIntegerSetting(L"GraphColorMode", L"1");
