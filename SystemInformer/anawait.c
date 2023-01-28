@@ -150,7 +150,7 @@ VOID PhUiAnalyzeWaitThread(
         processHandle,
         &clientId,
         SymbolProvider,
-        PH_WALK_I386_STACK,
+        PH_WALK_USER_WOW64_STACK,
         PhpWalkThreadStackAnalyzeCallback,
         &context
         );

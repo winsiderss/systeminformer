@@ -113,6 +113,7 @@ typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
     PH_STACK_TREE_COLUMN_RETURNADDRESS,
     PH_STACK_TREE_COLUMN_FILENAME,
     PH_STACK_TREE_COLUMN_LINETEXT,
+    PH_STACK_TREE_COLUMN_ARCHITECTURE,
     TREE_COLUMN_ITEM_MAXIMUM
 } PH_STACK_TREE_COLUMN_ITEM_NAME;
 
@@ -136,6 +137,7 @@ typedef struct _PH_STACK_TREE_ROOT_NODE
     WCHAR Parameter4String[PH_PTR_STR_LEN_1];
     WCHAR PcAddressString[PH_PTR_STR_LEN_1];
     WCHAR ReturnAddressString[PH_PTR_STR_LEN_1];
+    PH_STRINGREF Architecture;
 
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } PH_STACK_TREE_ROOT_NODE, *PPH_STACK_TREE_ROOT_NODE;
@@ -487,6 +489,9 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
             case PH_STACK_TREE_COLUMN_LINETEXT:
                 getCellText->Text = PhGetStringRef(node->LineTextString);
                 break;
+            case PH_STACK_TREE_COLUMN_ARCHITECTURE:
+                getCellText->Text = node->Architecture;
+                break;
             default:
                 return FALSE;
             }
@@ -773,6 +778,7 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_RETURNADDRESS, FALSE, L"Return address", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_LINETEXT, FALSE, L"Line number", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_ARCHITECTURE, FALSE, L"Architecture", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetTriState(Context->TreeNewHandle, FALSE);
     TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
@@ -1466,7 +1472,7 @@ NTSTATUS PhpRefreshThreadStackThreadStart(
         control.u.WalkStack.ThreadHandle = threadStackContext->ThreadHandle;
         control.u.WalkStack.ProcessHandle = threadStackContext->SymbolProvider->ProcessHandle;
         control.u.WalkStack.ClientId = &clientId;
-        control.u.WalkStack.Flags = PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK;
+        control.u.WalkStack.Flags = PH_WALK_USER_WOW64_STACK | PH_WALK_USER_STACK | PH_WALK_KERNEL_STACK;
         control.u.WalkStack.Callback = PhpWalkThreadStackCallback;
         control.u.WalkStack.CallbackContext = threadStackContext;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
@@ -1493,7 +1499,7 @@ NTSTATUS PhpRefreshThreadStackThreadStart(
             threadStackContext->SymbolProvider->ProcessHandle,
             &clientId,
             threadStackContext->SymbolProvider,
-            PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK,
+            PH_WALK_USER_WOW64_STACK | PH_WALK_USER_STACK | PH_WALK_KERNEL_STACK,
             PhpWalkThreadStackCallback,
             threadStackContext
             );
@@ -1802,6 +1808,21 @@ static NTSTATUS PhpRefreshThreadStack(
                 PhPrintPointer(stackNode->PcAddressString, item->StackFrame.PcAddress);
             if (item->StackFrame.ReturnAddress)
                 PhPrintPointer(stackNode->ReturnAddressString, item->StackFrame.ReturnAddress);
+
+            if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM64EC)
+                PhInitializeStringRef(&stackNode->Architecture, L"ARM64EC");
+            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_CHPE)
+                PhInitializeStringRef(&stackNode->Architecture, L"CHPE");
+            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM64)
+                PhInitializeStringRef(&stackNode->Architecture, L"ARM64");
+            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_ARM)
+                PhInitializeStringRef(&stackNode->Architecture, L"ARM");
+            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_AMD64)
+                PhInitializeStringRef(&stackNode->Architecture, L"x64");
+            else if (item->StackFrame.Flags & PH_THREAD_STACK_FRAME_I386)
+                PhInitializeStringRef(&stackNode->Architecture, L"x86");
+            else
+                PhInitializeStringRef(&stackNode->Architecture, L"");
 
             UpdateThreadStackNode(Context, stackNode);
         }
