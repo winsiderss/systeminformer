@@ -257,7 +257,7 @@ typedef enum _THREADINFOCLASS
     ThreadTebInformation, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
     ThreadCSwitchMon,
     ThreadCSwitchPmu,
-    ThreadWow64Context, // qs: WOW64_CONTEXT
+    ThreadWow64Context, // qs: WOW64_CONTEX, ARM_NT_CONTEXT since 20H1
     ThreadGroupInformation, // qs: GROUP_AFFINITY // 30
     ThreadUmsInformation, // q: THREAD_UMS_INFORMATION
     ThreadCounterProfiling, // q: BOOLEAN; s: THREAD_PROFILING_INFORMATION?
@@ -1210,6 +1210,89 @@ typedef enum _THREAD_WORKLOAD_CLASS
     ThreadWorkloadClassGraphics,
     MaxThreadWorkloadClass
 } THREAD_WORKLOAD_CLASS;
+
+#if defined(_ARM64_)
+
+#define CONTEXT_ARM   0x00200000L
+
+#define CONTEXT_ARM_CONTROL (CONTEXT_ARM | 0x1L)
+#define CONTEXT_ARM_INTEGER (CONTEXT_ARM | 0x2L)
+#define CONTEXT_ARM_FLOATING_POINT  (CONTEXT_ARM | 0x4L)
+#define CONTEXT_ARM_DEBUG_REGISTERS (CONTEXT_ARM | 0x8L)
+
+#define CONTEXT_ARM_FULL (CONTEXT_ARM_CONTROL | CONTEXT_ARM_INTEGER | CONTEXT_ARM_FLOATING_POINT)
+
+#define CONTEXT_ARM_ALL (CONTEXT_ARM_CONTROL | CONTEXT_ARM_INTEGER | CONTEXT_ARM_FLOATING_POINT | CONTEXT_ARM_DEBUG_REGISTERS)
+
+#define ARM_MAX_BREAKPOINTS     8
+#define ARM_MAX_WATCHPOINTS     1
+
+typedef struct _ARM_NT_NEON128 {
+    ULONGLONG Low;
+    LONGLONG High;
+} ARM_NT_NEON128, *PARM_NT_NEON128;
+
+typedef struct DECLSPEC_ALIGN(8) DECLSPEC_NOINITALL _ARM_NT_CONTEXT {
+
+    //
+    // Control flags.
+    //
+
+    DWORD ContextFlags;
+
+    //
+    // Integer registers
+    //
+
+    DWORD R0;
+    DWORD R1;
+    DWORD R2;
+    DWORD R3;
+    DWORD R4;
+    DWORD R5;
+    DWORD R6;
+    DWORD R7;
+    DWORD R8;
+    DWORD R9;
+    DWORD R10;
+    DWORD R11;
+    DWORD R12;
+
+    //
+    // Control Registers
+    //
+
+    DWORD Sp;
+    DWORD Lr;
+    DWORD Pc;
+    DWORD Cpsr;
+
+    //
+    // Floating Point/NEON Registers
+    //
+
+    DWORD Fpscr;
+    DWORD Padding;
+    union {
+        ARM_NT_NEON128 Q[16];
+        ULONGLONG D[32];
+        DWORD S[32];
+    } DUMMYUNIONNAME;
+
+    //
+    // Debug registers
+    //
+
+    DWORD Bvr[ARM_MAX_BREAKPOINTS];
+    DWORD Bcr[ARM_MAX_BREAKPOINTS];
+    DWORD Wvr[ARM_MAX_WATCHPOINTS];
+    DWORD Wcr[ARM_MAX_WATCHPOINTS];
+
+    DWORD Padding2[2];
+
+} ARM_NT_CONTEXT, *PARM_NT_CONTEXT;
+
+#endif
 
 // Processes
 

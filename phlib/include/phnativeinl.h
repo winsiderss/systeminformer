@@ -984,6 +984,24 @@ PhGetThreadWow64Context(
         );
 }
 
+#if defined(_ARM64_)
+FORCEINLINE
+NTSTATUS
+PhGetThreadArm32Context(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PARM_NT_CONTEXT Context
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadWow64Context,
+        Context,
+        sizeof(ARM_NT_CONTEXT),
+        NULL
+        );
+}
+#endif
+
 FORCEINLINE
 NTSTATUS
 PhGetThreadBreakOnTermination(
