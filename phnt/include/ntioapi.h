@@ -211,84 +211,85 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION
     IO_STATUS_BLOCK IoStatusBlock;
 } FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
 
+// q - NtQueryInformationFile, s - NtSetInformationFile, d - NtQueryDirectoryFile[Ex]
 typedef enum _FILE_INFORMATION_CLASS
 {
-    FileDirectoryInformation = 1, // q: FILE_DIRECTORY_INFORMATION
-    FileFullDirectoryInformation, // q: FILE_FULL_DIR_INFORMATION
-    FileBothDirectoryInformation, // q: FILE_BOTH_DIR_INFORMATION
-    FileBasicInformation, // q; s: FILE_BASIC_INFORMATION; s (requires FILE_WRITE_ATTRIBUTES)
-    FileStandardInformation, // q: FILE_STANDARD_INFORMATION
+    FileDirectoryInformation = 1, // d: FILE_DIRECTORY_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileFullDirectoryInformation, // d: FILE_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileBothDirectoryInformation, // d: FILE_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileBasicInformation, // q; s: FILE_BASIC_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FileStandardInformation, // q: FILE_STANDARD_INFORMATION, FILE_STANDARD_INFORMATION_EX
     FileInternalInformation, // q: FILE_INTERNAL_INFORMATION
     FileEaInformation, // q: FILE_EA_INFORMATION
     FileAccessInformation, // q: FILE_ACCESS_INFORMATION
     FileNameInformation, // q: FILE_NAME_INFORMATION
-    FileRenameInformation, // q; s: FILE_RENAME_INFORMATION; s (requires DELETE) // 10
-    FileLinkInformation, // q: FILE_LINK_INFORMATION
-    FileNamesInformation, // q: FILE_NAMES_INFORMATION
-    FileDispositionInformation, // q; s: FILE_DISPOSITION_INFORMATION; s (requires DELETE)
-    FilePositionInformation, // q: FILE_POSITION_INFORMATION
-    FileFullEaInformation, // q: FILE_FULL_EA_INFORMATION
-    FileModeInformation, // q: FILE_MODE_INFORMATION
+    FileRenameInformation, // s: FILE_RENAME_INFORMATION (requires DELETE) // 10
+    FileLinkInformation, // s: FILE_LINK_INFORMATION
+    FileNamesInformation, // d: FILE_NAMES_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileDispositionInformation, // s: FILE_DISPOSITION_INFORMATION (requires DELETE)
+    FilePositionInformation, // q; s: FILE_POSITION_INFORMATION
+    FileFullEaInformation, // FILE_FULL_EA_INFORMATION
+    FileModeInformation, // q; s: FILE_MODE_INFORMATION
     FileAlignmentInformation, // q: FILE_ALIGNMENT_INFORMATION
-    FileAllInformation, // q: FILE_ALL_INFORMATION
-    FileAllocationInformation, // q: FILE_ALLOCATION_INFORMATION
-    FileEndOfFileInformation, // q; s: FILE_END_OF_FILE_INFORMATION; s (requires FILE_WRITE_DATA) // 20
+    FileAllInformation, // q: FILE_ALL_INFORMATION (requires FILE_READ_ATTRIBUTES)
+    FileAllocationInformation, // s: FILE_ALLOCATION_INFORMATION (requires FILE_WRITE_DATA)
+    FileEndOfFileInformation, // s: FILE_END_OF_FILE_INFORMATION (requires FILE_WRITE_DATA) // 20
     FileAlternateNameInformation, // q: FILE_NAME_INFORMATION
     FileStreamInformation, // q: FILE_STREAM_INFORMATION
-    FilePipeInformation, // q: FILE_PIPE_INFORMATION
-    FilePipeLocalInformation, // q: FILE_PIPE_LOCAL_INFORMATION
-    FilePipeRemoteInformation, // q: FILE_PIPE_REMOTE_INFORMATION
+    FilePipeInformation, // q; s: FILE_PIPE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FilePipeLocalInformation, // q: FILE_PIPE_LOCAL_INFORMATION (requires FILE_READ_ATTRIBUTES)
+    FilePipeRemoteInformation, // q; s: FILE_PIPE_REMOTE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
     FileMailslotQueryInformation, // q: FILE_MAILSLOT_QUERY_INFORMATION
-    FileMailslotSetInformation, // q: FILE_MAILSLOT_SET_INFORMATION
+    FileMailslotSetInformation, // s: FILE_MAILSLOT_SET_INFORMATION
     FileCompressionInformation, // q: FILE_COMPRESSION_INFORMATION
-    FileObjectIdInformation, // q: FILE_OBJECTID_INFORMATION
-    FileCompletionInformation, // q: FILE_COMPLETION_INFORMATION // 30
-    FileMoveClusterInformation, // q: FILE_MOVE_CLUSTER_INFORMATION
-    FileQuotaInformation, // q: FILE_QUOTA_INFORMATION
-    FileReparsePointInformation, // q: FILE_REPARSE_POINT_INFORMATION
-    FileNetworkOpenInformation, // q: FILE_NETWORK_OPEN_INFORMATION
-    FileAttributeTagInformation, // q: FILE_ATTRIBUTE_TAG_INFORMATION
-    FileTrackingInformation, // FILE_TRACKING_INFORMATION
-    FileIdBothDirectoryInformation, // FILE_ID_BOTH_DIR_INFORMATION
-    FileIdFullDirectoryInformation, // FILE_ID_FULL_DIR_INFORMATION
-    FileValidDataLengthInformation, // q; s: FILE_VALID_DATA_LENGTH_INFORMATION; s (requires FILE_WRITE_DATA and/or SeManageVolumePrivilege)
-    FileShortNameInformation, // q; s: FILE_NAME_INFORMATION; s (requires DELETE) // 40
-    FileIoCompletionNotificationInformation, // q: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION // since VISTA
-    FileIoStatusBlockRangeInformation, // q: FILE_IOSTATUSBLOCK_RANGE_INFORMATION
-    FileIoPriorityHintInformation, // q; s: FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX
-    FileSfioReserveInformation, // q: FILE_SFIO_RESERVE_INFORMATION
-    FileSfioVolumeInformation, // q: FILE_SFIO_VOLUME_INFORMATION
+    FileObjectIdInformation, // d: FILE_OBJECTID_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileCompletionInformation, // s: FILE_COMPLETION_INFORMATION // 30
+    FileMoveClusterInformation, // s: FILE_MOVE_CLUSTER_INFORMATION (requires FILE_WRITE_DATA)
+    FileQuotaInformation, // d: FILE_QUOTA_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileReparsePointInformation, // d: FILE_REPARSE_POINT_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileNetworkOpenInformation, // q: FILE_NETWORK_OPEN_INFORMATION (requires FILE_READ_ATTRIBUTES)
+    FileAttributeTagInformation, // q: FILE_ATTRIBUTE_TAG_INFORMATION (requires FILE_READ_ATTRIBUTES)
+    FileTrackingInformation, // s: FILE_TRACKING_INFORMATION (requires FILE_WRITE_DATA)
+    FileIdBothDirectoryInformation, // d: FILE_ID_BOTH_DIR_INFORMATION
+    FileIdFullDirectoryInformation, // d: FILE_ID_FULL_DIR_INFORMATION
+    FileValidDataLengthInformation, // s: FILE_VALID_DATA_LENGTH_INFORMATION (requires FILE_WRITE_DATA and/or SeManageVolumePrivilege)
+    FileShortNameInformation, // s: FILE_NAME_INFORMATION (requires DELETE) // 40
+    FileIoCompletionNotificationInformation, // q; s: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION (q: requires FILE_READ_ATTRIBUTES) // since VISTA
+    FileIoStatusBlockRangeInformation, // s: FILE_IOSTATUSBLOCK_RANGE_INFORMATION (requires SeLockMemoryPrivilege)
+    FileIoPriorityHintInformation, // q; s: FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX (q: requires FILE_READ_DATA)
+    FileSfioReserveInformation, // q; s: FILE_SFIO_RESERVE_INFORMATION (q: requires FILE_READ_DATA)
+    FileSfioVolumeInformation, // q: FILE_SFIO_VOLUME_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileHardLinkInformation, // q: FILE_LINKS_INFORMATION
-    FileProcessIdsUsingFileInformation, // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION
+    FileProcessIdsUsingFileInformation, // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileNormalizedNameInformation, // q: FILE_NAME_INFORMATION
     FileNetworkPhysicalNameInformation, // q: FILE_NETWORK_PHYSICAL_NAME_INFORMATION
-    FileIdGlobalTxDirectoryInformation, // q: FILE_ID_GLOBAL_TX_DIR_INFORMATION // since WIN7 // 50
-    FileIsRemoteDeviceInformation, // q: FILE_IS_REMOTE_DEVICE_INFORMATION
+    FileIdGlobalTxDirectoryInformation, // d: FILE_ID_GLOBAL_TX_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) // since WIN7 // 50
+    FileIsRemoteDeviceInformation, // q: FILE_IS_REMOTE_DEVICE_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileUnusedInformation,
     FileNumaNodeInformation, // q: FILE_NUMA_NODE_INFORMATION
     FileStandardLinkInformation, // q: FILE_STANDARD_LINK_INFORMATION
     FileRemoteProtocolInformation, // q: FILE_REMOTE_PROTOCOL_INFORMATION
-    FileRenameInformationBypassAccessCheck, // (kernel-mode only); FILE_RENAME_INFORMATION // since WIN8
-    FileLinkInformationBypassAccessCheck, // (kernel-mode only); FILE_LINK_INFORMATION
+    FileRenameInformationBypassAccessCheck, // (kernel-mode only); s: FILE_RENAME_INFORMATION // since WIN8
+    FileLinkInformationBypassAccessCheck, // (kernel-mode only); s: FILE_LINK_INFORMATION
     FileVolumeNameInformation, // q: FILE_VOLUME_NAME_INFORMATION
     FileIdInformation, // q: FILE_ID_INFORMATION
-    FileIdExtdDirectoryInformation, // q: FILE_ID_EXTD_DIR_INFORMATION // 60
-    FileReplaceCompletionInformation, // q; s: FILE_COMPLETION_INFORMATION // since WINBLUE
+    FileIdExtdDirectoryInformation, // d: FILE_ID_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) // 60
+    FileReplaceCompletionInformation, // s: FILE_COMPLETION_INFORMATION // since WINBLUE
     FileHardLinkFullIdInformation, // q: FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
-    FileIdExtdBothDirectoryInformation, // q: FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
-    FileDispositionInformationEx, // q; s: FILE_DISPOSITION_INFO_EX; s (requires DELETE) // since REDSTONE
-    FileRenameInformationEx, // q: FILE_RENAME_INFORMATION_EX
-    FileRenameInformationExBypassAccessCheck, // (kernel-mode only); FILE_RENAME_INFORMATION_EX
-    FileDesiredStorageClassInformation, // q: FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
-    FileStatInformation, // q: FILE_STAT_INFORMATION
-    FileMemoryPartitionInformation, // q: FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
-    FileStatLxInformation, // q: FILE_STAT_LX_INFORMATION // since REDSTONE4 // 70
-    FileCaseSensitiveInformation, // q; s: FILE_CASE_SENSITIVE_INFORMATION; s (requires FILE_WRITE_ATTRIBUTES)
-    FileLinkInformationEx, // q; s: FILE_LINK_INFORMATION_EX // since REDSTONE5
-    FileLinkInformationExBypassAccessCheck, // (kernel-mode only); FILE_LINK_INFORMATION_EX
-    FileStorageReserveIdInformation, // q: FILE_SET_STORAGE_RESERVE_ID_INFORMATION
-    FileCaseSensitiveInformationForceAccessCheck, // q; s: FILE_CASE_SENSITIVE_INFORMATION; s (requires FILE_WRITE_ATTRIBUTES)
-    FileKnownFolderInformation, // q; s: FILE_KNOWN_FOLDER_INFORMATION // since WIN11
+    FileIdExtdBothDirectoryInformation, // d: FILE_ID_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) // since THRESHOLD
+    FileDispositionInformationEx, // s: FILE_DISPOSITION_INFO_EX (requires DELETE) // since REDSTONE
+    FileRenameInformationEx, // s: FILE_RENAME_INFORMATION_EX
+    FileRenameInformationExBypassAccessCheck, // (kernel-mode only); s: FILE_RENAME_INFORMATION_EX
+    FileDesiredStorageClassInformation, // q; s: FILE_DESIRED_STORAGE_CLASS_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since REDSTONE2
+    FileStatInformation, // q: FILE_STAT_INFORMATION (requires FILE_READ_ATTRIBUTES)
+    FileMemoryPartitionInformation, // s: FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
+    FileStatLxInformation, // q: FILE_STAT_LX_INFORMATION (requires FILE_READ_ATTRIBUTES and FILE_READ_EA) // since REDSTONE4 // 70
+    FileCaseSensitiveInformation, // q; s: FILE_CASE_SENSITIVE_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FileLinkInformationEx, // s: FILE_LINK_INFORMATION_EX // since REDSTONE5
+    FileLinkInformationExBypassAccessCheck, // (kernel-mode only); s: FILE_LINK_INFORMATION_EX
+    FileStorageReserveIdInformation, // q; s: FILE_STORAGE_RESERVE_ID_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
+    FileCaseSensitiveInformationForceAccessCheck, // q; s: FILE_CASE_SENSITIVE_INFORMATION 
+    FileKnownFolderInformation, // q; s: FILE_KNOWN_FOLDER_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since WIN11
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
@@ -312,6 +313,7 @@ typedef struct _FILE_STANDARD_INFORMATION
     BOOLEAN Directory;
 } FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
 
+//#if (PHNT_VERSION >= PHNT_THRESHOLD)
 typedef struct _FILE_STANDARD_INFORMATION_EX
 {
     LARGE_INTEGER AllocationSize;
@@ -322,12 +324,13 @@ typedef struct _FILE_STANDARD_INFORMATION_EX
     BOOLEAN AlternateStream;
     BOOLEAN MetadataAttribute;
 } FILE_STANDARD_INFORMATION_EX, *PFILE_STANDARD_INFORMATION_EX;
+//#endif
 
 typedef struct _FILE_INTERNAL_INFORMATION
 {
     union
     {
-        LARGE_INTEGER IndexNumber; // private
+        LARGE_INTEGER IndexNumber;
         struct
         {
             LONGLONG MftRecordIndex : 48; // rev
@@ -756,7 +759,7 @@ typedef struct _FILE_ID_INFORMATION
     ULONGLONG VolumeSerialNumber;
     union
     {
-        FILE_ID_128 FileId; // private
+        FILE_ID_128 FileId;
         struct
         {
             LONGLONG FileIdLowPart : 64; // rev
@@ -818,7 +821,6 @@ typedef struct _FILE_ID_EXTD_BOTH_DIR_INFORMATION
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_EXTD_BOTH_DIR_INFORMATION, *PFILE_ID_EXTD_BOTH_DIR_INFORMATION;
 
-// private
 typedef struct _FILE_STAT_INFORMATION
 {
     LARGE_INTEGER FileId;
@@ -834,7 +836,6 @@ typedef struct _FILE_STAT_INFORMATION
     ACCESS_MASK EffectiveAccess;
 } FILE_STAT_INFORMATION, *PFILE_STAT_INFORMATION;
 
-// private
 typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 {
     HANDLE OwnerPartitionHandle;
@@ -856,7 +857,6 @@ typedef struct _FILE_MEMORY_PARTITION_INFORMATION
 #define LX_FILE_METADATA_HAS_DEVICE_ID 0x8
 #define LX_FILE_CASE_SENSITIVE_DIR 0x10
 
-// private
 typedef struct _FILE_STAT_LX_INFORMATION
 {
     LARGE_INTEGER FileId;
@@ -878,15 +878,17 @@ typedef struct _FILE_STAT_LX_INFORMATION
     ULONG LxDeviceIdMinor;
 } FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
 
+typedef struct _FILE_STORAGE_RESERVE_ID_INFORMATION {
+    STORAGE_RESERVE_ID StorageReserveId;
+} FILE_STORAGE_RESERVE_ID_INFORMATION, *PFILE_STORAGE_RESERVE_ID_INFORMATION;
+
 #define FILE_CS_FLAG_CASE_SENSITIVE_DIR     0x00000001
 
-// private
 typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 {
     ULONG Flags;
 } FILE_CASE_SENSITIVE_INFORMATION, *PFILE_CASE_SENSITIVE_INFORMATION;
 
-// private
 typedef enum _FILE_KNOWN_FOLDER_TYPE
 {
     KnownFolderNone,
@@ -900,7 +902,6 @@ typedef enum _FILE_KNOWN_FOLDER_TYPE
     KnownFolderMax = 7
 } FILE_KNOWN_FOLDER_TYPE;
 
-// private
 typedef struct _FILE_KNOWN_FOLDER_INFORMATION
 {
     FILE_KNOWN_FOLDER_TYPE Type;
@@ -1081,27 +1082,26 @@ typedef struct _FILE_QUOTA_INFORMATION
 
 typedef enum _FSINFOCLASS
 {
-    FileFsVolumeInformation = 1, // FILE_FS_VOLUME_INFORMATION
-    FileFsLabelInformation, // FILE_FS_LABEL_INFORMATION
-    FileFsSizeInformation, // FILE_FS_SIZE_INFORMATION
-    FileFsDeviceInformation, // FILE_FS_DEVICE_INFORMATION
-    FileFsAttributeInformation, // FILE_FS_ATTRIBUTE_INFORMATION
-    FileFsControlInformation, // FILE_FS_CONTROL_INFORMATION
-    FileFsFullSizeInformation, // FILE_FS_FULL_SIZE_INFORMATION
-    FileFsObjectIdInformation, // FILE_FS_OBJECTID_INFORMATION
-    FileFsDriverPathInformation, // FILE_FS_DRIVER_PATH_INFORMATION
-    FileFsVolumeFlagsInformation, // FILE_FS_VOLUME_FLAGS_INFORMATION // 10
-    FileFsSectorSizeInformation, // FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
-    FileFsDataCopyInformation, // FILE_FS_DATA_COPY_INFORMATION
-    FileFsMetadataSizeInformation, // FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
-    FileFsFullSizeInformationEx, // FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
+    FileFsVolumeInformation = 1, // q: FILE_FS_VOLUME_INFORMATION
+    FileFsLabelInformation, // s: FILE_FS_LABEL_INFORMATION (requires FILE_WRITE_DATA to volume)
+    FileFsSizeInformation, // q: FILE_FS_SIZE_INFORMATION
+    FileFsDeviceInformation, // q: FILE_FS_DEVICE_INFORMATION
+    FileFsAttributeInformation, // q: FILE_FS_ATTRIBUTE_INFORMATION
+    FileFsControlInformation, // q, s: FILE_FS_CONTROL_INFORMATION  (q: requires FILE_READ_DATA; s: requires FILE_WRITE_DATA to volume)
+    FileFsFullSizeInformation, // q: FILE_FS_FULL_SIZE_INFORMATION
+    FileFsObjectIdInformation, // q; s: FILE_FS_OBJECTID_INFORMATION (s: requires FILE_WRITE_DATA to volume)
+    FileFsDriverPathInformation, // q: FILE_FS_DRIVER_PATH_INFORMATION
+    FileFsVolumeFlagsInformation, // q; s: FILE_FS_VOLUME_FLAGS_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES to volume) // 10
+    FileFsSectorSizeInformation, // q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
+    FileFsDataCopyInformation, // q: FILE_FS_DATA_COPY_INFORMATION
+    FileFsMetadataSizeInformation, // q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
+    FileFsFullSizeInformationEx, // q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 typedef enum _FSINFOCLASS FS_INFORMATION_CLASS;
 
 // NtQueryVolumeInformation/NtSetVolumeInformation types
 
-// private
 typedef struct _FILE_FS_VOLUME_INFORMATION
 {
     LARGE_INTEGER VolumeCreationTime;
@@ -1111,14 +1111,12 @@ typedef struct _FILE_FS_VOLUME_INFORMATION
     _Field_size_bytes_(VolumeLabelLength) WCHAR VolumeLabel[1];
 } FILE_FS_VOLUME_INFORMATION, *PFILE_FS_VOLUME_INFORMATION;
 
-// private
 typedef struct _FILE_FS_LABEL_INFORMATION
 {
     ULONG VolumeLabelLength;
     _Field_size_bytes_(VolumeLabelLength) WCHAR VolumeLabel[1];
-} FILE_FS_LABEL_INFORMATION, * PFILE_FS_LABEL_INFORMATION;
+} FILE_FS_LABEL_INFORMATION, *PFILE_FS_LABEL_INFORMATION;
 
-// private
 typedef struct _FILE_FS_SIZE_INFORMATION
 {
     LARGE_INTEGER TotalAllocationUnits;
@@ -1141,7 +1139,6 @@ typedef struct _FILE_FS_SIZE_INFORMATION
 #define FILE_VC_QUOTAS_REBUILDING 0x00000200
 #define FILE_VC_VALID_MASK 0x000003ff
 
-// private
 typedef struct _FILE_FS_CONTROL_INFORMATION
 {
     LARGE_INTEGER FreeSpaceStartFiltering;
@@ -1149,10 +1146,9 @@ typedef struct _FILE_FS_CONTROL_INFORMATION
     LARGE_INTEGER FreeSpaceStopFiltering;
     LARGE_INTEGER DefaultQuotaThreshold;
     LARGE_INTEGER DefaultQuotaLimit;
-    ULONG FileSystemControlFlags;
+    ULONG FileSystemControlFlags; // FILE_VC_*
 } FILE_FS_CONTROL_INFORMATION, *PFILE_FS_CONTROL_INFORMATION;
 
-// private
 typedef struct _FILE_FS_FULL_SIZE_INFORMATION
 {
     LARGE_INTEGER TotalAllocationUnits;
@@ -1162,7 +1158,6 @@ typedef struct _FILE_FS_FULL_SIZE_INFORMATION
     ULONG BytesPerSector;
 } FILE_FS_FULL_SIZE_INFORMATION, *PFILE_FS_FULL_SIZE_INFORMATION;
 
-// private
 typedef struct _FILE_FS_OBJECTID_INFORMATION
 {
     UCHAR ObjectId[16];
@@ -1178,14 +1173,12 @@ typedef struct _FILE_FS_OBJECTID_INFORMATION
     };
 } FILE_FS_OBJECTID_INFORMATION, *PFILE_FS_OBJECTID_INFORMATION;
 
-// private
 typedef struct _FILE_FS_DEVICE_INFORMATION
 {
     DEVICE_TYPE DeviceType;
     ULONG Characteristics;
 } FILE_FS_DEVICE_INFORMATION, *PFILE_FS_DEVICE_INFORMATION;
 
-// private
 typedef struct _FILE_FS_ATTRIBUTE_INFORMATION
 {
     ULONG FileSystemAttributes;
@@ -1194,7 +1187,6 @@ typedef struct _FILE_FS_ATTRIBUTE_INFORMATION
     _Field_size_bytes_(FileSystemNameLength) WCHAR FileSystemName[1];
 } FILE_FS_ATTRIBUTE_INFORMATION, *PFILE_FS_ATTRIBUTE_INFORMATION;
 
-// private
 typedef struct _FILE_FS_DRIVER_PATH_INFORMATION
 {
     BOOLEAN DriverInPath;
@@ -1202,7 +1194,6 @@ typedef struct _FILE_FS_DRIVER_PATH_INFORMATION
     _Field_size_bytes_(DriverNameLength) WCHAR DriverName[1];
 } FILE_FS_DRIVER_PATH_INFORMATION, *PFILE_FS_DRIVER_PATH_INFORMATION;
 
-// private
 typedef struct _FILE_FS_VOLUME_FLAGS_INFORMATION
 {
     ULONG Flags;
@@ -1210,6 +1201,9 @@ typedef struct _FILE_FS_VOLUME_FLAGS_INFORMATION
 
 #define SSINFO_FLAGS_ALIGNED_DEVICE 0x00000001
 #define SSINFO_FLAGS_PARTITION_ALIGNED_ON_DEVICE 0x00000002
+#define SSINFO_FLAGS_NO_SEEK_PENALTY 0x00000004
+#define SSINFO_FLAGS_TRIM_ENABLED 0x00000008
+#define SSINFO_FLAGS_BYTE_ADDRESSABLE 0x00000010 // since THRESHOLD2
 
 // If set for Sector and Partition fields, alignment is not known.
 #define SSINFO_OFFSET_UNKNOWN 0xffffffff
@@ -1220,18 +1214,16 @@ typedef struct _FILE_FS_SECTOR_SIZE_INFORMATION
     ULONG PhysicalBytesPerSectorForAtomicity;
     ULONG PhysicalBytesPerSectorForPerformance;
     ULONG FileSystemEffectivePhysicalBytesPerSectorForAtomicity;
-    ULONG Flags;
+    ULONG Flags; // SSINFO_FLAGS_*
     ULONG ByteOffsetForSectorAlignment;
     ULONG ByteOffsetForPartitionAlignment;
 } FILE_FS_SECTOR_SIZE_INFORMATION, *PFILE_FS_SECTOR_SIZE_INFORMATION;
 
-// private
 typedef struct _FILE_FS_DATA_COPY_INFORMATION
 {
     ULONG NumberOfCopies;
 } FILE_FS_DATA_COPY_INFORMATION, *PFILE_FS_DATA_COPY_INFORMATION;
 
-// private
 typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
 {
     LARGE_INTEGER TotalMetadataAllocationUnits;
@@ -1239,7 +1231,6 @@ typedef struct _FILE_FS_METADATA_SIZE_INFORMATION
     ULONG BytesPerSector;
 } FILE_FS_METADATA_SIZE_INFORMATION, *PFILE_FS_METADATA_SIZE_INFORMATION;
 
-// private
 typedef struct _FILE_FS_FULL_SIZE_INFORMATION_EX
 {
     ULONGLONG ActualTotalAllocationUnits;
@@ -1293,7 +1284,7 @@ NtCreateNamedPipeFile(
     _In_ ULONG MaximumInstances,
     _In_ ULONG InboundQuota,
     _In_ ULONG OutboundQuota,
-    _In_opt_ PLARGE_INTEGER DefaultTimeout
+    _In_ PLARGE_INTEGER DefaultTimeout
     );
 
 NTSYSCALLAPI
