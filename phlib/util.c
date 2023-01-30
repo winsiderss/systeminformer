@@ -3451,7 +3451,7 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 
     if (randomAlphaFileName)
     {
-        if (!NT_SUCCESS(PhCreateDirectoryWin32(randomAlphaFileName)))
+        if (!NT_SUCCESS(PhCreateDirectoryWin32(&randomAlphaFileName->sr)))
         {
             PhReferenceObject(randomAlphaFileName);
             return NULL;
@@ -6828,7 +6828,7 @@ VOID PhClearCacheDirectory(
 
     if (cacheDirectory)
     {
-        PhDeleteDirectoryWin32(cacheDirectory);
+        PhDeleteDirectoryWin32(&cacheDirectory->sr);
 
         PhDereferenceObject(cacheDirectory);
     }
@@ -6854,7 +6854,8 @@ VOID PhDeleteCacheFile(
     {
         if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
-            PhDeleteDirectoryWin32(cacheDirectory);
+            PhDeleteDirectoryWin32(&cacheDirectory->sr);
+
             PhDereferenceObject(cacheDirectory);
         }
 
