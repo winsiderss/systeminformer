@@ -446,7 +446,6 @@ EXPORTS
     PhShellExecute
     PhShellExecuteEx
     PhShellExploreFile
-    PhShellOpenKey
     PhShellProperties
     PhShowConfirmMessage
     PhShowContinueStatus
