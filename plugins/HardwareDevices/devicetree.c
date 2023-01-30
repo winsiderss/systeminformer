@@ -2504,9 +2504,9 @@ static int __cdecl DeviceTreeSortFunction(
 BOOLEAN NTAPI DeviceTreeCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     )
 {
     PDEVICE_NODE node;
@@ -2516,8 +2516,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewGetChildren:
         {
             PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-
-            assert(getChildren);
 
             if (!DeviceTree)
             {
@@ -2577,9 +2575,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
-
-            assert(isLeaf);
-
             node = (PDEVICE_NODE)isLeaf->Node;
 
             if (DeviceTreeSortOrder == NoSortOrder)
@@ -2591,44 +2586,43 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewGetCellText:
         {
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
-            PPH_STRING text;
-
-            assert(getCellText);
-
             node = (PDEVICE_NODE)getCellText->Node;
 
-            getCellText->Flags = TN_CACHE;
-
-            text = GetDeviceNodeProperty(node, getCellText->Id)->AsString;
+            PPH_STRING text = GetDeviceNodeProperty(node, getCellText->Id)->AsString;
 
             getCellText->Text = PhGetStringRef(text);
+            getCellText->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewGetNodeColor:
         {
             PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
-
-            assert(getNodeColor);
-
             node = (PDEVICE_NODE)getNodeColor->Node;
 
             getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
 
             if (node->DevNodeStatus & DN_HAS_PROBLEM && (node->ProblemCode != CM_PROB_DISABLED))
+            {
                 getNodeColor->BackColor = DeviceProblemColor;
-            if ((node->Capabilities & CM_DEVCAP_HARDWAREDISABLED) || (node->ProblemCode == CM_PROB_DISABLED))
+            }
+            else if ((node->Capabilities & CM_DEVCAP_HARDWAREDISABLED) || (node->ProblemCode == CM_PROB_DISABLED))
+            {
                 getNodeColor->BackColor = DeviceDisabledColor;
+            }
             else if (node->ProblemCode == CM_PROB_PHANTOM)
-                getNodeColor->BackColor = DeviceDisconnectedColor;
+            {
+                getNodeColor->ForeColor = DeviceDisconnectedColor;
+                ClearFlag(getNodeColor->Flags, TN_AUTO_FORECOLOR);
+            }
             else if ((HighlightUpperFiltered && node->HasUpperFilters) || (HighlightLowerFiltered && node->HasLowerFilters))
+            {
                 getNodeColor->BackColor = DeviceHighlightColor;
+            }
         }
         return TRUE;
     case TreeNewGetNodeIcon:
         {
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
-
-            assert(getNodeIcon);
 
             node = (PDEVICE_NODE)getNodeIcon->Node;
             getNodeIcon->Icon = node->Icon;
@@ -2652,6 +2646,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU_ITEM showDisconnectedDevices;
             PPH_EMENU_ITEM highlightUpperFiltered;
             PPH_EMENU_ITEM highlightLowerFiltered;
+            PPH_EMENU_ITEM gotoServiceItem;
             PPH_EMENU_ITEM enable;
             PPH_EMENU_ITEM disable;
             PPH_EMENU_ITEM restart;
@@ -2659,19 +2654,17 @@ BOOLEAN NTAPI DeviceTreeCallback(
             BOOLEAN republish;
             BOOLEAN invalidate;
 
-            if (!contextMenuEvent)
-                break;
-
             node = (PDEVICE_NODE)contextMenuEvent->Node;
 
             menu = PhCreateEMenu();
-
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 100, L"Refresh", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, autoRefresh = PhCreateEMenuItem(0, 101, L"Refresh automatically", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, showDisconnectedDevices = PhCreateEMenuItem(0, 102, L"Show disconnected devices", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 103, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 104, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 105, L"Go to service...", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, enable = PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, disable = PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
@@ -2699,6 +2692,16 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 highlightUpperFiltered->Flags |= PH_EMENU_CHECKED;
             if (HighlightLowerFiltered)
                 highlightLowerFiltered->Flags |= PH_EMENU_CHECKED;
+
+            if (gotoServiceItem)
+            {
+                PPH_STRING serviceName = GetDeviceNodeProperty(node, DevKeyService)->AsString;
+
+                if (PhIsNullOrEmptyString(serviceName))
+                {
+                    PhSetDisabledEMenuItem(gotoServiceItem);
+                }
+            }
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
@@ -2781,6 +2784,22 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, HighlightLowerFiltered);
                         invalidate = TRUE;
                         break;
+                    case 105:
+                        {
+                            PPH_STRING serviceName = GetDeviceNodeProperty(node, DevKeyService)->AsString;
+                            PPH_SERVICE_ITEM serviceItem;
+
+                            if (!PhIsNullOrEmptyString(serviceName))
+                            {
+                                if (serviceItem = PhReferenceServiceItem(PhGetString(serviceName)))
+                                {
+                                    ProcessHacker_SelectTabPage(1);
+                                    ProcessHacker_SelectServiceItem(serviceItem);
+                                    PhDereferenceObject(serviceItem);
+                                }
+                            }
+                        }
+                        break;
                     }
                 }
             }
@@ -2802,10 +2821,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
     case TreeNewLeftDoubleClick:
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
-
-            if (!mouseEvent)
-                break;
-
             node = (PDEVICE_NODE)mouseEvent->Node;
 
             if (node->InstanceId)
