@@ -85,7 +85,7 @@ VOID FreeClrProcessSupport(
 {
     if (Support->DataProcess) IXCLRDataProcess_Release(Support->DataProcess);
     // Free the library here so we can cleanup in ICLRDataTarget_Release. (dmex)
-    if (Support->DacDllBase) FreeLibrary(Support->DacDllBase);
+    if (Support->DacDllBase) PhFreeLibrary(Support->DacDllBase);
     if (Support->DataTarget) ICLRDataTarget_Release(Support->DataTarget);
 
     PhFree(Support);
@@ -1554,7 +1554,7 @@ HRESULT CreateXCLRDataProcess(
 
     if (!ClrDataCreateInstance)
     {
-        FreeLibrary(dllBase);
+        PhFreeLibrary(dllBase);
         return E_FAIL;
     }
 
@@ -1566,7 +1566,7 @@ HRESULT CreateXCLRDataProcess(
 
     if (status != S_OK)
     {
-        FreeLibrary(dllBase);
+        PhFreeLibrary(dllBase);
         return status;
     }
 

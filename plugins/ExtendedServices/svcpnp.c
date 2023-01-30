@@ -190,7 +190,7 @@ BOOLEAN HardwareDeviceShowProperties(
             }
         }
 
-        FreeLibrary(devMgrHandle);
+        PhFreeLibrary(devMgrHandle);
     }
 
     return FALSE;
