@@ -191,6 +191,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
+    PhpAddIntegerSetting(L"ScrollToRemovedProcesses", L"0");
     PhpAddStringSetting(L"SearchEngine", L"https://duckduckgo.com/?q=\"%s\"");
     PhpAddStringSetting(L"SegmentHeapListViewColumns", L"");
     PhpAddStringSetting(L"SegmentHeapListViewSort", L"0,1");
@@ -328,6 +329,7 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(HideOtherUserProcesses);
     PH_UPDATE_SETTING(PropagateCpuUsage);
     PH_UPDATE_SETTING(ScrollToNewProcesses);
+    PH_UPDATE_SETTING(ScrollToRemovedProcesses);
     PH_UPDATE_SETTING(ShowCpuBelow001);
     PH_UPDATE_SETTING(UpdateInterval);
 
