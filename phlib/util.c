@@ -6874,6 +6874,7 @@ HANDLE PhGetNamespaceHandle(
     if (PhBeginInitOnce(&initOnce))
     {
         static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
         OBJECT_ATTRIBUTES objectAttributes;
         PSECURITY_DESCRIPTOR securityDescriptor;
         ULONG sdAllocationLength;
@@ -6897,7 +6898,7 @@ HANDLE PhGetNamespaceHandle(
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
             RtlLengthSid(&PhSeInteractiveSid);
 
-        securityDescriptor = PhAllocate(sdAllocationLength);
+        securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
         dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
         RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
@@ -6921,8 +6922,10 @@ HANDLE PhGetNamespaceHandle(
             &objectAttributes
             );
 
-        PhFree(securityDescriptor);
-
+#ifdef DEBUG
+        assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
+        assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+#endif
         PhEndInitOnce(&initOnce);
     }
 
