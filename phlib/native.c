@@ -10226,6 +10226,157 @@ CleanupExit:
     return status;
 }
 
+NTSTATUS PhCopyFileChunkDirectIoWin32(
+    _In_ PWSTR OldFileName,
+    _In_ PWSTR NewFileName,
+    _In_ BOOLEAN FailIfExists
+    )
+{
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
+    NTSTATUS status;
+    HANDLE sourceHandle;
+    HANDLE destinationHandle;
+    FILE_BASIC_INFORMATION basicInfo;
+    FILE_FS_SECTOR_SIZE_INFORMATION sourceSectorInfo = { 0 };
+    FILE_FS_SECTOR_SIZE_INFORMATION destinationSectorInfo = { 0 };
+    IO_STATUS_BLOCK ioStatusBlock;
+    LARGE_INTEGER sourceOffset = { 0 };
+    LARGE_INTEGER destinationOffset = { 0 };
+    LARGE_INTEGER fileSize;
+    SIZE_T numberOfBytes;
+    ULONG alignSize;
+    ULONG blockSize;
+
+    if (WindowsVersion < WINDOWS_11_22H1)
+        return STATUS_NOT_SUPPORTED;
+
+    status = PhCreateFileWin32ExAlt(
+        &sourceHandle,
+        OldFileName,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_NO_INTERMEDIATE_BUFFERING,
+        EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetFileBasicInformation(sourceHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetFileSize(sourceHandle, &fileSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhCreateFileWin32ExAlt(
+        &destinationHandle,
+        NewFileName,
+        FILE_WRITE_DATA | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        0,
+        FailIfExists ? FILE_CREATE : FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_NO_INTERMEDIATE_BUFFERING,
+        EX_CREATE_FLAG_FILE_DEST_OPEN_FOR_COPY,
+        &fileSize,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // https://learn.microsoft.com/en-us/windows/win32/w8cookbook/advanced-format--4k--disk-compatibility-update
+    NtQueryVolumeInformationFile(
+        sourceHandle,
+        &ioStatusBlock,
+        &sourceSectorInfo,
+        sizeof(FILE_FS_SECTOR_SIZE_INFORMATION),
+        FileFsSectorSizeInformation
+        );
+
+    NtQueryVolumeInformationFile(
+        destinationHandle,
+        &ioStatusBlock,
+        &destinationSectorInfo,
+        sizeof(FILE_FS_SECTOR_SIZE_INFORMATION),
+        FileFsSectorSizeInformation
+        );
+
+    // Non-cached I/O requires 'blockSize' be sector-aligned with whichever file is opened as non-cached.
+    // If both, the length should be aligned with the larger sector size of the two. (dmex)
+    alignSize = max(max(sourceSectorInfo.PhysicalBytesPerSectorForPerformance, destinationSectorInfo.PhysicalBytesPerSectorForPerformance), 
+        max(sourceSectorInfo.PhysicalBytesPerSectorForAtomicity, destinationSectorInfo.PhysicalBytesPerSectorForAtomicity));
+
+    // Enable BypassIO (skip error checking since might be disabled) (dmex)
+    PhSetFileBypassIO(sourceHandle, TRUE);
+    PhSetFileBypassIO(destinationHandle, TRUE);
+
+    blockSize = PAGE_SIZE;
+    numberOfBytes = fileSize.QuadPart;
+
+    while (numberOfBytes != 0)
+    {
+        if (blockSize > numberOfBytes)
+            blockSize = (ULONG)numberOfBytes;
+        blockSize = ALIGN_UP_BY(blockSize, alignSize);
+
+        status = NtCopyFileChunk(
+            sourceHandle,
+            destinationHandle,
+            NULL,
+            &ioStatusBlock,
+            blockSize,
+            &sourceOffset,
+            &destinationOffset,
+            NULL,
+            NULL,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        destinationOffset.QuadPart += blockSize;
+        sourceOffset.QuadPart += blockSize;
+        numberOfBytes -= blockSize;
+    }
+
+    if (status == STATUS_END_OF_FILE)
+        status = STATUS_SUCCESS;
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetFileSize(destinationHandle, &fileSize); // Required (dmex)
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetFileBasicInformation(destinationHandle, &basicInfo);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDeleteFile(destinationHandle);
+    }
+
+    NtClose(destinationHandle);
+
+CleanupExit:
+    NtClose(sourceHandle);
+
+    return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
+}
+
 NTSTATUS PhCopyFileChunkWin32(
     _In_ PWSTR OldFileName,
     _In_ PWSTR NewFileName,
@@ -10287,12 +10438,6 @@ NTSTATUS PhCopyFileChunkWin32(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    // TODO: BypassIO requires the file opened for non-cached I/O (FILE_NO_INTERMEDIATE_BUFFERING).
-    // Non-cached I/O requires 'blockSize' be sector-aligned with whichever file is opened as non-cached.
-    // If both, the length should be aligned with the larger sector size of the two. (dmex)
-    //PhSetFileBypassIO(sourceHandle, TRUE);
-    //PhSetFileBypassIO(destinationHandle, TRUE);
-
     if (fileSize.QuadPart >= ULONG_MAX)
     {
         SIZE_T numberOfBytes = fileSize.QuadPart;
@@ -10345,12 +10490,9 @@ NTSTATUS PhCopyFileChunkWin32(
 
     if (NT_SUCCESS(status))
     {
-        NtSetInformationFile(
-            destinationHandle,
-            &ioStatusBlock,
-            &basicInfo,
-            sizeof(FILE_BASIC_INFORMATION),
-            FileBasicInformation
+        PhSetFileBasicInformation(
+            destinationHandle, 
+            &basicInfo
             );
     }
     else
