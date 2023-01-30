@@ -1331,6 +1331,8 @@ LRESULT CALLBACK MainWndSubclassProc(
             {
                 // The user cancelled the targeting, probably by pressing the Esc key.
 
+                TargetingCompleted = TRUE;
+
                 // Remove the border on the currently selected window.
                 if (TargetingCurrentWindow)
                 {
@@ -1344,7 +1346,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 SetWindowPos(hWnd, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
                     0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
-                TargetingCompleted = TRUE;
+                TargetingWindow = FALSE;
             }
         }
         break;
