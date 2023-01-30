@@ -2472,27 +2472,26 @@ PPH_STRING PhpGetImageMunResourcePath(
         if (NativeFileName)
         {
             if (PhDoesFileExist(&fileName->sr))
-                PhMoveReference(&filePath, fileName);
-            else
-                PhDereferenceObject(fileName);
+            {
+                PhDereferenceObject(directory);
+                return fileName;
+            }
         }
         else
         {
             if (PhDoesFileExistWin32(PhGetString(fileName)))
-                PhMoveReference(&filePath, fileName);
-            else
-                PhDereferenceObject(fileName);
+            {
+                PhDereferenceObject(directory);
+                return fileName;
+            }
         }
     }
 
-    if (PhIsNullOrEmptyString(filePath))
-    {
-        PhSetReference(&filePath, FileName);
-    }
-
     PhClearReference(&directory);
+    PhClearReference(&fileName);
 
-    return filePath;
+    PhReferenceObject(FileName);
+    return FileName;
 }
 
 // rev from PrivateExtractIconExW with changes
