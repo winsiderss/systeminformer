@@ -29,7 +29,7 @@
 
 #include "..\resource.h"
 
-extern PPH_STRING PvFileName;
+EXTERN_C PPH_STRING PvFileName;
 EXTERN_C PH_MAPPED_IMAGE PvMappedImage;
 extern PIMAGE_COR20_HEADER PvImageCor20Header;
 extern PPH_SYMBOL_PROVIDER PvSymbolProvider;
@@ -472,6 +472,13 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PvpPeClrTablesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 INT_PTR CALLBACK PvpPeCgfDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -681,13 +688,32 @@ PvClrImportFlagsToString(
     _In_ ULONG Flags
     );
 
+EXTERN_C 
+PPH_STRING
+NTAPI
+PvGetClrImageTargetFramework(
+    VOID
+    );
+
 EXTERN_C
 HRESULT
 NTAPI
 PvGetClrImageImports(
-    _In_ PVOID ClrMetaDataDispenser,
-    _In_ PWSTR FileName,
     _Out_ PPH_LIST* ClrImportsList
+    );
+
+typedef BOOLEAN (NTAPI* PPV_CLRTABLE_FUNCTION)(
+    _In_ ULONG TableIndex,
+    _In_ ULONG TableSize,
+    _In_ ULONG TableCount,
+    _In_ PPH_STRING TableName,
+    _In_opt_ PVOID Offset,
+    _In_opt_ PVOID Context
+    );
+
+EXTERN_C HRESULT PvClrImageEnumTables(
+    _In_ PPV_CLRTABLE_FUNCTION Callback,
+    _In_ PVOID Context
     );
 
 #endif

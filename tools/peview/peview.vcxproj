@@ -357,6 +357,7 @@
     <ClCompile Include="clrtableimports.cpp" />
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="clrtableimportprp.c" />
+    <ClCompile Include="clrprptables.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="attributes.c" />
     <ClCompile Include="debugprp.c" />
