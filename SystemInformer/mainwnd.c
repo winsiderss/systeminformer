@@ -2153,6 +2153,7 @@ VOID PhMwpLoadSettings(
     PhEnableTooltipSupport = !!PhGetIntegerSetting(L"EnableTooltipSupport");
     PhEnableImageCoherencySupport = !!PhGetIntegerSetting(L"EnableImageCoherencySupport");
     PhEnableLinuxSubsystemSupport = !!PhGetIntegerSetting(L"EnableLinuxSubsystemSupport");
+    PhEnablePackageIconSupport = !!PhGetIntegerSetting(L"EnablePackageIconSupport");
     PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))

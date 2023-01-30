@@ -49,6 +49,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkBoundConnections", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
+    PhpAddIntegerSetting(L"EnablePackageIconSupport", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableGraphMaxScale", L"0");
     PhpAddIntegerSetting(L"EnableGraphMaxText", L"1");
