@@ -3542,6 +3542,25 @@ NTSTATUS PhGetFileBasicInformation(
         );
 }
 
+NTSTATUS PhSetFileBasicInformation(
+    _In_ HANDLE FileHandle,
+    _In_ PFILE_BASIC_INFORMATION BasicInfo
+    )
+{
+    IO_STATUS_BLOCK isb;
+
+    // Set to SIZE_MAX to ignore updating the value (dmex) 
+    BasicInfo->LastWriteTime.QuadPart = SIZE_MAX;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &isb,
+        BasicInfo,
+        sizeof(FILE_BASIC_INFORMATION),
+        FileBasicInformation
+        );
+}
+
 NTSTATUS PhGetFileStandardInformation(
     _In_ HANDLE FileHandle,
     _Out_ PFILE_STANDARD_INFORMATION StandardInfo
@@ -9782,6 +9801,24 @@ BOOLEAN PhDoesDirectoryExistWin32(
     FILE_BASIC_INFORMATION basicInfo;
 
     status = PhQueryAttributesFileWin32(FileName, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhDoesDirectoryExist(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    NTSTATUS status;
+    FILE_BASIC_INFORMATION basicInfo;
+
+    status = PhQueryAttributesFile(FileName, &basicInfo);
 
     if (NT_SUCCESS(status))
     {
