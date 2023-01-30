@@ -430,7 +430,8 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 #define TNM_THEMESUPPORT (WM_USER + 46)
 #define TNM_SETIMAGELIST (WM_USER + 47)
 #define TNM_SETCOLUMNTEXTCACHE (WM_USER + 48)
-#define TNM_LAST (WM_USER + 49)
+#define TNM_ENSUREVISIBLEINDEX (WM_USER + 49)
+#define TNM_LAST (WM_USER + 50)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -569,6 +570,9 @@ typedef struct _PH_TREENEW_SET_HEADER_CACHE
 
 #define TreeNew_SetColumnTextCache(hWnd, Cache) \
     SendMessage((hWnd), TNM_SETCOLUMNTEXTCACHE, (WPARAM)(Cache), 0)
+
+#define TreeNew_EnsureVisibleIndex(hWnd, Index) \
+    SendMessage((hWnd), TNM_ENSUREVISIBLEINDEX, 0, (LPARAM)(Index))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {

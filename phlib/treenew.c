@@ -2061,6 +2061,8 @@ ULONG_PTR PhTnpOnUserMessage(
             Context->HeaderTextCache = headerCache->HeaderTreeColumnTextCache;
         }
         return TRUE;
+    case TNM_ENSUREVISIBLEINDEX:
+        return PhTnpEnsureVisibleNode(Context, (ULONG)LParam);
     }
 
     return 0;
