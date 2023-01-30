@@ -1854,7 +1854,14 @@ PHLIBAPI
 PVOID
 NTAPI
 PhLoadLibrary(
-    _In_ PCWSTR LibFileName
+    _In_ PCWSTR FileName
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFreeLibrary(
+    _In_ PVOID BaseAddress
     );
 
 PHLIBAPI

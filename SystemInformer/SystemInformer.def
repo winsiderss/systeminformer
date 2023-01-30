@@ -393,6 +393,7 @@ EXPORTS
     PhFormatTimeSpanRelative
     PhFormatUInt64
     PhFreeFileDialog
+    PhFreeLibrary
     PhFreeLibraryAsImageResource
     PhGenerateGuid
     PhGenerateGuidFromName
