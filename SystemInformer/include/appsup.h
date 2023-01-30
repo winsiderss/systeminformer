@@ -434,6 +434,14 @@ PhHandleCopyListViewEMenuItem(
     );
 // end_phapppub
 
+PHAPPAPI
+VOID
+NTAPI
+PhShellOpenKey(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING KeyName
+    );
+
 BOOLEAN PhShellOpenKey2(
     _In_ HWND WindowHandle,
     _In_ PPH_STRING KeyName

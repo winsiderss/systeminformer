@@ -2073,6 +2073,57 @@ BOOLEAN PhpSelectFavoriteInRegedit(
 }
 
 /**
+ * Opens a key in the Registry Editor.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param KeyName The key name to open.
+ */
+VOID PhShellOpenKey(
+    _In_ HWND hWnd,
+    _In_ PPH_STRING KeyName
+    )
+{
+    static PH_STRINGREF regeditKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
+    HANDLE regeditKeyHandle;
+    PPH_STRING lastKey;
+    PPH_STRING regeditFileName;
+    PH_STRINGREF systemRootString;
+
+    if (!NT_SUCCESS(PhCreateKey(
+        &regeditKeyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &regeditKeyName,
+        0,
+        0,
+        NULL
+        )))
+        return;
+
+    lastKey = PhExpandKeyName(KeyName, FALSE);
+    PhSetValueKeyZ(regeditKeyHandle, L"LastKey", REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
+    NtClose(regeditKeyHandle);
+    PhDereferenceObject(lastKey);
+
+    // Start regedit. If we aren't elevated, request that regedit be elevated. This is so we can get
+    // the consent dialog in the center of the specified window. (wj32)
+
+    PhGetSystemRoot(&systemRootString);
+    regeditFileName = PhConcatStringRefZ(&systemRootString, L"\\regedit.exe");
+
+    if (PhGetOwnTokenAttributes().Elevated)
+    {
+        PhShellExecute(hWnd, regeditFileName->Buffer, NULL);
+    }
+    else
+    {
+        PhShellExecuteEx(hWnd, regeditFileName->Buffer, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
+    }
+
+    PhDereferenceObject(regeditFileName);
+}
+
+/**
  * Opens a key in the Registry Editor. If the Registry Editor is already open,
  * the specified key is selected in the Registry Editor.
  *
