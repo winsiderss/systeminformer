@@ -899,6 +899,7 @@ INT_PTR CALLBACK WhoisDlgProc(
             SendMessage(context->RichEditHandle, EM_SETWORDWRAPMODE, WBF_WORDWRAP, 0);
             //context->FontHandle = PhCreateCommonFont(-11, FW_MEDIUM, context->RichEditHandle);
             SendMessage(context->RichEditHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELONG(4, 0));
+            SendMessage(context->RichEditHandle, EM_SETREADONLY, TRUE, 0);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->RichEditHandle, NULL, PH_ANCHOR_ALL);
