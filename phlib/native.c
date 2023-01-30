@@ -3762,12 +3762,12 @@ NTSTATUS PhDeleteFile(
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
         FILE_DISPOSITION_INFO_EX dispositionInfo;
-        IO_STATUS_BLOCK isb;
+        IO_STATUS_BLOCK ioStatusBlock;
 
         dispositionInfo.Flags = FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_POSIX_SEMANTICS | FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE;
         status = NtSetInformationFile(
             FileHandle,
-            &isb,
+            &ioStatusBlock,
             &dispositionInfo,
             sizeof(FILE_DISPOSITION_INFO_EX),
             FileDispositionInformationEx
@@ -3777,17 +3777,33 @@ NTSTATUS PhDeleteFile(
     if (!NT_SUCCESS(status))
     {
         FILE_DISPOSITION_INFORMATION dispositionInfo;
-        IO_STATUS_BLOCK isb;
+        IO_STATUS_BLOCK ioStatusBlock;
 
         dispositionInfo.DeleteFile = TRUE;
-
         status = NtSetInformationFile(
             FileHandle,
-            &isb,
+            &ioStatusBlock,
             &dispositionInfo,
             sizeof(FILE_DISPOSITION_INFORMATION),
             FileDispositionInformation
             );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        HANDLE deleteHandle;
+
+        if (NT_SUCCESS(PhReOpenFile(
+            &deleteHandle,
+            FileHandle,
+            DELETE,
+            FILE_SHARE_DELETE,
+            FILE_DELETE_ON_CLOSE
+            )))
+        {
+            NtClose(deleteHandle);
+            status = STATUS_SUCCESS;
+        }
     }
 
     return status;
@@ -9855,11 +9871,17 @@ NTSTATUS PhDeleteFileWin32(
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_DELETE_ON_CLOSE // required for mapped references GH#794 (dmex)
+        FILE_NON_DIRECTORY_FILE | FILE_OPEN_FOR_BACKUP_INTENT | FILE_DELETE_ON_CLOSE // required for mapped references GH#794 (dmex)
         );
 
     if (!NT_SUCCESS(status))
+    {
+        if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+            status = STATUS_SUCCESS;
         return status;
+    }
+
+    //PhDeleteFile(fileHandle);
 
     NtClose(fileHandle);
     return status;
@@ -9871,36 +9893,36 @@ NTSTATUS PhDeleteFileWin32(
 * \param DirectoryPath The Win32 directory path.
 */
 NTSTATUS PhCreateDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     )
 {
     PPH_STRING directoryPath = NULL;
-    PPH_STRING fileName;
-    PH_STRINGREF fileNamePart;
+    PPH_STRING directoryName;
+    PH_STRINGREF directoryPart;
     PH_STRINGREF remainingPart;
 
-    if (PhDoesFileExistWin32(PhGetString(DirectoryPath)))
+    if (PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
 
-    remainingPart = PhGetStringRef(DirectoryPath);
+    remainingPart = *DirectoryPath;
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &fileNamePart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &remainingPart);
 
-        if (fileNamePart.Length != 0)
+        if (directoryPart.Length != 0)
         {
             if (PhIsNullOrEmptyString(directoryPath))
             {
-                PhMoveReference(&directoryPath, PhCreateString2(&fileNamePart));
+                PhMoveReference(&directoryPath, PhCreateString2(&directoryPart));
             }
             else
             {
-                fileName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &fileNamePart);
+                directoryName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &directoryPart);
 
                 // Check if the directory already exists. (dmex)
 
-                if (!PhDoesFileExistWin32(PhGetString(fileName)))
+                if (!PhDoesDirectoryExistWin32(PhGetString(directoryName)))
                 {
                     HANDLE directoryHandle;
 
@@ -9908,26 +9930,26 @@ NTSTATUS PhCreateDirectoryWin32(
 
                     if (NT_SUCCESS(PhCreateFileWin32(
                         &directoryHandle,
-                        PhGetString(fileName),
-                        FILE_GENERIC_READ,
-                        FILE_ATTRIBUTE_DIRECTORY,
+                        PhGetString(directoryName),
+                        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                        FILE_ATTRIBUTE_NORMAL,
                         FILE_SHARE_READ | FILE_SHARE_WRITE,
                         FILE_CREATE,
-                        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT //| FILE_OPEN_REPARSE_POINT
                         )))
                     {
                         NtClose(directoryHandle);
                     }
                 }
 
-                PhMoveReference(&directoryPath, fileName);
+                PhMoveReference(&directoryPath, directoryName);
             }
         }
     }
 
     PhClearReference(&directoryPath);
 
-    if (!PhDoesFileExistWin32(PhGetString(DirectoryPath)))
+    if (!PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_NOT_FOUND;
 
     return STATUS_SUCCESS;
@@ -9948,10 +9970,14 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
         {
             if (directory = PhSubstring(path, 0, indexOfFileName))
             {
-                status = PhCreateDirectoryWin32(directory);
+                status = PhCreateDirectoryWin32(&directory->sr);
 
                 PhDereferenceObject(directory);
             }
+        }
+        else
+        {
+            status = PhCreateDirectoryWin32(&path->sr);
         }
 
         PhDereferenceObject(path);
@@ -9965,7 +9991,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     _In_ PVOID Context
     )
 {
-    PPH_STRING parentDirectory = Context;
+    PPH_STRINGREF parentDirectory = Context;
     PPH_STRING fullName;
     PH_STRINGREF baseName;
 
@@ -9975,27 +10001,21 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
         return TRUE;
 
-    fullName = PhConcatStringRef3(
-        &parentDirectory->sr,
-        &PhNtPathSeperatorString,
-        &baseName
-        );
+    fullName = PhConcatStringRef3(parentDirectory, &PhNtPathSeperatorString, &baseName);
 
     if (Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
         HANDLE directoryHandle;
 
-        if (NT_SUCCESS(PhCreateFileWin32(
+        if (NT_SUCCESS(PhOpenFileWin32(
             &directoryHandle,
             PhGetString(fullName),
-            FILE_LIST_DIRECTORY | FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
-            FILE_ATTRIBUTE_DIRECTORY,
-            FILE_SHARE_READ | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT //| FILE_OPEN_REPARSE_POINT
             )))
         {
-            PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, fullName);
+            PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, &fullName->sr);
 
             PhDeleteFile(directoryHandle);
 
@@ -10008,14 +10028,12 @@ static BOOLEAN PhpDeleteDirectoryCallback(
         {
             HANDLE fileHandle;
 
-            if (NT_SUCCESS(PhCreateFileWin32(
+            if (NT_SUCCESS(PhOpenFileWin32(
                 &fileHandle,
                 PhGetString(fullName),
                 FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_WRITE,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT //| FILE_OPEN_REPARSE_POINT
                 )))
             {
                 if (WindowsVersion < WINDOWS_10_RS5)
@@ -10055,20 +10073,18 @@ static BOOLEAN PhpDeleteDirectoryCallback(
 * \param DirectoryPath The Win32 directory path.
 */
 NTSTATUS PhDeleteDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     )
 {
     NTSTATUS status;
     HANDLE directoryHandle;
 
-    status = PhCreateFileWin32(
+    status = PhOpenFileWin32(
         &directoryHandle,
-        PhGetString(DirectoryPath),
-        FILE_LIST_DIRECTORY | DELETE | SYNCHRONIZE,
-        FILE_ATTRIBUTE_DIRECTORY,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        PhGetStringRefZ(DirectoryPath),
+        FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT
         );
 
     if (NT_SUCCESS(status))
@@ -10090,7 +10106,7 @@ NTSTATUS PhDeleteDirectoryWin32(
         NtClose(directoryHandle);
     }
 
-    if (!PhDoesFileExistWin32(PhGetString(DirectoryPath)))
+    if (!PhDoesFileExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
 
     return status;
@@ -10192,12 +10208,9 @@ NTSTATUS PhCopyFileWin32(
 
     if (NT_SUCCESS(status))
     {
-        NtSetInformationFile(
+        PhSetFileBasicInformation(
             newFileHandle,
-            &isb,
-            &basicInfo,
-            sizeof(FILE_BASIC_INFORMATION),
-            FileBasicInformation
+            &basicInfo
             );
     }
     else
