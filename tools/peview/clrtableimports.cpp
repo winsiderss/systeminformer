@@ -348,7 +348,7 @@ HRESULT PvGetClrMetaDataInterface(
 
     if (clrCoreBaseAddress)
     {
-        FreeLibrary(reinterpret_cast<HMODULE>(clrCoreBaseAddress));
+        PhFreeLibrary(clrCoreBaseAddress);
     }
 
     return status;

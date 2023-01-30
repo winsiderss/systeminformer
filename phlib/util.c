@@ -2168,12 +2168,12 @@ PVOID PhGetFileVersionInfo(
     {
         if (PhIsFileVersionInfo32(versionInfo))
         {
-            FreeLibrary(libraryModule);
+            PhFreeLibrary(libraryModule);
             return versionInfo;
         }
     }
 
-    FreeLibrary(libraryModule);
+    PhFreeLibrary(libraryModule);
     return NULL;
 }
 
@@ -7281,6 +7281,8 @@ PVOID PhGetLoaderEntryStringRefDllBase(
     PLDR_DATA_TABLE_ENTRY ldrEntry;
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+    //
+    //    if (ldrEntry = PhFindLoaderEntryNameHash(baseDllNameHash))
     ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 

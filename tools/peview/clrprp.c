@@ -420,7 +420,7 @@ CleanupExit:
     if (clrMetaHost)
         ICLRMetaHost_Release(clrMetaHost);
     if (mscoreeHandle)
-        FreeLibrary(mscoreeHandle);
+        PhFreeLibrary(mscoreeHandle);
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
