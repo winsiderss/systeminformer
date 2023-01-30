@@ -130,7 +130,7 @@
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -155,7 +155,7 @@
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -177,7 +177,7 @@
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -205,7 +205,7 @@
     <Lib>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -233,7 +233,7 @@
     <Lib>
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
@@ -258,7 +258,7 @@
     <Lib>
       <TargetMachine>MachineARM64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);..\tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kphlib_um.lib;thirdparty.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
     </Lib>
   </ItemDefinitionGroup>
