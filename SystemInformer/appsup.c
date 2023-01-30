@@ -2079,7 +2079,7 @@ BOOLEAN PhpSelectFavoriteInRegedit(
  * \param KeyName The key name to open.
  */
 VOID PhShellOpenKey(
-    _In_ HWND hWnd,
+    _In_ HWND WindowHandle,
     _In_ PPH_STRING KeyName
     )
 {
@@ -2113,11 +2113,11 @@ VOID PhShellOpenKey(
 
     if (PhGetOwnTokenAttributes().Elevated)
     {
-        PhShellExecute(hWnd, regeditFileName->Buffer, NULL);
+        PhShellExecute(WindowHandle, regeditFileName->Buffer, NULL);
     }
     else
     {
-        PhShellExecuteEx(hWnd, regeditFileName->Buffer, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
+        PhShellExecuteEx(WindowHandle, regeditFileName->Buffer, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
     }
 
     PhDereferenceObject(regeditFileName);
