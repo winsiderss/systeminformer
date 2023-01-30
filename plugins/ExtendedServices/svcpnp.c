@@ -260,7 +260,7 @@ BOOLEAN HardwareDeviceOpenKey(
         if (bestObjectName)
         {
             // HKLM\SYSTEM\ControlSet\Control\Class\ += DEVPKEY_Device_Driver
-            PhShellOpenKey(ParentWindow, bestObjectName);
+            PhShellOpenKey2(ParentWindow, bestObjectName);
             PhDereferenceObject(bestObjectName);
         }
 
