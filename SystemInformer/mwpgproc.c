@@ -39,6 +39,7 @@ static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static ULONG NeedsSelectPid = 0;
+static ULONG ProcessEndToScrollTo = 0;
 static PPH_PROCESS_NODE ProcessToScrollTo = NULL;
 static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
@@ -1034,6 +1035,7 @@ VOID PhMwpOnProcessRemoved(
     )
 {
     PPH_PROCESS_NODE processNode;
+    ULONG processNodeIndex = 0;
     ULONG exitStatus = 0;
 
     if (ProcessItem->QueryHandle)
@@ -1080,10 +1082,16 @@ VOID PhMwpOnProcessRemoved(
     }
 
     processNode = PhFindProcessNode(ProcessItem->ProcessId);
+    processNodeIndex = processNode->Node.Index;
     PhRemoveProcessNode(processNode);
 
     if (ProcessToScrollTo == processNode) // shouldn't happen, but just in case
         ProcessToScrollTo = NULL;
+
+    if (PhCsScrollToRemovedProcesses)
+    {
+        ProcessEndToScrollTo = processNodeIndex;
+    }
 }
 
 VOID PhMwpOnProcessesUpdated(
@@ -1152,5 +1160,16 @@ VOID PhMwpOnProcessesUpdated(
     {
         TreeNew_EnsureVisible(PhMwpProcessTreeNewHandle, &ProcessToScrollTo->Node);
         ProcessToScrollTo = NULL;
+    }
+
+    if (ProcessEndToScrollTo)
+    {
+        ULONG count = TreeNew_GetFlatNodeCount(PhMwpProcessTreeNewHandle);
+
+        if (ProcessEndToScrollTo > count)
+            ProcessEndToScrollTo = count;
+
+        TreeNew_EnsureVisibleIndex(PhMwpProcessTreeNewHandle, ProcessEndToScrollTo);
+        ProcessEndToScrollTo = 0;
     }
 }
