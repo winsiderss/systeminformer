@@ -1182,14 +1182,6 @@ PhExpandKeyName(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhShellOpenKey(
-    _In_ HWND hWnd,
-    _In_ PPH_STRING KeyName
-    );
-
-PHLIBAPI
 PPH_STRING
 NTAPI
 PhQueryRegistryStringRef(
