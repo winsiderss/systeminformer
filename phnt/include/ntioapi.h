@@ -1081,20 +1081,20 @@ typedef struct _FILE_QUOTA_INFORMATION
 
 typedef enum _FSINFOCLASS
 {
-    FileFsVolumeInformation = 1, // FILE_FS_VOLUME_INFORMATION
-    FileFsLabelInformation, // FILE_FS_LABEL_INFORMATION
-    FileFsSizeInformation, // FILE_FS_SIZE_INFORMATION
-    FileFsDeviceInformation, // FILE_FS_DEVICE_INFORMATION
-    FileFsAttributeInformation, // FILE_FS_ATTRIBUTE_INFORMATION
-    FileFsControlInformation, // FILE_FS_CONTROL_INFORMATION
-    FileFsFullSizeInformation, // FILE_FS_FULL_SIZE_INFORMATION
-    FileFsObjectIdInformation, // FILE_FS_OBJECTID_INFORMATION
-    FileFsDriverPathInformation, // FILE_FS_DRIVER_PATH_INFORMATION
-    FileFsVolumeFlagsInformation, // FILE_FS_VOLUME_FLAGS_INFORMATION // 10
-    FileFsSectorSizeInformation, // FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
-    FileFsDataCopyInformation, // FILE_FS_DATA_COPY_INFORMATION
-    FileFsMetadataSizeInformation, // FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
-    FileFsFullSizeInformationEx, // FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
+    FileFsVolumeInformation = 1, // q: FILE_FS_VOLUME_INFORMATION
+    FileFsLabelInformation, // q; s: FILE_FS_LABEL_INFORMATION
+    FileFsSizeInformation, // q: FILE_FS_SIZE_INFORMATION
+    FileFsDeviceInformation, // q: FILE_FS_DEVICE_INFORMATION
+    FileFsAttributeInformation, // q: FILE_FS_ATTRIBUTE_INFORMATION
+    FileFsControlInformation, // q; s: FILE_FS_CONTROL_INFORMATION
+    FileFsFullSizeInformation, // q: FILE_FS_FULL_SIZE_INFORMATION
+    FileFsObjectIdInformation, // q; s: FILE_FS_OBJECTID_INFORMATION
+    FileFsDriverPathInformation, // q: FILE_FS_DRIVER_PATH_INFORMATION
+    FileFsVolumeFlagsInformation, // q: FILE_FS_VOLUME_FLAGS_INFORMATION // 10
+    FileFsSectorSizeInformation, // q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
+    FileFsDataCopyInformation, // q: FILE_FS_DATA_COPY_INFORMATION
+    FileFsMetadataSizeInformation, // q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
+    FileFsFullSizeInformationEx, // q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
     FileFsMaximumInformation
 } FSINFOCLASS, *PFSINFOCLASS;
 typedef enum _FSINFOCLASS FS_INFORMATION_CLASS;
