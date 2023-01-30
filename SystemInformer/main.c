@@ -119,8 +119,6 @@ INT WINAPI wWinMain(
         return 1;
     if (!PhInitializeNamespacePolicy())
         return 1;
-    if (!PhInitializeMitigationPolicy())
-        return 1;
     if (!PhInitializeComPolicy())
         return 1;
 
@@ -844,55 +842,10 @@ BOOLEAN PhInitializeNamespacePolicy(
     return TRUE;
 }
 
-BOOLEAN PhInitializeMitigationPolicy(
-    VOID
-    )
-{
-    // The kernel driver preforms the mitigiations and these policies are deprecated. (dmex)
-    extern NTSTATUS PhpSetExploitProtectionEnabled(_In_ BOOLEAN Enabled);
-    PROCESS_MITIGATION_POLICY_INFORMATION policy = { 0 };
-    NTSTATUS status;
-
-    policy.Policy = ProcessDynamicCodePolicy;
-
-    status = NtQueryInformationProcess(
-        NtCurrentProcess(),
-        ProcessMitigationPolicy,
-        &policy,
-        sizeof(policy),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        if (policy.DynamicCodePolicy.ProhibitDynamicCode)
-        {
-            status = PhpSetExploitProtectionEnabled(FALSE);
-
-            if (NT_SUCCESS(status))
-            {
-                PhShellProcessHacker(
-                    NULL,
-                    NULL,
-                    SW_SHOW,
-                    0,
-                    PH_SHELL_APP_PROPAGATE_PARAMETERS,
-                    0,
-                    NULL
-                    );
-
-                PhExitApplication(STATUS_SUCCESS);
-            }
-        }
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhShowStatus(NULL, L"Unable to deprecate mitigation policy", status, 0);
-    }
-
-    return TRUE;
-
+//BOOLEAN PhInitializeMitigationPolicy(
+//    VOID
+//    )
+//{
 //#ifndef DEBUG
 //    BOOLEAN PhpIsExploitProtectionEnabled(VOID);
 //#define DEFAULT_MITIGATION_POLICY_FLAGS \
@@ -994,8 +947,8 @@ BOOLEAN PhInitializeMitigationPolicy(
 //#else
 //    return TRUE;
 //#endif
-}
-
+//}
+//
 //BOOLEAN PhInitializeMitigationSignaturePolicy(
 //    VOID
 //    )
