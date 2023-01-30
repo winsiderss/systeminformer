@@ -8800,12 +8800,12 @@ HRESULT PhGetClassObject(
      order by first requiring the loader try to load and resolve through
      System32. Then upping the loading flags until the library is loaded.
 
-    @param[in] LibFileName - The file name of the library to load.
+    @param[in] FileName - The file name of the library to load.
 
     @return HMODULE to the library on success, null on failure.
 */
 PVOID PhLoadLibrary(
-    _In_ PCWSTR LibFileName
+    _In_ PCWSTR FileName
     )
 {
     PVOID baseAddress;
@@ -8814,7 +8814,7 @@ PVOID PhLoadLibrary(
     // qualified path this will succeed.
 
     if (baseAddress = LoadLibraryEx(
-        LibFileName,
+        FileName,
         NULL,
         LOAD_LIBRARY_SEARCH_SYSTEM32
         ))
@@ -8825,7 +8825,7 @@ PVOID PhLoadLibrary(
     // Include the application directory now.
 
     if (baseAddress = LoadLibraryEx(
-        LibFileName,
+        FileName,
         NULL,
         LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_APPLICATION_DIR
         ))
@@ -8837,13 +8837,20 @@ PVOID PhLoadLibrary(
     {
         // Note: This case is required for Windows 7 without KB2533623 (dmex)
 
-        if (baseAddress = LoadLibraryEx(LibFileName, NULL, 0))
+        if (baseAddress = LoadLibraryEx(FileName, NULL, 0))
         {
             return baseAddress;
         }
     }
 
     return NULL;
+}
+
+BOOLEAN PhFreeLibrary(
+    _In_ PVOID BaseAddress
+    )
+{
+    return !!FreeLibrary(BaseAddress);
 }
 
 // rev from LoadLibraryEx with LOAD_LIBRARY_AS_IMAGE_RESOURCE
