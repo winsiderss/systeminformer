@@ -21,6 +21,10 @@
 static WNDPROC PhDefaultMenuWindowProcedure = NULL;
 static WNDPROC PhDefaultDialogWindowProcedure = NULL;
 static WNDPROC PhDefaultComboBoxWindowProcedure = NULL;
+static BOOLEAN PhDefaultEnableThemeSupport = FALSE;
+static BOOLEAN PhDefaultEnableThemeAcrylicSupport = FALSE;
+static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
+static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
 
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
@@ -35,13 +39,13 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         {
             //CREATESTRUCT* createStruct = (CREATESTRUCT*)lParam;
 
-            if (PhGetIntegerSetting(L"EnableStreamerMode"))
+            if (PhDefaultEnableStreamerMode)
             {
                 if (SetWindowDisplayAffinity_Import())
                     SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhDefaultEnableThemeSupport)
             {
                 HFONT fontHandle;
                 LONG windowDpi = PhGetWindowDpi(WindowHandle);
@@ -52,7 +56,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
                     SetWindowFont(WindowHandle, fontHandle, TRUE);
                 }
 
-                if (WindowsVersion >= WINDOWS_11 && PhGetIntegerSetting(L"EnableThemeAcrylicSupport"))
+                if (PhDefaultEnableThemeAcrylicSupport)
                 {
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
@@ -61,7 +65,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         break;
     case WM_DESTROY:
         {
-            if (PhGetIntegerSetting(L"EnableThemeSupport"))
+            if (PhDefaultEnableThemeSupport)
             {
                 HFONT fontHandle;
 
@@ -96,16 +100,16 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
 
             if (WindowHandle == GetAncestor(WindowHandle, GA_ROOT))
             {
-                if (PhGetIntegerSetting(L"EnableStreamerMode"))
+                if (PhDefaultEnableStreamerMode)
                 {
                     if (SetWindowDisplayAffinity_Import())
                         SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
-                //if (WindowsVersion >= WINDOWS_11 && PhEnableThemeSupport)
-                //{
-                //    PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
-                //}
+                if (PhDefaultEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+                {
+                    PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
+                }
             }
         }
         break;
@@ -132,7 +136,7 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
 
             if (SendMessage(WindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info))
             {
-                if (PhGetIntegerSetting(L"EnableStreamerMode"))
+                if (PhDefaultEnableStreamerMode)
                 {
                     if (SetWindowDisplayAffinity_Import())
                         SetWindowDisplayAffinity_Import()(info.hwndList, WDA_EXCLUDEFROMCAPTURE);
@@ -157,7 +161,10 @@ VOID PhRegisterDialogSuperClass(
     PhDefaultDialogWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhDialogWindowHookProcedure;
 
-    RegisterClassEx(&wcex);
+    if (RegisterClassEx(&wcex) == INVALID_ATOM)
+    {
+        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
+    }
 }
 
 VOID PhRegisterMenuSuperClass(
@@ -172,7 +179,10 @@ VOID PhRegisterMenuSuperClass(
     PhDefaultMenuWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhMenuWindowHookProcedure;
 
-    RegisterClassEx(&wcex);
+    if (RegisterClassEx(&wcex) == INVALID_ATOM)
+    {
+        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
+    }
 }
 
 VOID PhRegisterComboBoxSuperClass(
@@ -187,8 +197,12 @@ VOID PhRegisterComboBoxSuperClass(
     PhDefaultComboBoxWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhComboBoxWindowHookProcedure;
 
-    UnregisterClass(L"ComboBox", NULL);
-    RegisterClassEx(&wcex);
+    UnregisterClass(L"ComboBox", NULL); // Must be unregistered first? (dmex)
+
+    if (RegisterClassEx(&wcex) == INVALID_ATOM)
+    {
+        PhShowStatus(NULL, L"Unable to register window class.", 0, GetLastError());
+    }
 }
 
 // Detours export procedure hooks
@@ -233,10 +247,6 @@ static HWND (WINAPI* PhDefaultCreateWindowEx)(
     _In_opt_ PVOID Param
     ) = NULL;
 
-//static BOOL (WINAPI* PhDefaultDestroyWindow)(
-//    _In_ HWND hWnd
-//    ) = NULL;
-//
 //static COLORREF (WINAPI* PhDefaultSetTextColor)(
 //    _In_ HDC hdc, 
 //    _In_ COLORREF color
@@ -265,28 +275,6 @@ HRESULT PhDrawThemeBackgroundHook(
                     return S_OK;
                 }
             }
-
-            //if (PhTaskDialogThemeHookIndex && TlsGetValue(PhTaskDialogThemeHookIndex))
-            //{
-            //    if (PhEqualStringZ(className, VSCLASS_BUTTON, TRUE))
-            //    {
-            //        if (PartId == BP_PUSHBUTTON)
-            //        {
-            //            if (StateId == PBS_HOT)
-            //            {
-            //                SetDCBrushColor(Hdc, PhThemeWindowHighlightColor);
-            //                FillRect(Hdc, Rect, GetStockBrush(DC_BRUSH));
-            //            }
-            //            else
-            //            {
-            //                SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
-            //                FillRect(Hdc, Rect, GetStockBrush(DC_BRUSH));
-            //            }
-            //
-            //            return S_OK;
-            //        }
-            //    }
-            //}
         }
     }
 
@@ -361,16 +349,16 @@ HWND PhCreateWindowExHook(
 
     if (Parent == NULL)
     {
-        if (PhGetIntegerSetting(L"EnableStreamerMode"))
+        if (PhDefaultEnableStreamerMode)
         {
             if (SetWindowDisplayAffinity_Import())
                 SetWindowDisplayAffinity_Import()(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        //if (PhEnableThemeSupport && WindowsVersion >= WINDOWS_11)
-        //{
-        //    PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
-        //}
+        if (PhDefaultEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+        {
+            PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
+        }
     }
     else 
     {
@@ -380,10 +368,10 @@ HWND PhCreateWindowExHook(
         //{
         //    if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ((PWSTR)ClassName, L"DirectUIHWND", TRUE))
         //    {
-        //        PhInitializeTaskDialogTheme(windowHandle, PhEnableThemeSupport); // don't initialize parentHandle themes
+        //        PhInitializeTaskDialogTheme(windowHandle, PhDefaultThemeSupport); // don't initialize parentHandle themes
         //        PhInitializeThemeWindowFrame(parentHandle);
         //
-        //        if (PhGetIntegerSetting(L"EnableStreamerMode"))
+        //        if (PhDefaultEnableStreamerMode)
         //        {
         //            if (SetWindowDisplayAffinity_Import())
         //                SetWindowDisplayAffinity_Import()(parentHandle, WDA_EXCLUDEFROMCAPTURE);
@@ -395,34 +383,6 @@ HWND PhCreateWindowExHook(
     return windowHandle;
 }
 
-//BOOL WINAPI PhDestroyWindowHook(
-//    _In_ HWND hWnd
-//    )
-//{
-//    WCHAR className[256];
-//    
-//    if (!GetClassName(hWnd, className, RTL_NUMBER_OF(className)))
-//        className[0] = UNICODE_NULL;
-//    
-//    if (PhEqualStringZ(className, L"#32770", TRUE) || PhEqualStringZ(className, L"#DirectUIHWND", TRUE))
-//    {
-//        if (PhTaskDialogThemeHookIndex)
-//        {
-//            TlsSetValue(PhTaskDialogThemeHookIndex, UlongToPtr(0));
-//        }
-//    
-//        WNDPROC oldWndProc;
-//    
-//        if (oldWndProc = PhGetWindowContext(hWnd, LONG_MAX))
-//        {
-//            PhRemoveWindowContext(hWnd, LONG_MAX);
-//            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
-//        }
-//    }
-//
-//    return PhDefaultDestroyWindow(hWnd);
-//}
-
 BOOL WINAPI PhSystemParametersInfoHook(
     _In_ UINT uiAction,
     _In_ UINT uiParam,
@@ -430,43 +390,43 @@ BOOL WINAPI PhSystemParametersInfoHook(
     _In_ UINT fWinIni
     )
 {
-    if (uiAction == SPI_GETMENUFADE)
+    if (uiAction == SPI_GETMENUFADE && pvParam)
     {
         *((PBOOL)pvParam) = FALSE;
         return TRUE;
     }
 
-    if (uiAction == SPI_GETCLIENTAREAANIMATION)
+    if (uiAction == SPI_GETCLIENTAREAANIMATION && pvParam)
     {
         *((PBOOL)pvParam) = FALSE;
         return TRUE;
     }
 
-    if (uiAction == SPI_GETCOMBOBOXANIMATION)
+    if (uiAction == SPI_GETCOMBOBOXANIMATION && pvParam)
     {
         *((PBOOL)pvParam) = FALSE;
         return TRUE;
     }
 
-    if (uiAction == SPI_GETTOOLTIPANIMATION)
+    if (uiAction == SPI_GETTOOLTIPANIMATION && pvParam)
     {
         *((PBOOL)pvParam) = FALSE;
         return TRUE;
     }
 
-    if (uiAction == SPI_GETMENUANIMATION)
+    if (uiAction == SPI_GETMENUANIMATION && pvParam)
     {
         *((PBOOL)pvParam) = FALSE;
         return TRUE;
     }
 
-    if (uiAction == SPI_GETTOOLTIPFADE)
+    if (uiAction == SPI_GETTOOLTIPFADE && pvParam)
     {
         *((PBOOL)pvParam) = FALSE;
         return TRUE;
     }
 
-    if (uiAction == SPI_GETMOUSEVANISH)
+    if (uiAction == SPI_GETMOUSEVANISH && pvParam)
     {
         *((PBOOL)pvParam) = FALSE;
         return TRUE;
@@ -565,7 +525,6 @@ VOID PhRegisterDetoursHooks(
     if (baseAddress = PhGetLoaderEntryDllBase(L"user32.dll"))
     {
         PhDefaultCreateWindowEx = PhGetDllBaseProcedureAddress(baseAddress, "CreateWindowExW", 0);
-        //PhDefaultDestroyWindow = PhGetDllBaseProcedureAddress(baseAddress, "DestroyWindow", 0);
         PhDefaultSystemParametersInfo = PhGetDllBaseProcedureAddress(baseAddress, "SystemParametersInfoW", 0);
     }
 
@@ -578,7 +537,7 @@ VOID PhRegisterDetoursHooks(
     if (!NT_SUCCESS(status = DetourTransactionBegin()))
         goto CleanupExit;
 
-    if (PhGetIntegerSetting(L"EnableThemeSupport") || PhGetIntegerSetting(L"EnableThemeAcrylicSupport"))
+    if (PhDefaultEnableThemeSupport || PhDefaultEnableThemeAcrylicSupport)
     {
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDrawThemeBackground, (PVOID)PhDrawThemeBackgroundHook)))
             goto CleanupExit;
@@ -590,8 +549,6 @@ VOID PhRegisterDetoursHooks(
 
     if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultCreateWindowEx, (PVOID)PhCreateWindowExHook)))
         goto CleanupExit;
-    //if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDestroyWindow, (PVOID)PhDestroyWindowHook)))
-    //    goto CleanupExit;
     //if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultSetTextColor, (PVOID)PhSetTextColorHook)))
     //    goto CleanupExit;
     if (!NT_SUCCESS(status = DetourTransactionCommit()))
@@ -609,11 +566,24 @@ VOID PhInitializeSuperclassControls(
     VOID
     )
 {
-    if (PhGetIntegerSetting(L"EnableThemeSupport") || PhGetIntegerSetting(L"EnableStreamerMode"))
+    PhDefaultEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
+
+    if (PhDefaultEnableThemeSupport || PhDefaultEnableStreamerMode)
+    {
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            PhDefaultEnableThemeAcrylicSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
+            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+        }
+    }
+
+    if (PhDefaultEnableThemeSupport || PhDefaultEnableStreamerMode)
     {
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();
         PhRegisterComboBoxSuperClass();
+
         PhRegisterDetoursHooks();
     }
 }
