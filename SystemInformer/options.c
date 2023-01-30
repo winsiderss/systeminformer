@@ -972,6 +972,43 @@ VOID PhpSetDefaultTaskManager(
 {
     PWSTR message;
 
+    // Disable changing the default unless installed into secure location. (dmex)
+    {
+        RTL_ELEVATION_FLAGS flags;
+
+        if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
+        {
+            PPH_STRING applicationFileName;
+            PPH_STRING programFilesPath;
+
+            if (applicationFileName = PhGetApplicationFileName())
+            {
+                if (programFilesPath = PhExpandEnvironmentStringsZ(L"%ProgramFiles%\\"))
+                {
+                    if (!PhStartsWithString(applicationFileName, programFilesPath, TRUE))
+                    {
+                        if (PhShowMessage2(
+                            ParentWindowHandle,
+                            TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                            TD_WARNING_ICON,
+                            L"WARNING: You have not installed System Informer into a secure location.",
+                            L"Changing the default Task Manager is not recommended when running System Informer from outside a secure location (e.g. Program Files).\r\n\r\nAre you sure you want to continue?"
+                            ) == IDNO)
+                        {
+                            PhDereferenceObject(programFilesPath);
+                            PhDereferenceObject(applicationFileName);
+                            return;
+                        }
+                    }
+
+                    PhDereferenceObject(programFilesPath);
+                }
+
+                PhDereferenceObject(applicationFileName);
+            }
+        }
+    }
+
     if (PhpIsDefaultTaskManager())
         message = L"Do you want to restore the default Windows Task Manager?";
     else
