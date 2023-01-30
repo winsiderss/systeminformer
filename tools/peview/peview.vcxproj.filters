@@ -153,13 +153,16 @@
     <ClCompile Include="pdb.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="clrtableimports.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="volatileprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="clrprptables.c">
+      <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
     <ClCompile Include="clrtableimportprp.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="volatileprp.c">
+    <ClCompile Include="clrtableimports.cpp">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
   </ItemGroup>

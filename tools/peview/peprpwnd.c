@@ -263,6 +263,14 @@ VOID PvAddTreeViewSections(
                 PvpPeClrImportsDlgProc,
                 NULL
                 );
+
+            PvCreateTabSection(
+                L"CLR Tables",
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_PECLRTABLES),
+                PvpPeClrTablesDlgProc,
+                NULL
+                );
         }
     }
 

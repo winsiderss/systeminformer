@@ -75,6 +75,19 @@ typedef struct _MDSTREAMHEADER
 } MDSTREAMHEADER, *PMDSTREAMHEADER;
 #include <poppack.h>
 
+PSTORAGESTREAM PvGetNextClrStream(
+    _In_ PSTORAGESTREAM Stream
+    )
+{
+    size_t length;
+  
+    length = strlen(Stream->Name) + sizeof(ANSI_NULL);
+    length = ALIGN_UP(length, ULONG);
+
+    return PTR_ADD_OFFSET(Stream, FIELD_OFFSET(STORAGESTREAM, Name) + length);
+    //return ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(Stream->Name) + sizeof(ANSI_NULL), ULONG);
+}
+
 PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
     _In_opt_ PVOID PdbMetadataAddress
     )
@@ -213,9 +226,8 @@ PPH_STRING PvpPeClrGetMvid(
             break;
         }
 
-        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + sizeof(ANSI_NULL), ULONG));
+        streamHeader = PvGetNextClrStream(streamHeader);
     }
-
 
     return guidMvidString;
 }
@@ -288,9 +300,7 @@ VOID PvpPeClrEnumSections(
             }
         }
 
-        // CLR stream headers don't have fixed sizes.
-        // The size is aligned up based on a variable length string at the end. (dmex)
-        streamHeader = PTR_ADD_OFFSET(streamHeader, ALIGN_UP(UFIELD_OFFSET(STORAGESTREAM, Name) + strlen(streamHeader->Name) + 1, ULONG));
+        streamHeader = PvGetNextClrStream(streamHeader);
     }
 }
 
@@ -472,12 +482,20 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
             if (!context->PdbMetadataAddress)
             {
-                PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, PH_AUTO_T(PH_STRING, PvpPeGetClrVersionText())->Buffer);
+                PPH_STRING clrVersion = PvpPeGetClrVersionText();
+                PPH_STRING targetVersion = PvGetClrImageTargetFramework();
+
+                PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, PhGetStringOrEmpty(clrVersion));
+                PhSetDialogItemText(hwndDlg, IDC_TARGETVERSION, PhGetStringOrEmpty(targetVersion));
                 PhSetDialogItemText(hwndDlg, IDC_FLAGS, PH_AUTO_T(PH_STRING, PvpPeGetClrFlagsText())->Buffer);
+
+                PhClearReference(&targetVersion);
+                PhClearReference(&clrVersion);
             }
             else
             {
                 PhSetDialogItemText(hwndDlg, IDC_RUNTIMEVERSION, L"");
+                PhSetDialogItemText(hwndDlg, IDC_TARGETVERSION, L"");
                 PhSetDialogItemText(hwndDlg, IDC_FLAGS, L"");
             }
 
