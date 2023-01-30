@@ -170,6 +170,7 @@ PhGetProcessPeb32(
 
     if (NT_SUCCESS(status))
     {
+        // No PEB for System and minimal/pico processes. (dmex)
         if (!wow64)
             return STATUS_UNSUCCESSFUL;
 
