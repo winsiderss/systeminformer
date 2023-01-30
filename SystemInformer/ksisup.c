@@ -438,6 +438,8 @@ VOID PhInitializeKsi(
     VOID
     )
 {
+    if (WindowsVersion < WINDOWS_10_20H1) // Temporary workaround for +3 month Microsoft delay (dmex)
+        return;
     if (WindowsVersion < WINDOWS_10 || WindowsVersion == WINDOWS_NEW)
         return;
     if (!PhGetOwnTokenAttributes().Elevated)
