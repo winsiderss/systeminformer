@@ -2651,6 +2651,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU_ITEM disable;
             PPH_EMENU_ITEM restart;
             PPH_EMENU_ITEM uninstall;
+            PPH_EMENU_ITEM properties;
             BOOLEAN republish;
             BOOLEAN invalidate;
 
@@ -2678,7 +2679,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, HW_KEY_INDEX_CONFIG, L"Config", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, subMenu, ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 10, L"Properties", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, properties = PhCreateEMenuItem(0, 10, L"Properties", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 11, L"Copy", NULL, NULL), ULONG_MAX);
             PhInsertCopyCellEMenuItem(menu, 11, DeviceTreeHandle, contextMenuEvent->Column);
@@ -2693,7 +2694,14 @@ BOOLEAN NTAPI DeviceTreeCallback(
             if (HighlightLowerFiltered)
                 highlightLowerFiltered->Flags |= PH_EMENU_CHECKED;
 
-            if (gotoServiceItem)
+            if (!node)
+            {
+                PhSetDisabledEMenuItem(gotoServiceItem);
+                PhSetDisabledEMenuItem(subMenu);
+                PhSetDisabledEMenuItem(properties);
+            }
+
+            if (gotoServiceItem && node)
             {
                 PPH_STRING serviceName = GetDeviceNodeProperty(node, DevKeyService)->AsString;
 
