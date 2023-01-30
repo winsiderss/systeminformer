@@ -211,12 +211,11 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION
     IO_STATUS_BLOCK IoStatusBlock;
 } FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
 
-// q - NtQueryInformationFile, s - NtSetInformationFile, d - NtQueryDirectoryFile[Ex]
 typedef enum _FILE_INFORMATION_CLASS
 {
-    FileDirectoryInformation = 1, // d: FILE_DIRECTORY_INFORMATION (requires FILE_LIST_DIRECTORY)
-    FileFullDirectoryInformation, // d: FILE_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY)
-    FileBothDirectoryInformation, // d: FILE_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileDirectoryInformation = 1, // q: FILE_DIRECTORY_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
+    FileFullDirectoryInformation, // q: FILE_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
+    FileBothDirectoryInformation, // q: FILE_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
     FileBasicInformation, // q; s: FILE_BASIC_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
     FileStandardInformation, // q: FILE_STANDARD_INFORMATION, FILE_STANDARD_INFORMATION_EX
     FileInternalInformation, // q: FILE_INTERNAL_INFORMATION
@@ -225,7 +224,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileNameInformation, // q: FILE_NAME_INFORMATION
     FileRenameInformation, // s: FILE_RENAME_INFORMATION (requires DELETE) // 10
     FileLinkInformation, // s: FILE_LINK_INFORMATION
-    FileNamesInformation, // d: FILE_NAMES_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileNamesInformation, // q: FILE_NAMES_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
     FileDispositionInformation, // s: FILE_DISPOSITION_INFORMATION (requires DELETE)
     FilePositionInformation, // q; s: FILE_POSITION_INFORMATION
     FileFullEaInformation, // FILE_FULL_EA_INFORMATION
@@ -242,16 +241,16 @@ typedef enum _FILE_INFORMATION_CLASS
     FileMailslotQueryInformation, // q: FILE_MAILSLOT_QUERY_INFORMATION
     FileMailslotSetInformation, // s: FILE_MAILSLOT_SET_INFORMATION
     FileCompressionInformation, // q: FILE_COMPRESSION_INFORMATION
-    FileObjectIdInformation, // d: FILE_OBJECTID_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileObjectIdInformation, // q: FILE_OBJECTID_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
     FileCompletionInformation, // s: FILE_COMPLETION_INFORMATION // 30
     FileMoveClusterInformation, // s: FILE_MOVE_CLUSTER_INFORMATION (requires FILE_WRITE_DATA)
-    FileQuotaInformation, // d: FILE_QUOTA_INFORMATION (requires FILE_LIST_DIRECTORY)
-    FileReparsePointInformation, // d: FILE_REPARSE_POINT_INFORMATION (requires FILE_LIST_DIRECTORY)
+    FileQuotaInformation, // q: FILE_QUOTA_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
+    FileReparsePointInformation, // q: FILE_REPARSE_POINT_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
     FileNetworkOpenInformation, // q: FILE_NETWORK_OPEN_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileAttributeTagInformation, // q: FILE_ATTRIBUTE_TAG_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileTrackingInformation, // s: FILE_TRACKING_INFORMATION (requires FILE_WRITE_DATA)
-    FileIdBothDirectoryInformation, // d: FILE_ID_BOTH_DIR_INFORMATION
-    FileIdFullDirectoryInformation, // d: FILE_ID_FULL_DIR_INFORMATION
+    FileIdBothDirectoryInformation, // q: FILE_ID_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
+    FileIdFullDirectoryInformation, // q: FILE_ID_FULL_DIR_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex])
     FileValidDataLengthInformation, // s: FILE_VALID_DATA_LENGTH_INFORMATION (requires FILE_WRITE_DATA and/or SeManageVolumePrivilege)
     FileShortNameInformation, // s: FILE_NAME_INFORMATION (requires DELETE) // 40
     FileIoCompletionNotificationInformation, // q; s: FILE_IO_COMPLETION_NOTIFICATION_INFORMATION (q: requires FILE_READ_ATTRIBUTES) // since VISTA
@@ -263,7 +262,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileProcessIdsUsingFileInformation, // q: FILE_PROCESS_IDS_USING_FILE_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileNormalizedNameInformation, // q: FILE_NAME_INFORMATION
     FileNetworkPhysicalNameInformation, // q: FILE_NETWORK_PHYSICAL_NAME_INFORMATION
-    FileIdGlobalTxDirectoryInformation, // d: FILE_ID_GLOBAL_TX_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) // since WIN7 // 50
+    FileIdGlobalTxDirectoryInformation, // q: FILE_ID_GLOBAL_TX_DIR_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex]) // since WIN7 // 50
     FileIsRemoteDeviceInformation, // q: FILE_IS_REMOTE_DEVICE_INFORMATION (requires FILE_READ_ATTRIBUTES)
     FileUnusedInformation,
     FileNumaNodeInformation, // q: FILE_NUMA_NODE_INFORMATION
@@ -273,10 +272,10 @@ typedef enum _FILE_INFORMATION_CLASS
     FileLinkInformationBypassAccessCheck, // (kernel-mode only); s: FILE_LINK_INFORMATION
     FileVolumeNameInformation, // q: FILE_VOLUME_NAME_INFORMATION
     FileIdInformation, // q: FILE_ID_INFORMATION
-    FileIdExtdDirectoryInformation, // d: FILE_ID_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) // 60
+    FileIdExtdDirectoryInformation, // q: FILE_ID_EXTD_DIR_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex]) // 60
     FileReplaceCompletionInformation, // s: FILE_COMPLETION_INFORMATION // since WINBLUE
     FileHardLinkFullIdInformation, // q: FILE_LINK_ENTRY_FULL_ID_INFORMATION // FILE_LINKS_FULL_ID_INFORMATION
-    FileIdExtdBothDirectoryInformation, // d: FILE_ID_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY) // since THRESHOLD
+    FileIdExtdBothDirectoryInformation, // q: FILE_ID_EXTD_BOTH_DIR_INFORMATION (requires FILE_LIST_DIRECTORY; via NtQueryDirectoryFile[Ex]) // since THRESHOLD
     FileDispositionInformationEx, // s: FILE_DISPOSITION_INFO_EX (requires DELETE) // since REDSTONE
     FileRenameInformationEx, // s: FILE_RENAME_INFORMATION_EX
     FileRenameInformationExBypassAccessCheck, // (kernel-mode only); s: FILE_RENAME_INFORMATION_EX
