@@ -502,7 +502,7 @@ PPH_PROCESS_ITEM PhpLookupProcessItem(
  * \return The found process item.
  */
 PPH_PROCESS_ITEM PhReferenceProcessItem(
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     )
 {
     PPH_PROCESS_ITEM processItem;
