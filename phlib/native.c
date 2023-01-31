@@ -11666,13 +11666,13 @@ NTSTATUS PhSetThreadPagePriority(
 
 NTSTATUS PhSetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
-    _In_ BOOLEAN PriorityBoost
+    _In_ BOOLEAN DisablePriorityBoost
     )
 {
     NTSTATUS status;
     ULONG priorityBoost;
 
-    priorityBoost = PriorityBoost ? 1 : 0;
+    priorityBoost = DisablePriorityBoost ? 1 : 0;
 
     status = NtSetInformationThread(
         ThreadHandle,

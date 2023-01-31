@@ -882,7 +882,7 @@ FORCEINLINE
 NTSTATUS
 PhGetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
-    _Out_ PBOOLEAN PriorityBoost
+    _Out_ PBOOLEAN PriorityBoostDisabled
     )
 {
     NTSTATUS status;
@@ -898,7 +898,7 @@ PhGetThreadPriorityBoost(
 
     if (NT_SUCCESS(status))
     {
-        *PriorityBoost = !!priorityBoost;
+        *PriorityBoostDisabled = !!priorityBoost;
     }
 
     return status;
