@@ -413,6 +413,7 @@ EXPORTS
     PhGetFileDialogFilterIndex
     PhGetFileDialogOptions
     PhGetFileVersionInfo
+    PhGetFileVersionInfoEx
     PhGetFileVersionFixedInfo
     PhGetFileVersionInfoLangCodePage
     PhGetFileVersionInfoString
