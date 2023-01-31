@@ -237,7 +237,7 @@ typedef struct _PH_PROCGENERAL_CONTEXT
     HICON ProgramIcon;
 } PH_PROCGENERAL_CONTEXT, *PPH_PROCGENERAL_CONTEXT;
 
-VOID PhSetIcons(
+VOID PphProcessGeneralDlgUpdateIcons(
     _In_ HWND hwndDlg
     )
 {
@@ -293,7 +293,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             context->StartedLabelHandle = GetDlgItem(hwndDlg, IDC_STARTED);
             context->Enabled = TRUE;
 
-            PhSetIcons(hwndDlg);
+            PphProcessGeneralDlgUpdateIcons(hwndDlg);
 
             // File
 
@@ -520,9 +520,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
-            PhSetIcons(hwndDlg);
+            PphProcessGeneralDlgUpdateIcons(hwndDlg);
         }
         break;
     case WM_SHOWWINDOW:

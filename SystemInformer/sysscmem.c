@@ -392,7 +392,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             PhDeleteLayoutManager(&MemoryLayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             if (MemorySection->Parameters->LargeFont)
             {

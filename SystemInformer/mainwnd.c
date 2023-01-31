@@ -311,8 +311,6 @@ LRESULT CALLBACK PhMwpWndProc(
                 PhMwpInvokeUpdateWindowFontMonospace(hWnd, NULL);
             InvalidateRect(hWnd, NULL, TRUE);
 
-            PhDpiChangedForwardChildWindows(hWnd);
-
             PhMwpNotifyAllPages(MainTabPageDpiChanged, NULL, NULL);
         }
         break;
@@ -3283,10 +3281,13 @@ VOID PhMwpNotifyAllPages(
     ULONG i;
     PPH_MAIN_TAB_PAGE page;
 
-    for (i = 0; i < PageList->Count; i++)
+    if (PageList)
     {
-        page = PageList->Items[i];
-        page->Callback(page, Message, Parameter1, Parameter2);
+        for (i = 0; i < PageList->Count; i++)
+        {
+            page = PageList->Items[i];
+            page->Callback(page, Message, Parameter1, Parameter2);
+        }
     }
 }
 

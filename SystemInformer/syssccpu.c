@@ -515,7 +515,7 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             PhDeleteLayoutManager(&CpuLayoutManager);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhSipLayoutCpuGraphs();
 
@@ -627,7 +627,7 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             if (CpuSection->Parameters->MediumFont)
             {

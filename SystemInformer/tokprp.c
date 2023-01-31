@@ -1108,7 +1108,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhpTokenSetImageList(hwndDlg, tokenPageContext);
         }

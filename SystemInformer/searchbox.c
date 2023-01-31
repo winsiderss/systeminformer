@@ -647,7 +647,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhSearchControlThemeChanged(context, hWnd);
         }
