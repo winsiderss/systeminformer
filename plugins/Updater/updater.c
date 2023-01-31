@@ -207,9 +207,8 @@ PPH_STRING UpdateWindowsString(
     VS_FIXEDFILEINFO* rootBlock;
     PH_FORMAT fileVersionFormat[3];
 
-    fileName = PhGetKernelFileName();
-    PhMoveReference(&fileName, PhGetFileName(fileName));
-    versionInfo = PhGetFileVersionInfo(fileName->Buffer);
+    fileName = PhGetKernelFileName2();
+    versionInfo = PhGetFileVersionInfoEx(&fileName->sr);
     PhDereferenceObject(fileName);
 
     if (versionInfo)
