@@ -967,9 +967,25 @@ VOID PhGetStockApplicationIcon(
     _Out_opt_ HICON *LargeIcon
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static HICON smallIcon = NULL;
     static HICON largeIcon = NULL;
+    static LONG systemDpi = 0;
+
+    if (systemDpi != PhSystemDpi)
+    {
+        if (smallIcon)
+        {
+            DestroyIcon(smallIcon);
+            smallIcon = NULL;
+        }
+        if (largeIcon)
+        {
+            DestroyIcon(largeIcon);
+            largeIcon = NULL;
+        }
+
+        systemDpi = PhSystemDpi;
+    }
 
     // This no longer uses SHGetFileInfo because it is *very* slow and causes many other DLLs to be
     // loaded, increasing memory usage. The worst thing about it, however, is that it is horribly
@@ -978,7 +994,7 @@ VOID PhGetStockApplicationIcon(
     // the function at the same time, instead of waiting for initialization to finish it simply
     // fails the other threads.
 
-    if (PhBeginInitOnce(&initOnce))
+    if (!smallIcon || !largeIcon)
     {
         if (WindowsVersion < WINDOWS_10)
         {
@@ -1002,14 +1018,14 @@ VOID PhGetStockApplicationIcon(
                 PhDereferenceObject(systemDirectory);
             }
         }
+    }
 
-        // Fallback icons
+    if (!smallIcon || !largeIcon)
+    {
         if (!smallIcon)
-            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, PhSystemDpi);
+            smallIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
         if (!largeIcon)
-            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, PhSystemDpi);
-
-        PhEndInitOnce(&initOnce);
+            largeIcon = PhLoadIcon(NULL, IDI_APPLICATION, PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
     }
 
     if (SmallIcon)
