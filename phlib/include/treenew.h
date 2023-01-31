@@ -90,8 +90,7 @@ typedef struct _PH_TREENEW_NODE
                 ULONG CachedFontValid : 1;
                 ULONG CachedIconValid : 1;
                 ULONG PlusMinusHot : 1;
-                ULONG SkipImageList : 1;
-                ULONG SpareFlags2 : 26;
+                ULONG SpareFlags2 : 27;
             };
         };
 
@@ -120,7 +119,6 @@ typedef struct _PH_TREENEW_NODE
 
 // Callback flags
 #define TN_CACHE 0x1
-#define TN_SKIP_IMAGE_LIST 0x2
 #define TN_AUTO_FORECOLOR 0x1000
 
 // Column change flags
