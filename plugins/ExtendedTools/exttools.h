@@ -989,6 +989,10 @@ VOID EtInitializeFirewallTab(
     VOID
     );
 
+VOID InitializeFwTreeListDpi(
+    _In_ HWND TreeNewHandle
+    );
+
 VOID LoadSettingsFwTreeList(
     _In_ HWND TreeNewHandle
     );
