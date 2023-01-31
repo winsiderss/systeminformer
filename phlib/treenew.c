@@ -5615,6 +5615,8 @@ VOID PhTnpPrepareRowForDraw(
 
             if (getNodeIcon.Flags & TN_CACHE)
                 Node->s.CachedIconValid = TRUE;
+            if (getNodeIcon.Flags & TN_SKIP_IMAGE_LIST)
+                Node->s.SkipImageList = TRUE;
         }
         else
         {
@@ -5759,7 +5761,7 @@ VOID PhTnpDrawCell(
 
         // Draw the icon.
 
-        if (Context->ImageListSupport)
+        if (Context->ImageListSupport && !Node->s.SkipImageList)
         {
             //LONG right = textRect.right;
             //textRect.right = textRect.left + SmallIconWidth;
