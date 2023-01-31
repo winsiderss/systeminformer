@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -351,8 +351,6 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
 
             PhSipInitializeMemoryDialog();
 
-            dpiValue = PhGetWindowDpi(hwndDlg);
-
             MemoryDialog = hwndDlg;
             totalPhysicalLabel = GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL);
 
@@ -380,8 +378,8 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             ShowWindow(MemoryPanel, SW_SHOW);
 
             margin = panelItem->Margin;
+            dpiValue = PhGetWindowDpi(hwndDlg);
             PhGetSizeDpiValue(&margin, dpiValue, TRUE);
-
             PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
 
             PhSipCreateMemoryGraphs();
@@ -392,6 +390,19 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
     case WM_DESTROY:
         {
             PhDeleteLayoutManager(&MemoryLayoutManager);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            if (MemorySection->Parameters->LargeFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), MemorySection->Parameters->LargeFont, FALSE);
+            }
+
+            if (MemorySection->Parameters->MediumFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), MemorySection->Parameters->MediumFont, FALSE);
+            }
         }
         break;
     case WM_SIZE:
@@ -522,10 +533,8 @@ VOID PhSipLayoutMemoryGraphs(
     ULONG y;
     LONG dpiValue;
 
-    dpiValue = PhGetWindowDpi(hwnd);
-
     rect =  MemoryGraphMargin;
-
+    dpiValue = PhGetWindowDpi(hwnd);
     PhGetSizeDpiValue(&rect, dpiValue, TRUE);
 
     GetClientRect(MemoryDialog, &clientRect);

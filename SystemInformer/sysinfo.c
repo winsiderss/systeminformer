@@ -270,9 +270,7 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
         {
             PhSipInitializeParameters();
 
-            PhDpiChangedForwardChildWindows(hwndDlg);
-
-            InvalidateRect(hwndDlg, NULL, TRUE);
+            PhDpiChangedForwardChildWindows(PhSipWindow);
 
             if (SectionList)
             {
@@ -280,9 +278,14 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
                 {
                     PPH_SYSINFO_SECTION section = SectionList->Items[i];
 
-                    section->Callback(section, SysInfoDpiChanged, NULL, NULL);
+                    if (section->DialogHandle)
+                    {
+                        section->Callback(section, SysInfoDpiChanged, NULL, NULL);
+                    }
                 }
             }
+
+            PhSipOnSize();
         }
         break;
     }
@@ -934,7 +937,7 @@ VOID PhSiSetColorsGraphDrawInfo(
 {
     static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
     static ULONG lastDpi = ULONG_MAX;
-    static HFONT iconTitleFont;
+    static HFONT iconTitleFont = NULL;
 
     // Get the appropriate fonts.
 
@@ -949,7 +952,10 @@ VOID PhSiSetColorsGraphDrawInfo(
             if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, dpiValue))
             {
                 logFont.lfHeight += PhMultiplyDivide(1, dpiValue, 72);
+
+                HFONT fontHandle = iconTitleFont;
                 iconTitleFont = CreateFontIndirect(&logFont);
+                if (fontHandle) DeleteFont(fontHandle);
             }
 
             if (!iconTitleFont)
