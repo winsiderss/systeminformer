@@ -515,7 +515,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PET_DISK_NODE node;
