@@ -312,6 +312,8 @@ LRESULT CALLBACK PhMwpWndProc(
             InvalidateRect(hWnd, NULL, TRUE);
 
             PhDpiChangedForwardChildWindows(hWnd);
+
+            PhMwpNotifyAllPages(MainTabPageDpiChanged, NULL, NULL);
         }
         break;
     case WM_ENDSESSION:

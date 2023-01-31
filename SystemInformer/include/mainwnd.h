@@ -164,6 +164,7 @@ typedef enum _PH_MAIN_TAB_PAGE_MESSAGE
     MainTabPageExportContent, // PPH_MAIN_TAB_PAGE_EXPORT_CONTENT Parameter1
     MainTabPageFontChanged, // HFONT Parameter1 (Font)
     MainTabPageUpdateAutomaticallyChanged, // BOOLEAN Parameter1 (UpdateAutomatically)
+    MainTabPageDpiChanged,
 
     MaxMainTabPageMessage
 } PH_MAIN_TAB_PAGE_MESSAGE;
