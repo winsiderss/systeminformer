@@ -2316,16 +2316,14 @@ ULONG PhGetFileVersionInfoLangCodePage(
     _In_ PVOID VersionInfo
     )
 {
-    static PH_STRINGREF codePageNameSr = PH_STRINGREF_INIT(L"Translation");
-    PLANGANDCODEPAGE codePage = NULL;
-    ULONG codePageLength = 0;
+    static PH_STRINGREF translationName = PH_STRINGREF_INIT(L"Translation");
+    PLANGANDCODEPAGE codePage;
+    ULONG codePageLength;
 
-    if (PhGetFileVersionVarFileInfoValue(VersionInfo, &codePageNameSr, &codePage, &codePageLength))
+    if (PhGetFileVersionVarFileInfoValue(VersionInfo, &translationName, &codePage, &codePageLength))
     {
-        for (ULONG i = 0; i < (codePageLength / sizeof(LANGANDCODEPAGE)); i++)
-        {
-            return (codePage[0].Language << 16) + codePage[0].CodePage; // Combine the language ID and code page.
-        }
+        //for (ULONG i = 0; i < (codePageLength / sizeof(LANGANDCODEPAGE)); i++)
+        return (codePage[0].Language << 16) + codePage[0].CodePage; // Combine the language ID and code page.
     }
 
     return (MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US) << 16) + 1252;
@@ -2415,7 +2413,7 @@ PPH_STRING PhGetFileVersionInfoString2(
 
     if (!PhGetFileVersionInfoKey(
         blockStringInfo,
-        returnLength / sizeof(WCHAR) - sizeof(ANSI_NULL), // ANSI_NULL required (dmex)
+        returnLength / sizeof(WCHAR) - sizeof(ANSI_NULL),
         langNameString,
         &blockLangInfo
         ))
@@ -2440,9 +2438,9 @@ PPH_STRING PhGetFileVersionInfoString2(
 
     string = PhCreateStringEx(
         stringNameBlockValue,
-        stringNameBlockInfo->ValueLength * sizeof(WCHAR)
+        (stringNameBlockInfo->ValueLength - 1) * sizeof(WCHAR)
         );
-    PhTrimToNullTerminatorString(string); // length may include the null terminator.
+    //PhTrimToNullTerminatorString(string); // length may include the null terminator.
 
     return string;
 }
@@ -2480,13 +2478,13 @@ VOID PhpGetImageVersionInfoFields(
     _In_ ULONG LangCodePage
     )
 {
-    static PH_STRINGREF companyNameSr = PH_STRINGREF_INIT(L"CompanyName");
-    static PH_STRINGREF fileDescriptionSr = PH_STRINGREF_INIT(L"FileDescription");
-    static PH_STRINGREF productNameSr = PH_STRINGREF_INIT(L"ProductName");
+    static PH_STRINGREF companyName = PH_STRINGREF_INIT(L"CompanyName");
+    static PH_STRINGREF fileDescription = PH_STRINGREF_INIT(L"FileDescription");
+    static PH_STRINGREF productName = PH_STRINGREF_INIT(L"ProductName");
 
-    ImageVersionInfo->CompanyName = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &companyNameSr);
-    ImageVersionInfo->FileDescription = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &fileDescriptionSr);
-    ImageVersionInfo->ProductName = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &productNameSr);
+    ImageVersionInfo->CompanyName = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &companyName);
+    ImageVersionInfo->FileDescription = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &fileDescription);
+    ImageVersionInfo->ProductName = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &productName);
 }
 
 VOID PhpGetImageVersionVersionString(
@@ -2523,11 +2521,11 @@ VOID PhpGetImageVersionVersionStringEx(
     _In_ ULONG LangCodePage
     )
 {
-    static PH_STRINGREF fileVersionSr = PH_STRINGREF_INIT(L"FileVersion");
+    static PH_STRINGREF fileVersion = PH_STRINGREF_INIT(L"FileVersion");
     VS_FIXEDFILEINFO* rootBlock;
     PPH_STRING versionString;
 
-    if (versionString = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &fileVersionSr))
+    if (versionString = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &fileVersion))
     {
         ImageVersionInfo->FileVersion = versionString;
         return;
@@ -7281,8 +7279,6 @@ PVOID PhGetLoaderEntryStringRefDllBase(
     PLDR_DATA_TABLE_ENTRY ldrEntry;
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
-    //
-    //    if (ldrEntry = PhFindLoaderEntryNameHash(baseDllNameHash))
     ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 
@@ -8133,7 +8129,7 @@ static NTSTATUS PhpFixupLoaderEntryImageDelayImports(
 
             if ((InterlockedExchangePointer(importHandle, importBaseAddress) == importBaseAddress) && importNeedsFree)
             {
-                FreeLibrary(importBaseAddress); // A different thread has already updated the cache.
+                PhFreeLibrary(importBaseAddress); // A different thread has already updated the cache.
             }
         }
     }
