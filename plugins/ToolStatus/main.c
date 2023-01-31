@@ -625,12 +625,12 @@ LRESULT CALLBACK MainWndSubclassProc(
         {
             HFONT oldFont = ToolbarWindowFont;
 
-            // Let Process Hacker perform the default processing.
-            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
-
-            ToolbarWindowFont = ProcessHacker_GetFont();
+            // Let System Informer perform the default processing.
+            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             // Update fonts/sizes for new DPI.
+            ToolbarWindowFont = ProcessHacker_GetFont();
+      
             if (ToolBarHandle)
             {
                 SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
@@ -674,7 +674,9 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             if (oldFont) DeleteFont(oldFont);
 
-            goto DefaultWndProc;
+            ToolbarGraphsInitializeDpi();
+
+            return result;
         }
         break;
     case WM_COMMAND:
@@ -800,28 +802,32 @@ LRESULT CALLBACK MainWndSubclassProc(
                 goto DefaultWndProc;
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
-                    // Let Process Hacker perform the default processing.
-                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+                    // Let System Informer perform the default processing.
+                    LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     // Query the settings.
                     BOOLEAN isAlwaysOnTopEnabled = !!PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
 
                     // Set the pressed button state.
                     SendMessage(ToolBarHandle, TB_PRESSBUTTON, (WPARAM)PHAPP_ID_VIEW_ALWAYSONTOP, (LPARAM)(MAKELONG(isAlwaysOnTopEnabled, 0)));
+
+                    return result;
                 }
-                goto DefaultWndProc;
+                break;
             case PHAPP_ID_UPDATEINTERVAL_FAST:
             case PHAPP_ID_UPDATEINTERVAL_NORMAL:
             case PHAPP_ID_UPDATEINTERVAL_BELOWNORMAL:
             case PHAPP_ID_UPDATEINTERVAL_SLOW:
             case PHAPP_ID_UPDATEINTERVAL_VERYSLOW:
                 {
-                    // Let Process Hacker perform the default processing.
-                    CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+                    // Let System Informer perform the default processing.
+                    LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
                     StatusBarUpdate(TRUE);
+
+                    return result;
                 }
-                goto DefaultWndProc;
+                break;
             case PHAPP_ID_VIEW_UPDATEAUTOMATICALLY:
                 {
                     UpdateAutomatically = !UpdateAutomatically;
@@ -1479,8 +1485,8 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_PH_UPDATE_FONT:
         {
-            // Let Process Hacker perform the default processing.
-            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            // Let System Informer perform the default processing.
+            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             ToolbarWindowFont = ProcessHacker_GetFont();
             SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
@@ -1506,7 +1512,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             ToolbarLoadSettings(FALSE);
 
-            goto DefaultWndProc;
+            return result;
         }
         break;
     case WM_PH_NOTIFY_ICON_MESSAGE:
@@ -1515,8 +1521,8 @@ LRESULT CALLBACK MainWndSubclassProc(
             if (!ToolStatusConfig.SearchAutoFocus)
                 break;
 
-            // Let Process Hacker perform the default processing.
-            CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            // Let System Informer perform the default processing.
+            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             // This fixes the search focus for the 'Hide when closed' option. See GH #663 (dmex)
             switch (LOWORD(lParam))
@@ -1545,7 +1551,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
             }
 
-            goto DefaultWndProc;
+            return result;
         }
         break;
     case WM_PH_ACTIVATE:
@@ -1554,7 +1560,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             if (!ToolStatusConfig.SearchAutoFocus)
                 break;
 
-            // Let Process Hacker perform the default processing. (dmex)
+            // Let System Informer perform the default processing. (dmex)
             LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
             // Re-focus the searchbox when we're already running and we're moved

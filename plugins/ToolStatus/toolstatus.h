@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
@@ -280,6 +280,10 @@ VOID ToolbarGraphSaveSettings(
     );
 
 VOID ToolbarGraphsInitialize(
+    VOID
+    );
+
+VOID ToolbarGraphsInitializeDpi(
     VOID
     );
 

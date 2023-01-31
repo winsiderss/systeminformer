@@ -45,7 +45,7 @@ VOID ToolStatusGraphCallbackName( \
     _In_ HWND GraphHandle, \
     _In_ PPH_GRAPH_STATE GraphState, \
     _In_ LPNMHDR Header, \
-    _In_opt_ PVOID Context \
+    _In_ PVOID Context \
     )
 
 typedef VOID (NTAPI *PTOOLSTATUS_GRAPH_MESSAGE_CALLBACK)(
