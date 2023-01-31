@@ -2128,6 +2128,7 @@ PDEVICE_NODE NTAPI AddDeviceNode(
     node->Node.TextCacheSize = ARRAYSIZE(node->TextCache);
 
     node->Children = PhCreateList(1);
+    node->IconIndex = ULONG_MAX;
 
     //
     // Only get the minimum here, the rest will be retrieved later if necessary.
@@ -2155,6 +2156,7 @@ PDEVICE_NODE NTAPI AddDeviceNode(
             }
 
             prop->Initialized = TRUE;
+            node->IconIndex = 0; // application icon
         }
 
         PhReferenceObject(node->InstanceId);
@@ -2202,6 +2204,7 @@ PDEVICE_NODE NTAPI AddDeviceNode(
         node->HasLowerFilters = TRUE;
     }
 
+    if (node->IconIndex == ULONG_MAX)
     {
         HICON iconHandle;
 
@@ -2216,6 +2219,10 @@ PDEVICE_NODE NTAPI AddDeviceNode(
         {
             node->IconIndex = PhImageListAddIcon(DeviceImageList, iconHandle);
             DestroyIcon(iconHandle);
+        }
+        else
+        {
+            node->IconIndex = 0; // Must be set to zero (dmex)
         }
     }
 
@@ -3309,6 +3316,40 @@ BOOLEAN DevicesTabPageCallback(
 
             if (DeviceTreeHandle)
                 SendMessage(DeviceTreeHandle, WM_SETFONT, (WPARAM)Parameter1, TRUE);
+        }
+        break;
+    case MainTabPageDpiChanged:
+        {
+            if (DeviceImageList)
+            {
+                DevicesTreeImageListInitialize(DeviceTreeHandle);
+
+                if (DeviceTree && DeviceTree->DeviceList)
+                {
+                    for (ULONG i = 0; i < DeviceTree->DeviceList->Count; i++)
+                    {
+                        PDEVICE_NODE node = DeviceTree->DeviceList->Items[i];
+                        HICON iconHandle;
+
+                        if (SetupDiLoadDeviceIcon(
+                            node->DeviceInfoHandle,
+                            &node->DeviceInfoData,
+                            DeviceIconSize.X,
+                            DeviceIconSize.X,
+                            0,
+                            &iconHandle
+                            ))
+                        {
+                            node->IconIndex = PhImageListAddIcon(DeviceImageList, iconHandle);
+                            DestroyIcon(iconHandle);
+                        }
+                        else
+                        {
+                            node->IconIndex = 0; // Must be reset (dmex)
+                        }
+                    }
+                }
+            }
         }
         break;
     }
