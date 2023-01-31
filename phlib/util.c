@@ -2019,6 +2019,44 @@ PPH_STRING PhFormatUInt64(
     return PhFormat(&format, 1, 0);
 }
 
+// Formats using prefix (1000=1k, 1000000=1M, 1000000000000=1B) (dmex)
+PPH_STRING PhFormatUInt64Prefix(
+    _In_ ULONG64 Value,
+    _In_ BOOLEAN GroupDigits
+    )
+{
+    static PH_STRINGREF PhpPrefixUnitNamesCounted[7] =
+    {
+        PH_STRINGREF_INIT(L""),
+        PH_STRINGREF_INIT(L"k"),
+        PH_STRINGREF_INIT(L"M"),
+        PH_STRINGREF_INIT(L"B"),
+        PH_STRINGREF_INIT(L"T"),
+        PH_STRINGREF_INIT(L"P"),
+        PH_STRINGREF_INIT(L"E")
+    };
+    DOUBLE number = (DOUBLE)Value;
+    ULONG i = 0;
+    PH_FORMAT format[2];
+    
+    while (
+        number >= 1000 &&
+        i < RTL_NUMBER_OF(PhpPrefixUnitNamesCounted) &&
+        i < PhMaxSizeUnit
+        )
+    {
+        number /= 1000;
+        i++;
+    }
+    
+    format[0].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros | (GroupDigits ? FormatGroupDigits : 0);
+    format[0].Precision = 2;
+    format[0].u.Double = number;
+    PhInitFormatSR(&format[1], PhpPrefixUnitNamesCounted[i]);
+    
+    return PhFormat(format, 2, 0);
+}
+
 PPH_STRING PhFormatDecimal(
     _In_ PWSTR Value,
     _In_ ULONG FractionalDigits,
