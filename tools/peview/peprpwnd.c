@@ -569,6 +569,15 @@ VOID PvAddTreeViewSections(
         NULL
         );
 
+    // VS_VERSIONINFO page
+    PvCreateTabSection(
+        L"VersionInfo",
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDD_PEPREVIEW),
+        PvpPeVersionInfoDlgProc,
+        NULL
+        );
+
     if (PhGetIntegerSetting(L"MainWindowPageRestoreEnabled"))
     {
         PPH_STRING startPage;

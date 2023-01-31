@@ -165,6 +165,9 @@
     <ClCompile Include="clrtableimports.cpp">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="versioninfoprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">
