@@ -14,9 +14,11 @@
 #include <toolstatusintf.h>
 
 #include <cfgmgr32.h>
+#include <devguid.h>
+#include <wdmguid.h>
 #include <SetupAPI.h>
 
-#undef DEFINE_GUID 
+#undef DEFINE_GUID
 #include <devpropdef.h>
 #include <pciprop.h>
 #include <ntddstor.h>
@@ -359,10 +361,11 @@ static PH_STRINGREF RootInstanceId = PH_STRINGREF_INIT(L"HTREE\\ROOT\\0");
 static PPH_OBJECT_TYPE DeviceNodeType = NULL;
 static PPH_OBJECT_TYPE DeviceTreeType = NULL;
 
-static ULONG AutoRefreshDeviceTree = 1;
-static ULONG ShowDisconnected = 1;
-static ULONG HighlightUpperFiltered = 1;
-static ULONG HighlightLowerFiltered = 1;
+static BOOLEAN AutoRefreshDeviceTree = TRUE;
+static BOOLEAN ShowDisconnected = TRUE;
+static BOOLEAN ShowSoftwareComponents = TRUE;
+static BOOLEAN HighlightUpperFiltered = TRUE;
+static BOOLEAN HighlightLowerFiltered = TRUE;
 static ULONG DeviceProblemColor = 0;
 static ULONG DeviceDisabledColor = 0;
 static ULONG DeviceDisconnectedColor = 0;
@@ -1494,6 +1497,161 @@ VOID NTAPI DevPropFillGuid(
     }
 }
 
+PPH_STRING DevPropBusTypeGuidToString(
+    _In_ PGUID BusTypeGuid
+    )
+{
+    if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_INTERNAL))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_INTERNAL");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCMCIA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_PCMCIA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCI))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_PCI");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ISAPNP))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_ISAPNP");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_EISA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_EISA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_MCA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_MCA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SERENUM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SERENUM");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USB))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_USB");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_LPTENUM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_LPTENUM");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USBPRINT))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_USBPRINT");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_DOT4PRT))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_DOT4PRT");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_1394))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_1394");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_HID))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_HID");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_AVC))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_AVC");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_IRDA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_IRDA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SD))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SD");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ACPI))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_ACPI");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SW_DEVICE))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SW_DEVICE");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SCM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SCM");
+        return PhCreateString2(&string);
+    }
+
+    return NULL;
+}
+
+_Function_class_(DEVPROP_FILL_CALLBACK)
+VOID NTAPI DevPropFillBusTypeGuid(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = DevPropTypeGUID;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = GetDevicePropertyGuid(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->Guid
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = GetClassPropertyGuid(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->Guid
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = GetClassPropertyGuid(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->Guid
+            );
+    }
+
+    if (Property->Valid)
+    {
+        Property->AsString = DevPropBusTypeGuidToString(&Property->Guid);
+
+        if (!Property->AsString)
+        {
+            Property->AsString = PhFormatGuid(&Property->Guid);
+        }
+    }
+}
+
 _Function_class_(DEVPROP_FILL_CALLBACK)
 VOID NTAPI DevPropFillBoolean(
     _In_ HDEVINFO DeviceInfoSet,
@@ -1732,7 +1890,7 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
     { L"Compatible IDs", FALSE, 80, 0, DevKeyCompatibleIds, &DEVPKEY_Device_CompatibleIds, DevPropFillStringList, 0 },
     { L"Configuration Flags", FALSE, 80, 0, DevKeyConfigFlags, &DEVPKEY_Device_ConfigFlags, DevPropFillUInt32Hex, 0 },
     { L"Number", FALSE, 80, 0, DevKeyUINumber, &DEVPKEY_Device_UINumber, DevPropFillUInt32, 0 },
-    { L"Bus Type GUID", FALSE, 80, 0, DevKeyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, DevPropFillGuid, 0 },
+    { L"Bus Type GUID", FALSE, 80, 0, DevKeyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, DevPropFillBusTypeGuid, 0 },
     { L"Legacy Bus Type", FALSE, 80, 0, DevKeyLegacyBusType, &DEVPKEY_Device_LegacyBusType, DevPropFillUInt32, 0 },
     { L"Bus Number", FALSE, 80, 0, DevKeyBusNumber, &DEVPKEY_Device_BusNumber, DevPropFillUInt32, 0 },
     //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_Device_Security, NULL, 0 },               // DEVPROP_TYPE_SECURITY_DESCRIPTOR
@@ -2186,10 +2344,16 @@ PDEVICE_TREE CreateDeviceTree(
     {
         SP_DEVINFO_DATA deviceInfoData;
 
+        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
         deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
         if (!SetupDiEnumDeviceInfo(tree->DeviceInfoHandle, i, &deviceInfoData))
-        {
             break;
+
+        if (!ShowSoftwareComponents)
+        {
+            if (IsEqualGUID(&deviceInfoData.ClassGuid, &GUID_DEVCLASS_SOFTWARECOMPONENT))
+                continue;
         }
 
         AddDeviceNode(tree, &deviceInfoData);
@@ -2644,6 +2808,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_EMENU_ITEM selectedItem;
             PPH_EMENU_ITEM autoRefresh;
             PPH_EMENU_ITEM showDisconnectedDevices;
+            PPH_EMENU_ITEM showSoftwareDevices;
             PPH_EMENU_ITEM highlightUpperFiltered;
             PPH_EMENU_ITEM highlightLowerFiltered;
             PPH_EMENU_ITEM gotoServiceItem;
@@ -2662,10 +2827,11 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhInsertEMenuItem(menu, autoRefresh = PhCreateEMenuItem(0, 101, L"Refresh automatically", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, showDisconnectedDevices = PhCreateEMenuItem(0, 102, L"Show disconnected devices", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 103, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
-            PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 104, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, showSoftwareDevices = PhCreateEMenuItem(0, 103, L"Show software components", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightUpperFiltered = PhCreateEMenuItem(0, 104, L"Highlight upper filtered", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, highlightLowerFiltered = PhCreateEMenuItem(0, 105, L"Highlight lower filtered", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-            PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 105, L"Go to service...", NULL, NULL), ULONG_MAX);
+            PhInsertEMenuItem(menu, gotoServiceItem = PhCreateEMenuItem(0, 106, L"Go to service...", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
             PhInsertEMenuItem(menu, enable = PhCreateEMenuItem(0, 0, L"Enable", NULL, NULL), ULONG_MAX);
             PhInsertEMenuItem(menu, disable = PhCreateEMenuItem(0, 1, L"Disable", NULL, NULL), ULONG_MAX);
@@ -2689,6 +2855,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
                 autoRefresh->Flags |= PH_EMENU_CHECKED;
             if (ShowDisconnected)
                 showDisconnectedDevices->Flags |= PH_EMENU_CHECKED;
+            if (ShowSoftwareComponents)
+                showSoftwareDevices->Flags |= PH_EMENU_CHECKED;
             if (HighlightUpperFiltered)
                 highlightUpperFiltered->Flags |= PH_EMENU_CHECKED;
             if (HighlightLowerFiltered)
@@ -2783,16 +2951,21 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         invalidate = TRUE;
                         break;
                     case 103:
+                        ShowSoftwareComponents = !ShowSoftwareComponents;
+                        PhSetIntegerSetting(SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, ShowSoftwareComponents);
+                        republish = TRUE;
+                        break;
+                    case 104:
                         HighlightUpperFiltered = !HighlightUpperFiltered;
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED, HighlightUpperFiltered);
                         invalidate = TRUE;
                         break;
-                    case 104:
+                    case 105:
                         HighlightLowerFiltered = !HighlightLowerFiltered;
                         PhSetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED, HighlightLowerFiltered);
                         invalidate = TRUE;
                         break;
-                    case 105:
+                    case 106:
                         {
                             PPH_STRING serviceName = GetDeviceNodeProperty(node, DevKeyService)->AsString;
                             PPH_SERVICE_ITEM serviceItem;
@@ -3163,6 +3336,7 @@ VOID InitializeDevicesTab(
     DeviceTreeType = PhCreateObjectType(L"DeviceTree", 0, DeviceTreeDeleteProcedure);
     AutoRefreshDeviceTree = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_AUTO_REFRESH);
     ShowDisconnected = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_SHOW_DISCONNECTED);
+    ShowSoftwareComponents = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS);
     HighlightUpperFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_UPPER_FILTERED);
     HighlightLowerFiltered = !!PhGetIntegerSetting(SETTING_NAME_DEVICE_TREE_HIGHLIGHT_LOWER_FILTERED);
     DeviceProblemColor = PhGetIntegerSetting(SETTING_NAME_DEVICE_PROBLEM_COLOR);
