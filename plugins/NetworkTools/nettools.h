@@ -19,7 +19,7 @@
 #include <settings.h>
 #include <workqueue.h>
 
-#include <icmpapi.h>
+#include <phnet.h>
 
 #include "resource.h"
 
