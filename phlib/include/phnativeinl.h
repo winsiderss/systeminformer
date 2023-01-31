@@ -347,23 +347,23 @@ FORCEINLINE
 NTSTATUS
 PhGetProcessPriorityBoost(
     _In_ HANDLE ProcessHandle,
-    _Out_ PBOOLEAN PriorityBoost
+    _Out_ PBOOLEAN PriorityBoostDisabled
     )
 {
     NTSTATUS status;
-    ULONG priorityBoost;
+    ULONG priorityBoostDisabled;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessPriorityBoost,
-        &priorityBoost,
+        &priorityBoostDisabled,
         sizeof(ULONG),
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        *PriorityBoost = !!priorityBoost;
+        *PriorityBoostDisabled = !!priorityBoostDisabled;
     }
 
     return status;

@@ -1027,7 +1027,7 @@ NTSTATUS
 NTAPI
 PhSetProcessPriorityBoost(
     _In_ HANDLE ProcessHandle,
-    _In_ BOOLEAN PriorityBoost
+    _In_ BOOLEAN DisablePriorityBoost
     );
 
 PHLIBAPI

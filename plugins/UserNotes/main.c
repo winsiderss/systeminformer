@@ -1388,11 +1388,11 @@ VOID NTAPI MenuItemCallback(
     case PROCESS_BOOST_PRIORITY_ID:
         {
             NTSTATUS status = STATUS_RETRY;
-            BOOLEAN priorityBoost = FALSE;
+            BOOLEAN priorityBoostDisabled = FALSE;
 
             if (processItem->QueryHandle)
             {
-                status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost);
+                status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoostDisabled);
             }
 
             if (NT_SUCCESS(status))
@@ -1407,7 +1407,7 @@ VOID NTAPI MenuItemCallback(
 
                 if (NT_SUCCESS(status))
                 {
-                    status = PhSetProcessPriorityBoost(processHandle, !priorityBoost);
+                    status = PhSetProcessPriorityBoost(processHandle, !priorityBoostDisabled);
                     NtClose(processHandle);
                 }
             }
@@ -1430,11 +1430,11 @@ VOID NTAPI MenuItemCallback(
             else
             {
                 NTSTATUS status = STATUS_RETRY;
-                BOOLEAN priorityBoost = FALSE;
+                BOOLEAN priorityBoostDisabled = FALSE;
 
                 if (processItem->QueryHandle)
                 {
-                    status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost);
+                    status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoostDisabled);
                 }
 
                 if (NT_SUCCESS(status))
@@ -1466,11 +1466,11 @@ VOID NTAPI MenuItemCallback(
                 else
                 {
                     NTSTATUS status = STATUS_RETRY;
-                    BOOLEAN priorityBoost = FALSE;
+                    BOOLEAN priorityBoostDisabled = FALSE;
 
                     if (processItem->QueryHandle)
                     {
-                        status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost);
+                        status = PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoostDisabled);
                     }
 
                     if (NT_SUCCESS(status))
@@ -1922,9 +1922,9 @@ VOID AddSavePriorityMenuItemsAndHook(
 
         if (ProcessItem->QueryHandle)
         {
-            BOOLEAN priorityBoost = FALSE;
+            BOOLEAN priorityBoostDisabled = FALSE;
 
-            if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessItem->QueryHandle, &priorityBoost)) && priorityBoost)
+            if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessItem->QueryHandle, &priorityBoostDisabled)) && !priorityBoostDisabled)
             {
                 boostPluginMenuItem->Flags |= PH_EMENU_CHECKED;
             }
@@ -2322,11 +2322,11 @@ VOID ProcessesUpdatedCallback(
         {
             if (object->Boost && !extension->SkipBoostPriority)
             {
-                BOOLEAN priorityBoost = FALSE;
+                BOOLEAN priorityBoostDisabled = FALSE;
 
-                if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoost)))
+                if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoostDisabled)))
                 {
-                    if (priorityBoost != object->Boost)
+                    if (priorityBoostDisabled != object->Boost)
                     {
                         if (!NT_SUCCESS(PhSetProcessItemPriorityBoost(processItem, object->Boost)))
                         {
