@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -518,6 +518,16 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
     case WM_DPICHANGED:
         {
             PhSipLayoutCpuGraphs();
+
+            if (CpuSection->Parameters->LargeFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), CpuSection->Parameters->LargeFont, FALSE);
+            }
+
+            if (CpuSection->Parameters->MediumFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_CPUNAME), CpuSection->Parameters->MediumFont, FALSE);
+            }
         }
         break;
     case WM_SIZE:
@@ -614,6 +624,19 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
                     PhSipSetOneGraphPerCpu();
                 }
                 break;
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            if (CpuSection->Parameters->MediumFont)
+            {
+                SetWindowFont(CpuPanelUtilizationLabel, CpuSection->Parameters->MediumFont, FALSE);
+            }
+
+            if (CpuSection->Parameters->MediumFont)
+            {
+                SetWindowFont(CpuPanelSpeedLabel, CpuSection->Parameters->MediumFont, FALSE);
             }
         }
         break;

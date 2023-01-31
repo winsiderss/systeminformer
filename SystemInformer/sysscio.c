@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -268,15 +268,11 @@ INT_PTR CALLBACK PhSipIoDialogProc(
 
             PhSipInitializeIoDialog();
 
-            dpiValue = PhGetWindowDpi(hwndDlg);
-
             IoDialog = hwndDlg;
             PhInitializeLayoutManager(&IoLayoutManager, hwndDlg);
             graphItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&IoLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             IoGraphMargin = graphItem->Margin;
-
-            PhGetSizeDpiValue(&IoGraphMargin, dpiValue, TRUE);
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), IoSection->Parameters->LargeFont, FALSE);
 
@@ -284,15 +280,10 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             ShowWindow(IoPanel, SW_SHOW);
 
             margin = panelItem->Margin;
+            dpiValue = PhGetWindowDpi(hwndDlg);
+            PhGetSizeDpiValue(&IoGraphMargin, dpiValue, TRUE);
             PhGetSizeDpiValue(&margin, dpiValue, TRUE);
-
-            PhAddLayoutItemEx(
-                &IoLayoutManager,
-                IoPanel,
-                NULL,
-                PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM,
-                margin
-                );
+            PhAddLayoutItemEx(&IoLayoutManager, IoPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
 
             PhSipCreateIoGraph();
             PhSipUpdateIoGraph();
@@ -319,6 +310,14 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             if (header->hwndFrom == IoGraphHandle)
             {
                 PhSipNotifyIoGraph(header);
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            if (IoSection->Parameters->LargeFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), IoSection->Parameters->LargeFont, FALSE);
             }
         }
         break;
