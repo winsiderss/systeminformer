@@ -414,7 +414,7 @@ BOOLEAN HardwareDeviceShowProperties(
     _In_ PPH_STRING DeviceInstance
     )
 {
-    HMODULE devMgrHandle;
+    PVOID devMgrHandle;
 
     // https://msdn.microsoft.com/en-us/library/ff548181.aspx
     VOID (WINAPI* DeviceProperties_RunDLL_I)(
@@ -423,11 +423,6 @@ BOOLEAN HardwareDeviceShowProperties(
         _In_ PWSTR lpCmdLine,
         _In_ INT nCmdShow
         );
-
-    //ULONG (WINAPI *DeviceAdvancedPropertiesW_I)(
-    //    _In_opt_ HWND hWndParent,
-    //    _In_opt_ PWSTR MachineName,
-    //    _In_ PWSTR DeviceID);
 
     if (devMgrHandle = PhLoadLibrary(L"devmgr.dll"))
     {
@@ -462,7 +457,7 @@ BOOLEAN HardwareDeviceShowProperties(
             }
         }
 
-        FreeLibrary(devMgrHandle);
+        PhFreeLibrary(devMgrHandle);
     }
 
     return FALSE;
@@ -653,7 +648,8 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"6d6d6d" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHT_COLOR, L"00aaff" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"1" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"0" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS, L"1" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
