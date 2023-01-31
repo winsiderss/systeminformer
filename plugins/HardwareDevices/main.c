@@ -417,45 +417,67 @@ BOOLEAN HardwareDeviceShowProperties(
     PVOID devMgrHandle;
 
     // https://msdn.microsoft.com/en-us/library/ff548181.aspx
-    VOID (WINAPI* DeviceProperties_RunDLL_I)(
-        _In_ HWND hwndStub,
-        _In_ HINSTANCE hAppInstance,
-        _In_ PWSTR lpCmdLine,
-        _In_ INT nCmdShow
+    //VOID (WINAPI* DeviceProperties_RunDLL_I)( // No resources tab (dmex)
+    //    _In_ HWND hwndStub,
+    //    _In_ HINSTANCE hAppInstance,
+    //    _In_ PWSTR lpCmdLine,
+    //    _In_ INT nCmdShow
+    //    );
+
+    INT_PTR (WINAPI* DevicePropertiesW)( // Includes resources tab (dmex)
+        _In_opt_ HWND ParentWindow,
+        _In_opt_ PCWSTR MachineName,
+        _In_opt_ PCWSTR DeviceID,
+        _In_ BOOL ShowDeviceManager
         );
+
+    //PhShellExecuteEx(
+    //    GetParent(WindowHandle),
+    //    L"DeviceProperties.exe", // auto-elevated (dmex)
+    //    PhGetString(DeviceInstance),
+    //    SW_SHOWDEFAULT,
+    //    0,
+    //    0,
+    //    NULL
+    //    );
 
     if (devMgrHandle = PhLoadLibrary(L"devmgr.dll"))
     {
-        if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
+        if (DevicePropertiesW = PhGetProcedureAddress(devMgrHandle, "DevicePropertiesW", 0))
         {
-            PH_FORMAT format[2];
-            WCHAR formatBuffer[512];
-
-            // /DeviceID %s
-            PhInitFormatS(&format[0], L"/DeviceID ");
-            PhInitFormatSR(&format[1], DeviceInstance->sr);
-
-            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-            {
-                // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
-                DeviceProperties_RunDLL_I(
-                    GetParent(WindowHandle),
-                    NULL,
-                    formatBuffer,
-                    0
-                    );
-            }
-            else
-            {
-                // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
-                DeviceProperties_RunDLL_I(
-                    GetParent(WindowHandle),
-                    NULL,
-                    PhaFormatString(L"/DeviceID %s", DeviceInstance->Buffer)->Buffer,
-                    0
-                    );
-            }
+            DevicePropertiesW(GetParent(WindowHandle), NULL, PhGetString(DeviceInstance), FALSE);
         }
+
+        //if (DeviceProperties_RunDLL_I = PhGetProcedureAddress(devMgrHandle, "DeviceProperties_RunDLLW", 0))
+        //{
+        //    PH_FORMAT format[2];
+        //    WCHAR formatBuffer[512];
+        //
+        //    // /DeviceID %s
+        //    PhInitFormatS(&format[0], L"/DeviceID ");
+        //    PhInitFormatSR(&format[1], DeviceInstance->sr);
+        //
+        //    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+        //    {
+        //        // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
+        //        DeviceProperties_RunDLL_I(
+        //            GetParent(WindowHandle),
+        //            NULL,
+        //            formatBuffer,
+        //            0
+        //            );
+        //    }
+        //    else
+        //    {
+        //        // This will sometimes re-throw an RPC error while debugging and can safely be ignored. (dmex)
+        //        DeviceProperties_RunDLL_I(
+        //            GetParent(WindowHandle),
+        //            NULL,
+        //            PhaFormatString(L"/DeviceID %s", DeviceInstance->Buffer)->Buffer,
+        //            0
+        //            );
+        //    }
+        //}
 
         PhFreeLibrary(devMgrHandle);
     }
