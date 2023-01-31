@@ -302,6 +302,43 @@ PhSetEnvironmentVariable(
     _In_opt_ PPH_STRINGREF Value
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSetEnvironmentVariableZ(
+    _In_opt_ PVOID Environment,
+    _In_ PWSTR Name,
+    _In_opt_ PWSTR Value
+    )
+{
+    if (Value)
+    {
+        PH_STRINGREF name;
+        PH_STRINGREF value;
+
+        PhInitializeStringRef(&name, Name);
+        PhInitializeStringRef(&value, Value);
+
+        return PhSetEnvironmentVariable(
+            Environment,
+            &name,
+            &value
+            );
+    }
+    else
+    {
+        PH_STRINGREF name;
+
+        PhInitializeStringRef(&name, Name);
+
+        return PhSetEnvironmentVariable(
+            Environment,
+            &name,
+            NULL
+            );
+    }
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
