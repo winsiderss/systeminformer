@@ -183,7 +183,7 @@ VOID PhpInitializeThreadMenu(
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         IO_PRIORITY_HINT ioPriority = ULONG_MAX;
         ULONG pagePriority = ULONG_MAX;
-        BOOLEAN threadPriorityBoost = FALSE;
+        BOOLEAN threadPriorityBoostDisabled = FALSE;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
@@ -197,7 +197,7 @@ VOID PhpInitializeThreadMenu(
             PhGetThreadBasePriority(threadHandle, &threadPriority);
             PhGetThreadIoPriority(threadHandle, &ioPriority);
             PhGetThreadPagePriority(threadHandle, &pagePriority);
-            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
 
             if (NT_SUCCESS(NtOpenThreadToken(
                 threadHandle,
@@ -306,10 +306,9 @@ VOID PhpInitializeThreadMenu(
             }
         }
 
-        if (threadPriorityBoost)
+        if (!threadPriorityBoostDisabled)
         {
-            PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST,
-                PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+            PhSetFlagsEMenuItem(Menu, ID_THREAD_BOOST, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
 }
@@ -1126,15 +1125,15 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             threadItem->ThreadId
                             )))
                         {
-                            BOOLEAN threadPriorityBoost = FALSE;
+                            BOOLEAN threadPriorityBoostDisabled = FALSE;
                             ULONG numberOfThreads;
                             PPH_THREAD_ITEM* threads;
 
-                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoost);
+                            PhGetThreadPriorityBoost(threadHandle, &threadPriorityBoostDisabled);
 
                             PhGetSelectedThreadItems(&threadsContext->ListContext, &threads, &numberOfThreads);
                             PhReferenceObjects(threads, numberOfThreads);
-                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoost);
+                            PhUiSetBoostPriorityThreads(hwndDlg, threads, numberOfThreads, !threadPriorityBoostDisabled);
                             PhDereferenceObjects(threads, numberOfThreads);
                             PhFree(threads);
 

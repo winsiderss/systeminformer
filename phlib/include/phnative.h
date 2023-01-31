@@ -2156,7 +2156,7 @@ NTSTATUS
 NTAPI
 PhSetThreadPriorityBoost(
     _In_ HANDLE ThreadHandle,
-    _In_ BOOLEAN PriorityBoost
+    _In_ BOOLEAN DisablePriorityBoost
     );
 
 PHLIBAPI
