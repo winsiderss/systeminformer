@@ -156,7 +156,7 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnThemeChanged(hwnd, context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhTnpOnDpiChanged(hwnd, context);
         }

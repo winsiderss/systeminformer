@@ -270,8 +270,6 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
         {
             PhSipInitializeParameters();
 
-            PhDpiChangedForwardChildWindows(PhSipWindow);
-
             if (SectionList)
             {
                 for (ULONG i = 0; i < SectionList->Count; i++)

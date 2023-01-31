@@ -399,29 +399,6 @@ VOID PhReInitializeWindowTheme(
     InvalidateRect(WindowHandle, NULL, FALSE);
 }
 
-VOID PhInitializeTaskDialogTheme(
-    _In_ HWND WindowHandle,
-    _In_ BOOLEAN EnableThemeSupport
-    )
-{
-    if (EnableThemeSupport)
-    {
-        PhInitializeWindowTheme(WindowHandle, EnableThemeSupport);
-    }
-
-    //if (PhTaskDialogThemeHookIndex)
-    //{
-    //    if (EnableThemeSupport)
-    //    {
-    //        TlsSetValue(PhTaskDialogThemeHookIndex, UlongToPtr(1));
-    //    }
-    //    else
-    //    {
-    //        TlsSetValue(PhTaskDialogThemeHookIndex, UlongToPtr(0));
-    //    }
-    //}
-}
-
 HRESULT PhSetWindowThemeAttribute(
     _In_ HWND WindowHandle,
     _In_ ULONG AttributeId,

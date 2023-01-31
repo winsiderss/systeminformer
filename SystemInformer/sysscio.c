@@ -313,7 +313,7 @@ INT_PTR CALLBACK PhSipIoDialogProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             if (IoSection->Parameters->LargeFont)
             {
