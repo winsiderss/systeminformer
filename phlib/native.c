@@ -6213,6 +6213,24 @@ PPH_STRING PhGetKernelFileName(
     return fileName;
 }
 
+// Kernel filename without the SystemModuleInformation overhead (dmex)
+PPH_STRING PhGetKernelFileName2(
+    VOID
+    )
+{
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+
+        if (PhDoesFileExist(&kernelFileName))
+        {
+            return PhCreateString2(&kernelFileName);
+        }
+    }
+ 
+    return PhGetKernelFileName();
+}
+
 /**
  * Enumerates the running processes.
  *

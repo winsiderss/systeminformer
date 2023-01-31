@@ -1138,6 +1138,13 @@ PhGetKernelFileName(
     VOID
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetKernelFileName2(
+    VOID
+    );
+
 /**
  * Gets a pointer to the first process information structure in a buffer returned by
  * PhEnumProcesses().
