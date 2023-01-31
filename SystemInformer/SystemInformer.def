@@ -277,6 +277,7 @@ EXPORTS
     PhGetFirmwareEnvironmentVariable
     PhGetJobProcessIdList
     PhGetKernelFileName
+    PhGetKernelFileName2
     PhGetObjectSecurity
     PhGetOwnTokenAttributes
     PhGetDllHandle
