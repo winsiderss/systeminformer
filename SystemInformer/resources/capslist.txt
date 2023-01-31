@@ -768,6 +768,7 @@ lowLevel
 lowLevelDevices
 lpacAppExperience
 lpacChromeInstallFiles
+lpacChromeNetworkSandbox
 lpacClipboard
 lpacCom
 lpacCryptoServices
@@ -777,6 +778,7 @@ lpacIdentityServices
 lpacIME
 lpacInstrumentation
 lpacMedia
+lpacMediaFoundationCdmData
 lpacPackageManagerOperation
 lpacPayments
 lpacPnPNotifications
@@ -784,6 +786,7 @@ lpacPrinting
 lpacServicesManagement
 lpacSessionManagement
 lpacWebPlatform
+mediaFoundationCdmFiles
 microphone
 Microsoft.deployFullTrustOnHost_8wekyb3d8bbwe
 microsoft.eSIMManagement_8wekyb3d8bbwe
