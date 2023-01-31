@@ -46,17 +46,14 @@
 #define SETTING_NAME_DEVICE_SHOW_ROOT (PLUGIN_NAME L".ShowRootDevice")
 #define SETTING_NAME_DEVICE_SHOW_SOFTWARE_COMPONENTS (PLUGIN_NAME L".ShowSoftwareComponents")
 
-#define UM_NDIS687
-#define UM_NDIS60
-
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
-#include <math.h>
 
+#include <math.h>
 #include <cfgmgr32.h>
-#include <nldef.h>
-#include <netioapi.h>
+
+#include <phnet.h>
 
 // d3dkmddi requires the WDK (dmex)
 #if defined(NTDDI_WIN10_CO) && (NTDDI_VERSION >= NTDDI_WIN10_CO)

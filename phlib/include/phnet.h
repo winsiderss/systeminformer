@@ -5,12 +5,18 @@ EXTERN_C_START
 
 #define __WINDOT11_H__ // temporary preprocessor workaround (dmex)
 
+#ifndef UM_NDIS60
+#define UM_NDIS60 1
+#endif
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <ws2ipdef.h>
+#include <ws2def.h>
 #include <windns.h>
+#include <nldef.h>
 #include <iphlpapi.h>
 #include <mstcpip.h>
+#include <icmpapi.h>
 
 #define PH_IPV4_NETWORK_TYPE 0x1
 #define PH_IPV6_NETWORK_TYPE 0x2
