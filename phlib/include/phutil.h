@@ -658,6 +658,17 @@ PhGetFileVersionInfoEx(
     _In_ PPH_STRINGREF FileName
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetFileVersionInfoKey(
+    _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
+    _In_ SIZE_T KeyLength,
+    _In_ PWSTR Key,
+    _Out_opt_ PVOID* Buffer
+    );
+
 PHLIBAPI
 VS_FIXEDFILEINFO*
 NTAPI
