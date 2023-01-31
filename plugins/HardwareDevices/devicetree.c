@@ -15,6 +15,7 @@
 
 #include <cfgmgr32.h>
 #include <devguid.h>
+#include <wdmguid.h>
 #include <SetupAPI.h>
 
 #undef DEFINE_GUID
@@ -1496,6 +1497,161 @@ VOID NTAPI DevPropFillGuid(
     }
 }
 
+PPH_STRING DevPropBusTypeGuidToString(
+    _In_ PGUID BusTypeGuid
+    )
+{
+    if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_INTERNAL))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"Internal");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCMCIA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"PCMCIA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCI))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"PCI");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ISAPNP))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"ISAPNP");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_EISA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"EISA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_MCA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"MCA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SERENUM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SERENUM");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USB))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"USB");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_LPTENUM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"LPTENUM");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USBPRINT))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"USBPRINT");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_DOT4PRT))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"DOT4PRT");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_1394))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"1394");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_HID))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"HID");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_AVC))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"AVC");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_IRDA))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"IRDA");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SD))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SD");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ACPI))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"ACPI");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SW_DEVICE))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SW_DEVICE");
+        return PhCreateString2(&string);
+    }
+    else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SCM))
+    {
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SCM");
+        return PhCreateString2(&string);
+    }
+
+    return NULL;
+}
+
+_Function_class_(DEVPROP_FILL_CALLBACK)
+VOID NTAPI DevPropFillBusTypeGuid(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = DevPropTypeGUID;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = GetDevicePropertyGuid(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->Guid
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = GetClassPropertyGuid(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->Guid
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = GetClassPropertyGuid(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->Guid
+            );
+    }
+
+    if (Property->Valid)
+    {
+        Property->AsString = DevPropBusTypeGuidToString(&Property->Guid);
+
+        if (!Property->AsString)
+        {
+            Property->AsString = PhFormatGuid(&Property->Guid);
+        }
+    }
+}
+
 _Function_class_(DEVPROP_FILL_CALLBACK)
 VOID NTAPI DevPropFillBoolean(
     _In_ HDEVINFO DeviceInfoSet,
@@ -1734,7 +1890,7 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
     { L"Compatible IDs", FALSE, 80, 0, DevKeyCompatibleIds, &DEVPKEY_Device_CompatibleIds, DevPropFillStringList, 0 },
     { L"Configuration Flags", FALSE, 80, 0, DevKeyConfigFlags, &DEVPKEY_Device_ConfigFlags, DevPropFillUInt32Hex, 0 },
     { L"Number", FALSE, 80, 0, DevKeyUINumber, &DEVPKEY_Device_UINumber, DevPropFillUInt32, 0 },
-    { L"Bus Type GUID", FALSE, 80, 0, DevKeyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, DevPropFillGuid, 0 },
+    { L"Bus Type GUID", FALSE, 80, 0, DevKeyBusTypeGuid, &DEVPKEY_Device_BusTypeGuid, DevPropFillBusTypeGuid, 0 },
     { L"Legacy Bus Type", FALSE, 80, 0, DevKeyLegacyBusType, &DEVPKEY_Device_LegacyBusType, DevPropFillUInt32, 0 },
     { L"Bus Number", FALSE, 80, 0, DevKeyBusNumber, &DEVPKEY_Device_BusNumber, DevPropFillUInt32, 0 },
     //{ L"", FALSE, 80, 0, DevKey, &DEVPKEY_Device_Security, NULL, 0 },               // DEVPROP_TYPE_SECURITY_DESCRIPTOR
