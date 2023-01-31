@@ -1503,97 +1503,97 @@ PPH_STRING DevPropBusTypeGuidToString(
 {
     if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_INTERNAL))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"Internal");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_INTERNAL");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCMCIA))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"PCMCIA");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_PCMCIA");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_PCI))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"PCI");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_PCI");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ISAPNP))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"ISAPNP");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_ISAPNP");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_EISA))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"EISA");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_EISA");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_MCA))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"MCA");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_MCA");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SERENUM))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SERENUM");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SERENUM");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USB))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"USB");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_USB");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_LPTENUM))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"LPTENUM");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_LPTENUM");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_USBPRINT))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"USBPRINT");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_USBPRINT");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_DOT4PRT))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"DOT4PRT");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_DOT4PRT");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_1394))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"1394");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_1394");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_HID))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"HID");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_HID");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_AVC))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"AVC");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_AVC");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_IRDA))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"IRDA");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_IRDA");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SD))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SD");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SD");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_ACPI))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"ACPI");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_ACPI");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SW_DEVICE))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SW_DEVICE");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SW_DEVICE");
         return PhCreateString2(&string);
     }
     else if (IsEqualGUID(BusTypeGuid, &GUID_BUS_TYPE_SCM))
     {
-        static PH_STRINGREF string = PH_STRINGREF_INIT(L"SCM");
+        static PH_STRINGREF string = PH_STRINGREF_INIT(L"GUID_BUS_TYPE_SCM");
         return PhCreateString2(&string);
     }
 
