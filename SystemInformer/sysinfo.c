@@ -273,6 +273,16 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             PhDpiChangedForwardChildWindows(hwndDlg);
 
             InvalidateRect(hwndDlg, NULL, TRUE);
+
+            if (SectionList)
+            {
+                for (ULONG i = 0; i < SectionList->Count; i++)
+                {
+                    PPH_SYSINFO_SECTION section = SectionList->Items[i];
+
+                    section->Callback(section, SysInfoDpiChanged, NULL, NULL);
+                }
+            }
         }
         break;
     }
