@@ -1138,6 +1138,13 @@ PhGetKernelFileName(
     VOID
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetKernelFileName2(
+    VOID
+    );
+
 /**
  * Gets a pointer to the first process information structure in a buffer returned by
  * PhEnumProcesses().
@@ -1663,6 +1670,24 @@ PhDeleteValueKey(
     _In_opt_ PPH_STRINGREF ValueName
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhDeleteValueKeyZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
+    )
+{
+    PH_STRINGREF valueName;
+
+    PhInitializeStringRef(&valueName, ValueName);
+
+    return PhDeleteValueKey(
+        KeyHandle,
+        &valueName
+        );
+}
+
 typedef BOOLEAN (NTAPI *PPH_ENUM_KEY_CALLBACK)(
     _In_ HANDLE RootDirectory,
     _In_ PVOID Information,
@@ -1906,7 +1931,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCreateDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI
@@ -1920,7 +1945,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhDeleteDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     );
 
 PHLIBAPI

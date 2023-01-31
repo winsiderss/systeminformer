@@ -187,9 +187,7 @@ BOOLEAN SetupExtractBuild(
         PVOID buffer = NULL;
         size_t zipFileBufferLength = 0;
         PPH_STRING fileName = NULL;
-        PPH_STRING fullSetupPath = NULL;
         mz_ulong zipFileCrc32 = 0;
-        ULONG indexOfFileName = ULONG_MAX;
         mz_zip_archive_file_stat zipFileStat;
 
         if (!mz_zip_reader_file_stat(&zipFileArchive, i, &zipFileStat))
@@ -248,30 +246,10 @@ BOOLEAN SetupExtractBuild(
             &fileName->sr
             );
 
-        if (fullSetupPath = PhGetFullPath(extractPath->Buffer, &indexOfFileName))
+        if (!NT_SUCCESS(PhCreateDirectoryFullPathWin32(&extractPath->sr)))
         {
-            PPH_STRING directoryPath;
-
-            if (indexOfFileName == ULONG_MAX)
-            {
-                Context->ErrorCode = ERROR_FILENAME_EXCED_RANGE;
-                goto CleanupExit;
-            }
-
-            if (directoryPath = PhSubstring(fullSetupPath, 0, indexOfFileName))
-            {
-                if (!NT_SUCCESS(PhCreateDirectoryWin32(directoryPath)))
-                {
-                    Context->ErrorCode = ERROR_DIRECTORY_NOT_SUPPORTED;
-                    PhDereferenceObject(directoryPath);
-                    PhDereferenceObject(fullSetupPath);
-                    goto CleanupExit;
-                }
-
-                PhDereferenceObject(directoryPath);
-            }
-
-            PhDereferenceObject(fullSetupPath);
+            Context->ErrorCode = ERROR_DIRECTORY_NOT_SUPPORTED;
+            goto CleanupExit;
         }
 
         // TODO: Backup file and restore if the setup fails.

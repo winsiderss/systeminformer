@@ -49,6 +49,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkBoundConnections", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
+    PhpAddIntegerSetting(L"EnablePackageIconSupport", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableGraphMaxScale", L"0");
     PhpAddIntegerSetting(L"EnableGraphMaxText", L"1");
@@ -66,6 +67,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableSilentCrashNotify", L"0");
     PhpAddIntegerSetting(L"EnableThemeSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAcrylicSupport", L"1");
+    PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThreadStackInlineSymbols", L"1");
     PhpAddIntegerSetting(L"EnableThreadStackLineInformation", L"1");
     PhpAddIntegerSetting(L"EnableTooltipSupport", L"1");
@@ -190,6 +192,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddIntegerSetting(L"SampleCountAutomatic", L"1");
     PhpAddIntegerSetting(L"ScrollToNewProcesses", L"0");
+    PhpAddIntegerSetting(L"ScrollToRemovedProcesses", L"0");
     PhpAddStringSetting(L"SearchEngine", L"https://duckduckgo.com/?q=\"%s\"");
     PhpAddStringSetting(L"SegmentHeapListViewColumns", L"");
     PhpAddStringSetting(L"SegmentHeapListViewSort", L"0,1");
@@ -327,6 +330,7 @@ VOID PhUpdateCachedSettings(
     PH_UPDATE_SETTING(HideOtherUserProcesses);
     PH_UPDATE_SETTING(PropagateCpuUsage);
     PH_UPDATE_SETTING(ScrollToNewProcesses);
+    PH_UPDATE_SETTING(ScrollToRemovedProcesses);
     PH_UPDATE_SETTING(ShowCpuBelow001);
     PH_UPDATE_SETTING(UpdateInterval);
 

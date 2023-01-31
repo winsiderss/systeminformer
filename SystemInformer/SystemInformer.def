@@ -277,6 +277,7 @@ EXPORTS
     PhGetFirmwareEnvironmentVariable
     PhGetJobProcessIdList
     PhGetKernelFileName
+    PhGetKernelFileName2
     PhGetObjectSecurity
     PhGetOwnTokenAttributes
     PhGetDllHandle
@@ -393,6 +394,7 @@ EXPORTS
     PhFormatTimeSpanRelative
     PhFormatUInt64
     PhFreeFileDialog
+    PhFreeLibrary
     PhFreeLibraryAsImageResource
     PhGenerateGuid
     PhGenerateGuidFromName
@@ -411,6 +413,7 @@ EXPORTS
     PhGetFileDialogFilterIndex
     PhGetFileDialogOptions
     PhGetFileVersionInfo
+    PhGetFileVersionInfoEx
     PhGetFileVersionFixedInfo
     PhGetFileVersionInfoLangCodePage
     PhGetFileVersionInfoString
@@ -446,7 +449,6 @@ EXPORTS
     PhShellExecute
     PhShellExecuteEx
     PhShellExploreFile
-    PhShellOpenKey
     PhShellProperties
     PhShowConfirmMessage
     PhShowContinueStatus

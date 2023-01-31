@@ -2168,12 +2168,12 @@ PVOID PhGetFileVersionInfo(
     {
         if (PhIsFileVersionInfo32(versionInfo))
         {
-            FreeLibrary(libraryModule);
+            PhFreeLibrary(libraryModule);
             return versionInfo;
         }
     }
 
-    FreeLibrary(libraryModule);
+    PhFreeLibrary(libraryModule);
     return NULL;
 }
 
@@ -3451,7 +3451,7 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
 
     if (randomAlphaFileName)
     {
-        if (!NT_SUCCESS(PhCreateDirectoryWin32(randomAlphaFileName)))
+        if (!NT_SUCCESS(PhCreateDirectoryWin32(&randomAlphaFileName->sr)))
         {
             PhReferenceObject(randomAlphaFileName);
             return NULL;
@@ -5032,59 +5032,6 @@ PPH_STRING PhExpandKeyName(
     }
 
     return keyName;
-}
-
-/**
- * Opens a key in the Registry Editor.
- *
- * \param hWnd A handle to the parent window.
- * \param KeyName The key name to open.
- */
-VOID PhShellOpenKey(
-    _In_ HWND hWnd,
-    _In_ PPH_STRING KeyName
-    )
-{
-    static PH_STRINGREF regeditKeyNameSr = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
-    static PH_STRINGREF regeditFileNameSr = PH_STRINGREF_INIT(L"\\regedit.exe");
-    static PH_STRINGREF valueNameSr = PH_STRINGREF_INIT(L"LastKey");
-    HANDLE regeditKeyHandle;
-    PPH_STRING lastKey;
-    PPH_STRING regeditFileName;
-    PH_STRINGREF systemRootString;
-
-    if (!NT_SUCCESS(PhCreateKey(
-        &regeditKeyHandle,
-        KEY_WRITE,
-        PH_KEY_CURRENT_USER,
-        &regeditKeyNameSr,
-        0,
-        0,
-        NULL
-        )))
-        return;
-
-    lastKey = PhExpandKeyName(KeyName, FALSE);
-    PhSetValueKey(regeditKeyHandle, &valueNameSr, REG_SZ, lastKey->Buffer, (ULONG)lastKey->Length + sizeof(UNICODE_NULL));
-    NtClose(regeditKeyHandle);
-    PhDereferenceObject(lastKey);
-
-    // Start regedit. If we aren't elevated, request that regedit be elevated. This is so we can get
-    // the consent dialog in the center of the specified window. (wj32)
-
-    PhGetSystemRoot(&systemRootString);
-    regeditFileName = PhConcatStringRef2(&systemRootString, &regeditFileNameSr);
-
-    if (PhGetOwnTokenAttributes().Elevated)
-    {
-        PhShellExecute(hWnd, regeditFileName->Buffer, NULL);
-    }
-    else
-    {
-        PhShellExecuteEx(hWnd, regeditFileName->Buffer, NULL, SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
-    }
-
-    PhDereferenceObject(regeditFileName);
 }
 
 /**
@@ -6828,7 +6775,7 @@ VOID PhClearCacheDirectory(
 
     if (cacheDirectory)
     {
-        PhDeleteDirectoryWin32(cacheDirectory);
+        PhDeleteDirectoryWin32(&cacheDirectory->sr);
 
         PhDereferenceObject(cacheDirectory);
     }
@@ -6854,7 +6801,8 @@ VOID PhDeleteCacheFile(
     {
         if (indexOfFileName != ULONG_MAX && (cacheDirectory = PhSubstring(cacheFullFilePath, 0, indexOfFileName)))
         {
-            PhDeleteDirectoryWin32(cacheDirectory);
+            PhDeleteDirectoryWin32(&cacheDirectory->sr);
+
             PhDereferenceObject(cacheDirectory);
         }
 
@@ -6873,6 +6821,7 @@ HANDLE PhGetNamespaceHandle(
     if (PhBeginInitOnce(&initOnce))
     {
         static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
         OBJECT_ATTRIBUTES objectAttributes;
         PSECURITY_DESCRIPTOR securityDescriptor;
         ULONG sdAllocationLength;
@@ -6896,7 +6845,7 @@ HANDLE PhGetNamespaceHandle(
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
             RtlLengthSid(&PhSeInteractiveSid);
 
-        securityDescriptor = PhAllocate(sdAllocationLength);
+        securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
         dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
         RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
@@ -6920,8 +6869,10 @@ HANDLE PhGetNamespaceHandle(
             &objectAttributes
             );
 
-        PhFree(securityDescriptor);
-
+#ifdef DEBUG
+        assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
+        assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+#endif
         PhEndInitOnce(&initOnce);
     }
 
@@ -7330,6 +7281,8 @@ PVOID PhGetLoaderEntryStringRefDllBase(
     PLDR_DATA_TABLE_ENTRY ldrEntry;
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+    //
+    //    if (ldrEntry = PhFindLoaderEntryNameHash(baseDllNameHash))
     ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 
@@ -8849,12 +8802,12 @@ HRESULT PhGetClassObject(
      order by first requiring the loader try to load and resolve through
      System32. Then upping the loading flags until the library is loaded.
 
-    @param[in] LibFileName - The file name of the library to load.
+    @param[in] FileName - The file name of the library to load.
 
     @return HMODULE to the library on success, null on failure.
 */
 PVOID PhLoadLibrary(
-    _In_ PCWSTR LibFileName
+    _In_ PCWSTR FileName
     )
 {
     PVOID baseAddress;
@@ -8863,7 +8816,7 @@ PVOID PhLoadLibrary(
     // qualified path this will succeed.
 
     if (baseAddress = LoadLibraryEx(
-        LibFileName,
+        FileName,
         NULL,
         LOAD_LIBRARY_SEARCH_SYSTEM32
         ))
@@ -8874,7 +8827,7 @@ PVOID PhLoadLibrary(
     // Include the application directory now.
 
     if (baseAddress = LoadLibraryEx(
-        LibFileName,
+        FileName,
         NULL,
         LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_APPLICATION_DIR
         ))
@@ -8886,13 +8839,20 @@ PVOID PhLoadLibrary(
     {
         // Note: This case is required for Windows 7 without KB2533623 (dmex)
 
-        if (baseAddress = LoadLibraryEx(LibFileName, NULL, 0))
+        if (baseAddress = LoadLibraryEx(FileName, NULL, 0))
         {
             return baseAddress;
         }
     }
 
     return NULL;
+}
+
+BOOLEAN PhFreeLibrary(
+    _In_ PVOID BaseAddress
+    )
+{
+    return !!FreeLibrary(BaseAddress);
 }
 
 // rev from LoadLibraryEx with LOAD_LIBRARY_AS_IMAGE_RESOURCE

@@ -38,6 +38,7 @@ EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsHideOtherUserProcesses;
 EXT ULONG PhCsPropagateCpuUsage;
 EXT ULONG PhCsScrollToNewProcesses;
+EXT ULONG PhCsScrollToRemovedProcesses;
 EXT ULONG PhCsShowCpuBelow001;
 EXT ULONG PhCsUpdateInterval;
 

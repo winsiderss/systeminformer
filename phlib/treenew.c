@@ -2061,6 +2061,20 @@ ULONG_PTR PhTnpOnUserMessage(
             Context->HeaderTextCache = headerCache->HeaderTreeColumnTextCache;
         }
         return TRUE;
+    case TNM_ENSUREVISIBLEINDEX:
+        return PhTnpEnsureVisibleNode(Context, (ULONG)LParam);
+    case TNM_GETVISIBLECOLUMN:
+        {
+            ULONG index = (ULONG)WParam;
+
+            if (index >= Context->NumberOfColumnsByDisplay + (Context->FixedColumnVisible ? 1 : 0))
+                return FALSE;
+
+            index = Context->ColumnsByDisplay[index - (Context->FixedColumnVisible ? 1 : 0)]->Id;
+
+            return PhTnpCopyColumn(Context, index, (PPH_TREENEW_COLUMN)LParam);
+        }
+        break;
     }
 
     return 0;

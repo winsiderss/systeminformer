@@ -1127,7 +1127,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
                 {
                     // Another thread got the address of SetTcpEntry already.
                     // Decrement the reference count of iphlpapi.dll.
-                    FreeLibrary(iphlpapiModule);
+                    PhFreeLibrary(iphlpapiModule);
                 }
             }
         }

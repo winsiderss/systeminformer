@@ -432,12 +432,23 @@ NTAPI
 PhHandleCopyListViewEMenuItem(
     _In_ struct _PH_EMENU_ITEM *SelectedItem
     );
-// end_phapppub
 
-BOOLEAN PhShellOpenKey2(
+PHAPPAPI
+VOID
+NTAPI
+PhShellOpenKey(
     _In_ HWND WindowHandle,
     _In_ PPH_STRING KeyName
     );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhShellOpenKey2(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRING KeyName
+    );
+// end_phapppub
 
 PPH_STRING PhPcre2GetErrorMessage(
     _In_ INT ErrorCode

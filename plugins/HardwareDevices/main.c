@@ -532,7 +532,7 @@ BOOLEAN HardwareDeviceOpenKey(
         if (bestObjectName)
         {
             // HKLM\SYSTEM\ControlSet\Control\Class\ += DEVPKEY_Device_Driver
-            PhShellOpenKey(ParentWindow, bestObjectName);
+            PhShellOpenKey2(ParentWindow, bestObjectName);
             PhDereferenceObject(bestObjectName);
         }
 
@@ -649,8 +649,8 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_DEVICE_TREE_SORT, L"0,0" },
                 { StringSettingType, SETTING_NAME_DEVICE_TREE_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_PROBLEM_COLOR, L"283cff" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"aaffff" },
-                { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"000000" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_DISABLED_COLOR, L"6d6d6d" },
+                { IntegerSettingType, SETTING_NAME_DEVICE_DISCONNECTED_COLOR, L"6d6d6d" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHT_COLOR, L"00aaff" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILDREN_BY_NAME, L"1" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SHOW_ROOT, L"1" },

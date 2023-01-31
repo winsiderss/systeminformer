@@ -45,6 +45,7 @@
 #include <phsettings.h>
 #include <procprv.h>
 
+#include <appresolver.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>
@@ -161,6 +162,7 @@ ULONG PhStatisticsSampleCount = 512;
 BOOLEAN PhEnableProcessExtension = TRUE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 BOOLEAN PhEnableCycleCpuUsage = TRUE;
+BOOLEAN PhEnablePackageIconSupport = FALSE;
 ULONG PhProcessProviderFlagsMask = 0;
 LONG PhProcessImageListWindowDpi = 96;
 
@@ -500,7 +502,7 @@ PPH_PROCESS_ITEM PhpLookupProcessItem(
  * \return The found process item.
  */
 PPH_PROCESS_ITEM PhReferenceProcessItem(
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     )
 {
     PPH_PROCESS_ITEM processItem;
@@ -1271,7 +1273,7 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (fileName = PhGetKernelFileName())
+            if (fileName = PhGetKernelFileName2())
             {
                 ProcessItem->FileName = fileName;
                 ProcessItem->FileNameWin32 = PhGetFileName(fileName);
@@ -3666,8 +3668,7 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
 
     PhReleaseQueuedLockShared(&PhImageListCacheHashtableLock);
 
-#ifdef PH_ENABLE_PACKAGE_ICON_EXTRACT
-    if (ProcessId && PackageFullName)
+    if (PhEnablePackageIconSupport && ProcessId && PackageFullName)
     {
         if (!PhAppResolverGetPackageIcon(
             ProcessId,
@@ -3688,7 +3689,6 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
         }
     }
     else
-#endif
     {
         PhExtractIconEx(
             FileName,

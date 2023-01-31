@@ -10,6 +10,7 @@ extern PH_QUEUED_LOCK PhProcessRecordListLock;
 extern ULONG PhStatisticsSampleCount;
 extern BOOLEAN PhEnablePurgeProcessRecords;
 extern BOOLEAN PhEnableCycleCpuUsage;
+extern BOOLEAN PhEnablePackageIconSupport;
 
 typedef enum _PH_PROCESS_PROVIDER_FLAG
 {
@@ -347,7 +348,7 @@ PHAPPAPI
 PPH_PROCESS_ITEM
 NTAPI
 PhReferenceProcessItem(
-    _In_ HANDLE ProcessId
+    _In_opt_ HANDLE ProcessId
     );
 
 PHAPPAPI

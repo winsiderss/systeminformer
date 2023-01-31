@@ -3542,6 +3542,25 @@ NTSTATUS PhGetFileBasicInformation(
         );
 }
 
+NTSTATUS PhSetFileBasicInformation(
+    _In_ HANDLE FileHandle,
+    _In_ PFILE_BASIC_INFORMATION BasicInfo
+    )
+{
+    IO_STATUS_BLOCK isb;
+
+    // Set to SIZE_MAX to ignore updating the value (dmex) 
+    BasicInfo->LastWriteTime.QuadPart = SIZE_MAX;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &isb,
+        BasicInfo,
+        sizeof(FILE_BASIC_INFORMATION),
+        FileBasicInformation
+        );
+}
+
 NTSTATUS PhGetFileStandardInformation(
     _In_ HANDLE FileHandle,
     _Out_ PFILE_STANDARD_INFORMATION StandardInfo
@@ -3743,12 +3762,12 @@ NTSTATUS PhDeleteFile(
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
         FILE_DISPOSITION_INFO_EX dispositionInfo;
-        IO_STATUS_BLOCK isb;
+        IO_STATUS_BLOCK ioStatusBlock;
 
         dispositionInfo.Flags = FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_POSIX_SEMANTICS | FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE;
         status = NtSetInformationFile(
             FileHandle,
-            &isb,
+            &ioStatusBlock,
             &dispositionInfo,
             sizeof(FILE_DISPOSITION_INFO_EX),
             FileDispositionInformationEx
@@ -3758,17 +3777,33 @@ NTSTATUS PhDeleteFile(
     if (!NT_SUCCESS(status))
     {
         FILE_DISPOSITION_INFORMATION dispositionInfo;
-        IO_STATUS_BLOCK isb;
+        IO_STATUS_BLOCK ioStatusBlock;
 
         dispositionInfo.DeleteFile = TRUE;
-
         status = NtSetInformationFile(
             FileHandle,
-            &isb,
+            &ioStatusBlock,
             &dispositionInfo,
             sizeof(FILE_DISPOSITION_INFORMATION),
             FileDispositionInformation
             );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        HANDLE deleteHandle;
+
+        if (NT_SUCCESS(PhReOpenFile(
+            &deleteHandle,
+            FileHandle,
+            DELETE,
+            FILE_SHARE_DELETE,
+            FILE_DELETE_ON_CLOSE
+            )))
+        {
+            NtClose(deleteHandle);
+            status = STATUS_SUCCESS;
+        }
     }
 
     return status;
@@ -6176,6 +6211,24 @@ PPH_STRING PhGetKernelFileName(
     PhFree(modules);
 
     return fileName;
+}
+
+// Kernel filename without the SystemModuleInformation overhead (dmex)
+PPH_STRING PhGetKernelFileName2(
+    VOID
+    )
+{
+    if (WindowsVersion >= WINDOWS_10)
+    {
+        static PH_STRINGREF kernelFileName = PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntoskrnl.exe");
+
+        if (PhDoesFileExist(&kernelFileName))
+        {
+            return PhCreateString2(&kernelFileName);
+        }
+    }
+ 
+    return PhGetKernelFileName();
 }
 
 /**
@@ -9792,6 +9845,24 @@ BOOLEAN PhDoesDirectoryExistWin32(
     return FALSE;
 }
 
+BOOLEAN PhDoesDirectoryExist(
+    _In_ PPH_STRINGREF FileName
+    )
+{
+    NTSTATUS status;
+    FILE_BASIC_INFORMATION basicInfo;
+
+    status = PhQueryAttributesFile(FileName, &basicInfo);
+
+    if (NT_SUCCESS(status))
+    {
+        if (basicInfo.FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 RTL_PATH_TYPE PhDetermineDosPathNameType(
     _In_ PWSTR FileName
     )
@@ -9818,11 +9889,17 @@ NTSTATUS PhDeleteFileWin32(
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_DELETE_ON_CLOSE // required for mapped references GH#794 (dmex)
+        FILE_NON_DIRECTORY_FILE | FILE_OPEN_FOR_BACKUP_INTENT | FILE_DELETE_ON_CLOSE // required for mapped references GH#794 (dmex)
         );
 
     if (!NT_SUCCESS(status))
+    {
+        if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+            status = STATUS_SUCCESS;
         return status;
+    }
+
+    //PhDeleteFile(fileHandle);
 
     NtClose(fileHandle);
     return status;
@@ -9834,36 +9911,36 @@ NTSTATUS PhDeleteFileWin32(
 * \param DirectoryPath The Win32 directory path.
 */
 NTSTATUS PhCreateDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     )
 {
     PPH_STRING directoryPath = NULL;
-    PPH_STRING fileName;
-    PH_STRINGREF fileNamePart;
+    PPH_STRING directoryName;
+    PH_STRINGREF directoryPart;
     PH_STRINGREF remainingPart;
 
-    if (PhDoesFileExistWin32(PhGetString(DirectoryPath)))
+    if (PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
 
-    remainingPart = PhGetStringRef(DirectoryPath);
+    remainingPart = *DirectoryPath;
 
     while (remainingPart.Length != 0)
     {
-        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &fileNamePart, &remainingPart);
+        PhSplitStringRefAtChar(&remainingPart, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &remainingPart);
 
-        if (fileNamePart.Length != 0)
+        if (directoryPart.Length != 0)
         {
             if (PhIsNullOrEmptyString(directoryPath))
             {
-                PhMoveReference(&directoryPath, PhCreateString2(&fileNamePart));
+                PhMoveReference(&directoryPath, PhCreateString2(&directoryPart));
             }
             else
             {
-                fileName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &fileNamePart);
+                directoryName = PhConcatStringRef3(&directoryPath->sr, &PhNtPathSeperatorString, &directoryPart);
 
                 // Check if the directory already exists. (dmex)
 
-                if (!PhDoesFileExistWin32(PhGetString(fileName)))
+                if (!PhDoesDirectoryExistWin32(PhGetString(directoryName)))
                 {
                     HANDLE directoryHandle;
 
@@ -9871,26 +9948,26 @@ NTSTATUS PhCreateDirectoryWin32(
 
                     if (NT_SUCCESS(PhCreateFileWin32(
                         &directoryHandle,
-                        PhGetString(fileName),
-                        FILE_GENERIC_READ,
-                        FILE_ATTRIBUTE_DIRECTORY,
+                        PhGetString(directoryName),
+                        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+                        FILE_ATTRIBUTE_NORMAL,
                         FILE_SHARE_READ | FILE_SHARE_WRITE,
                         FILE_CREATE,
-                        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT //| FILE_OPEN_REPARSE_POINT
                         )))
                     {
                         NtClose(directoryHandle);
                     }
                 }
 
-                PhMoveReference(&directoryPath, fileName);
+                PhMoveReference(&directoryPath, directoryName);
             }
         }
     }
 
     PhClearReference(&directoryPath);
 
-    if (!PhDoesFileExistWin32(PhGetString(DirectoryPath)))
+    if (!PhDoesDirectoryExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_NOT_FOUND;
 
     return STATUS_SUCCESS;
@@ -9911,10 +9988,14 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
         {
             if (directory = PhSubstring(path, 0, indexOfFileName))
             {
-                status = PhCreateDirectoryWin32(directory);
+                status = PhCreateDirectoryWin32(&directory->sr);
 
                 PhDereferenceObject(directory);
             }
+        }
+        else
+        {
+            status = PhCreateDirectoryWin32(&path->sr);
         }
 
         PhDereferenceObject(path);
@@ -9928,7 +10009,7 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     _In_ PVOID Context
     )
 {
-    PPH_STRING parentDirectory = Context;
+    PPH_STRINGREF parentDirectory = Context;
     PPH_STRING fullName;
     PH_STRINGREF baseName;
 
@@ -9938,27 +10019,21 @@ static BOOLEAN PhpDeleteDirectoryCallback(
     if (PhEqualStringRef2(&baseName, L".", TRUE) || PhEqualStringRef2(&baseName, L"..", TRUE))
         return TRUE;
 
-    fullName = PhConcatStringRef3(
-        &parentDirectory->sr,
-        &PhNtPathSeperatorString,
-        &baseName
-        );
+    fullName = PhConcatStringRef3(parentDirectory, &PhNtPathSeperatorString, &baseName);
 
     if (Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     {
         HANDLE directoryHandle;
 
-        if (NT_SUCCESS(PhCreateFileWin32(
+        if (NT_SUCCESS(PhOpenFileWin32(
             &directoryHandle,
             PhGetString(fullName),
-            FILE_LIST_DIRECTORY | FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
-            FILE_ATTRIBUTE_DIRECTORY,
-            FILE_SHARE_READ | FILE_SHARE_DELETE,
-            FILE_OPEN,
-            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT //| FILE_OPEN_REPARSE_POINT
             )))
         {
-            PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, fullName);
+            PhEnumDirectoryFile(directoryHandle, NULL, PhpDeleteDirectoryCallback, &fullName->sr);
 
             PhDeleteFile(directoryHandle);
 
@@ -9971,14 +10046,12 @@ static BOOLEAN PhpDeleteDirectoryCallback(
         {
             HANDLE fileHandle;
 
-            if (NT_SUCCESS(PhCreateFileWin32(
+            if (NT_SUCCESS(PhOpenFileWin32(
                 &fileHandle,
                 PhGetString(fullName),
                 FILE_WRITE_ATTRIBUTES | DELETE | SYNCHRONIZE,
-                FILE_ATTRIBUTE_NORMAL,
-                FILE_SHARE_WRITE,
-                FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT //| FILE_OPEN_REPARSE_POINT
                 )))
             {
                 if (WindowsVersion < WINDOWS_10_RS5)
@@ -10018,20 +10091,18 @@ static BOOLEAN PhpDeleteDirectoryCallback(
 * \param DirectoryPath The Win32 directory path.
 */
 NTSTATUS PhDeleteDirectoryWin32(
-    _In_ PPH_STRING DirectoryPath
+    _In_ PPH_STRINGREF DirectoryPath
     )
 {
     NTSTATUS status;
     HANDLE directoryHandle;
 
-    status = PhCreateFileWin32(
+    status = PhOpenFileWin32(
         &directoryHandle,
-        PhGetString(DirectoryPath),
-        FILE_LIST_DIRECTORY | DELETE | SYNCHRONIZE,
-        FILE_ATTRIBUTE_DIRECTORY,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        PhGetStringRefZ(DirectoryPath),
+        FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT
         );
 
     if (NT_SUCCESS(status))
@@ -10053,7 +10124,7 @@ NTSTATUS PhDeleteDirectoryWin32(
         NtClose(directoryHandle);
     }
 
-    if (!PhDoesFileExistWin32(PhGetString(DirectoryPath)))
+    if (!PhDoesFileExistWin32(PhGetStringRefZ(DirectoryPath)))
         return STATUS_SUCCESS;
 
     return status;
@@ -10155,12 +10226,9 @@ NTSTATUS PhCopyFileWin32(
 
     if (NT_SUCCESS(status))
     {
-        NtSetInformationFile(
+        PhSetFileBasicInformation(
             newFileHandle,
-            &isb,
-            &basicInfo,
-            sizeof(FILE_BASIC_INFORMATION),
-            FileBasicInformation
+            &basicInfo
             );
     }
     else
@@ -10174,6 +10242,157 @@ CleanupExit:
     NtClose(fileHandle);
 
     return status;
+}
+
+NTSTATUS PhCopyFileChunkDirectIoWin32(
+    _In_ PWSTR OldFileName,
+    _In_ PWSTR NewFileName,
+    _In_ BOOLEAN FailIfExists
+    )
+{
+#if (PHNT_VERSION >= PHNT_WIN11_22H2)
+    NTSTATUS status;
+    HANDLE sourceHandle;
+    HANDLE destinationHandle;
+    FILE_BASIC_INFORMATION basicInfo;
+    FILE_FS_SECTOR_SIZE_INFORMATION sourceSectorInfo = { 0 };
+    FILE_FS_SECTOR_SIZE_INFORMATION destinationSectorInfo = { 0 };
+    IO_STATUS_BLOCK ioStatusBlock;
+    LARGE_INTEGER sourceOffset = { 0 };
+    LARGE_INTEGER destinationOffset = { 0 };
+    LARGE_INTEGER fileSize;
+    SIZE_T numberOfBytes;
+    ULONG alignSize;
+    ULONG blockSize;
+
+    if (WindowsVersion < WINDOWS_11_22H1)
+        return STATUS_NOT_SUPPORTED;
+
+    status = PhCreateFileWin32ExAlt(
+        &sourceHandle,
+        OldFileName,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_NO_INTERMEDIATE_BUFFERING,
+        EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhGetFileBasicInformation(sourceHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetFileSize(sourceHandle, &fileSize);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhCreateFileWin32ExAlt(
+        &destinationHandle,
+        NewFileName,
+        FILE_WRITE_DATA | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        0,
+        FailIfExists ? FILE_CREATE : FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_NO_INTERMEDIATE_BUFFERING,
+        EX_CREATE_FLAG_FILE_DEST_OPEN_FOR_COPY,
+        &fileSize,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // https://learn.microsoft.com/en-us/windows/win32/w8cookbook/advanced-format--4k--disk-compatibility-update
+    NtQueryVolumeInformationFile(
+        sourceHandle,
+        &ioStatusBlock,
+        &sourceSectorInfo,
+        sizeof(FILE_FS_SECTOR_SIZE_INFORMATION),
+        FileFsSectorSizeInformation
+        );
+
+    NtQueryVolumeInformationFile(
+        destinationHandle,
+        &ioStatusBlock,
+        &destinationSectorInfo,
+        sizeof(FILE_FS_SECTOR_SIZE_INFORMATION),
+        FileFsSectorSizeInformation
+        );
+
+    // Non-cached I/O requires 'blockSize' be sector-aligned with whichever file is opened as non-cached.
+    // If both, the length should be aligned with the larger sector size of the two. (dmex)
+    alignSize = max(max(sourceSectorInfo.PhysicalBytesPerSectorForPerformance, destinationSectorInfo.PhysicalBytesPerSectorForPerformance), 
+        max(sourceSectorInfo.PhysicalBytesPerSectorForAtomicity, destinationSectorInfo.PhysicalBytesPerSectorForAtomicity));
+
+    // Enable BypassIO (skip error checking since might be disabled) (dmex)
+    PhSetFileBypassIO(sourceHandle, TRUE);
+    PhSetFileBypassIO(destinationHandle, TRUE);
+
+    blockSize = PAGE_SIZE;
+    numberOfBytes = fileSize.QuadPart;
+
+    while (numberOfBytes != 0)
+    {
+        if (blockSize > numberOfBytes)
+            blockSize = (ULONG)numberOfBytes;
+        blockSize = ALIGN_UP_BY(blockSize, alignSize);
+
+        status = NtCopyFileChunk(
+            sourceHandle,
+            destinationHandle,
+            NULL,
+            &ioStatusBlock,
+            blockSize,
+            &sourceOffset,
+            &destinationOffset,
+            NULL,
+            NULL,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        destinationOffset.QuadPart += blockSize;
+        sourceOffset.QuadPart += blockSize;
+        numberOfBytes -= blockSize;
+    }
+
+    if (status == STATUS_END_OF_FILE)
+        status = STATUS_SUCCESS;
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetFileSize(destinationHandle, &fileSize); // Required (dmex)
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhSetFileBasicInformation(destinationHandle, &basicInfo);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDeleteFile(destinationHandle);
+    }
+
+    NtClose(destinationHandle);
+
+CleanupExit:
+    NtClose(sourceHandle);
+
+    return status;
+#else
+    return STATUS_NOT_SUPPORTED;
+#endif
 }
 
 NTSTATUS PhCopyFileChunkWin32(
@@ -10237,12 +10456,6 @@ NTSTATUS PhCopyFileChunkWin32(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    // TODO: BypassIO requires the file opened for non-cached I/O (FILE_NO_INTERMEDIATE_BUFFERING).
-    // Non-cached I/O requires 'blockSize' be sector-aligned with whichever file is opened as non-cached.
-    // If both, the length should be aligned with the larger sector size of the two. (dmex)
-    //PhSetFileBypassIO(sourceHandle, TRUE);
-    //PhSetFileBypassIO(destinationHandle, TRUE);
-
     if (fileSize.QuadPart >= ULONG_MAX)
     {
         SIZE_T numberOfBytes = fileSize.QuadPart;
@@ -10295,12 +10508,9 @@ NTSTATUS PhCopyFileChunkWin32(
 
     if (NT_SUCCESS(status))
     {
-        NtSetInformationFile(
-            destinationHandle,
-            &ioStatusBlock,
-            &basicInfo,
-            sizeof(FILE_BASIC_INFORMATION),
-            FileBasicInformation
+        PhSetFileBasicInformation(
+            destinationHandle, 
+            &basicInfo
             );
     }
     else

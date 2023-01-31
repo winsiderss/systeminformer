@@ -923,7 +923,7 @@ PPH_STRING PhStdGetClientIdNameEx(
     {
         if (ClientId->UniqueProcess == SYSTEM_PROCESS_ID)
         {
-            if (processName = PhGetKernelFileName())
+            if (processName = PhGetKernelFileName2())
             {
                 PhMoveReference(&processName, PhGetBaseName(processName));
                 processNameRef.Length = processName->Length;

@@ -235,7 +235,7 @@ BOOLEAN PhShowRunFileDialog(
     //            );
     //    }
     //
-    //    FreeLibrary(shell32Handle);
+    //    PhFreeLibrary(shell32Handle);
     //}
 }
 
@@ -472,7 +472,7 @@ BOOLEAN PhpInitializeNetApi(VOID)
 
             if (!(NetUserEnum_I && NetApiBufferFree_I))
             {
-                FreeLibrary(netapiModuleHandle);
+                PhFreeLibrary(netapiModuleHandle);
                 netapiModuleHandle = NULL;
             }
         }
@@ -502,7 +502,7 @@ BOOLEAN PhpInitializeMRUList(VOID)
 
             if (!(CreateMRUList_I && AddMRUString_I && EnumMRUList_I && FreeMRUList_I))
             {
-                FreeLibrary(comctl32ModuleHandle);
+                PhFreeLibrary(comctl32ModuleHandle);
                 comctl32ModuleHandle = NULL;
             }
         }
@@ -2271,7 +2271,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
 
     if (!(WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(wdcLibraryHandle, "WdcRunTaskAsInteractiveUser", 0)))
     {
-        FreeLibrary(wdcLibraryHandle);
+        PhFreeLibrary(wdcLibraryHandle);
         return FALSE;
     }
 
@@ -2337,7 +2337,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     }
 
     if (executeString) PhDereferenceObject(executeString);
-    FreeLibrary(wdcLibraryHandle);
+    PhFreeLibrary(wdcLibraryHandle);
 
     return success;
 }

@@ -321,7 +321,7 @@ NTSTATUS WaitChainCallbackThread(
 
     if (context->Ole32ModuleHandle)
     {
-        FreeLibrary(context->Ole32ModuleHandle);
+        PhFreeLibrary(context->Ole32ModuleHandle);
     }
 
     //TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
