@@ -373,7 +373,8 @@ static ULONG DeviceHighlightColor = 0;
 
 static HWND DeviceTreeHandle = NULL;
 static PDEVICE_TREE DeviceTree = NULL;
-static SP_CLASSIMAGELIST_DATA DeviceImageListData = { sizeof(SP_CLASSIMAGELIST_DATA) };
+static HIMAGELIST DeviceImageList = NULL;
+static PH_INTEGER_PAIR DeviceIconSize = { 16, 16 };
 static PH_LIST DeviceFilterList = { 0 };
 static PPH_MAIN_TAB_PAGE DevicesAddedTabPage = NULL;
 static PTOOLSTATUS_INTERFACE ToolStatusInterface = NULL;
@@ -2201,13 +2202,20 @@ PDEVICE_NODE NTAPI AddDeviceNode(
         node->HasLowerFilters = TRUE;
     }
 
-    if (node->IconIndex == 0)
     {
-        INT index;
+        HICON iconHandle;
 
-        if (SetupDiGetClassImageIndex(&DeviceImageListData, &DeviceInfoData->ClassGuid, &index))
+        if (SetupDiLoadDeviceIcon(
+            node->DeviceInfoHandle,
+            DeviceInfoData,
+            DeviceIconSize.X,
+            DeviceIconSize.X,
+            0,
+            &iconHandle
+            ))
         {
-            node->IconIndex = index;
+            node->IconIndex = PhImageListAddIcon(DeviceImageList, iconHandle);
+            DestroyIcon(iconHandle);
         }
     }
 
@@ -3059,6 +3067,30 @@ VOID DevicesTreeSaveSettings(
     PhDereferenceObject(settings);
 }
 
+VOID DevicesTreeImageListInitialize(
+    _In_ HWND TreeNewHandle
+    )
+{
+    LONG dpi;
+
+    dpi = PhGetWindowDpi(TreeNewHandle);
+    DeviceIconSize.X = PhGetSystemMetrics(SM_CXSMICON, dpi);
+    DeviceIconSize.Y = PhGetSystemMetrics(SM_CYSMICON, dpi);
+
+    if (DeviceImageList) PhImageListDestroy(DeviceImageList);
+    DeviceImageList = PhImageListCreate(
+        DeviceIconSize.X,
+        DeviceIconSize.Y,
+        ILC_MASK | ILC_COLOR32,
+        200, 
+        100
+        );
+
+    PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
+
+    TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
+}
+
 VOID DevicesTreeInitialize(
     _In_ HWND TreeNewHandle
     )
@@ -3072,8 +3104,7 @@ VOID DevicesTreeInitialize(
     TreeNew_SetExtendedFlags(DeviceTreeHandle, TN_FLAG_ITEM_DRAG_SELECT, TN_FLAG_ITEM_DRAG_SELECT);
     SendMessage(TreeNew_GetTooltips(DeviceTreeHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 
-    SetupDiGetClassImageList(&DeviceImageListData);
-    TreeNew_SetImageList(DeviceTreeHandle, DeviceImageListData.ImageList);
+    DevicesTreeImageListInitialize(DeviceTreeHandle);
 
     TreeNew_SetRedraw(DeviceTreeHandle, FALSE);
 
