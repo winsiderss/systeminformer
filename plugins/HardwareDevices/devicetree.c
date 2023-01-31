@@ -235,6 +235,8 @@ typedef enum _DEVNODE_PROP_KEY
     DevKeyStorageDiskNumber,
     DevKeyStoragePartitionNumber,
 
+    DevKeyDrvPkgIcon,
+
     MaxDevKey
 } DEVNODE_PROP_KEY, *PDEVNODE_PROP_KEY;
 
@@ -297,6 +299,7 @@ typedef struct _DEVICE_NODE
     HDEVINFO DeviceInfoHandle;
     SP_DEVINFO_DATA DeviceInfoData;
     ULONG_PTR IconIndex;
+    HICON Icon;
 
     PPH_STRING InstanceId;
     PPH_STRING ParentInstanceId;
@@ -2069,6 +2072,8 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
     { L"Storage System Critical", FALSE, 80, 0, DevKeyStorageSystemCritical, &DEVPKEY_Storage_System_Critical, DevPropFillBoolean, 0 },
     { L"Storage Disk Number", FALSE, 80, 0, DevKeyStorageDiskNumber, &DEVPKEY_Storage_Disk_Number, DevPropFillUInt32, 0 },
     { L"Storage Disk Partition Number", FALSE, 80, 0, DevKeyStoragePartitionNumber, &DEVPKEY_Storage_Partition_Number, DevPropFillUInt32, 0 },
+
+    { L"Driver Package Icon", FALSE, 80, 0, DevKeyDrvPkgIcon, &DEVPKEY_DrvPkg_Icon, DevPropFillStringList, 0 },
 };
 
 #if DEBUG 
@@ -2201,13 +2206,44 @@ PDEVICE_NODE NTAPI AddDeviceNode(
         node->HasLowerFilters = TRUE;
     }
 
-    if (node->IconIndex == 0)
+    if (GetDeviceNodeProperty(node, DevKeyDrvPkgIcon)->Valid)
+    {
+        // use the custom driver package icon if it exists
+        if (!SetupDiLoadDeviceIcon(
+            node->DeviceInfoHandle,
+            DeviceInfoData,
+            SM_CXICON,
+            SM_CXICON,
+            0,
+            &node->Icon
+            ))
+        {
+            node->Icon = NULL;
+        }
+    }
+
+    if (node->Icon == NULL)
     {
         INT index;
 
         if (SetupDiGetClassImageIndex(&DeviceImageListData, &DeviceInfoData->ClassGuid, &index))
         {
             node->IconIndex = index;
+        }
+        else
+        {
+            // try to use the device icon if there is no class icon index
+            if (!SetupDiLoadDeviceIcon(
+                node->DeviceInfoHandle,
+                DeviceInfoData,
+                SM_CXICON,
+                SM_CXICON,
+                0,
+                &node->Icon
+                ))
+            {
+                node->Icon = NULL;
+            }
         }
     }
 
@@ -2262,6 +2298,9 @@ VOID DeviceNodeDeleteProcedure(
 
     if (node->ParentInstanceId)
         PhDereferenceObject(node->ParentInstanceId);
+
+    if (node->Icon)
+        DestroyIcon(node->Icon);
 }
 
 VOID DeviceTreeDeleteProcedure(
@@ -2780,7 +2819,15 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
             node = (PDEVICE_NODE)getNodeIcon->Node;
-            getNodeIcon->Icon = (HICON)(ULONG_PTR)node->IconIndex;
+            if (node->Icon)
+            {
+                getNodeIcon->Icon = node->Icon;
+                getNodeIcon->Flags |= TN_SKIP_IMAGE_LIST;
+            }
+            else
+            {
+                getNodeIcon->Icon = (HICON)(ULONG_PTR)node->IconIndex;
+            }
         }
         return TRUE;
     case TreeNewSortChanged:
