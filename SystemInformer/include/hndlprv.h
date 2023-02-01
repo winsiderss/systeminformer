@@ -27,6 +27,7 @@ typedef struct _PH_HANDLE_ITEM
 
     WCHAR HandleString[PH_PTR_STR_LEN_1];
     WCHAR GrantedAccessString[PH_PTR_STR_LEN_1];
+    WCHAR ObjectString[PH_PTR_STR_LEN_1];
 } PH_HANDLE_ITEM, *PPH_HANDLE_ITEM;
 
 typedef struct _PH_HANDLE_PROVIDER

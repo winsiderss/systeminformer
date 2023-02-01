@@ -532,16 +532,10 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 getCellText->Text = PhGetStringRef(handleItem->BestObjectName);
                 break;
             case PHHNTLC_HANDLE:
-                PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
                 PhInitializeStringRefLongHint(&getCellText->Text, handleItem->HandleString);
                 break;
             case PHHNTLC_OBJECTADDRESS:
-                {
-                    if (handleItem->Object)
-                        PhPrintPointer(node->ObjectString, handleItem->Object);
-
-                    PhInitializeStringRefLongHint(&getCellText->Text, node->ObjectString);
-                }
+                PhInitializeStringRefLongHint(&getCellText->Text, handleItem->ObjectString);
                 break;
             case PHHNTLC_ATTRIBUTES:
                 switch (handleItem->Attributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))
@@ -558,7 +552,6 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 }
                 break;
             case PHHNTLC_GRANTEDACCESS:
-                PhPrintPointer(handleItem->GrantedAccessString, UlongToPtr(handleItem->GrantedAccess));
                 PhInitializeStringRefLongHint(&getCellText->Text, handleItem->GrantedAccessString);
                 break;
             case PHHNTLC_GRANTEDACCESSSYMBOLIC:
