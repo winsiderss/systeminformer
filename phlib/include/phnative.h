@@ -1498,6 +1498,14 @@ PhEnumFileHardLinksEx(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhQuerySymbolicLinkObject(
+    _In_ PPH_STRINGREF Name,
+    _Out_ PPH_STRING* LinkTarget
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhUpdateMupDevicePrefixes(

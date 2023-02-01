@@ -7577,6 +7577,56 @@ NTSTATUS PhEnumFileHardLinksEx(
     return status;
 }
 
+NTSTATUS PhQuerySymbolicLinkObject(
+    _In_ PPH_STRINGREF Name,
+    _Out_ PPH_STRING* LinkTarget
+    )
+{
+    NTSTATUS status;
+    HANDLE linkHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectName;
+    UNICODE_STRING targetName;
+    WCHAR targetNameBuffer[MAXIMUM_FILENAME_LENGTH];
+
+    if (!PhStringRefToUnicodeString(Name, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenSymbolicLinkObject(
+        &linkHandle,
+        SYMBOLIC_LINK_QUERY,
+        &objectAttributes
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    RtlInitEmptyUnicodeString(&targetName, targetNameBuffer, sizeof(targetNameBuffer));
+
+    status = NtQuerySymbolicLinkObject(
+        linkHandle,
+        &targetName,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *LinkTarget = PhCreateStringFromUnicodeString(&targetName);
+    }
+
+    NtClose(linkHandle);
+
+    return status;
+}
+
 /**
  * Initializes the device prefixes module.
  */
