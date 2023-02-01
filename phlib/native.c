@@ -12165,6 +12165,52 @@ NTSTATUS PhQueryProcessHeapInformation(
     return STATUS_SUCCESS;
 }
 
+// Queries if the specified architecture is supported on the current system, 
+// either natively or by any form of compatibility or emulation layer.
+// rev from kernelbase!GetMachineTypeAttributes (dmex)
+NTSTATUS PhGetMachineTypeAttributes(
+    _In_ USHORT Machine,
+    _Out_ MACHINE_ATTRIBUTES* Attributes
+    )
+{
+    NTSTATUS status;
+    HANDLE input = NULL;
+    SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION output[6] = { 0 };
+    ULONG returnLength;
+
+    status = NtQuerySystemInformationEx(
+        SystemSupportedProcessorArchitectures2,
+        &input,
+        sizeof(input),
+        output,
+        sizeof(output),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        MACHINE_ATTRIBUTES attributes = 0;
+
+        for (ULONG i = 0; i < returnLength / sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION); i++)
+        {
+            if (output[i].Machine == Machine)
+            {
+                if (output[i].KernelMode)
+                    SetFlag(attributes, KernelEnabled);
+                if (output[i].UserMode)
+                    SetFlag(attributes, UserEnabled);
+                if (output[i].WoW64Container)
+                    SetFlag(attributes, Wow64Container);
+                break;
+            }
+        }
+
+        *Attributes = attributes;
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetProcessArchitecture(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessArchitecture
