@@ -113,6 +113,20 @@ PhGetObjectTypeNumber(
     _In_ PPH_STRINGREF TypeName
     );
 
+FORCEINLINE
+ULONG
+NTAPI
+PhGetObjectTypeNumberZ(
+    _In_ PWSTR TypeName
+    )
+{
+    PH_STRINGREF typeName;
+
+    PhInitializeStringRef(&typeName, TypeName);
+
+    return PhGetObjectTypeNumber(&typeName);
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
