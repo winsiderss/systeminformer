@@ -12252,10 +12252,6 @@ NTSTATUS PhGetProcessImageBaseAddress(
         if (!NT_SUCCESS(status))
             return status;
 
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
-
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ImageBaseAddress)),
@@ -12278,10 +12274,6 @@ NTSTATUS PhGetProcessImageBaseAddress(
 
         if (!NT_SUCCESS(status))
             return status;
-
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
 
         status = NtReadVirtualMemory(
             ProcessHandle,
@@ -12621,10 +12613,6 @@ NTSTATUS PhGetProcessIsPosix(
         if (!NT_SUCCESS(status))
             return status;
 
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
-
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ImageSubsystem)),
@@ -12640,10 +12628,6 @@ NTSTATUS PhGetProcessIsPosix(
 
         if (!NT_SUCCESS(status))
             return status;
-
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
 
         status = NtReadVirtualMemory(
             ProcessHandle,
