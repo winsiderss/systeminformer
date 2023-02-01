@@ -12211,6 +12211,7 @@ NTSTATUS PhGetMachineTypeAttributes(
     return status;
 }
 
+// Essentially KernelBase!QueryProcessMachine (jxy-s)
 NTSTATUS PhGetProcessArchitecture(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessArchitecture
@@ -12218,38 +12219,17 @@ NTSTATUS PhGetProcessArchitecture(
 {
     USHORT architecture;
     NTSTATUS status;
-    SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION* buffer;
-    ULONG bufferLength;
+    SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION output[6];
     ULONG returnLength;
-
-    // Essentially KernelBase!QueryProcessMachine (jxy-s)
-    bufferLength = sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[5]);
-    buffer = PhAllocate(bufferLength);
 
     status = NtQuerySystemInformationEx(
         SystemSupportedProcessorArchitectures2,
         &ProcessHandle,
         sizeof(ProcessHandle),
-        buffer,
-        bufferLength,
+        output,
+        sizeof(output),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-    {
-        PhFree(buffer);
-        bufferLength = returnLength;
-        buffer = PhAllocate(bufferLength);
-
-        status = NtQuerySystemInformationEx(
-            SystemSupportedProcessorArchitectures2,
-            &ProcessHandle,
-            sizeof(ProcessHandle),
-            buffer,
-            bufferLength,
-            &returnLength
-            );
-    }
 
     if (NT_SUCCESS(status))
     {
@@ -12257,16 +12237,14 @@ NTSTATUS PhGetProcessArchitecture(
 
         for (ULONG i = 0; i < returnLength / sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION); i++)
         {
-            if (buffer[i].Process)
+            if (output[i].Process)
             {
-                architecture = (USHORT)buffer[i].Machine;
+                architecture = (USHORT)output[i].Machine;
                 status = STATUS_SUCCESS;
                 break;
             }
         }
     }
-
-    PhFree(buffer);
 
     if (NT_SUCCESS(status))
     {
