@@ -111,7 +111,7 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(L"IconTrayGuids", L"");
     PhpAddIntegerSetting(L"IconTrayPersistGuidEnabled", L"0");
     PhpAddIntegerSetting(L"IconIgnoreBalloonClick", L"0");
-    PhpAddStringSetting(L"IconSettings", L"1|1");
+    PhpAddStringSetting(L"IconSettings", L"2|1");
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"f"); // 15
     PhpAddIntegerSetting(L"IconSingleClick", L"0");
