@@ -934,7 +934,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->LoadCount != USHRT_MAX)
                     {
-                        PhPrintInt32(node->LoadCountText, moduleItem->LoadCount);
+                        PhPrintUInt32(node->LoadCountText, moduleItem->LoadCount);
                         PhInitializeStringRefLongHint(&getCellText->Text, node->LoadCountText);
                     }
                     else

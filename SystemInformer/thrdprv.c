@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -373,6 +373,8 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         );
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
+
+    PhPrintUInt32(threadItem->ThreadIdString, HandleToUlong(ThreadId));
 
     PhEmCallObjectOperation(EmThreadItemType, threadItem, EmObjectCreate);
 

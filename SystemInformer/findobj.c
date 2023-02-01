@@ -1002,10 +1002,7 @@ NTSTATUS PhpFindObjectsThreadStart(
 
             if (PhBeginInitOnce(&initOnce))
             {
-                static PH_STRINGREF fileTypeName = PH_STRINGREF_INIT(L"File");
-
-                fileObjectTypeIndex = PhGetObjectTypeNumber(&fileTypeName);
-
+                fileObjectTypeIndex = PhGetObjectTypeNumberZ(L"File");
                 PhEndInitOnce(&initOnce);
             }
         }

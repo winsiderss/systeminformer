@@ -355,9 +355,9 @@ BOOLEAN PhpThreadTreeFilterCallback(
 
     // thread properties
 
-    if (threadNode->ThreadIdText[0])
+    if (threadItem->ThreadIdString[0])
     {
-        if (PhWordMatchStringZ(Context->SearchboxText, threadNode->ThreadIdText))
+        if (PhWordMatchStringZ(Context->SearchboxText, threadItem->ThreadIdString))
             return TRUE;
     }
 

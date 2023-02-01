@@ -802,18 +802,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             switch (getCellText->Id)
             {
             case PH_THREAD_TREELIST_COLUMN_TID:
-                {
-                    PH_FORMAT format;
-                    SIZE_T returnLength;
-
-                    PhInitFormatIU(&format, HandleToUlong(threadItem->ThreadId));
-
-                    if (PhFormatToBuffer(&format, 1, node->ThreadIdText, sizeof(node->ThreadIdText), &returnLength))
-                    {
-                        getCellText->Text.Buffer = node->ThreadIdText;
-                        getCellText->Text.Length = returnLength - sizeof(UNICODE_NULL);
-                    }
-                }
+                PhInitializeStringRefLongHint(&getCellText->Text, threadItem->ThreadIdString);
                 break;
             case PH_THREAD_TREELIST_COLUMN_CPU:
                 {

@@ -32,16 +32,11 @@
 static PH_STRINGREF EmptyHandlesText = PH_STRINGREF_INIT(L"There are no handles to display.");
 
 static VOID NTAPI HandleAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
-
-    if (!handlesContext)
-        return;
-    if (!Parameter)
-        return;
 
     // Parameter contains a pointer to the added handle item.
     PhReferenceObject(Parameter);
@@ -49,40 +44,31 @@ static VOID NTAPI HandleAddedHandler(
 }
 
 static VOID NTAPI HandleModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
-
-    if (!handlesContext)
-        return;
 
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
 static VOID NTAPI HandleRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
-
-    if (!handlesContext)
-        return;
 
     PhPushProviderEventQueue(&handlesContext->EventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&handlesContext->ProviderRegistration));
 }
 
 static VOID NTAPI HandlesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
-
-    if (!handlesContext)
-        return;
 
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, PhGetRunIdProvider(&handlesContext->ProviderRegistration), 0);
 }
@@ -245,8 +231,7 @@ BOOLEAN PhpHandleTreeFilterCallback(
 
         if (PhBeginInitOnce(&initOnce))
         {
-            static PH_STRINGREF etwTypeName = PH_STRINGREF_INIT(L"EtwRegistration");
-            eventTraceTypeIndex = PhGetObjectTypeNumber(&etwTypeName);
+            eventTraceTypeIndex = PhGetObjectTypeNumberZ(L"EtwRegistration");
             PhEndInitOnce(&initOnce);
         }
 
@@ -292,15 +277,15 @@ BOOLEAN PhpHandleTreeFilterCallback(
             return TRUE;
     }
 
+    if (handleItem->ObjectString[0])
+    {
+        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleItem->ObjectString))
+            return TRUE;
+    }
+
     // TODO: Add search for handleItem->Attributes
 
     // node properties
-
-    if (handleNode->ObjectString[0])
-    {
-        if (PhWordMatchStringZ(handlesContext->SearchboxText, handleNode->ObjectString))
-            return TRUE;
-    }
 
     if (!PhIsNullOrEmptyString(handleNode->GrantedAccessSymbolicText))
     {
@@ -326,7 +311,7 @@ typedef struct _HANDLE_OPEN_CONTEXT
 NTSTATUS PhpProcessHandleOpenCallback(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PHANDLE_OPEN_CONTEXT context = Context;
@@ -334,9 +319,6 @@ NTSTATUS PhpProcessHandleOpenCallback(
     HANDLE processHandle;
 
     *Handle = NULL;
-
-    if (!context)
-        return STATUS_UNSUCCESSFUL;
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -378,13 +360,10 @@ NTSTATUS PhpProcessHandleOpenCallback(
 }
 
 NTSTATUS PhpProcessHandleCloseCallback(
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PHANDLE_OPEN_CONTEXT context = Context;
-
-    if (!context)
-        return STATUS_UNSUCCESSFUL;
 
     PhDereferenceObject(context->HandleItem);
     PhFree(context);
