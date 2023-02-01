@@ -133,14 +133,12 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
-            LONG dpiValue;
 
             if (!drawInfo)
                 break;
 
-            dpiValue = PhGetWindowDpi(Section->GraphHandle);
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | PH_GRAPH_LABEL_MAX_Y;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, Section->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, PhCpuKernelHistory.Count);
 
             if (!Section->GraphState.Valid)
@@ -696,12 +694,9 @@ VOID PhSipLayoutCpuGraphs(
     RECT clientRect;
     RECT rect;
     HDWP deferHandle;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(CpuDialog);
 
     rect = CpuGraphMargin;
-    PhGetSizeDpiValue(&rect, dpiValue, TRUE);
+    PhGetSizeDpiValue(&rect, CpuSection->Parameters->WindowDpi, TRUE);
 
     GetClientRect(CpuDialog, &clientRect);
     deferHandle = BeginDeferWindowPos(OneGraphPerCpu ? NumberOfProcessors : 1);
@@ -813,11 +808,9 @@ VOID PhSipNotifyCpuGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, CpuSection->Parameters->WindowDpi);
 
             if (Index == ULONG_MAX)
             {
