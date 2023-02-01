@@ -8537,7 +8537,7 @@ NTSTATUS PhLoadPluginImage(
 
     imageType = IMAGE_FILE_EXECUTABLE_IMAGE;
     PhStringRefToUnicodeString(FileName, &imageFileName);
-    
+
     status = LdrLoadDll(
         NULL,
         &imageType,
