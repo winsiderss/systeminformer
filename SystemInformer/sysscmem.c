@@ -347,7 +347,6 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             PPH_LAYOUT_ITEM panelItem;
             RECT margin;
             HWND totalPhysicalLabel;
-            LONG dpiValue;
 
             PhSipInitializeMemoryDialog();
 
@@ -378,8 +377,7 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             ShowWindow(MemoryPanel, SW_SHOW);
 
             margin = panelItem->Margin;
-            dpiValue = PhGetWindowDpi(hwndDlg);
-            PhGetSizeDpiValue(&margin, dpiValue, TRUE);
+            PhGetSizeDpiValue(&margin, MemorySection->Parameters->WindowDpi, TRUE);
             PhAddLayoutItemEx(&MemoryLayoutManager, MemoryPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, margin);
 
             PhSipCreateMemoryGraphs();
@@ -526,30 +524,28 @@ VOID PhSipLayoutMemoryGraphs(
 {
     RECT clientRect;
     RECT labelRect;
-    RECT rect;
+    RECT marginRect;
     ULONG graphWidth;
     ULONG graphHeight;
     HDWP deferHandle;
     ULONG y;
-    LONG dpiValue;
 
-    rect =  MemoryGraphMargin;
-    dpiValue = PhGetWindowDpi(hwnd);
-    PhGetSizeDpiValue(&rect, dpiValue, TRUE);
+    marginRect = MemoryGraphMargin;
+    PhGetSizeDpiValue(&marginRect, MemorySection->Parameters->WindowDpi, TRUE);
 
     GetClientRect(MemoryDialog, &clientRect);
     GetClientRect(GetDlgItem(MemoryDialog, IDC_COMMIT_L), &labelRect);
-    graphWidth = clientRect.right - rect.left - rect.right;
-    graphHeight = (clientRect.bottom - rect.top - rect.bottom - labelRect.bottom * 2 - MemorySection->Parameters->MemoryPadding * 3) / 2;
+    graphWidth = clientRect.right - marginRect.left - marginRect.right;
+    graphHeight = (clientRect.bottom - marginRect.top - marginRect.bottom - labelRect.bottom * 2 - MemorySection->Parameters->MemoryPadding * 3) / 2;
 
     deferHandle = BeginDeferWindowPos(4);
-    y = rect.top;
+    y = marginRect.top;
 
     deferHandle = DeferWindowPos(
         deferHandle,
         GetDlgItem(MemoryDialog, IDC_COMMIT_L),
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         0,
         0,
@@ -561,7 +557,7 @@ VOID PhSipLayoutMemoryGraphs(
         deferHandle,
         CommitGraphHandle,
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         graphWidth,
         graphHeight,
@@ -573,7 +569,7 @@ VOID PhSipLayoutMemoryGraphs(
         deferHandle,
         GetDlgItem(MemoryDialog, IDC_PHYSICAL_L),
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         0,
         0,
@@ -585,10 +581,10 @@ VOID PhSipLayoutMemoryGraphs(
         deferHandle,
         PhysicalGraphHandle,
         NULL,
-        rect.left,
+        marginRect.left,
         y,
         graphWidth,
-        clientRect.bottom - rect.bottom - y,
+        clientRect.bottom - marginRect.bottom - y,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
 
@@ -606,12 +602,9 @@ VOID PhSipNotifyCommitGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPrivate, 0, MemorySection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &CommitGraphState,
@@ -686,12 +679,9 @@ VOID PhSipNotifyPhysicalGraph(
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
             ULONG i;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi (Header->hwndFrom);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPhysical, 0, dpiValue);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhCsColorPhysical, 0, MemorySection->Parameters->WindowDpi);
 
             PhGraphStateGetDrawInfo(
                 &PhysicalGraphState,

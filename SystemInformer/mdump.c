@@ -124,10 +124,23 @@ VOID PhpProcessMiniDumpContextDeleteProcedure(
 {
     PPH_PROCESS_MINIDUMP_CONTEXT context = Object;
 
+    if (context->KernelFileHandle)
+    {
+        LARGE_INTEGER fileSize;
+
+        if (NT_SUCCESS(PhGetFileSize(context->KernelFileHandle, &fileSize)))
+        {
+            if (fileSize.QuadPart == 0)
+            {
+                PhDeleteFile(context->KernelFileHandle);
+            }
+        }
+
+        NtClose(context->KernelFileHandle);
+    }
+
     if (context->FileHandle)
         NtClose(context->FileHandle);
-    if (context->KernelFileHandle)
-        NtClose(context->KernelFileHandle);
     if (context->ProcessHandle)
         NtClose(context->ProcessHandle);
     if (context->FileName)
@@ -358,27 +371,32 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
         break;
     case WriteKernelMinidumpCallback:
         {
-            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
-                break;
-
+            static PH_STRINGREF kernelDumpFileExt = PH_STRINGREF_INIT(L".kernel.dmp");
             HANDLE kernelDumpFileHandle;
             PPH_STRING kernelDumpFileName;
 
-            kernelDumpFileName = PhGetBaseName(context->FileName);
-            PhMoveReference(&kernelDumpFileName, PhConcatStringRefZ(&kernelDumpFileName->sr, L"kernel.dmp"));
+            if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+                break;
+            if (!PhGetOwnTokenAttributes().Elevated)
+                break;
 
-            if (NT_SUCCESS(PhCreateFileWin32(
-                &kernelDumpFileHandle,
-                PhGetString(kernelDumpFileName),
-                FILE_GENERIC_WRITE | DELETE,
-                FILE_ATTRIBUTE_NORMAL,
-                0,
-                FILE_OVERWRITE_IF,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-                )))
+            if (kernelDumpFileName = PhGetBaseNamePathWithExtension(context->FileName, &kernelDumpFileExt))
             {
-                context->KernelFileHandle = kernelDumpFileHandle;
-                CallbackOutput->Handle = kernelDumpFileHandle;
+                if (NT_SUCCESS(PhCreateFileWin32(
+                    &kernelDumpFileHandle,
+                    PhGetString(kernelDumpFileName),
+                    FILE_GENERIC_WRITE | DELETE,
+                    FILE_ATTRIBUTE_NORMAL,
+                    0,
+                    FILE_OVERWRITE_IF,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                    )))
+                {
+                    context->KernelFileHandle = kernelDumpFileHandle;
+                    CallbackOutput->Handle = kernelDumpFileHandle;
+                }
+
+                PhDereferenceObject(kernelDumpFileName);
             }
         }
         break;
@@ -466,7 +484,20 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         PhAppResolverBeginCrashDumpTaskByHandle(context->ProcessHandle, &packageTaskHandle);
     }
 
-    if (!PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+    if (PhGetIntegerSetting(L"EnableMinidumpKernelMinidump"))
+    {
+        if (!PhGetOwnTokenAttributes().Elevated)
+        {
+            PhShowWarning2(
+                context->WindowHandle, 
+                L"Unable to create kernel minidump.", 
+                L"%s", 
+                L"Kernel minidump of processes require administrative privileges. "
+                L"Make sure System Informer is running with administrative privileges."
+                );
+        }
+    }
+    else
     {
         if (NT_SUCCESS(PhCreateProcessSnapshot(
             &snapshotHandle,

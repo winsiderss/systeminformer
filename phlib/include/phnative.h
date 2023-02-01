@@ -1498,6 +1498,14 @@ PhEnumFileHardLinksEx(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhQuerySymbolicLinkObject(
+    _In_ PPH_STRINGREF Name,
+    _Out_ PPH_STRING* LinkTarget
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhUpdateMupDevicePrefixes(
@@ -2271,6 +2279,14 @@ NTAPI
 PhQueryProcessHeapInformation(
     _In_ HANDLE ProcessId,
     _Out_ PPH_PROCESS_DEBUG_HEAP_INFORMATION* HeapInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMachineTypeAttributes(
+    _In_ USHORT Machine,
+    _Out_ MACHINE_ATTRIBUTES* Attributes
     );
 
 PHLIBAPI

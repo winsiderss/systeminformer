@@ -34,6 +34,7 @@ typedef struct _PH_SYSINFO_PARAMETERS
     ULONG MinimumGraphHeight;
     ULONG SectionViewGraphHeight;
     ULONG PanelWidth;
+    LONG WindowDpi;
 // end_phapppub
 
     ULONG PanelPadding;

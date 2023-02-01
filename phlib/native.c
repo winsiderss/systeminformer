@@ -7577,6 +7577,56 @@ NTSTATUS PhEnumFileHardLinksEx(
     return status;
 }
 
+NTSTATUS PhQuerySymbolicLinkObject(
+    _In_ PPH_STRINGREF Name,
+    _Out_ PPH_STRING* LinkTarget
+    )
+{
+    NTSTATUS status;
+    HANDLE linkHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectName;
+    UNICODE_STRING targetName;
+    WCHAR targetNameBuffer[MAXIMUM_FILENAME_LENGTH];
+
+    if (!PhStringRefToUnicodeString(Name, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenSymbolicLinkObject(
+        &linkHandle,
+        SYMBOLIC_LINK_QUERY,
+        &objectAttributes
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    RtlInitEmptyUnicodeString(&targetName, targetNameBuffer, sizeof(targetNameBuffer));
+
+    status = NtQuerySymbolicLinkObject(
+        linkHandle,
+        &targetName,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *LinkTarget = PhCreateStringFromUnicodeString(&targetName);
+    }
+
+    NtClose(linkHandle);
+
+    return status;
+}
+
 /**
  * Initializes the device prefixes module.
  */
@@ -12115,6 +12165,53 @@ NTSTATUS PhQueryProcessHeapInformation(
     return STATUS_SUCCESS;
 }
 
+// Queries if the specified architecture is supported on the current system, 
+// either natively or by any form of compatibility or emulation layer.
+// rev from kernelbase!GetMachineTypeAttributes (dmex)
+NTSTATUS PhGetMachineTypeAttributes(
+    _In_ USHORT Machine,
+    _Out_ MACHINE_ATTRIBUTES* Attributes
+    )
+{
+    NTSTATUS status;
+    HANDLE input = NULL;
+    SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION output[6] = { 0 };
+    ULONG returnLength;
+
+    status = NtQuerySystemInformationEx(
+        SystemSupportedProcessorArchitectures2,
+        &input,
+        sizeof(input),
+        output,
+        sizeof(output),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        MACHINE_ATTRIBUTES attributes = 0;
+
+        for (ULONG i = 0; i < returnLength / sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION); i++)
+        {
+            if (output[i].Machine == Machine)
+            {
+                if (output[i].KernelMode)
+                    SetFlag(attributes, KernelEnabled);
+                if (output[i].UserMode)
+                    SetFlag(attributes, UserEnabled);
+                if (output[i].WoW64Container)
+                    SetFlag(attributes, Wow64Container);
+                break;
+            }
+        }
+
+        *Attributes = attributes;
+    }
+
+    return status;
+}
+
+// Essentially KernelBase!QueryProcessMachine (jxy-s)
 NTSTATUS PhGetProcessArchitecture(
     _In_ HANDLE ProcessHandle,
     _Out_ PUSHORT ProcessArchitecture
@@ -12122,38 +12219,17 @@ NTSTATUS PhGetProcessArchitecture(
 {
     USHORT architecture;
     NTSTATUS status;
-    SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION* buffer;
-    ULONG bufferLength;
+    SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION output[6];
     ULONG returnLength;
-
-    // Essentially KernelBase!QueryProcessMachine (jxy-s)
-    bufferLength = sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[5]);
-    buffer = PhAllocate(bufferLength);
 
     status = NtQuerySystemInformationEx(
         SystemSupportedProcessorArchitectures2,
         &ProcessHandle,
         sizeof(ProcessHandle),
-        buffer,
-        bufferLength,
+        output,
+        sizeof(output),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-    {
-        PhFree(buffer);
-        bufferLength = returnLength;
-        buffer = PhAllocate(bufferLength);
-
-        status = NtQuerySystemInformationEx(
-            SystemSupportedProcessorArchitectures2,
-            &ProcessHandle,
-            sizeof(ProcessHandle),
-            buffer,
-            bufferLength,
-            &returnLength
-            );
-    }
 
     if (NT_SUCCESS(status))
     {
@@ -12161,16 +12237,14 @@ NTSTATUS PhGetProcessArchitecture(
 
         for (ULONG i = 0; i < returnLength / sizeof(SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION); i++)
         {
-            if (buffer[i].Process)
+            if (output[i].Process)
             {
-                architecture = (USHORT)buffer[i].Machine;
+                architecture = (USHORT)output[i].Machine;
                 status = STATUS_SUCCESS;
                 break;
             }
         }
     }
-
-    PhFree(buffer);
 
     if (NT_SUCCESS(status))
     {
@@ -12202,10 +12276,6 @@ NTSTATUS PhGetProcessImageBaseAddress(
         if (!NT_SUCCESS(status))
             return status;
 
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
-
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ImageBaseAddress)),
@@ -12228,10 +12298,6 @@ NTSTATUS PhGetProcessImageBaseAddress(
 
         if (!NT_SUCCESS(status))
             return status;
-
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
 
         status = NtReadVirtualMemory(
             ProcessHandle,
@@ -12571,10 +12637,6 @@ NTSTATUS PhGetProcessIsPosix(
         if (!NT_SUCCESS(status))
             return status;
 
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
-
         status = NtReadVirtualMemory(
             ProcessHandle,
             PTR_ADD_OFFSET(pebBaseAddress, UFIELD_OFFSET(PEB32, ImageSubsystem)),
@@ -12590,10 +12652,6 @@ NTSTATUS PhGetProcessIsPosix(
 
         if (!NT_SUCCESS(status))
             return status;
-
-        // No PEB for System and minimal/pico processes. (dmex)
-        if (!pebBaseAddress)
-            return STATUS_UNSUCCESSFUL;
 
         status = NtReadVirtualMemory(
             ProcessHandle,

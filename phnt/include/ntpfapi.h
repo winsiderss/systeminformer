@@ -193,6 +193,11 @@ typedef struct _PF_MEMORY_LIST_NODE
     ULONGLONG ModifiedPageCount;
 } PF_MEMORY_LIST_NODE, *PPF_MEMORY_LIST_NODE;
 
+typedef struct _PF_TIME_CONTROL
+{
+	long TimeAdjustment;
+} PF_TIME_CONTROL, *PPF_TIME_CONTROL;
+
 #define PF_MEMORY_LIST_INFO_VERSION 1
 
 typedef struct _PF_MEMORY_LIST_INFO
@@ -256,12 +261,12 @@ typedef enum _SUPERFETCH_INFORMATION_CLASS
     SuperfetchScenarioQuery, // q: PF_SCENARIO_PHASE_INFO
     SuperfetchScenarioPrefetch,
     SuperfetchRobustnessControl,
-    SuperfetchTimeControl,
+    SuperfetchTimeControl, // PF_TIME_CONTROL
     SuperfetchMemoryListQuery, // q: PF_MEMORY_LIST_INFO
     SuperfetchMemoryRangesQuery, // q: PF_PHYSICAL_MEMORY_RANGE_INFO
     SuperfetchTracingControl,
     SuperfetchTrimWhileAgingControl,
-    SuperfetchRepurposedByPrefetch, // q: PF_REPURPOSED_BY_PREFETCH_INFO // rev
+    SuperfetchRepurposedByPrefetch, // q: PF_REPURPOSED_BY_PREFETCH_INFO // rev // 20
     SuperfetchChannelPowerRequest,
     SuperfetchMovePages,
     SuperfetchVirtualQuery,
