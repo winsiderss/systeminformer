@@ -1051,6 +1051,7 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    LONG GraphPadding;
 
     PH_GRAPH_STATE ProcessorGraphState;
     PH_GRAPH_STATE CoreGraphState;
@@ -1217,6 +1218,7 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
     RECT GraphMargin;
 
     PPH_STRING Description;
+    LONG SysInfoGraphPadding;
 
     HWND NodeWindowHandle;
     HANDLE NodeWindowThreadHandle;
