@@ -1395,118 +1395,118 @@ namespace CustomBuildTool
             return true;
         }
 
-        public static bool BuildDeployUploadArtifacts()
-        {
-            string buildPostUrl;
-            string buildPostKey;
-            string buildPostName;
-
-            if (!BuildNightly)
-                return true;
-
-            buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_URL%");
-            buildPostKey = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_KEY%");
-            buildPostName = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_NAME%");
-
-            if (string.IsNullOrWhiteSpace(buildPostUrl))
-                return false;
-            if (string.IsNullOrWhiteSpace(buildPostKey))
-                return false;
-            if (string.IsNullOrWhiteSpace(buildPostName))
-                return false;
-
-            Program.PrintColorMessage(string.Empty, ConsoleColor.Black);
-
-            try
-            {
-                foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                {
-                    string sourceFile = BuildOutputFolder + file.FileName;
-
-                    if (File.Exists(sourceFile))
-                    {
-                        string filename;
-                        FtpWebRequest request;
-
-                        filename = Path.GetFileName(sourceFile);
-                        //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
-
-                        #pragma warning disable SYSLIB0014 // Type or member is obsolete
-                        request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
-                        #pragma warning restore SYSLIB0014 // Type or member is obsolete
-                        request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
-                        request.Method = WebRequestMethods.Ftp.UploadFile;
-                        request.Timeout = System.Threading.Timeout.Infinite;
-                        request.EnableSsl = true;
-                        request.UsePassive = true;
-                        request.UseBinary = true;
-
-                        Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
-
-                        using (FileStream fileStream = File.OpenRead(sourceFile))
-                        using (BufferedStream localStream = new BufferedStream(fileStream))
-                        using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
-                        {
-                            localStream.CopyTo(remoteStream);
-                        }
-
-                        using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
-                        {
-                            if (response.StatusCode != FtpStatusCode.CommandOK && response.StatusCode != FtpStatusCode.ClosingData)
-                            {
-                                Program.PrintColorMessage($"[HttpWebResponse] {response.StatusDescription}", ConsoleColor.Red);
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[UploadBuildWebServiceAsync-Exception] {ex.Message}", ConsoleColor.Red);
-                return false;
-            }
-
-            //try
-            //{
-            //    foreach (BuildFile file in BuildConfig.Build_Release_Files)
-            //    {
-            //        if (!file.UploadNightly)
-            //            continue;
-            //
-            //        string sourceFile = BuildOutputFolder + file.FileName;
-            //
-            //        if (File.Exists(sourceFile))
-            //        {
-            //            bool uploaded;
-            //            string fileName;
-            //
-            //            fileName = sourceFile.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
-            //
-            //            File.Move(sourceFile, fileName, true);
-            //            uploaded = AppVeyor.UploadFile(fileName);
-            //            File.Move(fileName, sourceFile, true);
-            //
-            //            if (!uploaded)
-            //            {
-            //                Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
-            //                return false;
-            //            }
-            //        }
-            //        else
-            //        {
-            //            Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
-            //        }
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
-            //    return false;
-            //}
-
-            return true;
-        }
+        //public static bool BuildDeployUploadArtifacts()
+        //{
+        //    string buildPostUrl;
+        //    string buildPostKey;
+        //    string buildPostName;
+        //
+        //    if (!BuildNightly)
+        //        return true;
+        //
+        //    buildPostUrl = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_URL%");
+        //    buildPostKey = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_KEY%");
+        //    buildPostName = Win32.GetEnvironmentVariable("%APPVEYOR_NIGHTLY_NAME%");
+        //
+        //    if (string.IsNullOrWhiteSpace(buildPostUrl))
+        //        return false;
+        //    if (string.IsNullOrWhiteSpace(buildPostKey))
+        //        return false;
+        //    if (string.IsNullOrWhiteSpace(buildPostName))
+        //        return false;
+        //
+        //    Program.PrintColorMessage(string.Empty, ConsoleColor.Black);
+        //
+        //    try
+        //    {
+        //        foreach (BuildFile file in BuildConfig.Build_Release_Files)
+        //        {
+        //            string sourceFile = BuildOutputFolder + file.FileName;
+        //
+        //            if (File.Exists(sourceFile))
+        //            {
+        //                string filename;
+        //                FtpWebRequest request;
+        //
+        //                filename = Path.GetFileName(sourceFile);
+        //                //filename = filename.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+        //
+        //                #pragma warning disable SYSLIB0014 // Type or member is obsolete
+        //                request = (FtpWebRequest)WebRequest.Create(buildPostUrl + filename);
+        //                #pragma warning restore SYSLIB0014 // Type or member is obsolete
+        //                request.Credentials = new NetworkCredential(buildPostKey, buildPostName);
+        //                request.Method = WebRequestMethods.Ftp.UploadFile;
+        //                request.Timeout = System.Threading.Timeout.Infinite;
+        //                request.EnableSsl = true;
+        //                request.UsePassive = true;
+        //                request.UseBinary = true;
+        //
+        //                Program.PrintColorMessage($"Uploading {filename}...", ConsoleColor.Cyan, true);
+        //
+        //                using (FileStream fileStream = File.OpenRead(sourceFile))
+        //                using (BufferedStream localStream = new BufferedStream(fileStream))
+        //                using (BufferedStream remoteStream = new BufferedStream(request.GetRequestStream()))
+        //                {
+        //                    localStream.CopyTo(remoteStream);
+        //                }
+        //
+        //                using (FtpWebResponse response = (FtpWebResponse)request.GetResponse())
+        //                {
+        //                    if (response.StatusCode != FtpStatusCode.CommandOK && response.StatusCode != FtpStatusCode.ClosingData)
+        //                    {
+        //                        Program.PrintColorMessage($"[HttpWebResponse] {response.StatusDescription}", ConsoleColor.Red);
+        //                        return false;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Program.PrintColorMessage($"[UploadBuildWebServiceAsync-Exception] {ex.Message}", ConsoleColor.Red);
+        //        return false;
+        //    }
+        //
+        //    //try
+        //    //{
+        //    //    foreach (BuildFile file in BuildConfig.Build_Release_Files)
+        //    //    {
+        //    //        if (!file.UploadNightly)
+        //    //            continue;
+        //    //
+        //    //        string sourceFile = BuildOutputFolder + file.FileName;
+        //    //
+        //    //        if (File.Exists(sourceFile))
+        //    //        {
+        //    //            bool uploaded;
+        //    //            string fileName;
+        //    //
+        //    //            fileName = sourceFile.Replace("-build-", $"-{BuildVersion}-", StringComparison.OrdinalIgnoreCase);
+        //    //
+        //    //            File.Move(sourceFile, fileName, true);
+        //    //            uploaded = AppVeyor.UploadFile(fileName);
+        //    //            File.Move(fileName, sourceFile, true);
+        //    //
+        //    //            if (!uploaded)
+        //    //            {
+        //    //                Program.PrintColorMessage("[WebServiceAppveyorUploadFile]", ConsoleColor.Red);
+        //    //                return false;
+        //    //            }
+        //    //        }
+        //    //        else
+        //    //        {
+        //    //            Program.PrintColorMessage("[SKIPPED] missing file: " + sourceFile, ConsoleColor.Yellow);
+        //    //        }
+        //    //    }
+        //    //}
+        //    //catch (Exception ex)
+        //    //{
+        //    //    Program.PrintColorMessage("[WebServiceAppveyorPushArtifact] " + ex, ConsoleColor.Red);
+        //    //    return false;
+        //    //}
+        //
+        //    return true;
+        //}
 
         public static GithubRelease BuildDeployUploadGithubConfig()
         {
