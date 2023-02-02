@@ -1847,7 +1847,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
-             TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi (22, LOWORD(wParam)));
+             TreeNew_SetRowHeight(context->TreeNewHandle, PhGetDpi(22, LOWORD(wParam)));
         }
         break;
     case WM_SHOWWINDOW:

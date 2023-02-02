@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     wj32    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -251,17 +251,8 @@ INT_PTR CALLBACK DiskDriveDialogProc(
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-        if (uMsg == WM_DESTROY)
+        if (uMsg == WM_NCDESTROY)
         {
-            PhDeleteLayoutManager(&context->LayoutManager);
-            PhDeleteGraphState(&context->GraphState);
-
-            if (context->GraphHandle)
-                DestroyWindow(context->GraphHandle);
-
-            if (context->PanelWindowHandle)
-                DestroyWindow(context->PanelWindowHandle);
-
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
     }
@@ -275,9 +266,6 @@ INT_PTR CALLBACK DiskDriveDialogProc(
         {
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(hwndDlg);
 
             context->WindowHandle = hwndDlg;
             context->DiskPathLabel = GetDlgItem(hwndDlg, IDC_DISKMOUNTPATH);
@@ -292,7 +280,7 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             context->GraphMargin = graphItem->Margin;
-            PhGetSizeDpiValue(&context->GraphMargin, dpiValue, TRUE);
+            PhGetSizeDpiValue(&context->GraphMargin, context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(context->DiskPathLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(context->DiskNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
@@ -307,11 +295,38 @@ INT_PTR CALLBACK DiskDriveDialogProc(
             DiskDriveUpdatePanel(context);
         }
         break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&context->LayoutManager);
+            PhDeleteGraphState(&context->GraphState);
+
+            if (context->GraphHandle)
+                DestroyWindow(context->GraphHandle);
+            if (context->PanelWindowHandle)
+                DestroyWindow(context->PanelWindowHandle);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            if (context->SysinfoSection->Parameters->LargeFont)
+            {
+                SetWindowFont(context->DiskPathLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
+            }
+
+            if (context->SysinfoSection->Parameters->MediumFont)
+            {
+                SetWindowFont(context->DiskNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
+            }
+
+            context->GraphState.Valid = FALSE;
+            context->GraphState.TooltipIndex = ULONG_MAX;
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
     case WM_SIZE:
         {
             context->GraphState.Valid = FALSE;
             context->GraphState.TooltipIndex = ULONG_MAX;
-
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
@@ -327,12 +342,9 @@ INT_PTR CALLBACK DiskDriveDialogProc(
                     {
                         PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                         PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-                        LONG dpiValue;
-
-                        dpiValue = PhGetWindowDpi(header->hwndFrom);
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
+                        context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), context->SysinfoSection->Parameters->WindowDpi);
 
                         PhGraphStateGetDrawInfo(
                             &context->GraphState,
@@ -435,8 +447,8 @@ INT_PTR CALLBACK DiskDriveDialogProc(
 BOOLEAN DiskDriveSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     PDV_DISK_SYSINFO_CONTEXT context = (PDV_DISK_SYSINFO_CONTEXT)Section->Context;
@@ -485,9 +497,6 @@ BOOLEAN DiskDriveSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = (PPH_SYSINFO_CREATE_DIALOG)Parameter1;
 
-            if (!createDialog)
-                break;
-
             createDialog->Instance = PluginInstance->DllBase;
             createDialog->Template = MAKEINTRESOURCE(IDD_DISKDRIVE_DIALOG);
             createDialog->DialogProc = DiskDriveDialogProc;
@@ -497,14 +506,9 @@ BOOLEAN DiskDriveSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
-            LONG dpiValue;
 
-            if (!drawInfo)
-                break;
-
-            dpiValue = PhGetWindowDpi(Section->GraphHandle);
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), context->SysinfoSection->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DiskEntry->ReadBuffer.Count);
 
             if (!Section->GraphState.Valid)
@@ -554,9 +558,6 @@ BOOLEAN DiskDriveSectionCallback(
             ULONG64 diskWriteValue;
             PH_FORMAT format[6];
 
-            if (!getTooltipText)
-                break;
-
             diskReadValue = PhGetItemCircularBuffer_ULONG64(
                 &context->DiskEntry->ReadBuffer,
                 getTooltipText->Index
@@ -583,9 +584,6 @@ BOOLEAN DiskDriveSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
             PH_FORMAT format[4];
-
-            if (!drawPanel)
-                break;
 
             PhSetReference(&drawPanel->Title, context->DiskEntry->DiskIndexName);
             if (!drawPanel->Title) drawPanel->Title = PhCreateString(L"Unknown disk");
