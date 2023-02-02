@@ -19,7 +19,7 @@ namespace CustomBuildTool
             new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
             new BuildFile("\\systeminformer-build-src.zip", false),
             new BuildFile("\\systeminformer-build-sdk.zip", false),
-            new BuildFile("\\systeminformer-build-pdb.zip", false),
+            new BuildFile("\\systeminformer-build-pdb.zip", true), // nightly
             //new BuildFile("\\systeminformer-build-checksums.txt", false),
         };
 

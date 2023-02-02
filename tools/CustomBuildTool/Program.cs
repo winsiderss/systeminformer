@@ -245,8 +245,8 @@ namespace CustomBuildTool
                 //    Environment.Exit(1);
                 //if (!Build.BuildChecksumsFile())
                 //    Environment.Exit(1);
-                if (!Build.BuildDeployUploadArtifacts())
-                    Environment.Exit(1);
+                //if (!Build.BuildDeployUploadArtifacts())
+                //    Environment.Exit(1);
                 if (!Build.BuildDeployUpdateConfig())
                     Environment.Exit(1);
             }
