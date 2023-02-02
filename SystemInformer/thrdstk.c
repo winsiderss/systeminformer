@@ -857,14 +857,11 @@ VOID PhShowThreadStackDialog(
         ThreadId
         )))
     {
-        if (KphLevel() >= KphLevelMed)
-        {
-            status = PhOpenThread(
-                &threadHandle,
-                THREAD_QUERY_LIMITED_INFORMATION,
-                ThreadId
-                );
-        }
+        status = PhOpenThread(
+            &threadHandle,
+            THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT,
+            ThreadId
+            );
     }
 
     if (!NT_SUCCESS(status))

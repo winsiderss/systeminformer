@@ -2104,7 +2104,11 @@ PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instru
     // 
     // x ~= (a * y) / (b + c)
     //
-    *IdleCycles = (PhCpuIdleCycleDelta.Delta * *TotalCycles) / (PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta);
+    ULONG64 delta = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta;
+    if (delta != 0)
+        *IdleCycles = (PhCpuIdleCycleDelta.Delta * *TotalCycles) / delta;
+    else
+        *IdleCycles = (PhCpuIdleCycleDelta.Delta * *TotalCycles);
 
     // We still need to add in the idle cycle time to the "total" since it wasn't complete yet.
     *TotalCycles += *IdleCycles;
