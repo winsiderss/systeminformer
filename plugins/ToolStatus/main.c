@@ -623,8 +623,6 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT oldFont = ToolbarWindowFont;
-
             // Let System Informer perform the default processing.
             LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
 
@@ -671,8 +669,6 @@ LRESULT CALLBACK MainWndSubclassProc(
                 //SendMessage(StatusBarHandle, WM_SIZE, 0, 0); // redraw
                 StatusBarUpdate(TRUE);
             }
-
-            if (oldFont) DeleteFont(oldFont);
 
             ToolbarGraphsInitializeDpi();
 

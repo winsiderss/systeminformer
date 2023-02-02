@@ -510,9 +510,9 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
             context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-            context->FontHandle = PhDuplicateFont(GetWindowFont(ToolBarHandle));
 
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
             context->CXWidth = PhGetDpi(16, context->WindowDpi);
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
@@ -560,11 +560,18 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
                 DeleteFont(context->FontHandle);
         }
         break;
+    case WM_NCDESTROY:
+        {
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhFree(context);
+        }
+        break;
     case WM_DPICHANGED:
         {
             context->WindowDpi = LOWORD(wParam); //PhGetWindowDpi(hwndDlg);
+            if (context->FontHandle) DeleteFont(context->FontHandle);
+            context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
             context->CXWidth = PhGetDpi(16, context->WindowDpi);
-
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
 
@@ -575,12 +582,6 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             }
 
             CustomizeResetImages(context);
-        }
-        break;
-    case WM_NCDESTROY:
-        {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhFree(context);
         }
         break;
     case WM_COMMAND:

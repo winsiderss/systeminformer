@@ -753,8 +753,6 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
         {
             LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(hwndDlg);
-
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -768,6 +766,7 @@ INT_PTR CALLBACK EspPnPServiceDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
+            dpiValue = PhGetWindowDpi(hwndDlg);
             context->ImageList = PhImageListCreate(
                 PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
                 PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)

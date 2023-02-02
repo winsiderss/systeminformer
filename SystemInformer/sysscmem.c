@@ -401,6 +401,13 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             {
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_TOTALPHYSICAL), MemorySection->Parameters->MediumFont, FALSE);
             }
+
+            CommitGraphState.Valid = FALSE;
+            CommitGraphState.TooltipIndex = ULONG_MAX;
+            PhysicalGraphState.Valid = FALSE;
+            PhysicalGraphState.TooltipIndex = ULONG_MAX;
+            PhLayoutManagerLayout(&MemoryLayoutManager);
+            PhSipLayoutMemoryGraphs(hwndDlg);
         }
         break;
     case WM_SIZE:
@@ -409,7 +416,6 @@ INT_PTR CALLBACK PhSipMemoryDialogProc(
             CommitGraphState.TooltipIndex = ULONG_MAX;
             PhysicalGraphState.Valid = FALSE;
             PhysicalGraphState.TooltipIndex = ULONG_MAX;
-
             PhLayoutManagerLayout(&MemoryLayoutManager);
             PhSipLayoutMemoryGraphs(hwndDlg);
         }

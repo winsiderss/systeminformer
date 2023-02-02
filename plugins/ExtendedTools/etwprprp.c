@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2015-2021
+ *     dmex    2015-2023
  *
  */
 
@@ -21,6 +21,7 @@ typedef struct _ET_DISKNET_CONTEXT
     PET_PROCESS_BLOCK Block;
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     BOOLEAN Enabled;
+    LONG WindowDpi;
 
     PH_LAYOUT_MANAGER LayoutManager;
 
@@ -43,6 +44,13 @@ INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
     )
 {
     return FALSE;
+}
+
+VOID EtwDiskNetworkUpdateWindowDpi(
+    _In_ PET_DISKNET_CONTEXT Context
+    )
+{
+    Context->WindowDpi = PhGetWindowDpi(Context->WindowHandle);
 }
 
 VOID EtwDiskNetworkCreateGraphs(
@@ -130,18 +138,15 @@ VOID EtwDiskNetworkLayoutGraphs(
     RECT margin;
     RECT innerMargin;
     LONG between;
-    LONG dpiValue;
     ULONG graphWidth;
     ULONG graphHeight;
 
-    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, Context->WindowDpi);
 
-    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, dpiValue);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, Context->WindowDpi);
+    innerMargin.top = PhGetDpi(20, Context->WindowDpi);
 
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, dpiValue);
-    innerMargin.top = PhGetDpi(20, dpiValue);
-
-    between = PhGetDpi(3, dpiValue);
+    between = PhGetDpi(3, Context->WindowDpi);
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 
@@ -286,6 +291,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
             PhInitializeGraphState(&context->DiskGraphState);
             PhInitializeGraphState(&context->NetworkGraphState);
 
+            EtwDiskNetworkUpdateWindowDpi(context);
             EtwDiskNetworkCreateGraphs(context);
             EtwDiskNetworkCreatePanel(context);
             EtwDiskNetworkUpdatePanel(context);
@@ -324,6 +330,13 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                 PhEndPropPageLayout(hwndDlg, propPageContext);
         }
         break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            EtwDiskNetworkUpdateWindowDpi(context);
+
+            EtwDiskNetworkLayoutGraphs(context);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -352,14 +365,11 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-                    LONG dpiValue;
-
-                    dpiValue = PhGetWindowDpi(hwndDlg);
-
+ 
                     if (header->hwndFrom == context->DiskGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), context->WindowDpi);
                         PhGraphStateGetDrawInfo(&context->DiskGraphState, getDrawInfo, context->Block->DiskReadHistory.Count);
 
                         if (!context->DiskGraphState.Valid)
@@ -435,7 +445,7 @@ INT_PTR CALLBACK EtwDiskNetworkPageDlgProc(
                     else if (header->hwndFrom == context->NetworkGraphHandle)
                     {
                         drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y | PH_GRAPH_USE_LINE_2;
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), dpiValue);
+                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), context->WindowDpi);
                         PhGraphStateGetDrawInfo(&context->NetworkGraphState, getDrawInfo, context->Block->NetworkSendHistory.Count);
 
                         if (!context->NetworkGraphState.Valid)

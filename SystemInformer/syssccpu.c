@@ -59,8 +59,8 @@ static HWND CpuPanelLatencyLabel;
 BOOLEAN PhSipCpuSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -122,9 +122,6 @@ BOOLEAN PhSipCpuSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
-            if (!createDialog)
-                break;
-
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_CPU);
             createDialog->DialogProc = PhSipCpuDialogProc;
@@ -133,9 +130,6 @@ BOOLEAN PhSipCpuSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
-
-            if (!drawInfo)
-                break;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2 | PH_GRAPH_LABEL_MAX_Y;
             Section->Parameters->ColorSetupFunction(drawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, Section->Parameters->WindowDpi);
@@ -515,8 +509,6 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
-            PhSipLayoutCpuGraphs();
-
             if (CpuSection->Parameters->LargeFont)
             {
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), CpuSection->Parameters->LargeFont, FALSE);
@@ -526,6 +518,23 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             {
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_CPUNAME), CpuSection->Parameters->MediumFont, FALSE);
             }
+
+            if (OneGraphPerCpu)
+            {
+                for (ULONG i = 0; i < NumberOfProcessors; i++)
+                {
+                    CpusGraphState[i].Valid = FALSE;
+                    CpusGraphState[i].TooltipIndex = ULONG_MAX;
+                }
+            }
+            else
+            {
+                CpuGraphState.Valid = FALSE;
+                CpuGraphState.TooltipIndex = ULONG_MAX;
+            }
+
+            PhLayoutManagerLayout(&CpuLayoutManager);
+            PhSipLayoutCpuGraphs();
         }
         break;
     case WM_SIZE:
@@ -636,6 +645,8 @@ INT_PTR CALLBACK PhSipCpuPanelDialogProc(
             {
                 SetWindowFont(CpuPanelSpeedLabel, CpuSection->Parameters->MediumFont, FALSE);
             }
+
+            PhSipLayoutCpuGraphs();
         }
         break;
     case WM_CTLCOLORBTN:

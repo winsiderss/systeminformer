@@ -62,6 +62,13 @@ INT_PTR CALLBACK RaplDevicePanelDialogProc(
     return FALSE;
 }
 
+VOID RaplDeviceInitializeDialogDpi(
+    _In_ PDV_RAPL_SYSINFO_CONTEXT Context
+    )
+{
+    Context->GraphPadding = PhGetDpi(RAPL_GRAPH_PADDING, Context->SysinfoSection->Parameters->WindowDpi);
+}
+
 VOID RaplDeviceInitializeGraphStates(
     _Inout_ PDV_RAPL_SYSINFO_CONTEXT Context
     )
@@ -237,8 +244,6 @@ VOID RaplDeviceLayoutGraphs(
     ULONG graphHeight;
     HDWP deferHandle;
     ULONG y;
-    LONG graphPadding;
-    LONG dpiValue;
 
     Context->ProcessorGraphState.Valid = FALSE;
     Context->ProcessorGraphState.TooltipIndex = ULONG_MAX;
@@ -249,17 +254,13 @@ VOID RaplDeviceLayoutGraphs(
     Context->TotalGraphState.Valid = FALSE;
     Context->TotalGraphState.TooltipIndex = ULONG_MAX;
 
-    dpiValue = PhGetWindowDpi(Context->WindowHandle);
-
     margin = Context->GraphMargin;
-    PhGetSizeDpiValue(&margin, dpiValue, TRUE);
-
-    graphPadding = PhGetDpi(RAPL_GRAPH_PADDING, dpiValue);
+    PhGetSizeDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
     GetClientRect(Context->WindowHandle, &clientRect);
     GetClientRect(GetDlgItem(Context->WindowHandle, IDC_PACKAGE_L), &labelRect);
     graphWidth = clientRect.right - margin.left - margin.right;
-    graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 4 - graphPadding * 5) / 4;
+    graphHeight = (clientRect.bottom - margin.top - margin.bottom - labelRect.bottom * 4 - Context->GraphPadding * 5) / 4;
 
     deferHandle = BeginDeferWindowPos(8);
     y = margin.top;
@@ -274,7 +275,7 @@ VOID RaplDeviceLayoutGraphs(
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
+    y += labelRect.bottom + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -286,7 +287,7 @@ VOID RaplDeviceLayoutGraphs(
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
+    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -298,7 +299,7 @@ VOID RaplDeviceLayoutGraphs(
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
+    y += labelRect.bottom + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -310,7 +311,7 @@ VOID RaplDeviceLayoutGraphs(
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
+    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -322,7 +323,7 @@ VOID RaplDeviceLayoutGraphs(
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
+    y += labelRect.bottom + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -334,7 +335,7 @@ VOID RaplDeviceLayoutGraphs(
         graphHeight,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
+    y += graphHeight + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -346,7 +347,7 @@ VOID RaplDeviceLayoutGraphs(
         0,
         SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += labelRect.bottom + graphPadding;
+    y += labelRect.bottom + Context->GraphPadding;
 
     deferHandle = DeferWindowPos(
         deferHandle,
@@ -358,7 +359,7 @@ VOID RaplDeviceLayoutGraphs(
         clientRect.bottom - margin.bottom - y,
         SWP_NOACTIVATE | SWP_NOZORDER
         );
-    y += graphHeight + graphPadding;
+    y += graphHeight + Context->GraphPadding;
 
     EndDeferWindowPos(deferHandle);
 }
@@ -400,12 +401,9 @@ VOID RaplDeviceNotifyProcessorGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, dpiValue);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->ProcessorGraphState, getDrawInfo, Context->DeviceEntry->PackageBuffer.Count);
 
             if (!Context->ProcessorGraphState.Valid)
@@ -473,12 +471,9 @@ VOID RaplDeviceNotifyPackageGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, dpiValue);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->CoreGraphState, getDrawInfo, Context->DeviceEntry->CoreBuffer.Count);
 
             if (!Context->CoreGraphState.Valid)
@@ -544,12 +539,9 @@ VOID RaplDeviceNotifyDimmGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, dpiValue);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorIoWrite"), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->DimmGraphState, getDrawInfo, Context->DeviceEntry->DimmBuffer.Count);
 
             if (!Context->DimmGraphState.Valid)
@@ -617,12 +609,9 @@ VOID RaplDeviceNotifyTotalGraph(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-            LONG dpiValue;
-
-            dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
+            Context->SysinfoSection->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, Context->SysinfoSection->Parameters->WindowDpi);
             PhGraphStateGetDrawInfo(&Context->TotalGraphState, getDrawInfo, Context->DeviceEntry->TotalBuffer.Count);
 
             if (!Context->TotalGraphState.Valid)
@@ -706,7 +695,7 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
     {
         context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
-        if (uMsg == WM_DESTROY)
+        if (uMsg == WM_NCDESTROY)
         {
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
@@ -728,6 +717,8 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GraphMargin = graphItem->Margin;
+
+            RaplDeviceInitializeDialogDpi(context);
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(hwndDlg, IDC_DEVICENAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
@@ -762,6 +753,24 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
                 DestroyWindow(context->TotalGraphHandle);
             if (context->RaplDevicePanel)
                 DestroyWindow(context->RaplDevicePanel);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            RaplDeviceInitializeDialogDpi(context);
+
+            if (context->SysinfoSection->Parameters->LargeFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), context->SysinfoSection->Parameters->LargeFont, FALSE);
+            }
+
+            if (context->SysinfoSection->Parameters->MediumFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_DEVICENAME), context->SysinfoSection->Parameters->MediumFont, FALSE);
+            }
+
+            PhLayoutManagerLayout(&context->LayoutManager);
+            RaplDeviceLayoutGraphs(context);
         }
         break;
     case WM_SIZE:
@@ -806,8 +815,8 @@ INT_PTR CALLBACK RaplDeviceDialogProc(
 BOOLEAN RaplDeviceSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     PDV_RAPL_SYSINFO_CONTEXT context = (PDV_RAPL_SYSINFO_CONTEXT)Section->Context;
@@ -882,9 +891,6 @@ BOOLEAN RaplDeviceSectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = (PPH_SYSINFO_CREATE_DIALOG)Parameter1;
 
-            if (!createDialog)
-                break;
-
             createDialog->Instance = PluginInstance->DllBase;
             createDialog->Template = MAKEINTRESOURCE(IDD_RAPLDEVICE_DIALOG);
             createDialog->DialogProc = RaplDeviceDialogProc;
@@ -894,14 +900,9 @@ BOOLEAN RaplDeviceSectionCallback(
     case SysInfoGraphGetDrawInfo:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)Parameter1;
-            LONG dpiValue;
 
-            if (!drawInfo)
-                break;
-
-            dpiValue = PhGetWindowDpi(Section->GraphHandle);
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
-            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, dpiValue);
+            Section->Parameters->ColorSetupFunction(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, context->SysinfoSection->Parameters->WindowDpi);
             PhGetDrawInfoGraphBuffers(&Section->GraphState.Buffers, drawInfo, context->DeviceEntry->TotalBuffer.Count);
 
             if (!Section->GraphState.Valid)
@@ -936,9 +937,6 @@ BOOLEAN RaplDeviceSectionCallback(
             FLOAT value;
             PH_FORMAT format[3];
 
-            if (!getTooltipText)
-                break;
-
             value = PhGetItemCircularBuffer_FLOAT(&context->DeviceEntry->TotalBuffer, getTooltipText->Index);
 
             // %.2f W\%s
@@ -954,9 +952,6 @@ BOOLEAN RaplDeviceSectionCallback(
         {
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
             PH_FORMAT format[2];
-
-            if (!drawPanel)
-                break;
 
             drawPanel->Title = PhCreateString(L"RAPL");
 
