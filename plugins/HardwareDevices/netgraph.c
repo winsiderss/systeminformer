@@ -24,39 +24,6 @@ VOID NetAdapterUpdateGraph(
     InvalidateRect(Context->GraphHandle, NULL, FALSE);
 }
 
-PPH_STRING NetAdapterFormatLinkSpeed(
-    _Inout_ ULONG64 LinkSpeed
-    )
-{
-    DOUBLE linkSpeedValue;
-
-    //return PhFormatSize(LinkSpeed / BITS_IN_ONE_BYTE, ULONG_MAX);
-    //linkSpeedValue / 1000000.0   L"%.1f Mbps"
-
-    linkSpeedValue = LinkSpeed / 1000000000.0;
-
-    if (linkSpeedValue > 1.0)
-    {
-        return PhFormatString(L"%.2f Gbps", linkSpeedValue);
-    }
-
-    linkSpeedValue = LinkSpeed / 1000000.0;
-
-    if (linkSpeedValue > 1.0)
-    {
-        return PhFormatString(L"%.2f Mbps", linkSpeedValue);
-    }
-
-    linkSpeedValue = LinkSpeed / 1000.0;
-
-    if (linkSpeedValue > 1.0)
-    {
-        return PhFormatString(L"%.2f Kbps", linkSpeedValue);
-    }
-
-    return PhFormatString(L"%.2f Bps", linkSpeedValue);
-}
-
 VOID NetAdapterUpdatePanel(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
@@ -149,17 +116,20 @@ VOID NetAdapterUpdatePanel(
     {
         PhSetWindowText(Context->NetAdapterPanelStateLabel, L"Connected");
 
+        //PhInitFormatSR(&format[0], PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(linkSpeedValue))->sr);
         PhInitFormatSize(&format[0], linkSpeedValue / BITS_IN_ONE_BYTE);
         PhInitFormatS(&format[1], L"/s");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetWindowText(Context->NetAdapterPanelSpeedLabel, formatBuffer);
         else
+        {
             PhSetWindowText(Context->NetAdapterPanelSpeedLabel, PhaConcatStrings2(
                 PhaFormatSize(linkSpeedValue / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer,
                 L"/s"
-                //linkSpeedValue / 1000000.0   L"%.1f Mbps",
                 )->Buffer);
+            //PhSetWindowText(Context->NetAdapterPanelSpeedLabel, PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(linkSpeedValue))->Buffer);
+        }
     }
     else
     {
@@ -167,16 +137,20 @@ VOID NetAdapterUpdatePanel(
         PhSetWindowText(Context->NetAdapterPanelSpeedLabel, L"N/A");
     }
 
+    //PhInitFormatSR(&format[0], PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix((Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend) * BITS_IN_ONE_BYTE))->sr);
     PhInitFormatSize(&format[0], Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend);
     PhInitFormatS(&format[1], L"/s");
 
     if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
         PhSetWindowText(Context->NetAdapterPanelBytesLabel, formatBuffer);
     else
+    {
         PhSetWindowText(Context->NetAdapterPanelBytesLabel, PhaFormatString(
             L"%s/s",
             PhaFormatSize(Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend, ULONG_MAX)->Buffer)->Buffer
             );
+        //PhSetWindowText(Context->NetAdapterPanelBytesLabel, PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix((Context->AdapterEntry->CurrentNetworkReceive + Context->AdapterEntry->CurrentNetworkSend)* BITS_IN_ONE_BYTE))->Buffer);
+    }
 }
 
 VOID NetAdapterUpdateAdapterNameText(

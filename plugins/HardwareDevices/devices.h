@@ -451,9 +451,8 @@ PWSTR MediumTypeToString(
     _In_ NDIS_PHYSICAL_MEDIUM MediumType
     );
 
-_Success_(return)
-BOOLEAN NetworkAdapterQueryWlanConfig(
-    _In_ PGUID InterfaceGuid
+PPH_STRING NetAdapterFormatBitratePrefix(
+    _In_ ULONG64 Value
     );
 
 // netoptions.c
