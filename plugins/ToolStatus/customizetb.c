@@ -568,7 +568,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
         break;
     case WM_DPICHANGED:
         {
-            context->WindowDpi = LOWORD(wParam); //PhGetWindowDpi(hwndDlg);
+            context->WindowDpi = LOWORD(wParam);
             if (context->FontHandle) DeleteFont(context->FontHandle);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
             context->CXWidth = PhGetDpi(16, context->WindowDpi);
@@ -576,9 +576,11 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
 
             {
-                LONG dpi = PhGetWindowDpi(PhMainWndHandle);
-                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, dpi);
-                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, dpi);
+                // TODO: The icon DPI must equal the main window toolbar but the DPI
+                // for the main window doesn't get updated until after we return. (dmex)
+                //LONG dpi = PhGetWindowDpi(PhMainWndHandle);
+                ToolBarImageSize.cx = PhGetSystemMetrics(SM_CXSMICON, context->WindowDpi);
+                ToolBarImageSize.cy = PhGetSystemMetrics(SM_CYSMICON, context->WindowDpi);
             }
 
             CustomizeResetImages(context);
