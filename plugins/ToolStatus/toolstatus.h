@@ -168,6 +168,10 @@ VOID ToolbarLoadSettings(
     _In_ BOOLEAN DpiChanged
     );
 
+VOID ToolbarRemoveButons(
+    VOID
+    );
+
 VOID ToolbarResetSettings(
     VOID
     );

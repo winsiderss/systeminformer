@@ -130,10 +130,7 @@ VOID RebarCreateOrUpdateWindow(
                 SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
                 // Remove all buttons.
-                INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-
-                while (buttonCount--)
-                    SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+                ToolbarRemoveButons();
 
                 // Re-add/update buttons.
                 ToolbarLoadButtonSettings();
@@ -452,15 +449,22 @@ VOID ToolbarLoadSettings(
     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 }
 
+VOID ToolbarRemoveButons(
+    VOID
+    )
+{
+    INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
+
+    while (buttonCount--)
+        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+}
+
 VOID ToolbarResetSettings(
     VOID
     )
 {
     // Remove all buttons.
-    INT buttonCount = (INT)SendMessage(ToolBarHandle, TB_BUTTONCOUNT, 0, 0);
-
-    while (buttonCount--)
-        SendMessage(ToolBarHandle, TB_DELETEBUTTON, (WPARAM)buttonCount, 0);
+    ToolbarRemoveButons();
 
     // Add the default buttons.
     ToolbarLoadDefaultButtonSettings();
@@ -784,7 +788,8 @@ VOID ToolbarLoadButtonSettings(
     dpiValue = PhGetWindowDpi(PhMainWndHandle);
 
     // Allocate the button array
-    buttonArray = PhAllocate(count * sizeof(TBBUTTON));
+    buttonArray = _malloca(count * sizeof(TBBUTTON));
+    if (!buttonArray) goto CleanupExit;
     memset(buttonArray, 0, count * sizeof(TBBUTTON));
 
     for (INT index = 0; index < count; index++)
@@ -840,12 +845,11 @@ VOID ToolbarLoadButtonSettings(
         }
     }
 
-    for (INT i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
-        SendMessage(ToolBarHandle, TB_DELETEBUTTON, i, 0);
+    ToolbarRemoveButons();
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, count, (LPARAM)buttonArray);
 
-    PhFree(buttonArray);
+    _freea(buttonArray);
 
 CleanupExit:
     PhClearReference(&settingsString);
