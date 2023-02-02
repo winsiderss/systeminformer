@@ -2017,7 +2017,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
             SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
 
-            if (buttonInfo.iImage != INT_ERROR)
+            if (buttonInfo.iImage != I_IMAGECALLBACK)
             {
                 HIMAGELIST toolbarImageList;
 
@@ -2055,6 +2055,10 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                         !isEnabled
                         );
                 }
+            }
+            else
+            {
+                return CDRF_DODEFAULT; // Required for I_IMAGECALLBACK (dmex)
             }
 
             if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
