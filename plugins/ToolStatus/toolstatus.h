@@ -18,6 +18,7 @@
 #include <phappresource.h>
 #include <settings.h>
 
+#include <malloc.h>
 #include <shobjidl.h>
 
 #include "resource.h"
