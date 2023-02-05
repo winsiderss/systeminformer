@@ -293,6 +293,22 @@ PhQueryEnvironmentVariable(
     _Out_opt_ PPH_STRING* Value
     );
 
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhQueryEnvironmentVariableZ(
+    _In_opt_ PVOID Environment,
+    _In_ PWSTR Name,
+    _Out_opt_ PPH_STRING* Value
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhQueryEnvironmentVariable(Environment, &name, Value);
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -319,11 +335,7 @@ PhSetEnvironmentVariableZ(
         PhInitializeStringRef(&name, Name);
         PhInitializeStringRef(&value, Value);
 
-        return PhSetEnvironmentVariable(
-            Environment,
-            &name,
-            &value
-            );
+        return PhSetEnvironmentVariable(Environment, &name, &value);
     }
     else
     {
@@ -331,11 +343,7 @@ PhSetEnvironmentVariableZ(
 
         PhInitializeStringRef(&name, Name);
 
-        return PhSetEnvironmentVariable(
-            Environment,
-            &name,
-            NULL
-            );
+        return PhSetEnvironmentVariable(Environment, &name, NULL);
     }
 }
 
@@ -1504,6 +1512,21 @@ PhQuerySymbolicLinkObject(
     _In_ PPH_STRINGREF Name,
     _Out_ PPH_STRING* LinkTarget
     );
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhQuerySymbolicLinkObjectZ(
+    _In_ PWSTR Name,
+    _Out_ PPH_STRING* LinkTarget
+    )
+{
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
+
+    return PhQuerySymbolicLinkObject(&name, LinkTarget);
+}
 
 PHLIBAPI
 VOID
