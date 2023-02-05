@@ -1167,6 +1167,24 @@ PhGetThreadGroupAffinity(
         );
 }
 
+FORCEINLINE
+NTSTATUS
+PhGetTokenType(
+    _In_ HANDLE TokenHandle,
+    _Out_ PTOKEN_TYPE Type
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenType,
+        Type,
+        sizeof(TOKEN_TYPE),
+        &returnLength
+        );
+}
+
 /**
  * Gets a token's session ID.
  *
