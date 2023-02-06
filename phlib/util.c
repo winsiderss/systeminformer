@@ -3469,34 +3469,16 @@ PPH_STRING PhGetTemporaryDirectoryRandomAlphaFileName(
     VOID
     )
 {
-    static PH_STRINGREF randomAlphaDirectoryStringRef = PH_STRINGREF_INIT(L"%TEMP%\\");
     PPH_STRING randomAlphaFileName = NULL;
-    PPH_STRING randomAlphaDirectory;
-    PH_STRINGREF randomAlphaStringRef;
-    WCHAR randomAlphaString[32] = L"";
+    PH_STRINGREF randomAlphaString;
+    WCHAR randomAlphaStringBuffer[33] = L"";
 
-    PhGenerateRandomAlphaString(randomAlphaString, RTL_NUMBER_OF(randomAlphaString));
-    randomAlphaStringRef.Buffer = randomAlphaString;
-    randomAlphaStringRef.Length = sizeof(randomAlphaString) - sizeof(UNICODE_NULL);
+    PhGenerateRandomAlphaString(randomAlphaStringBuffer, ARRAYSIZE(randomAlphaStringBuffer));
+    randomAlphaStringBuffer[0] = OBJ_NAME_PATH_SEPARATOR;
+    randomAlphaString.Buffer = randomAlphaStringBuffer;
+    randomAlphaString.Length = sizeof(randomAlphaStringBuffer) - sizeof(UNICODE_NULL);
 
-    if (randomAlphaDirectory = PhExpandEnvironmentStrings(&randomAlphaDirectoryStringRef))
-    {
-        randomAlphaFileName = PhConcatStringRef2(&randomAlphaDirectory->sr, &randomAlphaStringRef);
-        PhDereferenceObject(randomAlphaDirectory);
-    }
-
-    if (randomAlphaFileName)
-    {
-        if (!NT_SUCCESS(PhCreateDirectoryWin32(&randomAlphaFileName->sr)))
-        {
-            PhReferenceObject(randomAlphaFileName);
-            return NULL;
-        }
-
-        PhMoveReference(&randomAlphaFileName, PhConcatStringRef2(&randomAlphaFileName->sr, &PhNtPathSeperatorString));
-    }
-
-    return randomAlphaFileName;
+    return PhGetTemporaryDirectory(&randomAlphaString);
 }
 
 PPH_STRING PhGetRoamingAppDataDirectory(
