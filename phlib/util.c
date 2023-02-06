@@ -4182,6 +4182,15 @@ NTSTATUS PhCreateProcessWin32Ex(
         if (PhIsNullOrEmptyString(fileName))
             PhMoveReference(&fileName, PhCreateString2(&commandLineFileName));
 
+        // Escape the commandline (or uncomment CommandLineToArgvW to clear the filename when it contains \\program files\\) (dmex)
+        {
+            static PH_STRINGREF seperator = PH_STRINGREF_INIT(L"\"");
+            static PH_STRINGREF space = PH_STRINGREF_INIT(L" ");
+
+            PhMoveReference(&commandLine, PhConcatStringRef3(&seperator, &commandLineFileName, &seperator));
+            PhMoveReference(&commandLine, PhConcatStringRef3(&commandLine->sr, &space, &commandLineArguments));
+        }
+
         //INT cmdlineArgCount;
         //PWSTR* cmdlineArgList;
         //
