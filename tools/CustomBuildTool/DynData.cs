@@ -150,16 +150,12 @@ typedef struct _KPH_DYNDATA
 
         public static void Execute()
         {
-            string signPath = Verify.GetCustomSignToolFilePath();
-            string keyPath = Verify.GetPath("kph.key");
             string manifestFile = "kphlib\\kphdyn.xml";
             string headerFile = "kphlib\\include\\kphdyn.h";
             string sourceFile = "kphlib\\kphdyn.c";
 
             LoadConfig(
                 manifestFile,
-                signPath,
-                keyPath,
                 out string config64,
                 out string sig64,
                 out string config32,
@@ -233,8 +229,6 @@ typedef struct _KPH_DYNDATA
 
         private static void LoadConfig(
             string ManifestFile,
-            string SignToolPath,
-            string KeyFile,
             out string Config64,
             out string Sig64,
             out string Config32,
@@ -246,14 +240,12 @@ typedef struct _KPH_DYNDATA
             var arch64 = xml.SelectSingleNode("/dyn/arch[@id='64']");
             var arch32 = xml.SelectSingleNode("/dyn/arch[@id='32']");
 
-            LoadConfigForArch(arch64, SignToolPath, KeyFile, out Config64, out Sig64);
-            LoadConfigForArch(arch32, SignToolPath, KeyFile, out Config32, out Sig32);
+            LoadConfigForArch(arch64, out Config64, out Sig64);
+            LoadConfigForArch(arch32, out Config32, out Sig32);
         }
 
         private static void LoadConfigForArch(
             XmlNode ArchNode,
-            string SignToolPath,
-            string KeyFile,
             out string ConfigData,
             out string SigData
             )
@@ -298,8 +290,8 @@ typedef struct _KPH_DYNDATA
             }
 
             string tempName = Path.GetTempPath() + Guid.NewGuid().ToString();
-            string configFile = tempName + ".bin";
-            string sigFile = tempName + ".sig";
+            string configFile = $"{tempName}.bin";
+            string sigFile = $"{tempName}.sig";
 
             using (var file = new FileStream(configFile, FileMode.CreateNew))
             using (var writer = new BinaryWriter(file))
@@ -330,13 +322,19 @@ typedef struct _KPH_DYNDATA
                 //}
             }
 
-            Win32.ShellExecute(SignToolPath, $"sign -k {KeyFile} {configFile} -s {sigFile}");
+            if (Verify.CreateSignatureFile(Verify.GetPath("kph.key"), configFile))
+            {
+                ConfigData = BytesToString(configFile);
+                SigData = BytesToString(sigFile);
 
-            ConfigData = BytesToString(configFile);
-            SigData = BytesToString(sigFile);
-
-            Win32.DeleteFile(configFile);
-            Win32.DeleteFile(sigFile);
+                Win32.DeleteFile(configFile);
+                Win32.DeleteFile(sigFile);
+            }
+            else
+            {
+                ConfigData = string.Empty;
+                SigData = string.Empty;
+            }
         }
 
         private static bool Validate(List<DynConfig> Configs, List<string> ConfigNames)
@@ -385,6 +383,7 @@ typedef struct _KPH_DYNDATA
 
             using (MemoryStream stream = new MemoryStream(file, false))
             {
+                StringBuilder hex = new StringBuilder(64);
                 StringBuilder sb = new StringBuilder(8192);
                 Span<byte> bytes = stackalloc byte[8];
 
@@ -397,7 +396,6 @@ typedef struct _KPH_DYNDATA
                         break;
                     }
 
-                    var hex = new StringBuilder(64);
                     for (int i = 0; i < len; i++)
                     {
                         hex.AppendFormat("0x{0:x2}, ", bytes[i]);
@@ -406,6 +404,7 @@ typedef struct _KPH_DYNDATA
 
                     sb.Append("    ");
                     sb.AppendLine(hex.ToString());
+                    hex.Clear();
 
                     if (len < bytes.Length)
                     {

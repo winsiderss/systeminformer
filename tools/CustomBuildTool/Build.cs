@@ -14,9 +14,10 @@ namespace CustomBuildTool
     public static class Build
     {
         private static DateTime TimeStart;
-        private static bool BuildNightly = false;
-        private static bool HaveArm64BuildTools = true;
+        public static bool BuildNightly = false;
+        public static bool HaveArm64BuildTools = true;
         public static string BuildOutputFolder = string.Empty;
+        public static string BuildWorkingFolder = string.Empty;
         public static string BuildBranch = string.Empty;
         public static string BuildCommit = string.Empty;
         public static string BuildVersion = "1.0.0";
@@ -57,6 +58,7 @@ namespace CustomBuildTool
             }
 
             Build.TimeStart = DateTime.Now;
+            Build.BuildWorkingFolder = Environment.CurrentDirectory;
             Build.BuildNightly = !string.IsNullOrWhiteSpace(Win32.GetEnvironmentVariable("%APPVEYOR_BUILD_API%"));
             Build.BuildOutputFolder = Utils.GetOutputDirectoryPath();
 
@@ -307,8 +309,8 @@ namespace CustomBuildTool
                     {
                         if (Directory.Exists("bin\\Debug64"))
                         {
-                            Win32.CreateDirectory("bin\\Debug64\\x86");
-                            Win32.CreateDirectory("bin\\Debug64\\x86\\plugins");
+                            //Win32.CreateDirectory("bin\\Debug64\\x86");
+                            Win32.CreateDirectory("bin\\Debug64\\x86\\plugins"); // recursive
 
                             Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.exe", "bin\\Debug64\\x86\\SystemInformer.exe");
                             Win32.CopyIfNewer("bin\\Debug32\\SystemInformer.pdb", "bin\\Debug64\\x86\\SystemInformer.pdb");
@@ -331,8 +333,8 @@ namespace CustomBuildTool
                     {
                         if (Directory.Exists("bin\\Release64"))
                         {
-                            Win32.CreateDirectory("bin\\Release64\\x86");
-                            Win32.CreateDirectory("bin\\Release64\\x86\\plugins");
+                            //Win32.CreateDirectory("bin\\Release64\\x86");
+                            Win32.CreateDirectory("bin\\Release64\\x86\\plugins"); // recursive
 
                             Win32.CopyIfNewer("bin\\Release32\\SystemInformer.exe", "bin\\Release64\\x86\\SystemInformer.exe");
                             Win32.CopyIfNewer("bin\\Release32\\SystemInformer.pdb", "bin\\Release64\\x86\\SystemInformer.pdb");
@@ -464,7 +466,7 @@ namespace CustomBuildTool
 
         public static bool CopyKernelDriver(BuildFlags Flags)
         {
-            string CustomSignToolPath = Verify.GetCustomSignToolFilePath();
+            var files = new List<string>();
 
             try
             {
@@ -533,6 +535,42 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {ex}", ConsoleColor.Red);
             }
 
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
+            {
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                {
+                    files.Add("bin\\Debug32\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    files.Add("bin\\Debug64\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    files.Add("bin\\DebugARM64\\SystemInformer.exe");
+                }
+            }
+
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+            {
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                {
+                    files.Add("bin\\Release32\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                {
+                    files.Add("bin\\Release64\\SystemInformer.exe");
+                }
+
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                {
+                    files.Add("bin\\ReleaseARM64\\SystemInformer.exe");
+                }
+            }
+
             if (BuildNightly && !File.Exists(Verify.GetPath("kph.key")))
             {
                 string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
@@ -549,80 +587,16 @@ namespace CustomBuildTool
                 }
             }
 
-            if (File.Exists(CustomSignToolPath))
+            if (File.Exists(Verify.GetPath("kph.key")))
             {
-                var files = new List<string>();
-
-                if (Flags.HasFlag(BuildFlags.BuildDebug))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        files.Add("bin\\Debug32\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        files.Add("bin\\Debug64\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        files.Add("bin\\DebugARM64\\SystemInformer.exe");
-                    }
-                }
-
-                if (Flags.HasFlag(BuildFlags.BuildRelease))
-                {
-                    if (Flags.HasFlag(BuildFlags.Build32bit))
-                    {
-                        files.Add("bin\\Release32\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.Build64bit))
-                    {
-                        files.Add("bin\\Release64\\SystemInformer.exe");
-                    }
-
-                    if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    {
-                        files.Add("bin\\ReleaseARM64\\SystemInformer.exe");
-                    }
-                }
-
                 foreach (string file in files)
                 {
                     if (File.Exists(file))
                     {
-                        string sigfile = Path.ChangeExtension(file, ".sig");
-                        File.WriteAllText(sigfile, string.Empty);
-
-                        if (File.Exists(Verify.GetPath("kph.key")))
-                        {
-                            int errorcode = Win32.CreateProcess(
-                                CustomSignToolPath,
-                                $"sign -k {Verify.GetPath("kph.key")} {file} -s {sigfile}",
-                                out string errorstring
-                                );
-
-                            if (errorcode != 0)
-                            {
-                                Program.PrintColorMessage($"[CopyKernelDriver] ({errorcode}) {errorstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-
-                                if (BuildNightly)
-                                {
-                                    Win32.DeleteFile(Verify.GetPath("kph.key"));
-                                }
-
-                                return false;
-                            }
-                        }
+                        if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), file, true))
+                            return false;
                     }
                 }
-            }
-
-            if (BuildNightly)
-            {
-                Win32.DeleteFile(Verify.GetPath("kph.key"));
             }
 
             return true;
@@ -636,14 +610,6 @@ namespace CustomBuildTool
                 return true;
             }
 
-            string CustomSignToolPath = Verify.GetCustomSignToolFilePath();
-
-            if (!File.Exists(CustomSignToolPath))
-            {
-                Program.PrintColorMessage($"[SKIPPED] CustomSignTool not found: {PluginName}", ConsoleColor.Yellow);
-                return true;
-            }
-
             if (BuildNightly && !File.Exists(Verify.GetPath("kph.key")))
             {
                 string kphKey = Win32.GetEnvironmentVariable("%KPH_BUILD_KEY%");
@@ -660,66 +626,10 @@ namespace CustomBuildTool
                 }
             }
 
-            {
-                string sigfile = Path.ChangeExtension(PluginName, ".sig");
-                File.WriteAllText(sigfile, string.Empty);
-
-                if (File.Exists(Verify.GetPath("kph.key")))
-                {
-                    int errorcode = Win32.CreateProcess(
-                        CustomSignToolPath,
-                        $"sign -k {Verify.GetPath("kph.key")} {PluginName} -s {sigfile}",
-                        out string errorstring
-                        );
-
-                    if (BuildNightly)
-                    {
-                        Win32.DeleteFile(Verify.GetPath("kph.key"));
-                    }
-
-                    if (errorcode != 0)
-                    {
-                        Program.PrintColorMessage($"[SignPlugin] ({errorcode}) {errorstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
-                        return false;
-                    }
-                }
-            }
-
-            if (BuildNightly)
-            {
-                Win32.DeleteFile(Verify.GetPath("kph.key"));
-            }
-
+            if (File.Exists(Verify.GetPath("kph.key")))
+                return Verify.CreateSignatureFile(Verify.GetPath("kph.key"), PluginName, false);
             return true;
         }
-
-        //public static bool BuildWebSetupExe()
-        //{
-        //    Program.PrintColorMessage(BuildTimeStamp(), ConsoleColor.DarkGray, false);
-        //    Program.PrintColorMessage("Building build-websetup.exe...", ConsoleColor.Cyan);
-        //
-        //    if (!BuildSolution("tools\\CustomSetupTool\\CustomSetupTool.sln", BuildFlags.Build32bit))
-        //        return false;
-        //
-        //    try
-        //    {
-        //        Win32.DeleteFile(
-        //            $"{BuildOutputFolder}\\systeminformer-build-websetup.exe"
-        //            );
-        //
-        //        File.Move(
-        //            "tools\\CustomSetupTool\\bin\\Release32\\CustomSetupTool.exe",
-        //            $"{BuildOutputFolder}\\systeminformer-build-websetup.exe"
-        //            );
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
-        //        return false;
-        //    }
-        //
-        //    return true;
-        //}
 
         public static bool BuildSdk(BuildFlags Flags)
         {
@@ -1235,44 +1145,26 @@ namespace CustomBuildTool
 
             Program.PrintColorMessage($"{Environment.NewLine}Uploading build artifacts... {BuildVersion}", ConsoleColor.Cyan);
 
-            if (BuildNightly)
+            if (BuildNightly && !File.Exists(Verify.GetPath("nightly.key")))
             {
-                if (!File.Exists(Verify.GetPath("nightly.key")))
+                string buildKey = Win32.GetEnvironmentVariable("%NIGHTLY_BUILD_KEY%");
+
+                if (!string.IsNullOrWhiteSpace(buildKey))
                 {
-                    string buildKey = Win32.GetEnvironmentVariable("%NIGHTLY_BUILD_KEY%");
-
-                    if (!string.IsNullOrWhiteSpace(buildKey))
-                    {
-                        //Verify.Decrypt(Verify.GetPath("nightly.s"), Verify.GetPath("nightly.key"), buildKey);
-                        Verify.DecryptLegacy(Verify.GetPath("nightly-legacy.s"), Verify.GetPath("nightly.key"), buildKey);
-                    }
-
-                    if (!File.Exists(Verify.GetPath("nightly.key")))
-                    {
-                        Program.PrintColorMessage("[SKIPPED] nightly.key not found.", ConsoleColor.Yellow);
-                        return true;
-                    }
+                    //Verify.Decrypt(Verify.GetPath("nightly.s"), Verify.GetPath("nightly.key"), buildKey);
+                    Verify.DecryptLegacy(Verify.GetPath("nightly-legacy.s"), Verify.GetPath("nightly.key"), buildKey);
                 }
             }
 
-            string customSignToolPath = Verify.GetCustomSignToolFilePath();
+            BuildBinSig = Verify.CreateSignatureString(
+                Verify.GetPath("nightly.key"),
+                $"{BuildOutputFolder}\\systeminformer-build-bin.zip"
+                );
 
-            if (File.Exists(customSignToolPath))
-            {
-                BuildBinSig = Win32.ShellExecute(
-                    customSignToolPath,
-                    $"sign -k {Verify.GetPath("nightly.key")} {BuildOutputFolder}\\systeminformer-build-bin.zip -h"
-                    );
-                BuildSetupSig = Win32.ShellExecute(
-                    customSignToolPath,
-                    $"sign -k {Verify.GetPath("nightly.key")} {BuildOutputFolder}\\systeminformer-build-setup.exe -h"
-                    );
-            }
-            else
-            {
-                Program.PrintColorMessage("[SKIPPED] CustomSignTool not found.", ConsoleColor.Yellow);
-                return true;
-            }
+            BuildSetupSig = Verify.CreateSignatureString(
+                Verify.GetPath("nightly.key"),
+                $"{BuildOutputFolder}\\systeminformer-build-setup.exe"
+                );
 
             if (BuildNightly)
             {

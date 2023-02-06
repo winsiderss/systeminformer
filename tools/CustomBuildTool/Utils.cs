@@ -199,28 +199,30 @@ namespace CustomBuildTool
             return string.Empty;
         }
 
-        public static string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
+        public static unsafe string GetKeyValue(bool LocalMachine, string KeyName, string ValueName, string DefaultValue)
         {
             string value = string.Empty;
             IntPtr valueBuffer;
+            IntPtr keyHandle;
 
             if (NativeMethods.RegOpenKeyExW(
                 LocalMachine ? NativeMethods.HKEY_LOCAL_MACHINE : NativeMethods.HKEY_CURRENT_USER,
                 KeyName,
                 0,
                 NativeMethods.KEY_READ,
-                out IntPtr keyHandle
+                &keyHandle
                 ) == 0)
             {
                 int valueLength = 0;
+                int valueType = 0;
 
                 NativeMethods.RegQueryValueExW(
                     keyHandle,
                     ValueName,
                     IntPtr.Zero,
-                    out int valueType,
+                    &valueType,
                     IntPtr.Zero,
-                    ref valueLength
+                    &valueLength
                     );
 
                 if (valueType == 1 || valueLength > 4)
@@ -231,9 +233,9 @@ namespace CustomBuildTool
                         keyHandle,
                         ValueName,
                         IntPtr.Zero,
-                        out _,
+                        null,
                         valueBuffer,
-                        ref valueLength
+                        &valueLength
                         ) == 0)
                     {
                         value = Marshal.PtrToStringUni(valueBuffer, valueLength / 2 - 1);
@@ -380,26 +382,104 @@ namespace CustomBuildTool
             }
         }
 
-        private static readonly string[] CustomSignToolPathArray =
-        {
-            "tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe",
-            "tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe",
-        };
-
         public static string GetPath(string FileName)
         {
-            return $"tools\\CustomSignTool\\Resources\\{FileName}";
+            return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\Resources\\{FileName}";
         }
 
-        public static string GetCustomSignToolFilePath()
+        public static string GetKeyTempPath(string FileName)
         {
-            foreach (string file in CustomSignToolPathArray)
+            var filename = Path.ChangeExtension(FileName, ".key");
+            var basename = Path.GetFileName(filename);
+
+            return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\Resources\\{basename}";
+        }
+
+        public static string GetSignToolPath()
+        {
+            if (Environment.Is64BitOperatingSystem)
+                return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\bin\\Release64\\CustomSignTool.exe";
+            return $"{Build.BuildWorkingFolder}\\tools\\CustomSignTool\\bin\\Release32\\CustomSignTool.exe";
+        }
+
+        public static string CreateSignatureString(string KeyFile, string SignFile)
+        {
+            if (!File.Exists(GetSignToolPath()))
             {
-                if (File.Exists(file))
-                    return file;
+                Program.PrintColorMessage($"[CreateSignature - SignTool not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return null;
             }
 
-            return null;
+            if (!File.Exists(KeyFile))
+            {
+                Program.PrintColorMessage($"[CreateSignature - Key not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return null;
+            }
+
+            int errorcode = Win32.CreateProcess(
+                GetSignToolPath(),
+                $"sign -k {KeyFile} {SignFile} -h",
+                out string outstring
+                );
+
+            if (errorcode != 0)
+            {
+                Program.PrintColorMessage($"[CreateSignature] ({errorcode}) {outstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(outstring))
+            {
+                Program.PrintColorMessage($"[CreateSignature - Empty]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return null;
+            }
+
+            return outstring;
+        }
+
+        public static bool CreateSignatureFile(string KeyFile, string SignFile, bool FailIfExists = false)
+        {
+            string sigfile = Path.ChangeExtension(SignFile, ".sig");
+
+            if (FailIfExists)
+            {
+                if (File.Exists(sigfile) && new FileInfo(sigfile).Length != 0)
+                    return false;
+            }
+
+            File.WriteAllText(sigfile, string.Empty);
+
+            if (!File.Exists(GetSignToolPath()))
+            {
+                Program.PrintColorMessage($"[CreateSignature - SignTool not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return false;
+            }
+
+            if (!File.Exists(KeyFile))
+            {
+                Program.PrintColorMessage($"[CreateSignature - Key not found]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return false;
+            }
+            
+            int errorcode = Win32.CreateProcess(
+                GetSignToolPath(),
+                $"sign -k {KeyFile} {SignFile} -s {sigfile}",
+                out string outstring
+                );
+
+            if (errorcode != 0)
+            {
+                Program.PrintColorMessage($"[CreateSignature] ({errorcode}) {outstring}", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(outstring))
+            {
+                Program.PrintColorMessage($"[CreateSignature - Empty]", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
+                return false;
+            }
+
+            return true;
         }
     }
 
@@ -417,7 +497,7 @@ namespace CustomBuildTool
 
         public static string GetOutputDirectoryPath()
         {
-            return $"{Environment.CurrentDirectory}\\build\\output";
+            return $"{Build.BuildWorkingFolder}\\build\\output";
         }
 
         public static void CreateOutputDirectory()
@@ -558,9 +638,9 @@ namespace CustomBuildTool
 
         public static string GetGitWorkPath()
         {
-            if (Directory.Exists($"{Environment.CurrentDirectory}\\.git"))
+            if (Directory.Exists($"{Build.BuildWorkingFolder}\\.git"))
             {
-                return $"--git-dir=\"{Environment.CurrentDirectory}\\.git\" --work-tree=\"{Environment.CurrentDirectory}\" ";
+                return $"--git-dir=\"{Build.BuildWorkingFolder}\\.git\" --work-tree=\"{Build.BuildWorkingFolder}\" ";
             }
 
             return string.Empty;
@@ -641,11 +721,12 @@ namespace CustomBuildTool
         public static string GetWindowsSdkVersion()
         {
             List<string> versions = new List<string>();
-            string kitpath32 = Environment.ExpandEnvironmentVariables("%ProgramFiles(x86)%\\Windows Kits\\10\\bin");
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            string kitsPath = Environment.ExpandEnvironmentVariables($"{kitsRoot}\\bin");
 
-            if (Directory.Exists(kitpath32))
+            if (Directory.Exists(kitsPath))
             {
-                var windowsKitsDirectory = Directory.EnumerateDirectories(kitpath32);
+                var windowsKitsDirectory = Directory.EnumerateDirectories(kitsPath);
 
                 foreach (string path in windowsKitsDirectory)
                 {
