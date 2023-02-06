@@ -1474,11 +1474,11 @@ static VOID PhpUpdateProcessNodePriorityBoost(
 
         if (ProcessNode->ProcessItem->QueryHandle)
         {
-            BOOLEAN priorityBoost;
+            BOOLEAN priorityBoostDisabled;
 
-            if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessNode->ProcessItem->QueryHandle, &priorityBoost)))
+            if (NT_SUCCESS(PhGetProcessPriorityBoost(ProcessNode->ProcessItem->QueryHandle, &priorityBoostDisabled)))
             {
-                ProcessNode->PriorityBoost = priorityBoost;
+                ProcessNode->PriorityBoost = !priorityBoostDisabled;
             }
         }
 
