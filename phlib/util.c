@@ -3766,6 +3766,82 @@ PPH_STRING PhGetKnownFolderPathEx(
     return path;
 }
 
+// rev from GetTempPath2W (dmex)
+PPH_STRING PhGetTemporaryDirectory(
+    _In_opt_ PPH_STRINGREF AppendPath
+    )
+{
+    static UNICODE_STRING variableNameTmp = RTL_CONSTANT_STRING(L"TMP");
+    static UNICODE_STRING variableNameTemp = RTL_CONSTANT_STRING(L"TEMP");
+    static UNICODE_STRING variableNameProfile = RTL_CONSTANT_STRING(L"USERPROFILE");
+    NTSTATUS status;
+    UNICODE_STRING variableValue;
+    WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
+
+    if (RtlEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid))
+    {
+        static PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
+        PH_STRINGREF systemRoot;
+
+        PhGetSystemRoot(&systemRoot);
+
+        if (AppendPath)
+        {
+            PPH_STRING path = PhConcatStringRef3(&systemRoot, &PhNtPathSeperatorString, &systemTemp);
+            PhMoveReference(&path, PhConcatStringRef2(&path->sr, AppendPath));
+            return path;
+        }
+        else
+        {
+            return PhConcatStringRef3(&systemRoot, &PhNtPathSeperatorString, &systemTemp);
+        }
+    }
+
+    RtlInitEmptyUnicodeString(&variableValue, variableBuffer, sizeof(variableBuffer));
+
+    status = RtlQueryEnvironmentVariable_U(
+        NULL,
+        &variableNameTmp,
+        &variableValue
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        status = RtlQueryEnvironmentVariable_U(
+            NULL,
+            &variableNameTemp, 
+            &variableValue
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            status = RtlQueryEnvironmentVariable_U(
+                NULL,
+                &variableNameProfile,
+                &variableValue
+                );
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        if (AppendPath)
+        {
+            PH_STRINGREF string;
+
+            PhUnicodeStringToStringRef(&variableValue, &string);
+
+            return PhConcatStringRef2(&string, AppendPath);
+        }
+        else
+        {
+            return PhCreateStringFromUnicodeString(&variableValue);
+        }
+    }
+
+    return NULL;
+}
+
 /**
  * Waits on multiple objects while processing window messages.
  *

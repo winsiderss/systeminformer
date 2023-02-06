@@ -995,6 +995,13 @@ PhGetKnownFolderPathExZ(
 }
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetTemporaryDirectory(
+    _In_opt_ PPH_STRINGREF AppendPath
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhWaitForMultipleObjectsAndPump(
