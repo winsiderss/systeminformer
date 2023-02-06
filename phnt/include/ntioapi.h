@@ -111,6 +111,9 @@ typedef struct _EXTENDED_CREATE_INFORMATION
 
 // Maximum length of a filename string
 
+#define DOS_MAX_COMPONENT_LENGTH 255
+#define DOS_MAX_PATH_LENGTH (DOS_MAX_COMPONENT_LENGTH + 5)
+
 #define MAXIMUM_FILENAME_LENGTH 256
 
 // Extended attributes
