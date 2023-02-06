@@ -2612,9 +2612,6 @@ RtlFreeToPeb(
 
 // Processes
 
-#define DOS_MAX_COMPONENT_LENGTH 255
-#define DOS_MAX_PATH_LENGTH (DOS_MAX_COMPONENT_LENGTH + 5)
-
 typedef struct _CURDIR
 {
     UNICODE_STRING DosPath;
