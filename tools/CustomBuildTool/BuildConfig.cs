@@ -13,7 +13,7 @@ namespace CustomBuildTool
 {
     public static class BuildConfig
     {
-        public static readonly List<BuildFile> Build_Release_Files = new List<BuildFile>
+        public static readonly BuildFile[] Build_Release_Files =
         {
             new BuildFile("\\systeminformer-build-setup.exe", true), // nightly
             new BuildFile("\\systeminformer-build-bin.zip", true), // nightly
@@ -120,10 +120,10 @@ namespace CustomBuildTool
         };
     }
 
-    public struct BuildFile
+    public readonly struct BuildFile
     {
-        public string FileName;
-        public bool UploadNightly;
+        public readonly string FileName;
+        public readonly bool UploadNightly;
 
         public BuildFile(string Filename, bool UploadNightly)
         {
