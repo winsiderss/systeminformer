@@ -335,6 +335,10 @@ VOID PhClearIgnoredSettings(
     VOID
     );
 
+ULONG PhCountIgnoredSettings(
+    VOID
+    );
+
 VOID PhConvertIgnoredSettings(
     VOID
     );
