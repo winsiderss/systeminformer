@@ -51,8 +51,8 @@ static ULONGLONG ReservedMemory;
 BOOLEAN PhSipMemorySectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -106,9 +106,6 @@ BOOLEAN PhSipMemorySectionCallback(
         {
             PPH_SYSINFO_CREATE_DIALOG createDialog = Parameter1;
 
-            if (!createDialog)
-                break;
-
             createDialog->Instance = PhInstanceHandle;
             createDialog->Template = MAKEINTRESOURCE(IDD_SYSINFO_MEM);
             createDialog->DialogProc = PhSipMemoryDialogProc;
@@ -119,9 +116,6 @@ BOOLEAN PhSipMemorySectionCallback(
             PPH_GRAPH_DRAW_INFO drawInfo = Parameter1;
             ULONG i;
             LONG dpiValue;
-
-            if (!drawInfo)
-                break;
 
             dpiValue = PhGetWindowDpi(Section->GraphHandle);
 
@@ -197,9 +191,6 @@ BOOLEAN PhSipMemorySectionCallback(
             ULONG usedPages;
             PH_FORMAT format[3];
 
-            if (!getTooltipText)
-                break;
-
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
                 usedPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, getTooltipText->Index);
@@ -232,9 +223,6 @@ BOOLEAN PhSipMemorySectionCallback(
             ULONG totalPages;
             ULONG usedPages;
             PH_FORMAT format[5];
-
-            if (!drawPanel)
-                break;
 
             if (PhGetIntegerSetting(L"ShowCommitInSummary"))
             {
