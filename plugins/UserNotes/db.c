@@ -454,6 +454,27 @@ NTSTATUS SaveDb(
     return status;
 }
 
+VOID EnumDb(
+    _In_ PDB_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PDB_OBJECT* object;
+
+    LockDb();
+
+    PhBeginEnumHashtable(ObjectDb, &enumContext);
+
+    while (object = PhNextEnumHashtable(&enumContext))
+    {
+        if (!Callback(*object, Context))
+            break;
+    }
+
+    UnlockDb();
+}
+
 _Success_(return)
 BOOLEAN FindIfeoObject(
     _In_ PPH_STRINGREF Name,
