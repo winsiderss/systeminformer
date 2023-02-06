@@ -318,8 +318,7 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ HANDLE ProcessId,
     _In_ BOOLEAN SetPriority,
     _In_ BOOLEAN SetIoPriority,
-    _In_ BOOLEAN SetPagePriority,
-    _In_ BOOLEAN SetPriorityBoost
+    _In_ BOOLEAN SetPagePriority
     );
 
 VOID PhMwpInitializeProcessMenu(

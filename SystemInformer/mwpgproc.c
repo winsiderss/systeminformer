@@ -364,15 +364,14 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ HANDLE ProcessId,
     _In_ BOOLEAN SetPriority,
     _In_ BOOLEAN SetIoPriority,
-    _In_ BOOLEAN SetPagePriority,
-    _In_ BOOLEAN SetPriorityBoost
+    _In_ BOOLEAN SetPagePriority
     )
 {
     HANDLE processHandle;
-    UCHAR priorityClass = 0;
+    UCHAR priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
     IO_PRIORITY_HINT ioPriority = ULONG_MAX;
     ULONG pagePriority = ULONG_MAX;
-    BOOLEAN priorityBoost = FALSE;
+    BOOLEAN priorityBoostDisabled = FALSE;
     ULONG id = 0;
 
     if (NT_SUCCESS(PhOpenProcess(
@@ -383,7 +382,13 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     {
         if (SetPriority)
         {
-            PhGetProcessPriority(processHandle, &priorityClass);
+            if (!NT_SUCCESS(PhGetProcessPriority(
+                processHandle, 
+                &priorityClass
+                )))
+            {
+                priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
+            }
         }
 
         if (SetIoPriority)
@@ -408,15 +413,10 @@ VOID PhMwpSetProcessMenuPriorityChecks(
             }
         }
 
-        if (SetPriorityBoost)
-        {
-            PhGetProcessPriorityBoost(processHandle, &priorityBoost);
-        }
-
         NtClose(processHandle);
     }
 
-    if (SetPriority)
+    if (SetPriority && priorityClass != PROCESS_PRIORITY_CLASS_UNKNOWN)
     {
         switch (priorityClass)
         {
@@ -505,12 +505,6 @@ VOID PhMwpSetProcessMenuPriorityChecks(
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
                 PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
-    }
-
-    if (SetPriorityBoost && priorityBoost)
-    {
-        PhSetFlagsEMenuItem(Menu, ID_PROCESS_BOOST,
-            PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 }
 
@@ -723,7 +717,7 @@ VOID PhMwpInitializeProcessMenu(
     // Priority
     if (NumberOfProcesses == 1)
     {
-        PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE, TRUE);
+        PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE);
     }
 
     item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_WINDOW);
@@ -782,7 +776,6 @@ PPH_EMENU PhpCreateProcessMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_DEBUG, L"De&bug", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
-    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_BOOST, L"&Boost", NULL, NULL), ULONG_MAX);
 
     menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITY, L"&Priority", NULL, NULL);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);

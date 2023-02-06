@@ -579,7 +579,6 @@
 #define ID_PROCESS_MISCELLANEOUS        40041
 #define ID_PROCESS_WINDOW               40042
 #define ID_PROCESS_PAGEPRIORITY         40043
-#define ID_PROCESS_BOOST                40044
 #define ID_PRIORITY_REALTIME            40048
 #define ID_PRIORITY_HIGH                40049
 #define ID_MISCELLANEOUS_ECOMODE        40050
