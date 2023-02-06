@@ -58,11 +58,11 @@ namespace CustomBuildTool
                 {
                     if (ProgramArgs.ContainsKey("-release"))
                     {
-                        Build.CopySidCapsFile(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
-                        Build.CopyEtwTraceGuidsFile(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
-                        Build.BuildSdk(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
-                        Build.CopyKernelDriver(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
-                        Build.CopyWow64Files(BuildFlags.Build64bit | BuildFlags.BuildVerbose);
+                        Build.CopySidCapsFile(BuildFlags.Build64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyEtwTraceGuidsFile(BuildFlags.Build64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.BuildSdk(BuildFlags.Build64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyKernelDriver(BuildFlags.Build64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyWow64Files(BuildFlags.Build64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                     }
                     else
                     {
@@ -77,34 +77,34 @@ namespace CustomBuildTool
                 {
                     if (ProgramArgs.ContainsKey("-release"))
                     {
-                        Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.BuildRelease);
-                        Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.BuildRelease);
-                        Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.BuildRelease);
-                        Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.BuildRelease);
+                        Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                     }
                     else
                     {
-                        Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.BuildDebug);
-                        Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.BuildDebug);
-                        Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.BuildDebug);
-                        Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.BuildDebug);
+                        Build.CopySidCapsFile(BuildFlags.Build32bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.CopyEtwTraceGuidsFile(BuildFlags.Build32bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.BuildSdk(BuildFlags.Build32bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.CopyKernelDriver(BuildFlags.Build32bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                     }
                 }
                 else if (ProgramArgs.ContainsKey("-arm64"))
                 {
                     if (ProgramArgs.ContainsKey("-release"))
                     {
-                        Build.CopySidCapsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease);
-                        Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease);
-                        Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease);
-                        Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease);
+                        Build.CopySidCapsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
+                        Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildRelease | BuildFlags.BuildVerbose);
                     }
                     else
                     {
-                        Build.CopySidCapsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug);
-                        Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug);
-                        Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug);
-                        Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug);
+                        Build.CopySidCapsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.CopyEtwTraceGuidsFile(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.BuildSdk(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
+                        Build.CopyKernelDriver(BuildFlags.BuildArm64bit | BuildFlags.BuildDebug | BuildFlags.BuildVerbose);
                     }
                 }
                 else
