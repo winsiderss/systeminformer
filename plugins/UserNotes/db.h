@@ -81,6 +81,16 @@ NTSTATUS SaveDb(
     VOID
     );
 
+typedef BOOLEAN (NTAPI* PDB_ENUM_CALLBACK)(
+    _In_ PDB_OBJECT Object,
+    _In_ PVOID Context
+    );
+
+VOID EnumDb(
+    _In_ PDB_ENUM_CALLBACK Callback,
+    _In_ PVOID Context
+    );
+
 _Success_(return)
 BOOLEAN FindIfeoObject(
     _In_ PPH_STRINGREF Name,

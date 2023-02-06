@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -844,7 +844,7 @@ VOID NTAPI MenuItemCallback(
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO for priority.", status, 0);
                     }
                 }
                 else
@@ -881,7 +881,7 @@ VOID NTAPI MenuItemCallback(
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO for IO priority.", status, 0);
                     }
                 }
                 else
@@ -918,7 +918,7 @@ VOID NTAPI MenuItemCallback(
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO for page priority.", status, 0);
                     }
                 }
                 else
@@ -950,8 +950,23 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
-                object->PriorityClass = processItem->PriorityClass;
+                NTSTATUS status = STATUS_ACCESS_DENIED;
+                UCHAR priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
+
+                if (processItem->QueryHandle)
+                {
+                    status = PhGetProcessPriority(processItem->QueryHandle, &priorityClass);
+                }
+
+                if (NT_SUCCESS(status))
+                {
+                    object = CreateDbObject(FILE_TAG, &processItem->ProcessName->sr, NULL);
+                    object->PriorityClass = priorityClass;
+                }
+                else
+                {
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query priority.", status, 0);
+                }
             }
 
             UnlockDb();
@@ -971,8 +986,23 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
-                    object->PriorityClass = processItem->PriorityClass;
+                    NTSTATUS status = STATUS_ACCESS_DENIED;
+                    UCHAR priorityClass = PROCESS_PRIORITY_CLASS_UNKNOWN;
+
+                    if (processItem->QueryHandle)
+                    {
+                        status = PhGetProcessPriority(processItem->QueryHandle, &priorityClass);
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        object = CreateDbObject(COMMAND_LINE_TAG, &processItem->CommandLine->sr, NULL);
+                        object->PriorityClass = priorityClass;
+                    }
+                    else
+                    {
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query priority.", status, 0);
+                    }
                 }
 
                 UnlockDb();
@@ -996,7 +1026,7 @@ VOID NTAPI MenuItemCallback(
 
                 if (!NT_SUCCESS(status))
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process priority.", status, 0);
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO for priority.", status, 0);
                 }
             }
             else
@@ -1017,7 +1047,7 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                NTSTATUS status = STATUS_RETRY;
+                NTSTATUS status = STATUS_ACCESS_DENIED;
                 IO_PRIORITY_HINT ioPriority = IoPriorityNormal;
 
                 if (processItem->QueryHandle)
@@ -1032,7 +1062,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process IO priority.", status, 0);
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query IO priority.", status, 0);
                 }
             }
 
@@ -1053,7 +1083,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    NTSTATUS status = STATUS_RETRY;
+                    NTSTATUS status = STATUS_ACCESS_DENIED;
                     IO_PRIORITY_HINT ioPriority = PHAPP_ID_IOPRIORITY_NORMAL;
 
                     if (processItem->QueryHandle)
@@ -1068,7 +1098,7 @@ VOID NTAPI MenuItemCallback(
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process IO priority.", status, 0);
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query IO priority.", status, 0);
                     }
                 }
 
@@ -1094,7 +1124,7 @@ VOID NTAPI MenuItemCallback(
 
                 if (!NT_SUCCESS(status))
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process IO priority.", status, 0);
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO for IO priority.", status, 0);
                 }
             }
             else
@@ -1175,6 +1205,45 @@ VOID NTAPI MenuItemCallback(
             SaveDb();
         }
         break;
+    case PROCESS_AFFINITY_ID:
+        {
+            BOOLEAN changed = FALSE;
+            KAFFINITY affinityMask;
+            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+            if (!processItem)
+                break;
+
+            PhReferenceObject(processItem);
+
+            // Show the affinity dialog (with our values).
+            if (PhShowProcessAffinityDialog2(menuItem->OwnerWindow, processItem, &affinityMask))
+            {
+                PDB_OBJECT object;
+
+                LockDb();
+
+                if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
+                {
+                    // Update the process affinity in our database (if the database values are different).
+                    if (object->AffinityMask != affinityMask)
+                    {
+                        object->AffinityMask = affinityMask;
+                        changed = TRUE;
+                    }
+                }
+
+                UnlockDb();
+
+                if (changed)
+                {
+                    SaveDb();
+                }
+            }
+
+            PhDereferenceObject(processItem);
+        }
+        break;
     case PROCESS_AFFINITY_SAVE_ID:
         {
             LockDb();
@@ -1186,7 +1255,7 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                NTSTATUS status = STATUS_RETRY;
+                NTSTATUS status = STATUS_ACCESS_DENIED;
                 KAFFINITY affinityMask = SIZE_MAX;
 
                 if (processItem->QueryHandle)
@@ -1219,7 +1288,7 @@ VOID NTAPI MenuItemCallback(
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query process affinity.", status, 0);
                     }
                 }
             }
@@ -1241,7 +1310,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    NTSTATUS status = STATUS_RETRY;
+                    NTSTATUS status = STATUS_ACCESS_DENIED;
                     KAFFINITY affinityMask = SIZE_MAX;
 
                     if (processItem->QueryHandle)
@@ -1274,7 +1343,7 @@ VOID NTAPI MenuItemCallback(
                         }
                         else
                         {
-                            PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process affinity.", status, 0);
+                            PhShowStatus(menuItem->OwnerWindow, L"Unable to query process affinity.", status, 0);
                         }
                     }
                 }
@@ -1295,7 +1364,7 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                NTSTATUS status = STATUS_RETRY;
+                NTSTATUS status = STATUS_ACCESS_DENIED;
                 ULONG pagePriority = MEMORY_PRIORITY_NORMAL;
 
                 if (processItem->QueryHandle)
@@ -1310,7 +1379,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process page priority.", status, 0);
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query page priority.", status, 0);
                 }
             }
 
@@ -1331,7 +1400,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    NTSTATUS status = STATUS_RETRY;
+                    NTSTATUS status = STATUS_ACCESS_DENIED;
                     ULONG pagePriority = MEMORY_PRIORITY_NORMAL;
 
                     if (processItem->QueryHandle)
@@ -1346,7 +1415,7 @@ VOID NTAPI MenuItemCallback(
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process page priority.", status, 0);
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query page priority.", status, 0);
                     }
                 }
 
@@ -1372,7 +1441,7 @@ VOID NTAPI MenuItemCallback(
 
                 if (!NT_SUCCESS(status))
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO key for process page priority.", status, 0);
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to update the IFEO for page priority.", status, 0);
                 }
             }
             else
@@ -1387,7 +1456,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case PROCESS_BOOST_PRIORITY_ID:
         {
-            NTSTATUS status = STATUS_RETRY;
+            NTSTATUS status = STATUS_ACCESS_DENIED;
             BOOLEAN priorityBoostDisabled = FALSE;
 
             if (processItem->QueryHandle)
@@ -1414,7 +1483,7 @@ VOID NTAPI MenuItemCallback(
 
             if (!NT_SUCCESS(status))
             {
-                PhShowStatus(menuItem->OwnerWindow, L"Unable to change the process boost priority.", status, 0);
+                PhShowStatus(menuItem->OwnerWindow, L"Unable to query process boost.", status, 0);
             }
         }
         break;
@@ -1429,7 +1498,7 @@ VOID NTAPI MenuItemCallback(
             }
             else
             {
-                NTSTATUS status = STATUS_RETRY;
+                NTSTATUS status = STATUS_ACCESS_DENIED;
                 BOOLEAN priorityBoostDisabled = FALSE;
 
                 if (processItem->QueryHandle)
@@ -1444,7 +1513,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process boost priority.", status, 0);
+                    PhShowStatus(menuItem->OwnerWindow, L"Unable to query process boost.", status, 0);
                 }
             }
 
@@ -1465,7 +1534,7 @@ VOID NTAPI MenuItemCallback(
                 }
                 else
                 {
-                    NTSTATUS status = STATUS_RETRY;
+                    NTSTATUS status = STATUS_ACCESS_DENIED;
                     BOOLEAN priorityBoostDisabled = FALSE;
 
                     if (processItem->QueryHandle)
@@ -1480,7 +1549,7 @@ VOID NTAPI MenuItemCallback(
                     }
                     else
                     {
-                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query the process boost priority.", status, 0);
+                        PhShowStatus(menuItem->OwnerWindow, L"Unable to query process boost.", status, 0);
                     }
                 }
 
@@ -1581,48 +1650,6 @@ VOID NTAPI MenuHookCallback(
 
             if (changed)
                 SaveDb();
-        }
-        break;
-    case PHAPP_ID_PROCESS_AFFINITY:
-        {
-            BOOLEAN changed = FALSE;
-            KAFFINITY affinityMask;
-            PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
-
-            if (!processItem)
-                break;
-
-            PhReferenceObject(processItem);
-
-            // Don't show the default System Informer affinity dialog.
-            menuHookInfo->Handled = TRUE;
-
-            // Show the affinity dialog (with our values).
-            if (PhShowProcessAffinityDialog2(menuHookInfo->MenuInfo->OwnerWindow, processItem, &affinityMask))
-            {
-                PDB_OBJECT object;
-
-                LockDb();
-
-                if (object = FindDbObjectForProcess(processItem, INTENT_PROCESS_AFFINITY))
-                {
-                    // Update the process affinity in our database (if the database values are different).
-                    if (object->AffinityMask != affinityMask)
-                    {
-                        object->AffinityMask = affinityMask;
-                        changed = TRUE;
-                    }
-                }
-
-                UnlockDb();
-
-                if (changed)
-                {
-                    SaveDb();
-                }
-            }
-
-            PhDereferenceObject(processItem);
         }
         break;
     case PHAPP_ID_PAGEPRIORITY_VERYLOW:
@@ -1871,15 +1898,16 @@ VOID AddSavePriorityMenuItemsAndHook(
 
     if (affinityMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_AFFINITY))
     {
-        // HACK: Change default Affinity menu-item into a drop-down list
-        PhInsertEMenuItem(affinityMenuItem, PhCreateEMenuItem(0, affinityMenuItem->Id, L"Set &affinity", NULL, NULL), ULONG_MAX);
-        //PhInsertEMenuItem(affinityMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PHAPP_ID_PROCESS_AFFINITY, L"Set &affinity", NULL), PhIndexOfEMenuItem(MenuInfo->Menu, affinityMenuItem) + 1);
-        //PhRemoveEMenuItem(affinityMenuItem, affinityMenuItem, 0);
+        // HACK: Change the affinity menu into a drop-down list.
+        ULONG index = PhIndexOfEMenuItem(MenuInfo->Menu, affinityMenuItem);
+        PhRemoveEMenuItem(MenuInfo->Menu, affinityMenuItem, 0);
 
-        // Insert standard menu-items
+        affinityMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Affinity", NULL);
+        PhInsertEMenuItem(affinityMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_AFFINITY_ID, L"Set &affinity", NULL), ULONG_MAX);
         PhInsertEMenuItem(affinityMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(affinityMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_AFFINITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
         PhInsertEMenuItem(affinityMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_AFFINITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
+        PhInsertEMenuItem(MenuInfo->Menu, affinityMenuItem, index);
 
         if (!ProcessItem->CommandLine)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
@@ -1895,18 +1923,14 @@ VOID AddSavePriorityMenuItemsAndHook(
     }
 
     // Boost
-    if (boostMenuItem = PhFindEMenuItem(MenuInfo->Menu, 0, NULL, PHAPP_ID_PROCESS_BOOST))
+    if (affinityMenuItem)
     {
-        // HACK: Change default Boost menu-item into a drop-down list.
-        ULONG index = PhIndexOfEMenuItem(MenuInfo->Menu, boostMenuItem);
-        PhRemoveEMenuItem(MenuInfo->Menu, boostMenuItem, 0);
-
         boostMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"&Boost", NULL);
         PhInsertEMenuItem(boostMenuItem, boostPluginMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_BOOST_PRIORITY_ID, L"Set &boost", NULL), ULONG_MAX);
         PhInsertEMenuItem(boostMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(boostMenuItem, saveMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_BOOST_PRIORITY_SAVE_ID, PhaFormatString(L"&Save for %s", ProcessItem->ProcessName->Buffer)->Buffer, NULL), ULONG_MAX);
         PhInsertEMenuItem(boostMenuItem, saveForCommandLineMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, PROCESS_BOOST_PRIORITY_SAVE_FOR_THIS_COMMAND_LINE_ID, L"Save &for this command line", NULL), ULONG_MAX);
-        PhInsertEMenuItem(MenuInfo->Menu, boostMenuItem, index);
+        PhInsertEMenuItem(MenuInfo->Menu, boostMenuItem, PhIndexOfEMenuItem(MenuInfo->Menu, affinityMenuItem) + 1);
 
         if (!ProcessItem->CommandLine)
             saveForCommandLineMenuItem->Flags |= PH_EMENU_DISABLED;
