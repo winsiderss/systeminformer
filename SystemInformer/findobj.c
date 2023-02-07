@@ -761,7 +761,7 @@ VOID PhpFindObjectAddResultEntries(
 
                 PhPrintPointer(grantedAccessString, UlongToPtr(searchResult->Info.GrantedAccess));
                 PhMoveReference(&objectNode->GrantedAccessSymbolicText, PhFormatString(
-                    L"%s (0x%s)",
+                    L"%s (%s)",
                     PhGetString(objectNode->GrantedAccessSymbolicText),
                     grantedAccessString
                     ));
