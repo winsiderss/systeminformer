@@ -972,10 +972,17 @@ VOID PhpSetDefaultTaskManager(
 {
     PWSTR message;
 
-    // Disable changing the default unless installed into secure location. (dmex)
+    if (PhpIsDefaultTaskManager())
+    {
+        message = L"Do you want to restore the default Windows Task Manager?";
+    }
+    else
     {
         RTL_ELEVATION_FLAGS flags;
 
+        message = L"Do you want to make System Informer the default Windows Task Manager?";
+
+        // Warn the user when we're not installed into secure location. (dmex)
         if (NT_SUCCESS(RtlQueryElevationFlags(&flags)) && flags.ElevationEnabled)
         {
             PPH_STRING applicationFileName;
@@ -1008,11 +1015,6 @@ VOID PhpSetDefaultTaskManager(
             }
         }
     }
-
-    if (PhpIsDefaultTaskManager())
-        message = L"Do you want to restore the default Windows Task Manager?";
-    else
-        message = L"Do you want to make System Informer the default Windows Task Manager?";
 
     if (PhShowMessage2(
         ParentWindowHandle,
