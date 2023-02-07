@@ -551,12 +551,15 @@ VOID PhSipOnSize(
     VOID
     )
 {
-    if (SectionList && SectionList->Count != 0)
+    if (!IsMinimized(PhSipWindow))
     {
-        if (CurrentView == SysInfoSummaryView)
-            PhSipLayoutSummaryView();
-        else if (CurrentView == SysInfoSectionView)
-            PhSipLayoutSectionView();
+        if (SectionList && SectionList->Count != 0)
+        {
+            if (CurrentView == SysInfoSummaryView)
+                PhSipLayoutSummaryView();
+            else if (CurrentView == SysInfoSectionView)
+                PhSipLayoutSectionView();
+        }
     }
 }
 
