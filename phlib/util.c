@@ -7254,6 +7254,41 @@ HWND PhHungWindowFromGhostWindow(
     return HungWindowFromGhostWindow_I(WindowHandle);
 }
 
+HRESULT PhRunTaskAsInteractiveUser(
+    _In_ PWSTR CommandLine,
+    _In_ PWSTR CurrentDirectory
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* WdcRunTaskAsInteractiveUser_I)(
+        _In_ PWSTR CommandLine,
+        _In_ PWSTR CurrentDirectory,
+        _In_opt_ ULONG Flags
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (!(baseAddress = PhGetLoaderEntryDllBase(L"wdc.dll")))
+            baseAddress = PhLoadLibrary(L"wdc.dll");
+
+        if (baseAddress)
+        {
+            WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(baseAddress, "WdcRunTaskAsInteractiveUser", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (WdcRunTaskAsInteractiveUser_I)
+    {
+        return WdcRunTaskAsInteractiveUser_I(CommandLine, CurrentDirectory, 0) == S_OK;
+    }
+
+    return E_NOTIMPL;
+}
+
 /**
  * Locates a loader entry in the current process.
  *
