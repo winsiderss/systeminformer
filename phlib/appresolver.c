@@ -1246,8 +1246,16 @@ CleanupExit:
 
     if (largeIcon && smallIcon)
     {
-        *IconLarge = largeIcon;
-        *IconSmall = smallIcon;
+        if (IconLarge)
+            *IconLarge = largeIcon;
+        else
+            DestroyIcon(largeIcon);
+
+        if (IconSmall)
+            *IconSmall = smallIcon;
+        else
+            DestroyIcon(smallIcon);
+
         return TRUE;
     }
     else
