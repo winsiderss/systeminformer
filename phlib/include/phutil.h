@@ -1655,6 +1655,14 @@ PhHungWindowFromGhostWindow(
     );
 
 PHLIBAPI
+HRESULT
+NTAPI
+PhRunTaskAsInteractiveUser(
+    _In_ PWSTR CommandLine,
+    _In_ PWSTR CurrentDirectory
+    );
+
+PHLIBAPI
 PLDR_DATA_TABLE_ENTRY
 NTAPI
 PhFindLoaderEntry(
