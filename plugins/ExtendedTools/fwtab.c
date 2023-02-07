@@ -1614,14 +1614,11 @@ VOID ShowFwContextMenu(
 }
 
 VOID NTAPI FwItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PFW_EVENT_ITEM fwItem = (PFW_EVENT_ITEM)Parameter;
-
-    if (!fwItem)
-        return;
 
     PhReferenceObject(fwItem);
     PhPushProviderEventQueue(&FwNetworkEventQueue, ProviderAddedEvent, Parameter, FwRunCount);
