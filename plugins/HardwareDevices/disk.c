@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -198,7 +198,7 @@ VOID DiskDriveUpdateDeviceInfo(
     _In_ PDV_DISK_ENTRY DiskEntry
     )
 {
-    if (!DiskEntry->DiskName || DiskEntry->DiskIndex == ULONG_MAX)
+    if (PhIsNullOrEmptyString(DiskEntry->DiskName) || DiskEntry->DiskIndex == ULONG_MAX)
     {
         HANDLE deviceHandle = NULL;
 
@@ -221,7 +221,7 @@ VOID DiskDriveUpdateDeviceInfo(
 
         if (deviceHandle)
         {
-            if (!DiskEntry->DiskName)
+            if (PhIsNullOrEmptyString(DiskEntry->DiskName))
             {
                 PPH_STRING diskName = NULL;
 

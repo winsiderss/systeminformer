@@ -93,26 +93,35 @@ VOID DiskDriveUpdatePanel(
 }
 
 VOID DiskDriveUpdateTitle(
-    _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
+    _In_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    // The disk letters can change so update the value.
-    PhSetWindowText(Context->DiskPathLabel, PhGetStringOrDefault(Context->DiskEntry->DiskIndexName, L"Unknown disk"));
-    PhSetWindowText(Context->DiskNameLabel, PhGetStringOrDefault(Context->DiskEntry->DiskName, L"Unknown disk"));  // TODO: We only need to set the name once. (dmex)
+    if (Context->DiskEntry->PendingQuery)
+    {
+        if (Context->DiskPathLabel)
+            PhSetWindowText(Context->DiskPathLabel, L"Pending...");
+        if (Context->DiskNameLabel)
+            PhSetWindowText(Context->DiskNameLabel, L"Pending...");
+    }
+    else
+    {
+        if (Context->DiskPathLabel)
+            PhSetWindowText(Context->DiskPathLabel, PhGetStringOrDefault(Context->DiskEntry->DiskIndexName, L"Unknown disk"));
+        if (Context->DiskNameLabel)
+            PhSetWindowText(Context->DiskNameLabel, PhGetStringOrDefault(Context->DiskEntry->DiskName, L"Unknown disk"));
+    }
 }
 
-VOID UpdateDiskIndexText(
-    _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
+VOID DiskDriveUpdateDeviceMountPoints(
+    _In_ PDV_DISK_ENTRY DiskEntry
     )
 {
-    // If our delayed lookup of the disk name, index and type hasn't fired then query the information now.
-    DiskDriveUpdateDeviceInfo(NULL, Context->DiskEntry);
+    DiskDriveUpdateDeviceInfo(NULL, DiskEntry);
 
-    // TODO: Move into DiskDriveUpdateDeviceInfo.
-    if (Context->DiskEntry->DiskIndex != ULONG_MAX && !Context->DiskEntry->DiskIndexName)
+    if (DiskEntry->DiskIndex != ULONG_MAX)
     {
         // Query the disk DosDevices mount points.
-        PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(Context->DiskEntry->DiskIndex));
+        PPH_STRING diskMountPoints = PH_AUTO_T(PH_STRING, DiskDriveQueryDosMountPoints(DiskEntry->DiskIndex));
 
         if (!PhIsNullOrEmptyString(diskMountPoints))
         {
@@ -120,12 +129,12 @@ VOID UpdateDiskIndexText(
 
             // Disk %lu (%s)
             PhInitFormatS(&format[0], L"Disk ");
-            PhInitFormatU(&format[1], Context->DiskEntry->DiskIndex);
+            PhInitFormatU(&format[1], DiskEntry->DiskIndex);
             PhInitFormatS(&format[2], L" (");
             PhInitFormatSR(&format[3], diskMountPoints->sr);
             PhInitFormatC(&format[4], L')');
 
-            PhMoveReference(&Context->DiskEntry->DiskIndexName, PhFormat(format, RTL_NUMBER_OF(format), 0));
+            PhMoveReference(&DiskEntry->DiskIndexName, PhFormat(format, RTL_NUMBER_OF(format), 0));
         }
         else
         {
@@ -133,9 +142,9 @@ VOID UpdateDiskIndexText(
 
             // Disk %lu
             PhInitFormatS(&format[0], L"Disk ");
-            PhInitFormatU(&format[1], Context->DiskEntry->DiskIndex);
+            PhInitFormatU(&format[1], DiskEntry->DiskIndex);
 
-            PhMoveReference(&Context->DiskEntry->DiskIndexName, PhFormat(format, RTL_NUMBER_OF(format), 0));
+            PhMoveReference(&DiskEntry->DiskIndexName, PhFormat(format, RTL_NUMBER_OF(format), 0));
         }
     }
 }
@@ -227,7 +236,6 @@ VOID DiskDriveTickDialog(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
-    DiskDriveUpdateTitle(Context);
     DiskDriveUpdateGraphs(Context);
     DiskDriveUpdatePanel(Context);
 }
@@ -444,6 +452,34 @@ INT_PTR CALLBACK DiskDriveDialogProc(
     return FALSE;
 }
 
+NTSTATUS DiskDriveQueryNameWorkQueueItem(
+    _In_ PDV_DISK_ENTRY DiskEntry
+    )
+{
+    // Update the device index and DOS mount points (dmex)
+    DiskDriveUpdateDeviceMountPoints(DiskEntry);
+
+#ifdef FORCE_DELAY_LABEL_WORKQUEUE
+    PhDelayExecution(4000);
+#endif
+
+    InterlockedExchange(&DiskEntry->JustProcessed, TRUE);
+    DiskEntry->PendingQuery = FALSE;
+
+    PhDereferenceObject(DiskEntry);
+    return STATUS_SUCCESS;
+}
+
+VOID DiskDriveQueueNameUpdate(
+    _In_ PDV_DISK_ENTRY DiskEntry
+    )
+{
+    DiskEntry->PendingQuery = TRUE;
+
+    PhReferenceObject(DiskEntry);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), DiskDriveQueryNameWorkQueueItem, DiskEntry);
+}
+
 BOOLEAN DiskDriveSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -457,22 +493,25 @@ BOOLEAN DiskDriveSectionCallback(
     {
     case SysInfoCreate:
         {
-            UpdateDiskIndexText(context);
+            DiskDriveQueueNameUpdate(context->DiskEntry);
         }
         return TRUE;
     case SysInfoDestroy:
         {
             PhDereferenceObject(context->DiskEntry);
-            PhDereferenceObject(context->SectionName);
             PhFree(context);
         }
         return TRUE;
     case SysInfoTick:
         {
-            UpdateDiskIndexText(context);
-
             if (context->WindowHandle)
             {
+                if (context->DiskEntry->JustProcessed)
+                {
+                    DiskDriveUpdateTitle(context);
+                    InterlockedExchange(&context->DiskEntry->JustProcessed, FALSE);
+                }
+
                 DiskDriveTickDialog(context);
             }
         }
@@ -585,8 +624,13 @@ BOOLEAN DiskDriveSectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
             PH_FORMAT format[4];
 
-            PhSetReference(&drawPanel->Title, context->DiskEntry->DiskIndexName);
-            if (!drawPanel->Title) drawPanel->Title = PhCreateString(L"Unknown disk");
+            if (context->DiskEntry->PendingQuery)
+                PhMoveReference(&drawPanel->Title, PhCreateString(L"Pending..."));
+            else
+                PhSetReference(&drawPanel->Title, context->DiskEntry->DiskIndexName);
+
+            if (!drawPanel->Title)
+                drawPanel->Title = PhCreateString(L"Unknown disk");
 
             // R: %s\nW: %s
             PhInitFormatS(&format[0], L"R: ");
@@ -607,18 +651,17 @@ VOID DiskDriveSysInfoInitializing(
     _In_ _Assume_refs_(1) PDV_DISK_ENTRY DiskEntry
     )
 {
-    static PH_STRINGREF text = PH_STRINGREF_INIT(L"Disk ");
     PDV_DISK_SYSINFO_CONTEXT context;
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_DISK_SYSINFO_CONTEXT));
-    context->SectionName = PhConcatStringRef2(&text, &DiskEntry->Id.DevicePath->sr);
     context->DiskEntry = PhReferenceObject(DiskEntry);
+    context->DiskEntry->PendingQuery = TRUE;
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;
     section.Callback = DiskDriveSectionCallback;
-    section.Name = PhGetStringRef(context->SectionName);
+    PhInitializeStringRef(&section.Name, L"Disk "); // space for string pooling (dmex)
 
     context->SysinfoSection = Pointers->CreateSection(&section);
 }

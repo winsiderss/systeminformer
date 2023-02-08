@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2018
+ *     dmex    2016-2023
  *
  */
 
@@ -30,7 +30,7 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
     case DBT_DEVICEARRIVAL: // Drive letter added
     case DBT_DEVICEREMOVECOMPLETE: // Drive letter removed
         {
-            DEV_BROADCAST_HDR* deviceBroadcast = (DEV_BROADCAST_HDR*)message->lParam;
+            PDEV_BROADCAST_HDR deviceBroadcast = (PDEV_BROADCAST_HDR)message->lParam;
 
             if (deviceBroadcast->dbch_devicetype == DBT_DEVTYP_VOLUME)
             {
@@ -51,6 +51,8 @@ VOID NTAPI HardwareDevicesDeviceChangeCallback(
                     entry->DiskIndex = ULONG_MAX;
                     // Reset the DiskIndexName so we can re-query the name on the next interval update.
                     PhClearReference(&entry->DiskIndexName);
+                    // Submit the query to the work queue.
+                    DiskDriveQueueNameUpdate(entry);
 
                     PhDereferenceObjectDeferDelete(entry);
                 }
