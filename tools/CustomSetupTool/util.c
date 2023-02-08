@@ -408,7 +408,7 @@ VOID SetupSetWindowsOptions(
 
             if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe"))
             {
-                PhSetValueKeyZ(keyHandle, NULL, REG_SZ, clientPathString->Buffer, (ULONG)clientPathString->Length + sizeof(UNICODE_NULL));
+                PhSetValueKey(keyHandle, NULL, REG_SZ, clientPathString->Buffer, (ULONG)clientPathString->Length + sizeof(UNICODE_NULL));
                 PhDereferenceObject(clientPathString);
             }
 
