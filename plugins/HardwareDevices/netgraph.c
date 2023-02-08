@@ -153,21 +153,31 @@ VOID NetAdapterUpdatePanel(
     }
 }
 
-VOID NetAdapterUpdateAdapterNameText(
-    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+VOID NetAdapterUpdateTitle(
+    _In_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    // If our delayed lookup of the adapter name hasn't fired then query the information now.
-    NetAdapterUpdateDeviceInfo(NULL, Context->AdapterEntry);
+    if (Context->AdapterEntry->PendingQuery)
+    {
+        if (Context->AdapterTextLabel)
+            PhSetWindowText(Context->AdapterTextLabel, L"Pending...");
+        if (Context->AdapterNameLabel)
+            PhSetWindowText(Context->AdapterNameLabel, L"Pending...");
+    }
+    else
+    {
+        if (Context->AdapterTextLabel)
+            PhSetWindowText(Context->AdapterTextLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterAlias, L"Unknown network adapter"));
+        if (Context->AdapterNameLabel)
+            PhSetWindowText(Context->AdapterNameLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterName, L"Unknown network adapter"));
+    }
 }
 
-VOID NetAdapterUpdateTitle(
-    _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
+VOID NetAdapterUpdateAdapterNameText(
+    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
     )
 {
-    // The interface alias can change so update the value.
-    PhSetWindowText(Context->AdapterTextLabel, PhGetStringOrEmpty(Context->AdapterEntry->AdapterAlias));
-    PhSetWindowText(Context->AdapterNameLabel, PhGetStringOrDefault(Context->AdapterEntry->AdapterName, L"Unknown network adapter")); // TODO: We only need to set the name once. (dmex)
+    NetAdapterUpdateDeviceInfo(NULL, AdapterEntry);
 }
 
 INT_PTR CALLBACK NetAdapterPanelDialogProc(
@@ -257,7 +267,6 @@ VOID NetAdapterTickDialog(
     _Inout_ PDV_NETADAPTER_SYSINFO_CONTEXT Context
     )
 {
-    NetAdapterUpdateTitle(Context);
     NetAdapterUpdateGraph(Context);
     NetAdapterUpdatePanel(Context);
 }
@@ -304,8 +313,8 @@ INT_PTR CALLBACK NetAdapterDialogProc(
             PhInitializeGraphState(&context->GraphState);
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
-            PhAddLayoutItem(&context->LayoutManager, context->AdapterTextLabel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_LAYOUT_FORCE_INVALIDATE);
-            PhAddLayoutItem(&context->LayoutManager, context->AdapterNameLabel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, context->AdapterTextLabel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, context->AdapterNameLabel, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GraphMargin = graphItem->Margin;
@@ -476,6 +485,34 @@ INT_PTR CALLBACK NetAdapterDialogProc(
     return FALSE;
 }
 
+NTSTATUS NetAdapterQueryNameWorkQueueItem(
+    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
+    )
+{
+    // Update the adapter aliases, index and guids (dmex)
+    NetAdapterUpdateAdapterNameText(AdapterEntry);
+
+#ifdef FORCE_DELAY_LABEL_WORKQUEUE
+    PhDelayExecution(4000);
+#endif
+
+    InterlockedExchange(&AdapterEntry->JustProcessed, TRUE);
+    AdapterEntry->PendingQuery = FALSE;
+
+    PhDereferenceObject(AdapterEntry);
+    return STATUS_SUCCESS;
+}
+
+VOID NetAdapterQueueNameUpdate(
+    _In_ PDV_NETADAPTER_ENTRY AdapterEntry
+    )
+{
+    AdapterEntry->PendingQuery = TRUE;
+
+    PhReferenceObject(AdapterEntry);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), NetAdapterQueryNameWorkQueueItem, AdapterEntry);
+}
+
 BOOLEAN NetAdapterSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
     _In_ PH_SYSINFO_SECTION_MESSAGE Message,
@@ -489,22 +526,25 @@ BOOLEAN NetAdapterSectionCallback(
     {
     case SysInfoCreate:
         {
-            NetAdapterUpdateAdapterNameText(context);
+            NetAdapterQueueNameUpdate(context->AdapterEntry);
         }
         return TRUE;
     case SysInfoDestroy:
         {
             PhDereferenceObject(context->AdapterEntry);
-            PhDereferenceObject(context->SectionName);
             PhFree(context);
         }
         return TRUE;
     case SysInfoTick:
         {
-            NetAdapterUpdateAdapterNameText(context);
-
             if (context->WindowHandle)
             {
+                if (context->AdapterEntry->JustProcessed)
+                {
+                    NetAdapterUpdateTitle(context);
+                    InterlockedExchange(&context->AdapterEntry->JustProcessed, FALSE);
+                }
+
                 NetAdapterTickDialog(context);
             }
         }
@@ -616,12 +656,18 @@ BOOLEAN NetAdapterSectionCallback(
             PPH_SYSINFO_DRAW_PANEL drawPanel = (PPH_SYSINFO_DRAW_PANEL)Parameter1;
             PH_FORMAT format[4];
 
-            if (context->AdapterEntry->AdapterAlias)
-                PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterAlias);
+            if (context->AdapterEntry->PendingQuery)
+                PhMoveReference(&drawPanel->Title, PhCreateString(L"Pending..."));
             else
-                PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterName);
+            {
+                if (context->AdapterEntry->AdapterAlias)
+                    PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterAlias);
+                else
+                    PhSetReference(&drawPanel->Title, context->AdapterEntry->AdapterName);
+            }
 
-            if (!drawPanel->Title) drawPanel->Title = PhCreateString(L"Unknown network adapter");
+            if (!drawPanel->Title)
+                drawPanel->Title = PhCreateString(L"Unknown network adapter");
 
             // R: %s\nS: %s
             PhInitFormatS(&format[0], L"R: ");
@@ -642,18 +688,17 @@ VOID NetAdapterSysInfoInitializing(
     _In_ _Assume_refs_(1) PDV_NETADAPTER_ENTRY AdapterEntry
     )
 {
-    static PH_STRINGREF text = PH_STRINGREF_INIT(L"NetAdapter ");
     PDV_NETADAPTER_SYSINFO_CONTEXT context;
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
     context->AdapterEntry = PhReferenceObject(AdapterEntry);
-    context->SectionName = PhConcatStringRef2(&text, &AdapterEntry->AdapterId.InterfaceGuidString->sr);
+    context->AdapterEntry->PendingQuery = TRUE;
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
     section.Context = context;
     section.Callback = NetAdapterSectionCallback;
-    section.Name = PhGetStringRef(context->SectionName);
+    PhInitializeStringRef(&section.Name, L"NetAdapter");
 
     context->SysinfoSection = Pointers->CreateSection(&section);
 }
