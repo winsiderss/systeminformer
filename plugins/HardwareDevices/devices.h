@@ -49,6 +49,7 @@
 #include <phdk.h>
 #include <phappresource.h>
 #include <settings.h>
+#include <workqueue.h>
 
 #include <math.h>
 #include <cfgmgr32.h>
@@ -95,6 +96,10 @@ extern PH_QUEUED_LOCK RaplDevicesListLock;
 extern PPH_OBJECT_TYPE GraphicsDeviceEntryType;
 extern PPH_LIST GraphicsDevicesList;
 extern PH_QUEUED_LOCK GraphicsDevicesListLock;
+
+#ifdef _DEBUG
+//#define FORCE_DELAY_LABEL_WORKQUEUE
+#endif
 
 // main.c
 
@@ -172,7 +177,8 @@ typedef struct _DV_NETADAPTER_ENTRY
             BOOLEAN CheckedDeviceSupport : 1;
             BOOLEAN DeviceSupported : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 2;
         };
     };
 
@@ -186,12 +192,13 @@ typedef struct _DV_NETADAPTER_ENTRY
 
     PH_CIRCULAR_BUFFER_ULONG64 InboundBuffer;
     PH_CIRCULAR_BUFFER_ULONG64 OutboundBuffer;
+
+    volatile LONG JustProcessed;
 } DV_NETADAPTER_ENTRY, *PDV_NETADAPTER_ENTRY;
 
 typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
 {
     PDV_NETADAPTER_ENTRY AdapterEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
@@ -496,7 +503,8 @@ typedef struct _DV_DISK_ENTRY
             BOOLEAN UserReference : 1;
             BOOLEAN HaveFirstSample : 1;
             BOOLEAN DevicePresent : 1;
-            BOOLEAN Spare : 5;
+            BOOLEAN PendingQuery : 1;
+            BOOLEAN Spare : 4;
         };
     };
 
@@ -516,12 +524,13 @@ typedef struct _DV_DISK_ENTRY
     FLOAT ActiveTime;
     ULONG QueueDepth;
     ULONG SplitCount;
+
+    volatile LONG JustProcessed;
 } DV_DISK_ENTRY, *PDV_DISK_ENTRY;
 
 typedef struct _DV_DISK_SYSINFO_CONTEXT
 {
     PDV_DISK_ENTRY DiskEntry;
-    PPH_STRING SectionName;
 
     HWND WindowHandle;
     HWND PanelWindowHandle;
@@ -964,6 +973,10 @@ PWSTR SmartAttributeGetText(
     );
 
 // diskgraph.c
+
+VOID DiskDriveQueueNameUpdate(
+    _In_ PDV_DISK_ENTRY DiskEntry
+    );
 
 VOID DiskDriveSysInfoInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers,
