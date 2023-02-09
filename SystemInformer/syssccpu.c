@@ -1324,7 +1324,7 @@ VOID PhSipUpdateCpuPanel(
     }
 
     // Do not optimize (dmex)
-    PhQueryPerformanceCounter(&performanceCounterStart, NULL);
+    PhQueryPerformanceCounter(&performanceCounterStart);
     timeStampCounterStart = PhReadTimeStampCounter();
     MemoryBarrier();
 #ifdef _ARM64_
@@ -1336,7 +1336,7 @@ VOID PhSipUpdateCpuPanel(
     MemoryBarrier();
     timeStampCounterEnd = PhReadTimeStampCounter();
     MemoryBarrier();
-    PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
+    PhQueryPerformanceCounter(&performanceCounterEnd);
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 
     if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 &&
