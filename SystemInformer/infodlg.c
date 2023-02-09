@@ -136,7 +136,6 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     PVOID fileDialog;
 
                     fileDialog = PhCreateSaveFileDialog();
-
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
                     PhSetFileDialogFileName(fileDialog, L"Information.txt");
 
@@ -160,7 +159,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                             PH_STRINGREF string;
 
                             PhWriteStringAsUtf8FileStream(fileStream, &PhUnicodeByteOrderMark);
-                            PhInitializeStringRef(&string, context->String);
+                            PhInitializeStringRefLongHint(&string, context->String);
                             PhWriteStringAsUtf8FileStream(fileStream, &string);
                             PhDereferenceObject(fileStream);
                         }

@@ -518,18 +518,18 @@ VOID PhRegisterDetoursHooks(
     NTSTATUS status;
     PVOID baseAddress;
 
-    //if (baseAddress = PhGetLoaderEntryDllBase(L"gdi32.dll"))
+    //if (baseAddress = PhGetLoaderEntryDllBaseZ(L"gdi32.dll"))
     //{
     //    PhDefaultSetTextColor = PhGetDllBaseProcedureAddress(baseAddress, "SetTextColor", 0);
     //}
 
-    if (baseAddress = PhGetLoaderEntryDllBase(L"user32.dll"))
+    if (baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll"))
     {
         PhDefaultCreateWindowEx = PhGetDllBaseProcedureAddress(baseAddress, "CreateWindowExW", 0);
         PhDefaultSystemParametersInfo = PhGetDllBaseProcedureAddress(baseAddress, "SystemParametersInfoW", 0);
     }
 
-    if (baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll"))
+    if (baseAddress = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll"))
     {
         PhDefaultDrawThemeBackground = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackground", 0);
         //PhDefaultDrawThemeBackgroundEx = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackgroundEx", 0);

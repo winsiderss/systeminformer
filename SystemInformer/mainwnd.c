@@ -3242,7 +3242,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreateInternalPage(
     PH_MAIN_TAB_PAGE page;
 
     memset(&page, 0, sizeof(PH_MAIN_TAB_PAGE));
-    PhInitializeStringRef(&page.Name, Name);
+    PhInitializeStringRefLongHint(&page.Name, Name);
     page.Flags = Flags;
     page.Callback = Callback;
 

@@ -848,7 +848,7 @@ PPH_MINIINFO_SECTION PhMipCreateInternalSection(
     PH_MINIINFO_SECTION section;
 
     memset(&section, 0, sizeof(PH_MINIINFO_SECTION));
-    PhInitializeStringRef(&section.Name, Name);
+    PhInitializeStringRefLongHint(&section.Name, Name);
     section.Flags = Flags;
     section.Callback = Callback;
 
@@ -1216,7 +1216,7 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
     listSection->Callback = Template->Callback;
 
     memset(&section, 0, sizeof(PH_MINIINFO_SECTION));
-    PhInitializeStringRef(&section.Name, Name);
+    PhInitializeStringRefLongHint(&section.Name, Name);
     section.Flags = PH_MINIINFO_SECTION_NO_UPPER_MARGINS;
     section.Callback = PhMipListSectionCallback;
     section.Context = listSection;

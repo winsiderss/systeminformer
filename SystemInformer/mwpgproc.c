@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -891,8 +891,8 @@ VOID PhShowProcessContextMenu(
 }
 
 VOID NTAPI PhMwpProcessAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -904,8 +904,8 @@ VOID NTAPI PhMwpProcessAddedHandler(
 }
 
 VOID NTAPI PhMwpProcessModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -914,8 +914,8 @@ VOID NTAPI PhMwpProcessModifiedHandler(
 }
 
 VOID NTAPI PhMwpProcessRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -926,8 +926,8 @@ VOID NTAPI PhMwpProcessRemovedHandler(
 }
 
 VOID NTAPI PhMwpProcessesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     ProcessHacker_Invoke(PhMwpOnProcessesUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));

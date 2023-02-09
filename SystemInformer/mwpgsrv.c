@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -39,8 +39,8 @@ static PPH_TN_FILTER_ENTRY MicrosoftFilterEntry = NULL;
 BOOLEAN PhMwpServicesPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
     _In_ PH_MAIN_TAB_PAGE_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2
     )
 {
     switch (Message)
@@ -100,9 +100,6 @@ BOOLEAN PhMwpServicesPageCallback(
             ULONG startIndex;
             PPH_EMENU_ITEM menuItem;
 
-            if (!menuInfo)
-                break;
-
             menu = menuInfo->Menu;
             startIndex = menuInfo->StartIndex;
 
@@ -133,8 +130,7 @@ BOOLEAN PhMwpServicesPageCallback(
         {
             PPH_MAIN_TAB_PAGE_EXPORT_CONTENT exportContent = Parameter1;
 
-            if (exportContent)
-                PhWriteServiceList(exportContent->FileStream, exportContent->Mode);
+            PhWriteServiceList(exportContent->FileStream, exportContent->Mode);
         }
         return TRUE;
     case MainTabPageFontChanged:
@@ -413,29 +409,23 @@ VOID PhShowServiceContextMenu(
 }
 
 VOID NTAPI PhMwpServiceAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
-
-    if (!serviceItem)
-        return;
 
     PhReferenceObject(serviceItem);
     PhPushProviderEventQueue(&PhMwpServiceEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
 VOID NTAPI PhMwpServiceModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
     PPH_SERVICE_MODIFIED_DATA copy;
-
-    if (!serviceModifiedData)
-        return;
 
     copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
 
@@ -443,8 +433,8 @@ VOID NTAPI PhMwpServiceModifiedHandler(
 }
 
 VOID NTAPI PhMwpServiceRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
@@ -453,8 +443,8 @@ VOID NTAPI PhMwpServiceRemovedHandler(
 }
 
 VOID NTAPI PhMwpServicesUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     ProcessHacker_Invoke(PhMwpOnServicesUpdated, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
