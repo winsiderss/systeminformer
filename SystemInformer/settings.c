@@ -50,6 +50,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolveDoH", L"0");
     PhpAddIntegerSetting(L"EnablePackageIconSupport", L"0");
+    PhpAddIntegerSetting(L"EnableProcessHandlePnPDeviceNameSupport", L"0");
     PhpAddIntegerSetting(L"EnablePlugins", L"1");
     PhpAddIntegerSetting(L"EnableGraphMaxScale", L"0");
     PhpAddIntegerSetting(L"EnableGraphMaxText", L"1");
@@ -404,4 +405,5 @@ VOID PhUpdateCachedSettings(
     PhCsEnableGraphMaxText = !!PhGetIntegerSetting(L"EnableGraphMaxText");
     PhEnableNetworkResolveDoHSupport = !!PhGetIntegerSetting(L"EnableNetworkResolveDoH");
     PhEnableVersionShortText = !!PhGetIntegerSetting(L"EnableVersionSupport");
+    PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
 }

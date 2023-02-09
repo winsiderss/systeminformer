@@ -20,9 +20,10 @@
 
 #include <guisup.h>
 #include <hndlinfo.h>
-#include <settings.h>
 #include <seceditp.h>
 #include <secwmi.h>
+
+BOOLEAN PhEnableSecurityAdvancedDialog = FALSE;
 
 static ISecurityInformationVtbl PhSecurityInformation_VTable =
 {
@@ -129,9 +130,7 @@ static NTSTATUS PhpEditSecurityInformationThread(
 {
     PhSecurityInformation *this = (PhSecurityInformation *)Context;
 
-    // The EditSecurityAdvanced function on Windows 7 doesn't handle the SI_PAGE_TYPE
-    // parameter correctly and also doesn't show the Audit and Owner tabs... (dmex)
-    if (WindowsVersion >= WINDOWS_8 && PhGetIntegerSetting(L"EnableSecurityAdvancedDialog"))
+    if (WindowsVersion > WINDOWS_7 && PhEnableSecurityAdvancedDialog)
         EditSecurityAdvanced(this->WindowHandle, Context, COMBINE_PAGE_ACTIVATION(SI_PAGE_PERM, SI_SHOW_PERM_ACTIVATED));
     else
         EditSecurity(this->WindowHandle, Context);
@@ -573,7 +572,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
         if (!this->IsPage)
             PhCenterWindow(GetParent(hwnd), GetParent(GetParent(hwnd)));
 
-        PhInitializeWindowTheme(hwnd, !!PhGetIntegerSetting(L"EnableThemeSupport"));
+        PhInitializeWindowTheme(hwnd, PhEnableThemeSupport);
     }
 
     return E_NOTIMPL;

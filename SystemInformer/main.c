@@ -1209,6 +1209,9 @@ VOID PhpInitializeSettings(
     PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     PhMaxPrecisionUnit = (USHORT)PhGetIntegerSetting(L"MaxPrecisionUnit");
+    PhEnableWindowText = !!PhGetIntegerSetting(L"EnableWindowText");
+    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
 
     if (PhGetIntegerSetting(L"SampleCountAutomatic"))
     {
