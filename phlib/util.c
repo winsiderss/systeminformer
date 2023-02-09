@@ -4881,7 +4881,10 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
         SDDL_REVISION,
         &securityDescriptorBuffer,
         &securityDescriptorLength
-        ))
+        ) &&
+        securityDescriptorBuffer &&
+        securityDescriptorLength
+        )
     {
         //assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
         securityDescriptor = PhAllocateCopy(
