@@ -24,8 +24,6 @@
 #include <settings.h>
 #include <thrdprv.h>
 
-#include <dbghelp.h>
-
 #define WM_PH_COMPLETED (WM_APP + 301)
 //#define WM_PH_STATUS_UPDATE (WM_APP + 302)
 #define WM_PH_SHOWSTACKMENU (WM_APP + 303)
@@ -254,6 +252,10 @@ BEGIN_SORT_FUNCTION(LineText)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Architecture)
+{
+    sortResult = PhCompareStringRef(&node1->Architecture, &node2->Architecture, TRUE);
+}
 VOID ThreadStackLoadSettingsTreeList(
     _Inout_ PPH_THREAD_STACK_CONTEXT Context
     )
@@ -417,6 +419,7 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                     SORT_FUNCTION(ReturnAddress),
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(LineText),
+                    SORT_FUNCTION(Architecture),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
