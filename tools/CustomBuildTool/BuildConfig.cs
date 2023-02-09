@@ -96,6 +96,7 @@ namespace CustomBuildTool
             "kphuser.h",
             "lsasup.h",
             "mapimg.h",
+            "mapldr.h",
             "ph.h",
             "phbase.h",
             "phbasesup.h",
