@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -17,6 +17,7 @@
 #include <emenu.h>
 #include <hndlinfo.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <secedit.h>
 #include <settings.h>
 #include <symprv.h>

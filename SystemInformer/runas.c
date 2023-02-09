@@ -58,6 +58,7 @@
 #include <apiimport.h>
 #include <actions.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <phsvc.h>
 #include <phsvccl.h>
 #include <phsettings.h>

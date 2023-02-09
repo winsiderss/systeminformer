@@ -18,7 +18,7 @@
 #include <phappresource.h>
 #include <settings.h>
 #include <workqueue.h>
-
+#include <mapldr.h>
 #include <phnet.h>
 
 #include "resource.h"

@@ -50,6 +50,7 @@
 #include <phappresource.h>
 #include <settings.h>
 #include <workqueue.h>
+#include <mapldr.h>
 
 #include <math.h>
 #include <cfgmgr32.h>

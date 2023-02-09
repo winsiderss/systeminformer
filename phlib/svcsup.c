@@ -6,13 +6,14 @@
  * Authors:
  *
  *     wj32    2010-2012
- *     dmex    2019-2021
+ *     dmex    2019-2023
  *
  */
 
 #include <ph.h>
 #include <subprocesstag.h>
 #include <svcsup.h>
+#include <mapldr.h>
 
 #define SIP(String, Integer) \
     { (String), (PVOID)(Integer) }

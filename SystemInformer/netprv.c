@@ -15,6 +15,7 @@
 #include <phplug.h>
 #include <phsettings.h>
 #include <extmgri.h>
+#include <mapldr.h>
 #include <netprv.h>
 #include <procprv.h>
 #include <svcsup.h>

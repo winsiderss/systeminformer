@@ -20,6 +20,7 @@
 #include <kphuser.h>
 #include <verify.h>
 #include <mapimg.h>
+#include <mapldr.h>
 
 #if defined(_ARM64_)
 static const ULONG NativeMachine = IMAGE_FILE_MACHINE_ARM64;

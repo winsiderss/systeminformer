@@ -38,6 +38,7 @@
 #include <apiimport.h>
 #include <guisup.h>
 #include <treenewp.h>
+#include <mapldr.h>
 
 static PVOID ComCtl32Handle;
 
@@ -62,7 +63,7 @@ BOOLEAN PhTreeNewInitialization(
     if (!RegisterClassEx(&c))
         return FALSE;
 
-    ComCtl32Handle = PhGetLoaderEntryDllBase(L"comctl32.dll");
+    ComCtl32Handle = PhGetLoaderEntryDllBaseZ(L"comctl32.dll");
 
     return TRUE;
 }

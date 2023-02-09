@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -14,6 +14,7 @@
 #include <apiimport.h>
 #include <guisup.h>
 #include <mapimg.h>
+#include <mapldr.h>
 #include <settings.h>
 #include <guisupp.h>
 
@@ -2076,7 +2077,7 @@ BOOLEAN PhGetProcessDpiAwareness(
     {
         PVOID baseAddress;
 
-        if (baseAddress = PhGetLoaderEntryDllBase(L"user32.dll"))
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll"))
         {
             if (WindowsVersion >= WINDOWS_10_RS1)
             {

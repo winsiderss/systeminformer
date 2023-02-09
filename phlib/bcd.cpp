@@ -5,12 +5,13 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
 #include <ph.h>
 #include <bcd.h>
+#include <mapldr.h>
 
 static PVOID BcdDllBaseAddress = nullptr;
 static decltype(&BcdOpenSystemStore) BcdOpenSystemStore_I = nullptr;

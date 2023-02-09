@@ -6,13 +6,14 @@
  * Authors:
  *
  *     wj32    2009-2013
- *     dmex    2016-2021
+ *     dmex    2016-2023
  *
  */
 
 #define PH_ENABLE_VERIFY_CACHE
 #include <ph.h>
 #include <appresolver.h>
+#include <mapldr.h>
 #include <verify.h>
 #include <verifyp.h>
 

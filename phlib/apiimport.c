@@ -6,12 +6,13 @@
  * Authors:
  *
  *     wj32    2015
- *     dmex    2019-2020
+ *     dmex    2019-2023
  *
  */
 
 #include <ph.h>
 #include <apiimport.h>
+#include <mapldr.h>
 
 FORCEINLINE
 PVOID PhpImportProcedure(
@@ -27,7 +28,7 @@ PVOID PhpImportProcedure(
         PVOID module;
         PVOID procedure;
 
-        module = PhGetLoaderEntryDllBase(ModuleName);
+        module = PhGetLoaderEntryDllBaseZ(ModuleName);
 
         if (!module)
             module = PhLoadLibrary(ModuleName);

@@ -14,6 +14,7 @@
 #include <phsvc.h>
 #include <extmgri.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <phplug.h>
 #include <secedit.h>
 #include <svcsup.h>
@@ -1113,7 +1114,7 @@ NTSTATUS PhSvcApiSetTcpEntry(
 
     if (!localSetTcpEntry)
     {
-        HMODULE iphlpapiModule;
+        PVOID iphlpapiModule;
 
         iphlpapiModule = PhLoadLibrary(L"iphlpapi.dll");
 

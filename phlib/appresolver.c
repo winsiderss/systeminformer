@@ -11,6 +11,7 @@
 
 #include <ph.h>
 #include <lsasup.h>
+#include <mapldr.h>
 #include <guisup.h>
 
 #include <shobjidl.h>

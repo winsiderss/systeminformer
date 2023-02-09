@@ -22,6 +22,7 @@
 
 #include <apiimport.h>
 #include <mapimg.h>
+#include <mapldr.h>
 #include <lsasup.h>
 #include <wslsup.h>
 
@@ -317,7 +318,7 @@ LONG PhGetDpiValue(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBase(L"shcore.dll")))
+            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"shcore.dll")))
                 baseAddress = PhLoadLibrary(L"shcore.dll");
 
             if (baseAddress)
@@ -330,7 +331,7 @@ LONG PhGetDpiValue(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBase(L"user32.dll")))
+            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
                 baseAddress = PhLoadLibrary(L"user32.dll");
 
             if (baseAddress)
@@ -410,7 +411,7 @@ LONG PhGetSystemMetrics(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBase(L"user32.dll")))
+            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
                 baseAddress = PhLoadLibrary(L"user32.dll");
 
             if (baseAddress)
@@ -450,7 +451,7 @@ BOOL PhGetSystemParametersInfo(
         {
             PVOID baseAddress;
 
-            if (!(baseAddress = PhGetLoaderEntryDllBase(L"user32.dll")))
+            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
                 baseAddress = PhLoadLibrary(L"user32.dll");
 
             if (baseAddress)
@@ -783,7 +784,7 @@ PPH_STRING PhGetNtMessage(
     PPH_STRING message;
 
     if (!NT_NTWIN32(Status))
-        message = PhGetMessage(PhGetLoaderEntryDllBase(L"ntdll.dll"), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
+        message = PhGetMessage(PhGetLoaderEntryDllBaseZ(L"ntdll.dll"), 0xb, PhGetUserDefaultLangID(), (ULONG)Status);
     else
         message = PhGetWin32Message(PhNtStatusToDosError(Status));
 
@@ -825,7 +826,7 @@ PPH_STRING PhGetWin32Message(
 {
     PPH_STRING message;
 
-    message = PhGetMessage(PhGetLoaderEntryDllBase(L"kernel32.dll"), 0xb, PhGetUserDefaultLangID(), Result);
+    message = PhGetMessage(PhGetLoaderEntryDllBaseZ(L"kernel32.dll"), 0xb, PhGetUserDefaultLangID(), Result);
 
     if (message)
         PhTrimToNullTerminatorString(message);
@@ -3612,8 +3613,7 @@ PPH_STRING PhGetKnownLocation(
                 {
                     PH_STRINGREF string;
 
-                    string.Buffer = variableValue.Buffer;
-                    string.Length = variableValue.Length;
+                    PhUnicodeStringToStringRef(&variableValue, &string);
 
                     return PhConcatStringRef2(&string, AppendPath);
                 }
@@ -3642,8 +3642,7 @@ PPH_STRING PhGetKnownLocation(
                 {
                     PH_STRINGREF string;
 
-                    string.Buffer = variableValue.Buffer;
-                    string.Length = variableValue.Length;
+                    PhUnicodeStringToStringRef(&variableValue, &string);
 
                     return PhConcatStringRef2(&string, AppendPath);
                 }

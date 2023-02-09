@@ -6,13 +6,14 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
 #include "dn.h"
 #include <appresolver.h>
 #include <mapimg.h>
+#include <mapldr.h>
 #include <symprv.h>
 #include <verify.h>
 #include <json.h>
@@ -1003,7 +1004,7 @@ VOID DnGetProcessDotNetRuntimes(
 
     context.RuntimeList = PhCreateList(1);
 
-    PhInitializeStringRefLongHint(&context.ImageName, L"coreclr.dll");
+    PhInitializeStringRef(&context.ImageName, L"coreclr.dll");
     PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
 
 #ifdef _WIN64
@@ -1011,7 +1012,7 @@ VOID DnGetProcessDotNetRuntimes(
         PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
 #endif
 
-    PhInitializeStringRefLongHint(&context.ImageName, L"clr.dll");
+    PhInitializeStringRef(&context.ImageName, L"clr.dll");
     PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
 
 #ifdef _WIN64
@@ -1023,12 +1024,12 @@ VOID DnGetProcessDotNetRuntimes(
     {
         PDN_PROCESS_CLR_RUNTIME_ENTRY entry = context.RuntimeList->Items[i];
 
-        dprintf(
-            "Runtime version: %S @ 0x%I64x [%S]\n",
-            entry->RuntimeVersion->Buffer,
-            entry->DllBase,
-            entry->FileName->Buffer
-            );
+        //dprintf(
+        //    "Runtime version: %S @ 0x%I64x [%S]\n",
+        //    entry->RuntimeVersion->Buffer,
+        //    entry->DllBase,
+        //    entry->FileName->Buffer
+        //    );
 
         PhClearReference(&entry->FileName);
         PhClearReference(&entry->RuntimeVersion);
@@ -1099,7 +1100,7 @@ BOOLEAN DnGetProcessCoreClrPath(
     DNP_GET_IMAGE_BASE_CONTEXT context = { 0 };
     PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
 
-    PhInitializeStringRefLongHint(&context.ImageName, L"coreclr.dll");
+    PhInitializeStringRef(&context.ImageName, L"coreclr.dll");
     parameters.Callback = DnpGetCoreClrPathCallback;
     parameters.Context = &context;
     parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
@@ -1112,7 +1113,7 @@ BOOLEAN DnGetProcessCoreClrPath(
 
     if (!context.FileName)
     {
-        PhInitializeStringRefLongHint(&context.ImageName, L"clr.dll");
+        PhInitializeStringRef(&context.ImageName, L"clr.dll");
         PhEnumProcessModulesEx(dataTarget->ProcessHandle, &parameters);
 
 #ifdef _WIN64

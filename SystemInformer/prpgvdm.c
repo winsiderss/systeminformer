@@ -66,7 +66,7 @@ PVOID PhpGetVdmDbgDllBase(
         {
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\vdmdbg.dll"))
             {
-                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
+                if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
                     imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
 
                 PhDereferenceObject(systemFileName);
