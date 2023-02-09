@@ -3833,11 +3833,29 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 NtClose(tokenHandle);
             }
 
-            if (NT_SUCCESS(tokenPageContext->OpenObject(
+            tokenHandle = NULL;
+
+            if (!NT_SUCCESS(tokenPageContext->OpenObject(
                 &tokenHandle,
                 TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
                 tokenPageContext->Context // ProcessId
                 )))
+            {
+                if (!NT_SUCCESS(tokenPageContext->OpenObject(
+                    &tokenHandle,
+                    TOKEN_QUERY | TOKEN_IMPERSONATE,
+                    tokenPageContext->Context // ProcessId
+                    )))
+                {
+                    tokenPageContext->OpenObject(
+                        &tokenHandle,
+                        TOKEN_QUERY,
+                        tokenPageContext->Context // ProcessId
+                        );
+                }
+            }
+
+            if (tokenHandle)
             {
                 PSID appContainerSid;
                 PPH_STRING appContainerFolderPath;
