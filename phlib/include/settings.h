@@ -1,9 +1,19 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2016-2023
+ *
+ */
+
 #ifndef PHLIB_SETTINGS_H
 #define PHLIB_SETTINGS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 // begin_phapppub
 
@@ -463,8 +473,6 @@ PhSaveCustomColorList(
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(TEXT(#Name), PhCs##Name = (Value)))
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

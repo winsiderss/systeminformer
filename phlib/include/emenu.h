@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_EMENU_H
 #define _PH_EMENU_H
 
@@ -70,7 +82,10 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     );
 
 PHLIBAPI
-PPH_EMENU_ITEM PhFindEMenuItemEx(
+_Success_(return != NULL)
+PPH_EMENU_ITEM
+NTAPI
+PhFindEMenuItemEx(
     _In_ PPH_EMENU_ITEM Item,
     _In_ ULONG Flags,
     _In_opt_ PWSTR Text,

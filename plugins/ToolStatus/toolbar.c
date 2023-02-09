@@ -10,7 +10,6 @@
  */
 
 #include "toolstatus.h"
-#include "commonutil.h"
 
 SIZE ToolBarImageSize = { 16, 16 };
 HIMAGELIST ToolBarImageList = NULL;
