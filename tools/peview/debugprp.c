@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -64,6 +64,8 @@ PWSTR PvpGetDebugTypeString(
         return L"PDB_CHECKSUM";
     case IMAGE_DEBUG_TYPE_EX_DLLCHARACTERISTICS:
         return L"EX_DLLCHARACTERISTICS";
+    case IMAGE_DEBUG_TYPE_PERFMAP:
+        return L"PERFMAP";
     }
 
     return PhaFormatString(L"%lu", Type)->Buffer;
