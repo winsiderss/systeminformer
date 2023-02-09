@@ -48,7 +48,7 @@ static void CheckForTerminatedRealtimeProcesses(
             )
         {
             LARGE_INTEGER performanceCounter;
-            PhQueryPerformanceCounter(&performanceCounter, nullptr);
+            PhQueryPerformanceCounter(&performanceCounter);
             terminatedProcesses->emplace_back(processId, performanceCounter.QuadPart);
 
             PhClearReference(reinterpret_cast<PVOID*>(&processInfo->ProcessItem));

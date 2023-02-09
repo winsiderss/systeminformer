@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "exttools.h"
 #include "poolmon.h"
-#include "commonutil.h"
 
 static HWND EtPoolTagDialogHandle = NULL;
 static HANDLE EtPoolTagDialogThreadHandle = NULL;

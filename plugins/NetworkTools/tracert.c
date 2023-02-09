@@ -498,7 +498,7 @@ NTSTATUS NetworkTracertThreadStart(
                 icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer->Length);
                 icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
 
-                PhQueryPerformanceCounter(&performanceCounterStart, NULL);
+                PhQueryPerformanceCounter(&performanceCounterStart);
 
                 icmpReplyCount = IcmpSendEcho2Ex(
                     icmpHandle,
@@ -515,7 +515,7 @@ NTSTATUS NetworkTracertThreadStart(
                     context->Timeout
                     );
 
-                PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
+                PhQueryPerformanceCounter(&performanceCounterEnd);
 
                 if (icmpReplyCount > 0)
                 {
@@ -579,7 +579,7 @@ NTSTATUS NetworkTracertThreadStart(
                 icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer->Length);
                 icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
 
-                PhQueryPerformanceCounter(&performanceCounterStart, NULL);
+                PhQueryPerformanceCounter(&performanceCounterStart);
 
                 icmpReplyCount = Icmp6SendEcho2(
                     icmpHandle,
@@ -596,7 +596,7 @@ NTSTATUS NetworkTracertThreadStart(
                     context->Timeout
                     );
 
-                PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
+                PhQueryPerformanceCounter(&performanceCounterEnd);
 
                 if (icmpReplyCount > 0)
                 {

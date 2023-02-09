@@ -512,7 +512,8 @@ BOOLEAN CheckRebarLastRedrawMessage(
     LARGE_INTEGER currentUpdateTimeTicks;
     LARGE_INTEGER currentUpdateTimeFrequency;
 
-    PhQueryPerformanceCounter(&currentUpdateTimeTicks, &currentUpdateTimeFrequency);
+    PhQueryPerformanceCounter(&currentUpdateTimeTicks);
+    PhQueryPerformanceFrequency(&currentUpdateTimeFrequency);
 
     if (lastUpdateTimeTicks.QuadPart == 0)
         lastUpdateTimeTicks.QuadPart = currentUpdateTimeTicks.QuadPart;
