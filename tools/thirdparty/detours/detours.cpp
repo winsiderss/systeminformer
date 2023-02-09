@@ -19,17 +19,6 @@
 #define NOTHROW
 
 
-void* __cdecl operator new(size_t _Size)
-{
-    return PhAllocateZero(_Size);
-}
-
-void __cdecl operator delete(void* _Block) noexcept
-{
-    PhFree(_Block);
-}
-
-
 //////////////////////////////////////////////////////////////////////////////
 //
 struct _DETOUR_ALIGN
