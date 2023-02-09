@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -1043,7 +1043,7 @@ VOID EtpUpdateSystemNodeInformation(
         }
     }
 
-    PhQueryPerformanceCounter(&performanceCounter, &EtClockTotalRunningTimeFrequency);
+    PhQueryPerformanceCounter(&performanceCounter);
     PhUpdateDelta(&EtClockTotalRunningTimeDelta, performanceCounter.QuadPart);
 }
 

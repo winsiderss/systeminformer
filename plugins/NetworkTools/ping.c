@@ -112,7 +112,7 @@ NTSTATUS NetworkPingThreadStart(
         icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
 
         InterlockedIncrement(&context->PingSentCount);
-        PhQueryPerformanceCounter(&performanceCounterStart, NULL);
+        PhQueryPerformanceCounter(&performanceCounterStart);
 
         icmpReplyCount = Icmp6SendEcho2(
             icmpHandle,
@@ -129,7 +129,7 @@ NTSTATUS NetworkPingThreadStart(
             context->Timeout
             );
 
-        PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
+        PhQueryPerformanceCounter(&performanceCounterEnd);
         icmp6ReplyStruct = (PICMPV6_ECHO_REPLY2)icmpReplyBuffer;
 
         if (icmpReplyCount && icmp6ReplyStruct->Status == IP_SUCCESS)
@@ -187,7 +187,7 @@ NTSTATUS NetworkPingThreadStart(
         icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
 
         InterlockedIncrement(&context->PingSentCount);
-        PhQueryPerformanceCounter(&performanceCounterStart, NULL);
+        PhQueryPerformanceCounter(&performanceCounterStart);
 
         icmpReplyCount = IcmpSendEcho2Ex(
             icmpHandle,
@@ -204,7 +204,7 @@ NTSTATUS NetworkPingThreadStart(
             context->Timeout
             );
 
-        PhQueryPerformanceCounter(&performanceCounterEnd, NULL);
+        PhQueryPerformanceCounter(&performanceCounterEnd);
         icmpReplyStruct = (PICMP_ECHO_REPLY)icmpReplyBuffer;
 
         if (icmpReplyCount && icmpReplyStruct->Status == IP_SUCCESS)

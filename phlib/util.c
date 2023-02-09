@@ -1261,7 +1261,7 @@ VOID PhGenerateGuid(
     ULONG random[6];
     ULONG i;
 
-    PhQueryPerformanceCounter(&seed, NULL);
+    PhQueryPerformanceCounter(&seed);
 
     for (i = 0; i < 6; i++)
         random[i] = RtlRandomEx(&seed.LowPart);
@@ -1374,7 +1374,7 @@ VOID PhGenerateRandomAlphaString(
     if (Count == 0)
         return;
 
-    PhQueryPerformanceCounter(&seed, NULL);
+    PhQueryPerformanceCounter(&seed);
 
     for (i = 0; i < Count - 1; i++)
     {
@@ -1390,7 +1390,7 @@ ULONG64 PhGenerateRandomNumber64(
 {
     LARGE_INTEGER seed;
 
-    PhQueryPerformanceCounter(&seed, NULL);
+    PhQueryPerformanceCounter(&seed);
 
     return (ULONG64)RtlRandomEx(&seed.LowPart) | ((ULONG64)RtlRandomEx(&seed.LowPart) << 31);
 }
@@ -7409,50 +7409,28 @@ ULONGLONG PhReadTimeStampCounter(
     return ReadTimeStampCounter();
 }
 
-VOID PhQueryPerformanceCounter(
-    _Out_ PLARGE_INTEGER PerformanceCounter,
-    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+// rev from QueryPerformanceCounter (dmex)
+BOOLEAN PhQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter
     )
 {
-    if (PerformanceFrequency)
-    {
-        RtlQueryPerformanceFrequency(PerformanceFrequency);
-    }
-
-    RtlQueryPerformanceCounter(PerformanceCounter);
-
-    //if (RtlQueryPerformanceCounter(PerformanceCounter))
-    //{
-    //    if (PerformanceFrequency)
-    //    {
-    //        if (RtlQueryPerformanceFrequency(PerformanceFrequency))
-    //            return TRUE;
-    //    }
-    //    else
-    //    {
-    //        return TRUE;
-    //    }
-    //}
-    //
-    //return NT_SUCCESS(NtQueryPerformanceCounter(PerformanceCounter, PerformanceFrequency));
+    if (RtlQueryPerformanceCounter(PerformanceCounter))
+        return TRUE;
+    
+    return NT_SUCCESS(NtQueryPerformanceCounter(PerformanceCounter, NULL));
 }
 
-VOID PhQueryPerformanceFrequency(
+// rev from QueryPerformanceFrequency (dmex)
+BOOLEAN PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
     )
 {
-    RtlQueryPerformanceFrequency(PerformanceFrequency);
+    LARGE_INTEGER performanceCounter;
 
-    //if (RtlQueryPerformanceFrequency(PerformanceFrequency))
-    //{
-    //    return TRUE;
-    //}
-    //else
-    //{
-    //    LARGE_INTEGER performanceCounter;
-    //
-    //    return NT_SUCCESS(NtQueryPerformanceCounter(&performanceCounter, PerformanceFrequency));
-    //}
+    if (RtlQueryPerformanceFrequency(PerformanceFrequency))
+        return TRUE;
+
+    return NT_SUCCESS(NtQueryPerformanceCounter(&performanceCounter, PerformanceFrequency));
 }
 
 PPH_STRING PhApiSetResolveToHost(

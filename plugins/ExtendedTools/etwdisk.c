@@ -76,7 +76,8 @@ VOID EtInitializeDiskInformation(
     RtlInitializeSListHead(&EtDiskPacketListHead);
     EtFileNameHashtable = PhCreateSimpleHashtable(128);
 
-    PhQueryPerformanceCounter(&performanceCounter, &EtpPerformanceFrequency);
+    PhQueryPerformanceCounter(&performanceCounter);
+    PhQueryPerformanceFrequency(&EtpPerformanceFrequency);
 
     EtDiskEnabled = TRUE;
 

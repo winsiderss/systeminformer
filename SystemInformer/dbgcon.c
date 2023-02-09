@@ -470,7 +470,8 @@ static VOID PhStartStopwatch(
     _Inout_ PSTOPWATCH Stopwatch
     )
 {
-    NtQueryPerformanceCounter(&Stopwatch->StartCounter, &Stopwatch->Frequency);
+    PhQueryPerformanceCounter(&Stopwatch->StartCounter);
+    PhQueryPerformanceFrequency(&Stopwatch->Frequency);
 }
 
 static VOID PhStopStopwatch(
