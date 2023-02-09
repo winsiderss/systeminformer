@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -125,7 +125,7 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
 }
 
 NTSTATUS PhpGetObjectBasicInformation(
-    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     )
@@ -175,7 +175,7 @@ NTSTATUS PhpGetObjectBasicInformation(
 }
 
 NTSTATUS PhpGetObjectTypeName(
-    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _In_ ULONG ObjectTypeNumber,
     _Out_ PPH_STRING *TypeName

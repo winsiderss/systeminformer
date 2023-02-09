@@ -1254,7 +1254,7 @@ VOID PhpFreeThreadStackItem(
 
 BOOLEAN NTAPI PhpWalkThreadStackCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_THREAD_STACK_CONTEXT threadStackContext = (PPH_THREAD_STACK_CONTEXT)Context;
@@ -1266,8 +1266,6 @@ BOOLEAN NTAPI PhpWalkThreadStackCallback(
     BOOLEAN enableStackFrameInlineInfo;
     BOOLEAN enableStackFrameLineInfo;
 
-    if (!threadStackContext)
-        return FALSE;
     if (threadStackContext->StopWalk)
         return FALSE;
 

@@ -29,16 +29,11 @@
 static PH_STRINGREF EmptyThreadsText = PH_STRINGREF_INIT(L"There are no threads to display.");
 
 static VOID NTAPI ThreadAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
-    if (!Parameter)
-        return;
 
     // Parameter contains a pointer to the added thread item.
     PhReferenceObject(Parameter);
@@ -46,53 +41,41 @@ static VOID NTAPI ThreadAddedHandler(
 }
 
 static VOID NTAPI ThreadModifiedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderModifiedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadRemovedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PhPushProviderEventQueue(&threadsContext->EventQueue, ProviderRemovedEvent, Parameter, (ULONG)threadsContext->Provider->RunId);
 }
 
 static VOID NTAPI ThreadsUpdatedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, (ULONG)threadsContext->Provider->RunId, threadsContext->Provider->RunId == 1);
 }
 
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
-
-    if (!threadsContext)
-        return;
 
     //PostMessage(
     //    threadsContext->ListContext.TreeNewHandle,
@@ -753,16 +736,13 @@ VOID PhpProcessThreadsSave(
 }
 
 VOID PhpSymbolProviderEventCallbackThreadStatus(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_SYMBOL_EVENT_DATA event = Parameter;
     PPH_THREADS_CONTEXT context = Context;
     PPH_STRING statusMessage = NULL;
-
-    if (!event) return;
-    if (!context) return;
 
     switch (event->EventType)
     {
