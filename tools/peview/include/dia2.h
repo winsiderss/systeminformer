@@ -3,7 +3,7 @@
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
 
- /* File created by MIDL compiler version 8.01.0622 */
+ /* File created by MIDL compiler version 8.01.0626 */
 /* @@MIDL_FILE_HEADING(  ) */
 
 #pragma warning( disable: 4049 )  /* more than 64k source lines */
@@ -89,6 +89,13 @@ typedef interface IDiaEnumSymbolsByAddr IDiaEnumSymbolsByAddr;
 #endif 	/* __IDiaEnumSymbolsByAddr_FWD_DEFINED__ */
 
 
+#ifndef __IDiaEnumSymbolsByAddr2_FWD_DEFINED__
+#define __IDiaEnumSymbolsByAddr2_FWD_DEFINED__
+typedef interface IDiaEnumSymbolsByAddr2 IDiaEnumSymbolsByAddr2;
+
+#endif 	/* __IDiaEnumSymbolsByAddr2_FWD_DEFINED__ */
+
+
 #ifndef __IDiaEnumSourceFiles_FWD_DEFINED__
 #define __IDiaEnumSourceFiles_FWD_DEFINED__
 typedef interface IDiaEnumSourceFiles IDiaEnumSourceFiles;
@@ -171,6 +178,76 @@ typedef interface IDiaSession IDiaSession;
 typedef interface IDiaSymbol IDiaSymbol;
 
 #endif 	/* __IDiaSymbol_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol2_FWD_DEFINED__
+#define __IDiaSymbol2_FWD_DEFINED__
+typedef interface IDiaSymbol2 IDiaSymbol2;
+
+#endif 	/* __IDiaSymbol2_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol3_FWD_DEFINED__
+#define __IDiaSymbol3_FWD_DEFINED__
+typedef interface IDiaSymbol3 IDiaSymbol3;
+
+#endif 	/* __IDiaSymbol3_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol4_FWD_DEFINED__
+#define __IDiaSymbol4_FWD_DEFINED__
+typedef interface IDiaSymbol4 IDiaSymbol4;
+
+#endif 	/* __IDiaSymbol4_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol5_FWD_DEFINED__
+#define __IDiaSymbol5_FWD_DEFINED__
+typedef interface IDiaSymbol5 IDiaSymbol5;
+
+#endif 	/* __IDiaSymbol5_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol6_FWD_DEFINED__
+#define __IDiaSymbol6_FWD_DEFINED__
+typedef interface IDiaSymbol6 IDiaSymbol6;
+
+#endif 	/* __IDiaSymbol6_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol7_FWD_DEFINED__
+#define __IDiaSymbol7_FWD_DEFINED__
+typedef interface IDiaSymbol7 IDiaSymbol7;
+
+#endif 	/* __IDiaSymbol7_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol8_FWD_DEFINED__
+#define __IDiaSymbol8_FWD_DEFINED__
+typedef interface IDiaSymbol8 IDiaSymbol8;
+
+#endif 	/* __IDiaSymbol8_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol9_FWD_DEFINED__
+#define __IDiaSymbol9_FWD_DEFINED__
+typedef interface IDiaSymbol9 IDiaSymbol9;
+
+#endif 	/* __IDiaSymbol9_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol10_FWD_DEFINED__
+#define __IDiaSymbol10_FWD_DEFINED__
+typedef interface IDiaSymbol10 IDiaSymbol10;
+
+#endif 	/* __IDiaSymbol10_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol11_FWD_DEFINED__
+#define __IDiaSymbol11_FWD_DEFINED__
+typedef interface IDiaSymbol11 IDiaSymbol11;
+
+#endif 	/* __IDiaSymbol11_FWD_DEFINED__ */
 
 
 #ifndef __IDiaSourceFile_FWD_DEFINED__
@@ -284,6 +361,111 @@ typedef struct DiaStackWalker DiaStackWalker;
 #endif /* __cplusplus */
 
 #endif 	/* __DiaStackWalker_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSectionContrib_FWD_DEFINED__
+#define __IDiaSectionContrib_FWD_DEFINED__
+typedef interface IDiaSectionContrib IDiaSectionContrib;
+
+#endif 	/* __IDiaSectionContrib_FWD_DEFINED__ */
+
+
+#ifndef __IDiaEnumSectionContribs_FWD_DEFINED__
+#define __IDiaEnumSectionContribs_FWD_DEFINED__
+typedef interface IDiaEnumSectionContribs IDiaEnumSectionContribs;
+
+#endif 	/* __IDiaEnumSectionContribs_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol_FWD_DEFINED__
+#define __IDiaSymbol_FWD_DEFINED__
+typedef interface IDiaSymbol IDiaSymbol;
+
+#endif 	/* __IDiaSymbol_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol2_FWD_DEFINED__
+#define __IDiaSymbol2_FWD_DEFINED__
+typedef interface IDiaSymbol2 IDiaSymbol2;
+
+#endif 	/* __IDiaSymbol2_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol3_FWD_DEFINED__
+#define __IDiaSymbol3_FWD_DEFINED__
+typedef interface IDiaSymbol3 IDiaSymbol3;
+
+#endif 	/* __IDiaSymbol3_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol4_FWD_DEFINED__
+#define __IDiaSymbol4_FWD_DEFINED__
+typedef interface IDiaSymbol4 IDiaSymbol4;
+
+#endif 	/* __IDiaSymbol4_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol5_FWD_DEFINED__
+#define __IDiaSymbol5_FWD_DEFINED__
+typedef interface IDiaSymbol5 IDiaSymbol5;
+
+#endif 	/* __IDiaSymbol5_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol6_FWD_DEFINED__
+#define __IDiaSymbol6_FWD_DEFINED__
+typedef interface IDiaSymbol6 IDiaSymbol6;
+
+#endif 	/* __IDiaSymbol6_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol7_FWD_DEFINED__
+#define __IDiaSymbol7_FWD_DEFINED__
+typedef interface IDiaSymbol7 IDiaSymbol7;
+
+#endif 	/* __IDiaSymbol7_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol8_FWD_DEFINED__
+#define __IDiaSymbol8_FWD_DEFINED__
+typedef interface IDiaSymbol8 IDiaSymbol8;
+
+#endif 	/* __IDiaSymbol8_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol9_FWD_DEFINED__
+#define __IDiaSymbol9_FWD_DEFINED__
+typedef interface IDiaSymbol9 IDiaSymbol9;
+
+#endif 	/* __IDiaSymbol9_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol10_FWD_DEFINED__
+#define __IDiaSymbol10_FWD_DEFINED__
+typedef interface IDiaSymbol10 IDiaSymbol10;
+
+#endif 	/* __IDiaSymbol10_FWD_DEFINED__ */
+
+
+#ifndef __IDiaSymbol11_FWD_DEFINED__
+#define __IDiaSymbol11_FWD_DEFINED__
+typedef interface IDiaSymbol11 IDiaSymbol11;
+
+#endif 	/* __IDiaSymbol11_FWD_DEFINED__ */
+
+
+#ifndef __IDiaEnumSymbolsByAddr_FWD_DEFINED__
+#define __IDiaEnumSymbolsByAddr_FWD_DEFINED__
+typedef interface IDiaEnumSymbolsByAddr IDiaEnumSymbolsByAddr;
+
+#endif 	/* __IDiaEnumSymbolsByAddr_FWD_DEFINED__ */
+
+
+#ifndef __IDiaEnumSymbolsByAddr2_FWD_DEFINED__
+#define __IDiaEnumSymbolsByAddr2_FWD_DEFINED__
+typedef interface IDiaEnumSymbolsByAddr2 IDiaEnumSymbolsByAddr2;
+
+#endif 	/* __IDiaEnumSymbolsByAddr2_FWD_DEFINED__ */
 
 
 #ifndef __IDiaPropertyStorage_FWD_DEFINED__
@@ -1327,6 +1509,203 @@ EXTERN_C const IID IID_IDiaEnumSymbolsByAddr;
 
 
 #endif 	/* __IDiaEnumSymbolsByAddr_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaEnumSymbolsByAddr2_INTERFACE_DEFINED__
+#define __IDiaEnumSymbolsByAddr2_INTERFACE_DEFINED__
+
+/* interface IDiaEnumSymbolsByAddr2 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaEnumSymbolsByAddr2;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("1E45BD02-BE45-4D71-BA32-0E576CFCD59F")
+    IDiaEnumSymbolsByAddr2 : public IDiaEnumSymbolsByAddr
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE symbolByAddrEx( 
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE symbolByRVAEx( 
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ DWORD relativeVirtualAddress,
+            /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE symbolByVAEx( 
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ ULONGLONG virtualAddress,
+            /* [retval][out] */ IDiaSymbol **ppSymbol) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE NextEx( 
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ ULONG celt,
+            /* [out] */ IDiaSymbol **rgelt,
+            /* [out] */ ULONG *pceltFetched) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE PrevEx( 
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ ULONG celt,
+            /* [out] */ IDiaSymbol **rgelt,
+            /* [out] */ ULONG *pceltFetched) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaEnumSymbolsByAddr2Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaEnumSymbolsByAddr2 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaEnumSymbolsByAddr2 * This);
+        
+        /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE *symbolByAddr )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [retval][out] */ IDiaSymbol **ppSymbol);
+        
+        /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE *symbolByRVA )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ DWORD relativeVirtualAddress,
+            /* [retval][out] */ IDiaSymbol **ppSymbol);
+        
+        /* [helpstring] */ HRESULT ( STDMETHODCALLTYPE *symbolByVA )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ ULONGLONG virtualAddress,
+            /* [retval][out] */ IDiaSymbol **ppSymbol);
+        
+        HRESULT ( STDMETHODCALLTYPE *Next )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ ULONG celt,
+            /* [out] */ IDiaSymbol **rgelt,
+            /* [out] */ ULONG *pceltFetched);
+        
+        HRESULT ( STDMETHODCALLTYPE *Prev )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ ULONG celt,
+            /* [out] */ IDiaSymbol **rgelt,
+            /* [out] */ ULONG *pceltFetched);
+        
+        HRESULT ( STDMETHODCALLTYPE *Clone )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [out] */ IDiaEnumSymbolsByAddr **ppenum);
+        
+        HRESULT ( STDMETHODCALLTYPE *symbolByAddrEx )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [retval][out] */ IDiaSymbol **ppSymbol);
+        
+        HRESULT ( STDMETHODCALLTYPE *symbolByRVAEx )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ DWORD relativeVirtualAddress,
+            /* [retval][out] */ IDiaSymbol **ppSymbol);
+        
+        HRESULT ( STDMETHODCALLTYPE *symbolByVAEx )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ ULONGLONG virtualAddress,
+            /* [retval][out] */ IDiaSymbol **ppSymbol);
+        
+        HRESULT ( STDMETHODCALLTYPE *NextEx )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ ULONG celt,
+            /* [out] */ IDiaSymbol **rgelt,
+            /* [out] */ ULONG *pceltFetched);
+        
+        HRESULT ( STDMETHODCALLTYPE *PrevEx )( 
+            IDiaEnumSymbolsByAddr2 * This,
+            /* [in] */ BOOL fPromoteBlockSym,
+            /* [in] */ ULONG celt,
+            /* [out] */ IDiaSymbol **rgelt,
+            /* [out] */ ULONG *pceltFetched);
+        
+        END_INTERFACE
+    } IDiaEnumSymbolsByAddr2Vtbl;
+
+    interface IDiaEnumSymbolsByAddr2
+    {
+        CONST_VTBL struct IDiaEnumSymbolsByAddr2Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaEnumSymbolsByAddr2_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaEnumSymbolsByAddr2_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaEnumSymbolsByAddr2_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaEnumSymbolsByAddr2_symbolByAddr(This,isect,offset,ppSymbol)	\
+    ( (This)->lpVtbl -> symbolByAddr(This,isect,offset,ppSymbol) ) 
+
+#define IDiaEnumSymbolsByAddr2_symbolByRVA(This,relativeVirtualAddress,ppSymbol)	\
+    ( (This)->lpVtbl -> symbolByRVA(This,relativeVirtualAddress,ppSymbol) ) 
+
+#define IDiaEnumSymbolsByAddr2_symbolByVA(This,virtualAddress,ppSymbol)	\
+    ( (This)->lpVtbl -> symbolByVA(This,virtualAddress,ppSymbol) ) 
+
+#define IDiaEnumSymbolsByAddr2_Next(This,celt,rgelt,pceltFetched)	\
+    ( (This)->lpVtbl -> Next(This,celt,rgelt,pceltFetched) ) 
+
+#define IDiaEnumSymbolsByAddr2_Prev(This,celt,rgelt,pceltFetched)	\
+    ( (This)->lpVtbl -> Prev(This,celt,rgelt,pceltFetched) ) 
+
+#define IDiaEnumSymbolsByAddr2_Clone(This,ppenum)	\
+    ( (This)->lpVtbl -> Clone(This,ppenum) ) 
+
+
+#define IDiaEnumSymbolsByAddr2_symbolByAddrEx(This,fPromoteBlockSym,isect,offset,ppSymbol)	\
+    ( (This)->lpVtbl -> symbolByAddrEx(This,fPromoteBlockSym,isect,offset,ppSymbol) ) 
+
+#define IDiaEnumSymbolsByAddr2_symbolByRVAEx(This,fPromoteBlockSym,relativeVirtualAddress,ppSymbol)	\
+    ( (This)->lpVtbl -> symbolByRVAEx(This,fPromoteBlockSym,relativeVirtualAddress,ppSymbol) ) 
+
+#define IDiaEnumSymbolsByAddr2_symbolByVAEx(This,fPromoteBlockSym,virtualAddress,ppSymbol)	\
+    ( (This)->lpVtbl -> symbolByVAEx(This,fPromoteBlockSym,virtualAddress,ppSymbol) ) 
+
+#define IDiaEnumSymbolsByAddr2_NextEx(This,fPromoteBlockSym,celt,rgelt,pceltFetched)	\
+    ( (This)->lpVtbl -> NextEx(This,fPromoteBlockSym,celt,rgelt,pceltFetched) ) 
+
+#define IDiaEnumSymbolsByAddr2_PrevEx(This,fPromoteBlockSym,celt,rgelt,pceltFetched)	\
+    ( (This)->lpVtbl -> PrevEx(This,fPromoteBlockSym,celt,rgelt,pceltFetched) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __IDiaEnumSymbolsByAddr2_INTERFACE_DEFINED__ */
 
 
 #ifndef __IDiaEnumSourceFiles_INTERFACE_DEFINED__
@@ -2667,7 +3046,7 @@ EXTERN_C const IID IID_IDiaEnumDebugStreams;
 #endif 	/* __IDiaEnumDebugStreams_INTERFACE_DEFINED__ */
 
 
-/* interface __MIDL_itf_dia2_0000_0016 */
+/* interface __MIDL_itf_dia2_0000_0017 */
 /* [local] */ 
 
 struct DiaAddressMapEntry
@@ -2677,8 +3056,8 @@ struct DiaAddressMapEntry
     } ;
 
 
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0016_v0_0_c_ifspec;
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0016_v0_0_s_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0017_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0017_v0_0_s_ifspec;
 
 #ifndef __IDiaAddressMap_INTERFACE_DEFINED__
 #define __IDiaAddressMap_INTERFACE_DEFINED__
@@ -7620,6 +7999,18866 @@ void __RPC_STUB IDiaSymbol_get_bindSlot_Stub(
 #endif 	/* __IDiaSymbol_INTERFACE_DEFINED__ */
 
 
+#ifndef __IDiaSymbol2_INTERFACE_DEFINED__
+#define __IDiaSymbol2_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol2 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol2;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("611e86cd-b7d1-4546-8a15-070e2b07a427")
+    IDiaSymbol2 : public IDiaSymbol
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isObjCClass( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isObjCCategory( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isObjCProtocol( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol2Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol2 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol2 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol2 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol2 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol2 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol2 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol2 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol2 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol2 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol2 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol2 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol2 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol2 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol2 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol2 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol2Vtbl;
+
+    interface IDiaSymbol2
+    {
+        CONST_VTBL struct IDiaSymbol2Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol2_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol2_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol2_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol2_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol2_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol2_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol2_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol2_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol2_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol2_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol2_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol2_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol2_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol2_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol2_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol2_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol2_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol2_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol2_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol2_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol2_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol2_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol2_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol2_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol2_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol2_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol2_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol2_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol2_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol2_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol2_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol2_get_isObjCClass_Proxy( 
+    IDiaSymbol2 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol2_get_isObjCClass_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol2_get_isObjCCategory_Proxy( 
+    IDiaSymbol2 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol2_get_isObjCCategory_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol2_get_isObjCProtocol_Proxy( 
+    IDiaSymbol2 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol2_get_isObjCProtocol_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol2_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol3_INTERFACE_DEFINED__
+#define __IDiaSymbol3_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol3 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol3;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("99b665f7-c1b2-49d3-89b2-a384361acab5")
+    IDiaSymbol3 : public IDiaSymbol2
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_inlinee( 
+            /* [retval][out] */ IDiaSymbol **pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_inlineeId( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol3Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol3 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol3 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol3 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol3 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol3 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol3 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol3 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol3 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol3 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol3 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol3 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol3 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol3 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol3 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol3 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol3Vtbl;
+
+    interface IDiaSymbol3
+    {
+        CONST_VTBL struct IDiaSymbol3Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol3_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol3_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol3_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol3_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol3_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol3_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol3_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol3_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol3_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol3_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol3_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol3_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol3_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol3_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol3_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol3_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol3_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol3_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol3_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol3_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol3_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol3_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol3_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol3_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol3_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol3_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol3_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol3_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol3_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol3_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol3_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol3_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol3_get_inlinee_Proxy( 
+    IDiaSymbol3 * This,
+    /* [retval][out] */ IDiaSymbol **pRetVal);
+
+
+void __RPC_STUB IDiaSymbol3_get_inlinee_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol3_get_inlineeId_Proxy( 
+    IDiaSymbol3 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol3_get_inlineeId_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol3_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol4_INTERFACE_DEFINED__
+#define __IDiaSymbol4_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol4 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol4;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("bf6c88a7-e9d6-4346-99a1-d053de5a7808")
+    IDiaSymbol4 : public IDiaSymbol3
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_noexcept( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol4Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol4 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol4 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol4 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol4 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol4 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol4 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol4 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol4 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol4 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol4 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol4 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol4 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol4 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol4 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol4 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol4Vtbl;
+
+    interface IDiaSymbol4
+    {
+        CONST_VTBL struct IDiaSymbol4Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol4_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol4_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol4_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol4_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol4_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol4_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol4_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol4_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol4_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol4_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol4_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol4_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol4_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol4_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol4_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol4_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol4_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol4_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol4_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol4_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol4_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol4_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol4_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol4_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol4_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol4_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol4_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol4_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol4_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol4_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol4_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol4_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol4_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol4_get_noexcept_Proxy( 
+    IDiaSymbol4 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol4_get_noexcept_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol4_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol5_INTERFACE_DEFINED__
+#define __IDiaSymbol5_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol5 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol5;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("abe2de00-dc2d-4793-af9a-ef1d90832644")
+    IDiaSymbol5 : public IDiaSymbol4
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_hasAbsoluteAddress( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol5Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol5 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol5 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol5 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol5 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol5 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol5 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol5 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol5 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol5 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol5 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol5 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol5 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol5 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol5 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAbsoluteAddress )( 
+            IDiaSymbol5 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol5Vtbl;
+
+    interface IDiaSymbol5
+    {
+        CONST_VTBL struct IDiaSymbol5Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol5_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol5_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol5_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol5_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol5_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol5_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol5_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol5_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol5_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol5_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol5_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol5_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol5_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol5_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol5_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol5_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol5_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol5_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol5_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol5_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol5_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol5_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol5_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol5_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol5_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol5_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol5_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol5_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol5_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol5_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol5_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol5_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol5_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+
+#define IDiaSymbol5_get_hasAbsoluteAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAbsoluteAddress(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol5_get_hasAbsoluteAddress_Proxy( 
+    IDiaSymbol5 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol5_get_hasAbsoluteAddress_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol5_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol6_INTERFACE_DEFINED__
+#define __IDiaSymbol6_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol6 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol6;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("8133dad3-75fe-4234-ac7e-f8e7a1d3cbb3")
+    IDiaSymbol6 : public IDiaSymbol5
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isStaticMemberFunc( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol6Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol6 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol6 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol6 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol6 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol6 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol6 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol6 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol6 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol6 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol6 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol6 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol6 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol6 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol6 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAbsoluteAddress )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStaticMemberFunc )( 
+            IDiaSymbol6 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol6Vtbl;
+
+    interface IDiaSymbol6
+    {
+        CONST_VTBL struct IDiaSymbol6Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol6_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol6_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol6_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol6_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol6_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol6_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol6_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol6_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol6_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol6_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol6_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol6_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol6_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol6_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol6_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol6_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol6_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol6_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol6_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol6_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol6_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol6_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol6_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol6_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol6_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol6_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol6_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol6_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol6_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol6_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol6_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol6_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol6_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+
+#define IDiaSymbol6_get_hasAbsoluteAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAbsoluteAddress(This,pRetVal) ) 
+
+
+#define IDiaSymbol6_get_isStaticMemberFunc(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStaticMemberFunc(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol6_get_isStaticMemberFunc_Proxy( 
+    IDiaSymbol6 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol6_get_isStaticMemberFunc_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol6_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol7_INTERFACE_DEFINED__
+#define __IDiaSymbol7_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol7 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol7;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("64ce6cd5-7315-4328-86d6-10e303e010b4")
+    IDiaSymbol7 : public IDiaSymbol6
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isSignRet( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol7Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol7 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol7 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol7 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol7 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol7 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol7 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol7 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol7 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol7 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol7 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol7 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol7 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol7 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol7 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAbsoluteAddress )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStaticMemberFunc )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSignRet )( 
+            IDiaSymbol7 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol7Vtbl;
+
+    interface IDiaSymbol7
+    {
+        CONST_VTBL struct IDiaSymbol7Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol7_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol7_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol7_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol7_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol7_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol7_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol7_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol7_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol7_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol7_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol7_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol7_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol7_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol7_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol7_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol7_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol7_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol7_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol7_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol7_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol7_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol7_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol7_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol7_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol7_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol7_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol7_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol7_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol7_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol7_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol7_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol7_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol7_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+
+#define IDiaSymbol7_get_hasAbsoluteAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAbsoluteAddress(This,pRetVal) ) 
+
+
+#define IDiaSymbol7_get_isStaticMemberFunc(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStaticMemberFunc(This,pRetVal) ) 
+
+
+#define IDiaSymbol7_get_isSignRet(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSignRet(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol7_get_isSignRet_Proxy( 
+    IDiaSymbol7 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol7_get_isSignRet_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol7_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol8_INTERFACE_DEFINED__
+#define __IDiaSymbol8_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol8 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol8;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("7f2e041f-1294-41bd-b83a-e715972d2ce3")
+    IDiaSymbol8 : public IDiaSymbol7
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_coroutineKind( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolKind( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolSection( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolOffset( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolRva( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_associatedSymbolAddr( 
+            /* [retval][out] */ ULONGLONG *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol8Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol8 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol8 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol8 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol8 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol8 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol8 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol8 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol8 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol8 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol8 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol8 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol8 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol8 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol8 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAbsoluteAddress )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStaticMemberFunc )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSignRet )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coroutineKind )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolKind )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolSection )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolOffset )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolRva )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolAddr )( 
+            IDiaSymbol8 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol8Vtbl;
+
+    interface IDiaSymbol8
+    {
+        CONST_VTBL struct IDiaSymbol8Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol8_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol8_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol8_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol8_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol8_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol8_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol8_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol8_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol8_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol8_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol8_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol8_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol8_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol8_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol8_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol8_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol8_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol8_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol8_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol8_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol8_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol8_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol8_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol8_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol8_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol8_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol8_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol8_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol8_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol8_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol8_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol8_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+
+#define IDiaSymbol8_get_hasAbsoluteAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAbsoluteAddress(This,pRetVal) ) 
+
+
+#define IDiaSymbol8_get_isStaticMemberFunc(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStaticMemberFunc(This,pRetVal) ) 
+
+
+#define IDiaSymbol8_get_isSignRet(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSignRet(This,pRetVal) ) 
+
+
+#define IDiaSymbol8_get_coroutineKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coroutineKind(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_associatedSymbolKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolKind(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_associatedSymbolSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolSection(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_associatedSymbolOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolOffset(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_associatedSymbolRva(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolRva(This,pRetVal) ) 
+
+#define IDiaSymbol8_get_associatedSymbolAddr(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolAddr(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol8_get_coroutineKind_Proxy( 
+    IDiaSymbol8 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol8_get_coroutineKind_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol8_get_associatedSymbolKind_Proxy( 
+    IDiaSymbol8 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol8_get_associatedSymbolKind_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol8_get_associatedSymbolSection_Proxy( 
+    IDiaSymbol8 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol8_get_associatedSymbolSection_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol8_get_associatedSymbolOffset_Proxy( 
+    IDiaSymbol8 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol8_get_associatedSymbolOffset_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol8_get_associatedSymbolRva_Proxy( 
+    IDiaSymbol8 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol8_get_associatedSymbolRva_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol8_get_associatedSymbolAddr_Proxy( 
+    IDiaSymbol8 * This,
+    /* [retval][out] */ ULONGLONG *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol8_get_associatedSymbolAddr_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol8_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol9_INTERFACE_DEFINED__
+#define __IDiaSymbol9_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol9 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol9;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("a89e5969-92a1-4f8a-b704-00121c37abbb")
+    IDiaSymbol9 : public IDiaSymbol8
+    {
+    public:
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_framePadSize( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_framePadOffset( 
+            /* [retval][out] */ DWORD *pRetVal) = 0;
+        
+        virtual /* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE get_isRTCs( 
+            /* [retval][out] */ BOOL *pRetVal) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol9Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol9 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol9 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol9 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol9 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol9 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol9 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol9 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol9 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol9 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol9 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol9 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol9 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol9 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol9 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAbsoluteAddress )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStaticMemberFunc )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSignRet )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coroutineKind )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolKind )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolSection )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolRva )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolAddr )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePadSize )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePadOffset )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRTCs )( 
+            IDiaSymbol9 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        END_INTERFACE
+    } IDiaSymbol9Vtbl;
+
+    interface IDiaSymbol9
+    {
+        CONST_VTBL struct IDiaSymbol9Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol9_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol9_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol9_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol9_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol9_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol9_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol9_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol9_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol9_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol9_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol9_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol9_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol9_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol9_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol9_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol9_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol9_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol9_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol9_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol9_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol9_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol9_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol9_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol9_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol9_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol9_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol9_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol9_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol9_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_hasAbsoluteAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAbsoluteAddress(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_isStaticMemberFunc(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStaticMemberFunc(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_isSignRet(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSignRet(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_coroutineKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coroutineKind(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_associatedSymbolKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolKind(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_associatedSymbolSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolSection(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_associatedSymbolOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_associatedSymbolRva(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolRva(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_associatedSymbolAddr(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolAddr(This,pRetVal) ) 
+
+
+#define IDiaSymbol9_get_framePadSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePadSize(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_framePadOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePadOffset(This,pRetVal) ) 
+
+#define IDiaSymbol9_get_isRTCs(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRTCs(This,pRetVal) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol9_get_framePadSize_Proxy( 
+    IDiaSymbol9 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol9_get_framePadSize_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol9_get_framePadOffset_Proxy( 
+    IDiaSymbol9 * This,
+    /* [retval][out] */ DWORD *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol9_get_framePadOffset_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+/* [id][helpstring][propget] */ HRESULT STDMETHODCALLTYPE IDiaSymbol9_get_isRTCs_Proxy( 
+    IDiaSymbol9 * This,
+    /* [retval][out] */ BOOL *pRetVal);
+
+
+void __RPC_STUB IDiaSymbol9_get_isRTCs_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol9_INTERFACE_DEFINED__ */
+
+
+#ifndef __IDiaSymbol10_INTERFACE_DEFINED__
+#define __IDiaSymbol10_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol10 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol10;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("9034a70b-b0b7-4605-8a97-33772f3a7b8c")
+    IDiaSymbol10 : public IDiaSymbol9
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE get_sourceLink( 
+            /* [in] */ DWORD cb,
+            /* [out] */ DWORD *pcb,
+            /* [size_is][out] */ BYTE *pb) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol10Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol10 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol10 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol10 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol10 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol10 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol10 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol10 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol10 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol10 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol10 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol10 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol10 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol10 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAbsoluteAddress )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStaticMemberFunc )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSignRet )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coroutineKind )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolKind )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolSection )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolRva )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolAddr )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePadSize )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePadOffset )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRTCs )( 
+            IDiaSymbol10 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_sourceLink )( 
+            IDiaSymbol10 * This,
+            /* [in] */ DWORD cb,
+            /* [out] */ DWORD *pcb,
+            /* [size_is][out] */ BYTE *pb);
+        
+        END_INTERFACE
+    } IDiaSymbol10Vtbl;
+
+    interface IDiaSymbol10
+    {
+        CONST_VTBL struct IDiaSymbol10Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol10_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol10_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol10_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol10_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol10_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol10_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol10_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol10_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol10_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol10_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol10_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol10_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol10_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol10_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol10_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol10_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol10_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol10_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol10_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol10_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol10_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol10_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol10_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol10_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol10_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol10_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol10_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol10_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol10_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_hasAbsoluteAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAbsoluteAddress(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_isStaticMemberFunc(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStaticMemberFunc(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_isSignRet(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSignRet(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_coroutineKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coroutineKind(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_associatedSymbolKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolKind(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_associatedSymbolSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolSection(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_associatedSymbolOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_associatedSymbolRva(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolRva(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_associatedSymbolAddr(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolAddr(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_framePadSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePadSize(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_framePadOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePadOffset(This,pRetVal) ) 
+
+#define IDiaSymbol10_get_isRTCs(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRTCs(This,pRetVal) ) 
+
+
+#define IDiaSymbol10_get_sourceLink(This,cb,pcb,pb)	\
+    ( (This)->lpVtbl -> get_sourceLink(This,cb,pcb,pb) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+HRESULT STDMETHODCALLTYPE IDiaSymbol10_get_sourceLink_Proxy( 
+    IDiaSymbol10 * This,
+    /* [in] */ DWORD cb,
+    /* [out] */ DWORD *pcb,
+    /* [size_is][out] */ BYTE *pb);
+
+
+void __RPC_STUB IDiaSymbol10_get_sourceLink_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol10_INTERFACE_DEFINED__ */
+
+
+/* interface __MIDL_itf_dia2_0000_0029 */
+/* [local] */ 
+
+struct DiaTagValue
+    {
+    BYTE value[ 16 ];
+    BYTE valueSizeBytes;
+    } ;
+
+
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0029_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0029_v0_0_s_ifspec;
+
+#ifndef __IDiaSymbol11_INTERFACE_DEFINED__
+#define __IDiaSymbol11_INTERFACE_DEFINED__
+
+/* interface IDiaSymbol11 */
+/* [unique][helpstring][local][uuid][object] */ 
+
+
+EXTERN_C const IID IID_IDiaSymbol11;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("b6f54fcd-05e3-433d-b305-b0c1437d2d16")
+    IDiaSymbol11 : public IDiaSymbol10
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE get_discriminatedUnionTag( 
+            /* [out] */ IDiaSymbol **ppTagType,
+            /* [out] */ DWORD *pTagOffset,
+            /* [out] */ struct DiaTagValue *pTagMask) = 0;
+        
+        virtual HRESULT STDMETHODCALLTYPE get_tagRanges( 
+            /* [in] */ DWORD count,
+            /* [out] */ DWORD *pcRangeValues,
+            /* [size_is][out] */ struct DiaTagValue *rangeValues) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct IDiaSymbol11Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            IDiaSymbol11 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            IDiaSymbol11 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            IDiaSymbol11 * This);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symIndexId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symTag )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_name )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParent )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParent )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_type )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataKind )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_locationType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressSection )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_relativeVirtualAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_length )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_slot )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_volatileType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unalignedType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_access )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_libraryName )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_platform )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_language )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_editAndContinueEnabled )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMajor )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndMinor )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndBuild )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMajor )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndMinor )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndBuild )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sourceFileName )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unused )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thunkOrdinal )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_thisAdjust )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtual )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intro )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_pure )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_callingConvention )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_value )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ VARIANT *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_token )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_timeStamp )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_guid )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ GUID *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_symbolsFileName )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_reference )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_count )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bitPosition )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_packed )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constructor )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_overloadedOperator )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_nested )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasNestedTypes )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAssignmentOperator )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasCastOperator )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_scoped )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseClass )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_indirectVirtualBaseClass )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBasePointerOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ LONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShape )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lexicalParentId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_classParentId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_typeId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_arrayIndexTypeId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualTableShapeId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_code )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_function )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_managed )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_msil )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseDispIndex )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_undecoratedName )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_age )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_signature )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerGenerated )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_addressTaken )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_rank )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBound )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBound )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_lowerBoundId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_upperBoundId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_dataBytes )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD cbData,
+            /* [out] */ DWORD *pcbData,
+            /* [size_is][out] */ BYTE *pbData);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildren )( 
+            IDiaSymbol11 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenEx )( 
+            IDiaSymbol11 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByAddr )( 
+            IDiaSymbol11 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByVA )( 
+            IDiaSymbol11 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findChildrenExByRVA )( 
+            IDiaSymbol11 * This,
+            /* [in] */ enum SymTagEnum symtag,
+            /* [in] */ LPCOLESTR name,
+            /* [in] */ DWORD compareFlags,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetSection )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetRelativeVirtualAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_targetVirtualAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_machineType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_oemSymbolId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_types )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD cTypes,
+            /* [out] */ DWORD *pcTypes,
+            /* [size_is][size_is][out] */ IDiaSymbol **pTypes);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_typeIds )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD cTypeIds,
+            /* [out] */ DWORD *pcTypeIds,
+            /* [size_is][out] */ DWORD *pdwTypeIds);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectPointerType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_udtKind )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_undecoratedNameEx )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD undecorateOptions,
+            /* [out] */ BSTR *name);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noReturn )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_customCallingConvention )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noInline )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_optimizedCodeDebugInfo )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_notReached )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_interruptReturn )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_farReturn )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStatic )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasDebugInfo )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLTCG )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isDataAligned )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSecurityChecks )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_compilerName )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAlloca )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSetJump )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasLongJump )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasInlAsm )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEH )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasSEH )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasEHa )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isNaked )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAggregated )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSplitted )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_container )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlSpec )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noStackOrdering )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_virtualBaseTableType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasManagedCode )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHotpatchable )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCVTCIL )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMSILNetmodule )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCTypes )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStripped )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frontEndQFE )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_backEndQFE )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_wasInlined )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_strictGSCheck )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isCxxReturnUdt )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isConstructorVirtualBase )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_RValueReference )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePointerPresent )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSafeBuffers )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_intrinsic )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sealed )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaFloat )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hfaDouble )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressSection )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartAddressOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeStartRelativeVirtualAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_countLiveRanges )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_liveRangeLength )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_offsetInUdt )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_paramBasePointerRegisterId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_localBasePointerRegisterId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isLocationControlFlowDependent )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_stride )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRows )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfColumns )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMatrixRowMajor )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_numericProperties )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pProperties);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_modifierValues )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ WORD *pModifiers);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isReturnValue )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedAway )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_builtInKind )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_registerType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataSlot )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseDataOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_textureSlot )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_samplerSlot )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_uavSlot )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_sizeInUdt )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_memorySpaceKind )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_unmodifiedTypeId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subTypeId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_subType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfModifiers )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfRegisterIndices )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isHLSLData )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToDataMember )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerToMemberFunction )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSingleInheritance )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isMultipleInheritance )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isVirtualInheritance )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_restrictedType )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPointerBasedOnSymbolValue )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbol )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_baseSymbolId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_objectFileName )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorGroupSharedLocal )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorPointerTagLiveRange )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isAcceleratorStubFunction )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_numberOfAcceleratorPointerTags )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSdl )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isWinRTPointer )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRefUdt )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isValueUdt )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isInterfaceUdt )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByAddr )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByRVA )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineFramesByVA )( 
+            IDiaSymbol11 * This,
+            /* [in] */ ULONGLONG va,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLines )( 
+            IDiaSymbol11 * This,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByAddr )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD isect,
+            /* [in] */ DWORD offset,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByRVA )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD rva,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInlineeLinesByVA )( 
+            IDiaSymbol11 * This,
+            /* [in] */ ULONGLONG va,
+            /* [in] */ DWORD length,
+            /* [out] */ IDiaEnumLineNumbers **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsForAcceleratorPointerTag )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD tagValue,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *findSymbolsByRVAForAcceleratorPointerTag )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD tagValue,
+            /* [in] */ DWORD rva,
+            /* [out] */ IDiaEnumSymbols **ppResult);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_acceleratorPointerTags )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD cnt,
+            /* [out] */ DWORD *pcnt,
+            /* [size_is][out] */ DWORD *pPointerTags);
+        
+        HRESULT ( STDMETHODCALLTYPE *getSrcLineOnTypeDefn )( 
+            IDiaSymbol11 * This,
+            /* [out] */ IDiaLineNumber **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isPGO )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasValidPGOCounts )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isOptimizedForSpeed )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEntryCount )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGOEdgeCount )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_PGODynamicInstructionCount )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_staticSize )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_finalLiveStaticSize )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_phaseName )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BSTR *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasControlFlowCheck )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_constantExport )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_dataExport )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_privateExport )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noNameExport )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportHasExplicitlyAssignedOrdinal )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exportIsForwarder )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_ordinal )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_frameSize )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressSection )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerAddressOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerRelativeVirtualAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_exceptionHandlerVirtualAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *findInputAssemblyFile )( 
+            IDiaSymbol11 * This,
+            /* [out] */ IDiaInputAssemblyFile **ppResult);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_characteristics )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coffGroup )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindID )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSpace )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_bindSlot )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCClass )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCCategory )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isObjCProtocol )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlinee )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ IDiaSymbol **pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_inlineeId )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_noexcept )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_hasAbsoluteAddress )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isStaticMemberFunc )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isSignRet )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_coroutineKind )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolKind )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolSection )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolRva )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_associatedSymbolAddr )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ ULONGLONG *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePadSize )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_framePadOffset )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ DWORD *pRetVal);
+        
+        /* [id][helpstring][propget] */ HRESULT ( STDMETHODCALLTYPE *get_isRTCs )( 
+            IDiaSymbol11 * This,
+            /* [retval][out] */ BOOL *pRetVal);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_sourceLink )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD cb,
+            /* [out] */ DWORD *pcb,
+            /* [size_is][out] */ BYTE *pb);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_discriminatedUnionTag )( 
+            IDiaSymbol11 * This,
+            /* [out] */ IDiaSymbol **ppTagType,
+            /* [out] */ DWORD *pTagOffset,
+            /* [out] */ struct DiaTagValue *pTagMask);
+        
+        HRESULT ( STDMETHODCALLTYPE *get_tagRanges )( 
+            IDiaSymbol11 * This,
+            /* [in] */ DWORD count,
+            /* [out] */ DWORD *pcRangeValues,
+            /* [size_is][out] */ struct DiaTagValue *rangeValues);
+        
+        END_INTERFACE
+    } IDiaSymbol11Vtbl;
+
+    interface IDiaSymbol11
+    {
+        CONST_VTBL struct IDiaSymbol11Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define IDiaSymbol11_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define IDiaSymbol11_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define IDiaSymbol11_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define IDiaSymbol11_get_symIndexId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symIndexId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_symTag(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symTag(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_name(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_name(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_lexicalParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParent(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_classParent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParent(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_type(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_type(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_dataKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataKind(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_locationType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_locationType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_addressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressSection(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_addressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_relativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_relativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_registerId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_offset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_length(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_length(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_slot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_slot(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_volatileType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_volatileType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_constType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_unalignedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unalignedType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_access(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_access(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_libraryName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_libraryName(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_platform(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_platform(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_language(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_language(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_editAndContinueEnabled(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_editAndContinueEnabled(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_frontEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_frontEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_frontEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_backEndMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMajor(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_backEndMinor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndMinor(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_backEndBuild(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndBuild(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_sourceFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sourceFileName(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_unused(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unused(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_thunkOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thunkOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_thisAdjust(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_thisAdjust(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualBaseOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtual(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtual(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_intro(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intro(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_pure(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_pure(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_callingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_callingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_value(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_value(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_baseType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_token(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_token(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_timeStamp(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_timeStamp(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_guid(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_guid(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_symbolsFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_symbolsFileName(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_reference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_reference(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_count(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_count(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_bitPosition(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bitPosition(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_arrayIndexType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_packed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_packed(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_constructor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constructor(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_overloadedOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_overloadedOperator(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_nested(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_nested(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasNestedTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasNestedTypes(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasAssignmentOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAssignmentOperator(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasCastOperator(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasCastOperator(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_scoped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_scoped(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_indirectVirtualBaseClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_indirectVirtualBaseClass(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualBasePointerOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBasePointerOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualTableShape(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShape(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_lexicalParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lexicalParentId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_classParentId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_classParentId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_typeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_typeId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_arrayIndexTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_arrayIndexTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualTableShapeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualTableShapeId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_code(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_code(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_function(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_function(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_managed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_managed(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_msil(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_msil(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualBaseDispIndex(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseDispIndex(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_undecoratedName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_undecoratedName(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_age(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_age(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_signature(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_signature(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_compilerGenerated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerGenerated(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_addressTaken(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_addressTaken(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_rank(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_rank(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_lowerBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBound(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_upperBound(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBound(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_lowerBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_lowerBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_upperBoundId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_upperBoundId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_dataBytes(This,cbData,pcbData,pbData)	\
+    ( (This)->lpVtbl -> get_dataBytes(This,cbData,pcbData,pbData) ) 
+
+#define IDiaSymbol11_findChildren(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildren(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol11_findChildrenEx(This,symtag,name,compareFlags,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenEx(This,symtag,name,compareFlags,ppResult) ) 
+
+#define IDiaSymbol11_findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByAddr(This,symtag,name,compareFlags,isect,offset,ppResult) ) 
+
+#define IDiaSymbol11_findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByVA(This,symtag,name,compareFlags,va,ppResult) ) 
+
+#define IDiaSymbol11_findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult)	\
+    ( (This)->lpVtbl -> findChildrenExByRVA(This,symtag,name,compareFlags,rva,ppResult) ) 
+
+#define IDiaSymbol11_get_targetSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetSection(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_targetOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_targetRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_targetVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_targetVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_machineType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_machineType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_oemId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_oemSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_oemSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_types(This,cTypes,pcTypes,pTypes)	\
+    ( (This)->lpVtbl -> get_types(This,cTypes,pcTypes,pTypes) ) 
+
+#define IDiaSymbol11_get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds)	\
+    ( (This)->lpVtbl -> get_typeIds(This,cTypeIds,pcTypeIds,pdwTypeIds) ) 
+
+#define IDiaSymbol11_get_objectPointerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectPointerType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_udtKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_udtKind(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_undecoratedNameEx(This,undecorateOptions,name)	\
+    ( (This)->lpVtbl -> get_undecoratedNameEx(This,undecorateOptions,name) ) 
+
+#define IDiaSymbol11_get_noReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noReturn(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_customCallingConvention(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_customCallingConvention(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_noInline(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noInline(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_optimizedCodeDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_optimizedCodeDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_notReached(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_notReached(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_interruptReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_interruptReturn(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_farReturn(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_farReturn(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isStatic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStatic(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasDebugInfo(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasDebugInfo(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isLTCG(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLTCG(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isDataAligned(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isDataAligned(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasSecurityChecks(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSecurityChecks(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_compilerName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_compilerName(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasAlloca(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAlloca(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasSetJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSetJump(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasLongJump(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasLongJump(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasInlAsm(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasInlAsm(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEH(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasSEH(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasSEH(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasEHa(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasEHa(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isNaked(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isNaked(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isAggregated(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAggregated(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isSplitted(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSplitted(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_container(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_container(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_inlSpec(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlSpec(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_noStackOrdering(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noStackOrdering(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_virtualBaseTableType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_virtualBaseTableType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasManagedCode(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasManagedCode(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isHotpatchable(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHotpatchable(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isCVTCIL(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCVTCIL(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isMSILNetmodule(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMSILNetmodule(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isCTypes(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCTypes(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isStripped(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStripped(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_frontEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frontEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_backEndQFE(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_backEndQFE(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_wasInlined(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_wasInlined(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_strictGSCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_strictGSCheck(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isCxxReturnUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isCxxReturnUdt(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isConstructorVirtualBase(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isConstructorVirtualBase(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_RValueReference(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_RValueReference(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_unmodifiedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_framePointerPresent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePointerPresent(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isSafeBuffers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSafeBuffers(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_intrinsic(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_intrinsic(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_sealed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sealed(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hfaFloat(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaFloat(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hfaDouble(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hfaDouble(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_liveRangeStartAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_liveRangeStartAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_liveRangeStartRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeStartRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_countLiveRanges(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_countLiveRanges(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_liveRangeLength(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_liveRangeLength(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_offsetInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_offsetInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_paramBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_paramBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_localBasePointerRegisterId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_localBasePointerRegisterId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isLocationControlFlowDependent(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isLocationControlFlowDependent(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_stride(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_stride(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_numberOfRows(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRows(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_numberOfColumns(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfColumns(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isMatrixRowMajor(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMatrixRowMajor(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_numericProperties(This,cnt,pcnt,pProperties)	\
+    ( (This)->lpVtbl -> get_numericProperties(This,cnt,pcnt,pProperties) ) 
+
+#define IDiaSymbol11_get_modifierValues(This,cnt,pcnt,pModifiers)	\
+    ( (This)->lpVtbl -> get_modifierValues(This,cnt,pcnt,pModifiers) ) 
+
+#define IDiaSymbol11_get_isReturnValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isReturnValue(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isOptimizedAway(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedAway(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_builtInKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_builtInKind(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_registerType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_registerType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_baseDataSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataSlot(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_baseDataOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseDataOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_textureSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_textureSlot(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_samplerSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_samplerSlot(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_uavSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_uavSlot(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_sizeInUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_sizeInUdt(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_memorySpaceKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_memorySpaceKind(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_unmodifiedTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_unmodifiedTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_subTypeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subTypeId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_subType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_subType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_numberOfModifiers(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfModifiers(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_numberOfRegisterIndices(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfRegisterIndices(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isHLSLData(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isHLSLData(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isPointerToDataMember(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToDataMember(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isPointerToMemberFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerToMemberFunction(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isSingleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSingleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isMultipleInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isMultipleInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isVirtualInheritance(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isVirtualInheritance(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_restrictedType(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_restrictedType(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isPointerBasedOnSymbolValue(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPointerBasedOnSymbolValue(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_baseSymbol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbol(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_baseSymbolId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_baseSymbolId(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_objectFileName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_objectFileName(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isAcceleratorGroupSharedLocal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorGroupSharedLocal(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isAcceleratorPointerTagLiveRange(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorPointerTagLiveRange(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isAcceleratorStubFunction(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isAcceleratorStubFunction(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_numberOfAcceleratorPointerTags(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_numberOfAcceleratorPointerTags(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isSdl(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSdl(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isWinRTPointer(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isWinRTPointer(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isRefUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRefUdt(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isValueUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isValueUdt(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isInterfaceUdt(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isInterfaceUdt(This,pRetVal) ) 
+
+#define IDiaSymbol11_findInlineFramesByAddr(This,isect,offset,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByAddr(This,isect,offset,ppResult) ) 
+
+#define IDiaSymbol11_findInlineFramesByRVA(This,rva,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByRVA(This,rva,ppResult) ) 
+
+#define IDiaSymbol11_findInlineFramesByVA(This,va,ppResult)	\
+    ( (This)->lpVtbl -> findInlineFramesByVA(This,va,ppResult) ) 
+
+#define IDiaSymbol11_findInlineeLines(This,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLines(This,ppResult) ) 
+
+#define IDiaSymbol11_findInlineeLinesByAddr(This,isect,offset,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByAddr(This,isect,offset,length,ppResult) ) 
+
+#define IDiaSymbol11_findInlineeLinesByRVA(This,rva,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByRVA(This,rva,length,ppResult) ) 
+
+#define IDiaSymbol11_findInlineeLinesByVA(This,va,length,ppResult)	\
+    ( (This)->lpVtbl -> findInlineeLinesByVA(This,va,length,ppResult) ) 
+
+#define IDiaSymbol11_findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsForAcceleratorPointerTag(This,tagValue,ppResult) ) 
+
+#define IDiaSymbol11_findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult)	\
+    ( (This)->lpVtbl -> findSymbolsByRVAForAcceleratorPointerTag(This,tagValue,rva,ppResult) ) 
+
+#define IDiaSymbol11_get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags)	\
+    ( (This)->lpVtbl -> get_acceleratorPointerTags(This,cnt,pcnt,pPointerTags) ) 
+
+#define IDiaSymbol11_getSrcLineOnTypeDefn(This,ppResult)	\
+    ( (This)->lpVtbl -> getSrcLineOnTypeDefn(This,ppResult) ) 
+
+#define IDiaSymbol11_get_isPGO(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isPGO(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasValidPGOCounts(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasValidPGOCounts(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isOptimizedForSpeed(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isOptimizedForSpeed(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_PGOEntryCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEntryCount(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_PGOEdgeCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGOEdgeCount(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_PGODynamicInstructionCount(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_PGODynamicInstructionCount(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_staticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_staticSize(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_finalLiveStaticSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_finalLiveStaticSize(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_phaseName(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_phaseName(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_hasControlFlowCheck(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasControlFlowCheck(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_constantExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_constantExport(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_dataExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_dataExport(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_privateExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_privateExport(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_noNameExport(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noNameExport(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_exportHasExplicitlyAssignedOrdinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportHasExplicitlyAssignedOrdinal(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_exportIsForwarder(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exportIsForwarder(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_ordinal(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_ordinal(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_frameSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_frameSize(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_exceptionHandlerAddressSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressSection(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_exceptionHandlerAddressOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerAddressOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_exceptionHandlerRelativeVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerRelativeVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_exceptionHandlerVirtualAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_exceptionHandlerVirtualAddress(This,pRetVal) ) 
+
+#define IDiaSymbol11_findInputAssemblyFile(This,ppResult)	\
+    ( (This)->lpVtbl -> findInputAssemblyFile(This,ppResult) ) 
+
+#define IDiaSymbol11_get_characteristics(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_characteristics(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_coffGroup(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coffGroup(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_bindID(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindID(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_bindSpace(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSpace(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_bindSlot(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_bindSlot(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_isObjCClass(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCClass(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isObjCCategory(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCCategory(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isObjCProtocol(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isObjCProtocol(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_inlinee(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlinee(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_inlineeId(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_inlineeId(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_noexcept(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_noexcept(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_hasAbsoluteAddress(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_hasAbsoluteAddress(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_isStaticMemberFunc(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isStaticMemberFunc(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_isSignRet(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isSignRet(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_coroutineKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_coroutineKind(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_associatedSymbolKind(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolKind(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_associatedSymbolSection(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolSection(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_associatedSymbolOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_associatedSymbolRva(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolRva(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_associatedSymbolAddr(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_associatedSymbolAddr(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_framePadSize(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePadSize(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_framePadOffset(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_framePadOffset(This,pRetVal) ) 
+
+#define IDiaSymbol11_get_isRTCs(This,pRetVal)	\
+    ( (This)->lpVtbl -> get_isRTCs(This,pRetVal) ) 
+
+
+#define IDiaSymbol11_get_sourceLink(This,cb,pcb,pb)	\
+    ( (This)->lpVtbl -> get_sourceLink(This,cb,pcb,pb) ) 
+
+
+#define IDiaSymbol11_get_discriminatedUnionTag(This,ppTagType,pTagOffset,pTagMask)	\
+    ( (This)->lpVtbl -> get_discriminatedUnionTag(This,ppTagType,pTagOffset,pTagMask) ) 
+
+#define IDiaSymbol11_get_tagRanges(This,count,pcRangeValues,rangeValues)	\
+    ( (This)->lpVtbl -> get_tagRanges(This,count,pcRangeValues,rangeValues) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+HRESULT STDMETHODCALLTYPE IDiaSymbol11_get_discriminatedUnionTag_Proxy( 
+    IDiaSymbol11 * This,
+    /* [out] */ IDiaSymbol **ppTagType,
+    /* [out] */ DWORD *pTagOffset,
+    /* [out] */ struct DiaTagValue *pTagMask);
+
+
+void __RPC_STUB IDiaSymbol11_get_discriminatedUnionTag_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+HRESULT STDMETHODCALLTYPE IDiaSymbol11_get_tagRanges_Proxy( 
+    IDiaSymbol11 * This,
+    /* [in] */ DWORD count,
+    /* [out] */ DWORD *pcRangeValues,
+    /* [size_is][out] */ struct DiaTagValue *rangeValues);
+
+
+void __RPC_STUB IDiaSymbol11_get_tagRanges_Stub(
+    IRpcStubBuffer *This,
+    IRpcChannelBuffer *_pRpcChannelBuffer,
+    PRPC_MESSAGE _pRpcMessage,
+    DWORD *_pdwStubPhase);
+
+
+
+#endif 	/* __IDiaSymbol11_INTERFACE_DEFINED__ */
+
+
 #ifndef __IDiaSourceFile_INTERFACE_DEFINED__
 #define __IDiaSourceFile_INTERFACE_DEFINED__
 
@@ -8682,11 +27921,11 @@ EXTERN_C const IID IID_IDiaInjectedSource;
 #endif 	/* __IDiaInjectedSource_INTERFACE_DEFINED__ */
 
 
-/* interface __MIDL_itf_dia2_0000_0025 */
+/* interface __MIDL_itf_dia2_0000_0036 */
 /* [local] */ 
 
 
-enum __MIDL___MIDL_itf_dia2_0000_0025_0001
+enum __MIDL___MIDL_itf_dia2_0000_0036_0001
     {
         E_DIA_INPROLOG	= ( HRESULT  )(( ( ( ( unsigned long  )1 << 31 )  | ( ( unsigned long  )( LONG  )0x6d << 16 )  )  | ( unsigned long  )100 ) ),
         E_DIA_SYNTAX	= ( E_DIA_INPROLOG + 1 ) ,
@@ -8695,8 +27934,8 @@ enum __MIDL___MIDL_itf_dia2_0000_0025_0001
     } ;
 
 
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0025_v0_0_c_ifspec;
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0025_v0_0_s_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0036_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0036_v0_0_s_ifspec;
 
 #ifndef __IDiaStackWalkFrame_INTERFACE_DEFINED__
 #define __IDiaStackWalkFrame_INTERFACE_DEFINED__
@@ -9483,6 +28722,10 @@ EXTERN_C const IID IID_IDiaEnumTables;
 /* [helpstring][version][uuid] */ 
 
 
+
+
+
+
 EXTERN_C const IID LIBID_Dia2Lib;
 
 EXTERN_C const CLSID CLSID_DiaSource;
@@ -9510,7 +28753,7 @@ DiaStackWalker;
 #endif
 #endif /* __Dia2Lib_LIBRARY_DEFINED__ */
 
-/* interface __MIDL_itf_dia2_0000_0031 */
+/* interface __MIDL_itf_dia2_0000_0042 */
 /* [local] */ 
 
 #define	DiaTable_Symbols	( L"Symbols" )
@@ -9533,8 +28776,8 @@ DiaStackWalker;
 
 
 
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0031_v0_0_c_ifspec;
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0031_v0_0_s_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0042_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0042_v0_0_s_ifspec;
 
 #ifndef __IDiaPropertyStorage_INTERFACE_DEFINED__
 #define __IDiaPropertyStorage_INTERFACE_DEFINED__
@@ -10018,10 +29261,10 @@ EXTERN_C const IID IID_IDiaEnumStackFrames;
 #endif 	/* __IDiaEnumStackFrames_INTERFACE_DEFINED__ */
 
 
-/* interface __MIDL_itf_dia2_0000_0034 */
+/* interface __MIDL_itf_dia2_0000_0045 */
 /* [local] */ 
 
-typedef /* [public] */ struct __MIDL___MIDL_itf_dia2_0000_0034_0001
+typedef /* [public] */ struct __MIDL___MIDL_itf_dia2_0000_0045_0001
     {
     DWORD ulOffStart;
     DWORD cbProcSize;
@@ -10032,8 +29275,8 @@ typedef /* [public] */ struct __MIDL___MIDL_itf_dia2_0000_0034_0001
 
 
 
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0034_v0_0_c_ifspec;
-extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0034_v0_0_s_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0045_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_dia2_0000_0045_v0_0_s_ifspec;
 
 #ifndef __IDiaStackWalkHelper_INTERFACE_DEFINED__
 #define __IDiaStackWalkHelper_INTERFACE_DEFINED__
