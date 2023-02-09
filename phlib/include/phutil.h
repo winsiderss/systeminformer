@@ -1628,14 +1628,6 @@ PhHungWindowFromGhostWindow(
     );
 
 PHLIBAPI
-HRESULT
-NTAPI
-PhRunTaskAsInteractiveUser(
-    _In_ PWSTR CommandLine,
-    _In_ PWSTR CurrentDirectory
-    );
-
-PHLIBAPI
 PVOID
 NTAPI
 PhGetFileText(
@@ -1715,6 +1707,14 @@ PPH_STRING
 NTAPI
 PhApiSetResolveToHost(
     _In_ PPH_STRINGREF ApiSetName
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhCreateProcessAsInteractiveUser(
+    _In_ PWSTR CommandLine,
+    _In_ PWSTR CurrentDirectory
     );
 
 PHLIBAPI
