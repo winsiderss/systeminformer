@@ -1,9 +1,19 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2010-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_SYMPRV_H
 #define _PH_SYMPRV_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 extern PH_CALLBACK PhSymbolEventCallback;
@@ -468,8 +478,6 @@ PhGetLineFromInlineContext(
 //    _In_ PPH_LIST InlineSymbolList
 //    );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

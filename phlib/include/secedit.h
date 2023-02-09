@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2015-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_SECEDIT_H
 #define _PH_SECEDIT_H
 

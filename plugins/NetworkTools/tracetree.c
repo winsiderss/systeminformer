@@ -5,13 +5,12 @@
  *
  * Authors:
  *
- *     dmex    2015-2021
+ *     dmex    2015-2023
  *
  */
 
 #include "nettools.h"
 #include "tracert.h"
-#include <commonutil.h>
 
 PPH_OBJECT_TYPE TracertTreeNodeItemType;
 

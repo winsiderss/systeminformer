@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2011-2019
+ *     dmex    2011-2023
  *
  */
 
@@ -18,8 +18,6 @@
 #include <verify.h>
 #include <settings.h>
 #include <workqueue.h>
-
-#include <commonutil.h>
 
 #include "resource.h"
 
