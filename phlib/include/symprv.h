@@ -158,6 +158,8 @@ PhLoadModulesForProcessSymbolProvider(
     _In_ HANDLE ProcessId
     );
 
+#define PH_SYMOPT_UNDNAME 0x1
+
 PHLIBAPI
 VOID
 NTAPI

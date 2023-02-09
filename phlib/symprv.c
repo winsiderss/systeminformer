@@ -1335,23 +1335,44 @@ VOID PhLoadModulesForProcessSymbolProvider(
     }
 }
 
+static const PH_FLAG_MAPPING PhSymbolProviderOptions[] =
+{
+    { PH_SYMOPT_UNDNAME, SYMOPT_UNDNAME },
+};
+
 VOID PhSetOptionsSymbolProvider(
     _In_ ULONG Mask,
     _In_ ULONG Value
     )
 {
     ULONG options;
+    ULONG mask = 0;
+    ULONG value = 0;
 
     PhpRegisterSymbolProvider(NULL);
 
     if (!SymGetOptions_I || !SymSetOptions_I)
         return;
 
+    PhMapFlags1(
+        &mask,
+        Mask,
+        PhSymbolProviderOptions,
+        ARRAYSIZE(PhSymbolProviderOptions)
+        );
+
+    PhMapFlags1(
+        &value,
+        Value,
+        PhSymbolProviderOptions,
+        ARRAYSIZE(PhSymbolProviderOptions)
+        );
+
     PH_LOCK_SYMBOLS();
 
     options = SymGetOptions_I();
-    options &= ~Mask;
-    options |= Value;
+    options &= ~mask;
+    options |= value;
     SymSetOptions_I(options);
 
     PH_UNLOCK_SYMBOLS();

@@ -6,14 +6,13 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
 #include <peview.h>
 #include <workqueue.h>
 #include <verify.h>
-#include <dbghelp.h>
 #include <shellapi.h>
 #include <math.h>
 
@@ -2273,8 +2272,8 @@ BOOLEAN PvpLoadDbgHelp(
     symbolProvider = PhCreateSymbolProvider(NULL);
 
     PhSetOptionsSymbolProvider(
-        SYMOPT_UNDNAME,
-        PhGetIntegerSetting(L"DbgHelpUndecorate") ? SYMOPT_UNDNAME : 0
+        PH_SYMOPT_UNDNAME,
+        PhGetIntegerSetting(L"DbgHelpUndecorate") ? PH_SYMOPT_UNDNAME : 0
         );
 
     PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);
