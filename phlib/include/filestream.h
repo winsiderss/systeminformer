@@ -156,13 +156,19 @@ PhWriteStringAsUtf8FileStream(
     _In_ PPH_STRINGREF String
     );
 
-PHLIBAPI
-NTSTATUS
-NTAPI
+FORCEINLINE
+NTSTATUS 
 PhWriteStringAsUtf8FileStream2(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PWSTR String
-    );
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+
+    return PhWriteStringAsUtf8FileStream(FileStream, &string);
+}
 
 PHLIBAPI
 NTSTATUS
