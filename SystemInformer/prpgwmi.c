@@ -12,7 +12,9 @@
 #include <phapp.h>
 #include <cpysave.h>
 #include <emenu.h>
+#include <secwmi.h>
 #include <settings.h>
+#include <mapldr.h>
 
 #include <phsettings.h>
 #include <procprp.h>
@@ -113,37 +115,6 @@ BOOLEAN PhpGetSelectedWmiProviderNodes(
     _Out_ PULONG NumberOfNodes
     );
 
-PVOID PhpGetWmiProviderDllBase(
-    VOID
-    )
-{
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PVOID imageBaseAddress = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PPH_STRING systemDirectory;
-        PPH_STRING systemFileName;
-
-        if (systemDirectory = PhGetSystemDirectory())
-        {
-            if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wbemprox.dll"))
-            {
-                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
-                    imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
-
-                PhDereferenceObject(systemFileName);
-            }
-
-            PhDereferenceObject(systemDirectory);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return imageBaseAddress;
-}
-
 PVOID PhpGetWmiUtilsDllBase(
     VOID
     )
@@ -160,7 +131,7 @@ PVOID PhpGetWmiUtilsDllBase(
         {
             if (systemFileName = PhConcatStringRefZ(&systemDirectory->sr, L"\\wbem\\wmiutils.dll"))
             {
-                if (!(imageBaseAddress = PhGetLoaderEntryStringRefDllBase(&systemFileName->sr, NULL)))
+                if (!(imageBaseAddress = PhGetLoaderEntryDllBase(&systemFileName->sr, NULL)))
                     imageBaseAddress = PhLoadLibrary(PhGetString(systemFileName));
 
                 PhDereferenceObject(systemFileName);
@@ -215,7 +186,7 @@ HRESULT PhpWmiProviderExecMethod(
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject* wbemClassObject;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return ERROR_MOD_NOT_FOUND;
 
     status = PhGetClassObjectDllBase(
@@ -361,7 +332,7 @@ HRESULT PhpQueryWmiProviderFileName(
     IWbemClassObject *wbemClassObject = NULL;
     ULONG count = 0;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return ERROR_MOD_NOT_FOUND;
 
     status = PhGetClassObjectDllBase(
@@ -507,7 +478,7 @@ HRESULT PhpQueryWmiProviderHostProcess(
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject *wbemClassObject;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return HRESULT_FROM_WIN32(ERROR_MOD_NOT_FOUND);
 
     status = PhGetClassObjectDllBase(
@@ -629,7 +600,7 @@ PPH_STRING PhpQueryWmiProviderStatistics(
     IEnumWbemClassObject* wbemEnumerator = NULL;
     IWbemClassObject *wbemClassObject;
 
-    if (!(imageBaseAddress = PhpGetWmiProviderDllBase()))
+    if (!(imageBaseAddress = PhGetWbemProxImageBaseAddress()))
         return NULL;
 
     status = PhGetClassObjectDllBase(

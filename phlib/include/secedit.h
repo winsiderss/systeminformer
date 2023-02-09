@@ -13,9 +13,9 @@
 #ifndef _PH_SECEDIT_H
 #define _PH_SECEDIT_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
+
+extern BOOLEAN PhEnableSecurityAdvancedDialog;
 
 typedef struct _PSP *HPROPSHEETPAGE;
 
@@ -191,15 +191,6 @@ PhGetAccessString(
     _In_ ULONG NumberOfAccessEntries
     );
 
-
-// WDOScan (Todo: Move to better location) (dmex)
-
-HRESULT PhRestartDefenderOfflineScan(
-    VOID
-    );
-
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif
