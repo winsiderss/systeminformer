@@ -1333,6 +1333,30 @@ PhInitiateShutdown(
     _In_ ULONG Flags
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhCustomDrawTreeCpuHeatMap(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_ RECT CellRect,
+    _In_ RECT TextRect,
+    _In_ ULONG ShowCpuBelow001,
+    _In_ FLOAT Value
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhCustomDrawTreePrivateBytesHeatMap(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_ RECT CellRect,
+    _In_ RECT TextRect,
+    _In_ SIZE_T Value,
+    _In_ SIZE_T Total
+    );
+
 #define PH_DRAW_TIMELINE_OVERFLOW 0x1
 #define PH_DRAW_TIMELINE_DARKTHEME 0x2
 
@@ -1491,6 +1515,7 @@ PHLIBAPI extern HFONT PhMonospaceFont; // phapppub
 PHLIBAPI extern HBRUSH PhThemeWindowBackgroundBrush;
 extern BOOLEAN PhEnableThemeSupport;
 extern BOOLEAN PhEnableThemeAcrylicSupport;
+extern BOOLEAN PhEnableThemeListviewBorder;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
 extern COLORREF PhThemeWindowBackground2Color;
