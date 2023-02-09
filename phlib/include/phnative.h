@@ -1113,68 +1113,6 @@ PhSetProcessPowerThrottlingState(
     );
 
 PHLIBAPI
-PVOID
-NTAPI
-PhGetDllHandle(
-    _In_ PWSTR DllName
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetModuleProcAddress(
-    _In_ PWSTR ModuleName,
-    _In_opt_ PSTR ProcedureName
-    );
-
-PHLIBAPI
-PVOID
-NTAPI
-PhGetProcedureAddress(
-    _In_ PVOID DllHandle,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ ULONG ProcedureNumber
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhGetProcedureAddressRemote(
-    _In_ HANDLE ProcessHandle,
-    _In_ PPH_STRINGREF FileName,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber,
-    _Out_ PVOID *ProcedureAddress,
-    _Out_opt_ PVOID *DllBase
-    );
-
-FORCEINLINE
-NTSTATUS
-NTAPI
-PhGetProcedureAddressRemoteZ(
-    _In_ HANDLE ProcessHandle,
-    _In_ PWSTR FileName,
-    _In_opt_ PSTR ProcedureName,
-    _In_opt_ USHORT ProcedureNumber,
-    _Out_ PVOID *ProcedureAddress,
-    _Out_opt_ PVOID *DllBase
-    )
-{
-    PH_STRINGREF fileName;
-
-    PhInitializeStringRef(&fileName, FileName);
-
-    return PhGetProcedureAddressRemote(
-        ProcessHandle,
-        &fileName,
-        ProcedureName,
-        ProcedureNumber,
-        ProcedureAddress,
-        DllBase
-        );
-}
-
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhEnumKernelModules(
