@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -17,6 +17,7 @@
 #include <procprv.h>
 #include <settings.h>
 #include <emenu.h>
+#include <mapldr.h>
 
 #include <vdmdbg.h>
 
