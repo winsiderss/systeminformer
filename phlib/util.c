@@ -7005,39 +7005,70 @@ HWND PhHungWindowFromGhostWindow(
     return HungWindowFromGhostWindow_I(WindowHandle);
 }
 
-HRESULT PhRunTaskAsInteractiveUser(
-    _In_ PWSTR CommandLine,
-    _In_ PWSTR CurrentDirectory
+PVOID PhGetFileText(
+    _In_ HANDLE FileHandle,
+    _In_ BOOLEAN Unicode
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static HRESULT (WINAPI* WdcRunTaskAsInteractiveUser_I)(
-        _In_ PWSTR CommandLine,
-        _In_ PWSTR CurrentDirectory,
-        _In_opt_ ULONG Flags
-        ) = NULL;
+    PVOID string = NULL;
+    PSTR data;
+    ULONG allocatedLength;
+    ULONG dataLength;
+    ULONG returnLength;
+    IO_STATUS_BLOCK isb;
+    BYTE buffer[PAGE_SIZE];
 
-    if (PhBeginInitOnce(&initOnce))
+    allocatedLength = sizeof(buffer);
+    data = PhAllocate(allocatedLength);
+    dataLength = 0;
+
+    while (NT_SUCCESS(NtReadFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        buffer,
+        PAGE_SIZE,
+        NULL,
+        NULL
+        )))
     {
-        PVOID baseAddress;
+        returnLength = (ULONG)isb.Information;
 
-        if (!(baseAddress = PhGetLoaderEntryDllBase(L"wdc.dll")))
-            baseAddress = PhLoadLibrary(L"wdc.dll");
+        if (returnLength == 0)
+            break;
 
-        if (baseAddress)
+        if (allocatedLength < dataLength + returnLength)
         {
-            WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(baseAddress, "WdcRunTaskAsInteractiveUser", 0);
+            allocatedLength *= 2;
+            data = PhReAllocate(data, allocatedLength);
         }
 
-        PhEndInitOnce(&initOnce);
+        memcpy(data + dataLength, buffer, returnLength);
+
+        dataLength += returnLength;
     }
 
-    if (WdcRunTaskAsInteractiveUser_I)
+    if (allocatedLength < dataLength + sizeof(ANSI_NULL))
     {
-        return WdcRunTaskAsInteractiveUser_I(CommandLine, CurrentDirectory, 0) == S_OK;
+        allocatedLength++;
+        data = PhReAllocate(data, allocatedLength);
     }
 
-    return E_NOTIMPL;
+    if (dataLength > 0)
+    {
+        data[dataLength] = ANSI_NULL;
+
+        if (Unicode)
+            string = PhConvertUtf8ToUtf16Ex(data, dataLength);
+        else
+            string = PhCreateBytesEx(data, dataLength);
+    }
+
+    PhFree(data);
+
+    return string;
 }
 
 PVOID PhFileReadAllText(
@@ -7479,6 +7510,41 @@ PPH_STRING PhApiSetResolveToHost(
     }
 
     return NULL;
+}
+
+HRESULT PhCreateProcessAsInteractiveUser(
+    _In_ PWSTR CommandLine,
+    _In_ PWSTR CurrentDirectory
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* WdcRunTaskAsInteractiveUser_I)(
+        _In_ PWSTR CommandLine,
+        _In_ PWSTR CurrentDirectory,
+        _In_opt_ ULONG Flags
+        ) = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"wdc.dll")))
+            baseAddress = PhLoadLibrary(L"wdc.dll");
+
+        if (baseAddress)
+        {
+            WdcRunTaskAsInteractiveUser_I = PhGetDllBaseProcedureAddress(baseAddress, "WdcRunTaskAsInteractiveUser", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (WdcRunTaskAsInteractiveUser_I)
+    {
+        return WdcRunTaskAsInteractiveUser_I(CommandLine, CurrentDirectory, 0) == S_OK;
+    }
+
+    return E_NOTIMPL;
 }
 
 NTSTATUS PhCreateProcessClone(

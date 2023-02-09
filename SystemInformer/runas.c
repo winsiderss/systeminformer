@@ -2311,7 +2311,7 @@ BOOLEAN PhpRunFileAsInteractiveUser(
     {
         PPH_STRING parentDirectory = PhpQueryRunFileParentDirectory(FALSE);
 
-        if (PhRunTaskAsInteractiveUser(PhGetString(executeString), PhGetString(parentDirectory)) == S_OK)
+        if (PhCreateProcessAsInteractiveUser(PhGetString(executeString), PhGetString(parentDirectory)) == S_OK)
         {
             success = TRUE;
         }
