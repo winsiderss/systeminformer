@@ -39,7 +39,7 @@ PhUpdateCachedSettings(
 
 EXT BOOLEAN PhEnableProcessQueryStage2;
 EXT BOOLEAN PhEnableServiceQueryStage2;
-EXT BOOLEAN PhEnableThemeSupport;
+EXT BOOLEAN PhEnableWindowText;
 EXT BOOLEAN PhEnableTooltipSupport;
 EXT BOOLEAN PhEnableLinuxSubsystemSupport;
 EXT BOOLEAN PhEnableNetworkResolveDoHSupport;

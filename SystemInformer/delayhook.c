@@ -22,9 +22,6 @@
 static WNDPROC PhDefaultMenuWindowProcedure = NULL;
 static WNDPROC PhDefaultDialogWindowProcedure = NULL;
 static WNDPROC PhDefaultComboBoxWindowProcedure = NULL;
-static BOOLEAN PhDefaultEnableThemeSupport = FALSE;
-static BOOLEAN PhDefaultEnableThemeAcrylicSupport = FALSE;
-static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
 static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
 
 LRESULT CALLBACK PhMenuWindowHookProcedure(
@@ -46,7 +43,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
                     SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
-            if (PhDefaultEnableThemeSupport)
+            if (PhEnableThemeSupport)
             {
                 HFONT fontHandle;
                 LONG windowDpi = PhGetWindowDpi(WindowHandle);
@@ -57,7 +54,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
                     SetWindowFont(WindowHandle, fontHandle, TRUE);
                 }
 
-                if (PhDefaultEnableThemeAcrylicSupport)
+                if (PhEnableThemeAcrylicSupport)
                 {
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
@@ -66,7 +63,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         break;
     case WM_DESTROY:
         {
-            if (PhDefaultEnableThemeSupport)
+            if (PhEnableThemeSupport)
             {
                 HFONT fontHandle;
 
@@ -107,7 +104,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
                         SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
-                if (PhDefaultEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+                if (PhEnableThemeSupport && PhEnableThemeAcrylicSupport)
                 {
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
@@ -356,7 +353,7 @@ HWND PhCreateWindowExHook(
                 SetWindowDisplayAffinity_Import()(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        if (PhDefaultEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+        if (PhEnableThemeSupport && PhEnableThemeAcrylicSupport)
         {
             PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
         }
@@ -538,7 +535,7 @@ VOID PhRegisterDetoursHooks(
     if (!NT_SUCCESS(status = DetourTransactionBegin()))
         goto CleanupExit;
 
-    if (PhDefaultEnableThemeSupport || PhDefaultEnableThemeAcrylicSupport)
+    if (PhEnableThemeSupport || PhEnableThemeAcrylicSupport)
     {
         if (!NT_SUCCESS(status = DetourAttach((PVOID)&PhDefaultDrawThemeBackground, (PVOID)PhDrawThemeBackgroundHook)))
             goto CleanupExit;
@@ -567,19 +564,12 @@ VOID PhInitializeSuperclassControls(
     VOID
     )
 {
-    PhDefaultEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhDefaultEnableStreamerMode = !!PhGetIntegerSetting(L"EnableStreamerMode");
 
-    if (PhDefaultEnableThemeSupport || PhDefaultEnableStreamerMode)
-    {
-        if (WindowsVersion >= WINDOWS_11)
-        {
-            PhDefaultEnableThemeAcrylicSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicSupport");
-            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
-        }
-    }
+    if (PhEnableThemeAcrylicSupport && !PhEnableThemeSupport)
+        PhEnableThemeAcrylicSupport = FALSE;
 
-    if (PhDefaultEnableThemeSupport || PhDefaultEnableStreamerMode)
+    if (PhEnableThemeSupport || PhDefaultEnableStreamerMode)
     {
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();

@@ -1489,7 +1489,8 @@ PHLIBAPI extern HFONT PhApplicationFont; // phapppub
 PHLIBAPI extern HFONT PhTreeWindowFont; // phapppub
 PHLIBAPI extern HFONT PhMonospaceFont; // phapppub
 PHLIBAPI extern HBRUSH PhThemeWindowBackgroundBrush;
-//extern ULONG PhTaskDialogThemeHookIndex;
+extern BOOLEAN PhEnableThemeSupport;
+extern BOOLEAN PhEnableThemeAcrylicSupport;
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
 extern COLORREF PhThemeWindowBackground2Color;

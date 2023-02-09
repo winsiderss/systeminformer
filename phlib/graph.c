@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -15,7 +15,6 @@
 
 #include <graph.h>
 #include <guisup.h>
-#include <settings.h>
 
 #define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
 
@@ -1299,7 +1298,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 // Allow newlines (-1 doesn't work)
                 SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
 
-                if (PhGetIntegerSetting(L"EnableThemeSupport")) // HACK (dmex)
+                if (PhEnableThemeSupport)
                 {
                     PhSetControlTheme(context->TooltipHandle, L"DarkMode_Explorer");
                     //SendMessage(context->TooltipHandle, TTM_SETWINDOWTHEME, 0, (LPARAM)L"DarkMode_Explorer");

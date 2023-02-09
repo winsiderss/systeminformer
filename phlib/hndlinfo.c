@@ -108,6 +108,8 @@ NTSTATUS PhpCallWithTimeoutThreadStart(
     _In_ PVOID Parameter
     );
 
+BOOLEAN PhEnableProcessHandlePnPDeviceNameSupport = FALSE;
+
 static PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
 static PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = PhStdGetClientIdName;
 
@@ -1092,10 +1094,13 @@ NTSTATUS PhpGetBestObjectName(
 
         if (!bestObjectName)
         {
-            if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
+            if (PhEnableProcessHandlePnPDeviceNameSupport)
             {
-                // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
-                bestObjectName = PhGetPnPDeviceName(ObjectName);
+                if (PhStartsWithString2(ObjectName, L"\\Device\\", TRUE))
+                {
+                    // The device might be a PDO... Query the PnP manager for the friendly name of the device. (dmex)
+                    bestObjectName = PhGetPnPDeviceName(ObjectName);
+                }
             }
 
             if (!bestObjectName)

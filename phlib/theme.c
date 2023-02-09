@@ -211,10 +211,9 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
 #define DEBUG_BEGINPAINT_RECT(RcPaint)
 #endif
 
-ULONG PhpThemeColorMode = 0;
-BOOLEAN PhpThemeEnable = FALSE;
-BOOLEAN PhpThemeBorderEnable = TRUE;
-//ULONG PhTaskDialogThemeHookIndex = 0;
+BOOLEAN PhEnableThemeSupport = FALSE;
+BOOLEAN PhEnableThemeAcrylicSupport = FALSE;
+BOOLEAN PhEnableThemeListviewBorder = TRUE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhThemeWindowBackgroundColor = RGB(43, 43, 43);
@@ -228,12 +227,6 @@ VOID PhInitializeWindowTheme(
     _In_ BOOLEAN EnableThemeSupport
     )
 {
-    PhpThemeColorMode = 1;// PhGetIntegerSetting(L"GraphColorMode");
-    PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
-    PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
-    //if (PhTaskDialogThemeHookIndex == 0)
-    //    PhTaskDialogThemeHookIndex = TlsAlloc();
-
     if (EnableThemeSupport && WindowsVersion >= WINDOWS_10_RS5)
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -338,13 +331,9 @@ VOID PhReInitializeWindowTheme(
 {
     HWND currentWindow = NULL;
 
-    PhpThemeEnable = !!PhGetIntegerSetting(L"EnableThemeSupport");
-    PhpThemeColorMode = 1;// PhGetIntegerSetting(L"GraphColorMode");
-    PhpThemeBorderEnable = !!PhGetIntegerSetting(L"TreeListBorderEnable");
-
     PhInitializeThemeWindowFrame(WindowHandle);
 
-    if (!PhpThemeEnable)
+    if (!PhEnableThemeSupport)
         return;
 
     if (!PhThemeWindowBackgroundBrush)
@@ -450,36 +439,33 @@ VOID PhInitializeThemeWindowFrame(
 
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
-        if (PhpThemeEnable)
+        if (PhEnableThemeSupport)
         {
-            switch (PhpThemeColorMode)
+            //switch (PhpThemeColorMode)
+            //{
+            //case 0: // New colors
+            //    {
+            //        if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
+            //        {
+            //            PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
+            //        }
+            //
+            //        //if (WindowsVersion > WINDOWS_11)
+            //        //{
+            //        //    PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
+            //        //}
+            //    }
+            //    break;
+            //case 1: // Old colors
+
+            if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
             {
-            case 0: // New colors
-                {
-                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ FALSE }, sizeof(BOOL))))
-                    {
-                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ FALSE }, sizeof(BOOL));
-                    }
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
+            }
 
-                    //if (WindowsVersion > WINDOWS_11)
-                    //{
-                    //    PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, NULL, 0);
-                    //}
-                }
-                break;
-            case 1: // Old colors
-                {
-                    if (FAILED(PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &(BOOL){ TRUE }, sizeof(BOOL))))
-                    {
-                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &(BOOL){ TRUE }, sizeof(BOOL));
-                    }
-
-                    if (WindowsVersion >= WINDOWS_11)
-                    {
-                        PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
-                    }
-                }
-                break;
+            if (WindowsVersion >= WINDOWS_11)
+            {
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
             }
         }
 
@@ -503,7 +489,7 @@ HBRUSH PhWindowThemeControlColor(
     {
     case CTLCOLOR_EDIT:
         {
-            if (PhpThemeEnable)
+            if (PhEnableThemeSupport)
             {
                 SetTextColor(Hdc, PhThemeWindowTextColor);
                 SetDCBrushColor(Hdc, RGB(60, 60, 60));
@@ -518,7 +504,7 @@ HBRUSH PhWindowThemeControlColor(
         break;
     case CTLCOLOR_SCROLLBAR:
         {
-            if (PhpThemeEnable)
+            if (PhEnableThemeSupport)
             {
                 SetDCBrushColor(Hdc, RGB(23, 23, 23));
                 return GetStockBrush(DC_BRUSH);
@@ -535,7 +521,7 @@ HBRUSH PhWindowThemeControlColor(
     case CTLCOLOR_DLG:
     case CTLCOLOR_STATIC:
         {
-            if (PhpThemeEnable)
+            if (PhEnableThemeSupport)
             {
                 SetTextColor(Hdc, PhThemeWindowTextColor);
                 return PhThemeWindowBackgroundBrush;
@@ -778,11 +764,6 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhInitializeThemeWindowGroupBox(WindowHandle);
         }
-
-        //if (PhTaskDialogThemeHookIndex && TlsGetValue(PhTaskDialogThemeHookIndex))
-        //{
-        //    PhInitializeThemeWindowButton(WindowHandle);
-        //}
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
     {
@@ -800,15 +781,13 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     {
         if (WindowsVersion >= WINDOWS_10_RS5)
         {
-            switch (PhpThemeColorMode)
-            {
-            case 0: // New colors
-                PhSetControlTheme(WindowHandle, L"");
-                break;
-            case 1: // Old colors
-                PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-                break;
-            }
+            //switch (PhpThemeColorMode)
+            //{
+            //case 0: // New colors
+            //    PhSetControlTheme(WindowHandle, L"");
+            //    break;
+            //case 1: // Old colors
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
         }
     }
     else if (PhEqualStringZ(windowClassName, WC_HEADER, TRUE))
@@ -834,7 +813,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
         }
 
-        if (PhpThemeBorderEnable)
+        if (PhEnableThemeListviewBorder)
         {
             PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
             PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
@@ -884,7 +863,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, L"RICHEDIT50W", FALSE))
     {
-        if (PhpThemeBorderEnable)
+        if (PhEnableThemeListviewBorder)
             PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
         else
             PhSetWindowStyle(WindowHandle, WS_BORDER, 0);
@@ -919,7 +898,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
         }
 
-        if (PhpThemeBorderEnable)
+        if (PhEnableThemeListviewBorder)
             PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
         else
             PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, 0);

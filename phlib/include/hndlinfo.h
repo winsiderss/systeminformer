@@ -17,6 +17,8 @@ EXTERN_C_START
 
 #define MAX_OBJECT_TYPE_NUMBER 257
 
+extern BOOLEAN PhEnableProcessHandlePnPDeviceNameSupport;
+
 typedef PPH_STRING (NTAPI *PPH_GET_CLIENT_ID_NAME)(
     _In_ PCLIENT_ID ClientId
     );

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -74,10 +74,8 @@ PPH_STRING PhGetMainWindowTitle(
     PH_STRING_BUILDER stringBuilder;
     PPH_STRING currentUserName;
 
-    if (!PhGetIntegerSetting(L"EnableWindowText"))
-    {
+    if (!PhEnableWindowText)
         return NULL;
-    }
 
     PhInitializeStringBuilder(&stringBuilder, 100);
     PhAppendStringBuilder2(&stringBuilder, PhApplicationName);
@@ -294,7 +292,7 @@ LRESULT CALLBACK PhMwpWndProc(
         {
             PhGuiSupportUpdateSystemMetrics(hWnd);
 
-            if (PhGetIntegerSetting(L"EnableWindowText"))
+            if (PhEnableWindowText)
             {
                 PhSetApplicationWindowIcon(PhMainWndHandle);
             }
@@ -410,6 +408,12 @@ RTL_ATOM PhMwpInitializeWindowClass(
     className = PhaGetStringSetting(L"MainWindowClassName");
     wcex.lpszClassName = PhGetStringOrDefault(className, L"MainWindowClassName");
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+
+    if (PhEnableWindowText)
+    {
+        wcex.hIcon = PhGetApplicationIcon(FALSE);
+        wcex.hIconSm = PhGetApplicationIcon(TRUE);
+    }
 
     return RegisterClassEx(&wcex);
 }
@@ -2126,11 +2130,12 @@ VOID PhMwpLoadSettings(
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnableServiceQueryStage2 = !!PhGetIntegerSetting(L"EnableServiceStage2");
-    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     PhEnableTooltipSupport = !!PhGetIntegerSetting(L"EnableTooltipSupport");
     PhEnableImageCoherencySupport = !!PhGetIntegerSetting(L"EnableImageCoherencySupport");
     PhEnableLinuxSubsystemSupport = !!PhGetIntegerSetting(L"EnableLinuxSubsystemSupport");
     PhEnablePackageIconSupport = !!PhGetIntegerSetting(L"EnablePackageIconSupport");
+    PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
+    PhEnableProcessHandlePnPDeviceNameSupport = !!PhGetIntegerSetting(L"EnableProcessHandlePnPDeviceNameSupport");
     PhMwpNotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
