@@ -164,6 +164,12 @@
     <ClCompile Include="directdraw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="secwmi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mapldr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\circbuf.h">
@@ -350,6 +356,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphcomms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\secwmi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mapldr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
