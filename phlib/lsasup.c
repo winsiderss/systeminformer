@@ -588,6 +588,8 @@ PPH_STRING PhSidToStringSid(
     }
     else
     {
+        PhDereferenceObject(string);
+
         return NULL;
     }
 }
