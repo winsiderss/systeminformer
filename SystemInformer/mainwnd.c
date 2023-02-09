@@ -15,6 +15,7 @@
 
 #include <cpysave.h>
 #include <emenu.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>
 #include <svcsup.h>
@@ -142,8 +143,7 @@ BOOLEAN PhMainWndInitialization(
     windowRectangle.Size = PhGetScalableIntegerPairSetting(L"MainWindowSize", TRUE, dpiValue).Pair;
 
     // Create the window title.
-    windowName = PhGetMainWindowTitle();
-    if (!windowName)
+    if (!(windowName = PhGetMainWindowTitle()))
     {
         PhApplicationName = L" "; // Remove dialog window title when disabled (dmex)
     }
@@ -166,11 +166,7 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
-    if (windowName)
-    {
-        PhSetApplicationWindowIcon(PhMainWndHandle);
-        PhDereferenceObject(windowName);
-    }
+    PhClearReference(&windowName);
 
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(PhMainWndHandle, &windowRectangle);
@@ -606,6 +602,7 @@ VOID PhMwpOnDestroy(
 
     // Notify pages and plugins that we are shutting down.
 
+    PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(FALSE), NULL); // disable providers (dmex)
     PhMwpNotifyAllPages(MainTabPageDestroy, NULL, NULL);
 
     if (PhPluginsEnabled)
