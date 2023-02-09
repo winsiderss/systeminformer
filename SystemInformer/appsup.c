@@ -12,9 +12,6 @@
 
 #include <phapp.h>
 
-#include <dbghelp.h>
-#include <shellapi.h>
-
 #include <cpysave.h>
 #include <emenu.h>
 #include <svcsup.h>
@@ -24,6 +21,8 @@
 #include <actions.h>
 #include <phappres.h>
 #include <phsvccl.h>
+
+#include <shellapi.h>
 
 #include "..\tools\thirdparty\pcre\pcre2.h"
 
@@ -932,8 +931,8 @@ VOID PhLoadSymbolProviderOptions(
     PPH_STRING searchPath = NULL;
 
     PhSetOptionsSymbolProvider(
-        SYMOPT_UNDNAME,
-        PhGetIntegerSetting(L"DbgHelpUndecorate") ? SYMOPT_UNDNAME : 0
+        PH_SYMOPT_UNDNAME,
+        PhGetIntegerSetting(L"DbgHelpUndecorate") ? PH_SYMOPT_UNDNAME : 0
         );
 
     PhQueryEnvironmentVariable(NULL, &symbolPath, &searchPath);
