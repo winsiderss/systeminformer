@@ -1688,15 +1688,14 @@ PhReadTimeStampCounter(
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhQueryPerformanceCounter(
-    _Out_ PLARGE_INTEGER PerformanceCounter,
-    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    _Out_ PLARGE_INTEGER PerformanceCounter
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhQueryPerformanceFrequency(
     _Out_ PLARGE_INTEGER PerformanceFrequency
