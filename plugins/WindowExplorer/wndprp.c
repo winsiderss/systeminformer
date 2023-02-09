@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -15,6 +15,7 @@
 #include <appresolver.h>
 #include <workqueue.h>
 #include <symprv.h>
+#include <mapldr.h>
 
 #include <shellapi.h>
 #include <propsys.h>

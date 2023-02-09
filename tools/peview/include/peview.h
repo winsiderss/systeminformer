@@ -18,6 +18,7 @@
 #include <emenu.h>
 #include <guisup.h>
 #include <mapimg.h>
+#include <mapldr.h>
 #include <hexedit.h>
 #include <prsht.h>
 #include <prpsh.h>

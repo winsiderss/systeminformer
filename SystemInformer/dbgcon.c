@@ -21,6 +21,7 @@
 #include <refp.h>
 #include <settings.h>
 #include <symprv.h>
+#include <mapldr.h>
 #include <workqueue.h>
 #include <workqueuep.h>
 

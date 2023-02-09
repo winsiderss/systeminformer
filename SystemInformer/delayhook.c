@@ -11,6 +11,7 @@
 
 #include <phapp.h>
 #include <apiimport.h>
+#include <mapldr.h>
 
 #include <vsstyle.h>
 

@@ -14,6 +14,7 @@
 #include <emenu.h>
 #include <settings.h>
 #include <treenew.h>
+#include <mapldr.h>
 
 #include <dwmapi.h>
 #include <vsstyle.h>
@@ -243,7 +244,7 @@ VOID PhInitializeWindowTheme(
             {
                 PVOID baseAddress;
 
-                if (!(baseAddress = PhGetLoaderEntryDllBase(L"uxtheme.dll")))
+                if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll")))
                     baseAddress = PhLoadLibrary(L"uxtheme.dll");
 
                 if (baseAddress)

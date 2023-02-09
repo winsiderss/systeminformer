@@ -607,7 +607,7 @@ static VOID KphpTpSetPoolThreadBasePriority(
     {
         PVOID baseAddress;
 
-        if (baseAddress = PhGetLoaderEntryDllBase(L"ntdll.dll"))
+        if (baseAddress = PhGetLoaderEntryDllBaseZ(L"ntdll.dll"))
         {
             TpSetPoolThreadBasePriority_I = PhGetDllBaseProcedureAddress(baseAddress, "TpSetPoolThreadBasePriority", 0);
         }

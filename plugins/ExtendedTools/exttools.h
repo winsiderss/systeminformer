@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -15,8 +15,10 @@
 
 #include <phdk.h>
 #include <phappresource.h>
-#include <workqueue.h>
 #include <settings.h>
+#include <mapldr.h>
+#include <workqueue.h>
+
 #include <math.h>
 
 #include "resource.h"
@@ -1121,8 +1123,8 @@ VOID ShowFwContextMenu(
     );
 
 VOID NTAPI FwItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 VOID NTAPI FwItemModifiedHandler(

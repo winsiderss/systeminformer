@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2015
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -18,6 +18,7 @@
 #include <extmgri.h>
 #include <procprv.h>
 #include <phsettings.h>
+#include <mapldr.h>
 
 typedef ULONG (WINAPI *_SubscribeServiceChangeNotifications)(
     _In_ SC_HANDLE hService,
@@ -265,7 +266,7 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     PPH_SERVICE_ITEM serviceItem;
     PH_STRINGREF key;
 
-    PhInitializeStringRef(&key, Name);
+    PhInitializeStringRefLongHint(&key, Name);
 
     PhAcquireQueuedLockShared(&PhServiceHashtableLock);
 

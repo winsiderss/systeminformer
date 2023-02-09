@@ -18,6 +18,7 @@
 #include <svcsup.h>
 #include <settings.h>
 #include <verify.h>
+#include <mapldr.h>
 
 #include <colmgr.h>
 #include <extmgri.h>

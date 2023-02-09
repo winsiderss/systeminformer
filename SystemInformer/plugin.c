@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -20,6 +20,7 @@
 #include <phsvccl.h>
 #include <procprv.h>
 #include <settings.h>
+#include <mapldr.h>
 
 typedef struct _PHP_PLUGIN_LOAD_ERROR
 {

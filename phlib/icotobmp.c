@@ -6,17 +6,18 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include <ph.h>
 #include <uxtheme.h>
+#include <mapldr.h>
 #include <guisup.h>
 
 // code from http://msdn.microsoft.com/en-us/library/bb757020.aspx
 
-typedef HPAINTBUFFER (*_BeginBufferedPaint)(
+typedef HPAINTBUFFER (WINAPI* _BeginBufferedPaint)(
     _In_ HDC hdcTarget,
     _In_ const RECT *prcTarget,
     _In_ BP_BUFFERFORMAT dwFormat,
@@ -24,12 +25,12 @@ typedef HPAINTBUFFER (*_BeginBufferedPaint)(
     _Out_ HDC *phdc
     );
 
-typedef HRESULT (*_EndBufferedPaint)(
+typedef HRESULT (WINAPI* _EndBufferedPaint)(
     _In_ HPAINTBUFFER hBufferedPaint,
     _In_ BOOL fUpdateTarget
     );
 
-typedef HRESULT (*_GetBufferedPaintBits)(
+typedef HRESULT (WINAPI* _GetBufferedPaintBits)(
     _In_ HPAINTBUFFER hBufferedPaint,
     _Out_ RGBQUAD **ppbBuffer,
     _Out_ int *pcxRow
@@ -199,7 +200,7 @@ HBITMAP PhIconToBitmap(
     {
         PVOID uxtheme;
 
-        uxtheme = PhGetLoaderEntryDllBase(L"uxtheme.dll");
+        uxtheme = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll");
         BeginBufferedPaint_I = PhGetProcedureAddress(uxtheme, "BeginBufferedPaint", 0);
         EndBufferedPaint_I = PhGetProcedureAddress(uxtheme, "EndBufferedPaint", 0);
         GetBufferedPaintBits_I = PhGetProcedureAddress(uxtheme, "GetBufferedPaintBits", 0);

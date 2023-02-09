@@ -15,6 +15,7 @@
 #include <kphuser.h>
 #include <lsasup.h>
 #include <mapimg.h>
+#include <mapldr.h>
 
 #define PH_DEVICE_PREFIX_LENGTH 64
 #define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16

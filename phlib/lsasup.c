@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2019-2022
+ *     dmex    2019-2023
  *
  */
 
@@ -22,6 +22,7 @@
 
 #include <accctrl.h>
 #include <lsasup.h>
+#include <mapldr.h>
 
 NTSTATUS PhOpenLsaPolicy(
     _Out_ PLSA_HANDLE PolicyHandle,
