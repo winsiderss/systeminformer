@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -112,6 +112,7 @@ typedef enum _PH_STACK_TREE_COLUMN_ITEM_NAME
     PH_STACK_TREE_COLUMN_FILENAME,
     PH_STACK_TREE_COLUMN_LINETEXT,
     PH_STACK_TREE_COLUMN_ARCHITECTURE,
+    PH_STACK_TREE_COLUMN_FRAMEDISTANCE,
     TREE_COLUMN_ITEM_MAXIMUM
 } PH_STACK_TREE_COLUMN_ITEM_NAME;
 
@@ -122,6 +123,7 @@ typedef struct _PH_STACK_TREE_ROOT_NODE
     PH_THREAD_STACK_FRAME StackFrame;
 
     ULONG Index;
+    ULONG FrameDistance;
     PPH_STRING TooltipText;
     PPH_STRING IndexString;
     PPH_STRING SymbolString;
@@ -136,6 +138,7 @@ typedef struct _PH_STACK_TREE_ROOT_NODE
     WCHAR PcAddressString[PH_PTR_STR_LEN_1];
     WCHAR ReturnAddressString[PH_PTR_STR_LEN_1];
     PH_STRINGREF Architecture;
+    PPH_STRING FrameDistanceString;
 
     PH_STRINGREF TextCache[TREE_COLUMN_ITEM_MAXIMUM];
 } PH_STACK_TREE_ROOT_NODE, *PPH_STACK_TREE_ROOT_NODE;
@@ -256,6 +259,14 @@ BEGIN_SORT_FUNCTION(Architecture)
 {
     sortResult = PhCompareStringRef(&node1->Architecture, &node2->Architecture, TRUE);
 }
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FrameDistance)
+{
+    sortResult = uintcmp(node1->FrameDistance, node2->FrameDistance);
+}
+END_SORT_FUNCTION
+
 VOID ThreadStackLoadSettingsTreeList(
     _Inout_ PPH_THREAD_STACK_CONTEXT Context
     )
@@ -304,7 +315,8 @@ VOID DestroyThreadStackNode(
         PhDereferenceObject(Node->TooltipText);
     if (Node->IndexString)
         PhDereferenceObject(Node->IndexString);
-
+    if (Node->FrameDistanceString)
+        PhDereferenceObject(Node->FrameDistanceString);
     PhDereferenceObject(Node);
 }
 
@@ -420,6 +432,7 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(LineText),
                     SORT_FUNCTION(Architecture),
+                    SORT_FUNCTION(FrameDistance),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -494,6 +507,13 @@ BOOLEAN NTAPI ThreadStackTreeNewCallback(
                 break;
             case PH_STACK_TREE_COLUMN_ARCHITECTURE:
                 getCellText->Text = node->Architecture;
+                break;
+            case PH_STACK_TREE_COLUMN_FRAMEDISTANCE:
+                {
+                    if (node->FrameDistance)
+                        PhMoveReference(&node->FrameDistanceString, PhFormatSize(node->FrameDistance, ULONG_MAX));
+                    getCellText->Text = PhGetStringRef(node->FrameDistanceString);
+                }
                 break;
             default:
                 return FALSE;
@@ -782,6 +802,7 @@ VOID InitializeThreadStackTree(
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_LINETEXT, FALSE, L"Line number", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_ARCHITECTURE, FALSE, L"Architecture", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_FRAMEDISTANCE, FALSE, L"Frame distance", 100, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT);
 
     TreeNew_SetTriState(Context->TreeNewHandle, FALSE);
     TreeNew_SetSort(Context->TreeNewHandle, PH_STACK_TREE_COLUMN_INDEX, AscendingSortOrder);
@@ -1821,6 +1842,17 @@ static NTSTATUS PhpRefreshThreadStack(
                 PhInitializeStringRef(&stackNode->Architecture, L"x86");
             else
                 PhInitializeStringRef(&stackNode->Architecture, L"");
+
+            if (i > 0 && item->StackFrame.StackAddress)
+            {
+                PTHREAD_STACK_ITEM previousFrame = Context->List->Items[i - 1];
+
+                // Windbg "k f" displays the distance between adjacent frames. (dmex)
+                if (previousFrame->StackFrame.StackAddress)
+                {
+                    stackNode->FrameDistance = (ULONG)((ULONG_PTR)item->StackFrame.StackAddress - (ULONG_PTR)previousFrame->StackFrame.StackAddress);
+                }
+            }
 
             UpdateThreadStackNode(Context, stackNode);
         }
