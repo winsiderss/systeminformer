@@ -254,6 +254,11 @@ typedef enum _DEVNODE_PROP_TYPE
 } DEVNODE_PROP_TYPE, PDEVNODE_PROP_TYPE;
 C_ASSERT(MaxDevType <= MAXSHORT);
 
+#if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
+// Note: This propkey is required for building with 22H1 and older Windows SDK (dmex)
+DEFINE_DEVPROPKEY(DEVPKEY_Device_FirmwareVendor, 0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 26);   // DEVPROP_TYPE_STRING
+#endif
+
 typedef struct _DEVNODE_PROP
 {
     union
