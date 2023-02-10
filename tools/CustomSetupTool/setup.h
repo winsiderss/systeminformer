@@ -17,6 +17,7 @@
 #include <prsht.h>
 #include <svcsup.h>
 #include <json.h>
+#include <mapldr.h>
 #include <phnet.h>
 
 #include <aclapi.h>
