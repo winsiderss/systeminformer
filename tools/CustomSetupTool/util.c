@@ -139,7 +139,8 @@ VOID SetupDeleteAppdataDirectory(
 
     if (appdataDirectory = PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\"))
     {
-        PhDeleteDirectoryWin32(appdataDirectory);
+        PhDeleteDirectoryWin32(&appdataDirectory->sr);
+
         PhDereferenceObject(appdataDirectory);
     }
 }
