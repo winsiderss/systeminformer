@@ -136,6 +136,17 @@ typedef const UNICODE_STRING *PCUNICODE_STRING;
 
 #define RTL_CONSTANT_STRING(s) { sizeof(s) - sizeof((s)[0]), sizeof(s), s }
 
+#define DECLARE_CONST_UNICODE_STRING(_var, _str) \
+const WCHAR _var ## _buffer[] = _str; \
+const UNICODE_STRING _var = { sizeof(_str) - sizeof(WCHAR), sizeof(_str), (PWCH) _var ## _buffer }
+
+#define DECLARE_GLOBAL_CONST_UNICODE_STRING(_var, _str) \
+extern const DECLSPEC_SELECTANY UNICODE_STRING _var = RTL_CONSTANT_STRING(_str)
+
+#define DECLARE_UNICODE_STRING_SIZE(_var, _size) \
+WCHAR _var ## _buffer[_size]; \
+UNICODE_STRING _var = { 0, (_size) * sizeof(WCHAR) , _var ## _buffer }
+
 // Balanced tree node
 
 #define RTL_BALANCED_NODE_RESERVED_PARENT_MASK 3
@@ -319,6 +330,10 @@ typedef struct _KSYSTEM_TIME
 } KSYSTEM_TIME, *PKSYSTEM_TIME;
 
 #include <poppack.h>
+
+#ifndef IMAGE_FILE_MACHINE_CHPE_X86
+#define IMAGE_FILE_MACHINE_CHPE_X86 0x3A64
+#endif
 
 #ifndef AFFINITY_MASK
 #define AFFINITY_MASK(n) ((KAFFINITY)1 << (n))
