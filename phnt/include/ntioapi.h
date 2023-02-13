@@ -756,6 +756,49 @@ typedef struct _FILE_VOLUME_NAME_INFORMATION
     _Field_size_bytes_(DeviceNameLength) WCHAR DeviceName[1];
 } FILE_VOLUME_NAME_INFORMATION, *PFILE_VOLUME_NAME_INFORMATION;
 
+#ifndef FILE_INVALID_FILE_ID
+#define FILE_INVALID_FILE_ID ((LONGLONG)-1LL)
+#endif
+
+#define FILE_ID_IS_INVALID(FID) ((FID).QuadPart == FILE_INVALID_FILE_ID)
+
+#define FILE_ID_128_IS_INVALID(FID128) \
+    (((FID128).Identifier[0] == (UCHAR)-1) && \
+    ((FID128).Identifier[1] == (UCHAR)-1) && \
+    ((FID128).Identifier[2] == (UCHAR)-1) && \
+    ((FID128).Identifier[3] == (UCHAR)-1) && \
+    ((FID128).Identifier[4] == (UCHAR)-1) && \
+    ((FID128).Identifier[5] == (UCHAR)-1) && \
+    ((FID128).Identifier[6] == (UCHAR)-1) && \
+    ((FID128).Identifier[7] == (UCHAR)-1) && \
+    ((FID128).Identifier[8] == (UCHAR)-1) && \
+    ((FID128).Identifier[9] == (UCHAR)-1) && \
+    ((FID128).Identifier[10] == (UCHAR)-1) && \
+    ((FID128).Identifier[11] == (UCHAR)-1) && \
+    ((FID128).Identifier[12] == (UCHAR)-1) && \
+    ((FID128).Identifier[13] == (UCHAR)-1) && \
+    ((FID128).Identifier[14] == (UCHAR)-1) && \
+    ((FID128).Identifier[15] == (UCHAR)-1))
+
+#define MAKE_INVALID_FILE_ID_128(FID128) { \
+    ((FID128).Identifier[0] = (UCHAR)-1); \
+    ((FID128).Identifier[1] = (UCHAR)-1); \
+    ((FID128).Identifier[2] = (UCHAR)-1); \
+    ((FID128).Identifier[3] = (UCHAR)-1); \
+    ((FID128).Identifier[4] = (UCHAR)-1); \
+    ((FID128).Identifier[5] = (UCHAR)-1); \
+    ((FID128).Identifier[6] = (UCHAR)-1); \
+    ((FID128).Identifier[7] = (UCHAR)-1); \
+    ((FID128).Identifier[8] = (UCHAR)-1); \
+    ((FID128).Identifier[9] = (UCHAR)-1); \
+    ((FID128).Identifier[10] = (UCHAR)-1); \
+    ((FID128).Identifier[11] = (UCHAR)-1); \
+    ((FID128).Identifier[12] = (UCHAR)-1); \
+    ((FID128).Identifier[13] = (UCHAR)-1); \
+    ((FID128).Identifier[14] = (UCHAR)-1); \
+    ((FID128).Identifier[15] = (UCHAR)-1); \
+}
+
 typedef struct _FILE_ID_INFORMATION
 {
     ULONGLONG VolumeSerialNumber;
