@@ -2301,6 +2301,7 @@ NtCreateUserProcess(
 #endif
 
 // begin_rev
+#define THREAD_CREATE_FLAGS_NONE 0x00000000
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
 #define THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH 0x00000002 // NtCreateThreadEx only
 #define THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER 0x00000004 // NtCreateThreadEx only
