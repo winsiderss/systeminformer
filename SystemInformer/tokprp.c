@@ -3583,7 +3583,7 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
         // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
         if (PhIsNullOrEmptyString(appContainerFolderPath))
         {
-            SE_TOKEN_USER tokenUser;
+            PH_TOKEN_USER tokenUser;
         
             if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
             {
