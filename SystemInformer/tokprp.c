@@ -979,7 +979,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_USER tokenUser;
+                PH_TOKEN_USER tokenUser;
                 PPH_STRING stringUserSid;
                 ULONG sessionId;
                 BOOLEAN isElevated;
@@ -1005,18 +1005,16 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                         tokenUserResolve = PhAllocateZero(sizeof(PHP_TOKEN_USER_RESOLVE_CONTEXT));
                         tokenUserResolve->WindowHandle = GetDlgItem(hwndDlg, IDC_USER);
-                        tokenUserResolve->TokenUserSid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                        tokenUserResolve->TokenUserSid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
 
                         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpTokenUserResolveWorker, tokenUserResolve);
                     }
 
-                    if (stringUserSid = PhSidToStringSid(tokenUser->User.Sid))
+                    if (stringUserSid = PhSidToStringSid(tokenUser.User.Sid))
                     {
                         PhSetDialogItemText(hwndDlg, IDC_USERSID, stringUserSid->Buffer);
                         PhDereferenceObject(stringUserSid);
                     }
-
-                    PhFree(tokenUser);
                 }
 
                 if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
@@ -1989,8 +1987,8 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 tokenPageContext->Context // ProcessId
                 )))
             {
-                PTOKEN_USER tokenUser;
-                PTOKEN_OWNER tokenOwner;
+                PH_TOKEN_USER tokenUser;
+                PSID tokenOwner;
                 PTOKEN_PRIMARY_GROUP tokenPrimaryGroup;
                 TOKEN_ELEVATION_TYPE elevationType;
                 BOOLEAN isElevated;
@@ -2000,15 +1998,13 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
-                    tokenUserName = PH_AUTO(PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL));
-                    tokenUserSid = PH_AUTO(PhSidToStringSid(tokenUser->User.Sid));
-
-                    PhFree(tokenUser);
+                    tokenUserName = PH_AUTO(PhGetSidFullName(tokenUser.User.Sid, TRUE, NULL));
+                    tokenUserSid = PH_AUTO(PhSidToStringSid(tokenUser.User.Sid));
                 }
 
                 if (NT_SUCCESS(PhGetTokenOwner(tokenHandle, &tokenOwner)))
                 {
-                    tokenOwnerName = PH_AUTO(PhGetSidFullName(tokenOwner->Owner, TRUE, NULL));
+                    tokenOwnerName = PH_AUTO(PhGetSidFullName(tokenOwner, TRUE, NULL));
                     PhFree(tokenOwner);
                 }
 
@@ -3414,13 +3410,13 @@ PPH_STRING PhpGetTokenFolderPath(
     PPH_STRING profileFolderPath = NULL;
     PPH_STRING profileKeyPath = NULL;
     PPH_STRING tokenUserSid;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
         ULONG subAuthority;
 
-        subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
+        subAuthority = *RtlSubAuthoritySid(tokenUser.User.Sid, 0);
         //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
 
         if (subAuthority == SECURITY_UMFD_BASE_RID)
@@ -3433,14 +3429,12 @@ PPH_STRING PhpGetTokenFolderPath(
         }
         else
         {
-            if (tokenUserSid = PhSidToStringSid(tokenUser->User.Sid))
+            if (tokenUserSid = PhSidToStringSid(tokenUser.User.Sid))
             {
                 profileKeyPath = PhConcatStringRef2(&servicesKeyName, &tokenUserSid->sr);
                 PhDereferenceObject(tokenUserSid);
             }
         }
-
-        PhFree(tokenUser);
     }
 
     if (profileKeyPath)
@@ -3488,12 +3482,11 @@ PPH_STRING PhpGetTokenRegistryPath(
 {
     PPH_STRING profileRegistryPath = NULL;
     PPH_STRING tokenUserSid = NULL;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
-        tokenUserSid = PhSidToStringSid(tokenUser->User.Sid);
-        PhFree(tokenUser);
+        tokenUserSid = PhSidToStringSid(tokenUser.User.Sid);
     }
 
     if (tokenUserSid)
@@ -3566,30 +3559,31 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
             NULL
             );
 
-#ifdef DEBUG
-        if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
-        {
-            if (GetAppContainerFolderPath_Import())
-            {
-                PPH_STRING appContainerSid = PhSidToStringSid(TokenAppContainerSid);
-        
-                if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
-                {
-                    assert(PhEqualString2(appContainerFolderPath, folderPath, TRUE));
-                    CoTaskMemFree(folderPath);
-                }
-        
-                PhDereferenceObject(appContainerSid);
-            }
-        
-            PhRevertImpersonationToken(NtCurrentThread());
-        }
-#endif
+        //if (PhIsNullOrEmptyString(appContainerFolderPath))
+        //{
+        //    if (NT_SUCCESS(PhImpersonateToken(NtCurrentThread(), TokenHandle)))
+        //    {
+        //        if (GetAppContainerFolderPath_Import())
+        //        {
+        //            PPH_STRING appContainerSid = PhSidToStringSid(TokenAppContainerSid);
+        //
+        //            if (SUCCEEDED(GetAppContainerFolderPath_Import()(appContainerSid->Buffer, &folderPath)) && folderPath)
+        //            {
+        //                assert(PhEqualString2(appContainerFolderPath, folderPath, TRUE));
+        //                CoTaskMemFree(folderPath);
+        //            }
+        //
+        //            PhDereferenceObject(appContainerSid);
+        //        }
+        //
+        //        PhRevertImpersonationToken(NtCurrentThread());
+        //    }
+        //}
 
         // Workaround for pseudo Appcontainers created by System processes that default to the \systemprofile path. (dmex)
         if (PhIsNullOrEmptyString(appContainerFolderPath))
         {
-            PTOKEN_USER tokenUser;
+            SE_TOKEN_USER tokenUser;
         
             if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
             {
@@ -3597,8 +3591,8 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
                 PPH_STRING tokenProfilePathString;
                 PPH_STRING appContainerName;
         
-                subAuthority = *RtlSubAuthoritySid(tokenUser->User.Sid, 0);
-                //RtlIdentifierAuthoritySid(tokenUser->User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
+                subAuthority = *RtlSubAuthoritySid(tokenUser.User.Sid, 0);
+                //RtlIdentifierAuthoritySid(tokenUser.User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
         
                 if (subAuthority == SECURITY_UMFD_BASE_RID)
                 {
@@ -3620,8 +3614,6 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
                         PhDereferenceObject(tokenProfilePathString);
                     }
                 }
-        
-                PhFree(tokenUser);
             }
         }
 

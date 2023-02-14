@@ -796,13 +796,12 @@ PPH_STRING PhFormatNativeKeyName(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        PTOKEN_USER tokenUser;
+        PH_TOKEN_USER tokenUser;
         PPH_STRING stringSid = NULL;
 
         if (NT_SUCCESS(PhGetTokenUser(PhGetOwnTokenAttributes().TokenHandle, &tokenUser)))
         {
-            stringSid = PhSidToStringSid(tokenUser->User.Sid);
-            PhFree(tokenUser);
+            stringSid = PhSidToStringSid(tokenUser.User.Sid);
         }
 
         if (stringSid)
@@ -1585,7 +1584,7 @@ NTSTATUS PhpGetBestObjectName(
     else if (PhEqualString2(TypeName, L"Token", TRUE))
     {
         HANDLE dupHandle;
-        PTOKEN_USER tokenUser = NULL;
+        PH_TOKEN_USER tokenUser = { 0 };
         TOKEN_STATISTICS statistics = { 0 };
 
         status = NtDuplicateObject(
@@ -1608,7 +1607,7 @@ NTSTATUS PhpGetBestObjectName(
         {
             PPH_STRING fullName;
 
-            fullName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
+            fullName = PhGetSidFullName(tokenUser.User.Sid, TRUE, NULL);
 
             if (fullName)
             {
@@ -1622,8 +1621,6 @@ NTSTATUS PhpGetBestObjectName(
                 bestObjectName = PhFormat(format, 4, fullName->Length + 8 + 16 + 16);
                 PhDereferenceObject(fullName);
             }
-
-            PhFree(tokenUser);
         }
 
         NtClose(dupHandle);

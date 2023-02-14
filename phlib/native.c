@@ -84,15 +84,14 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
 
         if (attributes.TokenHandle)
         {
-            PTOKEN_USER tokenUser;
+            PH_TOKEN_USER tokenUser;
 
             PhGetTokenIsElevated(attributes.TokenHandle, &elevated);
             PhGetTokenElevationType(attributes.TokenHandle, &elevationType);
 
             if (NT_SUCCESS(PhGetTokenUser(attributes.TokenHandle, &tokenUser)))
             {
-                attributes.TokenSid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
-                PhFree(tokenUser);
+                attributes.TokenSid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
             }
         }
 
@@ -2580,15 +2579,45 @@ NTSTATUS PhQueryTokenVariableSize(
  * \param User A variable which receives a pointer to a structure containing the token's user. You
  * must free the structure using PhFree() when you no longer need it.
  */
-NTSTATUS PhGetTokenUser(
+NTSTATUS PhGetTokenUserCopy(
     _In_ HANDLE TokenHandle,
-    _Out_ PTOKEN_USER *User
+    _Out_ PSID* User
     )
 {
-    return PhpQueryTokenVariableSize(
+    NTSTATUS status;
+    ULONG returnLength;
+    UCHAR tokenUserBuffer[TOKEN_USER_MAX_SIZE];
+    PTOKEN_USER tokenUser = (PTOKEN_USER)tokenUserBuffer;
+    
+    status = NtQueryInformationToken(
         TokenHandle,
         TokenUser,
-        User
+        tokenUser,
+        sizeof(tokenUserBuffer),
+        &returnLength
+        );
+    
+    if (NT_SUCCESS(status))
+    {
+        *User = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenUser(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_TOKEN_USER User
+    )
+{
+    ULONG returnLength;
+    
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenUser,
+        User,
+        sizeof(PH_TOKEN_USER), // SE_TOKEN_USER
+        &returnLength
         );
 }
 
@@ -8357,7 +8386,7 @@ VOID PhpInitializePredefineKeys(
 {
     static UNICODE_STRING currentUserPrefix = RTL_CONSTANT_STRING(L"\\Registry\\User\\");
     NTSTATUS status;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
     UNICODE_STRING stringSid;
     WCHAR stringSidBuffer[SECURITY_MAX_SID_STRING_CHARACTERS];
     PUNICODE_STRING currentUserKeyName;
@@ -8371,11 +8400,9 @@ VOID PhpInitializePredefineKeys(
 
         status = RtlConvertSidToUnicodeString(
             &stringSid,
-            tokenUser->User.Sid,
+            tokenUser.User.Sid,
             FALSE
             );
-
-        PhFree(tokenUser);
     }
 
     // Construct the current user key name.

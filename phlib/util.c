@@ -4672,7 +4672,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
     BOOLEAN currentDaclPresent;
     BOOLEAN currentDaclDefaulted;
     PACL currentDacl;
-    PTOKEN_USER currentUser;
+    PH_TOKEN_USER currentUser;
     PACE_HEADER currentAce;
     ULONG newDaclLength;
     PACL newDacl;
@@ -4789,7 +4789,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
                 currentDaclPresent = FALSE;
             }
 
-            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + RtlLengthSid(currentUser->User.Sid);
+            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + RtlLengthSid(currentUser.User.Sid);
 
             if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
@@ -4808,7 +4808,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
             }
 
             // Allow access for the current user.
-            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, GENERIC_ALL, currentUser->User.Sid);
+            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, GENERIC_ALL, currentUser.User.Sid);
 
             // Set the security descriptor of the new token.
 
@@ -4823,8 +4823,6 @@ NTSTATUS PhFilterTokenForLimitedUser(
             NtSetInformationToken(newTokenHandle, TokenDefaultDacl, &newDefaultDacl, sizeof(TOKEN_DEFAULT_DACL));
 
             PhFree(newDacl);
-
-            PhFree(currentUser);
         }
 
         PhFree(currentSecurityDescriptor);

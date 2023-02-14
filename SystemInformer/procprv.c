@@ -1295,7 +1295,7 @@ VOID PhpFillProcessItem(
             &tokenHandle
             )))
         {
-            PTOKEN_USER tokenUser;
+            PH_TOKEN_USER tokenUser;
             TOKEN_ELEVATION_TYPE elevationType;
             BOOLEAN isElevated;
             MANDATORY_LEVEL integrityLevel;
@@ -1304,10 +1304,8 @@ VOID PhpFillProcessItem(
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {
-                ProcessItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
-                ProcessItem->UserName = PhpGetSidFullNameCached(tokenUser->User.Sid);
-
-                PhFree(tokenUser);
+                ProcessItem->Sid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
+                ProcessItem->UserName = PhpGetSidFullNameCached(tokenUser.User.Sid);
             }
 
             // Elevation
@@ -2622,7 +2620,7 @@ VOID PhProcessProviderUpdate(
                     &tokenHandle
                     )))
                 {
-                    PTOKEN_USER tokenUser;
+                    PH_TOKEN_USER tokenUser;
                     //BOOLEAN isElevated;
                     //TOKEN_ELEVATION_TYPE elevationType;
                     MANDATORY_LEVEL integrityLevel;
@@ -2633,24 +2631,22 @@ VOID PhProcessProviderUpdate(
                         // User
                         if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                         {
-                            if (!processItem->Sid || !RtlEqualSid(processItem->Sid, tokenUser->User.Sid))
+                            if (!processItem->Sid || !RtlEqualSid(processItem->Sid, tokenUser.User.Sid))
                             {
                                 PSID processSid;
 
                                 // HACK (dmex)
                                 processSid = processItem->Sid;
-                                processItem->Sid = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+                                processItem->Sid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
                                 if (processSid) PhFree(processSid);
+
+                                if (processItem->Sid)
+                                {
+                                    PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
+                                }
+
                                 modified = TRUE;
-                            }
-
-                            PhFree(tokenUser);
-                        }
-
-                        if (PhIsNullOrEmptyString(processItem->UserName) && processItem->Sid)
-                        {
-                            PhMoveReference(&processItem->UserName, PhpGetSidFullNameCachedSlow(processItem->Sid));
-                            modified = TRUE;
+                            }       
                         }
                     }
 
