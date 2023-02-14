@@ -587,12 +587,28 @@ PhGetTokenTrustLevel(
     _Out_ PTOKEN_PROCESS_TRUST_LEVEL *TrustLevel
     );
 
+typedef struct _PH_TOKEN_APPCONTAINER
+{
+    union
+    {
+        TOKEN_APPCONTAINER_INFORMATION TokenAppContainer;
+        SID_AND_ATTRIBUTES AppContainer;
+    };
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    };
+} PH_TOKEN_APPCONTAINER, *PPH_TOKEN_APPCONTAINER;
+
+C_ASSERT(sizeof(PH_TOKEN_APPCONTAINER) >= TOKEN_APPCONTAINER_SID_MAX_SIZE);
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetTokenAppContainerSid(
     _In_ HANDLE TokenHandle,
-    _Out_ PSID* AppContainerSid
+    _Out_ PPH_TOKEN_APPCONTAINER AppContainerSid
     );
 
 PHLIBAPI

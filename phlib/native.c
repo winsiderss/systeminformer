@@ -2798,7 +2798,7 @@ NTSTATUS PhGetTokenTrustLevel(
         );
 }
 
-NTSTATUS PhGetTokenAppContainerSid(
+NTSTATUS PhGetTokenAppContainerSidCopy(
     _In_ HANDLE TokenHandle,
     _Out_ PSID* AppContainerSid
     )
@@ -2826,6 +2826,30 @@ NTSTATUS PhGetTokenAppContainerSid(
         {
             status = STATUS_NOT_FOUND;
         }
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenAppContainerSid(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_TOKEN_APPCONTAINER AppContainerSid
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenAppContainerSid,
+        AppContainerSid,
+        sizeof(PH_TOKEN_APPCONTAINER),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status) && !AppContainerSid->AppContainer.Sid)
+    {
+        status = STATUS_NOT_FOUND;
     }
 
     return status;
