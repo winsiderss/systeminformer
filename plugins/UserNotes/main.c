@@ -100,6 +100,7 @@ VOID DeleteDbObjectForProcessIfUnused(
         Object->BackColor == ULONG_MAX &&
         Object->Collapse == FALSE &&
         Object->AffinityMask == 0 &&
+        Object->PagePriorityPlusOne == 0 &&
         Object->Boost == FALSE
         )
     {
