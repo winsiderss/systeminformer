@@ -2668,7 +2668,7 @@ NTSTATUS PhGetTokenUser(
  * \param Owner A variable which receives a pointer to a structure containing the token's owner. You
  * must free the structure using PhFree() when you no longer need it.
  */
-NTSTATUS PhGetTokenOwner(
+NTSTATUS PhGetTokenOwnerCopy(
     _In_ HANDLE TokenHandle,
     _Out_ PSID* Owner
     )
@@ -2692,6 +2692,22 @@ NTSTATUS PhGetTokenOwner(
     }
 
     return status;
+}
+
+NTSTATUS PhGetTokenOwner(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_TOKEN_OWNER Owner
+    )
+{
+    ULONG returnLength;
+    
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenOwner,
+        Owner,
+        sizeof(PH_TOKEN_OWNER),
+        &returnLength
+        );
 }
 
 /**

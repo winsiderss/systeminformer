@@ -1988,7 +1988,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 )))
             {
                 PH_TOKEN_USER tokenUser;
-                PSID tokenOwner;
+                PH_TOKEN_OWNER tokenOwner;
                 PTOKEN_PRIMARY_GROUP tokenPrimaryGroup;
                 TOKEN_ELEVATION_TYPE elevationType;
                 BOOLEAN isElevated;
@@ -2004,8 +2004,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 if (NT_SUCCESS(PhGetTokenOwner(tokenHandle, &tokenOwner)))
                 {
-                    tokenOwnerName = PH_AUTO(PhGetSidFullName(tokenOwner, TRUE, NULL));
-                    PhFree(tokenOwner);
+                    tokenOwnerName = PH_AUTO(PhGetSidFullName(tokenOwner.Owner.Sid, TRUE, NULL));
                 }
 
                 if (NT_SUCCESS(PhGetTokenPrimaryGroup(tokenHandle, &tokenPrimaryGroup)))

@@ -523,12 +523,28 @@ PhGetTokenUser(
     _Out_ PPH_TOKEN_USER User
     );
 
+typedef struct _PH_TOKEN_OWNER
+{
+    union
+    {
+        TOKEN_OWNER TokenOwner;
+        SID_AND_ATTRIBUTES Owner;
+    };
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    };
+} PH_TOKEN_OWNER, *PPH_TOKEN_OWNER;
+
+C_ASSERT(sizeof(PH_TOKEN_OWNER) >= TOKEN_OWNER_MAX_SIZE);
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetTokenOwner(
     _In_ HANDLE TokenHandle,
-    _Out_ PTOKEN_OWNER *Owner
+    _Out_ PPH_TOKEN_OWNER Owner
     );
 
 PHLIBAPI
