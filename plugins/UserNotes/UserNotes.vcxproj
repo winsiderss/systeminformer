@@ -102,6 +102,7 @@
   <ItemGroup>
     <ClCompile Include="db.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="options.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="db.h" />

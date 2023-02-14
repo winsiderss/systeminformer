@@ -2514,7 +2514,8 @@ LOGICAL DllMain(
         PPH_PLUGIN_INFORMATION info;
         PH_SETTING_CREATE settings[] =
         {
-            { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" }
+            { StringSettingType, SETTING_NAME_CUSTOM_COLOR_LIST, L"" },
+            { StringSettingType, SETTING_NAME_OPTIONS_DB_COLUMNS, L"" },
         };
 
         PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
@@ -2657,103 +2658,6 @@ LOGICAL DllMain(
     return TRUE;
 }
 
-BOOLEAN IsCollapseServicesOnStartEnabled(
-    VOID
-    )
-{
-    static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
-    PDB_OBJECT object;
-
-    object = FindDbObject(FILE_TAG, &servicesBaseName);
-
-    if (object && object->Collapse)
-    {
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-VOID AddOrRemoveCollapseServicesOnStart(
-    _In_ BOOLEAN CollapseServicesOnStart
-    )
-{
-    // This is for backwards compat with PhCsCollapseServicesOnStart (dmex)
-    // https://github.com/winsiderss/systeminformer/issues/519
-
-    if (CollapseServicesOnStart)
-    {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
-        PDB_OBJECT object;
-
-        if (object = FindDbObject(FILE_TAG, &servicesBaseName))
-        {
-            object->Collapse = TRUE;
-        }
-        else
-        {
-            object = CreateDbObject(FILE_TAG, &servicesBaseName, NULL);
-            object->Collapse = TRUE;
-        }
-    }
-    else
-    {
-        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"services.exe");
-        PDB_OBJECT object;
-
-        object = FindDbObject(FILE_TAG, &servicesBaseName);
-
-        if (object && object->Collapse)
-        {
-            object->Collapse = FALSE;
-            DeleteDbObjectForProcessIfUnused(object);
-        }
-    }
-}
-
-INT_PTR CALLBACK OptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    )
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_COLLAPSE_SERVICES_CHECK), IsCollapseServicesOnStartEnabled());
-        }
-        break;
-    case WM_COMMAND:
-        {
-            switch (GET_WM_COMMAND_ID(wParam, lParam))
-            {
-            case IDC_COLLAPSE_SERVICES_CHECK:
-                {
-                    AddOrRemoveCollapseServicesOnStart(
-                        Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
-
-                    // uncomment for realtime toggle
-                    //LoadCollapseServicesOnStart();
-                    //PhExpandAllProcessNodes(TRUE);
-                    //if (ToolStatusInterface)
-                    //    PhInvokeCallback(ToolStatusInterface->SearchChangedEvent, PH_AUTO(PhReferenceEmptyString()));
-                }
-                break;
-            }
-        }
-        break;
-    case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-    }
-
-    return FALSE;
-}
 
 INT_PTR CALLBACK ProcessCommentPageDlgProc(
     _In_ HWND hwndDlg,
