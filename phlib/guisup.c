@@ -585,7 +585,7 @@ ULONG PhGetWindowTextEx(
 ULONG PhGetWindowTextToBuffer(
     _In_ HWND hwnd,
     _In_ ULONG Flags,
-    _Out_writes_bytes_opt_(BufferLength) PWSTR Buffer,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _In_opt_ ULONG BufferLength,
     _Out_opt_ PULONG ReturnLength
     )
