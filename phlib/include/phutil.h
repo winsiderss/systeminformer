@@ -828,7 +828,7 @@ PhGetBaseName(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhGetBaseNamePathWithExtension(
+PhGetBaseNameChangeExtension(
     _In_ PPH_STRING FileName,
     _In_ PPH_STRINGREF FileExtension
     );
