@@ -1659,6 +1659,78 @@ VOID NTAPI DevPropFillBusTypeGuid(
     }
 }
 
+PPH_STRING DevPropPciDeviceInterruptSupportToString(
+    _In_ ULONG Flags
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    WCHAR pointer[PH_PTR_STR_LEN_1];
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_InterruptType_LineBased))
+        PhAppendStringBuilder2(&stringBuilder, L"Line based, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_InterruptType_Msi))
+        PhAppendStringBuilder2(&stringBuilder, L"Msi, ");
+    if (BooleanFlagOn(Flags, DevProp_PciDevice_InterruptType_MsiX))
+        PhAppendStringBuilder2(&stringBuilder, L"MsiX, ");
+
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 2);
+
+    PhPrintPointer(pointer, UlongToPtr(Flags));
+    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+_Function_class_(DEVPROP_FILL_CALLBACK)
+VOID NTAPI DevPropFillPciDeviceInterruptSupport(
+    _In_ HDEVINFO DeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA DeviceInfoData,
+    _In_ const DEVPROPKEY* PropertyKey,
+    _Out_ PDEVNODE_PROP Property,
+    _In_ ULONG Flags
+    )
+{
+    Property->Type = DevPropTypeUInt32;
+
+    if (!(Flags & (DEVPROP_FILL_FLAG_CLASS_INSTALLER | DEVPROP_FILL_FLAG_CLASS_INTERFACE)))
+    {
+        Property->Valid = GetDevicePropertyUInt32(
+            DeviceInfoSet,
+            DeviceInfoData,
+            PropertyKey,
+            &Property->UInt32
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INTERFACE))
+    {
+        Property->Valid = GetClassPropertyUInt32(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INTERFACE,
+            &Property->UInt32
+            );
+    }
+
+    if (!Property->Valid && (Flags & DEVPROP_FILL_FLAG_CLASS_INSTALLER))
+    {
+        Property->Valid = GetClassPropertyUInt32(
+            &DeviceInfoData->ClassGuid,
+            PropertyKey,
+            DICLASSPROP_INSTALLER,
+            &Property->UInt32
+            );
+    }
+
+    if (Property->Valid)
+    {
+        Property->AsString = DevPropPciDeviceInterruptSupportToString(Property->UInt32);
+    }
+}
+
 _Function_class_(DEVPROP_FILL_CALLBACK)
 VOID NTAPI DevPropFillBoolean(
     _In_ HDEVINFO DeviceInfoSet,
@@ -2065,7 +2137,7 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
 
     { L"Object Type", FALSE, 80, 0, DevKeyObjectType, &DEVPKEY_DevQuery_ObjectType, DevPropFillUInt32, 0 },
 
-    { L"PCI Interrupt Support", FALSE, 80, 0, DevKeyPciInterruptSupport, &DEVPKEY_PciDevice_InterruptSupport, DevPropFillUInt32Hex, 0 },
+    { L"PCI Interrupt Support", FALSE, 80, 0, DevKeyPciInterruptSupport, &DEVPKEY_PciDevice_InterruptSupport, DevPropFillPciDeviceInterruptSupport, 0 },
     { L"PCI Express Capability Control", FALSE, 80, 0, DevKeyPciExpressCapabilityControl, &DEVPKEY_PciRootBus_PCIExpressCapabilityControl, DevPropFillBoolean, 0 },
     { L"PCI Native Express Control", FALSE, 80, 0, DevKeyPciNativeExpressControl, &DEVPKEY_PciRootBus_NativePciExpressControl, DevPropFillBoolean, 0 },
     { L"PCI System MSI Support", FALSE, 80, 0, DevKeyPciSystemMsiSupport, &DEVPKEY_PciRootBus_SystemMsiSupport, DevPropFillBoolean, 0 },
@@ -3305,7 +3377,7 @@ BOOLEAN DevicesTabPageCallback(
         return TRUE;
     case MainTabPageDestroy:
         {
-            DevicesTreeDestroy();
+            NOTHING;
         }
         return TRUE;
     case MainTabPageSelected:
