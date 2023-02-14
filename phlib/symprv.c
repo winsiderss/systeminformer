@@ -92,6 +92,7 @@ _SymFromInlineContextW SymFromInlineContextW_I = NULL;
 _SymGetLineFromInlineContextW SymGetLineFromInlineContextW_I = NULL;
 _MiniDumpWriteDump MiniDumpWriteDump_I = NULL;
 _UnDecorateSymbolNameW UnDecorateSymbolNameW_I = NULL;
+_SymGetDiaSource SymGetDiaSource_I = NULL;
 _SymGetDiaSession SymGetDiaSession_I = NULL;
 _SymFreeDiaString SymFreeDiaString_I = NULL;
 
@@ -551,8 +552,6 @@ VOID PhpSymbolProviderCompleteInitialization(
         SymGetLineFromInlineContextW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetLineFromInlineContextW", 0);
         MiniDumpWriteDump_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "MiniDumpWriteDump", 0);
         UnDecorateSymbolNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "UnDecorateSymbolNameW", 0);
-        SymGetDiaSession_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetDiaSession", 0);
-        SymFreeDiaString_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFreeDiaString", 0);
     }
 }
 
@@ -2519,6 +2518,43 @@ BOOLEAN PhEnumerateSymbols(
 }
 
 _Success_(return)
+BOOLEAN PhGetSymbolProviderDiaSource(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 BaseOfDll,
+    _Out_ PVOID* DiaSource
+    )
+{
+    BOOLEAN result;
+    PVOID source; // IDiaDataSource COM interface
+
+    PhpRegisterSymbolProvider(SymbolProvider);
+
+    if (!SymGetDiaSource_I)
+        SymGetDiaSource_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymGetDiaSource", 0);
+    if (!SymGetDiaSource_I)
+        return FALSE;
+
+    PH_LOCK_SYMBOLS();
+
+    result = SymGetDiaSource_I(
+        SymbolProvider->ProcessHandle,
+        BaseOfDll,
+        &source
+        );
+    //GetLastError(); // returns HRESULT
+
+    PH_UNLOCK_SYMBOLS();
+
+    if (result)
+    {
+        *DiaSource = source;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+_Success_(return)
 BOOLEAN PhGetSymbolProviderDiaSession(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 BaseOfDll,
@@ -2530,6 +2566,8 @@ BOOLEAN PhGetSymbolProviderDiaSession(
 
     PhpRegisterSymbolProvider(SymbolProvider);
 
+    if (!SymGetDiaSession_I)
+        SymGetDiaSession_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymGetDiaSession", 0);
     if (!SymGetDiaSession_I)
         return FALSE;
 
@@ -2559,6 +2597,8 @@ VOID PhSymbolProviderFreeDiaString(
 {
     //PhpRegisterSymbolProvider(SymbolProvider);
 
+    if ((SymGetDiaSession_I || SymGetDiaSource_I) && !SymFreeDiaString_I)
+        SymFreeDiaString_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymFreeDiaString", 0);
     if (!SymFreeDiaString_I)
         return;
 
