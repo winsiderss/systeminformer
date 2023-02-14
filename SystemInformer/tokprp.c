@@ -987,7 +987,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PPH_STRING tokenElevated = NULL;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
-                PSID appContainerSid;
+                PH_TOKEN_APPCONTAINER tokenAppContainer;
                 PPH_STRING appContainerName;
                 PPH_STRING appContainerSidString;
 
@@ -1051,11 +1051,10 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     appContainerName = NULL;
                     appContainerSidString = NULL;
 
-                    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
+                    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                     {
-                        appContainerName = PhGetAppContainerName(appContainerSid);
-                        appContainerSidString = PhSidToStringSid(appContainerSid);
-                        PhFree(appContainerSid);
+                        appContainerName = PhGetAppContainerName(tokenAppContainer.AppContainer.Sid);
+                        appContainerSidString = PhSidToStringSid(tokenAppContainer.AppContainer.Sid);
                     }
 
                     if (appContainerName)
@@ -2721,14 +2720,14 @@ BOOLEAN PhpAddTokenCapabilities(
             {
                 if (subAuthoritiesCount == SECURITY_APP_PACKAGE_RID_COUNT)
                 {
-                    PSID appContainerSid;
+                    PH_TOKEN_APPCONTAINER tokenAppContainer;
 
                     //if (*RtlSubAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid, 1) == SECURITY_CAPABILITY_APP_RID)
                     //    continue;
 
-                    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
+                    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                     {
-                        if (PhIsPackageCapabilitySid(appContainerSid, TokenPageContext->Capabilities->Groups[i].Sid))
+                        if (PhIsPackageCapabilitySid(tokenAppContainer.AppContainer.Sid, TokenPageContext->Capabilities->Groups[i].Sid))
                         {
                             static PH_STRINGREF packageNameStringRef = PH_STRINGREF_INIT(L"Package: ");
 
@@ -2742,8 +2741,6 @@ BOOLEAN PhpAddTokenCapabilities(
                                 PhpAddAttributeNode(&TokenPageContext->CapsTreeContext, node, PhCreateString2(&packageNameStringRef));
                             }
                         }
-
-                        PhFree(appContainerSid);
                     }
                 }
                 else if (subAuthoritiesCount == SECURITY_CAPABILITY_RID_COUNT)
@@ -3729,7 +3726,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 )))
             {
                 APPCONTAINER_SID_TYPE appContainerSidType = InvalidAppContainerSidType;
-                PSID appContainerSid;
+                PH_TOKEN_APPCONTAINER tokenAppContainer;
                 PSID appContainerSidParent = NULL;
                 PPH_STRING appContainerName = NULL;
                 PPH_STRING appContainerSidString = NULL;
@@ -3737,16 +3734,15 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 PPH_STRING packageFullName;
                 PPH_STRING packagePath;
 
-                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
+                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
                 {
                     if (RtlGetAppContainerSidType_Import())
-                        RtlGetAppContainerSidType_Import()(appContainerSid, &appContainerSidType);
+                        RtlGetAppContainerSidType_Import()(tokenAppContainer.AppContainer.Sid, &appContainerSidType);
                     if (RtlGetAppContainerParent_Import())
-                        RtlGetAppContainerParent_Import()(appContainerSid, &appContainerSidParent);
+                        RtlGetAppContainerParent_Import()(tokenAppContainer.AppContainer.Sid, &appContainerSidParent);
 
-                    appContainerName = PhGetAppContainerName(appContainerSid);
-                    appContainerSidString = PhSidToStringSid(appContainerSid);
-                    PhFree(appContainerSid);
+                    appContainerName = PhGetAppContainerName(tokenAppContainer.AppContainer.Sid);
+                    appContainerSidString = PhSidToStringSid(tokenAppContainer.AppContainer.Sid);
                 }
 
                 if (appContainerName)
@@ -3848,19 +3844,14 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
             if (tokenHandle)
             {
-                PSID appContainerSid;
+                PH_TOKEN_APPCONTAINER tokenAppContainer;
                 PPH_STRING appContainerFolderPath;
                 PPH_STRING appContainerRegistryPath;
 
-                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)))
-                {
-                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, appContainerSid);
-                    PhFree(appContainerSid);
-                }
+                if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &tokenAppContainer)))
+                    appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, tokenAppContainer.AppContainer.Sid);
                 else
-                {
                     appContainerFolderPath = PhpGetTokenAppContainerFolderPath(tokenHandle, NULL);
-                }
 
                 if (appContainerFolderPath)
                 {
