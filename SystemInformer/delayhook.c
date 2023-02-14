@@ -1153,7 +1153,7 @@ VOID PhInitializeSuperclassControls(
     if (PhEnableThemeAcrylicSupport && !PhEnableThemeSupport)
         PhEnableThemeAcrylicSupport = FALSE;
 
-    //if (PhEnableThemeSupport || PhDefaultEnableStreamerMode)
+    if (PhEnableThemeSupport || PhDefaultEnableStreamerMode)
     {
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();
