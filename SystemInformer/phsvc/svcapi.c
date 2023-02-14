@@ -1163,7 +1163,7 @@ NTSTATUS PhSvcApiControlThread(
     case PhSvcControlThreadTerminate:
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
         {
-            status = NtTerminateThread(threadHandle, STATUS_SUCCESS);
+            status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
             NtClose(threadHandle);
         }
         break;

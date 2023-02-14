@@ -400,13 +400,53 @@ NTSTATUS PhTerminateProcess(
             );
 
         if (status != STATUS_NOT_SUPPORTED)
+        {
+            status = KphTerminateProcess(
+                ProcessHandle,
+                DBG_TERMINATE_PROCESS
+                );
+
             return status;
+        }
     }
 
-    return NtTerminateProcess(
+    status = NtTerminateProcess(
         ProcessHandle,
         ExitStatus
         );
+
+    if (status != STATUS_SUCCESS)
+    {
+        status = NtTerminateProcess(
+            ProcessHandle,
+            DBG_TERMINATE_PROCESS
+            );
+    }
+
+    return status;
+}
+
+NTSTATUS PhTerminateThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ NTSTATUS ExitStatus
+    )
+{
+    NTSTATUS status;
+
+    status = NtTerminateThread(
+        ThreadHandle,
+        ExitStatus
+        );
+
+    if (status != STATUS_SUCCESS)
+    {
+        status = NtTerminateThread(
+            ThreadHandle,
+            DBG_TERMINATE_THREAD
+            );
+    }
+
+    return status;
 }
 
 // based on https://www.drdobbs.com/a-safer-alternative-to-terminateprocess/184416547 (dmex)
@@ -2630,14 +2670,28 @@ NTSTATUS PhGetTokenUser(
  */
 NTSTATUS PhGetTokenOwner(
     _In_ HANDLE TokenHandle,
-    _Out_ PTOKEN_OWNER *Owner
+    _Out_ PSID* Owner
     )
 {
-    return PhpQueryTokenVariableSize(
+    NTSTATUS status;
+    UCHAR tokenOwnerBuffer[TOKEN_OWNER_MAX_SIZE];
+    PTOKEN_OWNER tokenOwner = (PTOKEN_OWNER)tokenOwnerBuffer;
+    ULONG returnLength;
+
+    status = NtQueryInformationToken(
         TokenHandle,
         TokenOwner,
-        Owner
+        tokenOwner,
+        sizeof(tokenOwnerBuffer),
+        &returnLength
         );
+
+    if (NT_SUCCESS(status))
+    {
+        *Owner = PhAllocateCopy(tokenOwner->Owner, RtlLengthSid(tokenOwner->Owner));
+    }
+
+    return status;
 }
 
 /**
@@ -2734,26 +2788,28 @@ NTSTATUS PhGetTokenAppContainerSid(
     )
 {
     NTSTATUS status;
-    PTOKEN_APPCONTAINER_INFORMATION appContainerInfo;
+    UCHAR tokenAppContainerSidBuffer[TOKEN_APPCONTAINER_SID_MAX_SIZE];
+    PTOKEN_APPCONTAINER_INFORMATION tokenAppContainerSid = (PTOKEN_APPCONTAINER_INFORMATION)tokenAppContainerSidBuffer;
+    ULONG returnLength;
 
-    status = PhpQueryTokenVariableSize(
+    status = NtQueryInformationToken(
         TokenHandle,
         TokenAppContainerSid,
-        &appContainerInfo
+        tokenAppContainerSid,
+        sizeof(tokenAppContainerSidBuffer),
+        &returnLength
         );
 
     if (NT_SUCCESS(status))
     {
-        if (appContainerInfo->TokenAppContainer)
+        if (tokenAppContainerSid->TokenAppContainer)
         {
-            *AppContainerSid = PhAllocateCopy(appContainerInfo->TokenAppContainer, RtlLengthSid(appContainerInfo->TokenAppContainer));
+            *AppContainerSid = PhAllocateCopy(tokenAppContainerSid->TokenAppContainer, RtlLengthSid(tokenAppContainerSid->TokenAppContainer));
         }
         else
         {
-            status = STATUS_UNSUCCESSFUL;
+            status = STATUS_NOT_FOUND;
         }
-
-        PhFree(appContainerInfo);
     }
 
     return status;
@@ -3071,7 +3127,7 @@ BOOLEAN PhSetTokenPrivilege(
     {
         PH_STRINGREF privilegeName;
 
-        PhInitializeStringRef(&privilegeName, PrivilegeName);
+        PhInitializeStringRefLongHint(&privilegeName, PrivilegeName);
 
         if (!PhLookupPrivilegeValue(
             &privilegeName,
@@ -3147,7 +3203,7 @@ NTSTATUS PhAdjustPrivilege(
     {
         PH_STRINGREF privilegeName;
 
-        PhInitializeStringRef(&privilegeName, PrivilegeName);
+        PhInitializeStringRefLongHint(&privilegeName, PrivilegeName);
 
         if (!PhLookupPrivilegeValue(
             &privilegeName,
@@ -3212,7 +3268,7 @@ NTSTATUS PhSetTokenGroups(
     {
         PH_STRINGREF groupName;
 
-        PhInitializeStringRef(&groupName, GroupName);
+        PhInitializeStringRefLongHint(&groupName, GroupName);
 
         if (!NT_SUCCESS(status = PhLookupName(&groupName, &groups.Groups[0].Sid, NULL, NULL)))
             return status;
@@ -3289,13 +3345,21 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
     )
 {
     NTSTATUS status;
-    PTOKEN_MANDATORY_LABEL mandatoryLabel;
+    UCHAR mandatoryLabelBuffer[TOKEN_INTEGRITY_LEVEL_MAX_SIZE];
+    PTOKEN_MANDATORY_LABEL mandatoryLabel = (PTOKEN_MANDATORY_LABEL)mandatoryLabelBuffer;
+    ULONG returnLength;
     ULONG subAuthoritiesCount;
     ULONG subAuthority;
     PWSTR integrityString;
     BOOLEAN tokenIsAppContainer;
 
-    status = PhpQueryTokenVariableSize(TokenHandle, TokenIntegrityLevel, &mandatoryLabel);
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenIntegrityLevel,
+        mandatoryLabel,
+        sizeof(mandatoryLabelBuffer),
+        &returnLength
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -3311,7 +3375,7 @@ NTSTATUS PhGetTokenIntegrityLevelRID(
         subAuthority = SECURITY_MANDATORY_UNTRUSTED_RID;
     }
 
-    PhFree(mandatoryLabel);
+    //PhFree(mandatoryLabel);
 
     if (IntegrityString)
     {
@@ -3783,7 +3847,7 @@ NTSTATUS PhGetFileIndexNumber(
         );
 }
 
-NTSTATUS PhDeleteFile(
+NTSTATUS PhDeleteFile( // PhDeleteFileHandle PhSetFileDelete
     _In_ HANDLE FileHandle
     )
 {
@@ -7416,6 +7480,46 @@ NTSTATUS PhEnumFileHardLinksEx(
     return status;
 }
 
+NTSTATUS PhCreateSymbolicLinkObject(
+    _Out_ PHANDLE LinkHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ PPH_STRINGREF LinkName
+    )
+{
+    NTSTATUS status;
+    HANDLE linkHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
+    UNICODE_STRING objectName;
+    UNICODE_STRING objectTarget;
+
+    if (!PhStringRefToUnicodeString(FileName, &objectName))
+        return STATUS_NAME_TOO_LONG;
+    if (!PhStringRefToUnicodeString(LinkName, &objectTarget))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtCreateSymbolicLinkObject(
+        &linkHandle,
+        MAXIMUM_ALLOWED,
+        &objectAttributes,
+        &objectTarget
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *LinkHandle = linkHandle;
+    }
+
+    return status;
+}
+
 NTSTATUS PhQuerySymbolicLinkObject(
     _In_ PPH_STRINGREF Name,
     _Out_ PPH_STRING* LinkTarget
@@ -7426,7 +7530,7 @@ NTSTATUS PhQuerySymbolicLinkObject(
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING objectName;
     UNICODE_STRING targetName;
-    WCHAR targetNameBuffer[MAXIMUM_FILENAME_LENGTH];
+    WCHAR targetNameBuffer[DOS_MAX_PATH_LENGTH];
 
     if (!PhStringRefToUnicodeString(Name, &objectName))
         return STATUS_NAME_TOO_LONG;
@@ -9767,28 +9871,57 @@ NTSTATUS PhDeleteFileWin32(
     )
 {
     NTSTATUS status;
-    HANDLE fileHandle;
-
-    status = PhCreateFileWin32(
-        &fileHandle,
-        FileName,
-        DELETE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_OPEN_FOR_BACKUP_INTENT | FILE_DELETE_ON_CLOSE // required for mapped references GH#794 (dmex)
-        );
-
-    if (!NT_SUCCESS(status))
+    //UNICODE_STRING fileName;
+    //OBJECT_ATTRIBUTES objectAttributes;
+    //
+    //status = RtlDosPathNameToNtPathName_U_WithStatus(
+    //    FileName,
+    //    &fileName,
+    //    NULL,
+    //    NULL
+    //    );
+    //
+    //if (!NT_SUCCESS(status))
+    //    return status;
+    //
+    //InitializeObjectAttributes(
+    //    &objectAttributes,
+    //    &fileName,
+    //    OBJ_CASE_INSENSITIVE,
+    //    NULL,
+    //    NULL
+    //    );
+    //
+    //status = NtDeleteFile(&objectAttributes);
+    //
+    //RtlFreeUnicodeString(&fileName);
+    //
+    //if (!NT_SUCCESS(status))
     {
-        if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-            status = STATUS_SUCCESS;
-        return status;
+        HANDLE fileHandle;
+
+        status = PhCreateFileWin32(
+            &fileHandle,
+            FileName,
+            DELETE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_OPEN_FOR_BACKUP_INTENT | FILE_DELETE_ON_CLOSE
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            if (status == STATUS_OBJECT_NAME_NOT_FOUND)
+                status = STATUS_SUCCESS;
+            return status;
+        }
+
+        //PhDeleteFile(fileHandle);
+
+        NtClose(fileHandle);
     }
 
-    //PhDeleteFile(fileHandle);
-
-    NtClose(fileHandle);
     return status;
 }
 
@@ -9865,27 +9998,17 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
     )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
-    ULONG indexOfFileName;
     PPH_STRING directory;
-    PPH_STRING path;
+    PH_STRINGREF pathPart;
+    PH_STRINGREF baseNamePart;
 
-    if (path = PhGetFullPath(PhGetStringRefZ(FileName), &indexOfFileName))
+    if (PhSplitStringRefAtLastChar(FileName, OBJ_NAME_PATH_SEPARATOR, &pathPart, &baseNamePart))
     {
-        if (indexOfFileName != ULONG_MAX)
+        if (directory = PhCreateString2(&pathPart))
         {
-            if (directory = PhSubstring(path, 0, indexOfFileName))
-            {
-                status = PhCreateDirectoryWin32(&directory->sr);
-
-                PhDereferenceObject(directory);
-            }
+            status = PhCreateDirectoryWin32(&directory->sr);
+            PhDereferenceObject(directory);
         }
-        else
-        {
-            status = PhCreateDirectoryWin32(&path->sr);
-        }
-
-        PhDereferenceObject(path);
     }
 
     return status;
@@ -14007,4 +14130,47 @@ NTSTATUS PhDeviceIoControlFile(
     }
 
     return status;
+}
+
+// rev from RtlpWow64SelectSystem32PathInternal (dmex)
+NTSTATUS PhWow64SelectSystem32Path(
+    _In_ USHORT Machine, 
+    _In_ BOOLEAN IncludePathSeperator, 
+    _Out_ PPH_STRINGREF SystemPath
+    )
+{
+    PWSTR WithSeperators;
+    PWSTR WithoutSeperators;
+
+    if (Machine != IMAGE_FILE_MACHINE_TARGET_HOST)
+    {
+        switch (Machine)
+        {
+        case IMAGE_FILE_MACHINE_I386:
+            WithoutSeperators = L"SysWOW64";
+            WithSeperators = L"\\SysWOW64\\";
+            goto CreateResult;
+        case IMAGE_FILE_MACHINE_ARMNT:
+            WithoutSeperators = L"SysARM32";
+            WithSeperators = L"\\SysARM32\\";
+            goto CreateResult;
+        case IMAGE_FILE_MACHINE_CHPE_X86:
+            WithoutSeperators = L"SyCHPE32";
+            WithSeperators = L"\\SyCHPE32\\";
+            goto CreateResult;
+        }
+
+        if (Machine != IMAGE_FILE_MACHINE_AMD64 && Machine != IMAGE_FILE_MACHINE_ARM64)
+            return STATUS_INVALID_PARAMETER;
+    }
+
+    WithSeperators = L"\\System32\\";
+    WithoutSeperators = L"System32";
+
+CreateResult:
+    if (!IncludePathSeperator)
+        WithSeperators = WithoutSeperators;
+
+    PhInitializeStringRefLongHint(SystemPath, WithSeperators); // RtlInitUnicodeString
+    return STATUS_SUCCESS;
 }
