@@ -370,6 +370,16 @@ _Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhGetSymbolProviderDiaSource(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 BaseOfDll,
+    _Out_ PVOID* DiaSource
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhGetSymbolProviderDiaSession(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 BaseOfDll,
@@ -479,6 +489,12 @@ PhGetLineFromInlineContext(
 //VOID PhFreeInlineStackSymbols(
 //    _In_ PPH_LIST InlineSymbolList
 //    );
+
+PPH_STRING PhGetSymbolLanguageFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 BaseOfDll,
+    _In_ ULONG64 Address
+    );
 
 EXTERN_C_END
 
