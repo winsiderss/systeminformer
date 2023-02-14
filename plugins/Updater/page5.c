@@ -5,43 +5,11 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
 #include "updater.h"
-
-BOOLEAN UpdateCheckDirectoryElevationRequired(
-    VOID
-    )
-{
-    static PH_STRINGREF checkFileName = PH_STRINGREF_INIT(L"elevation_check");
-    HANDLE fileHandle;
-    PPH_STRING fileName;
-
-    fileName = PhGetApplicationDirectoryFileName(&checkFileName, TRUE);
-
-    if (PhIsNullOrEmptyString(fileName))
-        return TRUE;
-
-    if (NT_SUCCESS(PhCreateFile(
-        &fileHandle,
-        &fileName->sr,
-        FILE_GENERIC_WRITE | DELETE,
-        FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN_IF,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
-        )))
-    {
-        PhDereferenceObject(fileName);
-        NtClose(fileHandle);
-        return FALSE;
-    }
-
-    PhDereferenceObject(fileName);
-    return TRUE;
-}
 
 HRESULT CALLBACK FinalTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
@@ -57,7 +25,7 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            context->DirectoryElevationRequired = !!UpdateCheckDirectoryElevationRequired();
+            context->DirectoryElevationRequired = !UpdateCheckDirectoryElevationRequired();
 
             if (context->DirectoryElevationRequired)
             {
@@ -76,48 +44,8 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
             }
             else if (buttonId == IDYES)
             {
-                PVOID parameters;
-
-                if (PhIsNullOrEmptyString(context->SetupFilePath))
-                    break;
-
-                parameters = PH_AUTO(PhCreateKsiSettingsBlob());
-                parameters = PH_AUTO(PhConcatStrings(3, L"-update \"", PhGetStringOrEmpty(parameters), L"\""));
-
-                ProcessHacker_PrepareForEarlyShutdown();
-
-                if (PhShellExecuteEx(
-                    hwndDlg,
-                    PhGetString(context->SetupFilePath),
-                    PhGetString(parameters),
-                    SW_SHOW,
-                    PH_SHELL_EXECUTE_NOZONECHECKS | PH_SHELL_EXECUTE_NOASYNC | (context->DirectoryElevationRequired ? PH_SHELL_EXECUTE_ADMIN : 0),
-                    0,
-                    NULL
-                    ))
-                {
-                    ProcessHacker_Destroy();
-                }
-                else
-                {
-                    ULONG errorCode = GetLastError();
-
-                    // Install failed, cancel the shutdown.
-                    ProcessHacker_CancelEarlyShutdown();
-
-                    // Show error dialog.
-                    if (errorCode != ERROR_CANCELLED) // Ignore UAC decline.
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to execute the setup.", 0, errorCode);
-
-                        if (context->StartupCheck)
-                            ShowAvailableDialog(context);
-                        else
-                            ShowCheckForUpdatesDialog(context);
-                    }
-
+                if (!UpdateShellExecute(context, hwndDlg))
                     return S_FALSE;
-                }
             }
         }
         break;

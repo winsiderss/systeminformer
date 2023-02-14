@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2011-2019
+ *     dmex    2011-2023
  *
  */
 
@@ -46,41 +46,38 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI MainMenuInitializingCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
 
     // Check this menu is the Help menu
-    if (!menuInfo || menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_HELP)
+    if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_HELP)
         return;
 
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM, L"Check for &updates", NULL), 0);
 }
 
 VOID NTAPI MenuItemCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
 
-    if (menuItem && menuItem->Id == UPDATE_MENUITEM)
+    if (menuItem->Id == UPDATE_MENUITEM)
     {
         ShowUpdateDialog(NULL);
     }
 }
 
 VOID NTAPI ShowOptionsCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PPH_PLUGIN_OPTIONS_POINTERS optionsEntry = (PPH_PLUGIN_OPTIONS_POINTERS)Parameter;
-
-    if (!optionsEntry)
-        return;
 
     optionsEntry->CreateSection(
         L"Updater",
@@ -150,7 +147,7 @@ LOGICAL DllMain(
                 &PluginShowOptionsCallbackRegistration
                 );
 
-            PhAddSettings(settings, RTL_NUMBER_OF(settings));
+            PhAddSettings(settings, ARRAYSIZE(settings));
         }
         break;
     }
