@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2011-2022
+ *     dmex    2011-2023
  *
  */
 
@@ -48,6 +48,7 @@ WNDPROC MainWindowHookProc = NULL;
 HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
+ULONG RestoreSearchSelectedProcessId = ULONG_MAX;
 PH_PLUGIN_SYSTEM_STATISTICS SystemStatistics = { 0 };
 PH_CALLBACK_DECLARE(SearchChangedEvent);
 PPH_HASHTABLE TabInfoHashtable;
@@ -710,6 +711,25 @@ LRESULT CALLBACK MainWndSubclassProc(
                     }
                 }
                 goto DefaultWndProc;
+            case EN_SETFOCUS:
+                {
+                    if (!SearchboxHandle)
+                        break;
+
+                    if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
+                        break;
+
+                    if (PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH))
+                    {
+                        PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
+
+                        if (processItem)
+                            RestoreSearchSelectedProcessId = HandleToUlong(processItem->ProcessId);
+                        else
+                            RestoreSearchSelectedProcessId = ULONG_MAX;
+                    }
+                }
+                break;
             case EN_KILLFOCUS:
                 {
                     if (!SearchboxHandle)
@@ -718,10 +738,22 @@ LRESULT CALLBACK MainWndSubclassProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    if (SearchBoxDisplayMode != SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
-                        break;
+                    if (PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH) && SearchboxText->Length == 0)
+                    {
+                        if (RestoreSearchSelectedProcessId != ULONG_MAX)
+                        {
+                            PPH_PROCESS_NODE node;
 
-                    if (SearchboxText->Length == 0)
+                            if (node = PhFindProcessNode(UlongToHandle(RestoreSearchSelectedProcessId)))
+                            {
+                                PhSelectAndEnsureVisibleProcessNode(node);
+                            }
+
+                            RestoreSearchSelectedProcessId = ULONG_MAX;
+                        }
+                    }
+
+                    if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE && SearchboxText->Length == 0)
                     {
                         if (RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                             RebarBandRemove(REBAR_BAND_ID_SEARCHBOX);
@@ -1831,6 +1863,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },
+                { IntegerSettingType, SETTING_NAME_RESTOREROWAFTERSEARCH, L"0" },
             };
 
             PluginInstance = PhRegisterPlugin(PLUGIN_NAME, Instance, &info);
