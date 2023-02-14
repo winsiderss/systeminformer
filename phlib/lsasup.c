@@ -600,12 +600,11 @@ PPH_STRING PhGetTokenUserString(
     )
 {
     PPH_STRING tokenUserString = NULL;
-    PTOKEN_USER tokenUser;
+    PH_TOKEN_USER tokenUser;
 
     if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
     {
-        tokenUserString = PhGetSidFullName(tokenUser->User.Sid, IncludeDomain, NULL);
-        PhFree(tokenUser);
+        tokenUserString = PhGetSidFullName(tokenUser.User.Sid, IncludeDomain, NULL);
     }
 
     return tokenUserString;
