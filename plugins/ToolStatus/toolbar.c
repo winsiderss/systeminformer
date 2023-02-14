@@ -203,11 +203,6 @@ VOID RebarCreateOrUpdateWindow(
         ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
         NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
-        if (RebarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
-        {
-            PhInitializeWindowThemeRebar(RebarHandle);
-        }
-
         if (SearchboxHandle = CreateWindowEx(
             WS_EX_CLIENTEDGE,
             WC_EDIT,
@@ -252,11 +247,6 @@ VOID RebarCreateOrUpdateWindow(
             {
                 SendMessage(StatusBarHandle, SB_SETMINHEIGHT, height, 0);
             }
-        }
-
-        if (StatusBarHandle && PhGetIntegerSetting(L"EnableThemeSupport"))
-        {
-            PhInitializeWindowThemeStatusBar(StatusBarHandle);
         }
     }
 

@@ -501,8 +501,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
 
-            if (PhEnableThemeSupport)
-                PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
             SetTimer(hwndDlg, 1, 1000, NULL);
