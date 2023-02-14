@@ -168,6 +168,15 @@ VOID ShowUpdateFailedDialog(
 
 // updater.c
 
+BOOLEAN UpdateShellExecute(
+    _In_ PPH_UPDATER_CONTEXT Context,
+    _In_opt_ HWND WindowHandle
+    );
+
+BOOLEAN UpdateCheckDirectoryElevationRequired(
+    VOID
+    );
+
 VOID ShowUpdateDialog(
     _In_opt_ PPH_UPDATER_CONTEXT Context
     );
