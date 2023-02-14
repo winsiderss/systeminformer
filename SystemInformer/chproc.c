@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -106,14 +106,13 @@ static VOID PhpRefreshProcessList(
         if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, process->UniqueProcessId)))
         {
             HANDLE tokenHandle;
-            PTOKEN_USER user;
+            PH_TOKEN_USER tokenUser;
 
             if (NT_SUCCESS(PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle)))
             {
-                if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
+                if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
-                    userName = PhGetSidFullName(user->User.Sid, TRUE, NULL);
-                    PhFree(user);
+                    userName = PhGetSidFullName(tokenUser.User.Sid, TRUE, NULL);
                 }
 
                 NtClose(tokenHandle);
