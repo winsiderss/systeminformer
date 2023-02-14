@@ -1587,29 +1587,8 @@ PhThemeWindowMeasureItem(
 PHLIBAPI
 VOID
 NTAPI
-PhInitializeWindowThemeStatusBar(
-    _In_ HWND StatusBarHandle
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhInitializeWindowThemeRebar(
-    _In_ HWND HeaderWindow
-    );
-
-PHLIBAPI
-VOID
-NTAPI
 PhInitializeWindowThemeMainMenu(
     _In_ HMENU MenuHandle
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhInitializeWindowThemeStaticControl(
-    _In_ HWND StaticControl
     );
 
 PHLIBAPI

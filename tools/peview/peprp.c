@@ -840,10 +840,6 @@ VOID PvpSetPeImageVersionInfo(
     PhDereferenceObject(string);
 }
 
-#ifndef IMAGE_FILE_MACHINE_CHPE_X86
-#define IMAGE_FILE_MACHINE_CHPE_X86 0x3A64 // defined in ntimage.h
-#endif
-
 VOID PvpSetPeImageMachineType(
     _In_ HWND ListViewHandle
     )
@@ -2077,10 +2073,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
             if (PeEnableThemeSupport)
-            {
-                PhInitializeWindowThemeStaticControl(GetDlgItem(hwndDlg, IDC_FILEICON));
                 PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
-            }
 
             SetTimer(hwndDlg, 1, 1000, NULL);
         }
