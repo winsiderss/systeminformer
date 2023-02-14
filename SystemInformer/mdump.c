@@ -380,7 +380,7 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
             if (!PhGetOwnTokenAttributes().Elevated)
                 break;
 
-            if (kernelDumpFileName = PhGetBaseNamePathWithExtension(context->FileName, &kernelDumpFileExt))
+            if (kernelDumpFileName = PhGetBaseNameChangeExtension(context->FileName, &kernelDumpFileExt))
             {
                 if (NT_SUCCESS(PhCreateFileWin32(
                     &kernelDumpFileHandle,
