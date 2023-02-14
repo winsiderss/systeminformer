@@ -143,6 +143,14 @@ PhTerminateProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhTerminateThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ NTSTATUS ExitStatus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetProcessImageFileName(
     _In_ HANDLE ProcessHandle,
     _Out_ PPH_STRING *FileName
