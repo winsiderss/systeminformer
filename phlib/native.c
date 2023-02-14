@@ -4175,6 +4175,8 @@ NTSTATUS PhGetTransactionManagerBasicInformation(
     _Out_ PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
     )
 {
+    memset(BasicInformation, 0, sizeof(TRANSACTIONMANAGER_BASIC_INFORMATION));
+
     if (NtQueryInformationTransactionManager_Import())
     {
         return NtQueryInformationTransactionManager_Import()(
@@ -4283,6 +4285,8 @@ NTSTATUS PhGetTransactionBasicInformation(
     _Out_ PTRANSACTION_BASIC_INFORMATION BasicInformation
     )
 {
+    memset(BasicInformation, 0, sizeof(TRANSACTION_BASIC_INFORMATION));
+
     if (NtQueryInformationTransaction_Import())
     {
         return NtQueryInformationTransaction_Import()(
@@ -4442,6 +4446,8 @@ NTSTATUS PhGetEnlistmentBasicInformation(
     _Out_ PENLISTMENT_BASIC_INFORMATION BasicInformation
     )
 {
+    memset(BasicInformation, 0, sizeof(ENLISTMENT_BASIC_INFORMATION));
+
     if (NtQueryInformationEnlistment_Import())
     {
         return NtQueryInformationEnlistment_Import()(
