@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2017-2021
+ *     dmex    2017-2023
  *
  */
 
@@ -136,6 +136,7 @@ VOID PhSvcDisconnectFromServer(
     PhSvcClServerProcessId = NULL;
 }
 
+_Success_(return != NULL)
 PVOID PhSvcpAllocateHeap(
     _In_ SIZE_T Size,
     _Out_ PULONG Offset
@@ -166,6 +167,7 @@ VOID PhSvcpFreeHeap(
     RtlFreeHeap(PhSvcClPortHeap, 0, Memory);
 }
 
+_Success_(return != NULL)
 PVOID PhSvcpCreateString(
     _In_opt_ PVOID String,
     _In_ SIZE_T Length,
@@ -176,12 +178,12 @@ PVOID PhSvcpCreateString(
     SIZE_T length;
     ULONG offset;
 
-    if (Length != -1)
+    if (Length != SIZE_MAX)
         length = Length;
     else
         length = PhCountStringZ(String) * sizeof(WCHAR);
 
-    if (length > MAXULONG32)
+    if (length > ULONG_MAX)
         return NULL;
 
     memory = PhSvcpAllocateHeap(length, &offset);
@@ -369,7 +371,7 @@ NTSTATUS PhSvcCallUnloadDriver(
 }
 
 NTSTATUS PhSvcCallControlProcess(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ PHSVC_API_CONTROLPROCESS_COMMAND Command,
     _In_ ULONG Argument
     )
@@ -1068,6 +1070,7 @@ NTSTATUS PhSvcCallCreateProcessIgnoreIfeoDebugger(
     return status;
 }
 
+_Success_(return != NULL)
 PSECURITY_DESCRIPTOR PhpAbsoluteToSelfRelativeSD(
     _In_ PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
     _Out_ PULONG BufferSize
