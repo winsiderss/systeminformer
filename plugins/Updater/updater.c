@@ -24,6 +24,16 @@ VOID UpdateContextDeleteProcedure(
 {
     PPH_UPDATER_CONTEXT context = Object;
 
+    if (context->SetupFilePath)
+    {
+        if (context->Cleanup)
+        {
+            PhDeleteCacheFile(context->SetupFilePath);
+        }
+
+        PhDereferenceObject(context->SetupFilePath);
+    }
+
     if (context->CurrentVersionString)
         PhDereferenceObject(context->CurrentVersionString);
     if (context->Version)
@@ -40,8 +50,6 @@ VOID UpdateContextDeleteProcedure(
         PhDereferenceObject(context->SetupFileHash);
     if (context->SetupFileSignature)
         PhDereferenceObject(context->SetupFileSignature);
-    if (context->SetupFilePath)
-        PhDereferenceObject(context->SetupFilePath);
 }
 
 PPH_UPDATER_CONTEXT CreateUpdateContext(
@@ -61,6 +69,7 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
 
     context->CurrentVersionString = PhGetPhVersion();
     context->StartupCheck = StartupCheck;
+    context->Cleanup = TRUE;
 
     return context;
 }
@@ -93,7 +102,10 @@ BOOLEAN UpdateShellExecute(
         NULL
         ))
     {
+        Context->Cleanup = FALSE;
+
         ProcessHacker_Destroy();
+        
         return TRUE;
     }
     else
@@ -565,8 +577,6 @@ NTSTATUS UpdateCheckThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    PhClearCacheDirectory(); // HACK
-
     // Check if we have cached update data
     if (!context->HaveData)
     {
@@ -878,7 +888,7 @@ CleanupExit:
     {
         PostMessage(context->DialogHandle, PH_SHOWINSTALL, 0, 0);
     }
-    else if (downloadSuccess)
+    else
     {
         if (context->SetupFilePath)
         {
@@ -891,15 +901,6 @@ CleanupExit:
             PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, TRUE);
         else
             PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
-    }
-    else
-    {
-        if (context->SetupFilePath)
-        {
-            PhDeleteCacheFile(context->SetupFilePath);
-        }
-
-        PostMessage(context->DialogHandle, PH_SHOWERROR, FALSE, FALSE);
     }
 
     PhDereferenceObject(context);
