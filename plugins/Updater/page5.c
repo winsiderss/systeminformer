@@ -25,7 +25,11 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     {
     case TDN_NAVIGATED:
         {
-            context->DirectoryElevationRequired = !UpdateCheckDirectoryElevationRequired();
+            context->DirectoryElevationRequired = !!UpdateCheckDirectoryElevationRequired();
+
+#ifdef FORCE_ELEVATION_CHECK
+            context->DirectoryElevationRequired = TRUE;
+#endif
 
             if (context->DirectoryElevationRequired)
             {
