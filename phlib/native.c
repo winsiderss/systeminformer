@@ -400,28 +400,13 @@ NTSTATUS PhTerminateProcess(
             );
 
         if (status != STATUS_NOT_SUPPORTED)
-        {
-            status = KphTerminateProcess(
-                ProcessHandle,
-                DBG_TERMINATE_PROCESS
-                );
-
             return status;
-        }
     }
 
     status = NtTerminateProcess(
         ProcessHandle,
         ExitStatus
         );
-
-    if (status != STATUS_SUCCESS)
-    {
-        status = NtTerminateProcess(
-            ProcessHandle,
-            DBG_TERMINATE_PROCESS
-            );
-    }
 
     return status;
 }
@@ -437,14 +422,6 @@ NTSTATUS PhTerminateThread(
         ThreadHandle,
         ExitStatus
         );
-
-    if (status != STATUS_SUCCESS)
-    {
-        status = NtTerminateThread(
-            ThreadHandle,
-            DBG_TERMINATE_THREAD
-            );
-    }
 
     return status;
 }

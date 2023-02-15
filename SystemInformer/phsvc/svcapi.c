@@ -486,6 +486,10 @@ NTSTATUS PhSvcApiControlProcess(
         if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_TERMINATE, processId)))
         {
             status = PhTerminateProcess(processHandle, 1); // see notes in PhUiTerminateProcesses
+
+            if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+                PhTerminateProcess(processHandle, DBG_TERMINATE_PROCESS); // debug terminate (dmex)
+
             NtClose(processHandle);
         }
         break;

@@ -1632,6 +1632,10 @@ BOOLEAN PhUiTerminateProcesses(
             // 2. winlogon tries to restart explorer.exe if the exit status is not 1.
 
             status = PhTerminateProcess(processHandle, 1);
+
+            if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+                PhTerminateProcess(processHandle, DBG_TERMINATE_PROCESS); // debug terminate (dmex)
+
             NtClose(processHandle);
         }
 
@@ -1699,6 +1703,10 @@ BOOLEAN PhpUiTerminateTreeProcess(
         )))
     {
         status = PhTerminateProcess(processHandle, 1);
+
+        if (status == STATUS_SUCCESS || status == STATUS_PROCESS_IS_TERMINATING)
+            PhTerminateProcess(processHandle, DBG_TERMINATE_PROCESS); // debug terminate (dmex)
+
         NtClose(processHandle);
     }
 
@@ -4149,6 +4157,10 @@ BOOLEAN PhUiTerminateThreads(
             )))
         {
             status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
+
+            if (status == STATUS_SUCCESS || status == STATUS_THREAD_IS_TERMINATING)
+                PhTerminateThread(threadHandle, DBG_TERMINATE_THREAD); // debug terminate (dmex)
+
             NtClose(threadHandle);
         }
 
