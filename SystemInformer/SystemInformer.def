@@ -622,6 +622,7 @@ EXPORTS
     PhGetEtwPublisherName
     PhGetHandleInformation
     PhGetHandleInformationEx
+    PhGetObjectTypeName
     PhQueryObjectName
     PhStdGetClientIdName
 
