@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2018-2022
+ *     dmex    2018-2023
  *
  */
 
@@ -456,8 +456,10 @@ VOID EtTickDiskNodes(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    if (sortResult == 0) \
+    if (sortResult == 0 && diskItem1->FileNameWin32 && diskItem2->FileNameWin32) \
         sortResult = PhCompareString(diskItem1->FileNameWin32, diskItem2->FileNameWin32, TRUE); \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)diskItem1->FileObject, (ULONG_PTR)diskItem2->FileObject); \
     \
     return PhModifySort(sortResult, DiskTreeNewSortOrder); \
 }
@@ -1181,14 +1183,11 @@ VOID EtShowDiskContextMenu(
 }
 
 VOID NTAPI EtpDiskItemAddedHandler(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PET_DISK_ITEM diskItem = (PET_DISK_ITEM)Parameter;
-
-    if (!diskItem)
-        return;
 
     PhReferenceObject(diskItem);
     PhPushProviderEventQueue(&EtpDiskEventQueue, ProviderAddedEvent, Parameter, EtRunCount);
@@ -1279,6 +1278,10 @@ BOOLEAN NTAPI EtpSearchDiskListFilterCallback(
 {
     PET_DISK_NODE diskNode = (PET_DISK_NODE)Node;
     PTOOLSTATUS_WORD_MATCH wordMatch = ToolStatusInterface->WordMatch;
+
+    // Hide nodes without filenames (dmex)
+    //if (PhIsNullOrEmptyString(diskNode->DiskItem->FileName))
+    //    return FALSE;
 
     if (PhIsNullOrEmptyString(ToolStatusInterface->GetSearchboxText()))
         return TRUE;

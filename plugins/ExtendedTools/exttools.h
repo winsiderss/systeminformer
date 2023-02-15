@@ -157,6 +157,7 @@ typedef struct _ET_DISK_ITEM
     ULONG FreshTime;
 
     HANDLE ProcessId;
+    PVOID FileObject;
     PPH_STRING FileName;
     PPH_STRING FileNameWin32;
     PPH_STRING ProcessName;
@@ -552,7 +553,7 @@ PET_DISK_ITEM EtCreateDiskItem(
 
 PET_DISK_ITEM EtReferenceDiskItem(
     _In_ HANDLE ProcessId,
-    _In_ PPH_STRING FileName
+    _In_ PVOID FileObject
     );
 
 PPH_STRING EtFileObjectToFileName(
