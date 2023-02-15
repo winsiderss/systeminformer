@@ -614,7 +614,7 @@ PPH_STRING NetAdapterFormatBitratePrefix(
     DOUBLE number = (DOUBLE)Value;
     ULONG i = 0;
     PH_FORMAT format[2];
-    
+
     while (
         number >= 1000 &&
         i < RTL_NUMBER_OF(SiPrefixUnitNamesCounted) &&
@@ -624,12 +624,12 @@ PPH_STRING NetAdapterFormatBitratePrefix(
         number /= 1000;
         i++;
     }
-    
+
     format[0].Type = DoubleFormatType | FormatUsePrecision;
     format[0].Precision = 1;
     format[0].u.Double = number;
     PhInitFormatSR(&format[1], SiPrefixUnitNamesCounted[i]);
-    
+
     return PhFormat(format, 2, 0);
 }
 

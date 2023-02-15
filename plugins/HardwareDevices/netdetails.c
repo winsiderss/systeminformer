@@ -552,12 +552,12 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVED, 1, PhaFormatSize(interfaceStats.ifHCInOctets, ULONG_MAX)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_TOTAL, 1, PhaFormatSize(interfaceStats.ifHCInOctets + interfaceStats.ifHCOutOctets, ULONG_MAX)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENDING, 1, interfaceXmitSpeed != 0 ? PhaFormatString(
-        L"%s/s (%s)", 
+        L"%s/s (%s)",
         PhaFormatSize(interfaceXmitSpeed, ULONG_MAX)->Buffer,
         PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceXmitSpeed * BITS_IN_ONE_BYTE))->Buffer
         )->Buffer : L"");
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVING, 1, interfaceRcvSpeed != 0 ? PhaFormatString(
-        L"%s/s (%s)", 
+        L"%s/s (%s)",
         PhaFormatSize(interfaceRcvSpeed, ULONG_MAX)->Buffer,
         PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceRcvSpeed * BITS_IN_ONE_BYTE))->Buffer
         )->Buffer : L"");

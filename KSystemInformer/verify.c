@@ -439,7 +439,7 @@ KPH_PROCESS_STATE KphGetProcessState(
     {
         //
         // There is an active kernel debugger. This ultimately permits low
-        // state callers into the driver. But still check for verification. 
+        // state callers into the driver. But still check for verification.
         // We still want to exercise the code below, regardless.
         //
         processState = ~KPH_PROCESS_VERIFIED_PROCESS;

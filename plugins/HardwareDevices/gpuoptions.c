@@ -363,7 +363,7 @@ VOID FindGraphicsDevices(
                     entry->DevicePresent = TRUE;
                     GraphicsCloseAdapterHandle(adapterHandle);
                 }
-     
+
                 if (entry->DevicePresent)
                 {
                     ULONG adapterIndex;

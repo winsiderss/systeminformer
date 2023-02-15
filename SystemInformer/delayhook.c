@@ -51,7 +51,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
             {
                 HFONT fontHandle;
                 LONG windowDpi = PhGetWindowDpi(WindowHandle);
-                
+
                 if (fontHandle = PhCreateMessageFont(windowDpi))
                 {
                     PhSetWindowContext(WindowHandle, (ULONG)'font', fontHandle);
@@ -386,8 +386,8 @@ VOID ThemeWindowStatusBarDrawPart(
 
 VOID ThemeWindowRenderStatusBar(
     _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
-    _In_ HWND WindowHandle, 
-    _In_ HDC bufferDc, 
+    _In_ HWND WindowHandle,
+    _In_ HDC bufferDc,
     _In_ PRECT clientRect
     )
 {
@@ -404,8 +404,8 @@ VOID ThemeWindowRenderStatusBar(
         );
 
     //INT index = ThemeWindowStatusBarUpdateRectToIndex( // used with BeginBufferedPaint (dmex)
-    //    WindowHandle, 
-    //    WindowProcedure, 
+    //    WindowHandle,
+    //    WindowProcedure,
     //    clientRect,
     //    blockCount
     //    );
@@ -830,7 +830,7 @@ static HWND (WINAPI* PhDefaultCreateWindowEx)(
     ) = NULL;
 
 //static COLORREF (WINAPI* PhDefaultSetTextColor)(
-//    _In_ HDC hdc, 
+//    _In_ HDC hdc,
 //    _In_ COLORREF color
 //    ) = NULL;
 
@@ -915,17 +915,17 @@ HWND PhCreateWindowExHook(
     )
 {
     HWND windowHandle = PhDefaultCreateWindowEx(
-        ExStyle, 
-        ClassName, 
+        ExStyle,
+        ClassName,
         WindowName,
         Style,
         X,
-        Y, 
-        Width, 
+        Y,
+        Width,
         Height,
         Parent,
-        Menu, 
-        Instance, 
+        Menu,
+        Instance,
         Param
         );
 
@@ -942,7 +942,7 @@ HWND PhCreateWindowExHook(
             PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
         }
     }
-    else 
+    else
     {
         //HWND parentHandle;
         //
@@ -1066,7 +1066,7 @@ BOOL WINAPI PhSystemParametersInfoHook(
 //    ((((cref) & 0x000000FF) << 16) | (((cref) & 0x0000FF00)) | (((cref) & 0x00FF0000) >> 16))
 //
 //COLORREF WINAPI PhSetTextColorHook(
-//    _In_ HDC hdc, 
+//    _In_ HDC hdc,
 //    _In_ COLORREF color
 //    )
 //{

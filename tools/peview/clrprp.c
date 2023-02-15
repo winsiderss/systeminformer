@@ -80,7 +80,7 @@ PSTORAGESTREAM PvGetNextClrStream(
     )
 {
     size_t length;
-  
+
     length = strlen(Stream->Name) + sizeof(ANSI_NULL);
     length = ALIGN_UP(length, ULONG);
 

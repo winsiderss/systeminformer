@@ -2628,7 +2628,7 @@ NTSTATUS PhGetTokenUserCopy(
     ULONG returnLength;
     UCHAR tokenUserBuffer[TOKEN_USER_MAX_SIZE];
     PTOKEN_USER tokenUser = (PTOKEN_USER)tokenUserBuffer;
-    
+
     status = NtQueryInformationToken(
         TokenHandle,
         TokenUser,
@@ -2636,7 +2636,7 @@ NTSTATUS PhGetTokenUserCopy(
         sizeof(tokenUserBuffer),
         &returnLength
         );
-    
+
     if (NT_SUCCESS(status))
     {
         *User = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
@@ -2651,7 +2651,7 @@ NTSTATUS PhGetTokenUser(
     )
 {
     ULONG returnLength;
-    
+
     return NtQueryInformationToken(
         TokenHandle,
         TokenUser,
@@ -2700,7 +2700,7 @@ NTSTATUS PhGetTokenOwner(
     )
 {
     ULONG returnLength;
-    
+
     return NtQueryInformationToken(
         TokenHandle,
         TokenOwner,
@@ -3021,8 +3021,8 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
             packageFamilyName = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
 
             applicationUserModelId = PhConcatStringRef3(
-                &packageFamilyName->sr, 
-                &seperator, 
+                &packageFamilyName->sr,
+                &seperator,
                 &relativeIdName->sr
                 );
 
@@ -3683,7 +3683,7 @@ NTSTATUS PhSetFileBasicInformation(
 {
     IO_STATUS_BLOCK isb;
 
-    // Set to SIZE_MAX to ignore updating the value (dmex) 
+    // Set to SIZE_MAX to ignore updating the value (dmex)
     BasicInfo->LastWriteTime.QuadPart = SIZE_MAX;
 
     return NtSetInformationFile(
@@ -6176,7 +6176,7 @@ PPH_STRING PhGetKernelFileName2(
             return PhCreateString2(&kernelFileName);
         }
     }
- 
+
     return PhGetKernelFileName();
 }
 
@@ -9650,7 +9650,7 @@ NTSTATUS PhOpenFileById(
 // rev from ReOpenFile
 /**
  * Reopens the specified file handle with different access rights, sharing mode, and flags.
- * Note: This function creates new FILE_OBJECTs compared to other functions simply referencing the existing object. 
+ * Note: This function creates new FILE_OBJECTs compared to other functions simply referencing the existing object.
  *
  * \param FileHandle A variable that receives the file handle.
  * \param OriginalFileHandle A handle to the object to be reopened.
@@ -10385,7 +10385,7 @@ NTSTATUS PhCopyFileChunkDirectIoWin32(
 
     // Non-cached I/O requires 'blockSize' be sector-aligned with whichever file is opened as non-cached.
     // If both, the length should be aligned with the larger sector size of the two. (dmex)
-    alignSize = max(max(sourceSectorInfo.PhysicalBytesPerSectorForPerformance, destinationSectorInfo.PhysicalBytesPerSectorForPerformance), 
+    alignSize = max(max(sourceSectorInfo.PhysicalBytesPerSectorForPerformance, destinationSectorInfo.PhysicalBytesPerSectorForPerformance),
         max(sourceSectorInfo.PhysicalBytesPerSectorForAtomicity, destinationSectorInfo.PhysicalBytesPerSectorForAtomicity));
 
     // Enable BypassIO (skip error checking since might be disabled) (dmex)
@@ -10565,7 +10565,7 @@ NTSTATUS PhCopyFileChunkWin32(
     if (NT_SUCCESS(status))
     {
         PhSetFileBasicInformation(
-            destinationHandle, 
+            destinationHandle,
             &basicInfo
             );
     }
@@ -12171,7 +12171,7 @@ NTSTATUS PhQueryProcessHeapInformation(
     return STATUS_SUCCESS;
 }
 
-// Queries if the specified architecture is supported on the current system, 
+// Queries if the specified architecture is supported on the current system,
 // either natively or by any form of compatibility or emulation layer.
 // rev from kernelbase!GetMachineTypeAttributes (dmex)
 NTSTATUS PhGetMachineTypeAttributes(
@@ -14004,9 +14004,9 @@ NTSTATUS PhSetProcessValidCallTarget(
     status = NtQueryVirtualMemory(
         ProcessHandle,
         VirtualAddress,
-        MemoryBasicInformation, 
-        &basicInfo, 
-        sizeof(MEMORY_BASIC_INFORMATION), 
+        MemoryBasicInformation,
+        &basicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
         NULL
         );
 
@@ -14180,8 +14180,8 @@ NTSTATUS PhDeviceIoControlFile(
 
 // rev from RtlpWow64SelectSystem32PathInternal (dmex)
 NTSTATUS PhWow64SelectSystem32Path(
-    _In_ USHORT Machine, 
-    _In_ BOOLEAN IncludePathSeperator, 
+    _In_ USHORT Machine,
+    _In_ BOOLEAN IncludePathSeperator,
     _Out_ PPH_STRINGREF SystemPath
     )
 {

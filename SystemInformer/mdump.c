@@ -489,9 +489,9 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
         if (!PhGetOwnTokenAttributes().Elevated)
         {
             PhShowWarning2(
-                context->WindowHandle, 
-                L"Unable to create kernel minidump.", 
-                L"%s", 
+                context->WindowHandle,
+                L"Unable to create kernel minidump.",
+                L"%s",
                 L"Kernel minidump of processes require administrative privileges. "
                 L"Make sure System Informer is running with administrative privileges."
                 );

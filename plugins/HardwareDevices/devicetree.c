@@ -457,7 +457,7 @@ BOOLEAN GetDevicePropertyUInt64(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PULONG64 Value 
+    _Out_ PULONG64 Value
     )
 {
     BOOL result;
@@ -488,7 +488,7 @@ BOOLEAN GetClassPropertyUInt64(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PULONG64 Value 
+    _Out_ PULONG64 Value
     )
 {
     BOOL result;
@@ -518,7 +518,7 @@ BOOLEAN GetDevicePropertyUInt32(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PULONG Value 
+    _Out_ PULONG Value
     )
 {
     BOOL result;
@@ -549,7 +549,7 @@ BOOLEAN GetClassPropertyUInt32(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PULONG Value 
+    _Out_ PULONG Value
     )
 {
     BOOL result;
@@ -579,7 +579,7 @@ BOOLEAN GetDevicePropertyInt32(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PLONG Value 
+    _Out_ PLONG Value
     )
 {
     BOOL result;
@@ -610,7 +610,7 @@ BOOLEAN GetClassPropertyInt32(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PLONG Value 
+    _Out_ PLONG Value
     )
 {
     BOOL result;
@@ -640,7 +640,7 @@ BOOLEAN GetDevicePropertyNTSTATUS(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PNTSTATUS Status 
+    _Out_ PNTSTATUS Status
     )
 {
     BOOL result;
@@ -671,7 +671,7 @@ BOOLEAN GetClassPropertyNTSTATUS(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PNTSTATUS Status 
+    _Out_ PNTSTATUS Status
     )
 {
     BOOL result;
@@ -701,7 +701,7 @@ BOOLEAN GetDevicePropertyBoolean(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
     _In_ const DEVPROPKEY* DeviceProperty,
-    _Out_ PBOOLEAN Boolean 
+    _Out_ PBOOLEAN Boolean
     )
 {
     BOOL result;
@@ -735,7 +735,7 @@ BOOLEAN GetClassPropertyBoolean(
     _In_ const GUID* ClassGuid,
     _In_ const DEVPROPKEY* DeviceProperty,
     _In_ ULONG Flags,
-    _Out_ PBOOLEAN Boolean 
+    _Out_ PBOOLEAN Boolean
     )
 {
     BOOL result;
@@ -858,7 +858,7 @@ BOOLEAN GetDevicePropertyString(
         0
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         ((devicePropertyType != DEVPROP_TYPE_STRING) &&
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
@@ -917,7 +917,7 @@ BOOLEAN GetClassPropertyString(
         Flags
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         ((devicePropertyType != DEVPROP_TYPE_STRING) &&
          (devicePropertyType != DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING)))
@@ -977,7 +977,7 @@ BOOLEAN GetDevicePropertyStringList(
         0
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         (devicePropertyType != DEVPROP_TYPE_STRING_LIST))
     {
@@ -1054,7 +1054,7 @@ BOOLEAN GetClassPropertyStringList(
         Flags
         );
     if (result ||
-        (requiredLength == 0) || 
+        (requiredLength == 0) ||
         (GetLastError() != ERROR_INSUFFICIENT_BUFFER) ||
         (devicePropertyType != DEVPROP_TYPE_STRING_LIST))
     {
@@ -2149,7 +2149,7 @@ static DEVNODE_PROP_TABLE_ENTRY DevNodePropTable[] =
     { L"Storage Disk Partition Number", FALSE, 80, 0, DevKeyStoragePartitionNumber, &DEVPKEY_Storage_Partition_Number, DevPropFillUInt32, 0 },
 };
 
-#if DEBUG 
+#if DEBUG
 static BOOLEAN BreakOnDeviceProperty = FALSE;
 static DEVNODE_PROP_KEY BreakOnDevPropKey = 0;
 #endif
@@ -2209,7 +2209,7 @@ PDEVICE_NODE NTAPI AddDeviceNode(
 
     //
     // Only get the minimum here, the rest will be retrieved later if necessary.
-    // For convenience later, other frequently referenced items are gotten here too. 
+    // For convenience later, other frequently referenced items are gotten here too.
     //
 
     node->InstanceId = GetDeviceNodeProperty(node, DevKeyInstanceId)->AsString;
@@ -2415,7 +2415,7 @@ PDEVICE_TREE CreateDeviceTree(
     tree->DeviceInfoHandle = SetupDiGetClassDevsW(
         NULL,
         NULL,
-        NULL, 
+        NULL,
         DIGCF_ALLCLASSES
         );
     if (tree->DeviceInfoHandle == INVALID_HANDLE_VALUE)
@@ -2662,7 +2662,7 @@ VOID NTAPI DeviceTreeSearchChangedHandler(
 
 static int __cdecl DeviceTreeSortFunction(
     const void* Left,
-    const void* Right 
+    const void* Right
     )
 {
     int sortResult;
@@ -2785,7 +2785,7 @@ BOOLEAN NTAPI DeviceTreeCallback(
                         else if (DeviceTree->DeviceRootList->Count)
                         {
                             PDEVICE_NODE root;
-                            
+
                             root = DeviceTree->DeviceRootList->Items[0];
 
                             getChildren->Children = (PPH_TREENEW_NODE*)root->Children->Items;
@@ -3166,7 +3166,7 @@ VOID DevicesTreeImageListInitialize(
         DeviceIconSize.X,
         DeviceIconSize.Y,
         ILC_MASK | ILC_COLOR32,
-        200, 
+        200,
         100
         );
 
@@ -3244,9 +3244,9 @@ VOID DevicesTreeInitialize(
     if (ToolStatusInterface)
     {
         PhRegisterCallback(
-            ToolStatusInterface->SearchChangedEvent, 
-            DeviceTreeSearchChangedHandler, 
-            NULL, 
+            ToolStatusInterface->SearchChangedEvent,
+            DeviceTreeSearchChangedHandler,
+            NULL,
             &SearchChangedRegistration);
         PhAddTreeNewFilter(&DeviceTreeFilterSupport, DeviceTreeFilterCallback, NULL);
     }

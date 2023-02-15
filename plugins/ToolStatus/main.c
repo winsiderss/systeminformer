@@ -630,7 +630,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             // Update fonts/sizes for new DPI.
             ToolbarWindowFont = ProcessHacker_GetFont();
-      
+
             if (ToolBarHandle)
             {
                 SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);

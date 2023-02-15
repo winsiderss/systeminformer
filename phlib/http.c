@@ -531,7 +531,7 @@ BOOLEAN PhHttpSocketQueryHeaderUlong64(
 //{
 //    ULONG headerValue = 0;
 //    ULONG valueLength = sizeof(ULONG);
-//    
+//
 //    if (WinHttpQueryHeaders(
 //        HttpContext->RequestHandle,
 //        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,

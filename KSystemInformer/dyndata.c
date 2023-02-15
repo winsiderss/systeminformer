@@ -239,7 +239,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpReadDynamicConfiguration(
     _In_ HANDLE KeyHandle,
-    _Out_ PKPH_DYNDATA* DynData 
+    _Out_ PKPH_DYNDATA* DynData
     )
 {
     NTSTATUS status;

@@ -186,7 +186,7 @@ VOID EtInitializeListImages(
 
     dpiValue = PhGetWindowDpi(Context->TreeViewHandle);
     size = PhGetDpi(16, dpiValue); // 24
-    
+
     Context->ListImageList = PhImageListCreate(
         size,
         size,

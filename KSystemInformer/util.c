@@ -1514,7 +1514,7 @@ Exit:
  * \param[in] CaseInSensitive If TRUE, case should be ignored when doing the
  * comparison.
  *
- * \return TRUE if the string suffixed by the other. 
+ * \return TRUE if the string suffixed by the other.
  */
 _IRQL_requires_max_(APC_LEVEL)
 BOOLEAN KphSuffixUnicodeString(
@@ -1540,7 +1540,7 @@ BOOLEAN KphSuffixUnicodeString(
 }
 
 /**
- * \brief Retrieves the process ID of lsass. 
+ * \brief Retrieves the process ID of lsass.
  *
  * \param[out] ProcessId Set to the process ID of lsass.
  *
@@ -1623,7 +1623,7 @@ Exit:
 }
 
 /**
- * \brief Checks if a given process is lsass. 
+ * \brief Checks if a given process is lsass.
  *
  * \param[in] Process The process to check.
  *

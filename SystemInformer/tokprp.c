@@ -3580,16 +3580,16 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
         if (PhIsNullOrEmptyString(appContainerFolderPath))
         {
             PH_TOKEN_USER tokenUser;
-        
+
             if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &tokenUser)))
             {
                 ULONG subAuthority;
                 PPH_STRING tokenProfilePathString;
                 PPH_STRING appContainerName;
-        
+
                 subAuthority = *RtlSubAuthoritySid(tokenUser.User.Sid, 0);
                 //RtlIdentifierAuthoritySid(tokenUser.User.Sid) == (BYTE[])SECURITY_NT_AUTHORITY
-        
+
                 if (subAuthority == SECURITY_UMFD_BASE_RID)
                 {
                     if (tokenProfilePathString = PhpGetTokenFolderPath(TokenHandle))
@@ -3597,16 +3597,16 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
                         if (appContainerName = PhGetAppContainerName(TokenAppContainerSid))
                         {
                             static PH_STRINGREF appDataPackagePath = PH_STRINGREF_INIT(L"\\AppData\\Local\\Packages\\");
-        
+
                             PhMoveReference(&appContainerFolderPath, PhConcatStringRef3(
                                 &tokenProfilePathString->sr,
                                 &appDataPackagePath,
                                 &appContainerName->sr
                                 ));
-        
+
                             PhDereferenceObject(appContainerName);
                         }
-        
+
                         PhDereferenceObject(tokenProfilePathString);
                     }
                 }

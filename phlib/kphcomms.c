@@ -233,11 +233,11 @@ NTSTATUS KphpFilterDeviceIoControl(
  * Rev from FilterLoad/FilterUnload (dmex)
  *
  * \param[in] ServiceName The service name from HKLM\\System\\CurrentControlSet\\Services\\<ServiceName>.
- * \param[in] LoadDriver TRUE to load the kernel driver, FALSE to unload the kernel driver. 
- * 
+ * \param[in] LoadDriver TRUE to load the kernel driver, FALSE to unload the kernel driver.
+ *
  * \remarks The caller must have SE_LOAD_DRIVER_PRIVILEGE.
  * \remarks This ioctl is a kernel wrapper around NtLoadDriver and NtUnloadDriver.
- * 
+ *
  * \return Successful or errant status.
  */
 NTSTATUS KphFilterLoadUnload(
@@ -451,8 +451,8 @@ NTSTATUS KphpFilterConnectCommunicationPort(
     // Build the filter EA, this contains the port name and the context.
     //
 
-    eaLength = FILTER_PORT_EA_SIZE 
-             + FILTER_PORT_EA_VALUE_SIZE 
+    eaLength = FILTER_PORT_EA_SIZE
+             + FILTER_PORT_EA_VALUE_SIZE
              + SizeOfContext;
 
     ea = PhAllocateZeroSafe(eaLength);
@@ -711,10 +711,10 @@ NTSTATUS KphCommsStart(
                                NULL,
                                NotificationEvent,
                                FALSE);
-        
+
         if (!NT_SUCCESS(status))
             goto Exit;
-        
+
         RtlZeroMemory(&KphpCommsMessages[i].Overlapped,
             FIELD_OFFSET(OVERLAPPED, hEvent));
 

@@ -280,8 +280,8 @@ SOCKET WhoisDualStackSocketCreate(
     SOCKET socketHandle;
 
     socketHandle = WSASocket(
-        AF_INET6, 
-        SOCK_STREAM, 
+        AF_INET6,
+        SOCK_STREAM,
         IPPROTO_TCP,
         NULL,
         0,
@@ -292,9 +292,9 @@ SOCKET WhoisDualStackSocketCreate(
         return INVALID_SOCKET;
 
     if (setsockopt(
-        socketHandle, 
-        IPPROTO_IPV6, 
-        IPV6_V6ONLY, 
+        socketHandle,
+        IPPROTO_IPV6,
+        IPV6_V6ONLY,
         (PCSTR)&(INT){ FALSE },
         sizeof(INT)
         ) == SOCKET_ERROR)
@@ -377,8 +377,8 @@ BOOLEAN WhoisDualStackSocketConnectByAddressList(
 
             IN6ADDR_SETSOCKADDR(
                 &socketAddressArray[socketAddressCount],
-                &remoteAddress.sin6_addr, 
-                remoteAddress.sin6_scope_struct, 
+                &remoteAddress.sin6_addr,
+                remoteAddress.sin6_scope_struct,
                 remoteAddress.sin6_port
                 );
 

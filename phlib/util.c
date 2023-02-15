@@ -2039,7 +2039,7 @@ PPH_STRING PhFormatUInt64Prefix(
     DOUBLE number = (DOUBLE)Value;
     ULONG i = 0;
     PH_FORMAT format[2];
-    
+
     while (
         number >= 1000 &&
         i < RTL_NUMBER_OF(PhpPrefixUnitNamesCounted) &&
@@ -2049,12 +2049,12 @@ PPH_STRING PhFormatUInt64Prefix(
         number /= 1000;
         i++;
     }
-    
+
     format[0].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros | (GroupDigits ? FormatGroupDigits : 0);
     format[0].Precision = 2;
     format[0].u.Double = number;
     PhInitFormatSR(&format[1], PhpPrefixUnitNamesCounted[i]);
-    
+
     return PhFormat(format, 2, 0);
 }
 
@@ -3790,7 +3790,7 @@ PPH_STRING PhGetTemporaryDirectory(
     {
         status = RtlQueryEnvironmentVariable_U(
             NULL,
-            &variableNameTemp, 
+            &variableNameTemp,
             &variableValue
             );
 
@@ -7414,7 +7414,7 @@ BOOLEAN PhQueryPerformanceCounter(
 {
     if (RtlQueryPerformanceCounter(PerformanceCounter))
         return TRUE;
-    
+
     return NT_SUCCESS(NtQueryPerformanceCounter(PerformanceCounter, NULL));
 }
 
@@ -7730,7 +7730,7 @@ NTSTATUS PhCreateProcessRedirection(
     HANDLE inputReadHandle = NULL;
     HANDLE inputWriteHandle = NULL;
     PROCESS_BASIC_INFORMATION basicInfo;
-    
+
     status = PhCreatePipeEx(
         &inputReadHandle,
         &inputWriteHandle,
@@ -7833,9 +7833,9 @@ NTSTATUS PhCreateProcessRedirection(
             NULL,
             NULL,
             &isb,
-            CommandInput->Buffer, 
-            (ULONG)CommandInput->Length, 
-            NULL, 
+            CommandInput->Buffer,
+            (ULONG)CommandInput->Length,
+            NULL,
             NULL
             );
     }
