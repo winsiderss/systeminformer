@@ -276,6 +276,13 @@ typedef struct _PH_TOOLBAR_GRAPH
     PH_GRAPH_STATE GraphState;
 } PH_TOOLBAR_GRAPH, *PPH_TOOLBAR_GRAPH;
 
+extern ULONG CpuHistoryGraphColor1;
+extern ULONG CpuHistoryGraphColor2;
+extern ULONG PhysicalHistoryGraphColor1;
+extern ULONG CommitHistoryGraph1Color1;
+extern ULONG IoHistoryGraphColor1;
+extern ULONG IoHistoryGraphColor2;
+
 VOID ToolbarGraphLoadSettings(
     VOID
     );

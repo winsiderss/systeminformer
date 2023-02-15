@@ -38,6 +38,8 @@ BOOLEAN EnableThemeSupport = FALSE;
 BOOLEAN IsWindowSizeMove = FALSE;
 BOOLEAN IsWindowMinimized = FALSE;
 BOOLEAN IsWindowMaximized = FALSE;
+BOOLEAN IconSingleClick = FALSE;
+BOOLEAN RestoreRowAfterSearch = FALSE;
 TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
@@ -78,6 +80,7 @@ static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION LayoutPaddingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION TabPageCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
@@ -719,7 +722,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    if (PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH))
+                    if (RestoreRowAfterSearch)
                     {
                         PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();
 
@@ -738,7 +741,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     if (GET_WM_COMMAND_HWND(wParam, lParam) != SearchboxHandle)
                         break;
 
-                    if (PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH) && SearchboxText->Length == 0)
+                    if (RestoreRowAfterSearch && SearchboxText->Length == 0)
                     {
                         if (RestoreSearchSelectedProcessId != ULONG_MAX)
                         {
@@ -1558,7 +1561,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             {
             case WM_LBUTTONDOWN:
                 {
-                    if (PhGetIntegerSetting(L"IconSingleClick"))
+                    if (IconSingleClick)
                     {
                         if (IsWindowVisible(hWnd))
                         {
@@ -1569,7 +1572,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
             case WM_LBUTTONDBLCLK:
                 {
-                    if (!PhGetIntegerSetting(L"IconSingleClick"))
+                    if (!IconSingleClick)
                     {
                         if (IsWindowVisible(hWnd))
                         {
@@ -1687,6 +1690,20 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(menuInfo->Menu, menu, insertIndex);
 }
 
+VOID UpdateCachedSettings(
+    VOID
+    )
+{
+    IconSingleClick = !!PhGetIntegerSetting(L"IconSingleClick");
+
+    CpuHistoryGraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
+    CpuHistoryGraphColor2 = PhGetIntegerSetting(L"ColorCpuKernel");
+    PhysicalHistoryGraphColor1 = PhGetIntegerSetting(L"ColorPhysical");
+    CommitHistoryGraph1Color1 = PhGetIntegerSetting(L"ColorPrivate");
+    IoHistoryGraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
+    IoHistoryGraphColor2 = PhGetIntegerSetting(L"ColorIoWrite");
+}
+
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -1696,6 +1713,7 @@ VOID NTAPI LoadCallback(
     DisplayStyle = PhGetIntegerSetting(SETTING_NAME_TOOLBARDISPLAYSTYLE);
     SearchBoxDisplayMode = PhGetIntegerSetting(SETTING_NAME_SEARCHBOXDISPLAYMODE);
     TaskbarListIconType = PhGetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE);
+    RestoreRowAfterSearch = !!PhGetIntegerSetting(SETTING_NAME_RESTOREROWAFTERSEARCH);
     EnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
     UpdateGraphs = !PhGetIntegerSetting(L"StartHidden");
     TabInfoHashtable = PhCreateSimpleHashtable(3);
@@ -1705,7 +1723,17 @@ VOID NTAPI LoadCallback(
     MaxInitializationDelay = PhGetIntegerSetting(SETTING_NAME_DELAYED_INITIALIZATION_MAX);
     MaxInitializationDelay = __max(0, __min(MaxInitializationDelay, 5));
 
+    UpdateCachedSettings();
+
     ToolbarGraphsInitialize();
+}
+
+VOID NTAPI SettingsUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    UpdateCachedSettings();
 }
 
 VOID NTAPI MenuItemCallback(
@@ -1905,6 +1933,12 @@ LOGICAL DllMain(
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSettingsUpdated),
+                SettingsUpdatedCallback,
+                NULL,
+                &SettingsUpdatedCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
