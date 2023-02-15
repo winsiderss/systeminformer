@@ -1064,7 +1064,7 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     )
 {
     PhSetThreadName(NtCurrentThread(), L"TrayIconUpdateThread");
-    
+
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];

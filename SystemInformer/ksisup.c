@@ -452,7 +452,7 @@ VOID PhInitializeKsi(
             PhShowKsiError(
                 NULL,
                 L"Unable to load kernel driver, the last System Informer update requires a reboot.",
-                STATUS_PENDING 
+                STATUS_PENDING
                 );
         }
         return;

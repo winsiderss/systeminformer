@@ -157,7 +157,7 @@ PhWriteStringAsUtf8FileStream(
     );
 
 FORCEINLINE
-NTSTATUS 
+NTSTATUS
 PhWriteStringAsUtf8FileStream2(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ PWSTR String

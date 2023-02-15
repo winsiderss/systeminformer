@@ -290,7 +290,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileLinkInformationEx, // s: FILE_LINK_INFORMATION_EX // since REDSTONE5
     FileLinkInformationExBypassAccessCheck, // (kernel-mode only); s: FILE_LINK_INFORMATION_EX
     FileStorageReserveIdInformation, // q; s: FILE_STORAGE_RESERVE_ID_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES)
-    FileCaseSensitiveInformationForceAccessCheck, // q; s: FILE_CASE_SENSITIVE_INFORMATION 
+    FileCaseSensitiveInformationForceAccessCheck, // q; s: FILE_CASE_SENSITIVE_INFORMATION
     FileKnownFolderInformation, // q; s: FILE_KNOWN_FOLDER_INFORMATION (q: requires FILE_READ_ATTRIBUTES; s: requires FILE_WRITE_ATTRIBUTES) // since WIN11
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
@@ -2356,26 +2356,26 @@ typedef struct _MOUNTMGR_TARGET_NAME
 } MOUNTMGR_TARGET_NAME, * PMOUNTMGR_TARGET_NAME;
 
 // Input / Output structure for querying / setting the auto-mount setting
-typedef enum _MOUNTMGR_AUTO_MOUNT_STATE 
+typedef enum _MOUNTMGR_AUTO_MOUNT_STATE
 {
     Disabled = 0,
-    Enabled 
+    Enabled
 } MOUNTMGR_AUTO_MOUNT_STATE;
 
 // IOCTL_MOUNTMGR_QUERY_AUTO_MOUNT
-typedef struct _MOUNTMGR_QUERY_AUTO_MOUNT 
+typedef struct _MOUNTMGR_QUERY_AUTO_MOUNT
 {
     MOUNTMGR_AUTO_MOUNT_STATE CurrentState;
 } MOUNTMGR_QUERY_AUTO_MOUNT, *PMOUNTMGR_QUERY_AUTO_MOUNT;
 
 // IOCTL_MOUNTMGR_SET_AUTO_MOUNT
-typedef struct _MOUNTMGR_SET_AUTO_MOUNT 
+typedef struct _MOUNTMGR_SET_AUTO_MOUNT
 {
     MOUNTMGR_AUTO_MOUNT_STATE NewState;
 } MOUNTMGR_SET_AUTO_MOUNT, *PMOUNTMGR_SET_AUTO_MOUNT;
 
 // Input structure for IOCTL_MOUNTMGR_SILO_ARRIVAL.
-typedef struct _MOUNTMGR_SILO_ARRIVAL_INPUT 
+typedef struct _MOUNTMGR_SILO_ARRIVAL_INPUT
 {
     HANDLE JobHandle;
 } MOUNTMGR_SILO_ARRIVAL_INPUT, *PMOUNTMGR_SILO_ARRIVAL_INPUT;

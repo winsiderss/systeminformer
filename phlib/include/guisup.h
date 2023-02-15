@@ -1426,7 +1426,6 @@ PhLoadImageFromFile(
 
 // Acrylic support
 
-// https://gist.github.com/ysc3839/b08d2bff1c7dacde529bed1d37e85ccf
 typedef enum _WINDOWCOMPOSITIONATTRIBUTE
 {
     WCA_UNDEFINED = 0,
@@ -1482,7 +1481,7 @@ PhSetWindowCompositionAttribute(
 
 // TODO: https://stackoverflow.com/questions/12304848/fast-algorithm-to-invert-an-argb-color-value-to-abgr/42133405#42133405
 FORCEINLINE ULONG MakeARGB(
-    _In_ BYTE a, 
+    _In_ BYTE a,
     _In_ BYTE r,
     _In_ BYTE g,
     _In_ BYTE b)
@@ -1491,8 +1490,8 @@ FORCEINLINE ULONG MakeARGB(
 }
 
 FORCEINLINE ULONG MakeABGR(
-    _In_ BYTE a, 
-    _In_ BYTE b, 
+    _In_ BYTE a,
+    _In_ BYTE b,
     _In_ BYTE g,
     _In_ BYTE r)
 {
@@ -1508,6 +1507,36 @@ FORCEINLINE ULONG MakeABGRFromCOLORREF(_In_ BYTE Alpha, _In_ COLORREF rgb)
 {
     return MakeABGR(Alpha, GetBValue(rgb), GetGValue(rgb), GetRValue(rgb));
 }
+
+typedef enum _ACCENT_STATE
+{
+    ACCENT_DISABLED,
+    ACCENT_ENABLE_GRADIENT = 1,
+    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+    ACCENT_ENABLE_BLURBEHIND = 3,
+    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+    ACCENT_ENABLE_HOSTBACKDROP = 5,
+    ACCENT_INVALID_STATE
+} ACCENT_STATE;
+
+typedef enum _ACCENT_FLAG
+{
+    ACCENT_NONE,
+    ACCENT_WINDOWS11_LUMINOSITY = 0x2,
+    ACCENT_BORDER_LEFT = 0x20,
+    ACCENT_BORDER_TOP = 0x40,
+    ACCENT_BORDER_RIGHT = 0x80,
+    ACCENT_BORDER_BOTTOM = 0x100,
+    ACCENT_BORDER_ALL = (ACCENT_BORDER_LEFT | ACCENT_BORDER_TOP | ACCENT_BORDER_RIGHT | ACCENT_BORDER_BOTTOM)
+} ACCENT_FLAG;
+
+typedef struct _ACCENT_POLICY
+{
+    ACCENT_STATE AccentState;
+    ULONG AccentFlags;
+    ULONG GradientColor;
+    ULONG AnimationId;
+} ACCENT_POLICY;
 
 PHLIBAPI
 BOOLEAN

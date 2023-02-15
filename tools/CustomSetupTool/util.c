@@ -828,12 +828,12 @@ VOID SetupCreateLink(
         PropVariantInit(&propValue);
         V_VT(&propValue) = VT_LPWSTR;
         V_UNION(&propValue, pwszVal) = CoTaskMemAlloc(propValueLength + sizeof(UNICODE_NULL));
-    
+
         if (V_UNION(&propValue, pwszVal))
         {
             memset(V_UNION(&propValue, pwszVal), 0, propValueLength + sizeof(UNICODE_NULL));
             memcpy(V_UNION(&propValue, pwszVal), AppId, propValueLength);
-    
+
             IPropertyStore_SetValue(propertyStorePtr, &PKEY_AppUserModel_ID, &propValue);
         }
 
@@ -1092,7 +1092,7 @@ PPH_STRING SetupCreateFullPath(
 BOOLEAN SetupOverwriteFile(
     _In_ PPH_STRING FileName,
     _In_ PVOID Buffer,
-    _In_ ULONG BufferLength 
+    _In_ ULONG BufferLength
     )
 {
     BOOLEAN result = FALSE;

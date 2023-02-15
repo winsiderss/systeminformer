@@ -96,8 +96,8 @@ VOID PvClrEnumerateTables(
 {
     HRESULT status;
 
-    status = PvClrImageEnumTables( 
-        PvClrEnumTableCallback, 
+    status = PvClrImageEnumTables(
+        PvClrEnumTableCallback,
         Context
         );
 

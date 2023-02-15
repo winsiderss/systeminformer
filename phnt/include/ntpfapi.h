@@ -195,7 +195,7 @@ typedef struct _PF_MEMORY_LIST_NODE
 
 typedef struct _PF_TIME_CONTROL
 {
-	long TimeAdjustment;
+    LONG TimeAdjustment;
 } PF_TIME_CONTROL, *PPF_TIME_CONTROL;
 
 #define PF_MEMORY_LIST_INFO_VERSION 1

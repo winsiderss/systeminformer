@@ -112,7 +112,7 @@ VOID KphpLoadImageNotifyInformer(
             KphFreeNameFileObject(fileName);
         }
     }
-    
+
     if (KphInformerSettings.EnableStackTraces)
     {
         KphCaptureStackInMessage(msg);

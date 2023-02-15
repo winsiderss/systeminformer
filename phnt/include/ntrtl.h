@@ -4265,7 +4265,7 @@ typedef struct _RTL_PROCESS_HEAPS_V2
 
 // Segment heap parameters.
 
-typedef enum _RTL_MEMORY_TYPE 
+typedef enum _RTL_MEMORY_TYPE
 {
     MemoryTypePaged,
     MemoryTypeNonPaged,
@@ -4276,7 +4276,7 @@ typedef enum _RTL_MEMORY_TYPE
     MemoryTypeMax
 } RTL_MEMORY_TYPE, *PRTL_MEMORY_TYPE;
 
-typedef enum _HEAP_MEMORY_INFO_CLASS 
+typedef enum _HEAP_MEMORY_INFO_CLASS
 {
     HeapMemoryBasicInformation
 } HEAP_MEMORY_INFO_CLASS;
@@ -4316,7 +4316,7 @@ typedef NTSTATUS QUERY_VIRTUAL_MEMORY_CALLBACK(
 
 typedef QUERY_VIRTUAL_MEMORY_CALLBACK *PQUERY_VIRTUAL_MEMORY_CALLBACK;
 
-typedef struct _RTL_SEGMENT_HEAP_VA_CALLBACKS 
+typedef struct _RTL_SEGMENT_HEAP_VA_CALLBACKS
 {
     HANDLE CallbackContext;
     PALLOCATE_VIRTUAL_MEMORY_EX_CALLBACK AllocateVirtualMemory;
@@ -4326,12 +4326,12 @@ typedef struct _RTL_SEGMENT_HEAP_VA_CALLBACKS
 
 #define RTL_SEGHEAP_MEM_SOURCE_ANY_NODE ((ULONG)-1)
 
-typedef struct _RTL_SEGMENT_HEAP_MEMORY_SOURCE 
+typedef struct _RTL_SEGMENT_HEAP_MEMORY_SOURCE
 {
     ULONG Flags;
     ULONG MemoryTypeMask; // Mask of RTL_MEMORY_TYPE members.
     ULONG NumaNode;
-    union 
+    union
     {
         HANDLE PartitionHandle;
         RTL_SEGMENT_HEAP_VA_CALLBACKS *Callbacks;
@@ -4343,7 +4343,7 @@ typedef struct _RTL_SEGMENT_HEAP_MEMORY_SOURCE
 #define SEGMENT_HEAP_FLG_USE_PAGE_HEAP          0x1
 #define SEGMENT_HEAP_PARAMS_VALID_FLAGS         SEGMENT_HEAP_FLG_USE_PAGE_HEAP
 
-typedef struct _RTL_SEGMENT_HEAP_PARAMETERS 
+typedef struct _RTL_SEGMENT_HEAP_PARAMETERS
 {
     USHORT Version;
     USHORT Size;

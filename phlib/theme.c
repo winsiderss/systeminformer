@@ -700,7 +700,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             //    PhSetControlTheme(WindowHandle, L"explorer");
             //    PhSetControlTheme(tooltipWindow, L"");
             //    break;
-            //case 1: // Old colors            
+            //case 1: // Old colors
             PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
             PhSetControlTheme(tooltipWindow, L"DarkMode_Explorer");
         }
@@ -802,7 +802,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         //case 0: // New colors
         //    TreeNew_ThemeSupport(WindowHandle, FALSE);
         //    break;
-        //case 1: // Old colors        
+        //case 1: // Old colors
         TreeNew_ThemeSupport(WindowHandle, TRUE);
 
         //InvalidateRect(WindowHandle, NULL, TRUE);
@@ -1072,7 +1072,7 @@ BOOLEAN PhThemeWindowDrawItem(
                 //    SetDCBrushColor(DrawInfo->hDC, RGB(0xff, 0xff, 0xff));
                 //    FillRect(DrawInfo->hDC, &DrawInfo->rcItem, GetStockBrush(DC_BRUSH));
                 //    break;
-                //case 1: // Old colors      
+                //case 1: // Old colors
                 //SetDCBrushColor(DrawInfo->hDC, PhThemeWindowBackgroundColor); // PhThemeWindowForegroundColor
                 FillRect(DrawInfo->hDC, &DrawInfo->rcItem, PhThemeWindowBackgroundBrush);
 
@@ -1202,9 +1202,9 @@ BOOLEAN PhThemeWindowDrawItem(
 
                 PhDrawThemeBackground(
                     themeHandle,
-                    DrawInfo->hDC, 
-                    MENU_POPUPSUBMENU, 
-                    isDisabled ? MSM_DISABLED : MSM_NORMAL, 
+                    DrawInfo->hDC,
+                    MENU_POPUPSUBMENU,
+                    isDisabled ? MSM_DISABLED : MSM_NORMAL,
                     &rect,
                     NULL
                     );
@@ -1608,8 +1608,8 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     //    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
                     //    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
                     //    break;
-                    //case 1: // Old colors               
-                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));                  
+                    //case 1: // Old colors
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
                     SetDCBrushColor(DrawInfo->hdc, RGB(78, 78, 78));
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
                 }
@@ -1621,14 +1621,14 @@ LRESULT CALLBACK PhpThemeWindowDrawButton(
                     //    //SetTextColor(DrawInfo->hdc, RGB(0, 0, 0xff));
                     //    SetDCBrushColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHT));
                     //    break;
-                    //case 1: // Old colors                       
-                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));                    
-                    SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);   
+                    //case 1: // Old colors
+                    SetTextColor(DrawInfo->hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                    SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackground2Color);
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, GetStockBrush(DC_BRUSH));
                 }
                 else
                 {
-                    SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);                 
+                    SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);
                     //SetDCBrushColor(DrawInfo->hdc, PhThemeWindowBackgroundColor); // WindowForegroundColor
                     FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
                 }
@@ -2238,7 +2238,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
-            
+
             if (!BeginPaint(WindowHandle, &ps))
                 break;
 
@@ -2891,7 +2891,7 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
     //        GetCursorPos(&windowPoint);
     //        GetWindowRect(WindowHandle, &windowRect);
     //        context->Hot = PhPtInRect(&windowRect, windowPoint);
-    //  
+    //
     //        if (!context->HotTrack)
     //        {
     //            TRACKMOUSEEVENT trackMouseEvent;
@@ -3078,10 +3078,10 @@ VOID ThemeWindowRenderComboBox(
 
         PhDrawThemeBackground(
             Context->ThemeHandle,
-            bufferDc, 
+            bufferDc,
             CP_DROPDOWNBUTTONRIGHT,
-            CBXSR_DISABLED, 
-            &bufferRect, 
+            CBXSR_DISABLED,
+            &bufferRect,
             NULL
             );
 
@@ -3126,7 +3126,7 @@ VOID ThemeWindowRenderComboBox(
 
 VOID ThemeWindowComboBoxExcludeRect(
     _In_ PPHP_THEME_WINDOW_COMBO_CONTEXT Context,
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ PRECT clientRect,
     _In_ WNDPROC WindowProcedure

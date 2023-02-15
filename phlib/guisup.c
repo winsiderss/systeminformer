@@ -3108,7 +3108,7 @@ VOID PhCustomDrawTreeTimeLine(
     FrameRect(Hdc, &borderRect, GetStockBrush(GRAY_BRUSH));
 }
 
-// Windows Imaging Component (WIC) bitmap support 
+// Windows Imaging Component (WIC) bitmap support
 
 static PVOID PhpGetWicImagingFactoryInterface(
     VOID
@@ -3393,9 +3393,9 @@ HBITMAP PhLoadImageFromResource(
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
         if (SUCCEEDED(IWICBitmapSource_CopyPixels(
-            wicBitmapSource, 
-            NULL, 
-            Width * sizeof(RGBQUAD), 
+            wicBitmapSource,
+            NULL,
+            Width * sizeof(RGBQUAD),
             Width * Height * sizeof(RGBQUAD),
             bitmapBuffer
             )))
@@ -3412,15 +3412,15 @@ HBITMAP PhLoadImageFromResource(
             if (SUCCEEDED(IWICBitmapScaler_Initialize(
                 wicBitmapScaler,
                 wicBitmapSource,
-                Width, 
-                Height, 
+                Width,
+                Height,
                 WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
                 )))
             {
                 if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
-                    wicBitmapScaler, 
-                    NULL, 
-                    Width * sizeof(RGBQUAD), 
+                    wicBitmapScaler,
+                    NULL,
+                    Width * sizeof(RGBQUAD),
                     Width * Height * sizeof(RGBQUAD),
                     bitmapBuffer
                     )))
@@ -3590,36 +3590,6 @@ CleanupExit:
     return bitmapHandle;
 }
 
-typedef enum _ACCENT_STATE
-{
-    ACCENT_DISABLED,
-    ACCENT_ENABLE_GRADIENT = 1,
-    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
-    ACCENT_ENABLE_BLURBEHIND = 3,
-    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
-    ACCENT_ENABLE_HOSTBACKDROP = 5,
-    ACCENT_INVALID_STATE
-} ACCENT_STATE;
-
-typedef enum _ACCENT_FLAG
-{
-    ACCENT_NONE,
-    ACCENT_WINDOWS11_LUMINOSITY = 0x2,
-    ACCENT_BORDER_LEFT = 0x20,
-    ACCENT_BORDER_TOP = 0x40,
-    ACCENT_BORDER_RIGHT = 0x80,
-    ACCENT_BORDER_BOTTOM = 0x100,
-    ACCENT_BORDER_ALL = (ACCENT_BORDER_LEFT | ACCENT_BORDER_TOP | ACCENT_BORDER_RIGHT | ACCENT_BORDER_BOTTOM)
-} ACCENT_FLAG;
-
-typedef struct _ACCENT_POLICY
-{
-    ACCENT_STATE AccentState;
-    ULONG AccentFlags;
-    ULONG GradientColor;
-    ULONG AnimationId;
-} ACCENT_POLICY;
-
 BOOLEAN PhSetWindowCompositionAttribute(
     _In_ HWND WindowHandle,
     _In_ PWINDOWCOMPOSITIONATTRIBUTEDATA AttributeData
@@ -3646,11 +3616,11 @@ BOOLEAN PhSetWindowCompositionAttribute(
 }
 
 BOOLEAN PhSetWindowAcrylicCompositionColor(
-    _In_ HWND WindowHandle, 
+    _In_ HWND WindowHandle,
     _In_ ULONG GradientColor
     )
 {
-    ACCENT_POLICY policy = 
+    ACCENT_POLICY policy =
     {
         ACCENT_ENABLE_ACRYLICBLURBEHIND,
         ACCENT_WINDOWS11_LUMINOSITY | ACCENT_BORDER_ALL,

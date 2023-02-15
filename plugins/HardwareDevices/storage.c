@@ -417,10 +417,10 @@ PPH_STRING DiskDriveQueryGeometry(
 
     {
         STORAGE_READ_CAPACITY result;
-    
+
         memset(&result, 0, sizeof(STORAGE_READ_CAPACITY));
         result.Version = sizeof(STORAGE_READ_CAPACITY);
-    
+
         if (NT_SUCCESS(PhDeviceIoControlFile(
             DeviceHandle,
             IOCTL_STORAGE_READ_CAPACITY, // requires FILE_GENERIC_READ (dmex)

@@ -664,7 +664,7 @@ VOID PhHandleProviderUpdate(
                     // objectInfo.HasActiveTransaction;
                     // objectInfo.UserWritableReferences;
                     // objectInfo.IsIgnoringSharing;
-                    // ... more 
+                    // ... more
                 }
             }
 

@@ -988,9 +988,9 @@ VOID PhpShowWmiProviderStatus(
     PPH_STRING statusMessage;
 
     statusMessage = PhGetMessage(
-        PhpGetWmiUtilsDllBase(), 
-        0xb, 
-        PhGetUserDefaultLangID(), 
+        PhpGetWmiUtilsDllBase(),
+        0xb,
+        PhGetUserDefaultLangID(),
         Win32Result
         );
 

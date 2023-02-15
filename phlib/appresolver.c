@@ -631,26 +631,26 @@ PPH_STRING PhGetPackageAppDataPath(
             for (ULONG i = 0; i < info->AttributeCount; i++)
             {
                 PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &info->Attribute.pAttributeV1[i];
-        
+
                 if (attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
                 {
                     PH_STRINGREF valueAttributeName;
-        
+
                     PhUnicodeStringToStringRef(&attribute->Name, &valueAttributeName);
-        
+
                     if (PhEqualStringRef(&valueAttributeName, &attributeName, FALSE))
                     {
                         PPH_STRING attributeValue;
-        
+
                         attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.pString[2]);
                         packageAppDataPath = PhConcatStringRef2(&localAppDataPath->sr, &attributeValue->sr);
-        
+
                         PhDereferenceObject(attributeValue);
                         break;
                     }
                 }
             }
-        
+
             PhFree(info);
         }
 
@@ -985,10 +985,10 @@ static BOOLEAN PhParseStartMenuAppShellItem(
     IShellItem2_GetString(ShellItem, &PKEY_Tile_SmallLogoPath, &packageSmallLogoPath);
     IShellItem2_GetString(ShellItem, &PKEY_Tile_LongDisplayName, &packageLongDisplayName);
 
-    if (packageAppUserModelID && 
-        packageInstallPath && 
-        packageFullName && 
-        packageSmallLogoPath && 
+    if (packageAppUserModelID &&
+        packageInstallPath &&
+        packageFullName &&
+        packageSmallLogoPath &&
         packageLongDisplayName)
     {
         PPH_APPUSERMODELID_ENUM_ENTRY entry;
@@ -1030,7 +1030,7 @@ PPH_LIST PhEnumerateApplicationUserModelIds(
         &FOLDERID_AppsFolder,
         KF_FLAG_DONT_VERIFY,
         NULL,
-        &IID_IShellItem2, 
+        &IID_IShellItem2,
         &shellKnownFolderItem
         );
 
@@ -1039,8 +1039,8 @@ PPH_LIST PhEnumerateApplicationUserModelIds(
 
     status = IShellItem2_BindToHandler(
         shellKnownFolderItem,
-        NULL, 
-        &BHID_EnumItems, 
+        NULL,
+        &BHID_EnumItems,
         &IID_IEnumShellItems,
         &shellEnumFolderItem
         );

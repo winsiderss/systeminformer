@@ -304,7 +304,7 @@ VOID PhpSearchDrawButton(
             //    SetDCBrushColor(Hdc, RGB(153, 209, 255));
             //    FillRect(Hdc, &ButtonRect, GetStockBrush(DC_BRUSH));
             //    break;
-            //case 1: // Old colors 
+            //case 1: // Old colors
             //SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
             SetDCBrushColor(Hdc, RGB(99, 99, 99));
             FillRect(Hdc, &ButtonRect, Context->DCBrush);
@@ -347,7 +347,7 @@ VOID PhpSearchDrawButton(
             //case 0: // New colors
             //    FillRect(Hdc, &ButtonRect, GetSysColorBrush(COLOR_WINDOW));
             //    break;
-            //case 1: // Old colors           
+            //case 1: // Old colors
             //SetTextColor(Hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
             SetDCBrushColor(Hdc, RGB(60, 60, 60));
             FillRect(Hdc, &ButtonRect, Context->DCBrush);
@@ -531,9 +531,9 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 PhSearchControlButtonRect(context, &buttonRect);
                 PhpSearchDrawButton(
                     context,
-                    hWnd, 
-                    context->BufferedDc, 
-                    windowRect, 
+                    hWnd,
+                    context->BufferedDc,
+                    windowRect,
                     buttonRect
                     );
 

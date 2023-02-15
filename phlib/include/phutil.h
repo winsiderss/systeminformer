@@ -928,7 +928,7 @@ PhGetApplicationDataFileName(
 #define PH_FOLDERID_LocalAppData 1
 #define PH_FOLDERID_RoamingAppData 2
 #define PH_FOLDERID_ProgramFiles 3
- 
+
 PHLIBAPI
 PPH_STRING
 NTAPI

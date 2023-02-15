@@ -2194,7 +2194,7 @@ Exit:
 }
 
 /**
- * \brief Duplicates an object. 
+ * \brief Duplicates an object.
  *
  * \param[in] ProcessHandle Handle to process where the source handle exists.
  * \param[in] SourceHandle Source handle in the target process.

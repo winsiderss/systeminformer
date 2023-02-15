@@ -171,7 +171,7 @@ Exit:
  *
  * \param[in] Port The ALPC port to get the basic information of.
  * \param[out] Info Populated with the basic information.
- * 
+ *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -318,7 +318,7 @@ Exit:
  * \param[in] NameBuffer Preallocated name buffer to use to get the name.
  * \param[in,out] Buffer The space to write the string.
  * \param[in,out] RemainingLength The remaining space to write the string.
- * \param[in,out] ReturnLength The return length, updated even if the string won't fit. 
+ * \param[in,out] ReturnLength The return length, updated even if the string won't fit.
  * \param[out] String The string to populate.
  *
  * \return Successful or errant status.
@@ -329,7 +329,7 @@ NTSTATUS KphpAlpcCopyPortName(
     _In_ PVOID Port,
     _In_bytecount_(KPH_ALPC_NAME_BUFFER_SIZE) POBJECT_NAME_INFORMATION NameBuffer,
     _Inout_ PVOID* Buffer,
-    _Inout_ PULONG RemainingLength, 
+    _Inout_ PULONG RemainingLength,
     _Inout_ PULONG ReturnLength,
     _Out_opt_ PUNICODE_STRING String
     )
@@ -380,10 +380,10 @@ NTSTATUS KphpAlpcCopyPortName(
 }
 
 /**
- * \brief Retrieves the names of the communication ports for a given ALPC port. 
+ * \brief Retrieves the names of the communication ports for a given ALPC port.
  *
  * \param[in] Port The port to retrieve the names of.
- * \param[out] Info Populated with the name information. 
+ * \param[out] Info Populated with the name information.
  * \param[in] InfoLength The length of the information buffer.
  * \param[out] ReturnLength Populated with the length of the written information,
  * or the needed length if it is insufficient.

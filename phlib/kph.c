@@ -541,10 +541,10 @@ NTSTATUS KsiLoadUnloadService(
             )))
         {
             if (NT_SUCCESS(PhOpenKey(
-                &parametersKeyHandle, 
-                DELETE, 
-                serviceKeyHandle, 
-                &parametersKeyName, 
+                &parametersKeyHandle,
+                DELETE,
+                serviceKeyHandle,
+                &parametersKeyName,
                 0
                 )))
             {

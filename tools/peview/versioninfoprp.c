@@ -73,7 +73,7 @@ BOOLEAN PvDumpFileVersionInfoKey(
 }
 
 BOOLEAN PvDumpFileVersionInfo(
-    _In_ PVOID VersionInfo, 
+    _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
     _In_ PPH_STRING_BUILDER StringBuilder
     )

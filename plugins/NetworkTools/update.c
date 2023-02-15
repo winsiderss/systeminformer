@@ -18,7 +18,7 @@ PPH_OBJECT_TYPE UpdateContextType = NULL;
 PH_INITONCE UpdateContextTypeInitOnce = PH_INITONCE_INIT;
 
 // Note: We're using the built-in tar.exe on Windows 10/11 for extracting the database
-// updates since SI doesn't currently ship with a tar library. (dmex) 
+// updates since SI doesn't currently ship with a tar library. (dmex)
 BOOLEAN GeoLiteCheckUpdatePlatformSupported(
     VOID
     )

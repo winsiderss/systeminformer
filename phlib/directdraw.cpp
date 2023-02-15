@@ -38,7 +38,7 @@ static Bitmap* PhGdiplusCreateBitmapFromDIB(
     return nullptr;
 }
 
-// Note: This function is used to draw bitmaps with the current accent color 
+// Note: This function is used to draw bitmaps with the current accent color
 // as the background of the bitmap similar to what Task Manager does (dmex)
 HICON PhGdiplusConvertBitmapToIcon(
     _In_ HBITMAP OriginalBitmap,
@@ -79,7 +79,7 @@ HICON PhGdiplusConvertBitmapToIcon(
             //    color.SetFromCOLORREF(Background); // accent color
             //    graphics->Clear(color);
             //}
-           
+
             graphics->Clear(Color::DodgerBlue);
 
             if (graphics->DrawImage(image, 0, 0) == Status::Ok)
@@ -95,7 +95,7 @@ HICON PhGdiplusConvertBitmapToIcon(
 
 //#pragma comment(lib, "d2d1.lib")
 //#pragma comment(lib, "dwrite.lib")
-// 
+//
 //#include <d2d1.h>
 //#include <dwrite.h>
 //#include <d2d1_3.h>

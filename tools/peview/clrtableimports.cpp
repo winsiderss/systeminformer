@@ -303,8 +303,8 @@ HRESULT PvGetClrMetaDataInterface(
         if (CLRCreateInstance_I = reinterpret_cast<decltype(CLRCreateInstance_I)>(PhGetDllBaseProcedureAddress(clrCoreBaseAddress, const_cast<PSTR>("CLRCreateInstance"), 0)))
         {
             status = CLRCreateInstance_I(
-                CLSID_CLRMetaHost, 
-                IID_ICLRMetaHost, 
+                CLSID_CLRMetaHost,
+                IID_ICLRMetaHost,
                 reinterpret_cast<PVOID*>(&clrMetaHost)
                 );
 
@@ -318,16 +318,16 @@ HRESULT PvGetClrMetaDataInterface(
                 if (SUCCEEDED(status))
                 {
                     status = clrMetaHost->GetRuntime(
-                        version, 
-                        IID_ICLRRuntimeInfo, 
+                        version,
+                        IID_ICLRRuntimeInfo,
                         reinterpret_cast<PVOID*>(&clrRuntimeInfo)
                         );
 
                     if (SUCCEEDED(status))
                     {
                         status = clrRuntimeInfo->GetInterface(
-                            CLSID_CorMetaDataDispenser, 
-                            IID_IMetaDataDispenser, 
+                            CLSID_CorMetaDataDispenser,
+                            IID_IMetaDataDispenser,
                             reinterpret_cast<PVOID*>(&clrMetadataInterface)
                             );
                         clrRuntimeInfo->Release();
@@ -366,8 +366,8 @@ HRESULT PvGetClrImageMetaDataTables(
     IMetaDataTables* metaDataTables = nullptr;
 
     status = PvGetClrMetaDataInterface(
-        PvFileName->Buffer, 
-        &clrCoreBaseAddress, 
+        PvFileName->Buffer,
+        &clrCoreBaseAddress,
         &metaDataDispenser
         );
 
@@ -489,8 +489,8 @@ HRESULT PvGetClrImageMetaDataTables(
 //}
 
 HRESULT PvSafeParseAttributeString(
-    _In_ const void* Buffer, 
-    _In_ ULONG BufferLength, 
+    _In_ const void* Buffer,
+    _In_ ULONG BufferLength,
     _Out_ PPH_STRING* VersionString
     )
 {

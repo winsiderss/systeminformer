@@ -305,7 +305,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
             }
 
-            
+
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PhGetDpi(22, context->WindowDpi)); // BitmapHeight
 

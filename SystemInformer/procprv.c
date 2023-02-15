@@ -719,9 +719,9 @@ VOID PhpProcessQueryStage1(
         {
             Data->IconEntry = PhImageListExtractIcon(
                 processItem->FileName,
-                TRUE, 
+                TRUE,
                 processItem->ProcessId,
-                processItem->PackageFullName, 
+                processItem->PackageFullName,
                 PhProcessImageListWindowDpi
                 );
 
@@ -2054,13 +2054,13 @@ ntoskrnl!HalProcessorIdle:
 00000001`4048fc10 d65f03c0 ret
     */
     // This dictates that the CPU should enter WFI (Wait For Interrupt) mode. In this mode the
-    // CPU clock is disabled and the PMCCNTR register is not being updated, from the docs: 
+    // CPU clock is disabled and the PMCCNTR register is not being updated, from the docs:
     /*
 All counters are subject to any changes in clock frequency, including clock stopping caused by
 the WFI and WFE instructions. This means that it is CONSTRAINED UNPREDICTABLE whether or not
 PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instructions.
     */
-    // Arguably, the kernel is doing the right thing here, the idle threads are taking less cycle 
+    // Arguably, the kernel is doing the right thing here, the idle threads are taking less cycle
     // time and the KTHREAD reflects this accurately. However, due to the way cycle-based CPU
     // usage is implemented for other architectures it assumes on the idle thread cycles are
     // the cycles *not* spent using the CPU, this assumption is incorrect for ARM.
@@ -2071,12 +2071,12 @@ PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instru
     // For cycle-based CPU to make sense for ARM, we need a way to get or estimate the amount
     // of cycles the CPU would have used by the idle threads if WFI was mode was not entered.
     //
-    // This experimental estimate achieves that. It will show the idle process utilization 
+    // This experimental estimate achieves that. It will show the idle process utilization
     // accurately (given the estimate and what the kernel tracks/reports), and generally retain
     // the cycle-based CPU benefits. Arguably, we are in some capacity reverting to the
     // time-based CPU usage calculation by relying on the time to generate the estimate, but
-    // again it comes with the benefit of more realistically reporting the idle threads given 
-    // what is tracked/reported by the kernel. 
+    // again it comes with the benefit of more realistically reporting the idle threads given
+    // what is tracked/reported by the kernel.
     //
     // let x = Unknown Idle Cycles
     // let y = "Total" Cycles (missing idle cycles)
@@ -2100,7 +2100,7 @@ PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instru
     // x * (a + b + c) - (a * x) ~= (a * y)
     // x * ((a + b + c) - a) ~= (a * y)
     // x ~= (a * y) / ((a + b + c) - a)
-    // 
+    //
     // x ~= (a * y) / (b + c)
     //
     ULONG64 delta = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta;
@@ -2647,7 +2647,7 @@ VOID PhProcessProviderUpdate(
                                 }
 
                                 modified = TRUE;
-                            }       
+                            }
                         }
                     }
 

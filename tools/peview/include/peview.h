@@ -696,7 +696,7 @@ PvClrImportFlagsToString(
     _In_ ULONG Flags
     );
 
-EXTERN_C 
+EXTERN_C
 PPH_STRING
 NTAPI
 PvGetClrImageTargetFramework(
