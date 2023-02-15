@@ -633,29 +633,6 @@ PPH_STRING PhLoadString(
     return string;
 }
 
-// rev from LoadMenuW
-HMENU PhLoadMenu(
-    _In_ PVOID DllBase,
-    _In_ PCWSTR MenuName
-    )
-{
-    HMENU menuHandle = NULL;
-    LPMENUTEMPLATE templateBuffer;
-
-    if (PhLoadResource(
-        DllBase,
-        MenuName,
-        RT_MENU,
-        NULL,
-        &templateBuffer
-        ))
-    {
-        menuHandle = LoadMenuIndirect(templateBuffer);
-    }
-
-    return menuHandle;
-}
-
 // rev from SHLoadIndirectString
 /**
  * Extracts a specified text resource when given that resource in the form of an indirect string (a string that begins with the '@' symbol).
