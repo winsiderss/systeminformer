@@ -19,6 +19,12 @@ typedef struct _TB_GRAPH_CONTEXT
     LONG GraphDpi;
 } TB_GRAPH_CONTEXT, *PTB_GRAPH_CONTEXT;
 
+ULONG CpuHistoryGraphColor1 = 0;
+ULONG CpuHistoryGraphColor2 = 0;
+ULONG PhysicalHistoryGraphColor1 = 0;
+ULONG CommitHistoryGraph1Color1 = 0;
+ULONG IoHistoryGraphColor1 = 0;
+ULONG IoHistoryGraphColor2 = 0;
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback);
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback);
 TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback);
@@ -690,7 +696,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CpuHistoryGraphMessageCallback)
                 context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorCpuKernel"), PhGetIntegerSetting(L"ColorCpuUser"), context->GraphDpi);
+            PhSiSetColorsGraphDrawInfo(drawInfo, CpuHistoryGraphColor1, CpuHistoryGraphColor2, context->GraphDpi);
 
             if (!(SystemStatistics.CpuKernelHistory && SystemStatistics.CpuUserHistory))
                 break;
@@ -779,7 +785,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(PhysicalHistoryGraphMessageCallback)
                 context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPhysical"), 0, context->GraphDpi);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhysicalHistoryGraphColor1, 0, context->GraphDpi);
 
             if (!SystemStatistics.PhysicalHistory)
                 break;
@@ -862,7 +868,7 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(CommitHistoryGraphMessageCallback)
                 context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorPrivate"), 0, context->GraphDpi);
+            PhSiSetColorsGraphDrawInfo(drawInfo, CommitHistoryGraph1Color1, 0, context->GraphDpi);
 
             if (!(SystemStatistics.CommitHistory && SystemStatistics.Performance))
                 break;
@@ -941,11 +947,11 @@ TOOLSTATUS_GRAPH_MESSAGE_CALLBACK_DECLARE(IoHistoryGraphMessageCallback)
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
 
-            if (context->GraphDpi == 0) 
+            if (context->GraphDpi == 0)
                 context->GraphDpi = PhGetWindowDpi(GraphHandle);
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_LINE_2;
-            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(L"ColorIoReadOther"), PhGetIntegerSetting(L"ColorIoWrite"), context->GraphDpi);
+            PhSiSetColorsGraphDrawInfo(drawInfo, IoHistoryGraphColor1, IoHistoryGraphColor2, context->GraphDpi);
 
             if (!(SystemStatistics.IoReadHistory && SystemStatistics.IoOtherHistory && SystemStatistics.IoWriteHistory))
                 break;
