@@ -31,7 +31,7 @@
 *.props eol=crlf
 *.pubxml eol=crlf
 *.resx eol=crlf
-*.rc eol=crlf
+*.rc text eol=crlf
 *.sln eol=crlf
 *.txt eol=crlf
 *.vcxproj eol=crlf
