@@ -172,43 +172,27 @@ BOOLEAN SetupCreateUninstallFile(
 
     if (PhDoesFileExistWin32(PhGetString(backupFilePath)))
     {
-        PPH_STRING tempFileName;
-        PPH_STRING tempFilePath;
+        PPH_STRING tempFileName = PhGetTemporaryDirectoryRandomAlphaFileName();
 
-        tempFileName = PhCreateString(L"systeminformer-setup.bak");
-        tempFilePath = PhCreateCacheFile(tempFileName);
-
-        //if (!NT_SUCCESS(PhDeleteFileWin32(backupFilePath->Buffer)))
-        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(backupFilePath), PhGetString(tempFilePath), FALSE)))
+        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(backupFilePath), PhGetString(tempFileName), FALSE)))
         {
             Context->ErrorCode = PhNtStatusToDosError(status);
             return FALSE;
         }
-
-        PhDereferenceObject(tempFilePath);
-        PhDereferenceObject(tempFileName);
     }
 
     if (PhDoesFileExistWin32(PhGetString(uninstallFilePath)))
     {
-        PPH_STRING tempFileName;
-        PPH_STRING tempFilePath;
+        PPH_STRING tempFileName = PhGetTemporaryDirectoryRandomAlphaFileName();
 
-        //if (!NT_SUCCESS(PhDeleteFileWin32(PhGetString(uninstallFilePath))))
-        tempFileName = PhCreateString(L"systeminformer-setup.exe");
-        tempFilePath = PhCreateCacheFile(tempFileName);
-
-        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath), FALSE)))
+        if (!NT_SUCCESS(status = PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFileName), FALSE)))
         {
             Context->ErrorCode = PhNtStatusToDosError(status);
             return FALSE;
         }
-
-        PhDereferenceObject(tempFilePath);
-        PhDereferenceObject(tempFileName);
     }
 
-    if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), TRUE)))
+    if (!NT_SUCCESS(status = PhCopyFileWin32(PhGetString(currentFilePath), PhGetString(uninstallFilePath), FALSE)))
     {
         Context->ErrorCode = PhNtStatusToDosError(status);
         return FALSE;
@@ -229,22 +213,9 @@ VOID SetupDeleteUninstallFile(
 
     if (PhDoesFileExistWin32(PhGetString(uninstallFilePath)))
     {
-        PPH_STRING tempFileName;
-        PPH_STRING tempFilePath;
+        PPH_STRING tempFileName = PhGetTemporaryDirectoryRandomAlphaFileName();
 
-        tempFileName = PhCreateString(L"systeminformer-setup.exe");
-        tempFilePath = PhCreateCacheFile(tempFileName);
-
-        if (PhIsNullOrEmptyString(tempFilePath))
-        {
-            PhDereferenceObject(tempFileName);
-            goto CleanupExit;
-        }
-
-        PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFilePath), FALSE);
-
-        PhDereferenceObject(tempFilePath);
-        PhDereferenceObject(tempFileName);
+        PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFileName), FALSE);
     }
 
 CleanupExit:
