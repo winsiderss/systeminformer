@@ -50,6 +50,7 @@
 #ifdef _DEBUG
 //#define FORCE_UPDATE_CHECK
 //#define FORCE_LATEST_VERSION
+//#define FORCE_ELEVATION_CHECK
 #endif
 
 extern HWND UpdateDialogHandle;
