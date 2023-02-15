@@ -148,14 +148,6 @@ PhLoadResourceCopy(
     );
 
 PHLIBAPI
-HMENU
-NTAPI
-PhLoadMenu(
-    _In_ PVOID DllBase,
-    _In_ PCWSTR MenuName
-    );
-
-PHLIBAPI
 PPH_STRING
 NTAPI
 PhLoadIndirectString(

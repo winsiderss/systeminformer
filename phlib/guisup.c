@@ -1266,6 +1266,29 @@ INT_PTR PhDialogBox(
     return dialogResult;
 }
 
+// rev from LoadMenuW
+HMENU PhLoadMenu(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR MenuName
+    )
+{
+    HMENU menuHandle = NULL;
+    LPMENUTEMPLATE templateBuffer;
+
+    if (PhLoadResource(
+        DllBase,
+        MenuName,
+        RT_MENU,
+        NULL,
+        &templateBuffer
+        ))
+    {
+        menuHandle = LoadMenuIndirect(templateBuffer);
+    }
+
+    return menuHandle;
+}
+
 BOOLEAN PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     )

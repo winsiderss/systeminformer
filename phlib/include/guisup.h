@@ -538,7 +538,9 @@ typedef struct _DLGTEMPLATEEX
 #include <poppack.h>
 
 PHLIBAPI
-HWND PhCreateDialogFromTemplate(
+HWND
+NTAPI
+PhCreateDialogFromTemplate(
     _In_ HWND Parent,
     _In_ ULONG Style,
     _In_ PVOID Instance,
@@ -585,6 +587,14 @@ PhDialogBox(
     _In_opt_ HWND ParentWindow,
     _In_ DLGPROC DialogProc,
     _In_opt_ PVOID Parameter
+    );
+
+PHLIBAPI
+HMENU
+NTAPI
+PhLoadMenu(
+    _In_ PVOID DllBase,
+    _In_ PCWSTR MenuName
     );
 
 PHLIBAPI
