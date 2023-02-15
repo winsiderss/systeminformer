@@ -2966,7 +2966,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateUserThread(
-    _In_ HANDLE Process,
+    _In_ HANDLE ProcessHandle,
     _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
     _In_ BOOLEAN CreateSuspended,
     _In_opt_ ULONG ZeroBits,
@@ -2974,7 +2974,7 @@ RtlCreateUserThread(
     _In_opt_ SIZE_T CommittedStackSize,
     _In_ PUSER_THREAD_START_ROUTINE StartAddress,
     _In_opt_ PVOID Parameter,
-    _Out_opt_ PHANDLE Thread,
+    _Out_opt_ PHANDLE ThreadHandle,
     _Out_opt_ PCLIENT_ID ClientId
     );
 
@@ -3164,8 +3164,8 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlRemoteCall(
-    _In_ HANDLE Process,
-    _In_ HANDLE Thread,
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE ThreadHandle,
     _In_ PVOID CallSite,
     _In_ ULONG ArgumentCount,
     _In_opt_ PULONG_PTR Arguments,
@@ -7414,7 +7414,7 @@ RtlSetSecurityObject(
     _In_ PSECURITY_DESCRIPTOR ModificationDescriptor,
     _Inout_ PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
     _In_ PGENERIC_MAPPING GenericMapping,
-    _In_opt_ HANDLE Token
+    _In_opt_ HANDLE TokenHandle
     );
 
 NTSYSAPI
@@ -7426,7 +7426,7 @@ RtlSetSecurityObjectEx(
     _Inout_ PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
     _In_ ULONG AutoInheritFlags, // SEF_*
     _In_ PGENERIC_MAPPING GenericMapping,
-    _In_opt_ HANDLE Token
+    _In_opt_ HANDLE TokenHandle
     );
 
 NTSYSAPI
@@ -7453,7 +7453,7 @@ RtlNewInstanceSecurityObject(
     _In_opt_ PSECURITY_DESCRIPTOR CreatorDescriptor,
     _Out_ PSECURITY_DESCRIPTOR *NewDescriptor,
     _In_ BOOLEAN IsDirectoryObject,
-    _In_ HANDLE Token,
+    _In_ HANDLE TokenHandle,
     _In_ PGENERIC_MAPPING GenericMapping
     );
 
@@ -8633,7 +8633,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetTokenNamedObjectPath(
-    _In_ HANDLE Token,
+    _In_ HANDLE TokenHandle,
     _In_opt_ PSID Sid,
     _Out_ PUNICODE_STRING ObjectPath // RtlFreeUnicodeString
     );
@@ -8645,7 +8645,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetAppContainerNamedObjectPath(
-    _In_opt_ HANDLE Token,
+    _In_opt_ HANDLE TokenHandle,
     _In_opt_ PSID AppContainerSid,
     _In_ BOOLEAN RelativePath,
     _Out_ PUNICODE_STRING ObjectPath // RtlFreeUnicodeString
@@ -9548,7 +9548,7 @@ NTAPI
 NtCopyFileChunk(
     _In_ HANDLE SourceHandle,
     _In_ HANDLE DestinationHandle,
-    _In_opt_ HANDLE Event,
+    _In_opt_ HANDLE EventHandle,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
     _In_ ULONG Length,
     _In_ PLARGE_INTEGER SourceOffset,
