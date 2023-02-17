@@ -412,12 +412,12 @@ VOID PvEnumerateCrtInitializers(
 
         PhPrintUInt64(value, ++index);
         lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT, value, NULL);
-        PhPrintPointer(value, PTR_ADD_OFFSET(array, UInt32Mul32To64(i, size)));
+        PhPrintPointer(value, PTR_ADD_OFFSET(array, UInt32x32To64(i, size)));
         PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
 
         initSymbol = PhGetSymbolFromAddress(
             PvSymbolProvider,
-            (ULONG64)PTR_ADD_OFFSET(baseAddress, PTR_ADD_OFFSET(array, UInt32Mul32To64(i, size))),
+            (ULONG64)PTR_ADD_OFFSET(baseAddress, PTR_ADD_OFFSET(array, UInt32x32To64(i, size))),
             &symbolResolveLevel,
             NULL,
             &initSymbolName,
