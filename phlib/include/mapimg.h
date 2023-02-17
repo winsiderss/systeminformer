@@ -80,6 +80,15 @@ PhLoadMappedImageEx(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhLoadMappedImageHeaderPageSize(
+    _In_opt_ PPH_STRINGREF FileName,
+    _In_opt_ HANDLE FileHandle,
+    _Out_ PIMAGE_NT_HEADERS* NtHeaders
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhUnloadMappedImage(
     _Inout_ PPH_MAPPED_IMAGE MappedImage
     );
@@ -132,7 +141,7 @@ PVOID
 NTAPI
 PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ ULONG Va,
+    _In_ ULONGLONG Va,
     _Out_opt_ PIMAGE_SECTION_HEADER* Section
     );
 
