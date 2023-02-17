@@ -87,7 +87,7 @@ typedef enum _TRACE_CONTROL_INFORMATION_CLASS
     TraceControlUseDescriptorTypeCode = 31,
     TraceControlEnumTraceGroupList = 32,
     TraceControlGetTraceGroupInfo = 33,
-    TraceControlTraceSetDisallowList = 34,
+    TraceControlGetDisallowList = 34,
     TraceControlSetCompressionSettings = 35,
     TraceControlGetCompressionSettings = 36,
     TraceControlUpdatePeriodicCaptureState = 37,
