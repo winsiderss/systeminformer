@@ -1697,7 +1697,7 @@ VOID UpdateCachedSettings(
     IconSingleClick = !!PhGetIntegerSetting(L"IconSingleClick");
 
     CpuHistoryGraphColor1 = PhGetIntegerSetting(L"ColorCpuKernel");
-    CpuHistoryGraphColor2 = PhGetIntegerSetting(L"ColorCpuKernel");
+    CpuHistoryGraphColor2 = PhGetIntegerSetting(L"ColorCpuUser");
     PhysicalHistoryGraphColor1 = PhGetIntegerSetting(L"ColorPhysical");
     CommitHistoryGraph1Color1 = PhGetIntegerSetting(L"ColorPrivate");
     IoHistoryGraphColor1 = PhGetIntegerSetting(L"ColorIoReadOther");
