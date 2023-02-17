@@ -1535,12 +1535,12 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
         return FALSE;
 
     stateSize = FIELD_OFFSET(SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION, States) + sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * 2;
-    differences = PhAllocate(UInt32Mul32To64(stateSize, NumberOfProcessors));
+    differences = PhAllocate(UInt32x32To64(stateSize, NumberOfProcessors));
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
         stateDistribution = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
-        stateDifference = PTR_ADD_OFFSET(differences, UInt32Mul32To64(stateSize, i));
+        stateDifference = PTR_ADD_OFFSET(differences, UInt32x32To64(stateSize, i));
 
         if (stateDistribution->StateCount != 2)
         {
@@ -1566,7 +1566,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     for (i = 0; i < NumberOfProcessors; i++)
     {
         stateDistribution = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
-        stateDifference = PTR_ADD_OFFSET(differences, UInt32Mul32To64(stateSize, i));
+        stateDifference = PTR_ADD_OFFSET(differences, UInt32x32To64(stateSize, i));
 
         if (stateDistribution->StateCount != 2)
         {
@@ -1595,7 +1595,7 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
     for (i = 0; i < NumberOfProcessors; i++)
     {
-        stateDifference = PTR_ADD_OFFSET(differences, UInt32Mul32To64(stateSize, i));
+        stateDifference = PTR_ADD_OFFSET(differences, UInt32x32To64(stateSize, i));
 
         for (j = 0; j < 2; j++)
         {
