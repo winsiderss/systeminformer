@@ -46,7 +46,7 @@ BOOLEAN NTAPI PvClrEnumTableCallback(
 
     if (TableCount && TableSize)
     {
-        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, PhaFormatSize(UInt32Mul32To64(TableCount, TableSize), ULONG_MAX)->Buffer);
+        PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, PhaFormatSize(UInt32x32To64(TableCount, TableSize), ULONG_MAX)->Buffer);
     }
 
     if (TableOffset)
@@ -54,7 +54,7 @@ BOOLEAN NTAPI PvClrEnumTableCallback(
         PhPrintPointer(value, PTR_SUB_OFFSET(TableOffset, PvMappedImage.ViewBase));
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 4, value);
 
-        PhPrintPointer(value, PTR_ADD_OFFSET(PTR_SUB_OFFSET(TableOffset, PvMappedImage.ViewBase), UInt32Mul32To64(TableCount, TableSize)));
+        PhPrintPointer(value, PTR_ADD_OFFSET(PTR_SUB_OFFSET(TableOffset, PvMappedImage.ViewBase), UInt32x32To64(TableCount, TableSize)));
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, value);
     }
 
@@ -67,7 +67,7 @@ BOOLEAN NTAPI PvClrEnumTableCallback(
             UCHAR hash[32];
 
             PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-            PhUpdateHash(&hashContext, TableOffset, UInt32Mul32To64(TableCount, TableSize));
+            PhUpdateHash(&hashContext, TableOffset, UInt32x32To64(TableCount, TableSize));
 
             if (PhFinalHash(&hashContext, hash, 16, NULL))
             {
