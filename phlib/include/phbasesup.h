@@ -2936,7 +2936,7 @@ typedef struct _PH_HASHTABLE
 } PH_HASHTABLE, *PPH_HASHTABLE;
 
 #define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (UInt32Add32To64(UFIELD_OFFSET(PH_HASHTABLE_ENTRY, Body), (InnerSize)))
-#define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, UInt32Mul32To64(PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize), (Index))))
+#define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, UInt32x32To64(PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize), (Index))))
 #define PH_HASHTABLE_GET_ENTRY_INDEX(Hashtable, Entry) ((ULONG)(PTR_ADD_OFFSET(Entry, -(Hashtable)->Entries) / PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize)))
 
 PHLIBAPI
