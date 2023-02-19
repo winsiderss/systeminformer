@@ -222,7 +222,7 @@ BOOLEAN PhInitializeLxssImageVersionInfo(
             lxssPackageName = PhCreateString2(&packagePart);
         }
 
-        PhDereferenceObject(lxssCommandResult);
+        PhClearReference(&lxssCommandResult);
     }
 
     if (PhIsNullOrEmptyString(lxssPackageName))
