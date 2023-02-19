@@ -1765,26 +1765,29 @@ ULONG_PTR PhTnpOnUserMessage(
             PULONG newOrder;
             PPH_TREENEW_COLUMN column;
 
-            newOrder = PhAllocate(count * sizeof(ULONG));
-
-            for (i = 0; i < count; i++)
+            if (count)
             {
-                if (!(column = PhTnpLookupColumnById(Context, order[i])))
+                newOrder = PhAllocate(count * sizeof(ULONG));
+
+                for (i = 0; i < count; i++)
+                {
+                    if (!(column = PhTnpLookupColumnById(Context, order[i])))
+                    {
+                        PhFree(newOrder);
+                        return FALSE;
+                    }
+
+                    newOrder[i] = column->s.ViewIndex;
+                }
+
+                if (!Header_SetOrderArray(Context->HeaderHandle, count, newOrder))
                 {
                     PhFree(newOrder);
                     return FALSE;
                 }
 
-                newOrder[i] = column->s.ViewIndex;
-            }
-
-            if (!Header_SetOrderArray(Context->HeaderHandle, count, newOrder))
-            {
                 PhFree(newOrder);
-                return FALSE;
             }
-
-            PhFree(newOrder);
 
             PhTnpUpdateColumnHeaders(Context);
             PhTnpUpdateColumnMaps(Context);
