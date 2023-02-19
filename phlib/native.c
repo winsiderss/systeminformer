@@ -11510,6 +11510,9 @@ NTSTATUS PhGetThreadName(
     PTHREAD_NAME_INFORMATION buffer;
     ULONG bufferSize;
     ULONG returnLength;
+    
+    if (WindowsVersion < WINDOWS_10)
+        return STATUS_NOT_SUPPORTED;
 
     bufferSize = 0x100;
     buffer = PhAllocate(bufferSize);
@@ -11560,6 +11563,9 @@ NTSTATUS PhSetThreadName(
     )
 {
     THREAD_NAME_INFORMATION threadNameInfo;
+
+    if (WindowsVersion < WINDOWS_10)
+        return STATUS_NOT_SUPPORTED;
 
     memset(&threadNameInfo, 0, sizeof(THREAD_NAME_INFORMATION));
     RtlInitUnicodeString(&threadNameInfo.ThreadName, ThreadName);
