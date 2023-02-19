@@ -3508,26 +3508,26 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
     )
 {
     NTSTATUS status;
-    PTOKEN_SID_INFORMATION trustLevel;
+    PTOKEN_PROCESS_TRUST_LEVEL trustLevel;
     ULONG subAuthoritiesCount;
     ULONG protectionType;
     ULONG protectionLevel;
 
-    status = PhpQueryTokenVariableSize(TokenHandle, TokenProcessTrustLevel, &trustLevel);
+    status = PhGetTokenTrustLevel(TokenHandle, &trustLevel);
 
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!RtlValidSid(trustLevel->Sid))
+    if (!trustLevel->TrustLevelSid)
         return STATUS_UNSUCCESSFUL;
 
-    subAuthoritiesCount = *RtlSubAuthorityCountSid(trustLevel->Sid);
+    subAuthoritiesCount = *RtlSubAuthorityCountSid(trustLevel->TrustLevelSid);
     //RtlIdentifierAuthoritySid(TokenPageContext->Capabilities->Groups[i].Sid) == (BYTE[])SECURITY_PROCESS_TRUST_AUTHORITY
 
     if (subAuthoritiesCount == SECURITY_PROCESS_TRUST_AUTHORITY_RID_COUNT)
     {
-        protectionType = *RtlSubAuthoritySid(trustLevel->Sid, 0);
-        protectionLevel = *RtlSubAuthoritySid(trustLevel->Sid, 1);
+        protectionType = *RtlSubAuthoritySid(trustLevel->TrustLevelSid, 0);
+        protectionLevel = *RtlSubAuthoritySid(trustLevel->TrustLevelSid, 1);
     }
     else
     {
@@ -3582,7 +3582,7 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
 
     if (TrustLevelSidString)
     {
-        *TrustLevelSidString = PhSidToStringSid(trustLevel->Sid);
+        *TrustLevelSidString = PhSidToStringSid(trustLevel->TrustLevelSid);
     }
 
     PhFree(trustLevel);
