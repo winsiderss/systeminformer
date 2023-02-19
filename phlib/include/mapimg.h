@@ -83,7 +83,7 @@ NTAPI
 PhLoadMappedImageHeaderPageSize(
     _In_opt_ PPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
-    _Out_ PIMAGE_NT_HEADERS* NtHeaders
+    _Out_ PPH_MAPPED_IMAGE MappedImage
     );
 
 PHLIBAPI
