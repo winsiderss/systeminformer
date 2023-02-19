@@ -713,7 +713,7 @@ NTSTATUS GeoLiteUpdateTaskDialogThread(
     //                Parameter,
     //                NULL,
     //                SW_SHOWNORMAL,
-    //                0,
+    //                PH_SHELL_EXECUTE_NOASYNC,
     //                PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
     //                0,
     //                NULL

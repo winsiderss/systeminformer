@@ -406,7 +406,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                             PhMainWndHandle,
                             L"-v -newinstance",
                             SW_SHOW,
-                            0,
+                            PH_SHELL_EXECUTE_NOASYNC,
                             PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                             0,
                             NULL
@@ -1560,7 +1560,7 @@ static VOID PhpOptionsNotifyChangeCallback(
                 PhMainWndHandle,
                 L"-v -newinstance",
                 SW_SHOW,
-                0,
+                PH_SHELL_EXECUTE_NOASYNC,
                 PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
                 0,
                 NULL
