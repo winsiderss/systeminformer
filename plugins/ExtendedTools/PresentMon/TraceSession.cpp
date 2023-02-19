@@ -357,7 +357,7 @@ BOOLEAN StartFpsTraceSession(
     ULONG status;
 
     PhQueryPerformanceCounter(&TraceStartQpc);
-    PhQueryPerformanceFrequency(&TraceStartQpc);
+    PhQueryPerformanceFrequency(&TraceFrequencyQpc);
 
     TraceProperties sessionProps = {};
     sessionProps.Wnode.BufferSize = (ULONG)sizeof(TraceProperties);
