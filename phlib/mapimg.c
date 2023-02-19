@@ -195,7 +195,7 @@ NTSTATUS PhLoadMappedImageEx(
 NTSTATUS PhLoadMappedImageHeaderPageSize(
     _In_opt_ PPH_STRINGREF FileName,
     _In_opt_ HANDLE FileHandle,
-    _Out_ PIMAGE_NT_HEADERS* NtHeaders
+    _Out_ PPH_MAPPED_IMAGE MappedImage
     )
 {
     NTSTATUS status;
@@ -204,8 +204,6 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
     LARGE_INTEGER sectionSize;
     SIZE_T viewSize;
     PVOID viewBase;
-    PIMAGE_DOS_HEADER dosHeader;
-    LONG ntHeadersOffset;
 
     if (!FileName && !FileHandle)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -267,19 +265,11 @@ NTSTATUS PhLoadMappedImageHeaderPageSize(
     if (!NT_SUCCESS(status))
         return status;
 
-    dosHeader = (PIMAGE_DOS_HEADER)PTR_ADD_OFFSET(viewBase, 0);
-
-    if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
-        return STATUS_INVALID_IMAGE_NOT_MZ;
-
-    ntHeadersOffset = dosHeader->e_lfanew;
-
-    if (ntHeadersOffset == 0)
-        return STATUS_INVALID_IMAGE_FORMAT;
-    if (ntHeadersOffset >= 0x10000000 || ntHeadersOffset >= LONG_MAX)
-        return STATUS_INVALID_IMAGE_FORMAT;
-
-    *NtHeaders = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(viewBase, ntHeadersOffset);
+    status = PhInitializeMappedImage(
+        MappedImage,
+        viewBase,
+        viewSize
+        );
 
     return status;
 }
