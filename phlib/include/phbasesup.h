@@ -879,6 +879,21 @@ PhFindStringInStringRef(
     _In_ BOOLEAN IgnoreCase
     );
 
+FORCEINLINE
+ULONG_PTR
+PhFindStringInStringRefZ(
+    _In_ PPH_STRINGREF String,
+    _In_ PWSTR SubString,
+    _In_ BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF sr2;
+
+    PhInitializeStringRef(&sr2, SubString);
+
+    return PhFindStringInStringRef(String, &sr2, IgnoreCase);
+}
+
 PHLIBAPI
 BOOLEAN
 NTAPI
