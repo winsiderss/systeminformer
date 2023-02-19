@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -29,9 +29,9 @@ VOID WepDestroyWindowNode(
 BOOLEAN NTAPI WepWindowTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 BOOLEAN WepEnableWindowIcons = FALSE;
