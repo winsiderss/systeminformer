@@ -1368,7 +1368,7 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 //                    PhMainWndHandle,
 //                    L"-v -selecttab Disk",
 //                    SW_SHOW,
-//                    PH_SHELL_EXECUTE_ADMIN,
+//                    PH_SHELL_EXECUTE_ADMIN | PH_SHELL_EXECUTE_NOASYNC,
 //                    PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
 //                    0,
 //                    NULL
