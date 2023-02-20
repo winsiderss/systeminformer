@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
@@ -356,7 +356,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
         SPC_INDIRECT_DATA_CONTENT_STRUCT,
         cryptInnerContentBuffer,
         cryptInnerContentLength,
-        CRYPT_DECODE_ALLOC_FLAG,
+        CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
         NULL,
         &spcIndirectDataContentBuffer,
         &spcIndirectDataContentLength
@@ -373,7 +373,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
         SPC_PE_IMAGE_DATA_STRUCT,
         spcIndirectDataContentBuffer->Data.Value.pbData,
         spcIndirectDataContentBuffer->Data.Value.cbData,
-        CRYPT_DECODE_ALLOC_FLAG,
+        CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
         NULL,
         &spcPeImageDataBuffer,
         &spcPeImageDataLength
@@ -397,7 +397,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
             PKCS_ATTRIBUTES,
             spcPeImageDataBuffer->pFile->Moniker.SerializedData.pbData,
             spcPeImageDataBuffer->pFile->Moniker.SerializedData.cbData,
-            CRYPT_DECODE_ALLOC_FLAG,
+            CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
             NULL,
             &spcSerializedObjectAttributesBuffer,
             &spcSerializedObjectAttributesLength
@@ -416,7 +416,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
                     X509_OCTET_STRING,
                     spcSerializedObjectBuffer.rgValue->pbData,
                     spcSerializedObjectBuffer.rgValue->cbData,
-                    CRYPT_DECODE_ALLOC_FLAG,
+                    CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
                     NULL,
                     &spcImagePageHashesBuffer,
                     &spcImagePageHashesLength
@@ -1059,20 +1059,11 @@ BOOLEAN PvGetMappedImageImphash(
         PPH_STRING importStringFinal;
         PPH_STRING importStringFuzzy;
         PPH_BYTES importStringUtf8;
-        PH_HASH_CONTEXT hashContext;
-        UCHAR hash[32];
 
         importStringFinal = PhFinalStringBuilderString(&stringBuilder);
         importStringUtf8 = PhConvertUtf16ToUtf8Ex(importStringFinal->Buffer, importStringFinal->Length);
 
-        PhInitializeHash(&hashContext, Md5HashAlgorithm);
-        PhUpdateHash(&hashContext, importStringUtf8->Buffer, (ULONG)importStringUtf8->Length);
-
-        if (PhFinalHash(&hashContext, hash, 16, NULL))
-        {
-            hashString = PhBufferToHexString(hash, 16);
-            _wcsupr(hashString->Buffer);
-        }
+        hashString = PvHashBuffer(importStringUtf8->Buffer, (ULONG)importStringUtf8->Length);
 
         // Generate the "impfuzzy" hash:
         // https://blogs.jpcert.or.jp/en/2016/05/classifying-mal-a988.html

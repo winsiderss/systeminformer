@@ -49,6 +49,8 @@ VOID PvEnumerateImagePogoSections(
         {
             PPH_IMAGE_DEBUG_POGO_ENTRY entry = PTR_ADD_OFFSET(pogo.PogoEntries, i * sizeof(PH_IMAGE_DEBUG_POGO_ENTRY));
             PIMAGE_SECTION_HEADER section;
+            PVOID imageSectionData;
+            PPH_STRING hashString;
             INT lvItemIndex;
             WCHAR value[PH_INT64_STR_LEN_1];
 
@@ -71,39 +73,18 @@ VOID PvEnumerateImagePogoSections(
                 }
             }
 
-            __try
+            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
             {
-                PVOID imageSectionData;
-                PH_HASH_CONTEXT hashContext;
-                PPH_STRING hashString;
-                UCHAR hash[32];
-
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                if (hashString = PvHashBuffer(imageSectionData, entry->Size))
                 {
-                    PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                    PhUpdateHash(&hashContext, imageSectionData, entry->Size);
-
-                    if (PhFinalHash(&hashContext, hash, 16, NULL))
-                    {
-                        hashString = PhBufferToHexString(hash, 16);
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, hashString->Buffer);
-                        PhDereferenceObject(hashString);
-                    }
-                }
-                else
-                {
-                    // TODO: POGO-PGU can have an RVA outside image sections. For example:
-                    // C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\VC\vcpackages\vcpkgsrv.exe
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetString(hashString));
+                    PhDereferenceObject(hashString);
                 }
             }
-            __except (EXCEPTION_EXECUTE_HANDLER)
+            else
             {
-                PPH_STRING message;
-
-                //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
+                // TODO: POGO-PGU can have an RVA outside image sections. For example:
+                // C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\VC\vcpackages\vcpkgsrv.exe
             }
 
             __try

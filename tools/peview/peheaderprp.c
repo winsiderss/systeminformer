@@ -181,6 +181,7 @@ VOID PvSetPeImageDosStubHeaderProperties(
     WCHAR value[PH_PTR_STR_LEN_1];
     WCHAR size[PH_PTR_STR_LEN_1];
     PPH_STRING string;
+    PPH_STRING hashString;
 
     if (imageDosStubDataLength == 0)
         return;
@@ -242,33 +243,10 @@ VOID PvSetPeImageDosStubHeaderProperties(
             }
         }
 
-        __try
+        if (hashString = PvHashBuffer(imageDosStubData, imageDosStubActualDataLength))
         {
-            PH_HASH_CONTEXT hashContext;
-            PPH_STRING hashString;
-            UCHAR hash[32];
-
-            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-            PhUpdateHash(&hashContext, imageDosStubData, imageDosStubActualDataLength);
-
-            if (PhFinalHash(&hashContext, hash, 16, NULL))
-            {
-                if (hashString = PhBufferToHexString(hash, 16))
-                {
-                    PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_STUBHASH, 1, PhGetString(hashString));
-                    PhDereferenceObject(hashString);
-                }
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            PPH_STRING message;
-
-            if (message = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())))
-            {
-                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_STUBHASH, 1, PhGetString(message));
-                PhDereferenceObject(message);
-            }
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_STUBHASH, 1, PhGetString(hashString));
+            PhDereferenceObject(hashString);
         }
     }
 
@@ -322,33 +300,10 @@ VOID PvSetPeImageDosStubHeaderProperties(
             }
         }
 
-        __try
+        if (hashString = PvHashBuffer(imageDosStubRichData, imageDosStubRichLength))
         {
-            PH_HASH_CONTEXT hashContext;
-            PPH_STRING hashString;
-            UCHAR hash[32];
-
-            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-            PhUpdateHash(&hashContext, imageDosStubRichData, imageDosStubRichLength);
-
-            if (PhFinalHash(&hashContext, hash, 16, NULL))
-            {
-                if (hashString = PhBufferToHexString(hash, 16))
-                {
-                    PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHHASH, 1, PhGetString(hashString));
-                    PhDereferenceObject(hashString);
-                }
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            PPH_STRING message;
-
-            if (message = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())))
-            {
-                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHHASH, 1, PhGetString(message));
-                PhDereferenceObject(message);
-            }
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHHASH, 1, PhGetString(hashString));
+            PhDereferenceObject(hashString);
         }
     }
 
@@ -402,33 +357,10 @@ VOID PvSetPeImageDosStubHeaderProperties(
             }
         }
 
-        __try
+        if (hashString = PvHashBuffer(imageDosStubData, imageDosStubDataLength))
         {
-            PH_HASH_CONTEXT hashContext;
-            PPH_STRING hashString;
-            UCHAR hash[32];
-
-            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-            PhUpdateHash(&hashContext, imageDosStubData, imageDosStubDataLength);
-
-            if (PhFinalHash(&hashContext, hash, 16, NULL))
-            {
-                if (hashString = PhBufferToHexString(hash, 16))
-                {
-                    PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_HASH, 1, PhGetString(hashString));
-                    PhDereferenceObject(hashString);
-                }
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            PPH_STRING message;
-
-            if (message = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())))
-            {
-                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_HASH, 1, PhGetString(message));
-                PhDereferenceObject(message);
-            }
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_HASH, 1, PhGetString(hashString));
+            PhDereferenceObject(hashString);
         }
     }
 }
@@ -683,6 +615,7 @@ VOID PvSetPeImageOverlayHeaderProperties(
         WCHAR value[PH_PTR_STR_LEN_1];
         WCHAR size[PH_PTR_STR_LEN_1];
         PPH_STRING string;
+        PPH_STRING hashString;
 
         if (NT_SUCCESS(PhGetMappedImageDataEntry(
             &PvMappedImage,
@@ -750,33 +683,10 @@ VOID PvSetPeImageOverlayHeaderProperties(
             }
         }
 
-        __try
+        if (hashString = PvHashBuffer(imageOverlayData, (ULONG)imageOverlayDataLength))
         {
-            PH_HASH_CONTEXT hashContext;
-            PPH_STRING hashString;
-            UCHAR hash[32];
-
-            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-            PhUpdateHash(&hashContext, imageOverlayData, (ULONG)imageOverlayDataLength);
-
-            if (PhFinalHash(&hashContext, hash, 16, NULL))
-            {
-                if (hashString = PhBufferToHexString(hash, 16))
-                {
-                    PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_PE_OVERLAY_HASH, 1, PhGetString(hashString));
-                    PhDereferenceObject(hashString);
-                }
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            PPH_STRING message;
-
-            if (message = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())))
-            {
-                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_PE_OVERLAY_HASH, 1, PhGetString(message));
-                PhDereferenceObject(message);
-            }
+            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_PE_OVERLAY_HASH, 1, PhGetString(hashString));
+            PhDereferenceObject(hashString);
         }
     }
 }

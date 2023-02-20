@@ -199,24 +199,20 @@ HRESULT PvGetClrMetaDataInterface(
     _Out_ IMetaDataDispenser** ClrMetaDataInterface
     )
 {
+    static PH_STRINGREF dotNetCorePath = PH_STRINGREF_INIT(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\");
+    static PH_STRINGREF dotNetCoreName = PH_STRINGREF_INIT(L"\\coreclr.dll");
     HRESULT (WINAPI* MetaDataGetDispenser_I)(_In_ REFCLSID rclsid, _In_ REFIID riid, _COM_Outptr_ PVOID* ppv) = nullptr;
     HRESULT status = E_FAIL;
     PVOID clrCoreBaseAddress = nullptr;
     IMetaDataDispenser* clrMetadataInterface = nullptr;
-    PH_STRINGREF dotNetCorePath;
     PPH_STRING directoryPath;
     HANDLE directoryHandle;
-
-    PhInitializeStringRef(&dotNetCorePath, const_cast<PWSTR>(L"%ProgramFiles%\\dotnet\\shared\\Microsoft.NETCore.App\\"));
 
     if (directoryPath = PhExpandEnvironmentStrings(&dotNetCorePath))
     {
         if (PhDoesDirectoryExistWin32(PhGetString(directoryPath)))
         {
             PPH_LIST directoryList = PhCreateList(2);
-            PH_STRINGREF dotNetCoreName;
-
-            PhInitializeStringRef(&dotNetCoreName, const_cast<PWSTR>(L"\\coreclr.dll"));
 
             if (NT_SUCCESS(PhOpenFileWin32(
                 &directoryHandle,

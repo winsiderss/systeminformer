@@ -273,30 +273,12 @@ VOID PvpPeClrEnumSections(
 
         if (streamHeader->Offset && streamHeader->Size)
         {
-            __try
+            PPH_STRING hashString;
+
+            if (hashString = PvHashBuffer(PTR_ADD_OFFSET(ClrMetaData, streamHeader->Offset), streamHeader->Size))
             {
-                PH_HASH_CONTEXT hashContext;
-                PPH_STRING hashString;
-                UCHAR hash[32];
-
-                PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                PhUpdateHash(&hashContext, PTR_ADD_OFFSET(ClrMetaData, streamHeader->Offset), streamHeader->Size);
-
-                if (PhFinalHash(&hashContext, hash, 16, NULL))
-                {
-                    hashString = PhBufferToHexString(hash, 16);
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, hashString->Buffer);
-                    PhDereferenceObject(hashString);
-                }
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                PPH_STRING message;
-
-                //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, PhGetStringOrEmpty(message));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, hashString->Buffer);
+                PhDereferenceObject(hashString);
             }
         }
 

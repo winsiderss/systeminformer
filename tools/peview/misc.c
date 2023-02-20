@@ -928,3 +928,31 @@ VOID PvSetTreeViewImageList(
         TreeView_SetImageList(TreeViewHandle, treeViewImageList, TVSIL_NORMAL);
     }
 }
+
+PPH_STRING PvHashBuffer(
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    PPH_STRING value = NULL;
+    PH_HASH_CONTEXT hashContext;
+    UCHAR hash[32];
+
+    __try
+    {
+        PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
+        PhUpdateHash(&hashContext, Buffer, Length);
+
+        if (PhFinalHash(&hashContext, hash, 16, NULL))
+        {
+            value = PhBufferToHexString(hash, 16);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
+        value = PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode())); // WIN32_FROM_NTSTATUS
+    }
+
+    return value;
+}
