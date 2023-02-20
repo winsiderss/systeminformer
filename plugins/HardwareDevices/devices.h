@@ -81,6 +81,7 @@ __has_include (<d3dkmthk.h>)
 
 extern PPH_PLUGIN PluginInstance;
 extern BOOLEAN NetAdapterEnableNdis;
+extern ULONG NetWindowsVersion;
 
 extern PPH_OBJECT_TYPE NetAdapterEntryType;
 extern PPH_LIST NetworkAdaptersList;

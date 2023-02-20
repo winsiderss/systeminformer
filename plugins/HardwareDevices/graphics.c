@@ -122,7 +122,7 @@ NTSTATUS GraphicsQueryAdapterSegmentLimits(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (PhWindowsVersion >= WINDOWS_8)
+        if (NetWindowsVersion >= WINDOWS_8)
         {
             if (queryStatistics.QueryResult.SegmentInformation.Aperture)
             {
@@ -619,7 +619,7 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndex(
         return FALSE;
     }
 
-    if (PhWindowsVersion >= WINDOWS_10)
+    if (NetWindowsVersion >= WINDOWS_10)
     {
         ULONG adapterIndex;
         ULONG adapterIndexSize;

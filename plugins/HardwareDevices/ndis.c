@@ -521,7 +521,7 @@ BOOLEAN NetworkAdapterQueryInterfaceRow(
     interfaceRow.InterfaceLuid = Id->InterfaceLuid;
     interfaceRow.InterfaceIndex = Id->InterfaceIndex;
 
-    if (PhWindowsVersion >= WINDOWS_10_RS2 && GetIfEntry2Ex)
+    if (NetWindowsVersion >= WINDOWS_10_RS2 && GetIfEntry2Ex)
     {
         if (NETIO_SUCCESS(GetIfEntry2Ex(Level, &interfaceRow)))
         {
