@@ -960,6 +960,31 @@ PhGetMappedImageVolatileMetadata(
     _Out_ PPH_MAPPED_IMAGE_VOLATILE_METADATA VolatileMetadata
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetMappedImageAuthenticodeHash(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetMappedImageWdacHash(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetMappedImageEntropy(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ DOUBLE* ImageEntropy,
+    _Out_ DOUBLE* ImageVariance
+    );
+
 // ELF binary support
 
 NTSTATUS PhInitializeMappedWslImage(
