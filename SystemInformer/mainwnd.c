@@ -1763,7 +1763,7 @@ VOID PhMwpOnCommand(
             {
                 PPH_STRING fileName;
 
-                if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
+                if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
                 {
                     PhShellExecuteUserString(
                         WindowHandle,
