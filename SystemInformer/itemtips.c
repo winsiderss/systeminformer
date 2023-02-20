@@ -772,7 +772,7 @@ PPH_STRING PhGetServiceTooltipText(
 
         // File information
 
-        if (fileName = PhGetServiceRelevantFileName(&Service->Name->sr, serviceHandle))
+        if (fileName = PhGetServiceHandleFileName(serviceHandle, &Service->Name->sr))
         {
             PH_IMAGE_VERSION_INFO versionInfo;
             PPH_STRING versionInfoText;

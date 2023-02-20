@@ -248,7 +248,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 {
                     PPH_STRING fileName;
 
-                    if (fileName = PhGetServiceRelevantFileName(&serviceItem->Name->sr, serviceHandle))
+                    if (fileName = PhGetServiceHandleFileName(serviceHandle, &serviceItem->Name->sr))
                     {
                         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, PhGetStringOrEmpty(fileName));
                         PhDereferenceObject(fileName);
