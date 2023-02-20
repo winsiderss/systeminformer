@@ -7,6 +7,7 @@
  *
  *     wj32    2010
  *     dmex    2017-2023
+ *     jxy-s   2023
  *
  */
 
@@ -3608,7 +3609,366 @@ NTSTATUS PhGetMappedImageRelocations(
 }
 
 VOID PhFreeMappedImageRelocations(
-    _In_ PPH_MAPPED_IMAGE_RELOC Relocations
+    _In_opt_ PPH_MAPPED_IMAGE_RELOC Relocations
+    )
+{
+    if (Relocations && Relocations->RelocationEntries)
+    {
+        PhFree(Relocations->RelocationEntries);
+        Relocations->RelocationEntries = NULL;
+        Relocations->NumberOfEntries = 0;
+    }
+}
+
+NTSTATUS PhGetMappedImageDynamicRelocationsTable(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_opt_ PIMAGE_DYNAMIC_RELOCATION_TABLE* Table 
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DYNAMIC_RELOCATION_TABLE table = NULL;
+
+    if (Table)
+        *Table = NULL;
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+
+        status = PhGetMappedImageLoadConfig32(MappedImage, &config32);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (RTL_CONTAINS_FIELD(config32, config32->Size, DynamicValueRelocTable) &&
+            config32->DynamicValueRelocTable)
+        {
+            table = PhMappedImageRvaToVa(MappedImage, config32->DynamicValueRelocTable, NULL);
+        }
+        else if (RTL_CONTAINS_FIELD(config32, config32->Size, DynamicValueRelocTableOffset) &&
+                 config32->DynamicValueRelocTableOffset &&
+                 RTL_CONTAINS_FIELD(config32, config32->Size, DynamicValueRelocTableSection) &&
+                 config32->DynamicValueRelocTableSection)
+        {
+            if (config32->DynamicValueRelocTableSection <= MappedImage->NumberOfSections)
+            {
+                PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config32->DynamicValueRelocTableSection - 1];
+                PVOID offset = PTR_ADD_OFFSET(section->PointerToRawData, config32->DynamicValueRelocTableOffset);
+                if (offset < PTR_ADD_OFFSET(section->PointerToRawData, section->SizeOfRawData))
+                {
+                    table = PTR_ADD_OFFSET(MappedImage->ViewBase, offset);
+                }
+            }
+        }
+    }
+    else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+
+        status = PhGetMappedImageLoadConfig64(MappedImage, &config64);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (RTL_CONTAINS_FIELD(config64, config64->Size, DynamicValueRelocTable) &&
+            config64->DynamicValueRelocTable)
+        {
+            table = PhMappedImageRvaToVa(MappedImage, (ULONG)config64->DynamicValueRelocTable, NULL);
+        }
+        else if (RTL_CONTAINS_FIELD(config64, config64->Size, DynamicValueRelocTableOffset) &&
+                 config64->DynamicValueRelocTableOffset &&
+                 RTL_CONTAINS_FIELD(config64, config64->Size, DynamicValueRelocTableSection) &&
+                 config64->DynamicValueRelocTableSection)
+        {
+            if (config64->DynamicValueRelocTableSection <= MappedImage->NumberOfSections)
+            {
+                PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config64->DynamicValueRelocTableSection - 1];
+                PVOID offset = PTR_ADD_OFFSET(section->PointerToRawData, config64->DynamicValueRelocTableOffset);
+                if (offset < PTR_ADD_OFFSET(section->PointerToRawData, section->SizeOfRawData))
+                {
+                    table = PTR_ADD_OFFSET(MappedImage->ViewBase, offset);
+                }
+            }
+        }
+    }
+    else
+    {
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    if (!table)
+        return STATUS_INVALID_PARAMETER;
+
+    if (Table)
+        *Table = table;
+
+    return STATUS_SUCCESS;
+}
+
+PVOID PhpFillDynamicRelocationsArray32(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DYNAMIC_RELOCATION32 Relocs,
+    _In_ PVOID End,
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    PVOID next;
+
+    // TODO(jxy-s) not yet implemented, skip the block 
+
+    next = Relocs;
+    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize)))
+        return End;
+
+    if (!PhPtrAdvance(&next, End, Relocs->BaseRelocSize))
+        return End;
+
+    return next;
+}
+
+PVOID PhpFillDynamicRelocationsArray64(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DYNAMIC_RELOCATION64 Relocs,
+    _In_ PVOID End,
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    PVOID next;
+
+    if (Relocs->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
+    {
+        PIMAGE_BASE_RELOCATION base;
+
+        base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+
+        for (ULONG blockIndex = 0; ; blockIndex++)
+        {
+            PIMAGE_DVRT_ARM64X_FIXUP_RECORD record;
+            PVOID end;
+
+            record = (PIMAGE_DVRT_ARM64X_FIXUP_RECORD)base;
+            end = PTR_ADD_OFFSET(base, base->SizeOfBlock);
+            if (!PhPtrAdvance(&record, end, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock)))
+                break;
+
+            for (;;)
+            {
+                PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+                SIZE_T consumed;
+
+                RtlZeroMemory(&entry, sizeof(entry));
+
+                entry.Symbol = IMAGE_DYNAMIC_RELOCATION_ARM64X;
+                entry.ARM64X.BlockIndex = blockIndex;
+                entry.ARM64X.BlockRva = base->VirtualAddress;
+                entry.ARM64X.RecordFixup = *record;
+
+                entry.ImageBaseVa = PTR_ADD_OFFSET(
+                    MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                    UInt32Add32To64(entry.ARM64X.BlockRva, entry.ARM64X.RecordFixup.Offset)
+                    );
+                entry.MappedImageVa = PhMappedImageRvaToVa(
+                    MappedImage,
+                    UInt32Add32To64(entry.ARM64X.BlockRva, entry.ARM64X.RecordFixup.Offset),
+                    NULL
+                    );
+
+                if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL)
+                {
+                    entry.ARM64X.Value8 = 0;
+                    consumed = sizeof(IMAGE_DVRT_ARM64X_FIXUP_RECORD);
+                    consumed += (SIZE_T)(1ull << entry.ARM64X.RecordFixup.Size);
+                }
+                else if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE)
+                {
+                    consumed = sizeof(IMAGE_DVRT_ARM64X_FIXUP_RECORD);
+                    if (entry.ARM64X.RecordFixup.Size == IMAGE_DVRT_ARM64X_FIXUP_SIZE_2BYTES)
+                    {
+                        entry.ARM64X.Value2 = *(PUSHORT)PTR_ADD_OFFSET(record, consumed);
+                        consumed += sizeof(USHORT);
+                    }
+                    else if (entry.ARM64X.RecordFixup.Size == IMAGE_DVRT_ARM64X_FIXUP_SIZE_4BYTES)
+                    {
+                        entry.ARM64X.Value4 = *(PULONG)PTR_ADD_OFFSET(record, consumed);
+                        consumed += sizeof(ULONG);
+                    }
+                    else if (entry.ARM64X.RecordFixup.Size == IMAGE_DVRT_ARM64X_FIXUP_SIZE_8BYTES)
+                    {
+                        entry.ARM64X.Value8 = *(PULONG64)PTR_ADD_OFFSET(record, consumed);
+                        consumed += sizeof(ULONG64);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_DELTA)
+                {
+                    consumed = sizeof(IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD);
+                    entry.ARM64X.Delta = *(PUSHORT)PTR_ADD_OFFSET(record, consumed);
+                    entry.ARM64X.Delta *= entry.ARM64X.RecordDelta.Scale ? 8 : 4;
+                    entry.ARM64X.Delta *= entry.ARM64X.RecordDelta.Sign ? -1 : 1;
+                    consumed += sizeof(USHORT);
+                }
+                else
+                {
+                    break;
+                }
+
+                PhAddItemArray(Array, &entry);
+
+                if (!PhPtrAdvance(&record, end, consumed))
+                    break;
+            }
+
+            if (!PhPtrAdvance(&base, End, base->SizeOfBlock))
+                break;
+        }
+    }
+    else
+    {
+        // unsupported/unimplemented, fall through and skip the block
+        NOTHING;
+    }
+
+    next = Relocs;
+    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize)))
+        return End;
+
+    if (!PhPtrAdvance(&next, End, Relocs->BaseRelocSize))
+        return End;
+
+    return next;
+}
+
+PVOID PhpFillDynamicRelocationsArray32v2(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DYNAMIC_RELOCATION32_V2 Relocs,
+    _In_ PVOID End,
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    PVOID next;
+
+    // TODO(jxy-s) not yet implemented, skip the block 
+
+    next = Relocs;
+    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32_V2, Flags)))
+        return End;
+
+    if (!PhPtrAdvance(&next, End, Relocs->HeaderSize))
+        return End;
+
+    if (!PhPtrAdvance(&next, End, Relocs->FixupInfoSize))
+        return End;
+
+    return next;
+}
+
+PVOID PhpFillDynamicRelocationsArray64v2(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DYNAMIC_RELOCATION32_V2 Relocs,
+    _In_ PVOID End,
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    PVOID next;
+
+    // TODO(jxy-s) not yet implemented, skip the block 
+
+    next = Relocs;
+    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64_V2, Flags)))
+        return End;
+
+    if (!PhPtrAdvance(&next, End, Relocs->HeaderSize))
+        return End;
+
+    if (!PhPtrAdvance(&next, End, Relocs->FixupInfoSize))
+        return End;
+
+    return next;
+}
+
+NTSTATUS PhGetMappedImageDynamicRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DYNAMIC_RELOCATION_TABLE table;
+    PH_ARRAY relocationArray;
+    PVOID reloc;
+    PVOID end;
+
+    status = PhGetMappedImageDynamicRelocationsTable(MappedImage, &table);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, table, sizeof(IMAGE_DYNAMIC_RELOCATION_TABLE));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    if (table->Version != 1 && table->Version != 2)
+    {
+        return STATUS_UNKNOWN_REVISION;
+    }
+
+    reloc = PTR_ADD_OFFSET(table, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION_TABLE, Size));
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, reloc, table->Size);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    end = PTR_ADD_OFFSET(table, table->Size);
+
+    PhInitializeArray(&relocationArray, sizeof(PH_IMAGE_DYNAMIC_RELOC_ENTRY), 1);
+
+    while (reloc < end)
+    {
+        if (table->Version == 1)
+        {
+            if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                reloc = PhpFillDynamicRelocationsArray32(MappedImage, reloc, end, &relocationArray);
+            }
+            else
+            {
+                assert(MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
+                reloc = PhpFillDynamicRelocationsArray64(MappedImage, reloc, end, &relocationArray);
+            }
+        }
+        else
+        {
+            assert(table->Version == 2);
+            if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                reloc = PhpFillDynamicRelocationsArray32v2(MappedImage, reloc, end, &relocationArray);
+            }
+            else
+            {
+                assert(MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
+                reloc = PhpFillDynamicRelocationsArray64v2(MappedImage, reloc, end, &relocationArray);
+            }
+        }
+    }
+
+    Relocations->MappedImage = MappedImage;
+    Relocations->RelocationTable = table;
+    Relocations->NumberOfEntries = (ULONG)relocationArray.Count;
+    Relocations->RelocationEntries = PhFinalArrayItems(&relocationArray);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhFreeMappedImageDynamicRelocations(
+    _In_opt_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
     )
 {
     if (Relocations && Relocations->RelocationEntries)

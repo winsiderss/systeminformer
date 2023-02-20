@@ -7,6 +7,7 @@
  *
  *     wj32    2016
  *     dmex    2017-2023
+ *     jx-s    2023
  *
  */
 
@@ -807,21 +808,6 @@ PhGetMappedImageEhCont(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
-typedef struct _IMAGE_DEBUG_POGO_ENTRY
-{
-    ULONG Rva;
-    ULONG Size;
-    CHAR Name[1];
-} IMAGE_DEBUG_POGO_ENTRY, *PIMAGE_DEBUG_POGO_ENTRY;
-
-typedef struct _IMAGE_DEBUG_POGO_SIGNATURE
-{
-    ULONG Signature;
-} IMAGE_DEBUG_POGO_SIGNATURE, *PIMAGE_DEBUG_POGO_SIGNATURE;
-
-#define IMAGE_DEBUG_POGO_SIGNATURE_LTCG 'LTCG' // coffgrp LTCG (0x4C544347)
-#define IMAGE_DEBUG_POGO_SIGNATURE_PGU 'PGU\0' // coffgrp PGU (0x50475500)
-
 typedef struct _PH_IMAGE_DEBUG_POGO_ENTRY
 {
     ULONG Rva;
@@ -846,12 +832,6 @@ PhGetMappedImagePogo(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_DEBUG_POGO PogoDebug
     );
-
-typedef struct _IMAGE_BASE_RELOCATION_ENTRY
-{
-    USHORT Offset : 12;
-    USHORT Type : 4;
-} IMAGE_BASE_RELOCATION_ENTRY, *PIMAGE_BASE_RELOCATION_ENTRY;
 
 typedef struct _PH_IMAGE_RELOC_ENTRY
 {
@@ -880,11 +860,75 @@ PhGetMappedImageRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _Out_ PPH_MAPPED_IMAGE_RELOC Relocations
     );
+
 PHLIBAPI
 VOID
 NTAPI
 PhFreeMappedImageRelocations(
-    _In_ PPH_MAPPED_IMAGE_RELOC Relocations
+    _In_opt_ PPH_MAPPED_IMAGE_RELOC Relocations
+    );
+
+typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
+{
+    ULONGLONG Symbol;
+
+    union
+    {
+        // IMAGE_DYNAMIC_RELOCATION_ARM64X
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            union
+            {
+                LONG64 Delta;
+                ULONG64 Value8;
+                ULONG Value4;
+                USHORT Value2;
+            };
+            union
+            {
+                IMAGE_DVRT_ARM64X_FIXUP_RECORD RecordFixup;
+                IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD RecordDelta;
+            };
+
+        } ARM64X;
+    };
+
+    PVOID ImageBaseVa;
+    PVOID MappedImageVa;
+} PH_IMAGE_DYNAMIC_RELOC_ENTRY, *PPH_IMAGE_DYNAMIC_RELOC_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_DYNAMIC_RELOC
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DYNAMIC_RELOCATION_TABLE RelocationTable;
+
+    ULONG NumberOfEntries;
+    PPH_IMAGE_DYNAMIC_RELOC_ENTRY RelocationEntries;
+} PH_MAPPED_IMAGE_DYNAMIC_RELOC, *PPH_MAPPED_IMAGE_DYNAMIC_RELOC;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageDynamicRelocationsTable(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_opt_ PIMAGE_DYNAMIC_RELOCATION_TABLE* Table
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageDynamicRelocations(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeMappedImageDynamicRelocations(
+    _In_opt_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
     );
 
 typedef struct _PH_MAPPED_IMAGE_EXCEPTIONS
