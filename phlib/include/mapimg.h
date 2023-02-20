@@ -285,6 +285,7 @@ typedef struct _PH_MAPPED_IMAGE_EXPORTS
     ULONG NumberOfEntries;
 
     PIMAGE_DATA_DIRECTORY DataDirectory;
+    IMAGE_DATA_DIRECTORY DataDirectoryARM64EC;
     PIMAGE_EXPORT_DIRECTORY ExportDirectory;
     PULONG AddressTable;
     PULONG NamePointerTable;
@@ -303,6 +304,17 @@ typedef struct _PH_MAPPED_IMAGE_EXPORT_FUNCTION
     PVOID Function;
     PSTR ForwardedName;
 } PH_MAPPED_IMAGE_EXPORT_FUNCTION, *PPH_MAPPED_IMAGE_EXPORT_FUNCTION;
+
+#define PH_GET_IMAGE_EXPORTS_ARM64EC 0x00000001ul
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageExportsEx(
+    _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Flags
+    );
 
 PHLIBAPI
 NTSTATUS
