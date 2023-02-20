@@ -1406,7 +1406,7 @@ ULONG64 PhGenerateRandomNumber64(
  */
 PPH_STRING PhEllipsisString(
     _In_ PPH_STRING String,
-    _In_ ULONG DesiredCount
+    _In_ SIZE_T DesiredCount
     )
 {
     if (
@@ -1439,7 +1439,7 @@ PPH_STRING PhEllipsisString(
  */
 PPH_STRING PhEllipsisStringPath(
     _In_ PPH_STRING String,
-    _In_ ULONG DesiredCount
+    _In_ SIZE_T DesiredCount
     )
 {
     ULONG_PTR secondPartIndex;
@@ -2477,7 +2477,7 @@ PPH_STRING PhGetFileVersionInfoString2(
 
     string = PhCreateStringEx(
         stringNameBlockValue,
-        (stringNameBlockInfo->ValueLength - 1) * sizeof(WCHAR)
+        UInt32x32To64((stringNameBlockInfo->ValueLength - 1), sizeof(WCHAR))
         );
     //PhTrimToNullTerminatorString(string); // length may include the null terminator.
 

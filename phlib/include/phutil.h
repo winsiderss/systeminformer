@@ -508,7 +508,7 @@ PPH_STRING
 NTAPI
 PhEllipsisString(
     _In_ PPH_STRING String,
-    _In_ ULONG DesiredCount
+    _In_ SIZE_T DesiredCount
     );
 
 PHLIBAPI
@@ -516,7 +516,7 @@ PPH_STRING
 NTAPI
 PhEllipsisStringPath(
     _In_ PPH_STRING String,
-    _In_ ULONG DesiredCount
+    _In_ SIZE_T DesiredCount
     );
 
 PHLIBAPI
