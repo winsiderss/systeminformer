@@ -726,7 +726,7 @@ BOOLEAN PhpVerifyCacheHashtableEqualFunction(
     PPH_VERIFY_CACHE_ENTRY entry1 = Entry1;
     PPH_VERIFY_CACHE_ENTRY entry2 = Entry2;
 
-    return entry1->SequenceNumber == entry2->SequenceNumber && PhEqualString(entry1->FileName, entry2->FileName, TRUE);
+    return entry1->SequenceNumber == entry2->SequenceNumber && PhEqualString(entry1->FileName, entry2->FileName, FALSE);
 }
 
 ULONG PhpVerifyCacheHashtableHashFunction(
@@ -735,7 +735,7 @@ ULONG PhpVerifyCacheHashtableHashFunction(
 {
     PPH_VERIFY_CACHE_ENTRY entry = Entry;
 
-    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, TRUE, PH_STRING_HASH_X65599);
+    return PhHashInt64(entry->SequenceNumber) ^ PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_X65599);
 }
 
 VOID PhFlushVerifyCache(

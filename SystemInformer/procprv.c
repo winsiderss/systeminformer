@@ -3630,7 +3630,7 @@ BOOLEAN PhImageListCacheHashtableEqualFunction(
     PPH_IMAGELIST_ITEM entry1 = *(PPH_IMAGELIST_ITEM*)Entry1;
     PPH_IMAGELIST_ITEM entry2 = *(PPH_IMAGELIST_ITEM*)Entry2;
 
-    return PhEqualStringRef(&entry1->FileName->sr, &entry2->FileName->sr, TRUE);
+    return PhEqualStringRef(&entry1->FileName->sr, &entry2->FileName->sr, FALSE);
 }
 
 ULONG PhImageListCacheHashtableHashFunction(
@@ -3639,7 +3639,7 @@ ULONG PhImageListCacheHashtableHashFunction(
 {
     PPH_IMAGELIST_ITEM entry = *(PPH_IMAGELIST_ITEM*)Entry;
 
-    return PhHashStringRefEx(&entry->FileName->sr, TRUE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_X65599);
 }
 
 PPH_IMAGELIST_ITEM PhImageListExtractIcon(

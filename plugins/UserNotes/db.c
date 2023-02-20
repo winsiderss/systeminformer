@@ -52,7 +52,7 @@ BOOLEAN NTAPI ObjectDbEqualFunction(
     PDB_OBJECT object1 = *(PDB_OBJECT *)Entry1;
     PDB_OBJECT object2 = *(PDB_OBJECT *)Entry2;
 
-    return object1->Tag == object2->Tag && PhEqualStringRef(&object1->Key, &object2->Key, TRUE);
+    return object1->Tag == object2->Tag && PhEqualStringRef(&object1->Key, &object2->Key, FALSE);
 }
 
 ULONG NTAPI ObjectDbHashFunction(
@@ -61,7 +61,7 @@ ULONG NTAPI ObjectDbHashFunction(
 {
     PDB_OBJECT object = *(PDB_OBJECT *)Entry;
 
-    return object->Tag + PhHashStringRefEx(&object->Key, TRUE, PH_STRING_HASH_X65599);
+    return object->Tag + PhHashStringRefEx(&object->Key, FALSE, PH_STRING_HASH_X65599);
 }
 
 ULONG GetNumberOfDbObjects(
