@@ -537,7 +537,7 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
             PhSetWindowContext(hwndDlg, ContextHash, context);
         }
         break;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             context = PhGetWindowContext(hwndDlg, ContextHash);
             PhRemoveWindowContext(hwndDlg, ContextHash);

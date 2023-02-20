@@ -65,7 +65,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
             }
         }
         break;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
             if (PhEnableThemeSupport)
             {
