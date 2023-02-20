@@ -1054,7 +1054,6 @@ typedef ULONG (WINAPI* _FwpmNetEventSubscribe)(
 #define FWP_DIRECTION_MAP_OUTBOUND 0x3901
 #define FWP_DIRECTION_MAP_FORWARD 0x3902
 #define FWP_DIRECTION_MAP_BIDIRECTIONAL 0x3903
-EXTERN_C CONST DECLSPEC_SELECTANY IN6_ADDR in6addr_v4mappedprefix = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00 };
 
 VOID InitializeFwTreeList(
     _In_ HWND hwnd
