@@ -3943,3 +3943,309 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
 
     return status;
 }
+
+static VOID PhpMappedImageUpdateHashData(
+    _In_ PPH_HASH_CONTEXT HashContext,
+    _In_ PVOID Buffer,
+    _In_ ULONG64 BufferLength
+    )
+{
+    if (BufferLength >= ULONG_MAX)
+    {
+        PBYTE address;
+        ULONG64 numberOfBytes;
+        ULONG blockSize;
+
+        // Chunk the data into smaller blocks when the buffer length
+        // overflows the maximum length of the BCryptHashData function.
+
+        address = (PBYTE)Buffer;
+        numberOfBytes = BufferLength;
+        blockSize = PAGE_SIZE * 64;
+
+        while (numberOfBytes != 0)
+        {
+            if (blockSize > numberOfBytes)
+                blockSize = (ULONG)numberOfBytes;
+
+            PhUpdateHash(HashContext, address, blockSize);
+
+            address += blockSize;
+            numberOfBytes -= blockSize;
+        }
+    }
+    else
+    {
+        PhUpdateHash(HashContext, Buffer, (ULONG)BufferLength);
+    }
+}
+
+typedef struct _PH_MAPPED_IMAGE_HASH_REGION
+{
+    ULONG64 Offset;
+    ULONG64 Length;
+} PH_MAPPED_IMAGE_HASH_REGION;
+
+PPH_STRING PhGetMappedImageAuthenticodeHash(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm
+    )
+{
+    PIMAGE_DOS_HEADER imageDosHeader = (PIMAGE_DOS_HEADER)MappedImage->ViewBase;
+    PPH_STRING hashString = NULL;
+    ULONG imageChecksumOffset;
+    ULONG imageSecurityOffset;
+    ULONG imageSecurityAddress = 0;
+    ULONG imageSecuritySize = 0;
+    PH_MAPPED_IMAGE_HASH_REGION imageHashBlock[4] = { 0 };
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PH_HASH_CONTEXT hashContext;
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+    }
+    else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+    }
+    else
+    {
+        return NULL;
+    }
+
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+    {
+        imageSecurityAddress = dataDirectory->VirtualAddress;
+        imageSecuritySize = dataDirectory->Size;
+    }
+
+    // BaseAddress -> Checksum
+    imageHashBlock[0].Offset = 0;
+    imageHashBlock[0].Length = imageChecksumOffset;
+
+    // Checksum -> Security directory
+    imageHashBlock[1].Offset = imageChecksumOffset + RTL_FIELD_SIZE(IMAGE_OPTIONAL_HEADER, CheckSum);
+    imageHashBlock[1].Length = imageSecurityOffset - imageHashBlock[1].Offset;
+
+    if (imageSecurityAddress && imageSecuritySize)
+    {
+        // Security directory -> Certificate data
+        imageHashBlock[2].Offset = imageSecurityOffset + sizeof(IMAGE_DATA_DIRECTORY);
+        imageHashBlock[2].Length = imageSecurityAddress - imageHashBlock[2].Offset;
+
+        // Certificate data -> End of file
+        imageHashBlock[3].Offset = imageSecurityAddress + imageSecuritySize;
+        imageHashBlock[3].Length = MappedImage->Size - imageHashBlock[3].Offset;
+    }
+    else
+    {
+        // Security directory -> End of file
+        imageHashBlock[2].Offset = imageSecurityOffset + sizeof(IMAGE_DATA_DIRECTORY);
+        imageHashBlock[2].Length = MappedImage->Size - imageHashBlock[2].Offset;
+    }
+
+    PhInitializeHash(&hashContext, Algorithm);
+
+    for (ULONG i = 0; i < ARRAYSIZE(imageHashBlock); i++)
+    {
+        if (imageHashBlock[i].Length)
+        {
+            PhpMappedImageUpdateHashData(
+                &hashContext, 
+                PTR_ADD_OFFSET(MappedImage->ViewBase, imageHashBlock[i].Offset), 
+                imageHashBlock[i].Length
+                );
+        }
+    }
+
+    {
+        ULONG hashLength = 32;
+        UCHAR hash[32];
+
+        if (PhFinalHash(&hashContext, hash, hashLength, &hashLength))
+        {
+            hashString = PhBufferToHexString(hash, hashLength);
+        }
+    }
+
+    return hashString;
+}
+
+PPH_STRING PhGetMappedImageAuthenticodeLegacy(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm
+    )
+{
+    PIMAGE_DOS_HEADER imageDosHeader = (PIMAGE_DOS_HEADER)MappedImage->ViewBase;
+    PPH_STRING hashString = NULL;
+    ULONG64 offset = 0;
+    ULONG imageChecksumOffset;
+    ULONG imageSecurityOffset;
+    ULONG directoryAddress = 0;
+    ULONG directorySize = 0;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PH_HASH_CONTEXT hashContext;
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+    }
+    else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+    }
+    else
+    {
+        return NULL;
+    }
+
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &dataDirectory)))
+    {
+        directoryAddress = dataDirectory->VirtualAddress;
+        directorySize = dataDirectory->Size;
+    }
+
+    PhInitializeHash(&hashContext, Algorithm);
+
+    while (offset < imageChecksumOffset)
+    {
+        PhUpdateHash(&hashContext, PTR_ADD_OFFSET(MappedImage->ViewBase, offset), sizeof(BYTE));
+        offset++;
+    }
+
+    offset += RTL_FIELD_SIZE(IMAGE_OPTIONAL_HEADER, CheckSum);
+
+    while (offset < imageSecurityOffset)
+    {
+        PhUpdateHash(&hashContext, PTR_ADD_OFFSET(MappedImage->ViewBase, offset), sizeof(BYTE));
+        offset++;
+    }
+
+    offset += sizeof(IMAGE_DATA_DIRECTORY);
+
+    while (offset < directoryAddress)
+    {
+        PhUpdateHash(&hashContext, PTR_ADD_OFFSET(MappedImage->ViewBase, offset), sizeof(BYTE));
+        offset++;
+    }
+
+    offset += directorySize;
+
+    while (offset < MappedImage->Size)
+    {
+        PhUpdateHash(&hashContext, PTR_ADD_OFFSET(MappedImage->ViewBase, offset), sizeof(BYTE));
+        offset++;
+    }
+
+    {
+        ULONG hashLength = 32;
+        UCHAR hash[32];
+
+        if (PhFinalHash(&hashContext, hash, hashLength, &hashLength))
+        {
+            hashString = PhBufferToHexString(hash, hashLength);
+        }
+    }
+
+    return hashString;
+}
+
+PPH_STRING PhGetMappedImageWdacHash(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PH_HASH_ALGORITHM Algorithm
+    )
+{
+    PIMAGE_DOS_HEADER imageDosHeader = (PIMAGE_DOS_HEADER)MappedImage->ViewBase;
+    PPH_STRING hashString = NULL;
+    ULONG offset = 0;
+    ULONG imageChecksumOffset;
+    ULONG imageSecurityOffset;
+    ULONG imageSizeOfHeaders;
+    PH_HASH_CONTEXT hashContext;
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS32, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+        imageSizeOfHeaders = ((PIMAGE_OPTIONAL_HEADER32)&MappedImage->NtHeaders32->OptionalHeader)->SizeOfHeaders;
+    }
+    else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        imageChecksumOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.CheckSum);
+        imageSecurityOffset = imageDosHeader->e_lfanew + UFIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
+        imageSizeOfHeaders = ((PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader)->SizeOfHeaders;
+    }
+    else
+    {
+        return NULL;
+    }
+
+    PhInitializeHash(&hashContext, Algorithm);
+
+    while (offset < PAGE_SIZE)
+    {
+        if (offset == imageChecksumOffset)
+            offset += RTL_FIELD_SIZE(IMAGE_OPTIONAL_HEADER, CheckSum);
+        if (offset == imageSecurityOffset)
+            offset += sizeof(IMAGE_DATA_DIRECTORY);
+        if (offset >= imageSizeOfHeaders)
+            break;
+
+        PhUpdateHash(&hashContext, PTR_ADD_OFFSET(MappedImage->ViewBase, offset), sizeof(BYTE));
+        offset++;
+    }
+
+    if (offset < PAGE_SIZE)
+    {
+        ULONG paddingLength;
+        PVOID paddingBuffer;
+
+        paddingLength = PAGE_SIZE - offset;
+        paddingBuffer = PhAllocateZero(paddingLength);
+
+        PhUpdateHash(&hashContext, paddingBuffer, paddingLength);
+        PhFree(paddingBuffer);
+    }
+
+    {
+        ULONG hashLength = 32;
+        UCHAR hash[32];
+
+        if (PhFinalHash(&hashContext, hash, hashLength, &hashLength))
+        {
+            hashString = PhBufferToHexString(hash, hashLength);
+        }
+    }
+
+    return hashString;
+}
+
+BOOLEAN PhGetMappedImageEntropy(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ DOUBLE *ImageEntropy,
+    _Out_ DOUBLE *ImageVariance
+    )
+{
+    BOOLEAN status = FALSE;
+
+    __try
+    {
+        status = PhCalculateEntropy(
+            MappedImage->ViewBase,
+            MappedImage->Size, 
+            ImageEntropy, 
+            ImageVariance
+            );
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = FALSE;
+    }
+
+    return status;
+}
