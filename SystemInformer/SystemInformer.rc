@@ -177,7 +177,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     ICON            IDI_PROCESSHACKER,IDC_FILEICON,16,11,20,20
     CONTROL         "System Informer",IDC_ABOUT_NAME,"SysLink",WS_TABSTOP,45,10,192,8
-    LTEXT           "Copyright (c) 2022",IDC_STATIC,45,23,193,8
+    LTEXT           "Copyright (c) 2023",IDC_STATIC,45,23,193,8
     LTEXT           "Winsider Seminars && Solutions, Inc.",IDC_STATIC,45,36,193,8
     CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,49,248,141
     CONTROL         "<a href=""https://systeminformer.sourceforge.io"">System Informer on SourceForge.net</a>",IDC_LINK_SF,
