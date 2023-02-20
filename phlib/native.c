@@ -13535,14 +13535,14 @@ static BOOLEAN NTAPI PhKnownDllsHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    return PhEqualStringRef(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry1)->FileName->sr, &((PPH_KNOWNDLL_CACHE_ENTRY)Entry2)->FileName->sr, TRUE);
+    return PhEqualStringRef(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry1)->FileName->sr, &((PPH_KNOWNDLL_CACHE_ENTRY)Entry2)->FileName->sr, FALSE);
 }
 
 static ULONG NTAPI PhKnownDllsHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    return PhHashStringRefEx(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry)->FileName->sr, TRUE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&((PPH_KNOWNDLL_CACHE_ENTRY)Entry)->FileName->sr, FALSE, PH_STRING_HASH_X65599);
 }
 
 static BOOLEAN NTAPI PhpKnownDllObjectsCallback(

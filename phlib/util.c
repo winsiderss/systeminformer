@@ -2788,7 +2788,7 @@ static BOOLEAN PhpImageVersionInfoCacheHashtableEqualFunction(
     PPH_FILE_VERSIONINFO_CACHE_ENTRY entry1 = Entry1;
     PPH_FILE_VERSIONINFO_CACHE_ENTRY entry2 = Entry2;
 
-    return PhEqualString(entry1->FileName, entry2->FileName, TRUE);
+    return PhEqualString(entry1->FileName, entry2->FileName, FALSE);
 }
 
 static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
@@ -2797,7 +2797,7 @@ static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
 {
     PPH_FILE_VERSIONINFO_CACHE_ENTRY entry = Entry;
 
-    return PhHashStringRefEx(&entry->FileName->sr, TRUE, PH_STRING_HASH_X65599);
+    return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_X65599);
 }
 
 _Success_(return)
