@@ -107,6 +107,16 @@ PhGetModuleFromAddress(
     _Out_opt_ PPH_STRING *FileName
     );
 
+typedef struct _PH_SYMBOL_MODULE *PPH_SYMBOL_MODULE;
+
+PHLIBAPI
+PPH_SYMBOL_MODULE
+NTAPI
+PhGetSymbolModuleFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address
+    );
+
 _Success_(return != NULL)
 PHLIBAPI
 PPH_STRING
