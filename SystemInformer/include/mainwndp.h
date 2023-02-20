@@ -57,6 +57,10 @@ VOID PhMwpApplyUpdateInterval(
     _In_ ULONG Interval
     );
 
+VOID PhMwpInitializeMetrics(
+    _In_ HWND WindowHandle
+    );
+
 VOID PhMwpInitializeControls(
     _In_ HWND WindowHandle
     );

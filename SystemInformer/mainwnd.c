@@ -58,6 +58,8 @@ static BOOLEAN DelayedLoadCompleted = FALSE;
 static PH_CALLBACK_DECLARE(LayoutPaddingCallback);
 static RECT LayoutPadding = { 0, 0, 0, 0 };
 static BOOLEAN LayoutPaddingValid = TRUE;
+static LONG LayoutWindowDpi = 96;
+static LONG LayoutBorderSize = 0;
 
 static HWND TabControlHandle = NULL;
 static PPH_LIST PageList = NULL;
@@ -184,6 +186,9 @@ BOOLEAN PhMainWndInitialization(
         ChangeWindowMessageFilterEx(PhMainWndHandle, WM_PH_ACTIVATE, MSGFLT_ADD, NULL);
     }
 
+    // Initialize window metrics. (dmex)
+    PhMwpInitializeMetrics(PhMainWndHandle);
+
     // Initialize child controls.
     PhMwpInitializeControls(PhMainWndHandle);
 
@@ -286,6 +291,8 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_DPICHANGED:
         {
+            PhMwpInitializeMetrics(hWnd);
+
             PhGuiSupportUpdateSystemMetrics(hWnd);
 
             if (PhEnableWindowText)
@@ -448,6 +455,14 @@ VOID PhMwpApplyUpdateInterval(
     PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
     PhSetIntervalProviderThread(&PhTertiaryProviderThread, Interval);
+}
+
+VOID PhMwpInitializeMetrics(
+    _In_ HWND WindowHandle
+    )
+{
+    LayoutWindowDpi = PhGetWindowDpi(WindowHandle);
+    LayoutBorderSize = PhGetSystemMetrics(SM_CXBORDER, LayoutWindowDpi);
 }
 
 VOID PhMwpInitializeControls(
@@ -2915,11 +2930,8 @@ VOID PhMwpInitializeSubMenu(
         else
         {
             HBITMAP shieldBitmap;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(hwnd);
-
-            if (shieldBitmap = PhGetShieldBitmap(dpiValue))
+            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi))
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
                     menuItem->Bitmap = shieldBitmap;
@@ -3027,11 +3039,8 @@ VOID PhMwpInitializeSubMenu(
         if (PhGetIntegerSetting(L"EnableBitmapSupport"))
         {
             HBITMAP shieldBitmap;
-            LONG dpiValue;
 
-            dpiValue = PhGetWindowDpi(hwnd);
-
-            if (shieldBitmap = PhGetShieldBitmap(dpiValue))
+            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi))
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
@@ -3068,7 +3077,6 @@ VOID PhMwpLayoutTabControl(
 {
     RECT rect;
     RECT tabrect;
-    LONG dpiValue;
 
     if (!LayoutPaddingValid)
     {
@@ -3083,15 +3091,13 @@ VOID PhMwpLayoutTabControl(
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
-        dpiValue = PhGetWindowDpi(PhMainWndHandle);
-
         // Remove the tabctrl padding (dmex)
         *DeferHandle = DeferWindowPos(
             *DeferHandle,
             CurrentPage->WindowHandle,
             NULL,
             rect.left,
-            tabrect.top - PhGetSystemMetrics(SM_CXBORDER, dpiValue),
+            tabrect.top - LayoutBorderSize,
             rect.right - rect.left,
             (tabrect.bottom - tabrect.top) + (rect.bottom - tabrect.bottom),
             SWP_NOACTIVATE | SWP_NOZORDER
@@ -3099,6 +3105,8 @@ VOID PhMwpLayoutTabControl(
     }
 }
 
+#pragma warning(push)
+#pragma warning(disable:26454) // The TCN_SEL definitions are negative unsigned (disable useless warning) (dmex)
 VOID PhMwpNotifyTabControl(
     _In_ NMHDR *Header
     )
@@ -3112,6 +3120,7 @@ VOID PhMwpNotifyTabControl(
         PhMwpSelectionChangedTabControl(OldTabIndex);
     }
 }
+#pragma warning(pop)
 
 VOID PhMwpSelectionChangedTabControl(
     _In_ ULONG OldIndex
@@ -3450,14 +3459,6 @@ VOID PhMwpAddIconProcesses(
     ULONG numberOfProcessItems;
     PPH_LIST processList;
     PPH_PROCESS_ITEM processItem;
-    LONG dpiValue;
-    INT width;
-    INT height;
-
-    dpiValue = PhGetWindowDpi(PhMainWndHandle);
-
-    width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-    height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
     processList = PhCreateList(numberOfProcessItems);
@@ -3535,7 +3536,7 @@ VOID PhMwpAddIconProcesses(
 
         if (icon = PhGetImageListIcon(processItem->SmallIconIndex, FALSE))
         {
-            iconBitmap = PhIconToBitmap(icon, width, height);
+            iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
             DestroyIcon(icon);
         }
 
@@ -3754,9 +3755,7 @@ VOID PhMwpInvokeUpdateWindowFont(
     }
     else
     {
-        LONG windowDpi = PhGetWindowDpi(PhMainWndHandle);
-
-        if (!(newFont = PhCreateIconTitleFont(windowDpi)))
+        if (!(newFont = PhCreateIconTitleFont(LayoutWindowDpi)))
             return;
     }
 
