@@ -5886,6 +5886,37 @@ PPH_STRING PhBufferToHexStringEx(
     return string;
 }
 
+_Success_(return)
+BOOLEAN PhBufferToHexStringBuffer(
+    _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ BOOLEAN UpperCase,
+    _Out_writes_bytes_(OutputLength) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputLength
+    )
+{
+    PCHAR table;
+    ULONG i;
+
+    if (OutputLength < InputLength * sizeof(WCHAR) * 2)
+        return FALSE;
+
+    if (UpperCase)
+        table = PhIntegerToCharUpper;
+    else
+        table = PhIntegerToChar;
+
+    for (i = 0; i < InputLength; i++)
+    {
+        OutputBuffer[i * sizeof(WCHAR)] = table[InputBuffer[i] >> 4];
+        OutputBuffer[i * sizeof(WCHAR) + 1] = table[InputBuffer[i] & 0xf];
+    }
+
+    OutputBuffer[i * sizeof(WCHAR)] = UNICODE_NULL;
+
+    return TRUE;
+}
+
 /**
  * Converts a string to an integer.
  *
