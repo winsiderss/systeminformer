@@ -1156,39 +1156,63 @@ static VOID PhpUpdateProcessNodeImage(
         {
             ProcessNode->ImageSubsystem = IMAGE_SUBSYSTEM_POSIX_CUI;
         }
-        else if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        else if (ProcessNode->ProcessItem->FileName)
         {
-            HANDLE processHandle;
-            PVOID imageBaseAddress;
-            PH_REMOTE_MAPPED_IMAGE mappedImage;
+            PH_MAPPED_IMAGE mappedImage;
 
-            if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
+            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&ProcessNode->ProcessItem->FileName->sr, NULL, &mappedImage)))
             {
-                if (NT_SUCCESS(PhGetProcessImageBaseAddress(processHandle, &imageBaseAddress)))
+                ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+                ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
+
+                if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                 {
-                    if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
-                    {
-                        ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
-                        ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
-
-                        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                        {
-                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                        }
-                        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                        {
-                            ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
-                            ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
-                        }
-
-                        PhUnloadRemoteMappedImage(&mappedImage);
-                    }
+                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+                }
+                else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                {
+                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
                 }
 
-                NtClose(processHandle);
+                PhUnloadMappedImage(&mappedImage);
             }
         }
+
+        //if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        //{
+        //    HANDLE processHandle;
+        //    PVOID imageBaseAddress;
+        //    PH_REMOTE_MAPPED_IMAGE mappedImage;
+        //
+        //    if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessNode->ProcessId)))
+        //    {
+        //        if (NT_SUCCESS(PhGetProcessImageBaseAddress(processHandle, &imageBaseAddress)))
+        //        {
+        //            if (NT_SUCCESS(PhLoadRemoteMappedImage(processHandle, imageBaseAddress, &mappedImage)))
+        //            {
+        //                ProcessNode->ImageTimeDateStamp = mappedImage.NtHeaders->FileHeader.TimeDateStamp;
+        //                ProcessNode->ImageCharacteristics = mappedImage.NtHeaders->FileHeader.Characteristics;
+        //
+        //                if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        //                {
+        //                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+        //                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER32)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+        //                }
+        //                else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+        //                {
+        //                    ProcessNode->ImageSubsystem = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->Subsystem;
+        //                    ProcessNode->ImageDllCharacteristics = ((PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader)->DllCharacteristics;
+        //                }
+        //
+        //                PhUnloadRemoteMappedImage(&mappedImage);
+        //            }
+        //        }
+        //
+        //        NtClose(processHandle);
+        //    }
+        //}
 
         ProcessNode->ValidMask |= PHPN_IMAGE;
     }
@@ -1209,7 +1233,7 @@ static VOID PhpUpdateProcessNodeAppId(
         {
             NOTHING;
         }
-        else if (PhAppResolverGetAppIdForProcess(ProcessNode->ProcessItem->ProcessId, &applicationUserModelId))
+        else if (PhAppResolverGetAppIdForProcess(ProcessNode->ProcessId, &applicationUserModelId))
         {
             ProcessNode->AppIdText = applicationUserModelId;
         }
@@ -1303,7 +1327,7 @@ static VOID PhpUpdateProcessNodeDesktopInfo(
 
         PhClearReference(&ProcessNode->DesktopInfoText);
 
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
         {
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -1413,7 +1437,7 @@ static VOID PhpUpdateProcessNodeCodePage(
 {
     if (!(ProcessNode->ValidMask & PHPN_CODEPAGE))
     {
-        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessItem->ProcessId))
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
         {
             HANDLE processHandle;
 
