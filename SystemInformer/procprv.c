@@ -2373,6 +2373,7 @@ VOID PhProcessProviderUpdate(
                     if (!processesToRemove)
                         processesToRemove = PhCreateList(2);
 
+                    ASSUME_ASSERT(processesToRemove);
                     PhAddItemList(processesToRemove, processItem);
                 }
             }
