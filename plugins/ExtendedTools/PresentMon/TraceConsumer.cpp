@@ -129,7 +129,7 @@ void GetPropertySize(
                 ULONG sidoffset = (eventRecord.EventHeader.Flags & EVENT_HEADER_FLAG_64_BIT_HEADER) ? 8 : 4;
                 PSID sid = reinterpret_cast<PSID>(PTR_ADD_OFFSET(eventRecord.UserData, offset + sidoffset));
 
-                size = sidoffset + RtlLengthSid(sid); // dmex
+                size = sidoffset + PhLengthSid(sid); // dmex
 
                 //PROPERTY_DATA_DESCRIPTOR descriptor;
                 //descriptor.PropertyName = (ULONGLONG) &tei + epi.NameOffset;

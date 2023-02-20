@@ -3483,7 +3483,7 @@ VOID PhMwpAddIconProcesses(
 
         if (
             processItem->CpuUsage == 0 ||
-            (processItem->Sid && !RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid))
+            (processItem->Sid && !PhEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid))
             )
         {
             PhRemoveItemList(processList, i);

@@ -48,9 +48,9 @@ NTSTATUS PhSvcApiPortInitialization(
     sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(administratorsSid) +
+        PhLengthSid(administratorsSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeEveryoneSid);
+        PhLengthSid(&PhSeEveryoneSid);
 
     securityDescriptor = PhAllocate(sdAllocationLength);
     dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);

@@ -91,7 +91,7 @@ PH_TOKEN_ATTRIBUTES PhGetOwnTokenAttributes(
 
             if (NT_SUCCESS(PhGetTokenUser(attributes.TokenHandle, &tokenUser)))
             {
-                attributes.TokenSid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
+                attributes.TokenSid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
             }
         }
 
@@ -2616,7 +2616,7 @@ NTSTATUS PhGetTokenUserCopy(
 
     if (NT_SUCCESS(status))
     {
-        *User = PhAllocateCopy(tokenUser->User.Sid, RtlLengthSid(tokenUser->User.Sid));
+        *User = PhAllocateCopy(tokenUser->User.Sid, PhLengthSid(tokenUser->User.Sid));
     }
 
     return status;
@@ -2665,7 +2665,7 @@ NTSTATUS PhGetTokenOwnerCopy(
 
     if (NT_SUCCESS(status))
     {
-        *Owner = PhAllocateCopy(tokenOwner->Owner, RtlLengthSid(tokenOwner->Owner));
+        *Owner = PhAllocateCopy(tokenOwner->Owner, PhLengthSid(tokenOwner->Owner));
     }
 
     return status;
@@ -2797,7 +2797,7 @@ NTSTATUS PhGetTokenAppContainerSidCopy(
     {
         if (tokenAppContainerSid->TokenAppContainer)
         {
-            *AppContainerSid = PhAllocateCopy(tokenAppContainerSid->TokenAppContainer, RtlLengthSid(tokenAppContainerSid->TokenAppContainer));
+            *AppContainerSid = PhAllocateCopy(tokenAppContainerSid->TokenAppContainer, PhLengthSid(tokenAppContainerSid->TokenAppContainer));
         }
         else
         {

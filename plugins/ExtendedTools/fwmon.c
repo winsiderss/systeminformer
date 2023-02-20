@@ -1352,7 +1352,7 @@ BOOLEAN EtFwSidFullNameCacheHashtableEqualFunction(
     PETFW_SID_FULL_NAME_CACHE_ENTRY entry1 = Entry1;
     PETFW_SID_FULL_NAME_CACHE_ENTRY entry2 = Entry2;
 
-    return RtlEqualSid(entry1->Sid, entry2->Sid);
+    return PhEqualSid(entry1->Sid, entry2->Sid);
 }
 
 ULONG EtFwSidFullNameCacheHashtableHashFunction(
@@ -1361,7 +1361,7 @@ ULONG EtFwSidFullNameCacheHashtableHashFunction(
 {
     PETFW_SID_FULL_NAME_CACHE_ENTRY entry = Entry;
 
-    return PhHashBytes(entry->Sid, RtlLengthSid(entry->Sid));
+    return PhHashBytes(entry->Sid, PhLengthSid(entry->Sid));
 }
 
 VOID EtFwFlushSidFullNameCache(
@@ -1455,7 +1455,7 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
         PhAcquireQueuedLockExclusive(&EtFwSidFullNameCacheHashtableLock);
 
         ETFW_SID_FULL_NAME_CACHE_ENTRY newEntry;
-        newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
+        newEntry.Sid = PhAllocateCopy(Sid, PhLengthSid(Sid));
         newEntry.FullName = PhReferenceObject(fullName);
         PhAddEntryHashtable(EtFwSidFullNameCacheHashtable, &newEntry);
 
@@ -1703,19 +1703,19 @@ VOID CALLBACK EtFwEventCallback(
 
     if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_USER_ID_SET)
     {
-        //if (entry.ProcessItem && RtlEqualSid(FwEvent->header.userId, entry.ProcessItem->Sid))
+        //if (entry.ProcessItem && PhEqualSid(FwEvent->header.userId, entry.ProcessItem->Sid))
         if (FwEvent->header.userId)
         {
-            entry.UserSid = PhAllocateCopy(FwEvent->header.userId, RtlLengthSid(FwEvent->header.userId));
+            entry.UserSid = PhAllocateCopy(FwEvent->header.userId, PhLengthSid(FwEvent->header.userId));
         }
     }
 
     //if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_PACKAGE_ID_SET)
     //{
     //    SID PhSeNobodySid = { SID_REVISION, 1, SECURITY_NULL_SID_AUTHORITY, { SECURITY_NULL_RID } };
-    //    if (FwEvent->header.packageSid && !RtlEqualSid(FwEvent->header.packageSid, &PhSeNobodySid))
+    //    if (FwEvent->header.packageSid && !PhEqualSid(FwEvent->header.packageSid, &PhSeNobodySid))
     //    {
-    //        entry.PackageSid = PhAllocateCopy(FwEvent->header.packageSid, RtlLengthSid(FwEvent->header.packageSid));
+    //        entry.PackageSid = PhAllocateCopy(FwEvent->header.packageSid, PhLengthSid(FwEvent->header.packageSid));
     //    }
     //}
 

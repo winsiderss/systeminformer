@@ -241,7 +241,7 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
         if (!processNode->ProcessItem->Sid)
             return FALSE;
 
-        if (!RtlEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
+        if (!PhEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
             return FALSE;
     }
 

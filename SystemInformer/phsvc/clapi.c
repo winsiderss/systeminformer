@@ -953,7 +953,7 @@ NTSTATUS PhSvcCallAddAccountRight(
 
     status = STATUS_NO_MEMORY;
 
-    if (!(accountSid = PhSvcpCreateString(AccountSid, RtlLengthSid(AccountSid), &m.p.u.AddAccountRight.i.AccountSid)))
+    if (!(accountSid = PhSvcpCreateString(AccountSid, PhLengthSid(AccountSid), &m.p.u.AddAccountRight.i.AccountSid)))
         goto CleanupExit;
     if (!(userRight = PhSvcpCreateString(UserRight->Buffer, UserRight->Length, &m.p.u.AddAccountRight.i.UserRight)))
         goto CleanupExit;
