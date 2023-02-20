@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef PH_MAINWND_H
 #define PH_MAINWND_H
 
@@ -17,24 +29,6 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_LAST (WM_APP + 145)
 
 // begin_phapppub
-PHAPPAPI
-HWND
-NTAPI
-PhGetMainWindowHandle(
-    VOID
-    );
-
-PHAPPAPI
-ULONG
-NTAPI
-PhGetWindowsVersion(
-    VOID
-    );
-
-// plugin macros (dmex)
-#define PhWindowsVersion PhGetWindowsVersion()
-#define PhMainWindowHandle PhGetMainWindowHandle()
-
 typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
 {
     PH_MAINWINDOW_CALLBACK_TYPE_DESTROY,
@@ -60,6 +54,8 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_SET_UPDATE_AUTOMATICALLY,
     PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE,
+    PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE,
+    PH_MAINWINDOW_CALLBACK_TYPE_VERSION,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
@@ -118,6 +114,13 @@ PhPluginInvokeWindowCallback(
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_ICON_CLICK, 0, 0)
 #define ProcessHacker_GetWindowProcedure() \
     ((WNDPROC)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE, 0, 0))
+#define ProcessHacker_GetWindowHandle() \
+    ((HWND)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE, 0, 0))
+#define ProcessHacker_GetWindowsVersion() \
+    (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_VERSION, 0, 0)))
+
+#define PhWindowsVersion ProcessHacker_GetWindowsVersion() // Temporary backwards compat (dmex)
+#define PhMainWindowHandle ProcessHacker_GetWindowHandle() // Temporary backwards compat (dmex)
 // end_phapppub
 
 // begin_phapppub
