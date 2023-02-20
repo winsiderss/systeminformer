@@ -134,7 +134,7 @@ typedef struct _PEB
     ULONG MaximumNumberOfHeaps;
     PVOID *ProcessHeaps; // PHEAP
 
-    PVOID GdiSharedHandleTable;
+    PVOID GdiSharedHandleTable; // PGDI_SHARED_MEMORY
     PVOID ProcessStarterHelper;
     ULONG GdiDCAttributeList;
 
@@ -373,7 +373,7 @@ typedef struct _TEB
 
     ULONG GuaranteedStackBytes;
     PVOID ReservedForPerf;
-    PVOID ReservedForOle;
+    PVOID ReservedForOle; // tagSOleTlsData
     ULONG WaitingOnLoaderLock;
     PVOID SavedPriorityState;
     ULONG_PTR ReservedForCodeCoverage;
