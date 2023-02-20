@@ -63,6 +63,7 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"ImageAttributesListViewColumns", L"");
     PhpAddStringSetting(L"ImagePropertiesListViewColumns", L"");
     PhpAddStringSetting(L"ImageRelocationsListViewColumns", L"");
+    PhpAddStringSetting(L"ImageDynamicRelocationsListViewColumns", L"");
     PhpAddStringSetting(L"ImageSecurityListViewColumns", L"");
     PhpAddStringSetting(L"ImageSecurityListViewSort", L"");
     PhpAddStringSetting(L"ImageSecurityTreeColumns", L"");
@@ -83,6 +84,7 @@ VOID PvAddDefaultSettings(
     PhpAddStringSetting(L"LibListViewColumns", L"");
     PhpAddStringSetting(L"PdbTreeListColumns", L"");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
+    PhpAddStringSetting(L"CHPEListViewColumns", L"");
     // Wsl properties
     PhpAddStringSetting(L"GeneralWslTreeListColumns", L"");
     PhpAddStringSetting(L"DynamicWslListViewColumns", L"");

@@ -359,6 +359,18 @@ VOID PvAddTreeViewSections(
             );
     }
 
+    // Dynmic Relocations page
+    if (NT_SUCCESS(PhGetMappedImageDynamicRelocationsTable(&PvMappedImage, NULL)))
+    {
+        PvCreateTabSection(
+            L"Dynamic Relocations",
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDD_PERELOCATIONS),
+            PvpPeDynamicRelocationDlgProc,
+            NULL
+            );
+    }
+
     // Certificates page
     if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &entry)))
     {
@@ -607,6 +619,41 @@ VOID PvAddTreeViewSections(
         TreeView_SelectItem(PvTabTreeControl, section->TreeItemHandle);
         SetFocus(PvTabTreeControl);
         //PvEnterTabSectionView(section);
+    }
+
+    // CHPE page
+    {
+        BOOLEAN hasCHPE = FALSE;
+
+        if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)) &&
+                RTL_CONTAINS_FIELD(config32, config32->Size, CHPEMetadataPointer))
+            {
+                if (config32->CHPEMetadataPointer)
+                    hasCHPE = TRUE;
+            }
+        }
+        else
+        {
+            if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)) &&
+                RTL_CONTAINS_FIELD(config64, config64->Size, CHPEMetadataPointer))
+            {
+                if (config64->CHPEMetadataPointer)
+                    hasCHPE = TRUE;
+            }
+        }
+
+        if (hasCHPE)
+        {
+            PvCreateTabSection(
+                L"CHPE",
+                PhInstanceHandle,
+                MAKEINTRESOURCE(IDD_PELOADCONFIG),
+                PvpPeCHPEDlgProc,
+                NULL
+                );
+        }
     }
 
     PvTabWindowOnSize();
