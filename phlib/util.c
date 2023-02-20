@@ -4640,7 +4640,6 @@ NTSTATUS PhFilterTokenForLimitedUser(
     _Out_ PHANDLE NewTokenHandle
     )
 {
-    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
     static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
     static LUID_AND_ATTRIBUTES defaultAllowedPrivileges[] =
     {
@@ -4652,10 +4651,8 @@ NTSTATUS PhFilterTokenForLimitedUser(
     };
 
     NTSTATUS status;
-    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-    PSID administratorsSid;
-    UCHAR usersSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-    PSID usersSid;
+    PSID administratorsSid = PhSeAdministratorsSid();
+    PSID usersSid = PhSeUsersSid();
     UCHAR sidsToDisableBuffer[FIELD_OFFSET(TOKEN_GROUPS, Groups) + sizeof(SID_AND_ATTRIBUTES)];
     PTOKEN_GROUPS sidsToDisable;
     ULONG i;
@@ -4681,18 +4678,6 @@ NTSTATUS PhFilterTokenForLimitedUser(
     HANDLE newTokenHandle;
 
     // Set up the SIDs to Disable structure.
-
-    // Initialize the Administrators SID.
-    administratorsSid = (PSID)administratorsSidBuffer;
-    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
-
-    // Initialize the Users SID.
-    usersSid = (PSID)usersSidBuffer;
-    RtlInitializeSid(usersSid, &ntAuthority, 2);
-    *RtlSubAuthoritySid(usersSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-    *RtlSubAuthoritySid(usersSid, 1) = DOMAIN_ALIAS_RID_USERS;
 
     sidsToDisable = (PTOKEN_GROUPS)sidsToDisableBuffer;
     sidsToDisable->GroupCount = 1;
@@ -6779,21 +6764,14 @@ HANDLE PhGetNamespaceHandle(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
         UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x80];
+        PSID administratorsSid = PhSeAdministratorsSid();
         OBJECT_ATTRIBUTES objectAttributes;
         PSECURITY_DESCRIPTOR securityDescriptor;
         ULONG sdAllocationLength;
-        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-        PSID administratorsSid;
         PACL dacl;
 
         // Create the default namespace DACL.
-
-        administratorsSid = (PSID)administratorsSidBuffer;
-        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
 
         sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
             (ULONG)sizeof(ACL) +

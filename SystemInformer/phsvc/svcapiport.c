@@ -27,23 +27,17 @@ NTSTATUS PhSvcApiPortInitialization(
     _In_ PUNICODE_STRING PortName
     )
 {
-    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
     PSECURITY_DESCRIPTOR securityDescriptor;
     ULONG sdAllocationLength;
-    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
     PSID administratorsSid;
     PACL dacl;
     ULONG i;
 
     // Create the API port.
 
-    administratorsSid = (PSID)administratorsSidBuffer;
-    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+    administratorsSid = PhSeAdministratorsSid();
 
     sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +

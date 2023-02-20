@@ -1702,22 +1702,15 @@ VOID PhSetDesktopWinStaAccess(
     VOID
     )
 {
-    static SID_IDENTIFIER_AUTHORITY appPackageAuthority = SECURITY_APP_PACKAGE_AUTHORITY;
-
     HWINSTA wsHandle;
     HDESK desktopHandle;
     ULONG allocationLength;
+    PSID allAppPackagesSid = PhSeAnyPackageSid();
+    UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x50];
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
-    CHAR allAppPackagesSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-    PSID allAppPackagesSid;
 
     // TODO: Set security on the correct window station and desktop.
-
-    allAppPackagesSid = (PSID)allAppPackagesSidBuffer;
-    RtlInitializeSid(allAppPackagesSid, &appPackageAuthority, SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT);
-    *RtlSubAuthoritySid(allAppPackagesSid, 0) = SECURITY_APP_PACKAGE_BASE_RID;
-    *RtlSubAuthoritySid(allAppPackagesSid, 1) = SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE;
 
     // We create a DACL that allows everyone to access everything.
 
@@ -1727,7 +1720,8 @@ VOID PhSetDesktopWinStaAccess(
         PhLengthSid(&PhSeEveryoneSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
         PhLengthSid(allAppPackagesSid);
-    securityDescriptor = PhAllocate(allocationLength);
+
+    securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
 
     RtlCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
@@ -1762,7 +1756,10 @@ VOID PhSetDesktopWinStaAccess(
         CloseDesktop(desktopHandle);
     }
 
-    PhFree(securityDescriptor);
+#ifdef DEBUG
+    assert(allocationLength < sizeof(securityDescriptorBuffer));
+    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+#endif
 }
 
 /**
