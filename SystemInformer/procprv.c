@@ -1138,7 +1138,14 @@ VOID PhpFillProcessItemStage1(
         PhDereferenceObject(Data->UserName);
 
     // Note: Queue stage 2 processing after filling stage1 process data.
-    PhpQueueProcessQueryStage2(processItem);
+    if (
+        PhEnableProcessQueryStage2 || 
+        PhEnableImageCoherencySupport || 
+        PhEnableLinuxSubsystemSupport
+        )
+    {
+        PhpQueueProcessQueryStage2(processItem);
+    }
 }
 
 VOID PhpFillProcessItemStage2(
