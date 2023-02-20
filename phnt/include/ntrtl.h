@@ -4421,9 +4421,11 @@ RtlDestroyHeap(
     );
 
 NTSYSAPI
+_Success_(return != 0)
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+__drv_allocatesMem(Mem)
 DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
@@ -4497,9 +4499,11 @@ RtlUnlockHeap(
     );
 
 NTSYSAPI
+_Success_(return != 0)
 _Must_inspect_result_
 _Ret_maybenull_
 _Post_writable_byte_size_(Size)
+_When_(Size > 0, __drv_allocatesMem(Mem))
 DECLSPEC_ALLOCATOR
 PVOID
 NTAPI
