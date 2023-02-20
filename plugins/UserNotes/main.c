@@ -254,12 +254,7 @@ VOID InitializeDbPath(
     }
     else
     {
-#if !defined(PH_BUILD_MSIX)
-        static PH_STRINGREF databaseFilePath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\usernotesdb.xml");
-        PhMoveReference(&fileName, PhExpandEnvironmentStrings(&databaseFilePath));
-#else
-        PhMoveReference(&fileName, PhGetKnownFolderPathZ(&FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml"));
-#endif
+        PhMoveReference(&fileName, PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml"));
         SetDbPath(fileName);
     }
 }

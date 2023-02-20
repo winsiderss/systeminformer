@@ -1145,12 +1145,7 @@ VOID PhpInitializeSettings(
         // 3. Default location
         if (PhIsNullOrEmptyString(PhSettingsFileName))
         {
-#if !defined(PH_BUILD_MSIX)
-            static PH_STRINGREF settingsPath = PH_STRINGREF_INIT(L"%APPDATA%\\SystemInformer\\settings.xml");
-            PhSettingsFileName = PhExpandEnvironmentStrings(&settingsPath);
-#else
             PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.xml");
-#endif
         }
 
         if (!PhIsNullOrEmptyString(PhSettingsFileName))
