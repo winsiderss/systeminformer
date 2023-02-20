@@ -980,7 +980,7 @@ VOID EtHandleDiskCommand(
                 {
                     BOOLEAN found = FALSE;
 
-                    if (PhWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+                    if (EtWindowsVersion >= WINDOWS_10_RS3 && !EtIsExecutingInWow64)
                     {
                         if ((processNode = PhFindProcessNode(diskItem->ProcessId)) &&
                             processNode->ProcessItem->ProcessSequenceNumber == diskItem->ProcessRecord->ProcessSequenceNumber)

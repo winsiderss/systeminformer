@@ -51,6 +51,8 @@ EXTENDEDTOOLS_INTERFACE PluginInterface =
     EtLookupTotalGpuAdapterEngineUtilization
 };
 
+ULONG EtWindowsVersion = WINDOWS_ANCIENT;
+BOOLEAN EtIsExecutingInWow64 = FALSE;
 ULONG ProcessesUpdatedCount = 0;
 static HANDLE ModuleProcessId = NULL;
 ULONG EtUpdateInterval = 0;
@@ -65,6 +67,9 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
+    EtWindowsVersion = PhWindowsVersion;
+    EtIsExecutingInWow64 = PhIsExecutingInWow64();
+
     EtLoadSettings();
 
     EtEtwStatisticsInitialization();
@@ -847,7 +852,7 @@ PPH_STRING PhGetSelectedListViewItemText(
         LVNI_SELECTED
         );
 
-    if (index != -1)
+    if (index != INT_ERROR)
     {
         WCHAR buffer[DOS_MAX_PATH_LENGTH] = L"";
 

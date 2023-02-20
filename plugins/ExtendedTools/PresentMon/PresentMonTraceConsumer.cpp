@@ -1348,7 +1348,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
                 break;
             }
 
-            if (PhWindowsVersion > WINDOWS_7 && PhWindowsVersion < WINDOWS_10)
+            if (EtWindowsVersion > WINDOWS_7 && EtWindowsVersion < WINDOWS_10)
             {
                 EventDataDesc desc[] = {
                     { L"ulFlipChain" },
@@ -1414,7 +1414,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
         break;
     case Microsoft_Windows_Dwm_Core::SCHEDULE_SURFACEUPDATE_Info::Id:
         {
-            if (PhWindowsVersion > WINDOWS_7 && PhWindowsVersion < WINDOWS_10)
+            if (EtWindowsVersion > WINDOWS_7 && EtWindowsVersion < WINDOWS_10)
             {
                 EventDataDesc desc[] = {
                     { L"luidSurface" },
