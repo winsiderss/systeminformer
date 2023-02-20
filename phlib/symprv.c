@@ -215,35 +215,23 @@ static VOID PhpSymbolProviderEventCallback(
     case CBA_DEFERRED_SYMBOL_LOAD_START:
         {
             PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)CallbackData;
-            PH_SYMBOL_MODULE lookupSymbolModule;
-            PPH_AVL_LINKS existingLinks;
-            PPH_SYMBOL_MODULE symbolModule;
-            PPH_STRING fileName = NULL;
+            PPH_STRING fileName;
 
-            lookupSymbolModule.BaseAddress = callbackData->BaseOfImage;
-
-            PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
-            if (existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links))
+            if (PhGetModuleFromAddress(SymbolProvider, callbackData->BaseOfImage, &fileName))
             {
-                symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
-                PhSetReference(&fileName, symbolModule->FileName);
-            }
-            PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
-
-            if (fileName)
-            {
+                PPH_STRING baseName = PhGetBaseName(fileName);
                 PH_FORMAT format[3];
-
-                PhMoveReference(&fileName, PhGetBaseName(fileName));
 
                 // Loading symbols for %s...
                 PhInitFormatS(&format[0], L"Loading symbols for ");
-                PhInitFormatS(&format[1], PhGetStringOrDefault(fileName, L"image"));
+                PhInitFormatS(&format[1], PhGetStringOrDefault(baseName, L"image"));
                 PhInitFormatS(&format[2], L"...");
                 PhMoveReference(&PhSymbolProviderEventMessageText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                PhDereferenceObject(fileName);
 
                 PhpSymbolProviderInvokeCallback(PH_SYMBOL_EVENT_TYPE_LOAD_START, PhSymbolProviderEventMessageText, 0);
+
+                PhClearReference(&baseName);
+                PhDereferenceObject(fileName);
             }
             else
             {
@@ -342,23 +330,10 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
     case CBA_DEFERRED_SYMBOL_LOAD_START:
         {
             PIMAGEHLP_DEFERRED_SYMBOL_LOADW64 callbackData = (PIMAGEHLP_DEFERRED_SYMBOL_LOADW64)CallbackData;
-            PH_SYMBOL_MODULE lookupSymbolModule;
-            PPH_AVL_LINKS existingLinks;
-            PPH_SYMBOL_MODULE symbolModule;
-            PPH_STRING fileName = NULL;
+            PPH_STRING fileName;
             HANDLE fileHandle;
 
-            lookupSymbolModule.BaseAddress = callbackData->BaseOfImage;
-
-            PhAcquireQueuedLockShared(&symbolProvider->ModulesListLock);
-            if (existingLinks = PhFindElementAvlTree(&symbolProvider->ModulesSet, &lookupSymbolModule.Links))
-            {
-                symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
-                PhSetReference(&fileName, symbolModule->FileName);
-            }
-            PhReleaseQueuedLockShared(&symbolProvider->ModulesListLock);
-
-            if (fileName)
+            if (PhGetModuleFromAddress(symbolProvider, callbackData->BaseOfImage, &fileName))
             {
                 if (NT_SUCCESS(PhCreateFile(
                     &fileHandle,
@@ -535,7 +510,6 @@ VOID PhpSymbolProviderCompleteInitialization(
     {
         SymInitializeW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymInitializeW", 0);
         SymCleanup_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymCleanup", 0);
-        SymEnumSymbolsW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymEnumSymbolsW", 0);
         SymFromAddrW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromAddrW", 0);
         SymFromNameW_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymFromNameW", 0);
         SymGetLineFromAddrW64_I = PhGetDllBaseProcedureAddress(dbghelpHandle, "SymGetLineFromAddrW64", 0);
@@ -725,6 +699,37 @@ ULONG64 PhGetModuleFromAddress(
     return foundBaseAddress;
 }
 
+PPH_SYMBOL_MODULE PhGetSymbolModuleFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG64 Address
+    )
+{
+    PPH_SYMBOL_MODULE module = NULL;
+    PH_SYMBOL_MODULE lookupModule;
+    PPH_AVL_LINKS links;
+
+    PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
+
+    // Do an approximate search on the modules set to locate the module with the largest
+    // base address that is still smaller than the given address.
+    lookupModule.BaseAddress = Address;
+    links = PhUpperDualBoundElementAvlTree(&SymbolProvider->ModulesSet, &lookupModule.Links);
+
+    if (links)
+    {
+        PPH_SYMBOL_MODULE entry = CONTAINING_RECORD(links, PH_SYMBOL_MODULE, Links);
+
+        if (Address < entry->BaseAddress + entry->Size)
+        {
+            module = entry;
+        }
+    }
+
+    PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+
+    return module;
+}
+
 BOOLEAN PhpGetMachineFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG64 Address,
@@ -891,23 +896,11 @@ PPH_STRING PhGetSymbolFromAddress(
     }
     else
     {
-        PH_SYMBOL_MODULE lookupSymbolModule;
-        PPH_AVL_LINKS existingLinks;
-        PPH_SYMBOL_MODULE symbolModule;
-
-        lookupSymbolModule.BaseAddress = symbolInfo->ModBase;
-
-        PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
-
-        existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
-
-        if (existingLinks)
-        {
-            symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
-            PhSetReference(&modFileName, symbolModule->FileName);
-        }
-
-        PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+        modBase = PhGetModuleFromAddress(
+            SymbolProvider,
+            symbolInfo->ModBase,
+            &modFileName
+            );
     }
 
     // If we don't have a module name, return an address.
@@ -2491,6 +2484,9 @@ BOOLEAN PhEnumerateSymbols(
     PhpRegisterSymbolProvider(SymbolProvider);
 
     if (!SymEnumSymbolsW_I)
+        SymEnumSymbolsW_I = PhGetDllProcedureAddress(L"dbghelp.dll", "SymEnumSymbolsW", 0);
+
+    if (!SymEnumSymbolsW_I)
     {
         SetLastError(ERROR_PROC_NOT_FOUND);
         return FALSE;
@@ -2692,23 +2688,11 @@ PPH_STRING PhGetSymbolFromInlineContext(
     }
     else
     {
-        PH_SYMBOL_MODULE lookupSymbolModule;
-        PPH_AVL_LINKS existingLinks;
-        PPH_SYMBOL_MODULE symbolModule;
-
-        lookupSymbolModule.BaseAddress = symbolInfo->ModBase;
-
-        PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
-
-        existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
-
-        if (existingLinks)
-        {
-            symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
-            PhSetReference(&modFileName, symbolModule->FileName);
-        }
-
-        PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+        modBase = PhGetModuleFromAddress(
+            SymbolProvider,
+            symbolInfo->ModBase,
+            &modFileName
+            );
     }
 
     if (!modFileName)
