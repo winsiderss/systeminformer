@@ -147,34 +147,16 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
 
                     if (entry.AddressOfRawData && entry.SizeOfData)
                     {
-                        __try
-                        {
-                            PVOID imageSectionData;
-                            PH_HASH_CONTEXT hashContext;
-                            PPH_STRING hashString;
-                            UCHAR hash[32];
+                        PVOID imageSectionData;
+                        PPH_STRING hashString;
 
-                            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry.AddressOfRawData, NULL))
+                        if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry.AddressOfRawData, NULL))
+                        {
+                            if (hashString = PvHashBuffer(imageSectionData, entry.SizeOfData))
                             {
-                                PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-                                PhUpdateHash(&hashContext, imageSectionData, entry.SizeOfData);
-
-                                if (PhFinalHash(&hashContext, hash, 16, NULL))
-                                {
-                                    hashString = PhBufferToHexString(hash, 16);
-                                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, hashString->Buffer);
-                                    PhDereferenceObject(hashString);
-                                }
+                                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, hashString->Buffer);
+                                PhDereferenceObject(hashString);
                             }
-                        }
-                        __except (EXCEPTION_EXECUTE_HANDLER)
-                        {
-                            PPH_STRING message;
-
-                            //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-                            message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-                            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, PhGetStringOrEmpty(message));
                         }
                     }
                 }

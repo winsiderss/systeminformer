@@ -158,6 +158,11 @@ VOID PvSetTreeViewImageList(
     _In_ HWND TreeViewHandle
     );
 
+PPH_STRING PvHashBuffer(
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    );
+
 // settings
 
 extern BOOLEAN PeEnableThemeSupport;

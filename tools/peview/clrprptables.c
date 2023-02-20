@@ -60,30 +60,12 @@ BOOLEAN NTAPI PvClrEnumTableCallback(
 
     if (TableCount && TableSize && TableOffset)
     {
-        __try
+        PPH_STRING hashString;
+
+        if (hashString = PvHashBuffer(TableOffset, UInt32x32To64(TableCount, TableSize)))
         {
-            PH_HASH_CONTEXT hashContext;
-            PPH_STRING hashString;
-            UCHAR hash[32];
-
-            PhInitializeHash(&hashContext, Md5HashAlgorithm); // PhGetIntegerSetting(L"HashAlgorithm")
-            PhUpdateHash(&hashContext, TableOffset, UInt32x32To64(TableCount, TableSize));
-
-            if (PhFinalHash(&hashContext, hash, 16, NULL))
-            {
-                hashString = PhBufferToHexString(hash, 16);
-                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 6, hashString->Buffer);
-                PhDereferenceObject(hashString);
-            }
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            PPH_STRING message;
-
-            //message = PH_AUTO(PhGetNtMessage(GetExceptionCode()));
-            message = PH_AUTO(PhGetWin32Message(PhNtStatusToDosError(GetExceptionCode()))); // WIN32_FROM_NTSTATUS
-
-            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 6, PhGetStringOrEmpty(message));
+            PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 6, hashString->Buffer);
+            PhDereferenceObject(hashString);
         }
     }
 
