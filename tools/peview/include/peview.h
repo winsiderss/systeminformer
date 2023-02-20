@@ -65,17 +65,6 @@ NTSTATUS PhpOpenFileSecurity(
     _In_opt_ PVOID Context
     );
 
-DOUBLE PvCalculateEntropyBuffer(
-    _In_ PBYTE Buffer,
-    _In_ SIZE_T BufferLength,
-    _Out_opt_ DOUBLE* BufferVariance
-    );
-
-PPH_STRING PvFormatDoubleCropZero(
-    _In_ DOUBLE Value,
-    _In_ USHORT Precision
-    );
-
 // libprp
 
 VOID PvLibProperties(

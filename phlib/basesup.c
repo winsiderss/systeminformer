@@ -6462,3 +6462,79 @@ VOID PhDivideSinglesBySingle(
     }
 #endif
 }
+
+BOOLEAN PhCalculateEntropy(
+    _In_ PBYTE Buffer,
+    _In_ ULONG64 BufferLength,
+    _Out_opt_ DOUBLE* Entropy,
+    _Out_opt_ DOUBLE* Variance
+    )
+{
+    DOUBLE bufferEntropy = 0.0;
+    DOUBLE bufferMeanValue = 0.0;
+    ULONG64 bufferOffset = 0;
+    ULONG64 bufferSumValue = 0;
+    ULONG64 counts[UCHAR_MAX + 1];
+
+    memset(counts, 0, sizeof(counts));
+
+    while (bufferOffset < BufferLength)
+    {
+        BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset++);
+
+        bufferSumValue += value;
+        counts[value]++;
+    }
+
+    for (ULONG i = 0; i < ARRAYSIZE(counts); i++)
+    {
+        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)BufferLength;
+
+        if (value > 0.0)
+            bufferEntropy -= value * log2(value);
+    }
+
+    bufferMeanValue = (DOUBLE)bufferSumValue / (DOUBLE)BufferLength;
+
+    if (Entropy)
+        *Entropy = bufferEntropy;
+    if (Variance)
+        *Variance = bufferMeanValue;
+
+    return TRUE;
+}
+
+PPH_STRING PhFormatEntropy(
+    _In_ DOUBLE Entropy,
+    _In_ USHORT EntropyPrecision,
+    _In_opt_ DOUBLE Variance,
+    _In_opt_ USHORT VariancePrecision
+    )
+{
+    if (Entropy && Variance)
+    {
+        PH_FORMAT format[4];
+
+        // %s S (%s X)
+        format[0].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[0].u.Double = Entropy;
+        format[0].Precision = EntropyPrecision;
+        PhInitFormatS(&format[1], L" S (");
+        format[2].Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format[2].u.Double = Variance;
+        format[2].Precision = VariancePrecision;
+        PhInitFormatS(&format[3], L" X)");
+
+        return PhFormat(format, ARRAYSIZE(format), 0);
+    }
+    else
+    {
+        PH_FORMAT format;
+
+        format.Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
+        format.u.Double = Entropy;
+        format.Precision = EntropyPrecision;
+
+        return PhFormat(&format, 1, 0);
+    }
+}

@@ -1052,61 +1052,6 @@ VOID PvCalculateImageEntropy(
     *ImageVariance = imageMeanValue;
 }
 
-DOUBLE PvCalculateEntropyBuffer(
-    _In_ PBYTE Buffer,
-    _In_ SIZE_T BufferLength,
-    _Out_opt_ DOUBLE* BufferVariance
-    )
-{
-    DOUBLE bufferEntropy = 0.0;
-    ULONG64 offset = 0;
-    ULONG64 bufferSumValue = 0;
-    DOUBLE bufferMeanValue = 0;
-    ULONG64 counts[UCHAR_MAX + 1];
-
-    memset(counts, 0, sizeof(counts));
-
-    while (offset < BufferLength)
-    {
-        BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, offset++);
-
-        bufferSumValue += value;
-        counts[value]++;
-    }
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
-    {
-        DOUBLE value = (DOUBLE)counts[i] / (DOUBLE)BufferLength;
-
-        if (value > 0.0)
-            bufferEntropy -= value * log2(value);
-    }
-
-    bufferMeanValue = (DOUBLE)bufferSumValue / (DOUBLE)BufferLength; // 127.5 = random
-
-    //if (BufferEntropy)
-    //    *BufferEntropy = bufferEntropy;
-    if (BufferVariance)
-        *BufferVariance = bufferMeanValue;
-
-    return bufferEntropy;
-}
-
-// Crop trailing zeros so our value matches VT results.
-PPH_STRING PvFormatDoubleCropZero(
-    _In_ DOUBLE Value,
-    _In_ USHORT Precision
-    )
-{
-    PH_FORMAT format;
-
-    format.Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros;
-    format.u.Double = Value;
-    format.Precision = Precision;
-
-    return PhFormat(&format, 1, 0);
-}
-
 typedef struct _PVP_ENTROPY_RESULT
 {
     DOUBLE ImageEntropy;
@@ -2183,23 +2128,11 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
     case PVM_ENTROPY_DONE:
         {
             PPVP_ENTROPY_RESULT result = (PPVP_ENTROPY_RESULT)lParam;
-            PPH_STRING stringEntropy;
-            PPH_STRING stringMean;
             PPH_STRING string;
 
-            stringEntropy = PvFormatDoubleCropZero(result->ImageEntropy, 6);
-            stringMean = PvFormatDoubleCropZero(result->ImageAvgMean, 4);
-            string = PhFormatString(
-                L"%s S (%s X)",
-                PhGetStringOrEmpty(stringEntropy),
-                PhGetStringOrEmpty(stringMean)
-                );
-
+            string = PhFormatEntropy(result->ImageEntropy, 6, result->ImageAvgMean, 4);
             PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTROPY, 1, string->Buffer);
-
             PhDereferenceObject(string);
-            PhDereferenceObject(stringMean);
-            PhDereferenceObject(stringEntropy);
         }
         break;
     case WM_NOTIFY:

@@ -3497,6 +3497,26 @@ PhDivideSinglesBySingle(
     _In_ SIZE_T Count
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCalculateEntropy(
+    _In_ PBYTE Buffer,
+    _In_ ULONG64 BufferLength,
+    _Out_opt_ DOUBLE *Entropy,
+    _Out_opt_ DOUBLE *Variance
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatEntropy(
+    _In_ DOUBLE Entropy,
+    _In_ USHORT EntropyPrecision,
+    _In_opt_ DOUBLE Variance,
+    _In_opt_ USHORT VariancePrecision
+    );
+
 // Auto-dereference convenience functions
 
 FORCEINLINE

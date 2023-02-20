@@ -95,10 +95,12 @@ VOID PvEnumerateImagePogoSections(
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
                 {
-                    imageSectionEntropy = PvCalculateEntropyBuffer(imageSectionData, entry->Size, NULL);
-                    entropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
-                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, entropyString->Buffer);
-                    PhDereferenceObject(entropyString);
+                    if (PhCalculateEntropy(imageSectionData, entry->Size, &imageSectionEntropy, NULL))
+                    {
+                        entropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 7, entropyString->Buffer);
+                        PhDereferenceObject(entropyString);
+                    }
                 }
             }
             __except (EXCEPTION_EXECUTE_HANDLER)

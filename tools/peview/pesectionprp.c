@@ -329,14 +329,16 @@ NTSTATUS PvpPeSectionsEnumerateThread(
 
                 if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
                 {
-                    imageSectionEntropy = PvCalculateEntropyBuffer(
+                    if (PhCalculateEntropy(
                         imageSectionData,
                         PvMappedImage.Sections[i].SizeOfRawData,
+                        &imageSectionEntropy,
                         NULL
-                        );
-
-                    sectionNode->SectionEntropy = imageSectionEntropy;
-                    sectionNode->EntropyString = PvFormatDoubleCropZero(imageSectionEntropy, 2);
+                        ))
+                    {
+                        sectionNode->SectionEntropy = imageSectionEntropy;
+                        sectionNode->EntropyString = PhFormatEntropy(imageSectionEntropy, 2, 0, 0);
+                    }
                 }
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
