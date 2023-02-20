@@ -3411,6 +3411,18 @@ PhBufferToHexStringEx(
     _In_ BOOLEAN UpperCase
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferToHexStringBuffer(
+    _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
+    _In_ SIZE_T InputLength,
+    _In_ BOOLEAN UpperCase,
+    _Out_writes_bytes_(OutputLength) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputLength
+    );
+
 PHLIBAPI
 _Success_(return)
 BOOLEAN
