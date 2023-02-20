@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2016
- *     dmex    2015-2022
+ *     dmex    2015-2023
  *
  */
 
@@ -16,6 +16,7 @@
 
 PPH_PLUGIN PluginInstance = NULL;
 BOOLEAN NetAdapterEnableNdis = FALSE;
+ULONG NetWindowsVersion = WINDOWS_ANCIENT;
 
 PPH_OBJECT_TYPE NetAdapterEntryType = NULL;
 PPH_LIST NetworkAdaptersList = NULL;
@@ -46,6 +47,7 @@ VOID NTAPI LoadSettings(
     )
 {
     NetAdapterEnableNdis = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_NDIS);
+    NetWindowsVersion = PhWindowsVersion;
 }
 
 VOID NTAPI LoadCallback(
@@ -120,7 +122,7 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     AddRemoveDeviceChangeCallback();
-    if (PhWindowsVersion >= WINDOWS_10)
+    if (NetWindowsVersion >= WINDOWS_10)
         InitializeDevicesTab();
 }
 

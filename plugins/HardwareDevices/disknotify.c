@@ -16,14 +16,11 @@ BOOLEAN MainWndDeviceChangeRegistrationEnabled = FALSE;
 PH_CALLBACK_REGISTRATION MainWndDeviceChangeEventRegistration;
 
 VOID NTAPI HardwareDevicesDeviceChangeCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
     PMSG message = Parameter;
-
-    if (!message)
-        return;
 
     switch (message->wParam)
     {
