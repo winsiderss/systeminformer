@@ -83,7 +83,7 @@ VOID EtEtwStatisticsInitialization(
     PhInitializeCircularBuffer_ULONG64(&PhMaxNetworkUsageHistory, sampleCount);
 #endif
 
-    if (PhWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64())
+    if (EtWindowsVersion >= WINDOWS_10_RS3 && !PhIsExecutingInWow64)
     {
         EtDiskCountersEnabled = !!PhGetIntegerSetting(SETTING_NAME_ENABLE_DISKPERFCOUNTERS);
     }
@@ -253,7 +253,7 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     // Since Windows 8, we no longer get the correct process/thread IDs in the
     // event headers for disk events. We need to update our process information since
     // etwmon uses our EtThreadIdToProcessId function. (wj32)
-    if (PhWindowsVersion >= WINDOWS_8)
+    if (EtWindowsVersion >= WINDOWS_8)
         EtpUpdateProcessInformation();
 
     // ETW is extremely lazy when it comes to flushing buffers, so we must do it manually. (wj32)

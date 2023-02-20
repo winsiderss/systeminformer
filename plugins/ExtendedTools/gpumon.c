@@ -59,7 +59,7 @@ VOID EtGpuMonitorInitialization(
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_MONITOR))
     {
-        EtGpuSupported = PhWindowsVersion >= WINDOWS_10_RS4;
+        EtGpuSupported = EtWindowsVersion >= WINDOWS_10_RS4;
         EtD3DEnabled = EtGpuSupported && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPUPERFCOUNTERS);
 
         EtpGpuAdapterList = PhCreateList(4);
@@ -781,7 +781,7 @@ BOOLEAN EtpInitializeD3DStatistics(
                     ULONG64 commitLimit;
                     ULONG aperture;
 
-                    if (PhWindowsVersion >= WINDOWS_8)
+                    if (EtWindowsVersion >= WINDOWS_8)
                     {
                         commitLimit = queryStatistics.QueryResult.SegmentInformation.CommitLimit;
                         aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
@@ -885,7 +885,7 @@ VOID EtpUpdateProcessSegmentInformation(
             {
                 ULONG64 bytesCommitted;
 
-                if (PhWindowsVersion >= WINDOWS_8)
+                if (EtWindowsVersion >= WINDOWS_8)
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 else
                     bytesCommitted = (ULONG)queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
@@ -943,7 +943,7 @@ VOID EtpUpdateSystemSegmentInformation(
                 ULONG64 bytesResident;
                 ULONG aperture;
 
-                if (PhWindowsVersion >= WINDOWS_8)
+                if (EtWindowsVersion >= WINDOWS_8)
                 {
                     bytesResident = queryStatistics.QueryResult.SegmentInformation.BytesResident;
                     aperture = queryStatistics.QueryResult.SegmentInformation.Aperture;
@@ -1449,7 +1449,7 @@ VOID EtQueryProcessGpuStatistics(
             {
                 ULONG64 bytesCommitted;
 
-                if (PhWindowsVersion >= WINDOWS_8)
+                if (EtWindowsVersion >= WINDOWS_8)
                     bytesCommitted = queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
                 else
                     bytesCommitted = (ULONG)queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;

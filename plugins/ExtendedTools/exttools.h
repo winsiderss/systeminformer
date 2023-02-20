@@ -46,11 +46,14 @@ __has_include (<d3dkmthk.h>)
 
 #define PH_RECORD_MAX_USAGE 1
 
-extern PPH_PLUGIN PluginInstance;
+EXTERN_C PPH_PLUGIN PluginInstance;
 extern LIST_ENTRY EtProcessBlockListHead;
 extern LIST_ENTRY EtNetworkBlockListHead;
 extern HWND ProcessTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
+
+EXTERN_C ULONG EtWindowsVersion;
+EXTERN_C BOOLEAN EtIsExecutingInWow64;
 extern ULONG ProcessesUpdatedCount;
 extern ULONG EtUpdateInterval;
 extern USHORT EtMaxPrecisionUnit;

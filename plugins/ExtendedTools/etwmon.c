@@ -121,7 +121,7 @@ VOID EtStartEtwSession(
 {
     ULONG bufferSize;
 
-    if (PhWindowsVersion >= WINDOWS_8)
+    if (EtWindowsVersion >= WINDOWS_8)
     {
         EtpActualKernelLoggerName = &EtpPrivateKernelLoggerName;
         EtpActualSessionGuid = &SystemInformerGuid;
@@ -146,7 +146,7 @@ VOID EtStartEtwSession(
     EtpTraceProperties->LogFileNameOffset = 0;
     EtpTraceProperties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
 
-    if (PhWindowsVersion >= WINDOWS_8)
+    if (EtWindowsVersion >= WINDOWS_8)
         EtpTraceProperties->LogFileMode |= EVENT_TRACE_SYSTEM_LOGGER_MODE;
 
     // Get the existing session handle.
@@ -174,7 +174,7 @@ VOID EtStartEtwSession(
     // Enable stack tracing.
     // NOTE: This only enables stack traces for SystemTraceControlGuid events while the
     // EVENT_ENABLE_PROPERTY_STACK_TRACE flag must be used for other guids. (dmex)
-    //if (PhWindowsVersion >= WINDOWS_8 && EtEtwStatus == ERROR_SUCCESS)
+    //if (EtWindowsVersion >= WINDOWS_8 && EtEtwStatus == ERROR_SUCCESS)
     //{
     //    UCHAR eventBuffer[FIELD_OFFSET(EVENT_TRACE_SYSTEM_EVENT_INFORMATION, HookId) + sizeof(ULONG[1])];
     //    PEVENT_TRACE_SYSTEM_EVENT_INFORMATION eventTraceStackTracingInfo;
@@ -193,7 +193,7 @@ VOID EtStartEtwSession(
     //}
     //
     // Enable trace flags. (dmex)
-    //if (PhWindowsVersion >= WINDOWS_8 && EtEtwStatus == ERROR_SUCCESS)
+    //if (EtWindowsVersion >= WINDOWS_8 && EtEtwStatus == ERROR_SUCCESS)
     //{
     //    EVENT_TRACE_GROUPMASK_INFORMATION eventTraceGroupMaskInfo;
     //    PERFINFO_MASK eventTraceInfoMask = PERF_DISK_IO | PERF_NETWORK | PERF_NO_SYSCONFIG;
@@ -290,7 +290,7 @@ VOID NTAPI EtpEtwEventCallback(
         {
             DiskIo_TypeGroup1* data = EventRecord->UserData;
 
-            if (PhWindowsVersion >= WINDOWS_8)
+            if (EtWindowsVersion >= WINDOWS_8)
             {
                 if (data->IssuingThreadId != ULONG_MAX)
                 {
@@ -351,7 +351,7 @@ VOID NTAPI EtpEtwEventCallback(
 
         if (fileEvent.Type != ULONG_MAX)
         {
-            if (PhIsExecutingInWow64())
+            if (EtIsExecutingInWow64)
             {
                 if (EventRecord->EventHeader.EventDescriptor.Version == 2)
                 {
@@ -579,7 +579,7 @@ ULONG EtStartEtwRundown(
     ULONG result;
     ULONG bufferSize;
 
-    if (PhWindowsVersion >= WINDOWS_8 && EtEtwEnabled && EtpSessionHandle != INVALID_PROCESSTRACE_HANDLE)
+    if (EtWindowsVersion >= WINDOWS_8 && EtEtwEnabled && EtpSessionHandle != INVALID_PROCESSTRACE_HANDLE)
     {
         // Note: Enable the filename rundown in our existing trace session
         // without creating a seperate trace session/thread. If this returns an
@@ -688,7 +688,7 @@ VOID NTAPI EtpRundownEtwEventCallback(
 
         if (fileEvent.Type != ULONG_MAX)
         {
-            if (PhIsExecutingInWow64())
+            if (EtIsExecutingInWow64)
             {
                 FileIo_Name_Wow64* dataWow64 = EventRecord->UserData;
 
