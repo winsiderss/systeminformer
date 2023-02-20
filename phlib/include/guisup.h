@@ -219,6 +219,22 @@ FORCEINLINE VOID PhSetWindowExStyle(
     SetWindowLongPtr(Handle, GWL_EXSTYLE, style);
 }
 
+FORCEINLINE PVOID PhGetWindowProcedure(
+    _In_ HWND WindowHandle,
+    _In_ PVOID SubclassProcedure
+    )
+{
+    return (PVOID)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+}
+
+FORCEINLINE PVOID PhSetWindowProcedure(
+    _In_ HWND WindowHandle,
+    _In_ PVOID SubclassProcedure
+    )
+{
+    return (PVOID)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
+}
+
 #ifndef WM_REFLECT
 #define WM_REFLECT 0x2000
 #endif
