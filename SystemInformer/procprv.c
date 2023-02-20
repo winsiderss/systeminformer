@@ -596,7 +596,7 @@ BOOLEAN PhpSidFullNameCacheHashtableEqualFunction(
     PPH_SID_FULL_NAME_CACHE_ENTRY entry1 = Entry1;
     PPH_SID_FULL_NAME_CACHE_ENTRY entry2 = Entry2;
 
-    return RtlEqualSid(entry1->Sid, entry2->Sid);
+    return PhEqualSid(entry1->Sid, entry2->Sid);
 }
 
 ULONG PhpSidFullNameCacheHashtableHashFunction(
@@ -605,7 +605,7 @@ ULONG PhpSidFullNameCacheHashtableHashFunction(
 {
     PPH_SID_FULL_NAME_CACHE_ENTRY entry = Entry;
 
-    return PhHashBytes(entry->Sid, RtlLengthSid(entry->Sid));
+    return PhHashBytes(entry->Sid, PhLengthSid(entry->Sid));
 }
 
 PPH_STRING PhpGetSidFullNameCachedSlow(
@@ -642,7 +642,7 @@ PPH_STRING PhpGetSidFullNameCachedSlow(
             );
     }
 
-    newEntry.Sid = PhAllocateCopy(Sid, RtlLengthSid(Sid));
+    newEntry.Sid = PhAllocateCopy(Sid, PhLengthSid(Sid));
     newEntry.FullName = PhReferenceObject(fullName);
     PhAddEntryHashtable(PhpSidFullNameCacheHashtable, &newEntry);
 
@@ -1311,7 +1311,7 @@ VOID PhpFillProcessItem(
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {
-                ProcessItem->Sid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
+                ProcessItem->Sid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
                 ProcessItem->UserName = PhpGetSidFullNameCached(tokenUser.User.Sid);
             }
 
@@ -1347,7 +1347,7 @@ VOID PhpFillProcessItem(
         if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
             ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP (wj32)
         {
-            ProcessItem->Sid = PhAllocateCopy(&PhSeLocalSystemSid, RtlLengthSid(&PhSeLocalSystemSid));
+            ProcessItem->Sid = PhAllocateCopy(&PhSeLocalSystemSid, PhLengthSid(&PhSeLocalSystemSid));
             ProcessItem->UserName = PhpGetSidFullNameCached(&PhSeLocalSystemSid);
         }
     }
@@ -2640,13 +2640,13 @@ VOID PhProcessProviderUpdate(
                         // User
                         if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                         {
-                            if (!processItem->Sid || !RtlEqualSid(processItem->Sid, tokenUser.User.Sid))
+                            if (!processItem->Sid || !PhEqualSid(processItem->Sid, tokenUser.User.Sid))
                             {
                                 PSID processSid;
 
                                 // HACK (dmex)
                                 processSid = processItem->Sid;
-                                processItem->Sid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
+                                processItem->Sid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
                                 if (processSid) PhFree(processSid);
 
                                 if (processItem->Sid)

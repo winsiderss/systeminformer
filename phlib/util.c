@@ -3759,7 +3759,7 @@ PPH_STRING PhGetTemporaryDirectory(
     UNICODE_STRING variableValue;
     WCHAR variableBuffer[DOS_MAX_PATH_LENGTH];
 
-    if (RtlEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid))
+    if (PhEqualSid(PhGetOwnTokenAttributes().TokenSid, &PhSeLocalSystemSid))
     {
         static PH_STRINGREF systemTemp = PH_STRINGREF_INIT(L"SystemTemp");
         PH_STRINGREF systemRoot;
@@ -4789,7 +4789,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
                 currentDaclPresent = FALSE;
             }
 
-            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + RtlLengthSid(currentUser.User.Sid);
+            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(currentUser.User.Sid);
 
             if (currentDaclPresent && currentDacl)
                 newDaclLength += currentDacl->AclSize - sizeof(ACL);
@@ -6798,11 +6798,11 @@ HANDLE PhGetNamespaceHandle(
         sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
             (ULONG)sizeof(ACL) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(&PhSeLocalSid) +
+            PhLengthSid(&PhSeLocalSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(administratorsSid) +
+            PhLengthSid(administratorsSid) +
             (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            RtlLengthSid(&PhSeInteractiveSid);
+            PhLengthSid(&PhSeInteractiveSid);
 
         securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
         dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);

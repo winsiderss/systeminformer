@@ -428,7 +428,7 @@ NTSTATUS PhLookupName(
         {
             if (Sid)
             {
-                *Sid = PhAllocateCopy(sids[0].Sid, RtlLengthSid(sids[0].Sid));
+                *Sid = PhAllocateCopy(sids[0].Sid, PhLengthSid(sids[0].Sid));
             }
 
             if (DomainName)
@@ -775,8 +775,8 @@ VOID PhInitializeCapabilitySidCache(
                 PH_CAPABILITY_ENTRY entry;
 
                 entry.Name = PhCreateStringFromUnicodeString(&capabilityName);
-                entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, RtlLengthSid(capabilityGroupSid));
-                entry.CapabilitySid = PhAllocateCopy(capabilitySid, RtlLengthSid(capabilitySid));
+                entry.CapabilityGroupSid = PhAllocateCopy(capabilityGroupSid, PhLengthSid(capabilityGroupSid));
+                entry.CapabilitySid = PhAllocateCopy(capabilitySid, PhLengthSid(capabilitySid));
 
                 PhAddItemArray(CapabilitySidArrayList, &entry);
             }
@@ -808,12 +808,12 @@ PPH_STRING PhGetCapabilitySidName(
     {
         entry = PhItemArray(&capabilitySidArrayList, i);
 
-        if (RtlEqualSid(entry->CapabilitySid, CapabilitySid))
+        if (PhEqualSid(entry->CapabilitySid, CapabilitySid))
         {
             return PhReferenceObject(entry->Name);
         }
 
-        if (RtlEqualSid(entry->CapabilityGroupSid, CapabilitySid))
+        if (PhEqualSid(entry->CapabilityGroupSid, CapabilitySid))
         {
             return PhReferenceObject(entry->Name);
         }

@@ -3649,20 +3649,20 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             else if (
                 PhCsUseColorServiceProcesses &&
                 ((processItem->ServiceList && processItem->ServiceList->Count != 0) ||
-                 (processItem->Sid && RtlEqualSid(processItem->Sid, &PhSeServiceSid)) ||
-                 (processItem->Sid && RtlEqualSid(processItem->Sid, &PhSeLocalServiceSid)) ||
-                 (processItem->Sid && RtlEqualSid(processItem->Sid, &PhSeNetworkServiceSid))
+                 (processItem->Sid && PhEqualSid(processItem->Sid, &PhSeServiceSid)) ||
+                 (processItem->Sid && PhEqualSid(processItem->Sid, &PhSeLocalServiceSid)) ||
+                 (processItem->Sid && PhEqualSid(processItem->Sid, &PhSeNetworkServiceSid))
                 ))
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
             else if (
                 PhCsUseColorSystemProcesses &&
-                ((processItem->Sid && RtlEqualSid(processItem->Sid, &PhSeLocalSystemSid)) ||
+                ((processItem->Sid && PhEqualSid(processItem->Sid, &PhSeLocalSystemSid)) ||
                 PH_IS_FAKE_PROCESS_ID(processItem->ProcessId)))
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
                 PhCsUseColorOwnProcesses &&
                 processItem->Sid &&
-                RtlEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid)
+                PhEqualSid(processItem->Sid, PhGetOwnTokenAttributes().TokenSid)
                 )
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
         }

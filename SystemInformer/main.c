@@ -485,7 +485,7 @@ static BOOLEAN NTAPI PhpPreviousInstancesCallback(
             goto CleanupExit;
         if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             goto CleanupExit;
-        if (!RtlEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
+        if (!PhEqualSid(tokenUser.User.Sid, PhGetOwnTokenAttributes().TokenSid))
             goto CleanupExit;
 
         // Try to locate the window a few times because some users reported that it might not yet have been created. (dmex)
@@ -1011,11 +1011,11 @@ BOOLEAN PhInitializeComPolicy(
     securityDescriptorAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
         (ULONG)sizeof(ACL) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeAuthenticatedUserSid) +
+        PhLengthSid(&PhSeAuthenticatedUserSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&PhSeLocalSystemSid) +
+        PhLengthSid(&PhSeLocalSystemSid) +
         (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        RtlLengthSid(&administratorsSid);
+        PhLengthSid(&administratorsSid);
 
     securityDescriptor = PhAllocate(securityDescriptorAllocationLength);
     dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);

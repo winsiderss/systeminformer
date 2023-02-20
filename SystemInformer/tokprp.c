@@ -678,7 +678,7 @@ VOID PhpUpdateSidsFromTokenGroups(
             tokenGroupResolve = PhAllocateZero(sizeof(PHP_TOKEN_GROUP_RESOLVE_CONTEXT));
             tokenGroupResolve->ListViewHandle = ListViewHandle;
             tokenGroupResolve->LvItem = lvitem;
-            tokenGroupResolve->TokenGroupSid = PhAllocateCopy(Groups->Groups[i].Sid, RtlLengthSid(Groups->Groups[i].Sid));
+            tokenGroupResolve->TokenGroupSid = PhAllocateCopy(Groups->Groups[i].Sid, PhLengthSid(Groups->Groups[i].Sid));
 
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpTokenGroupResolveWorker, tokenGroupResolve);
         }
@@ -1005,7 +1005,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                         tokenUserResolve = PhAllocateZero(sizeof(PHP_TOKEN_USER_RESOLVE_CONTEXT));
                         tokenUserResolve->WindowHandle = GetDlgItem(hwndDlg, IDC_USER);
-                        tokenUserResolve->TokenUserSid = PhAllocateCopy(tokenUser.User.Sid, RtlLengthSid(tokenUser.User.Sid));
+                        tokenUserResolve->TokenUserSid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
 
                         PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhpTokenUserResolveWorker, tokenUserResolve);
                     }

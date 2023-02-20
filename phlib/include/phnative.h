@@ -657,6 +657,29 @@ PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
 
+// rev from RtlLengthSid (dmex)
+FORCEINLINE
+ULONG
+NTAPI
+PhLengthSid(
+    _In_ PSID Sid
+    )
+{
+    //return UFIELD_OFFSET(SID, SubAuthority) + (((PISID)Sid)->SubAuthorityCount * sizeof(ULONG));
+    return UFIELD_OFFSET(SID, SubAuthority[((PISID)Sid)->SubAuthorityCount]);
+}
+
+// rev from RtlEqualSid (dmex)
+FORCEINLINE
+BOOLEAN
+PhEqualSid(
+    _In_ PSID Sid1,
+    _In_ PSID Sid2
+    )
+{
+    return (BOOLEAN)RtlEqualMemory(Sid1, Sid2, PhLengthSid(Sid1));;
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI
