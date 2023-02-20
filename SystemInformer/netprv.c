@@ -91,7 +91,6 @@ SLIST_HEADER PhNetworkItemQueryListHead;
 
 BOOLEAN PhEnableNetworkProviderResolve = TRUE;
 BOOLEAN PhEnableNetworkBoundConnections = TRUE;
-static BOOLEAN NetworkImportDone = FALSE;
 static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
@@ -679,15 +678,6 @@ VOID PhNetworkProviderUpdate(
     PPH_NETWORK_CONNECTION connections;
     ULONG numberOfConnections;
     ULONG i;
-
-    if (!NetworkImportDone)
-    {
-        WSADATA wsaData;
-        // Make sure WSA is initialized. (wj32)
-        WSAStartup(WINSOCK_VERSION, &wsaData);
-        PhLoaderEntryLoadAllImportsForDll(PhInstanceHandle, "iphlpapi.dll");
-        NetworkImportDone = TRUE;
-    }
 
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))
         return;
