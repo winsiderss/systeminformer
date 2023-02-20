@@ -44,6 +44,7 @@ namespace CustomBuildTool
             "ntdbg.h",
             "ntexapi.h",
             "ntgdi.h",
+            "ntimage.h",
             "ntioapi.h",
             "ntkeapi.h",
             "ntldr.h",
