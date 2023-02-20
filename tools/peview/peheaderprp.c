@@ -206,31 +206,21 @@ VOID PvSetPeImageDosStubHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy;
+            DOUBLE imageDosStubEntropy = 0;
             DOUBLE imageDosStubMean = 0;
             PPH_STRING entropyString;
-            PPH_STRING stringEntropy;
-            PPH_STRING stringMean;
 
-            imageDosStubEntropy = PvCalculateEntropyBuffer(
+            if (PhCalculateEntropy(
                 imageDosStubData,
                 imageDosStubActualDataLength,
+                &imageDosStubEntropy,
                 &imageDosStubMean
-                );
-
-            stringEntropy = PvFormatDoubleCropZero(imageDosStubEntropy, 6);
-            stringMean = PvFormatDoubleCropZero(imageDosStubMean, 4);
-            entropyString = PhFormatString(
-                L"%s S (%s X)",
-                PhGetStringOrEmpty(stringEntropy),
-                PhGetStringOrEmpty(stringMean)
-                );
-
-            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_STUBENTROPY, 1, PhGetStringOrEmpty(entropyString));
-
-            PhDereferenceObject(entropyString);
-            PhDereferenceObject(stringMean);
-            PhDereferenceObject(stringEntropy);
+                ))
+            {
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_STUBENTROPY, 1, PhGetStringOrEmpty(entropyString));
+                PhDereferenceObject(entropyString);
+            }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -263,31 +253,21 @@ VOID PvSetPeImageDosStubHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy;
+            DOUBLE imageDosStubEntropy = 0;
             DOUBLE imageDosStubMean = 0;
             PPH_STRING entropyString;
-            PPH_STRING stringEntropy;
-            PPH_STRING stringMean;
 
-            imageDosStubEntropy = PvCalculateEntropyBuffer(
+            if (PhCalculateEntropy(
                 imageDosStubRichData,
                 imageDosStubRichLength,
+                &imageDosStubEntropy,
                 &imageDosStubMean
-                );
-
-            stringEntropy = PvFormatDoubleCropZero(imageDosStubEntropy, 6);
-            stringMean = PvFormatDoubleCropZero(imageDosStubMean, 4);
-            entropyString = PhFormatString(
-                L"%s S (%s X)",
-                PhGetStringOrEmpty(stringEntropy),
-                PhGetStringOrEmpty(stringMean)
-                );
-
-            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHENTROPY, 1, PhGetStringOrEmpty(entropyString));
-
-            PhDereferenceObject(entropyString);
-            PhDereferenceObject(stringMean);
-            PhDereferenceObject(stringEntropy);
+                ))
+            {
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_RICHENTROPY, 1, PhGetStringOrEmpty(entropyString));
+                PhDereferenceObject(entropyString);
+            }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -320,31 +300,21 @@ VOID PvSetPeImageDosStubHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy;
+            DOUBLE imageDosStubEntropy = 0;
             DOUBLE imageDosStubMean = 0;
             PPH_STRING entropyString;
-            PPH_STRING stringEntropy;
-            PPH_STRING stringMean;
 
-            imageDosStubEntropy = PvCalculateEntropyBuffer(
+            if (PhCalculateEntropy(
                 imageDosStubData,
                 imageDosStubDataLength,
+                &imageDosStubEntropy,
                 &imageDosStubMean
-                );
-
-            stringEntropy = PvFormatDoubleCropZero(imageDosStubEntropy, 6);
-            stringMean = PvFormatDoubleCropZero(imageDosStubMean, 4);
-            entropyString = PhFormatString(
-                L"%s S (%s X)",
-                PhGetStringOrEmpty(stringEntropy),
-                PhGetStringOrEmpty(stringMean)
-                );
-
-            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_ENTROPY, 1, PhGetStringOrEmpty(entropyString));
-
-            PhDereferenceObject(entropyString);
-            PhDereferenceObject(stringMean);
-            PhDereferenceObject(stringEntropy);
+                ))
+            {
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_DOS_ENTROPY, 1, PhGetStringOrEmpty(entropyString));
+                PhDereferenceObject(entropyString);
+            }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -646,31 +616,21 @@ VOID PvSetPeImageOverlayHeaderProperties(
 
         __try
         {
-            DOUBLE imageDosStubEntropy;
+            DOUBLE imageDosStubEntropy = 0;
             DOUBLE imageDosStubMean = 0;
             PPH_STRING entropyString;
-            PPH_STRING stringEntropy;
-            PPH_STRING stringMean;
 
-            imageDosStubEntropy = PvCalculateEntropyBuffer(
+            if (PhCalculateEntropy(
                 imageOverlayData,
-                (ULONG)imageOverlayDataLength,
+                imageOverlayDataLength,
+                &imageDosStubEntropy,
                 &imageDosStubMean
-                );
-
-            stringEntropy = PvFormatDoubleCropZero(imageDosStubEntropy, 6);
-            stringMean = PvFormatDoubleCropZero(imageDosStubMean, 4);
-            entropyString = PhFormatString(
-                L"%s S (%s X)",
-                PhGetStringOrEmpty(stringEntropy),
-                PhGetStringOrEmpty(stringMean)
-                );
-
-            PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_PE_OVERLAY_ENTROPY, 1, PhGetStringOrEmpty(entropyString));
-
-            PhDereferenceObject(entropyString);
-            PhDereferenceObject(stringMean);
-            PhDereferenceObject(stringEntropy);
+                ))
+            {
+                entropyString = PhFormatEntropy(imageDosStubEntropy, 6, imageDosStubMean, 4);
+                PhSetListViewSubItem(Context->ListViewHandle, PVP_IMAGE_HEADER_INDEX_PE_OVERLAY_ENTROPY, 1, PhGetStringOrEmpty(entropyString));
+                PhDereferenceObject(entropyString);
+            }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

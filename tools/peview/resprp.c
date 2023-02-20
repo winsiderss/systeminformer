@@ -425,14 +425,16 @@ VOID PvpPeEnumMappedImageResources(
                 {
                     DOUBLE imageResourceEntropy;
 
-                    imageResourceEntropy = PvCalculateEntropyBuffer(
+                    if (PhCalculateEntropy(
                         entry.Data,
                         entry.Size,
+                        &imageResourceEntropy,
                         NULL
-                        );
-
-                    resourceNode->ResourcesEntropy = imageResourceEntropy;
-                    resourceNode->EntropyString = PvFormatDoubleCropZero(imageResourceEntropy, 2);
+                        ))
+                    {
+                        resourceNode->ResourcesEntropy = imageResourceEntropy;
+                        resourceNode->EntropyString = PhFormatEntropy(imageResourceEntropy, 2, 0, 0);
+                    }
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {

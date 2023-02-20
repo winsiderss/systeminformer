@@ -262,14 +262,16 @@ VOID PvpPeEnumerateImageDataDirectory(
         {
             DOUBLE imageDirectoryEntropy;
 
-            imageDirectoryEntropy = PvCalculateEntropyBuffer(
+            if (PhCalculateEntropy(
                 imageDirectoryData,
                 directorySize,
+                &imageDirectoryEntropy,
                 NULL
-                );
-
-            directoryNode->DirectoryEntropy = imageDirectoryEntropy;
-            directoryNode->EntropyString = PvFormatDoubleCropZero(imageDirectoryEntropy, 2);
+                ))
+            {
+                directoryNode->DirectoryEntropy = imageDirectoryEntropy;
+                directoryNode->EntropyString = PhFormatEntropy(imageDirectoryEntropy, 2, 0, 0);
+            }
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
