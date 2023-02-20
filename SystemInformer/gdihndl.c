@@ -6,18 +6,21 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2021-2022
+ *     dmex    2021-2023
  *
  */
 
 #include <phapp.h>
-#include <ntgdi.h>
 #include <procprv.h>
 #include <phsettings.h>
+#include <emenu.h>
+
+#include <ntgdi.h>
 
 typedef struct _PH_GDI_HANDLES_CONTEXT
 {
     HWND ListViewHandle;
+    HWND ParentWindowHandle;
     PPH_PROCESS_ITEM ProcessItem;
     PPH_LIST List;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -50,6 +53,7 @@ VOID PhShowGdiHandlesDialog(
     context = PhAllocateZero(sizeof(PH_GDI_HANDLES_CONTEXT));
     context->ProcessItem = PhReferenceObject(ProcessItem);
     context->List = PhCreateList(20);
+    context->ParentWindowHandle = ParentWindowHandle;
 
     windowHandle = PhCreateDialog(
         PhInstanceHandle,
@@ -230,6 +234,7 @@ VOID PhpRefreshGdiHandles(
             PhDereferenceObject(gdiHandleItem->Information);
 
         PhFree(Context->List->Items[i]);
+        Context->List->Items[i] = NULL;
     }
 
     PhClearList(Context->List);
@@ -342,7 +347,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
 
             PhSetApplicationWindowIcon(hwndDlg);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhRegisterDialog(hwndDlg);
 
@@ -400,6 +405,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
                         PhDereferenceObject(gdiHandleItem->Information);
 
                     PhFree(context->List->Items[i]);
+                    context->List->Items[i] = NULL;
                 }
 
                 PhDereferenceObject(context->List);
@@ -436,6 +442,59 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
     case WM_NOTIFY:
         {
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case IDC_COPY:
+                                PhCopyListView(context->ListViewHandle);
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
+            }
         }
         break;
     case WM_CTLCOLORBTN:
