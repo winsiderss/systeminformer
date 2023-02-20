@@ -1502,20 +1502,13 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     else if (PhEqualString2(this->ObjectType, L"PowerDefault", TRUE))
     {
         PPH_STRING powerPolicySddl;
-        SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
-        PSID administratorsSid;
 
         // kludge the descriptor into the correct SDDL format required by powercfg (dmex)
         // 1) The owner must always be the built-in domain administrator.
         // 2) The group must always be NT AUTHORITY\SYSTEM.
         // 3) Remove the INHERIT_REQ flag (not required but makes the sddl consistent with powercfg).
 
-        administratorsSid = (PSID)administratorsSidBuffer;
-        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
-        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
+        RtlSetOwnerSecurityDescriptor(SecurityDescriptor, PhSeAdministratorsSid(), TRUE);
         RtlSetGroupSecurityDescriptor(SecurityDescriptor, &PhSeLocalSystemSid, TRUE);
         RtlSetControlSecurityDescriptor(SecurityDescriptor, SE_DACL_PROTECTED | SE_DACL_AUTO_INHERIT_REQ, SE_DACL_PROTECTED);
 
@@ -1535,18 +1528,13 @@ _Callback_ NTSTATUS PhStdSetObjectSecurity(
     }
     else if (PhEqualString2(this->ObjectType, L"WmiDefault", TRUE))
     {
-        SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-        UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
         PSID administratorsSid;
 
         // kludge the descriptor into the correct format required by wmimgmt (dmex)
         // 1) The owner must always be the built-in domain administrator.
         // 2) The group must always be the built-in domain administrator.
 
-        administratorsSid = (PSID)administratorsSidBuffer;
-        RtlInitializeSid(administratorsSid, &ntAuthority, 2);
-        *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-        *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+        administratorsSid = PhSeAdministratorsSid();
         RtlSetOwnerSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
         RtlSetGroupSecurityDescriptor(SecurityDescriptor, administratorsSid, TRUE);
 
