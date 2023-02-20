@@ -354,6 +354,7 @@
   <ItemGroup>
     <ClCompile Include="cfgprp.c" />
     <ClCompile Include="chcol.c" />
+    <ClCompile Include="pechpeprp.c" />
     <ClCompile Include="clrtableimports.cpp" />
     <ClCompile Include="clrprp.c" />
     <ClCompile Include="clrtableimportprp.c" />
@@ -368,6 +369,7 @@
     <ClCompile Include="exlfprp.c" />
     <ClCompile Include="hashprp.c" />
     <ClCompile Include="layout.c" />
+    <ClCompile Include="pedynrelocprp.c" />
     <ClCompile Include="peheaderprp.c" />
     <ClCompile Include="peprpwnd.c" />
     <ClCompile Include="options.c" />

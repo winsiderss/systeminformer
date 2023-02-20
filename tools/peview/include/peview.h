@@ -565,6 +565,13 @@ INT_PTR CALLBACK PvpPeRelocationDlgProc(
     _In_ LPARAM lParam
     );
 
+INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
 INT_PTR CALLBACK PvpPeSecurityDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -615,6 +622,13 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvpPeCHPEDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
