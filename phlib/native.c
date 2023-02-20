@@ -5143,7 +5143,7 @@ NTSTATUS PhEnumProcessModules(
 
     parameters.Callback = Callback;
     parameters.Context = Context;
-    parameters.Flags = 0;
+    parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
 
     return PhEnumProcessModulesEx(ProcessHandle, &parameters);
 }
@@ -5535,7 +5535,7 @@ NTSTATUS PhEnumProcessModules32(
 
     parameters.Callback = Callback;
     parameters.Context = Context;
-    parameters.Flags = 0;
+    parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
 
     return PhEnumProcessModules32Ex(ProcessHandle, &parameters);
 }
