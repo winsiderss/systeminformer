@@ -1062,14 +1062,161 @@ BOOLEAN PhGetRemoteMappedImageGuardFlagsEx(
     return result;
 }
 
-NTSTATUS PhGetMappedImageExports(
+NTSTATUS PhpFixupExportDirectoryForARM64EC(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DATA_DIRECTORY DataDirectory,
+    _Inout_ PIMAGE_EXPORT_DIRECTORY* ExportDirectory,
+    _Out_ PIMAGE_DATA_DIRECTORY FixedDataDirectory
+    )
+{
+    NTSTATUS status;
+    ULONG vaRva;
+    ULONG sizeRva;
+    PIMAGE_DYNAMIC_RELOCATION_TABLE table;
+    PIMAGE_DYNAMIC_RELOCATION64 reloc;
+    PVOID end;
+
+    RtlZeroMemory(FixedDataDirectory, sizeof(IMAGE_DATA_DIRECTORY));
+
+    if (MappedImage->Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhGetMappedImageDynamicRelocationsTable(MappedImage, &table);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (table->Version != 1)
+        return STATUS_NOT_SUPPORTED;
+
+    vaRva = PtrToUlong(PTR_SUB_OFFSET(DataDirectory, MappedImage->ViewBase));
+    sizeRva = PtrToUlong(PTR_SUB_OFFSET(PTR_ADD_OFFSET(DataDirectory, sizeof(ULONG)), MappedImage->ViewBase));
+#define PH_ARM64EC_EXP_FIX_DONE() (vaRva == 0 && sizeRva == 0)
+
+    reloc = PTR_ADD_OFFSET(table, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION_TABLE, Size));
+    end = PTR_ADD_OFFSET(table, table->Size);
+
+    while ((ULONG_PTR)reloc < (ULONG_PTR)end)
+    {
+        if (reloc->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
+        {
+            PIMAGE_BASE_RELOCATION base;
+
+            base = PTR_ADD_OFFSET(reloc, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+
+            for (;;)
+            {
+                PIMAGE_DVRT_ARM64X_FIXUP_RECORD record;
+                PVOID recordsEnd;
+
+                record = (PIMAGE_DVRT_ARM64X_FIXUP_RECORD)base;
+                recordsEnd = PTR_ADD_OFFSET(base, base->SizeOfBlock);
+                if (!PhPtrAdvance(&record, recordsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock)))
+                    break;
+
+                for (;;)
+                {
+                    SIZE_T consumed;
+
+                    if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL)
+                    {
+                        consumed = sizeof(IMAGE_DVRT_ARM64X_FIXUP_RECORD);
+                        consumed += (SIZE_T)(1ull << record->Size);
+                    }
+                    else if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE)
+                    {
+                        consumed = sizeof(IMAGE_DVRT_ARM64X_FIXUP_RECORD);
+                        if (record->Size == IMAGE_DVRT_ARM64X_FIXUP_SIZE_2BYTES)
+                        {
+                            consumed += sizeof(USHORT);
+                        }
+                        else if (record->Size == IMAGE_DVRT_ARM64X_FIXUP_SIZE_4BYTES)
+                        {
+                            ULONG rva = base->VirtualAddress + record->Offset;
+                            ULONG value = *(PULONG)PTR_ADD_OFFSET(record, consumed);
+                            if (vaRva != 0 && vaRva == rva)
+                            {
+                                FixedDataDirectory->VirtualAddress = value;
+                                vaRva = 0;
+                            }
+                            else if (sizeRva != 0 && sizeRva == rva)
+                            {
+                                FixedDataDirectory->Size = value;
+                                sizeRva = 0;
+                            }
+
+                            consumed += sizeof(ULONG);
+                        }
+                        else if (record->Size == IMAGE_DVRT_ARM64X_FIXUP_SIZE_8BYTES)
+                        {
+                            consumed += sizeof(ULONG64);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_DELTA)
+                    {
+                        consumed = sizeof(IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD);
+                        consumed += sizeof(USHORT);
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    if (PH_ARM64EC_EXP_FIX_DONE())
+                        break;
+
+                    if (!PhPtrAdvance(&record, recordsEnd, consumed))
+                        break;
+                }
+
+                if (PH_ARM64EC_EXP_FIX_DONE())
+                    break;
+
+                if (!PhPtrAdvance(&base, end, base->SizeOfBlock))
+                    break;
+            }
+        }
+
+        if (PH_ARM64EC_EXP_FIX_DONE())
+            break;
+
+        if (!PhPtrAdvance(&reloc, end, reloc->BaseRelocSize))
+            return STATUS_BUFFER_OVERFLOW;
+
+        if (!PhPtrAdvance(&reloc, end, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize)))
+            return STATUS_BUFFER_OVERFLOW;
+    }
+
+    if (!PH_ARM64EC_EXP_FIX_DONE())
+        return STATUS_INVALID_PARAMETER;
+
+    *ExportDirectory = PhMappedImageRvaToVa(
+        MappedImage,
+        FixedDataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!(*ExportDirectory))
+        return STATUS_INVALID_PARAMETER;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageExportsEx(
     _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
-    _In_ PPH_MAPPED_IMAGE MappedImage
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG Flags
     )
 {
     NTSTATUS status;
     PIMAGE_DATA_DIRECTORY dataDirectory;
     PIMAGE_EXPORT_DIRECTORY exportDirectory;
+
+    Exports->DataDirectoryARM64EC.VirtualAddress = 0;
+    Exports->DataDirectoryARM64EC.Size = 0;
 
     // Get a pointer to the export directory.
 
@@ -1090,6 +1237,19 @@ NTSTATUS PhGetMappedImageExports(
 
     if (!exportDirectory)
         return STATUS_INVALID_PARAMETER;
+
+    if (Flags & PH_GET_IMAGE_EXPORTS_ARM64EC)
+    {
+        status = PhpFixupExportDirectoryForARM64EC(
+            MappedImage,
+            dataDirectory,
+            &exportDirectory,
+            &Exports->DataDirectoryARM64EC
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
 
     __try
     {
@@ -1167,6 +1327,14 @@ NTSTATUS PhGetMappedImageExports(
     // The unbiased ordinal is an index into the address table.
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageExports(
+    _Out_ PPH_MAPPED_IMAGE_EXPORTS Exports,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    return PhGetMappedImageExportsEx(Exports, MappedImage, 0);
 }
 
 NTSTATUS PhGetMappedImageExportEntry(
@@ -3627,6 +3795,7 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
 {
     NTSTATUS status;
     PIMAGE_DYNAMIC_RELOCATION_TABLE table = NULL;
+    PVOID reloc;
 
     if (Table)
         *Table = NULL;
@@ -3696,6 +3865,25 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
 
     if (!table)
         return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, table, sizeof(IMAGE_DYNAMIC_RELOCATION_TABLE));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    reloc = PTR_ADD_OFFSET(table, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION_TABLE, Size));
+    __try
+    {
+        PhpMappedImageProbe(MappedImage, reloc, table->Size);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
 
     if (Table)
         *Table = table;
@@ -3902,30 +4090,12 @@ NTSTATUS PhGetMappedImageDynamicRelocations(
     if (!NT_SUCCESS(status))
         return status;
 
-    __try
-    {
-        PhpMappedImageProbe(MappedImage, table, sizeof(IMAGE_DYNAMIC_RELOCATION_TABLE));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return GetExceptionCode();
-    }
-
     if (table->Version != 1 && table->Version != 2)
     {
         return STATUS_UNKNOWN_REVISION;
     }
 
     reloc = PTR_ADD_OFFSET(table, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION_TABLE, Size));
-    __try
-    {
-        PhpMappedImageProbe(MappedImage, reloc, table->Size);
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return GetExceptionCode();
-    }
-
     end = PTR_ADD_OFFSET(table, table->Size);
 
     PhInitializeArray(&relocationArray, sizeof(PH_IMAGE_DYNAMIC_RELOC_ENTRY), 1);
