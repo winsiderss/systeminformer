@@ -1776,6 +1776,44 @@ PhUpdateProcThreadAttribute(
     _In_ SIZE_T BufferLength
     );
 
+FORCEINLINE
+BOOLEAN
+PhPtrAddOffset(
+    _Inout_ PVOID* Pointer,
+    _In_ SIZE_T Offset
+    )
+{
+    PVOID pointer;
+
+    pointer = PTR_ADD_OFFSET(*Pointer, Offset);
+    if (pointer < *Pointer)
+        return FALSE;
+
+    *Pointer = pointer;
+    return TRUE;
+}
+
+FORCEINLINE
+BOOLEAN
+PhPtrAdvance(
+    _Inout_ PVOID* Pointer,
+    _In_ PVOID EndPointer,
+    _In_ SIZE_T Offset
+    )
+{
+    PVOID pointer;
+
+    pointer = *Pointer;
+    if (!PhPtrAddOffset(&pointer, Offset))
+        return FALSE;
+
+    if (pointer >= EndPointer)
+        return FALSE;
+
+    *Pointer = pointer;
+    return TRUE;
+}
+
 EXTERN_C_END
 
 #endif
