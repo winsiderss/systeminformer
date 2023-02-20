@@ -4014,6 +4014,11 @@ PVOID PhPluginInvokeWindowCallback(
             }
         }
         break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE:
+        {
+            return (PVOID)PhMwpWndProc; // (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
+        }
+        break;
     }
 
     return NULL;
