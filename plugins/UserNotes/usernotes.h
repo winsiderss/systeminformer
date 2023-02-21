@@ -97,8 +97,21 @@ typedef struct _SERVICE_COMMENT_PAGE_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } SERVICE_COMMENT_PAGE_CONTEXT, *PSERVICE_COMMENT_PAGE_CONTEXT;
 
+PDB_OBJECT FindDbObjectForProcess(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ ULONG Intent
+    );
+
 VOID DeleteDbObjectForProcessIfUnused(
     _In_ PDB_OBJECT Object
+    );
+
+VOID InvalidateProcessComments(
+    VOID
+    );
+
+VOID InvalidateServiceComments(
+    VOID
     );
 
 VOID SearchChangedHandler(

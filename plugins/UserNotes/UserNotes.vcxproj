@@ -100,6 +100,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="prpcmpage.c" />
     <ClCompile Include="db.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
