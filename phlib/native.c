@@ -426,6 +426,99 @@ NTSTATUS PhTerminateThread(
     return status;
 }
 
+typedef struct _PH_TARGET_LIBS
+{
+    PH_STRINGREF Ntdll;
+    PH_STRINGREF Kernel32;
+} PH_TARGET_LIBS, *PPH_TARGET_LIBS;
+
+NTSTATUS PhpGetProcessTargetLibs(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPH_TARGET_LIBS* Targets,
+    _Out_opt_ PBOOLEAN IsWow64
+    )
+{
+    static PH_TARGET_LIBS NativeLibs =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\kernel32.dll"),
+    };
+#ifdef _WIN64
+    static PH_TARGET_LIBS Wow64Libs =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysWOW64\\kernel32.dll"),
+    };
+#ifdef _M_ARM64
+    static PH_TARGET_LIBS Arm32Libs =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SysArm32\\kernel32.dll"),
+    };
+    static PH_TARGET_LIBS Chpe32Libs =
+    {
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\ntdll.dll"),
+        PH_STRINGREF_INIT(L"\\SystemRoot\\SyChpe32\\kernel32.dll"),
+    };
+#endif
+#endif
+
+    *Targets = &NativeLibs;
+    if (IsWow64)
+        *IsWow64 = FALSE;
+
+#ifdef _WIN64 
+    NTSTATUS status;
+#ifdef _M_ARM64
+    USHORT arch;
+    status = PhGetProcessArchitecture(ProcessHandle, &arch);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (arch != IMAGE_FILE_MACHINE_TARGET_HOST)
+    {
+        switch (arch)
+        {
+        case IMAGE_FILE_MACHINE_I386:
+        case IMAGE_FILE_MACHINE_CHPE_X86:
+            {
+                *Targets = &Chpe32Libs;
+                if (IsWow64)
+                    *IsWow64 = TRUE;
+            }
+            break;
+        case IMAGE_FILE_MACHINE_ARMNT:
+            {
+                *Targets = &Arm32Libs;
+                if (IsWow64)
+                    *IsWow64 = TRUE;
+            }
+            break;
+        case IMAGE_FILE_MACHINE_AMD64:
+        case IMAGE_FILE_MACHINE_ARM64:
+            break;
+        default:
+            return STATUS_INVALID_PARAMETER;
+        }
+    }
+#else
+    BOOLEAN isWow64;
+    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (isWow64)
+    {
+        *Targets = &Wow64Libs;
+        if (IsWow64)
+            *IsWow64 = TRUE;
+    }
+#endif
+#endif
+
+    return STATUS_SUCCESS;
+}
+
 // based on https://www.drdobbs.com/a-safer-alternative-to-terminateprocess/184416547 (dmex)
 NTSTATUS PhTerminateProcessAlternative(
     _In_ HANDLE ProcessHandle,
@@ -434,22 +527,18 @@ NTSTATUS PhTerminateProcessAlternative(
     )
 {
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64;
-#endif
     PVOID rtlExitUserProcess = NULL;
     HANDLE powerRequestHandle = NULL;
     HANDLE threadHandle = NULL;
+    PPH_TARGET_LIBS libs;
 
-#ifdef _WIN64
-    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
-
+    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcedureAddressRemoteZ(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
+        &libs->Ntdll,
         "RtlExitUserProcess",
         0,
         &rtlExitUserProcess,
@@ -458,19 +547,6 @@ NTSTATUS PhTerminateProcessAlternative(
 
     if (!NT_SUCCESS(status))
         return status;
-#else
-    status = PhGetProcedureAddressRemoteZ(
-        ProcessHandle,
-        L"\\SystemRoot\\System32\\ntdll.dll",
-        "RtlExitUserProcess",
-        0,
-        &rtlExitUserProcess,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-#endif
 
     if (WindowsVersion >= WINDOWS_8)
     {
@@ -1933,45 +2009,31 @@ NTSTATUS PhLoadDllProcess(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-#ifdef _WIN64
-    BOOLEAN isWow64 = FALSE;
-#endif
     NTSTATUS status;
     SIZE_T fileNameAllocationSize = 0;
     PVOID fileNameBaseAddress = NULL;
     PVOID loadLibraryW = NULL;
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
+    PPH_TARGET_LIBS libs;
 
     if (KphProcessLevel(ProcessHandle) > KphLevelMed)
     {
         return STATUS_ACCESS_DENIED;
     }
 
-#ifdef _WIN64
-    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
-
+    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
     if (!NT_SUCCESS(status))
-        goto CleanupExit;
+        return status;
 
-    status = PhGetProcedureAddressRemoteZ(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
+        &libs->Kernel32,
         "LoadLibraryW",
         0,
         &loadLibraryW,
         NULL
         );
-#else
-    status = PhGetProcedureAddressRemoteZ(
-        ProcessHandle,
-        L"\\SystemRoot\\System32\\kernel32.dll",
-        "LoadLibraryW",
-        0,
-        &loadLibraryW,
-        NULL
-        );
-#endif
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -2063,23 +2125,25 @@ NTSTATUS PhUnloadDllProcess(
     )
 {
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64 = FALSE;
-    BOOLEAN isModule32 = FALSE;
-#endif
     HANDLE threadHandle;
     HANDLE powerRequestHandle = NULL;
     THREAD_BASIC_INFORMATION basicInfo;
     PVOID threadStart;
+    PPH_TARGET_LIBS libs;
 
-#ifdef _WIN64
-    PhGetProcessIsWow64(ProcessHandle, &isWow64);
-#endif
+    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     // No point trying to set the load count on Windows 8 and higher, because NT now uses a DAG of
     // loader nodes.
     if (WindowsVersion < WINDOWS_8)
     {
+#ifdef _WIN64
+        BOOLEAN isWow64 = FALSE;
+        BOOLEAN isModule32 = FALSE;
+#endif
         status = PhSetProcessModuleLoadCount(
             ProcessHandle,
             BaseAddress,
@@ -2087,6 +2151,7 @@ NTSTATUS PhUnloadDllProcess(
             );
 
 #ifdef _WIN64
+        PhGetProcessIsWow64(ProcessHandle, &isWow64);
         if (isWow64 && status == STATUS_DLL_NOT_FOUND)
         {
             // The DLL might be 32-bit.
@@ -2104,25 +2169,14 @@ NTSTATUS PhUnloadDllProcess(
             return status;
     }
 
-#ifdef _WIN64
-    status = PhGetProcedureAddressRemoteZ(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
+        &libs->Ntdll,
         "LdrUnloadDll",
         0,
         &threadStart,
         NULL
         );
-#else
-    status = PhGetProcedureAddressRemoteZ(
-        ProcessHandle,
-        L"\\SystemRoot\\System32\\ntdll.dll",
-        "LdrUnloadDll",
-        0,
-        &threadStart,
-        NULL
-        );
-#endif
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2188,9 +2242,6 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     )
 {
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64;
-#endif
     THREAD_BASIC_INFORMATION basicInformation;
     PVOID nameBaseAddress = NULL;
     PVOID valueBaseAddress = NULL;
@@ -2200,45 +2251,32 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     PVOID setEnvironmentVariableW = NULL;
     HANDLE threadHandle = NULL;
     HANDLE powerRequestHandle = NULL;
+    PPH_TARGET_LIBS libs;
+#ifdef _WIN64
+    BOOLEAN isWow64;
+#endif
 
     nameAllocationSize = Name->Length + sizeof(UNICODE_NULL);
 
     if (Value)
         valueAllocationSize = Value->Length + sizeof(UNICODE_NULL);
 
+    status = PhpGetProcessTargetLibs(
+        ProcessHandle,
+        &libs,
 #ifdef _WIN64
-    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    status = PhGetProcedureAddressRemoteZ(
-        ProcessHandle,
-        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
-        "RtlExitUserThread",
-        0,
-        &rtlExitUserThread,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    status = PhGetProcedureAddressRemoteZ(
-        ProcessHandle,
-        isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
-        "SetEnvironmentVariableW",
-        0,
-        &setEnvironmentVariableW,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
+        &isWow64
 #else
-    status = PhGetProcedureAddressRemoteZ(
+        NULL
+#endif
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        L"\\SystemRoot\\System32\\ntdll.dll",
+        &libs->Ntdll,
         "RtlExitUserThread",
         0,
         &rtlExitUserThread,
@@ -2248,9 +2286,9 @@ NTSTATUS PhSetEnvironmentVariableRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhGetProcedureAddressRemoteZ(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        L"\\SystemRoot\\System32\\kernel32.dll",
+        &libs->Kernel32,
         "SetEnvironmentVariableW",
         0,
         &setEnvironmentVariableW,
@@ -2259,7 +2297,6 @@ NTSTATUS PhSetEnvironmentVariableRemote(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
-#endif
 
     status = NtAllocateVirtualMemory(
         ProcessHandle,
@@ -7929,30 +7966,30 @@ PPH_STRING PhGetFileName(
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
         memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &FileName->Buffer[11], FileName->Length - 11 * sizeof(WCHAR));
     }
-    // "system32\" means "C:\Windows\system32\".
-    else if (PhStartsWithString2(FileName, L"system32\\", TRUE))
-    {
-        PH_STRINGREF systemRoot;
-
-        PhGetSystemRoot(&systemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRoot.Length + sizeof(UNICODE_NULL) + FileName->Length);
-        memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        newFileName->Buffer[systemRoot.Length / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
-        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + sizeof(UNICODE_NULL)), FileName->Buffer, FileName->Length);
-    }
-#ifdef _WIN64
-    // "SysWOW64\" means "C:\Windows\SysWOW64\".
-    else if (PhStartsWithString2(FileName, L"SysWOW64\\", TRUE))
-    {
-        PH_STRINGREF systemRoot;
-
-        PhGetSystemRoot(&systemRoot);
-        newFileName = PhCreateStringEx(NULL, systemRoot.Length + sizeof(UNICODE_NULL) + FileName->Length);
-        memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
-        newFileName->Buffer[systemRoot.Length / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
-        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + sizeof(UNICODE_NULL)), FileName->Buffer, FileName->Length);
-    }
+    // System32, SysWOW64, SysArm32, and SyChpe32 are all identicle length, fixup is the same
+    else if (
+        // "System32\" means "C:\Windows\System32\".
+        PhStartsWithString2(FileName, L"System32\\", TRUE)
+#if _WIN64
+        // "SysWOW64\" means "C:\Windows\SysWOW64\".
+        || PhStartsWithString2(FileName, L"SysWOW64\\", TRUE)
+#if _M_ARM64
+        // "SysArm32\" means "C:\Windows\SysArm32\".
+        || PhStartsWithString2(FileName, L"SysArm32\\", TRUE)
+        // "SyChpe32\" means "C:\Windows\SyChpe32\".
+        || PhStartsWithString2(FileName, L"SyChpe32\\", TRUE)
 #endif
+#endif
+        )
+    {
+        PH_STRINGREF systemRoot;
+
+        PhGetSystemRoot(&systemRoot);
+        newFileName = PhCreateStringEx(NULL, systemRoot.Length + sizeof(UNICODE_NULL) + FileName->Length);
+        memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
+        newFileName->Buffer[systemRoot.Length / sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
+        memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length + sizeof(UNICODE_NULL)), FileName->Buffer, FileName->Length);
+    }
     else if (FileName->Length != 0 && FileName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
     {
         PPH_STRING resolvedName;
@@ -12319,21 +12356,17 @@ NTSTATUS PhGetProcessCodePage(
     )
 {
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64;
-#endif
     USHORT codePage = 0;
     PVOID nlsAnsiCodePage;
+    PPH_TARGET_LIBS libs;
 
-#ifdef _WIN64
-    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
-
+    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcedureAddressRemoteZ(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? L"\\SystemRoot\\SysWow64\\ntdll.dll" : L"\\SystemRoot\\System32\\ntdll.dll",
+        &libs->Ntdll,
         "NlsAnsiCodePage",
         0,
         &nlsAnsiCodePage,
@@ -12342,19 +12375,6 @@ NTSTATUS PhGetProcessCodePage(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
-#else
-    status = PhGetProcedureAddressRemoteZ(
-        ProcessHandle,
-        L"\\SystemRoot\\System32\\ntdll.dll",
-        "NlsAnsiCodePage",
-        0,
-        &nlsAnsiCodePage,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-#endif
 
     status = NtReadVirtualMemory(
         ProcessHandle,
@@ -12427,22 +12447,18 @@ NTSTATUS PhGetProcessConsoleCodePage(
     )
 {
     NTSTATUS status;
-#ifdef _WIN64
-    BOOLEAN isWow64;
-#endif
     THREAD_BASIC_INFORMATION basicInformation;
     HANDLE threadHandle = NULL;
     PVOID getConsoleCP = NULL;
+    PPH_TARGET_LIBS libs;
 
-#ifdef _WIN64
-    status = PhGetProcessIsWow64(ProcessHandle, &isWow64);
-
+    status = PhpGetProcessTargetLibs(ProcessHandle, &libs, NULL);
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetProcedureAddressRemoteZ(
+    status = PhGetProcedureAddressRemote(
         ProcessHandle,
-        isWow64 ? L"\\SystemRoot\\SysWow64\\kernel32.dll" : L"\\SystemRoot\\System32\\kernel32.dll",
+        &libs->Kernel32,
         ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
         0,
         &getConsoleCP,
@@ -12451,19 +12467,6 @@ NTSTATUS PhGetProcessConsoleCodePage(
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
-#else
-    status = PhGetProcedureAddressRemoteZ(
-        ProcessHandle,
-        L"\\SystemRoot\\System32\\kernel32.dll",
-        ConsoleOutputCP ? "GetConsoleOutputCP" : "GetConsoleCP",
-        0,
-        &getConsoleCP,
-        NULL
-        );
-
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-#endif
 
     status = RtlCreateUserThread(
         ProcessHandle,
@@ -14183,12 +14186,12 @@ NTSTATUS PhWow64SelectSystem32Path(
             WithSeperators = L"\\SysWOW64\\";
             goto CreateResult;
         case IMAGE_FILE_MACHINE_ARMNT:
-            WithoutSeperators = L"SysARM32";
-            WithSeperators = L"\\SysARM32\\";
+            WithoutSeperators = L"SysArm32";
+            WithSeperators = L"\\SysArm32\\";
             goto CreateResult;
         case IMAGE_FILE_MACHINE_CHPE_X86:
-            WithoutSeperators = L"SyCHPE32";
-            WithSeperators = L"\\SyCHPE32\\";
+            WithoutSeperators = L"SyChpe32";
+            WithSeperators = L"\\SyChpe32\\";
             goto CreateResult;
         }
 
