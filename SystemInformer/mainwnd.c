@@ -858,6 +858,15 @@ VOID PhMwpOnCommand(
             PhMwpExecuteNotificationMenuCommand(WindowHandle, Id);
         }
         break;
+    case ID_NOTIFICATIONS_RESETPERSISTLAYOUT:
+    case ID_NOTIFICATIONS_ENABLEDELAYSTART:
+    case ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT:
+    case ID_NOTIFICATIONS_ENABLETRANSPARENTICONS:
+    case ID_NOTIFICATIONS_ENABLESINGLECLICKICONS:
+        {
+            PhMwpExecuteNotificationSettingsMenuCommand(WindowHandle, Id);
+        }
+        break;
     case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
         {
             PhMwpToggleCurrentUserProcessTreeFilter();
@@ -2902,6 +2911,101 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     return FALSE;
 }
 
+PPH_EMENU PhpCreateNotificationSettingsMenu(
+    VOID
+    )
+{
+    PPH_EMENU_ITEM menuItem;
+
+    menuItem = PhCreateEMenuItem(0, 0, L"Settings", NULL, NULL);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLEDELAYSTART, L"Enable initialization delay", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT, L"Enable persistent layout", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLETRANSPARENTICONS, L"Enable transparent icons", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_ENABLESINGLECLICKICONS, L"Enable single click icons", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_NOTIFICATIONS_RESETPERSISTLAYOUT, L"Reset persistent layout", NULL, NULL), ULONG_MAX);
+
+    if (PhGetIntegerSetting(L"IconTrayLazyStartDelay"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLEDELAYSTART, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"IconTrayPersistGuidEnabled"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"IconTransparencyEnabled"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLETRANSPARENTICONS, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"IconSingleClick"))
+    {
+        PhSetFlagsEMenuItem(menuItem, ID_NOTIFICATIONS_ENABLESINGLECLICKICONS, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
+    }
+
+    return menuItem;
+}
+
+BOOLEAN PhMwpExecuteNotificationSettingsMenuCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case ID_NOTIFICATIONS_RESETPERSISTLAYOUT:
+        {
+            EXTERN_C VOID PhNfLoadGuids(VOID);
+
+            PhSetStringSetting(L"IconTrayGuids", L"");
+
+            PhNfLoadGuids();
+
+            PhShowOptionsRestartRequired(WindowHandle);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLEDELAYSTART:
+        {
+            BOOLEAN lazyTrayIconStartDelayEnabled = !!PhGetIntegerSetting(L"IconTrayLazyStartDelay");
+
+            PhSetIntegerSetting(L"IconTrayLazyStartDelay", !lazyTrayIconStartDelayEnabled);
+
+            PhShowOptionsRestartRequired(WindowHandle);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLEPERSISTLAYOUT:
+        {
+            BOOLEAN persistentTrayIconLayoutEnabled = !!PhGetIntegerSetting(L"IconTrayPersistGuidEnabled");
+
+            PhSetIntegerSetting(L"IconTrayPersistGuidEnabled", !persistentTrayIconLayoutEnabled);
+
+            PhShowOptionsRestartRequired(WindowHandle);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLETRANSPARENTICONS:
+        {
+            BOOLEAN transparentTrayIconsEnabled = !!PhGetIntegerSetting(L"IconTransparencyEnabled");
+
+            EXTERN_C BOOLEAN PhNfTransparencyEnabled;
+            PhNfTransparencyEnabled = !transparentTrayIconsEnabled;
+
+            PhSetIntegerSetting(L"IconTransparencyEnabled", !transparentTrayIconsEnabled);
+        }
+        return TRUE;
+    case ID_NOTIFICATIONS_ENABLESINGLECLICKICONS:
+        {
+            BOOLEAN singleClickTrayIconsEnabled = !!PhGetIntegerSetting(L"IconSingleClick");
+
+            PhSetIntegerSetting(L"IconSingleClick", !singleClickTrayIconsEnabled);
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 PPH_EMENU PhpCreateIconMenu(
     VOID
     )
@@ -2912,6 +3016,7 @@ PPH_EMENU PhpCreateIconMenu(
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SHOWHIDEPROCESSHACKER, L"&Show/Hide System Informer", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_ICON_SYSTEMINFORMATION, L"System &information", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhpCreateNotificationMenu(), ULONG_MAX);
+    PhInsertEMenuItem(menu, PhpCreateNotificationSettingsMenu(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESSES_DUMMY, L"&Processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(menu, PhpCreateComputerMenu(FALSE), ULONG_MAX);
@@ -2964,6 +3069,7 @@ VOID PhMwpInitializeSubMenu(
             // Add menu items for the registered tray icons.
 
             PhInsertEMenuItem(trayIconsMenuItem, PhpCreateNotificationMenu(), ULONG_MAX);
+            PhInsertEMenuItem(trayIconsMenuItem, PhpCreateNotificationSettingsMenu(), ULONG_MAX);
             PhInsertEMenuItem(trayIconsMenuItem, PhCreateEMenuSeparator(), ULONG_MAX);
 
             for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)

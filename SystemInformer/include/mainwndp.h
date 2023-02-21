@@ -226,6 +226,11 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     _In_ ULONG Id
     );
 
+BOOLEAN PhMwpExecuteNotificationSettingsMenuCommand(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Id
+    );
+
 // Tab control
 
 VOID PhMwpLayoutTabControl(
