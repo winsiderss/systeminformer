@@ -3419,8 +3419,9 @@ PhBufferToHexStringBuffer(
     _In_reads_bytes_(InputLength) PUCHAR InputBuffer,
     _In_ SIZE_T InputLength,
     _In_ BOOLEAN UpperCase,
-    _Out_writes_bytes_(OutputLength) PWSTR OutputBuffer,
-    _In_ SIZE_T OutputLength
+    _Out_writes_bytes_to_opt_(OutputLength, *ReturnLength) PWSTR OutputBuffer,
+    _In_ SIZE_T OutputLength,
+    _Out_opt_ PSIZE_T ReturnLength
     );
 
 PHLIBAPI
