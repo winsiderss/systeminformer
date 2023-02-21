@@ -202,12 +202,12 @@ BOOLEAN EtpDiskPageCallback(
         return TRUE;
     case MainTabPageLoadSettings:
         {
-            // Nothing
+            NOTHING;
         }
         return TRUE;
     case MainTabPageSaveSettings:
         {
-            // Nothing
+            EtSaveSettingsDiskTreeList();
         }
         return TRUE;
     case MainTabPageSelected:
@@ -820,11 +820,6 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
             EtShowDiskContextMenu(WindowHandle, contextMenuEvent);
-        }
-        return TRUE;
-    case TreeNewDestroying:
-        {
-            EtSaveSettingsDiskTreeList();
         }
         return TRUE;
     }
