@@ -27,6 +27,7 @@ static WNDPROC PhDefaultStaticWindowProcedure = NULL;
 static WNDPROC PhDefaultStatusbarWindowProcedure = NULL;
 static WNDPROC PhDefaultEditWindowProcedure = NULL;
 static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
+static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
 
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
@@ -108,7 +109,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
                         SetWindowDisplayAffinity_Import()(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
                 }
 
-                if (PhEnableThemeSupport && PhEnableThemeAcrylicSupport)
+                if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
                 {
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
@@ -937,7 +938,7 @@ HWND PhCreateWindowExHook(
                 SetWindowDisplayAffinity_Import()(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        if (PhEnableThemeSupport && PhEnableThemeAcrylicSupport)
+        if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
         {
             PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
         }
@@ -1155,6 +1156,11 @@ VOID PhInitializeSuperclassControls(
 
     if (PhEnableThemeSupport || PhDefaultEnableStreamerMode)
     {
+        if (WindowsVersion >= WINDOWS_11)
+        {
+            PhDefaultEnableThemeAcrylicWindowSupport = !!PhGetIntegerSetting(L"EnableThemeAcrylicWindowSupport");
+        }
+
         PhRegisterDialogSuperClass();
         PhRegisterMenuSuperClass();
         PhRegisterRebarSuperClass();
