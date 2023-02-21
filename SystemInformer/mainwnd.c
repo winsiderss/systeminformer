@@ -2193,14 +2193,6 @@ VOID PhMwpSaveSettings(
 {
     PhMwpNotifyAllPages(MainTabPageSaveSettings, NULL, NULL);
 
-    PhNfSaveSettings();
-    PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
-
-    if (PhGetIntegerSetting(L"MainWindowTabRestoreEnabled"))
-    {
-        PhSetIntegerSetting(L"MainWindowTabRestoreIndex", TabCtrl_GetCurSel(TabControlHandle));
-    }
-
     PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", WindowHandle);
     PhMwpSaveWindowState(WindowHandle);
 
@@ -2686,6 +2678,7 @@ VOID PhMwpDispatchMenuCommand(
 
                 icon = menuItem->Context;
                 PhNfSetVisibleIcon(icon, !(icon->Flags & PH_NF_ICON_ENABLED));
+                PhNfSaveSettings();
             }
 
             return;
@@ -2858,10 +2851,12 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
     switch (Id)
     {
     case ID_NOTIFICATIONS_ENABLEALL:
-        PhMwpNotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
+        SetFlag(PhMwpNotifyIconNotifyMask, PH_NOTIFY_VALID_MASK);
+        PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
         return TRUE;
     case ID_NOTIFICATIONS_DISABLEALL:
-        PhMwpNotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
+        ClearFlag(PhMwpNotifyIconNotifyMask, PH_NOTIFY_VALID_MASK);
+        PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
         return TRUE;
     case ID_NOTIFICATIONS_NEWPROCESSES:
     case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
@@ -2899,6 +2894,7 @@ BOOLEAN PhMwpExecuteNotificationMenuCommand(
             }
 
             PhMwpNotifyIconNotifyMask ^= bit;
+            PhSetIntegerSetting(L"IconNotifyMask", PhMwpNotifyIconNotifyMask);
         }
         return TRUE;
     }
@@ -3196,6 +3192,9 @@ VOID PhMwpSelectionChangedTabControl(
     PhMwpLayoutTabControl(&deferHandle);
 
     EndDeferWindowPos(deferHandle);
+
+    if (OldIndex != ULONG_MAX && PhGetIntegerSetting(L"MainWindowTabRestoreEnabled") && IsWindowVisible(TabControlHandle))
+        PhSetIntegerSetting(L"MainWindowTabRestoreIndex", selectedIndex);
 
     if (PhPluginsEnabled)
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowTabChanged), IntToPtr(selectedIndex));
