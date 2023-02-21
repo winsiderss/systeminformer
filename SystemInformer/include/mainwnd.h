@@ -269,6 +269,10 @@ VOID PhShowDetailsForIconNotification(
     VOID
     );
 
+VOID PhShowOptionsRestartRequired(
+    _In_ HWND WindowHandle
+    );
+
 VOID PhShowProcessContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     );
