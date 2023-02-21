@@ -46,7 +46,7 @@ REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
-WNDPROC MainWindowHookProc = NULL;
+WNDPROC MainWindowDefaultProc = NULL;
 HMENU MainMenu = NULL;
 HACCEL AcceleratorTable = NULL;
 PPH_STRING SearchboxText = NULL;
@@ -605,7 +605,7 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
-LRESULT CALLBACK MainWndSubclassProc(
+LRESULT CALLBACK MainWindowSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -614,13 +614,10 @@ LRESULT CALLBACK MainWndSubclassProc(
 {
     switch (uMsg)
     {
+    //case WM_NCDESTROY:
+    //    PhSetWindowProcedure(hWnd, MainWindowDefaultProc);
+    //    break;
     case WM_DESTROY:
-        {
-            SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)MainWindowHookProc);
-
-            TaskbarMainWndExiting = TRUE;
-        }
-        break;
     case WM_ENDSESSION:
         {
             TaskbarMainWndExiting = TRUE;
@@ -629,7 +626,7 @@ LRESULT CALLBACK MainWndSubclassProc(
     case WM_DPICHANGED:
         {
             // Let System Informer perform the default processing.
-            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            LRESULT result = MainWindowDefaultProc(hWnd, uMsg, wParam, lParam);
 
             // Update fonts/sizes for new DPI.
             ToolbarWindowFont = ProcessHacker_GetFont();
@@ -835,7 +832,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             case PHAPP_ID_VIEW_ALWAYSONTOP:
                 {
                     // Let System Informer perform the default processing.
-                    LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+                    LRESULT result = MainWindowDefaultProc(hWnd, uMsg, wParam, lParam);
 
                     // Query the settings.
                     BOOLEAN isAlwaysOnTopEnabled = !!PhGetIntegerSetting(L"MainWindowAlwaysOnTop");
@@ -853,7 +850,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             case PHAPP_ID_UPDATEINTERVAL_VERYSLOW:
                 {
                     // Let System Informer perform the default processing.
-                    LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+                    LRESULT result = MainWindowDefaultProc(hWnd, uMsg, wParam, lParam);
 
                     StatusBarUpdate(TRUE);
 
@@ -1518,7 +1515,7 @@ LRESULT CALLBACK MainWndSubclassProc(
     case WM_PH_UPDATE_FONT:
         {
             // Let System Informer perform the default processing.
-            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            LRESULT result = MainWindowDefaultProc(hWnd, uMsg, wParam, lParam);
 
             ToolbarWindowFont = ProcessHacker_GetFont();
             SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
@@ -1554,7 +1551,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
 
             // Let System Informer perform the default processing.
-            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            LRESULT result = MainWindowDefaultProc(hWnd, uMsg, wParam, lParam);
 
             // This fixes the search focus for the 'Hide when closed' option. See GH #663 (dmex)
             switch (LOWORD(lParam))
@@ -1593,7 +1590,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 break;
 
             // Let System Informer perform the default processing. (dmex)
-            LRESULT result = CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+            LRESULT result = MainWindowDefaultProc(hWnd, uMsg, wParam, lParam);
 
             // Re-focus the searchbox when we're already running and we're moved
             // into the foreground by the new instance. Fixes GH #178 (dmex)
@@ -1610,7 +1607,7 @@ LRESULT CALLBACK MainWndSubclassProc(
         break;
     }
 
-    return CallWindowProc(MainWindowHookProc, hWnd, uMsg, wParam, lParam);
+    return MainWindowDefaultProc(hWnd, uMsg, wParam, lParam);
 
 DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -1631,8 +1628,8 @@ VOID NTAPI MainWindowShowingCallback(
         &LayoutPaddingCallbackRegistration
         );
 
-    MainWindowHookProc = (WNDPROC)GetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC);
-    SetWindowLongPtr(PhMainWndHandle, GWLP_WNDPROC, (LONG_PTR)MainWndSubclassProc);
+    MainWindowDefaultProc = ProcessHacker_GetWindowProcedure();
+    PhSetWindowProcedure(PhMainWndHandle, MainWindowSubclassProc);
 
     ToolbarLoadSettings(FALSE);
     ToolbarCreateGraphs();
