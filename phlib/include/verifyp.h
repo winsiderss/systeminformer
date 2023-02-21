@@ -1,3 +1,15 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     wj32    2009-2016
+ *     dmex    2017-2023
+ *
+ */
+
 #ifndef _PH_VERIFYP_H
 #define _PH_VERIFYP_H
 
@@ -24,7 +36,8 @@ typedef struct _CATALOG_INFO
     WCHAR wszCatalogFile[MAX_PATH];
 } CATALOG_INFO, *PCATALOG_INFO;
 
-typedef struct tagCRYPTUI_VIEWSIGNERINFO_STRUCT {
+typedef struct tagCRYPTUI_VIEWSIGNERINFO_STRUCT 
+{
     ULONG dwSize;
     HWND hwndParent;
     ULONG dwFlags;
@@ -41,17 +54,17 @@ typedef struct tagCRYPTUI_VIEWSIGNERINFO_STRUCT {
 
 typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle)(
     _In_ HANDLE hFile,
-    _Out_ PULONG pcbHash,
-    _Out_ PBYTE pbHash,
-    _In_ ULONG dwFlags
+    _Inout_ PULONG pcbHash,
+    _Out_writes_bytes_to_opt_(*pcbHash, *pcbHash) PBYTE pbHash,
+    _Reserved_ ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle2)(
     _In_ HCATADMIN hCatAdmin,
     _In_ HANDLE hFile,
-    _Out_ PULONG pcbHash,
-    _Out_ PBYTE pbHash,
-    _In_ ULONG dwFlags
+    _Inout_ PULONG pcbHash,
+    _Out_writes_bytes_to_opt_(*pcbHash, *pcbHash) PBYTE pbHash,
+    _Reserved_ ULONG dwFlags
     );
 
 #define CRYPTCATADMIN_CALCHASH_FLAG_NONCONFORMANT_FILES_FALLBACK_FLAT 0x1
@@ -59,47 +72,47 @@ typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle2)(
 typedef BOOL (WINAPI *_CryptCATAdminCalcHashFromFileHandle3)(
     _In_ HCATADMIN hCatAdmin,
     _In_ HANDLE hFile,
-    _Out_ PULONG pcbHash,
-    _Out_ PBYTE pbHash,
-    _In_ ULONG dwFlags
+    _Inout_ PULONG pcbHash,
+    _Out_writes_bytes_to_opt_(*pcbHash, *pcbHash) PBYTE pbHash,
+    _Reserved_ ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext)(
     _Out_ HCATADMIN *phCatAdmin,
-    _In_ PGUID pgSubsystem,
-    _In_ ULONG dwFlags
+    _In_opt_ PGUID pgSubsystem,
+    _Reserved_ ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminAcquireContext2)(
     _Out_ HCATADMIN *phCatAdmin,
-    _In_ PGUID pgSubsystem,
-    _In_ PCWSTR pwszHashAlgorithm,
+    _In_opt_ PGUID pgSubsystem,
+    _In_opt_ PCWSTR pwszHashAlgorithm,
     _In_opt_ PCCERT_STRONG_SIGN_PARA pStrongHashPolicy,
-    _In_ ULONG dwFlags
+    _Reserved_ ULONG dwFlags
     );
 
 typedef HANDLE (WINAPI *_CryptCATAdminEnumCatalogFromHash)(
-    _In_ HANDLE hCatAdmin,
-    _Out_ PBYTE pbHash,
+    _In_ HCATADMIN hCatAdmin,
+    _In_reads_bytes_(cbHash) PBYTE pbHash,
     _In_ ULONG cbHash,
-    _In_ ULONG dwFlags,
-    _Out_opt_ PHANDLE phPrevCatInfo
+    _Reserved_ ULONG dwFlags,
+    _Inout_opt_ HANDLE phPrevCatInfo // HCATINFO
     );
 
 typedef BOOL (WINAPI *_CryptCATCatalogInfoFromContext)(
     _In_ HANDLE hCatInfo,
-    _Out_ CATALOG_INFO *psCatInfo,
+    _Inout_ CATALOG_INFO *psCatInfo,
     _In_ ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminReleaseCatalogContext)(
-    _In_ HANDLE hCatAdmin,
+    _In_ HCATADMIN hCatAdmin,
     _In_ HANDLE hCatInfo,
     _In_ ULONG dwFlags
     );
 
 typedef BOOL (WINAPI *_CryptCATAdminReleaseContext)(
-    _In_ HANDLE hCatAdmin,
+    _In_ HCATADMIN hCatAdmin,
     _In_ ULONG dwFlags
     );
 
@@ -143,8 +156,15 @@ typedef ULONG (WINAPI *_CertNameToStr)(
     _In_ ULONG dwCertEncodingType,
     _In_ PCERT_NAME_BLOB pName,
     _In_ ULONG dwStrType,
-    _Out_ PWSTR psz,
-    _In_opt_ ULONG csz
+    _Out_writes_to_opt_(csz, return) PWSTR psz,
+    _In_ ULONG csz
+    );
+
+typedef BOOL (WINAPI *_CertGetEnhancedKeyUsage)(
+    _In_ PCCERT_CONTEXT pCertContext,
+    _In_ ULONG dwFlags,
+    _Out_writes_bytes_to_opt_(*pcbUsage, *pcbUsage) PCERT_ENHKEY_USAGE pUsage,
+    _Inout_ PULONG pcbUsage
     );
 
 typedef PCCERT_CONTEXT (WINAPI *_CertDuplicateCertificateContext)(
@@ -159,6 +179,9 @@ typedef BOOL (WINAPI *_CryptUIDlgViewSignerInfo)(
     _In_ CRYPTUI_VIEWSIGNERINFO_STRUCT *pcvsi
     );
 
+// C689AAB8-8E78-11D0-8C47-00C04FC295EE
+DEFINE_GUID(WINTRUST_KNOWN_SUBJECT_PE_IMAGE, 0xC689AAB8, 0x8E78, 0x11D0, 0x8C, 0x47, 0x0, 0xC0, 0x4F, 0xC2, 0x95, 0xEE);
+            
 typedef enum _SIGNATURE_STATE
 {
     SIGNATURE_STATE_UNSIGNED_MISSING,

@@ -14,6 +14,10 @@
 #include <ph.h>
 #include <appresolver.h>
 #include <mapldr.h>
+
+#include <wintrust.h>
+#include <softpub.h>
+
 #include <verify.h>
 #include <verifyp.h>
 
@@ -25,10 +29,11 @@ _CryptCATAdminEnumCatalogFromHash CryptCATAdminEnumCatalogFromHash;
 _CryptCATCatalogInfoFromContext CryptCATCatalogInfoFromContext;
 _CryptCATAdminReleaseCatalogContext CryptCATAdminReleaseCatalogContext;
 _CryptCATAdminReleaseContext CryptCATAdminReleaseContext;
-_WTHelperProvDataFromStateData WTHelperProvDataFromStateData_I;
-_WTHelperGetProvSignerFromChain WTHelperGetProvSignerFromChain_I;
+//_WTHelperProvDataFromStateData WTHelperProvDataFromStateData_I;
+//_WTHelperGetProvSignerFromChain WTHelperGetProvSignerFromChain_I;
 _WinVerifyTrust WinVerifyTrust_I;
 _CertNameToStr CertNameToStr_I;
+_CertGetEnhancedKeyUsage CertGetEnhancedKeyUsage_I;
 _CertDuplicateCertificateContext CertDuplicateCertificateContext_I;
 _CertFreeCertificateContext CertFreeCertificateContext_I;
 
@@ -60,14 +65,15 @@ static VOID PhpVerifyInitialization(
         CryptCATCatalogInfoFromContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATCatalogInfoFromContext", 0);
         CryptCATAdminReleaseCatalogContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminReleaseCatalogContext", 0);
         CryptCATAdminReleaseContext = PhGetDllBaseProcedureAddress(wintrust, "CryptCATAdminReleaseContext", 0);
-        WTHelperProvDataFromStateData_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperProvDataFromStateData", 0);
-        WTHelperGetProvSignerFromChain_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperGetProvSignerFromChain", 0);
+        //WTHelperProvDataFromStateData_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperProvDataFromStateData", 0);
+        //WTHelperGetProvSignerFromChain_I = PhGetDllBaseProcedureAddress(wintrust, "WTHelperGetProvSignerFromChain", 0);
         WinVerifyTrust_I = PhGetDllBaseProcedureAddress(wintrust, "WinVerifyTrust", 0);
     }
 
     if (crypt32)
     {
         CertNameToStr_I = PhGetDllBaseProcedureAddress(crypt32, "CertNameToStrW", 0);
+        CertGetEnhancedKeyUsage_I = PhGetDllBaseProcedureAddress(crypt32, "CertGetEnhancedKeyUsage", 0);
         CertDuplicateCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertDuplicateCertificateContext", 0);
         CertFreeCertificateContext_I = PhGetDllBaseProcedureAddress(crypt32, "CertFreeCertificateContext", 0);
     }
@@ -79,8 +85,6 @@ static VOID PhpVerifyInitialization(
         CryptCATCatalogInfoFromContext &&
         CryptCATAdminReleaseCatalogContext &&
         CryptCATAdminReleaseContext &&
-        WTHelperProvDataFromStateData_I &&
-        WTHelperGetProvSignerFromChain_I &&
         WinVerifyTrust_I &&
         CertNameToStr_I &&
         CertDuplicateCertificateContext_I &&
@@ -121,6 +125,40 @@ VERIFY_RESULT PhpStatusToVerifyResult(
     }
 }
 
+// WTHelperProvDataFromStateData (dmex)
+PCRYPT_PROVIDER_DATA PhGetCryptProviderDataFromStateData(
+    _In_ HANDLE StateData
+    )
+{
+    return (PCRYPT_PROVIDER_DATA)StateData;
+}
+
+// WTHelperGetProvSignerFromChain (dmex)
+PCRYPT_PROVIDER_SGNR PhGetCryptProviderSignerFromChain(
+    _In_ PCRYPT_PROVIDER_DATA ProvData,
+    _In_ ULONG SignerIndex,
+    _In_ BOOLEAN CounterSigner,
+    _In_ ULONG CounterSignerIndex
+    )
+{
+    PCRYPT_PROVIDER_SGNR signer;
+
+    if (!ProvData || SignerIndex >= ProvData->csSigners)
+        return NULL;
+
+    signer = &ProvData->pasSigners[SignerIndex];
+
+    if (CounterSigner)
+    {
+        if (CounterSignerIndex < signer->csCounterSigners)
+        {
+            return &signer->pasCounterSigners[CounterSignerIndex];
+        }
+    }
+
+    return signer;
+}
+
 _Success_(return)
 BOOLEAN PhpGetSignaturesFromStateData(
     _In_ HANDLE StateData,
@@ -135,7 +173,7 @@ BOOLEAN PhpGetSignaturesFromStateData(
     ULONG numberOfSignatures;
     ULONG index;
 
-    provData = WTHelperProvDataFromStateData_I(StateData);
+    provData = PhGetCryptProviderDataFromStateData(StateData);
 
     if (!provData)
     {
@@ -147,7 +185,7 @@ BOOLEAN PhpGetSignaturesFromStateData(
     i = 0;
     numberOfSignatures = 0;
 
-    while (sgnr = WTHelperGetProvSignerFromChain_I(provData, i, FALSE, 0))
+    while (sgnr = PhGetCryptProviderSignerFromChain(provData, i, FALSE, 0))
     {
         if (sgnr->csCertChain != 0)
             numberOfSignatures++;
@@ -161,7 +199,7 @@ BOOLEAN PhpGetSignaturesFromStateData(
         i = 0;
         index = 0;
 
-        while (sgnr = WTHelperGetProvSignerFromChain_I(provData, i, FALSE, 0))
+        while (sgnr = PhGetCryptProviderSignerFromChain(provData, i, FALSE, 0))
         {
             if (sgnr->csCertChain != 0)
                 signatures[index++] = (PCERT_CONTEXT)CertDuplicateCertificateContext_I(sgnr->pasCertChain[0].pCert);
@@ -206,9 +244,9 @@ VOID PhpViewSignerInfo(
         PCRYPT_PROVIDER_DATA provData;
         PCRYPT_PROVIDER_SGNR sgnr;
 
-        if (!(provData = WTHelperProvDataFromStateData_I(StateData)))
+        if (!(provData = PhGetCryptProviderDataFromStateData(StateData)))
             return;
-        if (!(sgnr = WTHelperGetProvSignerFromChain_I(provData, 0, FALSE, 0)))
+        if (!(sgnr = PhGetCryptProviderSignerFromChain(provData, 0, FALSE, 0)))
             return;
 
         viewSignerInfo.hwndParent = Information->hWnd;
@@ -239,7 +277,7 @@ VERIFY_RESULT PhpVerifyFile(
     trustData.fdwRevocationChecks = WTD_REVOKE_WHOLECHAIN;
     trustData.dwUnionChoice = UnionChoice;
     trustData.dwStateAction = WTD_STATEACTION_VERIFY;
-    trustData.dwProvFlags = WTD_SAFER_FLAG;
+    trustData.dwProvFlags = WTD_SAFER_FLAG | WTD_DISABLE_MD2_MD4;
 
     trustData.pFile = UnionData;
 
@@ -268,7 +306,7 @@ VERIFY_RESULT PhpVerifyFile(
 _Success_(return)
 BOOLEAN PhpCalculateFileHash(
     _In_ HANDLE FileHandle,
-    _In_opt_ PWSTR HashAlgorithm,
+    _In_opt_ PCWSTR HashAlgorithm,
     _Out_ PUCHAR *FileHash,
     _Out_ PULONG FileHashLength,
     _Out_ HANDLE *CatAdminHandle
@@ -330,26 +368,78 @@ BOOLEAN PhpCalculateFileHash(
     return TRUE;
 }
 
+_Success_(return)
+BOOLEAN PhpVerifyGetHashFromFileHandle(
+    _In_ HANDLE FileHandle,
+    _In_opt_ PCWSTR HashAlgorithm,
+    _Out_writes_bytes_(HashTagLength) PWSTR HashTagBuffer,
+    _In_ ULONG HashTagLength,
+    _Out_writes_bytes_to_(*FileHashLength, *FileHashLength) PUCHAR FileHashBuffer,
+    _Inout_ PULONG FileHashLength,
+    _Out_ HANDLE *CatAdminHandle
+    )
+{
+    HANDLE catAdminHandle;
+
+    if (CryptCATAdminAcquireContext2)
+    {
+        if (!CryptCATAdminAcquireContext2(&catAdminHandle, &DriverActionVerify, HashAlgorithm, NULL, 0))
+            return FALSE;
+    }
+    else
+    {
+        if (!CryptCATAdminAcquireContext(&catAdminHandle, &DriverActionVerify, 0))
+            return FALSE;
+    }
+
+    if (CryptCATAdminCalcHashFromFileHandle2)
+    {
+        if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, FileHandle, FileHashLength, FileHashBuffer, 0))
+        {
+            CryptCATAdminReleaseContext(catAdminHandle, 0);
+            return FALSE;
+        }
+    }
+    else
+    {
+        if (!CryptCATAdminCalcHashFromFileHandle(FileHandle, FileHashLength, FileHashBuffer, 0))
+        {
+            CryptCATAdminReleaseContext(catAdminHandle, 0);
+            return FALSE;
+        }
+    }
+
+    if (!PhBufferToHexStringBuffer(FileHashBuffer, *FileHashLength, TRUE, HashTagBuffer, HashTagLength, NULL))
+    {
+        CryptCATAdminReleaseContext(catAdminHandle, 0);
+        return FALSE;
+    }
+
+    *CatAdminHandle = catAdminHandle;
+
+    return TRUE;
+}
+
 VERIFY_RESULT PhpVerifyFileFromCatalog(
     _In_ PPH_VERIFY_FILE_INFO Information,
     _In_ HANDLE FileHandle,
-    _In_opt_ PWSTR HashAlgorithm,
+    _In_opt_ PCWSTR HashAlgorithm,
     _Out_ PCERT_CONTEXT **Signatures,
     _Out_ PULONG NumberOfSignatures
     )
 {
-    VERIFY_RESULT verifyResult = VrNoSignature;
+    VERIFY_RESULT verifyResult = VrBadSignature;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
     WINTRUST_CATALOG_INFO catalogInfo;
     LARGE_INTEGER fileSize;
     ULONG fileSizeLimit;
-    PUCHAR fileHash;
-    ULONG fileHashLength;
-    PPH_STRING fileHashTag;
+    ULONG fileHashLength = 32; // bytes
+    UCHAR fileHash[32];
+    ULONG fileHashTagLength = 128; // wchar
+    WCHAR fileHashTag[64 + 1];
     HANDLE catAdminHandle;
     HANDLE catInfoHandle;
-    ULONG i;
 
     *Signatures = NULL;
     *NumberOfSignatures = 0;
@@ -371,10 +461,16 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             return VrNoSignature;
     }
 
-    if (PhpCalculateFileHash(FileHandle, HashAlgorithm, &fileHash, &fileHashLength, &catAdminHandle))
+    if (PhpVerifyGetHashFromFileHandle(
+        FileHandle,
+        HashAlgorithm,
+        fileHashTag,
+        fileHashTagLength,
+        fileHash,
+        &fileHashLength,
+        &catAdminHandle
+        ))
     {
-        fileHashTag = PhBufferToHexStringEx(fileHash, fileHashLength, TRUE);
-
         // Search the system catalogs.
 
         catInfoHandle = CryptCATAdminEnumCatalogFromHash(
@@ -400,7 +496,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
                 catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
                 catalogInfo.hMemberFile = FileHandle;
-                catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
+                catalogInfo.pcwszMemberTag = fileHashTag;
                 catalogInfo.pbCalculatedFileHash = fileHash;
                 catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
@@ -416,7 +512,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         {
             // Search any user-supplied catalogs.
 
-            for (i = 0; i < Information->NumberOfCatalogFileNames; i++)
+            for (ULONG i = 0; i < Information->NumberOfCatalogFileNames; i++)
             {
                 PhFreeVerifySignatures(signatures, numberOfSignatures);
 
@@ -425,7 +521,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
                 catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
                 catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
                 catalogInfo.hMemberFile = FileHandle;
-                catalogInfo.pcwszMemberTag = fileHashTag->Buffer;
+                catalogInfo.pcwszMemberTag = fileHashTag;
                 catalogInfo.pbCalculatedFileHash = fileHash;
                 catalogInfo.cbCalculatedFileHash = fileHashLength;
                 catalogInfo.hCatAdmin = catAdminHandle;
@@ -436,8 +532,6 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             }
         }
 
-        PhDereferenceObject(fileHashTag);
-        PhFree(fileHash);
         CryptCATAdminReleaseContext(catAdminHandle, 0);
     }
 
@@ -470,6 +564,7 @@ NTSTATUS PhVerifyFileEx(
 
     memset(&fileInfo, 0, sizeof(WINTRUST_FILE_INFO));
     fileInfo.cbStruct = sizeof(WINTRUST_FILE_INFO);
+    fileInfo.pgKnownSubject = (PGUID)&WINTRUST_KNOWN_SUBJECT_PE_IMAGE;
     fileInfo.hFile = Information->FileHandle;
 
     verifyResult = PhpVerifyFile(
@@ -504,7 +599,7 @@ NTSTATUS PhVerifyFileEx(
             verifyResult = PhpVerifyFileFromCatalog(
                 Information,
                 Information->FileHandle,
-                NULL,
+                BCRYPT_SHA1_ALGORITHM,
                 &signatures,
                 &numberOfSignatures
                 );
@@ -566,7 +661,9 @@ PPH_STRING PhpGetCertNameString(
         bufferSize
         );
 
-    PhTrimToNullTerminatorString(string);
+    if (string->Length > sizeof(UNICODE_NULL))
+        string->Length -= sizeof(UNICODE_NULL);
+    // PhTrimToNullTerminatorString(string);
 
     return string;
 }
@@ -649,6 +746,35 @@ PPH_STRING PhGetSignerNameFromCertificate(
     PhDereferenceObject(name);
 
     return value;
+}
+
+BOOLEAN PhGetSystemComponentFromCertificate(
+    _In_ PCERT_CONTEXT Certificate
+    )
+{
+    BOOLEAN found;
+    UCHAR usageBuffer[256];
+    ULONG usageLength = sizeof(usageBuffer);
+    PCERT_ENHKEY_USAGE usage = (PCERT_ENHKEY_USAGE)usageBuffer;
+
+    if (!CertGetEnhancedKeyUsage_I(Certificate, CERT_FIND_EXT_ONLY_ENHKEY_USAGE_FLAG, usage, &usageLength))
+    {
+        assert(FALSE);
+        return FALSE;
+    }
+
+    found = FALSE;
+
+    for (ULONG i = 0; i < usage->cUsageIdentifier; i++)
+    {
+        if (PhEqualBytesZ(usage->rgpszUsageIdentifier[i], szOID_NT5_CRYPTO, FALSE))
+        {
+            found = TRUE;
+            break;
+        }
+    }
+
+    return found;
 }
 
 /**
@@ -1001,6 +1127,7 @@ VERIFY_RESULT PhVerifyFileCached(
 #endif
 }
 
+#if (PH_VERIFY_FUTURE)
 VERIFY_RESULT PhpSignatureStateToVerifyResult(
     _In_ LONG Status
     )
@@ -1105,3 +1232,298 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
 
     return verifyResult;
 }
+
+BOOLEAN PhIsChainedToMicrosoftFromStateData(
+    _In_ HANDLE StateData
+    )
+{
+    static _WTHelperIsChainedToMicrosoftFromStateData WTHelperIsChainedToMicrosoftFromStateData_I = NULL;
+    PCRYPT_PROVIDER_DATA provData;
+
+    if (!WTHelperIsChainedToMicrosoftFromStateData_I)
+        WTHelperIsChainedToMicrosoftFromStateData_I = PhGetDllProcedureAddress(L"wintrust.dll", "WTHelperIsChainedToMicrosoftFromStateData", 0);
+    if (!WTHelperIsChainedToMicrosoftFromStateData_I)
+        return FALSE;
+
+    provData = PhGetCryptProviderDataFromStateData(StateData);
+
+    if (!provData)
+        return FALSE;
+
+    return !!WTHelperIsChainedToMicrosoftFromStateData_I(provData);
+}
+
+PPH_STRING PhGetProgramNameFromMessage(
+    _In_ HCRYPTMSG CryptMsgHandle
+    )
+{
+    PPH_STRING signerName = NULL;
+    ULONG signerInfoLength = 0;
+    PCMSG_SIGNER_INFO signerInfo;
+
+    if (!CryptMsgGetParam(
+        CryptMsgHandle,
+        CMSG_SIGNER_INFO_PARAM,
+        0,
+        NULL,
+        &signerInfoLength
+        ))
+    {
+        return NULL;
+    }
+
+    signerInfo = PhAllocate(signerInfoLength);
+
+    if (!CryptMsgGetParam(
+        CryptMsgHandle,
+        CMSG_SIGNER_INFO_PARAM,
+        0,
+        signerInfo,
+        &signerInfoLength
+        ))
+    {
+        PhFree(signerInfo);
+        return NULL;
+    }
+
+    for (ULONG i = 0; i < signerInfo->AuthAttrs.cAttr; i++)
+    {
+        if (PhEqualBytesZ(SPC_SP_OPUS_INFO_OBJID, signerInfo->AuthAttrs.rgAttr[i].pszObjId, TRUE))
+        {
+            ULONG opusInfoLength = 0;
+            PSPC_SP_OPUS_INFO opusInfo;
+
+            if (!CryptDecodeObjectEx(
+                X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                SPC_SP_OPUS_INFO_OBJID,
+                signerInfo->AuthAttrs.rgAttr[i].rgValue[0].pbData,
+                signerInfo->AuthAttrs.rgAttr[i].rgValue[0].cbData,
+                CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+                NULL,
+                &opusInfo,
+                &opusInfoLength
+                ))
+            {
+                goto CleanupExit;
+            }
+
+            if (opusInfo->pwszProgramName)
+            {
+                signerName = PhCreateString((PWSTR)opusInfo->pwszProgramName);
+            }
+
+            LocalFree(opusInfo);
+            break;
+        }
+    }
+
+CleanupExit:
+    PhFree(signerInfo);
+
+    return signerName;
+}
+
+// rev from ChainToMicrosoftRoot (dmex)
+BOOLEAN PhVerifyCertificateChainToMicrosoftRoot(
+    _In_ PCCERT_CHAIN_CONTEXT ChainContext,
+    _In_ BOOLEAN CheckOsBinary
+    )
+{
+    CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
+    CERT_CHAIN_POLICY_STATUS policyStatus = { sizeof(CERT_CHAIN_POLICY_STATUS) };
+
+    if (CheckOsBinary)
+    {
+        SetFlag(policyPara.dwFlags, MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG); // MicrosoftWindows vs MicrosoftCorporation
+    }
+
+    if (CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_MICROSOFT_ROOT, ChainContext, &policyPara, &policyStatus))
+    {
+        if (policyStatus.dwError == ERROR_SUCCESS)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+// rev from IsMicrosoftRootChain (dmex)
+BOOLEAN PhVerifyCertificateIsMicrosoftRootChain(
+    _In_ PCCERT_CHAIN_CONTEXT ChainContext
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN InsiderBuild = FALSE;
+    CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
+    CERT_CHAIN_POLICY_STATUS policyStatus = { sizeof(CERT_CHAIN_POLICY_STATUS) };
+    
+    if (PhBeginInitOnce(&initOnce))
+    {
+        SYSTEM_CODEINTEGRITY_INFORMATION integrityInfo;
+
+        if (NT_SUCCESS(NtQuerySystemInformation(
+            SystemCodeIntegrityInformation,
+            &integrityInfo,
+            sizeof(SYSTEM_CODEINTEGRITY_INFORMATION),
+            NULL
+            )))
+        {
+            if (BooleanFlagOn(integrityInfo.CodeIntegrityOptions, CODEINTEGRITY_OPTION_FLIGHTING_ENABLED) ||
+                BooleanFlagOn(integrityInfo.CodeIntegrityOptions, CODEINTEGRITY_OPTION_TEST_BUILD))
+            {
+                InsiderBuild = TRUE;
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (InsiderBuild)
+    {
+        policyPara.dwFlags = MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG; // required
+    }
+
+    if (CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_MICROSOFT_ROOT, ChainContext, &policyPara, &policyStatus))
+    {
+        if (policyStatus.dwError == ERROR_SUCCESS)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+#include <mssip.h>
+#pragma comment(lib, "crypt32.lib")
+
+#include <pshpack1.h>
+typedef struct _SPC_PE_IMAGE_PAGE_HASHES_V1
+{
+    ULONG PageOffset;
+    BYTE PageHash[20]; // SHA-1
+} SPC_PE_IMAGE_PAGE_HASHES_V1, *PSPC_PE_IMAGE_PAGE_HASHES_V1;
+
+typedef struct _SPC_PE_IMAGE_PAGE_HASHES_V2
+{
+    ULONG PageOffset;
+    BYTE PageHash[32]; // SHA-256
+} SPC_PE_IMAGE_PAGE_HASHES_V2, *PSPC_PE_IMAGE_PAGE_HASHES_V2;
+#include <poppack.h>
+
+// Based on peview PvEnumSpcAuthenticodePageHashes (dmex)
+PPH_LIST PhEnumSpcAuthenticodePageHashesFromStateData(
+    _In_ HANDLE StateData
+    )
+{
+    PPH_LIST pageHashList = NULL;
+    PCRYPT_PROVIDER_DATA provData;
+    PPROVDATA_SIP provSipData;
+    PSIP_INDIRECT_DATA indirectData;
+    PSPC_PE_IMAGE_DATA spcPeImageDataBuffer = NULL;
+    ULONG spcPeImageDataLength = 0;
+
+    // WintrustSetDefaultIncludePEPageHashes(TRUE);
+
+    if (!(provData = PhGetCryptProviderDataFromStateData(StateData)))
+        return FALSE;
+    if (!(provSipData = provData->pPDSip))
+        return FALSE;
+    if (!(indirectData = provSipData->psIndirectData))
+        return FALSE;
+
+    if (!PhEqualBytesZ(indirectData->Data.pszObjId, SPC_PE_IMAGE_DATA_OBJID, FALSE))
+        return FALSE;
+
+    if (!CryptDecodeObjectEx(
+        X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+        SPC_PE_IMAGE_DATA_STRUCT,
+        indirectData->Data.Value.pbData,
+        indirectData->Data.Value.cbData,
+        CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+        NULL,
+        &spcPeImageDataBuffer,
+        &spcPeImageDataLength
+        ))
+    {
+        return FALSE;
+    }
+
+    if (
+        spcPeImageDataBuffer->pFile->dwLinkChoice == SPC_MONIKER_LINK_CHOICE &&
+        RtlEqualMemory(spcPeImageDataBuffer->pFile->Moniker.ClassId, (SPC_UUID)SpcSerializedObjectAttributesClassId, sizeof((SPC_UUID)SpcSerializedObjectAttributesClassId))
+        )
+    {
+        ULONG spcSerializedObjectAttributesLength = 0;
+        PCRYPT_ATTRIBUTES spcSerializedObjectAttributesBuffer = NULL;
+
+        if (CryptDecodeObjectEx(
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            PKCS_ATTRIBUTES,
+            spcPeImageDataBuffer->pFile->Moniker.SerializedData.pbData,
+            spcPeImageDataBuffer->pFile->Moniker.SerializedData.cbData,
+            CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+            NULL,
+            &spcSerializedObjectAttributesBuffer,
+            &spcSerializedObjectAttributesLength
+            ))
+        {
+            for (ULONG i = 0; i < spcSerializedObjectAttributesBuffer->cAttr; i++)
+            {
+                CRYPT_ATTRIBUTE spcSerializedObjectBuffer = spcSerializedObjectAttributesBuffer->rgAttr[i];
+                PCRYPT_DATA_BLOB spcImagePageHashesBuffer = NULL;
+                ULONG spcImagePageHashesLength = 0;
+
+                // for (ULONG j = 0; j < spcSerializedObjectBuffer.cValue; j++)
+
+                if (CryptDecodeObjectEx(
+                    X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                    X509_OCTET_STRING,
+                    spcSerializedObjectBuffer.rgValue->pbData,
+                    spcSerializedObjectBuffer.rgValue->cbData,
+                    CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+                    NULL,
+                    &spcImagePageHashesBuffer,
+                    &spcImagePageHashesLength
+                    ))
+                {
+                    if (PhEqualBytesZ(spcSerializedObjectBuffer.pszObjId, SPC_PE_IMAGE_PAGE_HASHES_V1_OBJID, FALSE))
+                    {
+                        ULONG count = spcImagePageHashesBuffer->cbData / sizeof(SPC_PE_IMAGE_PAGE_HASHES_V1);
+                        pageHashList = PhCreateList(count);
+
+                        for (ULONG k = 0; k < count; k++)
+                        {
+                            PSPC_PE_IMAGE_PAGE_HASHES_V1 entry = PTR_ADD_OFFSET(spcImagePageHashesBuffer->pbData, sizeof(SPC_PE_IMAGE_PAGE_HASHES_V1) * k);
+                            PSPC_PE_IMAGE_PAGE_HASHES_V2 thunk;
+
+                            thunk = PhAllocateZero(sizeof(SPC_PE_IMAGE_PAGE_HASHES_V2));
+                            thunk->PageOffset = entry->PageOffset;
+                            memcpy_s(thunk->PageHash, sizeof(thunk->PageHash), entry->PageHash, sizeof(entry->PageHash));
+                            PhAddItemList(pageHashList, thunk);
+                        }
+                    }
+                    else if (PhEqualBytesZ(spcSerializedObjectBuffer.pszObjId, SPC_PE_IMAGE_PAGE_HASHES_V2_OBJID, FALSE))
+                    {
+                        ULONG count = spcImagePageHashesBuffer->cbData / sizeof(SPC_PE_IMAGE_PAGE_HASHES_V2);
+                        pageHashList = PhCreateList(count);
+
+                        for (ULONG k = 0; k < count; k++)
+                        {
+                            PSPC_PE_IMAGE_PAGE_HASHES_V2 entry = PTR_ADD_OFFSET(spcImagePageHashesBuffer->pbData, sizeof(SPC_PE_IMAGE_PAGE_HASHES_V2) * k);
+
+                            PhAddItemList(pageHashList, PhAllocateCopy(entry, sizeof(SPC_PE_IMAGE_PAGE_HASHES_V2)));
+                        }
+                    }
+
+                    LocalFree(spcImagePageHashesBuffer);
+                }
+            }
+
+            LocalFree(spcSerializedObjectAttributesBuffer);
+        }
+    }
+
+    LocalFree(spcPeImageDataBuffer);
+
+    return pageHashList;
+}
+
+#endif
