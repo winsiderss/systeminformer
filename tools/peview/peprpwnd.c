@@ -209,7 +209,18 @@ VOID PvAddTreeViewSections(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDD_PEEXPORTS),
             PvPeExportsDlgProc,
-            NULL
+            ULongToPtr(0) // PhGetMappedImageExportsEx with no flags
+            );
+    }
+
+    if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64EC)) && exports.NumberOfEntries != 0)
+    {
+        PvCreateTabSection(
+            L"Exports ARM64EC",
+            PhInstanceHandle,
+            MAKEINTRESOURCE(IDD_PEEXPORTS),
+            PvPeExportsDlgProc,
+            ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64EC)
             );
     }
 
