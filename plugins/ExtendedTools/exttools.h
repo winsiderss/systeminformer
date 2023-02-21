@@ -1004,7 +1004,7 @@ VOID LoadSettingsFwTreeList(
     );
 
 VOID SaveSettingsFwTreeList(
-    _In_ HWND TreeNewHandle
+    VOID
     );
 
 _Success_(return)
