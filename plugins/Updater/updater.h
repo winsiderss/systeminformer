@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef __UPDATER_H__
-#define __UPDATER_H__
+#ifndef UPDATER_H
+#define UPDATER_H
 
 #include <phdk.h>
 #include <phappresource.h>
@@ -18,6 +18,8 @@
 #include <verify.h>
 #include <settings.h>
 #include <workqueue.h>
+
+#include <bcrypt.h>
 
 #include "resource.h"
 
