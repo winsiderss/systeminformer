@@ -375,11 +375,15 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
         else if (
             PhStartsWithStringRef2(&name, L"\\System32", TRUE)
 #ifdef _WIN64
-            || (PhStartsWithStringRef2(&name, L"\\SysWow64", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+            || (PhStartsWithStringRef2(&name, L"\\SysWOW64", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+#ifdef _M_ARM64
+            || (PhStartsWithStringRef2(&name, L"\\SysArm32", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+            || (PhStartsWithStringRef2(&name, L"\\SyChpe32", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+#endif
 #endif
             )
         {
-            // SysTem32 and SysWow64 are both 8 characters long.
+            // System32, SysWow64, SysArm32, and SyChpe32 are all 8 characters long.
             PhSkipStringRef(&name, 9 * sizeof(WCHAR));
 
             if (FALSE)

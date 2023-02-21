@@ -418,6 +418,10 @@ NTSTATUS PhGetProcedureAddressRemote(
     PH_MAPPED_IMAGE_EXPORTS exports;
     PH_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;
     PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
+#ifdef _M_ARM64
+    USHORT processArchitecture;
+    ULONG exportsFlags;
+#endif
 
     status = PhLoadMappedImageEx(FileName, NULL, &mappedImage);
 
@@ -458,7 +462,24 @@ NTSTATUS PhGetProcedureAddressRemote(
         goto CleanupExit;
     }
 
+#ifdef _M_ARM64
+    exportsFlags = 0;
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC &&
+        mappedImage.NtHeaders->FileHeader.Machine == IMAGE_FILE_MACHINE_ARM64)
+    {
+        status = PhGetProcessArchitecture(ProcessHandle, &processArchitecture);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        if (processArchitecture == IMAGE_FILE_MACHINE_AMD64)
+            exportsFlags |= PH_GET_IMAGE_EXPORTS_ARM64EC;
+    }
+
+    status = PhGetMappedImageExportsEx(&exports, &mappedImage, exportsFlags);
+#else
     status = PhGetMappedImageExports(&exports, &mappedImage);
+#endif
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
