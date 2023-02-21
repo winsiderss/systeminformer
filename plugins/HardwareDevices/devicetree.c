@@ -259,6 +259,10 @@ C_ASSERT(MaxDevType <= MAXSHORT);
 DEFINE_DEVPROPKEY(DEVPKEY_Device_FirmwareVendor, 0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 26);   // DEVPROP_TYPE_STRING
 #endif
 
+VOID DevicesTreeSaveSettings(
+    _In_ HWND TreeNewHandle
+    );
+
 typedef struct _DEVNODE_PROP
 {
     union
@@ -3113,6 +3117,11 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
+    case TreeNewDestroying:
+        {
+            DevicesTreeSaveSettings(hwnd);
+        }
+        return TRUE;
     }
 
     return FALSE;
@@ -3141,7 +3150,6 @@ VOID DevicesTreeSaveSettings(
     ULONG sortColumn;
     ULONG sortOrder;
 
-    PhSaveWindowPlacementToSetting(SETTING_NAME_DEVICE_TREE_WINDOW_POSITION, SETTING_NAME_DEVICE_TREE_WINDOW_SIZE, TreeNewHandle);
     settings = PhCmSaveSettings(TreeNewHandle);
     TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;
@@ -3362,22 +3370,6 @@ BOOLEAN DevicesTabPageCallback(
             {
                 *(HWND*)Parameter1 = hwnd;
             }
-        }
-        return TRUE;
-    case MainTabPageLoadSettings:
-        {
-            NOTHING;
-        }
-        return TRUE;
-    case MainTabPageSaveSettings:
-        {
-            if (DeviceTreeHandle)
-                DevicesTreeSaveSettings(DeviceTreeHandle);
-        }
-        return TRUE;
-    case MainTabPageDestroy:
-        {
-            NOTHING;
         }
         return TRUE;
     case MainTabPageSelected:

@@ -14,7 +14,6 @@
 #include <fwpmu.h>
 #include <fwpsu.h>
 
-BOOLEAN FwTreeNewCreated = FALSE;
 HWND FwTreeNewHandle = NULL;
 ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
@@ -80,8 +79,6 @@ BOOLEAN FwTabPageCallback(
 
             if (!hwnd)
                 return FALSE;
-
-            FwTreeNewCreated = TRUE;
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -161,16 +158,6 @@ BOOLEAN FwTabPageCallback(
             {
                 *(HWND*)Parameter1 = hwnd;
             }
-        }
-        return TRUE;
-    case MainTabPageLoadSettings:
-        {
-            NOTHING;
-        }
-        return TRUE;
-    case MainTabPageSaveSettings:
-        {
-            SaveSettingsFwTreeList(FwTreeNewHandle);
         }
         return TRUE;
     case MainTabPageSelected:
@@ -334,9 +321,6 @@ VOID SaveSettingsFwTreeList(
     PH_INTEGER_PAIR sortSettings;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
-
-    if (!FwTreeNewCreated)
-        return;
 
     settings = PhCmSaveSettings(TreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_FW_TREE_LIST_COLUMNS, &settings->sr);
@@ -1209,7 +1193,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
         return TRUE;
     case TreeNewDestroying:
         {
-            //SaveSettingsTreeList();
+            SaveSettingsFwTreeList(WindowHandle);
         }
         return TRUE;
     case TreeNewCustomDraw:
