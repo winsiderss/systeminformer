@@ -34,6 +34,7 @@ typedef BOOLEAN (NTAPI* PPH_ENUM_SD_ENTRY)(
 typedef struct _REPARSE_WINDOW_CONTEXT
 {
     HWND WindowHandle;
+    HWND ParentWindowHandle;
     HWND ListViewHandle;
     ULONG MenuItemIndex;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -57,6 +58,10 @@ typedef struct _REPARSE_LISTVIEW_ENTRY
     UCHAR ObjectId[16];
 } REPARSE_LISTVIEW_ENTRY, *PREPARSE_LISTVIEW_ENTRY;
 
+VOID EtFreeReparseListViewEntries(
+    _In_ PREPARSE_WINDOW_CONTEXT Context
+    );
+
 #define ET_REPARSE_UPDATE_MSG (WM_APP + 1)
 #define ET_REPARSE_UPDATE_ERROR (WM_APP + 2)
 
@@ -71,6 +76,36 @@ typedef struct _REPARSE_LISTVIEW_ENTRY
     ((PFILE_LAYOUT_ENTRY)(LayoutEntry))->NextFileOffset)) : \
     NULL \
     )
+
+VOID EtReparseDialogContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PREPARSE_WINDOW_CONTEXT context = Object;
+
+    EtFreeReparseListViewEntries(context);
+}
+
+PREPARSE_WINDOW_CONTEXT EtReparseCreateDialogContext(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_OBJECT_TYPE EtReparseItemType = NULL;
+    PREPARSE_WINDOW_CONTEXT context;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        EtReparseItemType = PhCreateObjectType(L"ReparseWindowDialogEntry", 0, EtReparseDialogContextDeleteProcedure);
+        PhEndInitOnce(&initOnce);
+    }
+
+    context = PhCreateObject(sizeof(REPARSE_WINDOW_CONTEXT), EtReparseItemType);
+    memset(context, 0, sizeof(REPARSE_WINDOW_CONTEXT));
+
+    return context;
+}
 
 NTSTATUS EtGetFileHandleName(
     _In_ HANDLE FileHandle,
@@ -1048,10 +1083,15 @@ NTSTATUS EtEnumerateVolumeDirectoryObjects(
         NtClose(directoryHandle);
     }
 
-    if (NT_SUCCESS(status))
-        PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_MSG, 0, 0);
-    else
-        PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_ERROR, 0, status);
+    if (Context->WindowHandle)
+    {
+        if (NT_SUCCESS(status))
+            PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_MSG, 0, 0);
+        else
+            PostMessage(Context->WindowHandle, ET_REPARSE_UPDATE_ERROR, 0, status);
+    }
+
+    PhDereferenceObject(Context);
 
     return status;
 }
@@ -1143,7 +1183,8 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
 
             ShowWindow(GetDlgItem(hwndDlg, IDRETRY), SW_HIDE);
 
-            PhCenterWindow(hwndDlg, PhMainWndHandle);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDRETRY), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
@@ -1170,9 +1211,11 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
                     PhSetListViewSubItem(context->ListViewHandle, index, 1, PhGetStringOrEmpty(context->FileList->Items[i]));
 
                     PhDereferenceObject(context->FileList->Items[i]);
+                    context->FileList->Items[i] = NULL;
                 }
 
                 PhDereferenceObject(context->FileList);
+                context->FileList = NULL;
             }
         }
         break;
@@ -1278,9 +1321,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
 
     if (uMsg == WM_INITDIALOG)
     {
-        context = PhAllocateZero(sizeof(REPARSE_WINDOW_CONTEXT));
-        context->MenuItemIndex = (ULONG)lParam;
-
+        context = (PREPARSE_WINDOW_CONTEXT)lParam;
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
@@ -1322,7 +1363,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
             if (PhGetIntegerPairSetting(SETTING_NAME_REPARSE_WINDOW_POSITION).X != 0)
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_REPARSE_WINDOW_POSITION, SETTING_NAME_REPARSE_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, PhMainWndHandle); // TODO: Pass ParentWindowHandle from EtShowReparseDialog (dmex)
+                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
             PhSetExtendedListView(context->ListViewHandle);
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
@@ -1357,6 +1398,8 @@ INT_PTR CALLBACK EtReparseDlgProc(
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(L"EnableThemeSupport"));
 
             EnableWindow(GetDlgItem(hwndDlg, IDRETRY), FALSE);
+
+            PhReferenceObject(context);
             PhCreateThread2(EtEnumerateVolumeDirectoryObjects, context);
         }
         break;
@@ -1365,6 +1408,8 @@ INT_PTR CALLBACK EtReparseDlgProc(
         break;
     case WM_DESTROY:
         {
+            context->WindowHandle = NULL;
+
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_REPARSE_WINDOW_POSITION, SETTING_NAME_REPARSE_WINDOW_SIZE, hwndDlg);
@@ -1384,9 +1429,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            EtFreeReparseListViewEntries(context);
-
-            PhFree(context);
+            PhDereferenceObject(context);
         }
         break;
     case ET_REPARSE_UPDATE_MSG:
@@ -1500,6 +1543,8 @@ INT_PTR CALLBACK EtReparseDlgProc(
                     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
                     EnableWindow(GetDlgItem(hwndDlg, IDRETRY), FALSE);
+
+                    PhReferenceObject(context);
                     PhCreateThread2(EtEnumerateVolumeDirectoryObjects, context);
                 }
                 break;
@@ -1715,11 +1760,17 @@ VOID EtShowReparseDialog(
     _In_ PVOID Context
     )
 {
+    PREPARSE_WINDOW_CONTEXT context;
+
+    context = EtReparseCreateDialogContext();
+    context->ParentWindowHandle = ParentWindowHandle;
+    context->MenuItemIndex = PtrToUlong(Context);
+
     PhDialogBox(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_REPARSEDIALOG),
         NULL,
         EtReparseDlgProc,
-        Context
+        context
         );
 }
