@@ -230,26 +230,17 @@ LONG PhGetTaskbarDpi(
     )
 {
     LONG dpi = 0;
-    HWND shellWindow;
 
-    // Note: GetShellWindow is cached in TEB (dmex)
-    if (shellWindow = GetShellWindow())
-    {
-        dpi = PhGetDpiValue(shellWindow, NULL);
-    }
-
-    // SHAppBarMessage requires SendMessage and very slow (dmex)
-    //if (dpi == 0)
-    //{
-    //    APPBARDATA taskbarRect = { sizeof(APPBARDATA) };
+    // Querying the DPI for the taskbar using GetShellWindow is fast
+    // and works on Win10 but since Win11 always returns 96 (dmex)
+    //HWND shellWindow;
     //
-    //    if (SHAppBarMessage(ABM_GETTASKBARPOS, &taskbarRect))
-    //    {
-    //        dpi = PhGetMonitorDpi(&taskbarRect.rc);
-    //    }
+    //if (shellWindow = GetShellWindow())
+    //{
+    //    dpi = PhGetDpiValue(shellWindow, NULL);
     //}
 
-    // SHAppBarMessage requires SendMessage and very slow (dmex)
+    // SHAppBarMessage requires SendMessage and very (very) slow (dmex)
     if (dpi == 0)
     {
         static PH_INITONCE initOnce = PH_INITONCE_INIT;
