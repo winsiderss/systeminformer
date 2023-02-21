@@ -38,6 +38,7 @@
 #include <srvprv.h>
 
 #include <mainwndp.h>
+#include <dbt.h>
 
 PHAPPAPI HWND PhMainWndHandle = NULL;
 BOOLEAN PhMainWndExiting = FALSE;
@@ -377,6 +378,20 @@ LRESULT CALLBACK PhMwpWndProc(
     case WM_DEVICECHANGE:
         {
             MSG message;
+
+            switch (wParam)
+            {
+            case DBT_DEVICEARRIVAL: // Drive letter added
+            case DBT_DEVICEREMOVECOMPLETE: // Drive letter removed
+                {
+                    PDEV_BROADCAST_HDR deviceBroadcast = (PDEV_BROADCAST_HDR)lParam;
+
+                    if (deviceBroadcast->dbch_devicetype == DBT_DEVTYP_VOLUME)
+                    {
+                        PhUpdateDosDevicePrefixes();
+                    }
+                }
+            }
 
             memset(&message, 0, sizeof(MSG));
             message.hwnd = hWnd;
