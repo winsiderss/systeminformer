@@ -14,6 +14,7 @@
 #include <fwpmu.h>
 #include <fwpsu.h>
 
+BOOLEAN FwTreeNewCreated = FALSE;
 HWND FwTreeNewHandle = NULL;
 ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
@@ -79,6 +80,8 @@ BOOLEAN FwTabPageCallback(
 
             if (!hwnd)
                 return FALSE;
+
+            FwTreeNewCreated = TRUE;
 
             if (PhGetIntegerSetting(L"EnableThemeSupport"))
             {
@@ -158,6 +161,16 @@ BOOLEAN FwTabPageCallback(
             {
                 *(HWND*)Parameter1 = hwnd;
             }
+        }
+        return TRUE;
+    case MainTabPageLoadSettings:
+        {
+            NOTHING;
+        }
+        return TRUE;
+    case MainTabPageSaveSettings:
+        {
+            SaveSettingsFwTreeList();
         }
         return TRUE;
     case MainTabPageSelected:
@@ -314,7 +327,7 @@ VOID LoadSettingsFwTreeList(
 }
 
 VOID SaveSettingsFwTreeList(
-    _In_ HWND TreeNewHandle
+    VOID
     )
 {
     PPH_STRING settings;
@@ -322,11 +335,14 @@ VOID SaveSettingsFwTreeList(
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
 
-    settings = PhCmSaveSettings(TreeNewHandle);
+    if (!FwTreeNewCreated)
+        return;
+
+    settings = PhCmSaveSettings(FwTreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_FW_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 
-    TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
+    TreeNew_GetSort(FwTreeNewHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;
     sortSettings.Y = sortOrder;
     PhSetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT, sortSettings);
@@ -1189,11 +1205,6 @@ BOOLEAN NTAPI FwTreeNewCallback(
             PPH_TREENEW_CONTEXT_MENU contextMenuEvent = Parameter1;
 
             ShowFwContextMenu(WindowHandle, contextMenuEvent);
-        }
-        return TRUE;
-    case TreeNewDestroying:
-        {
-            SaveSettingsFwTreeList(WindowHandle);
         }
         return TRUE;
     case TreeNewCustomDraw:

@@ -259,10 +259,6 @@ C_ASSERT(MaxDevType <= MAXSHORT);
 DEFINE_DEVPROPKEY(DEVPKEY_Device_FirmwareVendor, 0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 26);   // DEVPROP_TYPE_STRING
 #endif
 
-VOID DevicesTreeSaveSettings(
-    _In_ HWND TreeNewHandle
-    );
-
 typedef struct _DEVNODE_PROP
 {
     union
@@ -380,6 +376,7 @@ static ULONG DeviceDisabledColor = 0;
 static ULONG DeviceDisconnectedColor = 0;
 static ULONG DeviceHighlightColor = 0;
 
+static BOOLEAN DeviceTreeCreated = FALSE;
 static HWND DeviceTreeHandle = NULL;
 static PDEVICE_TREE DeviceTree = NULL;
 static HIMAGELIST DeviceImageList = NULL;
@@ -3117,11 +3114,6 @@ BOOLEAN NTAPI DeviceTreeCallback(
             PhDeleteTreeNewColumnMenu(&data);
         }
         return TRUE;
-    case TreeNewDestroying:
-        {
-            DevicesTreeSaveSettings(hwnd);
-        }
-        return TRUE;
     }
 
     return FALSE;
@@ -3142,7 +3134,7 @@ VOID DevicesTreeLoadSettings(
 }
 
 VOID DevicesTreeSaveSettings(
-    _In_ HWND TreeNewHandle
+    VOID
     )
 {
     PPH_STRING settings;
@@ -3150,8 +3142,11 @@ VOID DevicesTreeSaveSettings(
     ULONG sortColumn;
     ULONG sortOrder;
 
-    settings = PhCmSaveSettings(TreeNewHandle);
-    TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder);
+    if (!DeviceTreeCreated)
+        return;
+
+    settings = PhCmSaveSettings(DeviceTreeHandle);
+    TreeNew_GetSort(DeviceTreeHandle, &sortColumn, &sortOrder);
     sortSettings.X = sortColumn;
     sortSettings.Y = sortOrder;
     PhSetStringSetting2(SETTING_NAME_DEVICE_TREE_COLUMNS, &settings->sr);
@@ -3364,12 +3359,24 @@ BOOLEAN DevicesTabPageCallback(
             if (!hwnd)
                 return FALSE;
 
+            DeviceTreeCreated = TRUE;
+
             DevicesTreeInitialize(hwnd);
 
             if (Parameter1)
             {
                 *(HWND*)Parameter1 = hwnd;
             }
+        }
+        return TRUE;
+    case MainTabPageLoadSettings:
+        {
+            NOTHING;
+        }
+        return TRUE;
+    case MainTabPageSaveSettings:
+        {
+            DevicesTreeSaveSettings();
         }
         return TRUE;
     case MainTabPageSelected:
