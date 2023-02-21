@@ -100,7 +100,7 @@ VOID PvPeProperties(
 {
     PPV_PROPCONTEXT propContext;
     PH_MAPPED_IMAGE_IMPORTS imports;
-    PH_MAPPED_IMAGE_EXPORTS exports;
+    //PH_MAPPED_IMAGE_EXPORTS exports;
     PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
     PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
     PIMAGE_DATA_DIRECTORY entry;
@@ -201,15 +201,16 @@ VOID PvPeProperties(
         }
 
         // Exports page
-        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
-        {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEEXPORTS),
-                PvPeExportsDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
-        }
+        // TODO fixme
+        //if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
+        //{
+        //    newPage = PvCreatePropPageContext(
+        //        MAKEINTRESOURCE(IDD_PEEXPORTS),
+        //        PvPeExportsDlgProc,
+        //        NULL
+        //        );
+        //    PvAddPropPage(propContext, newPage);
+        //}
 
         // Resources page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))

@@ -67,6 +67,8 @@ typedef struct _PV_EXPORT_CONTEXT
     PH_TN_FILTER_SUPPORT FilterSupport;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
+
+    ULONG ExportsFlags;
 } PV_EXPORT_CONTEXT, *PPV_EXPORT_CONTEXT;
 
 BOOLEAN PvExportNodeHashtableCompareFunction(
@@ -151,7 +153,7 @@ NTSTATUS PvpPeExportsEnumerateThread(
     PH_MAPPED_IMAGE_EXPORT_FUNCTION exportFunction;
     ULONG i;
 
-    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
+    if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, Context->ExportsFlags)))
     {
         for (i = 0; i < exports.NumberOfEntries; i++)
         {
@@ -284,11 +286,13 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
         context = PhAllocateZero(sizeof(PV_EXPORT_CONTEXT));
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
 
-        if (lParam)
-        {
-            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
-        }
+        context->ExportsFlags = (ULONG)lParam;
+
+        //if (lParam)
+        //{
+        //    LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+        //    context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
+        //}
     }
     else
     {
