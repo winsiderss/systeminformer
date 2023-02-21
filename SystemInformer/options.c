@@ -1570,6 +1570,39 @@ static VOID PhpOptionsNotifyChangeCallback(
     }
 }
 
+VOID PhShowOptionsRestartRequired(
+    _In_ HWND WindowHandle
+    )
+{
+    if (PhShowMessage2(
+        PhMainWndHandle,
+        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+        TD_INFORMATION_ICON,
+        L"One or more options you have changed requires a restart of System Informer.",
+        L"Do you want to restart System Informer now?"
+        ) == IDYES)
+    {
+        ProcessHacker_PrepareForEarlyShutdown();
+
+        if (PhShellProcessHacker(
+            WindowHandle,
+            L"-v -newinstance",
+            SW_SHOW,
+            PH_SHELL_EXECUTE_NOASYNC,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+            0,
+            NULL
+            ))
+        {
+            ProcessHacker_Destroy();
+        }
+        else
+        {
+            ProcessHacker_CancelEarlyShutdown();
+        }
+    }
+}
+
 static VOID PhpAdvancedPageSave(
     _In_ HWND hwndDlg
     )
