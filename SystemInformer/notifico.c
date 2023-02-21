@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2022
+ *     dmex    2017-2023
  *
  */
 
@@ -100,12 +100,16 @@ VOID PhNfLoadSettings(
             if (pluginNamePart.Length)
             {
                 if (icon = PhNfFindIcon(&pluginNamePart, (ULONG)idInteger))
-                    icon->Flags |= PH_NF_ICON_ENABLED;
+                {
+                    RtlInterlockedSetBits(&icon->Flags, PH_NF_ICON_ENABLED);
+                }
             }
             else
             {
                 if (icon = PhNfGetIconById((ULONG)idInteger))
-                    icon->Flags |= PH_NF_ICON_ENABLED;
+                {
+                    RtlInterlockedSetBits(&icon->Flags, PH_NF_ICON_ENABLED);
+                }
             }
         }
     }
@@ -126,7 +130,7 @@ VOID PhNfSaveSettings(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (icon->Flags & PH_NF_ICON_ENABLED)
+        if (BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
         {
             PH_FORMAT format[6];
             SIZE_T returnLength;
@@ -135,7 +139,7 @@ VOID PhNfSaveSettings(
             // %lu|%lu|%s|
             PhInitFormatU(&format[0], icon->SubId);
             PhInitFormatC(&format[1], L'|');
-            PhInitFormatU(&format[2], icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0);
+            PhInitFormatU(&format[2], TRUE);
             PhInitFormatC(&format[3], L'|');
             if (icon->Plugin)
                 PhInitFormatSR(&format[4], icon->Plugin->Name);
@@ -153,7 +157,7 @@ VOID PhNfSaveSettings(
                     &iconListBuilder,
                     L"%lu|%lu|%s|",
                     icon->SubId,
-                    icon->Flags & PH_NF_ICON_ENABLED ? 1 : 0,
+                    TRUE,
                     icon->Plugin ? PhGetStringRefZ(&icon->Plugin->Name) : L""
                     );
             }
@@ -246,7 +250,7 @@ VOID PhNfCreateIconThreadDelayed(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
         if (icon->SubId == PH_TRAY_ICON_ID_PLAIN_ICON)
@@ -262,7 +266,7 @@ VOID PhNfCreateIconThreadDelayed(
             EVENT_ALL_ACCESS,
             NULL,
             SynchronizationEvent,
-            FALSE
+            !PhGetIntegerSetting(L"IconTrayLazyStartDelay")
             )))
         {
             // Set the event when the only icon is the static icon. (dmex)
@@ -373,7 +377,7 @@ VOID PhNfLoadStage2(
     //{
     //    PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
     //
-    //    if (!(icon->Flags & PH_NF_ICON_ENABLED))
+    //    if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
     //        continue;
     //
     //    PhNfpAddNotifyIcon(icon);
@@ -393,34 +397,32 @@ VOID PhNfUninitialization(
     VOID
     )
 {
+#ifdef PH_NF_ENABLE_WORKQUEUE
     if (PhpTrayIconEventHandle)
-    {
         NtSetEvent(PhpTrayIconEventHandle, NULL);
-    }
+#endif
 
-#ifndef PH_NF_ENABLE_WORKQUEUE
     // Remove all icons to prevent them hanging around after we exit.
 
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
-        PhNfpRemoveNotifyIcon(icon);
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED) == PH_NF_ICON_ENABLED)
+        {
+            PhNfpRemoveNotifyIcon(icon);
+        }
     }
-#else
 
-    if (PhpTrayIconThreadHandle)
-    {
-        LARGE_INTEGER timeout;
-
-        timeout.QuadPart = -(LONGLONG)UInt32x32To64(2000, PH_TIMEOUT_MS);
-
-        NtWaitForSingleObject(PhpTrayIconThreadHandle, FALSE, &timeout);
-    }
-#endif
+//#ifdef PH_NF_ENABLE_WORKQUEUE
+//    if (PhpTrayIconThreadHandle)
+//    {
+//        NtWaitForSingleObject(PhpTrayIconThreadHandle, FALSE, PhTimeoutFromMillisecondsEx(1000));
+//    }
+//#endif
 }
 
 VOID PhNfForwardMessage(
@@ -572,9 +574,9 @@ VOID PhNfSetVisibleIcon(
 {
     if (Visible)
     {
-        Icon->Flags |= PH_NF_ICON_ENABLED;
-
 #ifndef PH_NF_ENABLE_WORKQUEUE
+        RtlInterlockedSetBits(&Icon->Flags, PH_NF_ICON_ENABLED);
+
         PhNfpAddNotifyIcon(Icon);
 #else
         PPH_NF_WORKQUEUE_DATA data;
@@ -588,10 +590,10 @@ VOID PhNfSetVisibleIcon(
     }
     else
     {
-        Icon->Flags &= ~PH_NF_ICON_ENABLED;
-
 #ifndef PH_NF_ENABLE_WORKQUEUE
         PhNfpRemoveNotifyIcon(Icon);
+
+        RtlInterlockedClearBits(&Icon->Flags, PH_NF_ICON_ENABLED);
 #else
         PPH_NF_WORKQUEUE_DATA data;
 
@@ -623,7 +625,7 @@ BOOLEAN PhNfShowBalloonTip(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
         registeredIcon = icon;
@@ -719,7 +721,7 @@ BOOLEAN PhNfIconsEnabled(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (icon->Flags & PH_NF_ICON_ENABLED)
+        if (BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
         {
             enabled = TRUE;
             break;
@@ -745,7 +747,7 @@ VOID PhNfNotifyMiniInfoPinned(
         {
             PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-            if (!(icon->Flags & PH_NF_ICON_ENABLED))
+            if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
                 continue;
 
             PhNfpModifyNotifyIcon(icon, NIF_TIP, icon->TextCache, NULL);
@@ -964,7 +966,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
 
     if (PhMainWndExiting)
         return FALSE;
-    if (Icon->Flags & PH_NF_ICON_UNAVAILABLE)
+    if (BooleanFlagOn(Icon->Flags, PH_NF_ICON_UNAVAILABLE))
         return FALSE;
 
     memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
@@ -980,7 +982,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
         notifyIcon.guidItem = Icon->IconGuid;
     }
 
-    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || (Icon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
+    if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || BooleanFlagOn(Icon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
         notifyIcon.uFlags |= NIF_SHOWTIP;
 
     if (Flags & NIF_TIP)
@@ -1044,14 +1046,21 @@ VOID PhNfTrayIconFlushWorkQueueData(
         data = CONTAINING_RECORD(entry, PH_NF_WORKQUEUE_DATA, ListEntry);
         entry = entry->Next;
 
+        if (PhMainWndExiting)
+            break;
+
         if (data->Add)
         {
+            RtlInterlockedSetBits(&data->Icon->Flags, PH_NF_ICON_ENABLED);
+
             PhNfpAddNotifyIcon(data->Icon);
         }
 
         if (data->Delete)
         {
             PhNfpRemoveNotifyIcon(data->Icon);
+
+            RtlInterlockedClearBits(&data->Icon->Flags, PH_NF_ICON_ENABLED);
         }
 
         PhFree(data);
@@ -1069,7 +1078,7 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
         PhNfpAddNotifyIcon(icon);
@@ -1095,7 +1104,7 @@ NTSTATUS PhNfpTrayIconUpdateThread(
             {
                 PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-                if (!(icon->Flags & PH_NF_ICON_ENABLED))
+                if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
                     continue;
 
                 if (PhMainWndExiting)
@@ -1113,12 +1122,16 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     {
         PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-        if (!(icon->Flags & PH_NF_ICON_ENABLED))
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
             continue;
 
-        PhNfpRemoveNotifyIcon(icon);
+        if (RtlInterlockedClearBits(&icon->Flags, PH_NF_ICON_ENABLED) == PH_NF_ICON_ENABLED)
+        {
+            PhNfpRemoveNotifyIcon(icon);
+        }
     }
 #endif
+
     return STATUS_SUCCESS;
 }
 
@@ -2131,6 +2144,7 @@ VOID PhNfpPlainIconUpdateCallback(
 {
     *NewIconOrBitmap = PhGetApplicationIcon(TRUE);
     *NewText = PhCreateString(L"System Informer");
+    *Flags = 0;
 }
 
 _Success_(return)
@@ -2146,7 +2160,7 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
     {
         Data->SectionName = NULL;
 
-        if (!(RegisteredIcon->Flags & PH_NF_ICON_NOSHOW_MINIINFO))
+        if (!BooleanFlagOn(RegisteredIcon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
         {
             if (RegisteredIcon->MessageCallback)
             {
