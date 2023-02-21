@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2009-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -177,6 +177,8 @@ INT CALLBACK PhpPropSheetProc(
                 MinimumSize = rect;
                 MinimumSize.left = 0;
             }
+
+            SetTimer(hwndDlg, 2000, 2000, NULL);
         }
         break;
     }
@@ -208,18 +210,13 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
     oldWndProc = propSheetContext->PropSheetWindowHookProc;
 
-    if (RtlQueryDepthSList(&WaitContextQueryListHead))
-    {
-        PhpFlushProcessPropSheetWaitContextData();
-    }
-
     switch (uMsg)
     {
     case WM_DESTROY:
         {
             HWND tabControl;
             TCITEM tabItem;
-            WCHAR text[128];
+            WCHAR text[128] = L"";
 
             // Save the window position and size.
 
@@ -304,6 +301,16 @@ LRESULT CALLBACK PhpPropSheetWndProc(
                 {
                     return TRUE;
                 }
+            }
+        }
+        break;
+    case WM_TIMER:
+        {
+            UINT id = (UINT)wParam;
+
+            if (id == 2000)
+            {
+                PhpFlushProcessPropSheetWaitContextData();
             }
         }
         break;
@@ -553,7 +560,9 @@ VOID PhpFlushProcessPropSheetWaitContextData(
     PPH_PROCESS_WAITPROPCONTEXT data;
     PROCESS_BASIC_INFORMATION basicInfo;
 
-    //if (!RtlFirstEntrySList(&QueryListHead))
+    //if (!RtlQueryDepthSList(&WaitContextQueryListHead))
+    //    return;
+    //if (!RtlFirstEntrySList(&WaitContextQueryListHead))
     //    return;
 
     entry = RtlInterlockedFlushSList(&WaitContextQueryListHead);
