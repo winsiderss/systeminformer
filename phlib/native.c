@@ -7722,6 +7722,8 @@ VOID PhUpdateDosDevicePrefixes(
 
     PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
 
+    PhAcquireQueuedLockExclusive(&PhDevicePrefixesLock);
+
     for (ULONG i = 0; i < 0x1A; i++)
     {
         HANDLE linkHandle;
@@ -7731,7 +7733,10 @@ VOID PhUpdateDosDevicePrefixes(
         if (deviceMap)
         {
             if (!(deviceMap & (0x1 << i)))
+            {
+                PhDevicePrefixes[i].Length = 0;
                 continue;
+            }
         }
 
         deviceNameBuffer[4] = (WCHAR)('A' + i);
@@ -7753,8 +7758,6 @@ VOID PhUpdateDosDevicePrefixes(
             &objectAttributes
             )))
         {
-            PhAcquireQueuedLockExclusive(&PhDevicePrefixesLock);
-
             if (!NT_SUCCESS(NtQuerySymbolicLinkObject(
                 linkHandle,
                 &PhDevicePrefixes[i],
@@ -7764,8 +7767,6 @@ VOID PhUpdateDosDevicePrefixes(
                 PhDevicePrefixes[i].Length = 0;
             }
 
-            PhReleaseQueuedLockExclusive(&PhDevicePrefixesLock);
-
             NtClose(linkHandle);
         }
         else
@@ -7773,6 +7774,8 @@ VOID PhUpdateDosDevicePrefixes(
             PhDevicePrefixes[i].Length = 0;
         }
     }
+
+    PhReleaseQueuedLockExclusive(&PhDevicePrefixesLock);
 }
 
 /**
