@@ -95,6 +95,27 @@ VOID PvEnumerateDynamicRelocationEntries(
                     break;
                 }
             }
+            else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+            {
+                PhPrintPointer(value, PTR_ADD_OFFSET(entry->FuncOverride.BlockRva, entry->FuncOverride.Entry.Offset));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"FNOVR");
+                switch (entry->FuncOverride.Entry.Type)
+                {
+                case IMAGE_FUNCTION_OVERRIDE_X64_REL32:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"X64 REL32");
+                    break;
+                case IMAGE_FUNCTION_OVERRIDE_ARM64_BRANCH26:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"ARM64 BRANCH26");
+                    break;
+                case IMAGE_FUNCTION_OVERRIDE_ARM64_THUNK:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"ARM64 THUNK");
+                    break;
+                default:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"UNKNOWN");
+                    break;
+                }
+            }
             else
             {
                 PhPrintPointer(value, PTR_ADD_OFFSET(entry->Other.BlockRva, entry->Other.Entry.Offset));
