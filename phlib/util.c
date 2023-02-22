@@ -229,36 +229,50 @@ LONG PhGetTaskbarDpi(
     VOID
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static RECT windowRect = { 0 };
     LONG dpi = 0;
 
-    // Querying the DPI for the taskbar using GetShellWindow is fast
-    // and works on Win10 but since Win11 always returns 96 (dmex)
-    //HWND shellWindow;
-    //
-    //if (shellWindow = GetShellWindow())
-    //{
-    //    dpi = PhGetDpiValue(shellWindow, NULL);
-    //}
-
-    // SHAppBarMessage requires SendMessage and very (very) slow (dmex)
-    if (dpi == 0)
+    if (PhBeginInitOnce(&initOnce))
     {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static RECT taskbarRect = { 0 };
+        RECT rect;
+        HWND windowHandle;
 
-        if (PhBeginInitOnce(&initOnce))
+        if (windowHandle = GetShellWindow())
         {
-            APPBARDATA appbarData = { sizeof(APPBARDATA) };
-
-            if (SHAppBarMessage(ABM_GETTASKBARPOS, &appbarData))
+            if (GetWindowRect(windowHandle, &rect))
             {
-                taskbarRect = appbarData.rc;
+                windowRect = rect;
             }
-
-            PhEndInitOnce(&initOnce);
         }
 
-        dpi = PhGetMonitorDpi(&taskbarRect);
+        if (!(windowRect.right && windowRect.bottom))
+        {
+            if (windowHandle = GetDesktopWindow())
+            {
+                if (GetWindowRect(windowHandle, &rect))
+                {
+                    windowRect = rect;
+                }
+            }
+        }
+
+        //if (!(windowRect.right && windowRect.bottom))
+        //{
+        //    APPBARDATA appbarData = { sizeof(APPBARDATA) };
+        //
+        //    if (SHAppBarMessage(ABM_GETTASKBARPOS, &appbarData))
+        //    {
+        //        windowRect = appbarData.rc;
+        //    }
+        //}
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (windowRect.right && windowRect.bottom)
+    {
+        dpi = PhGetMonitorDpi(&windowRect);
     }
 
     if (dpi == 0)
