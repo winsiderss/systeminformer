@@ -94,51 +94,70 @@ VOID PvEnumerateDynamicRelocationEntries(
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"UNKNOWN");
                     break;
                 }
-
-                if (entry->MappedImageVa)
-                {
-                    PIMAGE_SECTION_HEADER section;
-                    PPH_STRING symbol;
-                    
-                    section = PhMappedImageRvaToSection(
-                        &PvMappedImage,
-                        PtrToUlong(PTR_SUB_OFFSET(entry->MappedImageVa, PvMappedImage.ViewBase))
-                        );
-                    if (section)
-                    {
-                        WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
-
-                        if (PhGetMappedImageSectionName(
-                            section,
-                            sectionName,
-                            RTL_NUMBER_OF(sectionName),
-                            NULL
-                            ))
-                        {
-                            PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, sectionName);
-                        }
-                    }
-
-                    symbol = PhGetSymbolFromAddress(
-                        PvSymbolProvider,
-                        (ULONG64)entry->ImageBaseVa,
-                        NULL,
-                        NULL,
-                        NULL,
-                        NULL
-                        );
-                    if (symbol)
-                    {
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, symbol->Buffer);
-                        PhDereferenceObject(symbol);
-                    }
-                }
             }
             else
             {
-                // TODO(jxy-s) not implemented, make it obvious
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"NOT IMPLEMENTED");
-                continue;
+                PhPrintPointer(value, PTR_ADD_OFFSET(entry->Other.BlockRva, entry->Other.Entry.Offset));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                switch (entry->Other.Entry.Type)
+                {
+                case IMAGE_REL_BASED_ABSOLUTE:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ABS");
+                    break;
+                case IMAGE_REL_BASED_HIGH:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"HIGH");
+                    break;
+                case IMAGE_REL_BASED_LOW:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"LOW");
+                    break;
+                case IMAGE_REL_BASED_HIGHLOW:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"HIGHLOW");
+                    break;
+                case IMAGE_REL_BASED_DIR64:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"DIR64");
+                    break;
+                }
+
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhFormatString(L"0x%llx", entry->Symbol)->Buffer);
+            }
+
+            if (entry->MappedImageVa)
+            {
+                PIMAGE_SECTION_HEADER section;
+                PPH_STRING symbol;
+                
+                section = PhMappedImageRvaToSection(
+                    &PvMappedImage,
+                    PtrToUlong(PTR_SUB_OFFSET(entry->MappedImageVa, PvMappedImage.ViewBase))
+                    );
+                if (section)
+                {
+                    WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+                    if (PhGetMappedImageSectionName(
+                        section,
+                        sectionName,
+                        RTL_NUMBER_OF(sectionName),
+                        NULL
+                        ))
+                    {
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, sectionName);
+                    }
+                }
+
+                symbol = PhGetSymbolFromAddress(
+                    PvSymbolProvider,
+                    (ULONG64)entry->ImageBaseVa,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL
+                    );
+                if (symbol)
+                {
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 5, symbol->Buffer);
+                    PhDereferenceObject(symbol);
+                }
             }
         }
     }
