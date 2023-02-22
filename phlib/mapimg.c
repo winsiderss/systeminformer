@@ -1117,6 +1117,12 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
                 {
                     SIZE_T consumed;
 
+                    if (record->Offset == 0 && record->Type == 0 && record->Size == 0)
+                    {
+                        // padding block(s), we're done
+                        break;
+                    }
+
                     if (record->Type == IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL)
                     {
                         consumed = sizeof(IMAGE_DVRT_ARM64X_FIXUP_RECORD);
@@ -3941,6 +3947,12 @@ PVOID PhpFillDynamicRelocationsArray64(
             {
                 PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
                 SIZE_T consumed;
+
+                if (record->Offset == 0 && record->Type == 0 && record->Size == 0)
+                {
+                    // padding block(s), we're done
+                    break;
+                }
 
                 RtlZeroMemory(&entry, sizeof(entry));
 
