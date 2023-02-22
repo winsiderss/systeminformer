@@ -286,13 +286,30 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
         context = PhAllocateZero(sizeof(PV_EXPORT_CONTEXT));
         PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
 
-        context->ExportsFlags = (ULONG)lParam;
+        if (lParam)
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
 
-        //if (lParam)
-        //{
-        //    LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-        //    context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
-        //}
+            if (context->PropSheetContext->Context)
+            {
+                PPV_EXPORTS_PAGECONTEXT exportsPageContext = context->PropSheetContext->Context;
+
+                context->ExportsFlags = PtrToUlong(exportsPageContext->Context);
+
+                if (exportsPageContext->FreePropPageContext)
+                {
+                    PhFree(exportsPageContext);
+                    exportsPageContext = NULL;
+
+                    PhFree(context->PropSheetContext);
+                    context->PropSheetContext = NULL;
+
+                    PhFree(propSheetPage);
+                    propSheetPage = NULL;
+                }
+            }
+        }
     }
     else
     {
