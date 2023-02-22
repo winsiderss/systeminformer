@@ -891,7 +891,7 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
         {
             ULONG BlockIndex;
             ULONG BlockRva;
-            IMAGE_BASE_RELOCATION_ENTRY Entry;
+            IMAGE_RELOCATION_RECORD Record;
             PIMAGE_BDD_DYNAMIC_RELOCATION BDDNodes;
             ULONG BDDNodesCount;
             ULONG OriginalRva;
@@ -924,7 +924,7 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
         {
             ULONG BlockIndex;
             ULONG BlockRva;
-            IMAGE_BASE_RELOCATION_ENTRY Entry;
+            IMAGE_RELOCATION_RECORD Record;
         } Other;
     };
 
