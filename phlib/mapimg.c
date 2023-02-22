@@ -4005,11 +4005,121 @@ VOID PhpFillDynamicRelocations(
              Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE ||
              Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER ||
              Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
     {
         // TODO(jxy-s) not yet implemented, skip the block 
         NOTHING;
+    }
+    else if (Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+    {
+        PIMAGE_FUNCTION_OVERRIDE_HEADER header;
+        PVOID end;
+        PIMAGE_BDD_INFO bddInfo;
+        ULONG bddInfoSize;
+        PIMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION funcOverride;
+        PIMAGE_BDD_DYNAMIC_RELOCATION bddNodes = NULL;
+        ULONG bddNodesCount = 0;
+
+        header = (PIMAGE_FUNCTION_OVERRIDE_HEADER)BaseRelocs;
+        end = header;
+        if (!PhPtrAdvance(&end, BaseRelocsEnd, header->FuncOverrideSize))
+            return;
+
+        funcOverride = PTR_ADD_OFFSET(header, RTL_SIZEOF_THROUGH_FIELD(IMAGE_FUNCTION_OVERRIDE_HEADER, FuncOverrideSize));
+        bddInfo = PTR_ADD_OFFSET(funcOverride, header->FuncOverrideSize);
+        bddInfoSize = PtrToUlong(PTR_SUB_OFFSET(BaseRelocsEnd, BaseRelocs));
+        bddInfoSize -= (bddInfoSize > sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) ? sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) : bddInfoSize);
+        bddInfoSize -= (bddInfoSize > header->FuncOverrideSize ? header->FuncOverrideSize : bddInfoSize);
+        if (bddInfoSize && bddInfo->Version == 1 && bddInfo->BDDSize >= sizeof(IMAGE_BDD_DYNAMIC_RELOCATION))
+        {
+            bddNodes = PTR_ADD_OFFSET(bddInfo, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BDD_INFO, BDDSize));
+            bddNodesCount = bddInfo->BDDSize / sizeof(IMAGE_BDD_DYNAMIC_RELOCATION);
+        }
+
+        for (ULONG blockIndex = 0;;)
+        {
+            PVOID next;
+            PULONG rvas = NULL;
+            ULONG rvasCount = 0;
+
+            if (funcOverride->RvaSize >= sizeof(ULONG))
+            {
+                rvas = PTR_ADD_OFFSET(funcOverride, RTL_SIZEOF_THROUGH_FIELD(IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, BaseRelocSize));
+                rvasCount = funcOverride->RvaSize / sizeof(ULONG);
+            }
+
+            if (funcOverride->BaseRelocSize)
+            {
+                PIMAGE_BASE_RELOCATION base;
+                PVOID baseEnd;
+
+                base = PTR_ADD_OFFSET(funcOverride, RTL_SIZEOF_THROUGH_FIELD(IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, BaseRelocSize));
+                base = PTR_ADD_OFFSET(base, funcOverride->RvaSize);
+                baseEnd = PTR_ADD_OFFSET(base, funcOverride->BaseRelocSize);
+
+                for (;; blockIndex++)
+                {
+                    ULONG relocationCount;
+                    PIMAGE_BASE_RELOCATION_ENTRY relocations;
+
+                    if (base->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
+                    {
+                        break;
+                    }
+
+                    relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+                    relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+                    for (ULONG i = 0; i < relocationCount; i++)
+                    {
+                        PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                        if (relocations[i].Type == IMAGE_FUNCTION_OVERRIDE_INVALID)
+                        {
+                            break;
+                        }
+
+                        RtlZeroMemory(&entry, sizeof(entry));
+
+                        entry.Symbol = Symbol;
+                        entry.FuncOverride.BlockIndex = blockIndex;
+                        entry.FuncOverride.BlockRva = base->VirtualAddress;
+                        entry.FuncOverride.Entry.Offset = relocations[i].Offset;
+                        entry.FuncOverride.Entry.Type = relocations[i].Type;
+                        entry.FuncOverride.BDDNodes = bddNodes;
+                        entry.FuncOverride.BDDNodesCount = bddNodesCount;
+                        entry.FuncOverride.OriginalRva = funcOverride->OriginalRva;
+                        entry.FuncOverride.BDDOffset = funcOverride->BDDOffset;
+                        entry.FuncOverride.Rvas = rvas;
+                        entry.FuncOverride.RvasCount = rvasCount;
+
+                        entry.ImageBaseVa = PTR_ADD_OFFSET(
+                            MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                            UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Entry.Offset)
+                            );
+                        entry.MappedImageVa = PhMappedImageRvaToVa(
+                            MappedImage,
+                            UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Entry.Offset),
+                            NULL
+                            );
+
+                        PhAddItemArray(Array, &entry);
+                    }
+
+                    if (!PhPtrAdvance(&base, baseEnd, base->SizeOfBlock))
+                        break;
+                }
+            }
+
+            next = funcOverride;
+            if (!PhPtrAdvance(&next, bddInfo, RTL_SIZEOF_THROUGH_FIELD(IMAGE_FUNCTION_OVERRIDE_DYNAMIC_RELOCATION, BaseRelocSize)))
+                break;
+            if (!PhPtrAdvance(&next, bddInfo, funcOverride->RvaSize))
+                break;
+            if (!PhPtrAdvance(&next, bddInfo, funcOverride->BaseRelocSize))
+                break;
+            funcOverride = next;
+        }
     }
     else if (Symbol > 0xff) // assumes IMAGE_DYNAMIC_RELOCATION_KI_USER_SHARED_DATA64 or similar
     {

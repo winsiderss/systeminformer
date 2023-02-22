@@ -886,6 +886,20 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
 
     union
     {
+        // IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_BASE_RELOCATION_ENTRY Entry;
+            PIMAGE_BDD_DYNAMIC_RELOCATION BDDNodes;
+            ULONG BDDNodesCount;
+            ULONG OriginalRva;
+            ULONG BDDOffset;
+            PULONG Rvas;
+            ULONG RvasCount;
+        } FuncOverride;
+
         // IMAGE_DYNAMIC_RELOCATION_ARM64X
         struct
         {
@@ -903,7 +917,6 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
                 IMAGE_DVRT_ARM64X_FIXUP_RECORD RecordFixup;
                 IMAGE_DVRT_ARM64X_DELTA_FIXUP_RECORD RecordDelta;
             };
-
         } ARM64X;
 
         // IMAGE_DYNAMIC_RELOCATION_KI_USER_SHARED_DATA64 or similar
