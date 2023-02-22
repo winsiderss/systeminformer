@@ -425,6 +425,12 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
     _In_ LPARAM lParam
     );
 
+typedef struct _PV_EXPORTS_PAGECONTEXT
+{
+    BOOLEAN FreePropPageContext;
+    PVOID Context;
+} PV_EXPORTS_PAGECONTEXT, *PPV_EXPORTS_PAGECONTEXT;
+
 INT_PTR CALLBACK PvPeExportsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
