@@ -100,7 +100,7 @@ VOID PvPeProperties(
 {
     PPV_PROPCONTEXT propContext;
     PH_MAPPED_IMAGE_IMPORTS imports;
-    //PH_MAPPED_IMAGE_EXPORTS exports;
+    PH_MAPPED_IMAGE_EXPORTS exports;
     PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
     PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
     PIMAGE_DATA_DIRECTORY entry;
@@ -201,16 +201,37 @@ VOID PvPeProperties(
         }
 
         // Exports page
-        // TODO fixme
-        //if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
-        //{
-        //    newPage = PvCreatePropPageContext(
-        //        MAKEINTRESOURCE(IDD_PEEXPORTS),
-        //        PvPeExportsDlgProc,
-        //        NULL
-        //        );
-        //    PvAddPropPage(propContext, newPage);
-        //}
+        if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)) && exports.NumberOfEntries != 0)
+        {
+            PV_EXPORTS_PAGECONTEXT exportsPageContext;
+
+            memset(&exportsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+            exportsPageContext.FreePropPageContext = FALSE;
+            exportsPageContext.Context = ULongToPtr(0); // PhGetMappedImageExportsEx with no flags
+
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PEEXPORTS),
+                PvPeExportsDlgProc,
+                &exportsPageContext
+                );
+            PvAddPropPage(propContext, newPage);
+        }
+
+        if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64EC)) && exports.NumberOfEntries != 0)
+        {
+            PV_EXPORTS_PAGECONTEXT exportsPageContext;
+
+            memset(&exportsPageContext, 0, sizeof(PV_EXPORTS_PAGECONTEXT));
+            exportsPageContext.FreePropPageContext = FALSE;
+            exportsPageContext.Context = ULongToPtr(PH_GET_IMAGE_EXPORTS_ARM64EC);
+
+            newPage = PvCreatePropPageContext(
+                MAKEINTRESOURCE(IDD_PEEXPORTS),
+                PvPeExportsDlgProc,
+                &exportsPageContext
+                );
+            PvAddPropPage(propContext, newPage);
+        }
 
         // Resources page
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_RESOURCE, &entry)))
