@@ -905,6 +905,14 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
             };
 
         } ARM64X;
+
+        // IMAGE_DYNAMIC_RELOCATION_KI_USER_SHARED_DATA64 or similar
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_BASE_RELOCATION_ENTRY Entry;
+        } Other;
     };
 
     PVOID ImageBaseVa;

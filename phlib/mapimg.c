@@ -1100,8 +1100,10 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
         if (reloc->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
         {
             PIMAGE_BASE_RELOCATION base;
+            PVOID baseEnd;
 
             base = PTR_ADD_OFFSET(reloc, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+            baseEnd = PTR_ADD_OFFSET(base, reloc->BaseRelocSize);
 
             for (;;)
             {
@@ -1181,7 +1183,7 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
                 if (PH_ARM64EC_EXP_FIX_DONE())
                     break;
 
-                if (!PhPtrAdvance(&base, end, base->SizeOfBlock))
+                if (!PhPtrAdvance(&base, baseEnd, base->SizeOfBlock))
                     break;
             }
         }
@@ -1190,10 +1192,10 @@ NTSTATUS PhpFixupExportDirectoryForARM64EC(
             break;
 
         if (!PhPtrAdvance(&reloc, end, reloc->BaseRelocSize))
-            return STATUS_BUFFER_OVERFLOW;
+            break;
 
         if (!PhPtrAdvance(&reloc, end, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize)))
-            return STATUS_BUFFER_OVERFLOW;
+            break;
     }
 
     if (!PH_ARM64EC_EXP_FIX_DONE())
@@ -3897,50 +3899,26 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
     return STATUS_SUCCESS;
 }
 
-PVOID PhpFillDynamicRelocationsArray32(
+VOID PhpFillDynamicRelocations(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PIMAGE_DYNAMIC_RELOCATION32 Relocs,
-    _In_ PVOID End,
+    _In_ ULONGLONG Symbol,
+    _In_ PIMAGE_BASE_RELOCATION BaseRelocs,
+    _In_ PVOID BaseRelocsEnd,
     _Inout_ PPH_ARRAY Array
     )
 {
-    PVOID next;
-
-    // TODO(jxy-s) not yet implemented, skip the block 
-
-    next = Relocs;
-    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize)))
-        return End;
-
-    if (!PhPtrAdvance(&next, End, Relocs->BaseRelocSize))
-        return End;
-
-    return next;
-}
-
-PVOID PhpFillDynamicRelocationsArray64(
-    _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ PIMAGE_DYNAMIC_RELOCATION64 Relocs,
-    _In_ PVOID End,
-    _Inout_ PPH_ARRAY Array
-    )
-{
-    PVOID next;
-
-    if (Relocs->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
+    if (Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
     {
-        PIMAGE_BASE_RELOCATION base;
-
-        base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+        PIMAGE_BASE_RELOCATION base = BaseRelocs;
 
         for (ULONG blockIndex = 0; ; blockIndex++)
         {
             PIMAGE_DVRT_ARM64X_FIXUP_RECORD record;
-            PVOID end;
+            PVOID blockEnd;
 
             record = (PIMAGE_DVRT_ARM64X_FIXUP_RECORD)base;
-            end = PTR_ADD_OFFSET(base, base->SizeOfBlock);
-            if (!PhPtrAdvance(&record, end, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock)))
+            blockEnd = PTR_ADD_OFFSET(base, base->SizeOfBlock);
+            if (!PhPtrAdvance(&record, blockEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock)))
                 break;
 
             for (;;)
@@ -4015,26 +3993,122 @@ PVOID PhpFillDynamicRelocationsArray64(
 
                 PhAddItemArray(Array, &entry);
 
-                if (!PhPtrAdvance(&record, end, consumed))
+                if (!PhPtrAdvance(&record, blockEnd, consumed))
                     break;
             }
 
-            if (!PhPtrAdvance(&base, End, base->SizeOfBlock))
+            if (!PhPtrAdvance(&base, BaseRelocsEnd, base->SizeOfBlock))
                 break;
         }
     }
-    else
+    else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE ||
+             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE ||
+             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER ||
+             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER ||
+             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH ||
+             Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
     {
-        // unsupported/unimplemented, fall through and skip the block
+        // TODO(jxy-s) not yet implemented, skip the block 
         NOTHING;
     }
+    else if (Symbol > 0xff) // assumes IMAGE_DYNAMIC_RELOCATION_KI_USER_SHARED_DATA64 or similar
+    {
+        PIMAGE_BASE_RELOCATION base = BaseRelocs;
+
+        for (ULONG blockIndex = 0; ; blockIndex++)
+        {
+            ULONG relocationCount;
+            PIMAGE_BASE_RELOCATION_ENTRY relocations;
+
+            if (base->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
+            {
+                break;
+            }
+
+            relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+            relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+            for (ULONG i = 0; i < relocationCount; i++)
+            {
+                PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                RtlZeroMemory(&entry, sizeof(entry));
+
+                entry.Symbol = Symbol;
+                entry.Other.Entry.Offset = relocations[i].Offset;
+                entry.Other.Entry.Type = relocations[i].Type;
+                entry.Other.BlockIndex = blockIndex;
+                entry.Other.BlockRva = base->VirtualAddress;
+
+                entry.ImageBaseVa = PTR_ADD_OFFSET(
+                    MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                    UInt32Add32To64(entry.Other.BlockRva, entry.Other.Entry.Offset)
+                    );
+                entry.MappedImageVa = PhMappedImageRvaToVa(
+                    MappedImage,
+                    UInt32Add32To64(entry.Other.BlockRva, entry.Other.Entry.Offset),
+                    NULL
+                    );
+
+                PhAddItemArray(Array, &entry);
+            }
+
+            if (!PhPtrAdvance(&base, BaseRelocsEnd, base->SizeOfBlock))
+                break;
+        }
+    }
+}
+
+PVOID PhpFillDynamicRelocationsArray32(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DYNAMIC_RELOCATION32 Relocs,
+    _In_ PVOID RelocsEnd,
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    PVOID next;
+    PIMAGE_BASE_RELOCATION base;
+    PVOID end;
+
+    base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+    end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+    end = PTR_ADD_OFFSET(end, Relocs->BaseRelocSize);
+
+    PhpFillDynamicRelocations(MappedImage, Relocs->Symbol, base, end, Array);
 
     next = Relocs;
-    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize)))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize)))
+        return RelocsEnd;
 
-    if (!PhPtrAdvance(&next, End, Relocs->BaseRelocSize))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, Relocs->BaseRelocSize))
+        return RelocsEnd;
+
+    return next;
+}
+
+PVOID PhpFillDynamicRelocationsArray64(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_DYNAMIC_RELOCATION64 Relocs,
+    _In_ PVOID RelocsEnd,
+    _Inout_ PPH_ARRAY Array
+    )
+{
+    PVOID next;
+    PIMAGE_BASE_RELOCATION base;
+    PVOID end;
+
+    base = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+    end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
+    end = PTR_ADD_OFFSET(end, Relocs->BaseRelocSize);
+
+    PhpFillDynamicRelocations(MappedImage, Relocs->Symbol, base, end, Array);
+
+    next = Relocs;
+    if (!PhPtrAdvance(&next, RelocsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize)))
+        return RelocsEnd;
+
+    if (!PhPtrAdvance(&next, RelocsEnd, Relocs->BaseRelocSize))
+        return RelocsEnd;
 
     return next;
 }
@@ -4042,7 +4116,7 @@ PVOID PhpFillDynamicRelocationsArray64(
 PVOID PhpFillDynamicRelocationsArray32v2(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DYNAMIC_RELOCATION32_V2 Relocs,
-    _In_ PVOID End,
+    _In_ PVOID RelocsEnd,
     _Inout_ PPH_ARRAY Array
     )
 {
@@ -4051,14 +4125,14 @@ PVOID PhpFillDynamicRelocationsArray32v2(
     // TODO(jxy-s) not yet implemented, skip the block 
 
     next = Relocs;
-    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32_V2, Flags)))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32_V2, Flags)))
+        return RelocsEnd;
 
-    if (!PhPtrAdvance(&next, End, Relocs->HeaderSize))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, Relocs->HeaderSize))
+        return RelocsEnd;
 
-    if (!PhPtrAdvance(&next, End, Relocs->FixupInfoSize))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, Relocs->FixupInfoSize))
+        return RelocsEnd;
 
     return next;
 }
@@ -4066,7 +4140,7 @@ PVOID PhpFillDynamicRelocationsArray32v2(
 PVOID PhpFillDynamicRelocationsArray64v2(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_DYNAMIC_RELOCATION32_V2 Relocs,
-    _In_ PVOID End,
+    _In_ PVOID RelocsEnd,
     _Inout_ PPH_ARRAY Array
     )
 {
@@ -4075,14 +4149,14 @@ PVOID PhpFillDynamicRelocationsArray64v2(
     // TODO(jxy-s) not yet implemented, skip the block 
 
     next = Relocs;
-    if (!PhPtrAdvance(&next, End, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64_V2, Flags)))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64_V2, Flags)))
+        return RelocsEnd;
 
-    if (!PhPtrAdvance(&next, End, Relocs->HeaderSize))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, Relocs->HeaderSize))
+        return RelocsEnd;
 
-    if (!PhPtrAdvance(&next, End, Relocs->FixupInfoSize))
-        return End;
+    if (!PhPtrAdvance(&next, RelocsEnd, Relocs->FixupInfoSize))
+        return RelocsEnd;
 
     return next;
 }
