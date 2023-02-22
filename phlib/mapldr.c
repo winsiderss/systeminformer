@@ -1770,9 +1770,9 @@ NTSTATUS PhLoaderEntryRelocateImage(
     {
         ULONG relocationCount;
         PVOID relocationAddress;
-        PIMAGE_BASE_RELOCATION_ENTRY relocations;
+        PIMAGE_RELOCATION_RECORD relocations;
 
-        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
         relocationAddress = PTR_ADD_OFFSET(BaseAddress, relocationDirectory->VirtualAddress);
         relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
 

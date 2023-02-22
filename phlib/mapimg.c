@@ -3735,7 +3735,7 @@ NTSTATUS PhGetMappedImageRelocations(
             return STATUS_INVALID_IMAGE_FORMAT;
         }
 
-        relocationTotal += (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+        relocationTotal += (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
         relocationDirectory = PTR_ADD_OFFSET(relocationDirectory, relocationDirectory->SizeOfBlock);
     }
 
@@ -3750,9 +3750,9 @@ NTSTATUS PhGetMappedImageRelocations(
     while ((ULONG_PTR)relocationDirectory < (ULONG_PTR)relocationDirectoryEnd)
     {
         ULONG relocationCount;
-        PIMAGE_BASE_RELOCATION_ENTRY relocations;
+        PIMAGE_RELOCATION_RECORD relocations;
 
-        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+        relocationCount = (relocationDirectory->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
         relocations = PTR_ADD_OFFSET(relocationDirectory, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
 
         for (ULONG i = 0; i < relocationCount; i++)
@@ -4060,14 +4060,14 @@ VOID PhpFillDynamicRelocations(
                 for (;; blockIndex++)
                 {
                     ULONG relocationCount;
-                    PIMAGE_BASE_RELOCATION_ENTRY relocations;
+                    PIMAGE_RELOCATION_RECORD relocations;
 
                     if (base->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
                     {
                         break;
                     }
 
-                    relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+                    relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
                     relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
 
                     for (ULONG i = 0; i < relocationCount; i++)
@@ -4084,8 +4084,8 @@ VOID PhpFillDynamicRelocations(
                         entry.Symbol = Symbol;
                         entry.FuncOverride.BlockIndex = blockIndex;
                         entry.FuncOverride.BlockRva = base->VirtualAddress;
-                        entry.FuncOverride.Entry.Offset = relocations[i].Offset;
-                        entry.FuncOverride.Entry.Type = relocations[i].Type;
+                        entry.FuncOverride.Record.Offset = relocations[i].Offset;
+                        entry.FuncOverride.Record.Type = relocations[i].Type;
                         entry.FuncOverride.BDDNodes = bddNodes;
                         entry.FuncOverride.BDDNodesCount = bddNodesCount;
                         entry.FuncOverride.OriginalRva = funcOverride->OriginalRva;
@@ -4095,11 +4095,11 @@ VOID PhpFillDynamicRelocations(
 
                         entry.ImageBaseVa = PTR_ADD_OFFSET(
                             MappedImage->NtHeaders->OptionalHeader.ImageBase,
-                            UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Entry.Offset)
+                            UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Record.Offset)
                             );
                         entry.MappedImageVa = PhMappedImageRvaToVa(
                             MappedImage,
-                            UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Entry.Offset),
+                            UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Record.Offset),
                             NULL
                             );
 
@@ -4128,14 +4128,14 @@ VOID PhpFillDynamicRelocations(
         for (ULONG blockIndex = 0; ; blockIndex++)
         {
             ULONG relocationCount;
-            PIMAGE_BASE_RELOCATION_ENTRY relocations;
+            PIMAGE_RELOCATION_RECORD relocations;
 
             if (base->SizeOfBlock < sizeof(IMAGE_BASE_RELOCATION))
             {
                 break;
             }
 
-            relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_BASE_RELOCATION_ENTRY);
+            relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_RELOCATION_RECORD);
             relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
 
             for (ULONG i = 0; i < relocationCount; i++)
@@ -4145,18 +4145,18 @@ VOID PhpFillDynamicRelocations(
                 RtlZeroMemory(&entry, sizeof(entry));
 
                 entry.Symbol = Symbol;
-                entry.Other.Entry.Offset = relocations[i].Offset;
-                entry.Other.Entry.Type = relocations[i].Type;
+                entry.Other.Record.Offset = relocations[i].Offset;
+                entry.Other.Record.Type = relocations[i].Type;
                 entry.Other.BlockIndex = blockIndex;
                 entry.Other.BlockRva = base->VirtualAddress;
 
                 entry.ImageBaseVa = PTR_ADD_OFFSET(
                     MappedImage->NtHeaders->OptionalHeader.ImageBase,
-                    UInt32Add32To64(entry.Other.BlockRva, entry.Other.Entry.Offset)
+                    UInt32Add32To64(entry.Other.BlockRva, entry.Other.Record.Offset)
                     );
                 entry.MappedImageVa = PhMappedImageRvaToVa(
                     MappedImage,
-                    UInt32Add32To64(entry.Other.BlockRva, entry.Other.Entry.Offset),
+                    UInt32Add32To64(entry.Other.BlockRva, entry.Other.Record.Offset),
                     NULL
                     );
 

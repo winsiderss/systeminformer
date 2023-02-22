@@ -97,10 +97,10 @@ VOID PvEnumerateDynamicRelocationEntries(
             }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
             {
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->FuncOverride.BlockRva, entry->FuncOverride.Entry.Offset));
+                PhPrintPointer(value, PTR_ADD_OFFSET(entry->FuncOverride.BlockRva, entry->FuncOverride.Record.Offset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"FNOVR");
-                switch (entry->FuncOverride.Entry.Type)
+                switch (entry->FuncOverride.Record.Type)
                 {
                 case IMAGE_FUNCTION_OVERRIDE_X64_REL32:
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, L"X64 REL32");
@@ -118,9 +118,9 @@ VOID PvEnumerateDynamicRelocationEntries(
             }
             else
             {
-                PhPrintPointer(value, PTR_ADD_OFFSET(entry->Other.BlockRva, entry->Other.Entry.Offset));
+                PhPrintPointer(value, PTR_ADD_OFFSET(entry->Other.BlockRva, entry->Other.Record.Offset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
-                switch (entry->Other.Entry.Type)
+                switch (entry->Other.Record.Type)
                 {
                 case IMAGE_REL_BASED_ABSOLUTE:
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ABS");
