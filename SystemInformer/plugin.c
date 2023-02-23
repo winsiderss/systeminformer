@@ -43,6 +43,11 @@ NTSTATUS PhLoadPlugin(
     _In_ PPH_STRING FileName
     );
 
+VOID PhInvokeCallbackForAllPlugins(
+    _In_ PH_PLUGIN_CALLBACK Callback,
+    _In_opt_ PVOID Parameters
+    );
+
 VOID PhpExecuteCallbackForAllPlugins(
     _In_ PH_PLUGIN_CALLBACK Callback,
     _In_ BOOLEAN StartupParameters
@@ -549,10 +554,10 @@ VOID PhLoadPlugins(
  * Notifies all plugins that the program is shutting down.
  */
 VOID PhUnloadPlugins(
-    VOID
+    _In_ BOOLEAN SessionEnding
     )
 {
-    PhpExecuteCallbackForAllPlugins(PluginCallbackUnload, FALSE);
+    PhInvokeCallbackForAllPlugins(PluginCallbackUnload, UlongToPtr(SessionEnding));
 }
 
 /**
@@ -565,6 +570,21 @@ NTSTATUS PhLoadPlugin(
     )
 {
     return PhLoadPluginImage(&FileName->sr, NULL);
+}
+
+VOID PhInvokeCallbackForAllPlugins(
+    _In_ PH_PLUGIN_CALLBACK Callback,
+    _In_opt_ PVOID Parameters
+    )
+{
+    PPH_AVL_LINKS links;
+
+    for (links = PhMinimumElementAvlTree(&PhPluginsByName); links; links = PhSuccessorElementAvlTree(links))
+    {
+        PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
+
+        PhInvokeCallback(PhGetPluginCallback(plugin, Callback), Parameters);
+    }
 }
 
 VOID PhpExecuteCallbackForAllPlugins(
