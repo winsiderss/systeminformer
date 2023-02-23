@@ -7755,10 +7755,10 @@ VOID PhUpdateDosDevicePrefixes(
     VOID
     )
 {
-    ULONG deviceMap = 0;
+    //ULONG deviceMap = 0;
     WCHAR deviceNameBuffer[7] = L"\\??\\ :";
 
-    PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
+    //PhGetProcessDeviceMap(NtCurrentProcess(), &deviceMap);
 
     PhAcquireQueuedLockExclusive(&PhDevicePrefixesLock);
 
@@ -7768,18 +7768,18 @@ VOID PhUpdateDosDevicePrefixes(
         OBJECT_ATTRIBUTES objectAttributes;
         UNICODE_STRING deviceName;
 
-        if (deviceMap)
-        {
-            if (!(deviceMap & (0x1 << i)))
-            {
-                PhDevicePrefixes[i].Length = 0;
-                continue;
-            }
-        }
+        //if (deviceMap)
+        //{
+        //    if (!(deviceMap & (0x1 << i)))
+        //    {
+        //        PhDevicePrefixes[i].Length = 0;
+        //        continue;
+        //    }
+        //}
 
         deviceNameBuffer[4] = (WCHAR)('A' + i);
         deviceName.Buffer = deviceNameBuffer;
-        deviceName.Length = 6 * sizeof(WCHAR);
+        deviceName.Length = sizeof(deviceNameBuffer) - sizeof(UNICODE_NULL);
         deviceName.MaximumLength = deviceName.Length + sizeof(UNICODE_NULL);
 
         InitializeObjectAttributes(
@@ -7840,13 +7840,13 @@ PPH_STRING PhResolveDevicePrefix(
         PhEndInitOnce(&PhDevicePrefixesInitOnce);
     }
 
+    PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
+
     // Go through the DOS devices and try to find a matching prefix.
     for (i = 0; i < 26; i++)
     {
         BOOLEAN isPrefix = FALSE;
         PH_STRINGREF prefix;
-
-        PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
 
         PhUnicodeStringToStringRef(&PhDevicePrefixes[i], &prefix);
 
@@ -7863,8 +7863,6 @@ PPH_STRING PhResolveDevicePrefix(
             }
         }
 
-        PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
-
         if (isPrefix)
         {
             // <letter>:path
@@ -7880,6 +7878,8 @@ PPH_STRING PhResolveDevicePrefix(
             break;
         }
     }
+
+    PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
 
     if (i == 26)
     {
