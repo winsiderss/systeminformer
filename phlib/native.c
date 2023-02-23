@@ -8030,6 +8030,56 @@ PPH_STRING PhGetFileName(
     return newFileName;
 }
 
+PPH_STRING PhDosPathNameToNtPathName(
+    _In_ PPH_STRINGREF Name
+    )
+{
+    PPH_STRING newName = NULL;
+    PH_STRINGREF prefix;
+    ULONG index;
+
+    if (PhBeginInitOnce(&PhDevicePrefixesInitOnce))
+    {
+        PhpInitializeDevicePrefixes();
+        PhUpdateDosDevicePrefixes();
+        PhUpdateMupDevicePrefixes();
+
+        PhEndInitOnce(&PhDevicePrefixesInitOnce);
+    }
+
+    if (!PATH_IS_WIN32_DRIVE_PREFIX(Name))
+        return NULL;
+
+    index = (ULONG)(Name->Buffer[0] - L'A');
+
+    if (index >= RTL_NUMBER_OF(PhDevicePrefixes))
+        return NULL;
+
+    PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
+
+    PhUnicodeStringToStringRef(&PhDevicePrefixes[index], &prefix);
+
+    if (prefix.Length != 0)
+    {
+        // \Device\HardDiskVolumeX\Name
+        newName = PhCreateStringEx(NULL, prefix.Length + Name->Length - sizeof(WCHAR[2]));
+        memcpy(
+            newName->Buffer,
+            prefix.Buffer,
+            prefix.Length
+            );
+        memcpy(
+            PTR_ADD_OFFSET(newName->Buffer, prefix.Length),
+            PTR_ADD_OFFSET(Name->Buffer, sizeof(WCHAR[2])),
+            Name->Length - sizeof(WCHAR[2])
+            );
+    }
+
+    PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
+
+    return newName;
+}
+
 typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 {
     PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;

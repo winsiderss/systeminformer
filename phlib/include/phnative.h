@@ -1586,6 +1586,29 @@ PhGetFileName(
     _In_ PPH_STRING FileName
     );
 
+// "X:\"
+#define PATH_IS_WIN32_DRIVE_PREFIX(s) ( \
+    (s)->Length >= 2 && \
+    (s)->Buffer[0] >= L'A' && \
+    (s)->Buffer[0] <= L'Z' && \
+    (s)->Buffer[1] == L':' && \
+    (s)->Buffer[2] == OBJ_NAME_PATH_SEPARATOR)
+
+// "\??\" or "\\?\" or "\\.\"
+#define PATH_IS_WIN32_DOSDEVICES_PREFIX(s) ( \
+    (s)->Length >= 3 && \
+    (s)->Buffer[0] == '\\' && \
+    ((s)->Buffer[1] == '?' || (s)->Buffer[1] == '\\') && \
+    (s)->Buffer[2] == '?' || (s)->Buffer[2] == '.'&& \
+    (s)->Buffer[3] == '\\')
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhDosPathNameToNtPathName(
+    _In_ PPH_STRINGREF Name
+    );
+
 #define PH_MODULE_TYPE_MODULE 1
 #define PH_MODULE_TYPE_MAPPED_FILE 2
 #define PH_MODULE_TYPE_WOW64_MODULE 3
