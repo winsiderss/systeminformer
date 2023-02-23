@@ -236,18 +236,18 @@ LOGICAL DllMain(
             info->Author = L"dmex, wj32";
             info->Description = L"Adds .NET performance counters, assembly information, thread stack support, and more.";
 
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-                LoadCallback,
-                NULL,
-                &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+            //    LoadCallback,
+            //    NULL,
+            //    &PluginLoadCallbackRegistration
+            //    );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+            //    UnloadCallback,
+            //    NULL,
+            //    &PluginUnloadCallbackRegistration
+            //    );
             //PhRegisterCallback(
             //    PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
             //    MenuItemCallback,
