@@ -78,10 +78,16 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI UnloadCallback(
-    _In_opt_ PVOID Parameter,
-    _In_opt_ PVOID Context
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     )
 {
+    BOOLEAN SessionEnding = (BOOLEAN)PtrToUlong(Parameter);
+
+    // Skip ETW when the system is shutting down. (dmex)
+    if (SessionEnding)
+        return;
+
     EtEtwStatisticsUninitialization();
     EtFramesMonitorUninitialization();
 }

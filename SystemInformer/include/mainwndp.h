@@ -85,7 +85,9 @@ VOID PhMwpOnDestroy(
     );
 
 VOID PhMwpOnEndSession(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN SessionEnding,
+    _In_ ULONG Reason
     );
 
 VOID PhMwpOnSettingChange(
