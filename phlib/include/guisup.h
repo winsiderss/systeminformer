@@ -1136,6 +1136,15 @@ PhWindowNotifyTopMostEvent(
     _In_ BOOLEAN TopMost
     );
 
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhRegenerateUserEnvironment(
+    _Out_opt_ PVOID* NewEnvironment,
+    _In_ BOOLEAN UpdateCurrentEnvironment
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI

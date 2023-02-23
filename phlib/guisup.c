@@ -2029,6 +2029,54 @@ VOID PhWindowNotifyTopMostEvent(
     PhReleaseQueuedLockExclusive(&WindowCallbackListLock);
 }
 
+_Success_(return)
+BOOLEAN PhRegenerateUserEnvironment(
+    _Out_opt_ PVOID* NewEnvironment,
+    _In_ BOOLEAN UpdateCurrentEnvironment
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL (WINAPI *RegenerateUserEnvironment_I)(
+        _Out_ PVOID* NewEnvironment,
+        _In_ BOOL UpdateCurrentEnvironment
+        ) = NULL;
+    PVOID environment;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID shell32Handle;
+
+        if (shell32Handle = PhLoadLibrary(L"shell32.dll"))
+        {
+            RegenerateUserEnvironment_I = PhGetDllBaseProcedureAddress(shell32Handle, "RegenerateUserEnvironment", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!RegenerateUserEnvironment_I)
+        return FALSE;
+
+    if (RegenerateUserEnvironment_I(&environment, UpdateCurrentEnvironment))
+    {
+        if (NewEnvironment)
+        {
+            *NewEnvironment = environment;
+        }
+        else
+        {
+            if (DestroyEnvironmentBlock_Import() && !UpdateCurrentEnvironment)
+            {
+                DestroyEnvironmentBlock_Import()(environment);
+            }
+        }
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 HICON PhGetInternalWindowIcon(
     _In_ HWND WindowHandle,
     _In_ UINT Type
