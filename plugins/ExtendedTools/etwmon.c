@@ -582,8 +582,8 @@ ULONG EtStartEtwRundown(
     if (EtWindowsVersion >= WINDOWS_8 && EtEtwEnabled && EtpSessionHandle != INVALID_PROCESSTRACE_HANDLE)
     {
         // Note: Enable the filename rundown in our existing trace session
-        // without creating a seperate trace session/thread. If this returns an
-        // error then we'll fallback to creating a sepeate trace session/thread. (dmex)
+        // without creating a separate trace session/thread. If this returns an
+        // error then we'll fallback to creating a separate trace session/thread. (dmex)
         result = EnableTraceEx2(
             EtpSessionHandle,
             &KernelRundownGuid_I,
