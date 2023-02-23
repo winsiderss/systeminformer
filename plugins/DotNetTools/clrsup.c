@@ -981,7 +981,7 @@ static BOOLEAN NTAPI DnpGetClrRuntimeCallback(
         entry->FileName = PhCreateStringFromUnicodeString(&Module->FullDllName);
         entry->DllBase = Module->DllBase;
 
-        if (PhInitializeImageVersionInfo(&versionInfo, entry->FileName->Buffer))
+        if (PhInitializeImageVersionInfoEx(&versionInfo, &entry->FileName->sr, FALSE))
         {
             entry->RuntimeVersion = PhReferenceObject(versionInfo.FileVersion);
             PhDeleteImageVersionInfo(&versionInfo);
@@ -1000,24 +1000,29 @@ VOID DnGetProcessDotNetRuntimes(
     )
 {
     DnCLRDataTarget* dataTarget = (DnCLRDataTarget*)DataTarget;
+    PH_ENUM_PROCESS_MODULES_PARAMETERS parameters = { 0 };
     DN_PROCESS_CLR_RUNTIME_CONTEXT context = { 0 };
 
     context.RuntimeList = PhCreateList(1);
 
+    parameters.Callback = DnpGetClrRuntimeCallback;
+    parameters.Context = &context;
+    parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
+
     PhInitializeStringRef(&context.ImageName, L"coreclr.dll");
-    PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+    PhEnumProcessModulesEx(dataTarget->ProcessHandle, &parameters);
 
 #ifdef _WIN64
     if (dataTarget->IsWow64)
-        PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+        PhEnumProcessModules32Ex(dataTarget->ProcessHandle, &parameters);
 #endif
 
     PhInitializeStringRef(&context.ImageName, L"clr.dll");
-    PhEnumProcessModules(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+    PhEnumProcessModulesEx(dataTarget->ProcessHandle, &parameters);
 
 #ifdef _WIN64
     if (dataTarget->IsWow64)
-        PhEnumProcessModules32(dataTarget->ProcessHandle, DnpGetClrRuntimeCallback, &context);
+        PhEnumProcessModules32Ex(dataTarget->ProcessHandle, &parameters);
 #endif
 
     for (ULONG i = 0; i < context.RuntimeList->Count; i++)
@@ -1100,10 +1105,11 @@ BOOLEAN DnGetProcessCoreClrPath(
     DNP_GET_IMAGE_BASE_CONTEXT context = { 0 };
     PH_ENUM_PROCESS_MODULES_PARAMETERS parameters;
 
-    PhInitializeStringRef(&context.ImageName, L"coreclr.dll");
     parameters.Callback = DnpGetCoreClrPathCallback;
     parameters.Context = &context;
     parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
+
+    PhInitializeStringRef(&context.ImageName, L"coreclr.dll");
     PhEnumProcessModulesEx(dataTarget->ProcessHandle, &parameters);
 
 #ifdef _WIN64
@@ -1700,29 +1706,23 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetPointerSize(
     return S_OK;
 }
 
-typedef struct _PHP_GET_IMAGE_BASE_CONTEXT
+typedef struct _DN_GET_IMAGE_BASE_CONTEXT
 {
-    PH_STRINGREF ImagePath;
+    PPH_STRING ImagePath;
     PVOID BaseAddress;
-} PHP_GET_IMAGE_BASE_CONTEXT, *PPHP_GET_IMAGE_BASE_CONTEXT;
+} DN_GET_IMAGE_BASE_CONTEXT, *PDN_GET_IMAGE_BASE_CONTEXT;
 
 BOOLEAN NTAPI PhpGetImageBaseCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
-    PPHP_GET_IMAGE_BASE_CONTEXT context = Context;
-    PH_STRINGREF fullDllName;
+    PDN_GET_IMAGE_BASE_CONTEXT context = Context;
     PH_STRINGREF baseDllName;
 
-    if (!context)
-        return TRUE;
-
-    PhUnicodeStringToStringRef(&Module->FullDllName, &fullDllName);
     PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
 
-    if (PhEqualStringRef(&fullDllName, &context->ImagePath, TRUE) ||
-        PhEqualStringRef(&baseDllName, &context->ImagePath, TRUE))
+    if (PhEqualStringRef(&baseDllName, &context->ImagePath->sr, TRUE))
     {
         context->BaseAddress = Module->DllBase;
         return FALSE;
@@ -1738,21 +1738,27 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
     )
 {
     DnCLRDataTarget *this = (DnCLRDataTarget *)This;
-    PHP_GET_IMAGE_BASE_CONTEXT context;
+    PH_ENUM_PROCESS_MODULES_PARAMETERS parameters = { 0 };
+    DN_GET_IMAGE_BASE_CONTEXT context = { 0 };
 
-    PhInitializeStringRefLongHint(&context.ImagePath, (PWSTR)imagePath);
+    context.ImagePath = PhCreateString((PWSTR)imagePath);
+    PhMoveReference(&context.ImagePath, PhGetBaseName(context.ImagePath));
     context.BaseAddress = NULL;
-    PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
+
+    parameters.Callback = PhpGetImageBaseCallback;
+    parameters.Context = &context;
+    parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
+    PhEnumProcessModulesEx(this->ProcessHandle, &parameters);
 
 #ifdef _WIN64
     if (this->IsWow64)
-        PhEnumProcessModules32(this->ProcessHandle, PhpGetImageBaseCallback, &context);
+        PhEnumProcessModules32Ex(this->ProcessHandle, &parameters);
 #endif
+    PhClearReference(&context.ImagePath);
 
     if (context.BaseAddress)
     {
-        *baseAddress = (CLRDATA_ADDRESS)context.BaseAddress;
-
+        *baseAddress = (CLRDATA_ADDRESS)context.BaseAddress;    
         return S_OK;
     }
     else
@@ -1769,8 +1775,8 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
                 {
                     if (baseName = PhGetBaseName(processItem->FileName))
                     {
-                        context.ImagePath = baseName->sr;
-                        PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
+                        context.ImagePath = baseName;
+                        PhEnumProcessModulesEx(this->ProcessHandle, &parameters);
                         PhDereferenceObject(baseName);
 
                         if (context.BaseAddress)
@@ -1792,8 +1798,8 @@ HRESULT STDMETHODCALLTYPE DnCLRDataTarget_GetImageBase(
             {
                 if (baseName = PhGetBaseName(fileName))
                 {
-                    context.ImagePath = baseName->sr;
-                    PhEnumProcessModules(this->ProcessHandle, PhpGetImageBaseCallback, &context);
+                    context.ImagePath = baseName;
+                    PhEnumProcessModulesEx(this->ProcessHandle, &parameters);
                     PhDereferenceObject(baseName);
 
                     if (context.BaseAddress)
