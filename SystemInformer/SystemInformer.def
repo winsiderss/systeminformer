@@ -431,6 +431,7 @@ EXPORTS
     PhGetTemporaryDirectoryRandomAlphaFileName
     PhInitializeHash
     PhInitializeImageVersionInfo
+    PhInitializeImageVersionInfoEx
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
     PhLoadLibrary
