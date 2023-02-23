@@ -2459,7 +2459,7 @@ BOOLEAN PhUiRestartProcess(
 
         if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
         {
-            AllowSetForegroundWindow(ASFW_ANY);
+            AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
         }
 
         // Terminate the existing process.
