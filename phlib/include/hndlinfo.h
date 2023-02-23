@@ -33,6 +33,15 @@ PhSetHandleClientIdFunction(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetObjectBasicInformation(
+    _In_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle,
+    _Out_ POBJECT_BASIC_INFORMATION BasicInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhQueryObjectName(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING* ObjectName
