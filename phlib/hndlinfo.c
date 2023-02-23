@@ -126,8 +126,8 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
         );
 }
 
-NTSTATUS PhpGetObjectBasicInformation(
-    _In_opt_ HANDLE ProcessHandle,
+NTSTATUS PhGetObjectBasicInformation(
+    _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     )
@@ -1909,7 +1909,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Get basic information.
     if (BasicInformation)
     {
-        status = PhpGetObjectBasicInformation(
+        status = PhGetObjectBasicInformation(
             ProcessHandle,
             useKph ? Handle : dupHandle,
             BasicInformation
