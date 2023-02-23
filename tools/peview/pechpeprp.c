@@ -166,13 +166,13 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         );
                     PvpCHPAddValue(
                         lvHandle, 
-                        L"Dispatch indirrect call", 
+                        L"Dispatch indirect call", 
                         PhFormatString(L"0x%lx", chpe32->WowA64DispatchIndirectCallFunctionPointer), 
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchIndirectCallFunctionPointer)
                         );
                     PvpCHPAddValue(
                         lvHandle, 
-                        L"Dispatch indirrect call guard",
+                        L"Dispatch indirect call guard",
                         PhFormatString(L"0x%lx", chpe32->WowA64DispatchIndirectCallCfgFunctionPointer), 
                         PvpCHPERvaToSymbol(chpe32->WowA64DispatchIndirectCallCfgFunctionPointer)
                         );
@@ -353,13 +353,13 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Dispatch indirrect call",
+                        L"Dispatch indirect call",
                         PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_icall), 
                         PvpCHPERvaToSymbol(chpe64->tbd__os_arm64x_dispatch_icall)
                         );
                     PvpCHPAddValue(
                         lvHandle,
-                        L"Dispatch indirrect call guard",
+                        L"Dispatch indirect call guard",
                         PhFormatString(L"0x%lx", chpe64->tbd__os_arm64x_dispatch_icall_cfg), 
                         PvpCHPERvaToSymbol(chpe64->tbd__os_arm64x_dispatch_icall_cfg)
                         );
