@@ -193,7 +193,7 @@ BOOLEAN PhMainWndInitialization(
     // Initialize child controls.
     PhMwpInitializeControls(PhMainWndHandle);
 
-    PhMwpOnSettingChange(PhMainWndHandle);
+    PhMwpOnSettingChange(PhMainWndHandle, 0, NULL);
 
     PhMwpLoadSettings(PhMainWndHandle);
     PhLogInitialization();
@@ -306,7 +306,7 @@ LRESULT CALLBACK PhMwpWndProc(
             TreeNew_SetImageList(PhMwpServiceTreeNewHandle, PhProcessSmallImageList);
             TreeNew_SetImageList(PhMwpNetworkTreeNewHandle, PhProcessSmallImageList);
 
-            PhMwpOnSettingChange(hWnd);
+            PhMwpOnSettingChange(hWnd, 0, NULL);
 
             PhMwpInvokeUpdateWindowFont(NULL);
             if (PhGetIntegerSetting(L"EnableMonospaceFont"))
@@ -323,7 +323,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_SETTINGCHANGE:
         {
-            PhMwpOnSettingChange(hWnd);
+            PhMwpOnSettingChange(hWnd, (ULONG)wParam, (PWSTR)lParam);
         }
         break;
     case WM_COMMAND:
@@ -669,20 +669,44 @@ VOID PhMwpOnEndSession(
 }
 
 VOID PhMwpOnSettingChange(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_opt_ ULONG Action,
+    _In_opt_ PWSTR Metric
     )
 {
-    PhInitializeFont(hwnd);
+    PhInitializeFont(WindowHandle);
 
     if (PhGetIntegerSetting(L"EnableMonospaceFont"))
     {
-        PhInitializeMonospaceFont(hwnd);
+        PhInitializeMonospaceFont(WindowHandle);
     }
 
-    //if (TabControlHandle)
-    //{
-    //    SetWindowFont(TabControlHandle, PhApplicationFont, TRUE);
-    //}
+    if (Action == 0 && Metric)
+    {
+        // Reload environment variables
+
+        if (PhEqualStringZ(Metric, L"Environment", TRUE))
+        {
+            // Reload the environment so when the user starts
+            // processes via the run menu they're created 
+            // with the correct environment variables. (dmex)
+            PhRegenerateUserEnvironment(NULL, TRUE);
+        }
+
+        // Reload non-client metrics
+
+        //if (PhEqualStringZ(Metric, L"WindowMetrics", TRUE))
+        //{
+        //    NOTHING;
+        //}
+
+        // Reload dark theme metrics
+
+        //if (PhEqualStringZ(Metric, L"ImmersiveColorSet", TRUE))
+        //{
+        //    NOTHING;
+        //}
+    }
 }
 
 static NTSTATUS PhpOpenServiceControlManager(
@@ -2371,7 +2395,7 @@ BOOLEAN PhMwpExecuteComputerCommand(
     return FALSE;
 }
 
-BOOL PhMwpIsWindowOverlapped(
+BOOLEAN PhMwpIsWindowOverlapped(
     _In_ HWND WindowHandle
     )
 {
@@ -3750,6 +3774,9 @@ VOID PhShowIconContextMenu(
             handled = PhMwpExecuteNotificationMenuCommand(PhMainWndHandle, item->Id);
 
         if (!handled)
+            handled = PhMwpExecuteNotificationSettingsMenuCommand(PhMainWndHandle, item->Id);
+
+        if (!handled)
         {
             switch (item->Id)
             {
@@ -4008,19 +4035,6 @@ BOOLEAN PhMwpPluginNotifyEvent(
 }
 
 // Exports for plugin support (dmex)
-HWND PhGetMainWindowHandle(
-    VOID
-    )
-{
-    return PhMainWndHandle;
-}
-
-ULONG PhGetWindowsVersion(
-    VOID
-    )
-{
-    return WindowsVersion;
-}
 
 PVOID PhPluginInvokeWindowCallback(
     _In_ PH_MAINWINDOW_CALLBACK_TYPE Event,
