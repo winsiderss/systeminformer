@@ -22,9 +22,6 @@
     <Filter Include="Source Files\Pages\Linux">
       <UniqueIdentifier>{3213da7e-9e01-48a4-8895-c4dd1499b2fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\DIA-SDK">
-      <UniqueIdentifier>{ce2627d7-7f04-4e4b-ab4b-64e8e5cd0e25}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -186,15 +183,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="colmgr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\cvconst.h">
-      <Filter>Header Files\DIA-SDK</Filter>
-    </ClInclude>
-    <ClInclude Include="include\dia2.h">
-      <Filter>Header Files\DIA-SDK</Filter>
-    </ClInclude>
-    <ClInclude Include="include\dia3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

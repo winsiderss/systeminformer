@@ -404,9 +404,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="colmgr.h" />
-    <ClInclude Include="include\cvconst.h" />
-    <ClInclude Include="include\dia2.h" />
-    <ClInclude Include="include\dia3.h" />
     <ClInclude Include="include\peview.h" />
     <ClInclude Include="include\prpsh.h" />
     <ClInclude Include="resource.h" />
