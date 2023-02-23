@@ -135,7 +135,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
     }
 
     // Acquire the mutex, only waiting two seconds.
-    // We can't actually gaurantee that the target put a mutex object in here.
+    // We can't actually guarantee that the target put a mutex object in here.
     if (NtWaitForSingleObject(
         legacyPrivateBlockMutexHandle,
         FALSE,
@@ -157,7 +157,7 @@ PPH_LIST EnumerateAppDomainIpcBlock(
     // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
     // If we get here, then hMutex is held by this process.
 
-    // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
+    // Make a copy of the IPC block so that we can guarantee that it's not changing on us.
     memcpy_s(&tempBlock, sizeof(tempBlock), AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock));
 
     // It's possible the process will not have any appdomains.
@@ -296,7 +296,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
     }
 
     // Acquire the mutex, only waiting two seconds.
-    // We can't actually gaurantee that the target put a mutex object in here.
+    // We can't actually guarantee that the target put a mutex object in here.
     if (NtWaitForSingleObject(
         legacyPrivateBlockMutexHandle,
         FALSE,
@@ -318,7 +318,7 @@ PPH_LIST EnumerateAppDomainIpcBlockWow64(
     // Beware: If the target pid is not properly honoring the mutex, the data in the IPC block may still shift underneath us.
     // If we get here, then hMutex is held by this process.
 
-    // Make a copy of the IPC block so that we can gaurantee that it's not changing on us.
+    // Make a copy of the IPC block so that we can guarantee that it's not changing on us.
     memcpy_s(&tempBlock, sizeof(tempBlock), AppDomainIpcBlock, sizeof(AppDomainEnumerationIPCBlock_Wow64));
 
     // It's possible the process will not have any appdomains.

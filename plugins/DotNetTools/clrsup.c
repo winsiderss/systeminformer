@@ -1332,7 +1332,7 @@ TryAppLocal:
 
         // We couldn't find any compatible versions of the CLR installed. Try loading
         // the version of the CLR included with the application after checking the
-        // digitial signature was from Microsoft. (dmex)
+        // digital signature was from Microsoft. (dmex)
 
         fileName = PhConcatStringRef2(
             &dataTargetDirectory->sr,
