@@ -148,7 +148,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -186,7 +186,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -223,7 +223,7 @@
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalOptions>/DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <ResourceCompile>
@@ -267,7 +267,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
@@ -314,7 +314,7 @@
       <MinimumRequiredVersion>6.01</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 /guard:xfg %(AdditionalOptions)</AdditionalOptions>
@@ -359,7 +359,7 @@
       <MinimumRequiredVersion>10</MinimumRequiredVersion>
       <AdditionalLibraryDirectories>$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
-      <DelayLoadDLLs>aclui.dll;comdlg32.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs>aclui.dll;comdlg32.dll;gdiplus.dll;iphlpapi.dll;oleaut32.dll;shell32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalOptions>/BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
