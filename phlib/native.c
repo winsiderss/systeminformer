@@ -743,7 +743,12 @@ NTSTATUS PhGetProcessImageFileNameWin32(
         // by calling PhGetFileName and resolving the NT device prefix. (dmex)
 
         fileNameWin32 = PhCreateStringFromUnicodeString(fileName);
-        PhMoveReference(&fileNameWin32, PhGetFileName(fileNameWin32));
+
+        if (fileNameWin32->Length != 0 && fileNameWin32->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
+        {
+            PhMoveReference(&fileNameWin32, PhGetFileName(fileNameWin32));
+        }
+
         *FileName = fileNameWin32;
     }
 
@@ -1143,11 +1148,13 @@ NTSTATUS PhGetProcessCommandLine(
     _Out_ PPH_STRING *CommandLine
     )
 {
+#ifdef _DEBUG
     if (ProcessHandle == NtCurrentProcess())
     {
         *CommandLine = PhCreateStringFromUnicodeString(&NtCurrentPeb()->ProcessParameters->CommandLine);
         return STATUS_SUCCESS;
     }
+#endif
 
     if (WindowsVersion >= WINDOWS_8_1)
     {
@@ -5218,13 +5225,13 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,
     _In_ PVOID AddressOfEntry,
-    _In_opt_ PVOID Context1,
+    _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
 
-    if (context && Entry->DllBase == context->BaseAddress)
+    if (Entry->DllBase == context->BaseAddress)
     {
         context->Status = NtWriteVirtualMemory(
             ProcessHandle,
@@ -5381,7 +5388,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ ULONG AddressOfEntry,
-    _In_opt_ PVOID Context1,
+    _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
 {
@@ -5394,9 +5401,6 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     PWSTR fullDllNameBuffer = NULL;
     PH_STRINGREF fullDllName;
     PH_STRINGREF systemRootString;
-
-    if (!parameters)
-        return TRUE;
 
     // Convert the 32-bit entry to a native-sized entry.
 
@@ -5607,13 +5611,13 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
     _In_ ULONG AddressOfEntry,
-    _In_opt_ PVOID Context1,
+    _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
 
-    if (context && UlongToPtr(Entry->DllBase) == context->BaseAddress)
+    if (UlongToPtr(Entry->DllBase) == context->BaseAddress)
     {
         context->Status = NtWriteVirtualMemory(
             ProcessHandle,
@@ -6706,7 +6710,7 @@ NTSTATUS PhGetProcessIsDotNet(
 
 BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     static PH_STRINGREF clrString = PH_STRINGREF_INIT(L"clr.dll");
@@ -6718,9 +6722,6 @@ BOOLEAN NTAPI PhpIsDotNetEnumProcessModulesCallback(
     static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework\\");
     static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"\\Microsoft.NET\\Framework64\\");
     PH_STRINGREF baseDllName;
-
-    if (!Context)
-        return TRUE;
 
     PhUnicodeStringToStringRef(&Module->BaseDllName, &baseDllName);
 
