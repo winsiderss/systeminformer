@@ -574,9 +574,9 @@ VOID PhNfSetVisibleIcon(
 {
     if (Visible)
     {
-#ifndef PH_NF_ENABLE_WORKQUEUE
         RtlInterlockedSetBits(&Icon->Flags, PH_NF_ICON_ENABLED);
 
+#ifndef PH_NF_ENABLE_WORKQUEUE
         PhNfpAddNotifyIcon(Icon);
 #else
         PPH_NF_WORKQUEUE_DATA data;
@@ -590,10 +590,10 @@ VOID PhNfSetVisibleIcon(
     }
     else
     {
+        RtlInterlockedClearBits(&Icon->Flags, PH_NF_ICON_ENABLED);
+
 #ifndef PH_NF_ENABLE_WORKQUEUE
         PhNfpRemoveNotifyIcon(Icon);
-
-        RtlInterlockedClearBits(&Icon->Flags, PH_NF_ICON_ENABLED);
 #else
         PPH_NF_WORKQUEUE_DATA data;
 
@@ -1051,16 +1051,12 @@ VOID PhNfTrayIconFlushWorkQueueData(
 
         if (data->Add)
         {
-            RtlInterlockedSetBits(&data->Icon->Flags, PH_NF_ICON_ENABLED);
-
             PhNfpAddNotifyIcon(data->Icon);
         }
 
         if (data->Delete)
         {
             PhNfpRemoveNotifyIcon(data->Icon);
-
-            RtlInterlockedClearBits(&data->Icon->Flags, PH_NF_ICON_ENABLED);
         }
 
         PhFree(data);
