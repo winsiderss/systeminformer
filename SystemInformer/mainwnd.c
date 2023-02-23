@@ -318,7 +318,7 @@ LRESULT CALLBACK PhMwpWndProc(
         break;
     case WM_ENDSESSION:
         {
-            PhMwpOnEndSession(hWnd);
+            PhMwpOnEndSession(hWnd, !!wParam, (ULONG)lParam);
         }
         break;
     case WM_SETTINGCHANGE:
@@ -636,7 +636,7 @@ VOID PhMwpOnDestroy(
     PhMwpNotifyAllPages(MainTabPageDestroy, NULL, NULL);
 
     if (PhPluginsEnabled)
-        PhUnloadPlugins();
+        PhUnloadPlugins(TRUE);
 
     if (!PhMainWndEarlyExit)
         PhMwpSaveSettings(WindowHandle);
@@ -647,10 +647,25 @@ VOID PhMwpOnDestroy(
 }
 
 VOID PhMwpOnEndSession(
-    _In_ HWND WindowHandle
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN SessionEnding,
+    _In_ ULONG Reason
     )
 {
-    PhMwpOnDestroy(WindowHandle);
+    if (!SessionEnding)
+        return;
+
+    PhMainWndExiting = TRUE;
+
+    // Notify pages and plugins that we are shutting down.
+    // This callback must only perform the bare minimum cleanup. (dmex)
+
+    PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(FALSE), NULL); // disable providers (dmex)
+
+    if (PhPluginsEnabled)
+        PhUnloadPlugins(TRUE);
+
+    PhMwpSaveSettings(WindowHandle);
 }
 
 VOID PhMwpOnSettingChange(
