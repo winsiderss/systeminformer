@@ -636,7 +636,7 @@ VOID PhMwpOnDestroy(
     PhMwpNotifyAllPages(MainTabPageDestroy, NULL, NULL);
 
     if (PhPluginsEnabled)
-        PhUnloadPlugins(TRUE);
+        PhUnloadPlugins(FALSE);
 
     if (!PhMainWndEarlyExit)
         PhMwpSaveSettings(WindowHandle);
@@ -666,6 +666,8 @@ VOID PhMwpOnEndSession(
         PhUnloadPlugins(TRUE);
 
     PhMwpSaveSettings(WindowHandle);
+
+    PhExitApplication(STATUS_SUCCESS);
 }
 
 VOID PhMwpOnSettingChange(
@@ -693,13 +695,6 @@ VOID PhMwpOnSettingChange(
             PhRegenerateUserEnvironment(NULL, TRUE);
         }
 
-        // Reload non-client metrics
-
-        //if (PhEqualStringZ(Metric, L"WindowMetrics", TRUE))
-        //{
-        //    NOTHING;
-        //}
-
         // Reload dark theme metrics
 
         //if (PhEqualStringZ(Metric, L"ImmersiveColorSet", TRUE))
@@ -707,6 +702,11 @@ VOID PhMwpOnSettingChange(
         //    NOTHING;
         //}
     }
+
+    //if (Action == SPI_SETNONCLIENTMETRICS && Metric && PhEqualStringZ(Metric, L"WindowMetrics", TRUE))
+    //{
+    //    // Reload non-client metrics
+    //}
 }
 
 static NTSTATUS PhpOpenServiceControlManager(
