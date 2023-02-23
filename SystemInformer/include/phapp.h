@@ -146,7 +146,7 @@ VOID PhLoadPlugins(
     );
 
 VOID PhUnloadPlugins(
-    VOID
+    _In_ BOOLEAN SessionEnding
     );
 
 struct _PH_PLUGIN *PhFindPlugin2(
