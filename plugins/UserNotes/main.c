@@ -833,7 +833,7 @@ VOID NTAPI MenuItemCallback(
 
                     if (NT_SUCCESS(status))
                     {
-                        PhShowInformation(menuItem->OwnerWindow, L"Sucessfully deleted the IFEO key.", status, 0);
+                        PhShowInformation(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", status, 0);
                     }
                     else
                     {
@@ -870,7 +870,7 @@ VOID NTAPI MenuItemCallback(
 
                     if (NT_SUCCESS(status))
                     {
-                        PhShowInformation(menuItem->OwnerWindow, L"Sucessfully deleted the IFEO key.", status, 0);
+                        PhShowInformation(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", status, 0);
                     }
                     else
                     {
@@ -907,7 +907,7 @@ VOID NTAPI MenuItemCallback(
 
                     if (NT_SUCCESS(status))
                     {
-                        PhShowInformation(menuItem->OwnerWindow, L"Sucessfully deleted the IFEO key.", status, 0);
+                        PhShowInformation(menuItem->OwnerWindow, L"Successfully deleted the IFEO key.", status, 0);
                     }
                     else
                     {
@@ -2490,12 +2490,12 @@ LOGICAL DllMain(
             NULL,
             &PluginLoadCallbackRegistration
             );
-        PhRegisterCallback(
-            PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-            UnloadCallback,
-            NULL,
-            &PluginUnloadCallbackRegistration
-            );
+        //PhRegisterCallback(
+        //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+        //    UnloadCallback,
+        //    NULL,
+        //    &PluginUnloadCallbackRegistration
+        //    );
         PhRegisterCallback(
             PhGetGeneralCallback(GeneralCallbackMainMenuInitializing),
             MainMenuInitializingCallback,

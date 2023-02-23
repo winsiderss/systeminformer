@@ -689,12 +689,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginLoadCallbackRegistration
                 );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+            //    UnloadCallback,
+            //    NULL,
+            //    &PluginUnloadCallbackRegistration
+            //    );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,
