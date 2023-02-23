@@ -860,18 +860,7 @@ VOID PhpProcessQueryStage1(
     {
         OBJECT_BASIC_INFORMATION basicInfo;
 
-        if (NT_SUCCESS(PhGetHandleInformationEx(
-            NtCurrentProcess(),
-            processHandleLimited,
-            ULONG_MAX,
-            0,
-            NULL,
-            &basicInfo,
-            NULL,
-            NULL,
-            NULL,
-            NULL
-            )))
+        if (NT_SUCCESS(PhGetObjectBasicInformation(NtCurrentProcess(), processHandleLimited, &basicInfo)))
         {
             if (!RtlAreAllAccessesGranted(basicInfo.GrantedAccess, PROCESS_QUERY_INFORMATION))
                 Data->IsFilteredHandle = TRUE;
