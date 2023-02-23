@@ -4187,7 +4187,7 @@ NTSTATUS PhGetAppModelPolicy(
 
         if (PhGetSymbolFromName(symbolProvider, L"GetAppModelPolicy", &symbolInfo))
         {
-            if (NT_SUCCESS(PhSetProcessValidCallTarget(NtCurrentProcess(), (PVOID)symbolInfo.Address)))
+            if (NT_SUCCESS(PhGuardGrantSuppressedCallAccess(NtCurrentProcess(), (PVOID)symbolInfo.Address)))
             {
                 GetAppModelPolicy_I = (PVOID)symbolInfo.Address;
             }
