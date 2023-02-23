@@ -2612,7 +2612,7 @@ PhGetNumaProcessorNode(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhSetProcessValidCallTarget(
+PhGuardGrantSuppressedCallAccess(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID VirtualAddress
     );
