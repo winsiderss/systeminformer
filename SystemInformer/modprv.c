@@ -372,38 +372,18 @@ NTSTATUS PhpModuleQueryWorker(
     }
 
     {
-        // Note: .NET Core and Mono don't set the LDRP_COR_IMAGE flag in the loader required for
-        // highlighting .NET images so check images for a CLR section and set the flag. (dmex)
         if (NT_SUCCESS(PhLoadMappedImageEx(&data->ModuleItem->FileName->sr, NULL, &mappedImage)))
         {
+            PIMAGE_DATA_DIRECTORY dataDirectory;
             PH_MAPPED_IMAGE_CFG cfgConfig = { 0 };
 
-            if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC && mappedImage.NtHeaders32)
+            // Note: .NET Core and Mono don't set the LDRP_COR_IMAGE flag in the loader required for
+            // highlighting .NET images so check images for a CLR section and set the flag. (dmex)
+            if (NT_SUCCESS(PhGetMappedImageDataEntry(&mappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &dataDirectory)))
             {
-                PIMAGE_OPTIONAL_HEADER32 optionalHeader = &mappedImage.NtHeaders32->OptionalHeader;
-
-                if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
-                {
-                    if (optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
-                    {
-                        data->ImageFlags |= LDRP_COR_IMAGE;
-                    }
-                }
+                SetFlag(data->ImageFlags, LDRP_COR_IMAGE);
             }
-#ifdef _WIN64
-            else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC && mappedImage.NtHeaders)
-            {
-                PIMAGE_OPTIONAL_HEADER64 optionalHeader = &mappedImage.NtHeaders->OptionalHeader;
 
-                if (optionalHeader->NumberOfRvaAndSizes >= IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR)
-                {
-                    if (optionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress)
-                    {
-                        data->ImageFlags |= LDRP_COR_IMAGE;
-                    }
-                }
-            }
-#endif
             if (NT_SUCCESS(PhGetMappedImageCfg(&cfgConfig, &mappedImage)))
             {
                 data->GuardFlags = cfgConfig.GuardFlags;
@@ -479,7 +459,7 @@ VOID PhpQueueModuleQuery(
 
 static BOOLEAN NTAPI EnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_MODULE_INFO copy;
@@ -772,15 +752,15 @@ VOID PhModuleProviderUpdate(
 
             // remove CF Guard flag if CFG mitigation is not enabled for the process
             if (!moduleProvider->ControlFlowGuardEnabled)
-                moduleItem->ImageDllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
+                ClearFlag(moduleItem->ImageDllCharacteristics, IMAGE_DLLCHARACTERISTICS_GUARD_CF);
 
             // if process has strict mode enabled add CET flag to module
             if (moduleProvider->CetStrictModeEnabled)
-                moduleItem->ImageDllCharacteristicsEx |= IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
+                SetFlag(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT);
 
             // remove CET flag if CET is not enabled for the process
             if (!moduleProvider->CetEnabled)
-                moduleItem->ImageDllCharacteristicsEx &= ~IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT;
+                ClearFlag(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT);
 
             if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
             {
@@ -789,7 +769,8 @@ VOID PhModuleProviderUpdate(
             }
             else
             {
-                moduleItem->FileEndOfFile.QuadPart = -1;
+                moduleItem->FileLastWriteTime.QuadPart = 0;
+                moduleItem->FileEndOfFile.QuadPart = MAXLONGLONG;
             }
 
             if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
@@ -812,6 +793,7 @@ VOID PhModuleProviderUpdate(
         else
         {
             BOOLEAN modified = FALSE;
+            FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
             if (moduleItem->JustProcessed)
                 modified = TRUE;
@@ -822,6 +804,35 @@ VOID PhModuleProviderUpdate(
             {
                 moduleItem->LoadCount = module->LoadCount;
                 modified = TRUE;
+            }
+
+            if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
+            {
+                if (moduleItem->FileLastWriteTime.QuadPart != networkOpenInfo.LastWriteTime.QuadPart)
+                {
+                    moduleItem->FileLastWriteTime.QuadPart = networkOpenInfo.LastWriteTime.QuadPart;
+                    modified = TRUE;
+                }
+
+                if (moduleItem->FileEndOfFile.QuadPart != networkOpenInfo.EndOfFile.QuadPart)
+                {
+                    moduleItem->FileEndOfFile.QuadPart = networkOpenInfo.EndOfFile.QuadPart;
+                    modified = TRUE;
+                }
+            }
+            else
+            {
+                if (moduleItem->FileLastWriteTime.QuadPart != 0)
+                {
+                    moduleItem->FileLastWriteTime.QuadPart = 0;
+                    modified = TRUE;
+                }
+
+                if (moduleItem->FileEndOfFile.QuadPart != MAXLONGLONG)
+                {
+                    moduleItem->FileEndOfFile.QuadPart = MAXLONGLONG;
+                    modified = TRUE;
+                }
             }
 
             if (modified)
