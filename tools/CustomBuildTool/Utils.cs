@@ -21,7 +21,7 @@ namespace CustomBuildTool
             }
         }
 
-        public static int CreateProcess(string FileName, string Arguments, out string outputstring)
+        public static int CreateProcess(string FileName, string Arguments, out string outputstring, bool FixNewLines = true)
         {
             int exitcode = int.MaxValue;
             StringBuilder output = new StringBuilder();
@@ -83,8 +83,12 @@ namespace CustomBuildTool
             }
 
             outputstring = output.ToString() + error.ToString();
-            //outputstring = outputstring.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
-            outputstring = outputstring.Replace("\r\n", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
+
+            if (FixNewLines)
+            {
+                //outputstring = outputstring.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
+                outputstring = outputstring.Replace("\r\n", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
+            }
 
             return exitcode;
         }
@@ -105,9 +109,9 @@ namespace CustomBuildTool
             return false;
         }
 
-        public static string ShellExecute(string FileName, string Arguments)
+        public static string ShellExecute(string FileName, string Arguments, bool FixNewLines = true)
         {
-            CreateProcess(FileName, Arguments, out string outputstring);
+            CreateProcess(FileName, Arguments, out string outputstring, FixNewLines);
 
             return outputstring;
         }
@@ -444,7 +448,10 @@ namespace CustomBuildTool
             if (FailIfExists)
             {
                 if (File.Exists(sigfile) && new FileInfo(sigfile).Length != 0)
+                {
+                    Program.PrintColorMessage($"[CreateSignature - FailIfExists] ({sigfile})", ConsoleColor.Red, true, BuildFlags.BuildVerbose);
                     return false;
+                }
             }
 
             File.WriteAllText(sigfile, string.Empty);
