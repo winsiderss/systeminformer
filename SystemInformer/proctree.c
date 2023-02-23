@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2016
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *     jxy-s   2021
  *
  */
@@ -24,8 +24,10 @@
 #include <appresolver.h>
 #include <cpysave.h>
 #include <emenu.h>
+#include <hndlinfo.h>
 #include <mapimg.h>
 #include <verify.h>
+#include <secedit.h>
 #include <settings.h>
 
 #include <colmgr.h>
@@ -232,6 +234,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUAVERAGE, FALSE, L"CPU (average)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUKERNEL, FALSE, L"CPU (kernel)", 50, PH_ALIGN_RIGHT, ULONG_MAX, DT_RIGHT, TRUE);
     PhAddTreeNewColumnEx(hwnd, PHPRTLC_CPUUSER, FALSE, L"CPU (user)", 50, PH_ALIGN_LEFT, ULONG_MAX, DT_RIGHT, TRUE);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_GRANTEDACCESS, FALSE, L"Granted access (symbolic)", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -654,6 +657,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->CpuCoreUsageText);
     PhClearReference(&ProcessNode->ImageCoherencyText);
     PhClearReference(&ProcessNode->ImageCoherencyStatusText);
+    PhClearReference(&ProcessNode->ErrorModeText);
     PhClearReference(&ProcessNode->CodePageText);
     PhClearReference(&ProcessNode->ParentPidText);
     PhClearReference(&ProcessNode->ParentConsolePidText);
@@ -661,6 +665,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->CpuAverageText);
     PhClearReference(&ProcessNode->CpuKernelText);
     PhClearReference(&ProcessNode->CpuUserText);
+    PhClearReference(&ProcessNode->GrantedAccessText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -706,7 +711,7 @@ VOID PhTickProcessNodes(
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_CODEPAGE; // Items that always remain valid
+        node->ValidMask &= PHPN_OSCONTEXT | PHPN_IMAGE | PHPN_DPIAWARENESS | PHPN_APPID | PHPN_DESKTOPINFO | PHPN_CODEPAGE | PHPN_GRANTEDACCESS; // Items that always remain valid
 
         // The DPI awareness defaults to unaware if not set or declared in the manifest in which case
         // it can be changed once, so we can only be sure that it won't be changed again if it is different
@@ -1510,6 +1515,77 @@ static VOID PhpUpdateProcessNodePriorityBoost(
     }
 }
 
+static VOID PhpUpdateProcessNodeGrantedAccess(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_GRANTEDACCESS))
+    {
+        PhClearReference(&ProcessNode->GrantedAccessText);
+
+        if (PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
+        {
+            NTSTATUS status;
+            HANDLE processHandle;
+            ACCESS_MASK processAccess;
+
+            if (ProcessNode->ProcessItem->IsProtectedProcess)
+                processAccess = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION;
+            else
+                processAccess = MAXIMUM_ALLOWED;
+
+            status = PhOpenProcess(
+                &processHandle,
+                processAccess,
+                ProcessNode->ProcessId
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                OBJECT_BASIC_INFORMATION basicInfo;
+
+                status = PhGetObjectBasicInformation(
+                    NtCurrentProcess(),
+                    processHandle, 
+                    &basicInfo
+                    );
+
+                if (NT_SUCCESS(status))
+                {
+                    PPH_ACCESS_ENTRY accessEntries;
+                    ULONG numberOfAccessEntries;
+
+                    if (PhGetAccessEntries(L"Process", &accessEntries, &numberOfAccessEntries))
+                    {
+                        ProcessNode->GrantedAccessText = PhGetAccessString(basicInfo.GrantedAccess, accessEntries, numberOfAccessEntries);
+                        PhFree(accessEntries);
+                    }
+
+                    if (ProcessNode->GrantedAccessText)
+                    {
+                        WCHAR grantedAccessString[PH_PTR_STR_LEN_1];
+                        PhPrintPointer(grantedAccessString, UlongToPtr(basicInfo.GrantedAccess));
+                        PhMoveReference(&ProcessNode->GrantedAccessText, PhFormatString(
+                            L"%s (%s)",
+                            PhGetString(ProcessNode->GrantedAccessText),
+                            grantedAccessString
+                            ));
+                    }
+                }
+
+                NtClose(processHandle);
+            }
+
+            if (!NT_SUCCESS(status))
+            {
+                PhMoveReference(&ProcessNode->GrantedAccessText, PhGetStatusMessage(status, 0));
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_GRANTEDACCESS;
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
@@ -2270,6 +2346,12 @@ BEGIN_SORT_FUNCTION(CpuAverage)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(GrantedAccess)
+{
+    sortResult = PhCompareStringWithNullSortOrder(node1->GrantedAccessText, node2->GrantedAccessText, ProcessTreeListSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2410,6 +2492,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(CpuAverage),
                         SORT_FUNCTION(Cpu), // CPU Kernel
                         SORT_FUNCTION(Cpu), // CPU User
+                        SORT_FUNCTION(GrantedAccess),
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -3570,6 +3653,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhMoveReference(&node->CpuUserText, PhFormat(format, RTL_NUMBER_OF(format), 0));
                         getCellText->Text = node->CpuUserText->sr;
                     }
+                }
+                break;
+            case PHPRTLC_GRANTEDACCESS:
+                {
+                    PhpUpdateProcessNodeGrantedAccess(node);
+                    getCellText->Text = PhGetStringRef(node->GrantedAccessText);
                 }
                 break;
             default:

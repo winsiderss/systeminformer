@@ -122,8 +122,9 @@
 #define PHPRTLC_CPUAVERAGE 97
 #define PHPRTLC_CPUKERNEL 98
 #define PHPRTLC_CPUUSER 99
+#define PHPRTLC_GRANTEDACCESS 100
 
-#define PHPRTLC_MAXIMUM 100
+#define PHPRTLC_MAXIMUM 101
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -145,6 +146,7 @@
 #define PHPN_CODEPAGE 0x10000
 #define PHPN_POWERTHROTTLING 0x20000
 #define PHPN_PRIORITYBOOST 0x40000
+#define PHPN_GRANTEDACCESS 0x80000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -275,6 +277,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING CpuAverageText;
     PPH_STRING CpuKernelText;
     PPH_STRING CpuUserText;
+    PPH_STRING GrantedAccessText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
