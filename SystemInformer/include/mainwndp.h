@@ -91,7 +91,9 @@ VOID PhMwpOnEndSession(
     );
 
 VOID PhMwpOnSettingChange(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle,
+    _In_opt_ ULONG Action,
+    _In_opt_ PWSTR Metric
     );
 
 VOID PhMwpOnCommand(
