@@ -86,91 +86,103 @@ namespace CustomBuildTool
         {
             try
             {
-                if (Directory.Exists(BuildOutputFolder)) // output
+                string currentGitDir = Utils.GetGitWorkPath();
+                string currentGitPath = Utils.GetGitFilePath();
+
+                if (!string.IsNullOrWhiteSpace(currentGitDir) && !string.IsNullOrWhiteSpace(currentGitPath))
                 {
-                    Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
-                    Directory.Delete(BuildOutputFolder, true);
+                    string output = Win32.ShellExecute(currentGitPath, $"{currentGitDir} clean -x -d -f", false);
+
+                    Program.PrintColorMessage(output, ConsoleColor.DarkGray);
                 }
 
-                if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
                 {
-                    Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
-                    Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
-                }
-
-                //foreach (BuildFile file in BuildConfig.Build_Release_Files)
-                //{
-                //    string sourceFile = BuildOutputFolder + file.FileName;
-                //
-                //    Win32.DeleteFile(sourceFile);
-                //}
-                //
-                //foreach (string folder in BuildConfig.Build_Sdk_Directories)
-                //{
-                //    if (Directory.Exists(folder))
-                //        Directory.Delete(folder, true);
-                //}
-
-                var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
-                {
-                    AttributesToSkip = FileAttributes.Offline,
-                    RecurseSubdirectories = true,
-                    ReturnSpecialDirectories = false
-                });
-
-                foreach (string folder in project_folders)
-                {
-                    string path = Path.GetFullPath(folder);
-                    string name = Path.GetFileName(path);
-
-                    if (
-                        string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
-                        )
+                    if (Directory.Exists(BuildOutputFolder)) // output
                     {
-                        if (Directory.Exists(path))
-                        {
-                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+                        Program.PrintColorMessage($"Deleting: {BuildOutputFolder}", ConsoleColor.DarkGray);
+                        Directory.Delete(BuildOutputFolder, true);
+                    }
 
-                            try
+                    if (Directory.Exists(BuildConfig.Build_Sdk_Directories[0])) // sdk
+                    {
+                        Program.PrintColorMessage($"Deleting: {BuildConfig.Build_Sdk_Directories[0]}", ConsoleColor.DarkGray);
+                        Directory.Delete(BuildConfig.Build_Sdk_Directories[0], true);
+                    }
+
+                    //foreach (BuildFile file in BuildConfig.Build_Release_Files)
+                    //{
+                    //    string sourceFile = BuildOutputFolder + file.FileName;
+                    //
+                    //    Win32.DeleteFile(sourceFile);
+                    //}
+                    //
+                    //foreach (string folder in BuildConfig.Build_Sdk_Directories)
+                    //{
+                    //    if (Directory.Exists(folder))
+                    //        Directory.Delete(folder, true);
+                    //}
+
+                    var project_folders = Directory.EnumerateDirectories(".", "*", new EnumerationOptions
+                    {
+                        AttributesToSkip = FileAttributes.Offline,
+                        RecurseSubdirectories = true,
+                        ReturnSpecialDirectories = false
+                    });
+
+                    foreach (string folder in project_folders)
+                    {
+                        string path = Path.GetFullPath(folder);
+                        string name = Path.GetFileName(path);
+
+                        if (
+                            string.Equals(name, ".vs", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(name, "obj", StringComparison.OrdinalIgnoreCase)
+                            )
+                        {
+                            if (Directory.Exists(path))
                             {
-                                Directory.Delete(path, true);
-                            }
-                            catch (Exception ex)
-                            {
-                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                                try
+                                {
+                                    Directory.Delete(path, true);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                }
                             }
                         }
                     }
-                }
 
-                // Delete files with abs
+                    // Delete files with abs
 
-                var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
-                {
-                    AttributesToSkip = FileAttributes.Offline,
-                    RecurseSubdirectories = true,
-                    ReturnSpecialDirectories = false
-                });
-
-                foreach (string file in res_files)
-                {
-                    string path = Path.GetFullPath(file);
-                    string name = Path.GetFileName(path);
-
-                    if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                    var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
                     {
-                        if (File.Exists(path))
-                        {
-                            Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+                        AttributesToSkip = FileAttributes.Offline,
+                        RecurseSubdirectories = true,
+                        ReturnSpecialDirectories = false
+                    });
 
-                            try
+                    foreach (string file in res_files)
+                    {
+                        string path = Path.GetFullPath(file);
+                        string name = Path.GetFileName(path);
+
+                        if (name.EndsWith(".aps", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (File.Exists(path))
                             {
-                                File.Delete(path);
-                            }
-                            catch (Exception ex)
-                            {
-                                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                Program.PrintColorMessage($"Deleting: {path}", ConsoleColor.DarkGray);
+
+                                try
+                                {
+                                    File.Delete(path);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                                }
                             }
                         }
                     }
@@ -593,7 +605,7 @@ namespace CustomBuildTool
                 {
                     if (File.Exists(file))
                     {
-                        if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), file, true))
+                        if (!Verify.CreateSignatureFile(Verify.GetPath("kph.key"), $"{BuildWorkingFolder}\\{file}", BuildNightly))
                             return false;
                     }
                 }
