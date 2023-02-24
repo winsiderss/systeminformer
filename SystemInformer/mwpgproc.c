@@ -577,6 +577,18 @@ VOID PhMwpInitializeProcessMenu(
             }
         }
 
+        // Delete tree functions if the process has no children
+        PPH_PROCESS_NODE node = PhFindProcessNode(Processes[0]->ProcessId);
+        if (!(node->Children && node->Children->Count))
+        {
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_TERMINATETREE))
+                PhDestroyEMenuItem(item);
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_SUSPENDTREE))
+                PhDestroyEMenuItem(item);
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_RESUMETREE))
+                PhDestroyEMenuItem(item);
+        }
+
         // Eco mode
         if (WindowsVersion < WINDOWS_10_RS4)
         {
