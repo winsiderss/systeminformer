@@ -95,6 +95,19 @@ VOID PvEnumerateDynamicRelocationEntries(
                     break;
                 }
             }
+            else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
+            {
+                PhPrintPointer(value, PTR_ADD_OFFSET(entry->IndirControl.BlockRva, entry->IndirControl.Record.PageRelativeOffset));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"INDIR CONTROL");
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3,
+                                     PhFormatString(
+                                         L"%ls%ls%ls",
+                                         (entry->IndirControl.Record.IndirectCall ? L"CALL " : L""),
+                                         (entry->IndirControl.Record.RexWPrefix ? L"REXW " : L""),
+                                         (entry->IndirControl.Record.CfgCheck ? L"CFG " : L"")
+                                         )->Buffer);
+            }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
             {
                 PhPrintPointer(value, PTR_ADD_OFFSET(entry->SwitchBranch.BlockRva, entry->SwitchBranch.Record.PageRelativeOffset));
