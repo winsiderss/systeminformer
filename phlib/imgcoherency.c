@@ -253,25 +253,26 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                                                  ULongToPtr(4));
                     }
                 }
-
-                PhFreeMappedImageRelocations(&relocs);
             }
 
-            if (NT_SUCCESS(PhGetMappedImageDynamicRelocations(&context->MappedImage, &dynRelocs)))
+            PhFreeMappedImageRelocations(&relocs);
+        }
+
+        if (NT_SUCCESS(PhGetMappedImageDynamicRelocations(&context->MappedImage, &dynRelocs)))
+        {
+            for (ULONG i = 0; i < dynRelocs.NumberOfEntries; i++)
             {
-                for (ULONG i = 0; i < dynRelocs.NumberOfEntries; i++)
+                PPH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+                ULONG_PTR rva = 0;
+                ULONG_PTR size = 0;
+
+                entry = &dynRelocs.RelocationEntries[i];
+
+                if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
                 {
-                    PPH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
-                    ULONG_PTR rva = 0;
-                    ULONG_PTR size = 0;
-
-                    entry = &dynRelocs.RelocationEntries[i];
-
-                    if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_ARM64X)
+                    rva = (ULONG_PTR)entry->ARM64X.BlockRva + entry->ARM64X.RecordFixup.Offset;
+                    switch (entry->ARM64X.RecordFixup.Type)
                     {
-                        rva = (ULONG_PTR)entry->ARM64X.BlockRva + entry->ARM64X.RecordFixup.Offset;
-                        switch (entry->ARM64X.RecordFixup.Type)
-                        {
                         case IMAGE_DVRT_ARM64X_FIXUP_TYPE_ZEROFILL:
                         case IMAGE_DVRT_ARM64X_FIXUP_TYPE_VALUE:
                             size = (ULONG_PTR)(1ull << entry->ARM64X.RecordFixup.Size);
@@ -279,43 +280,41 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                         case IMAGE_DVRT_ARM64X_FIXUP_TYPE_DELTA:
                             size = 4;
                             break;
-                        }
                     }
-                    else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+                }
+                else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+                {
+                    rva = (ULONG_PTR)entry->FuncOverride.BlockRva + entry->FuncOverride.Record.Offset;
+                    if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                        size = 4;
+                    else if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                        size = 8;
+                }
+                else
+                {
+                    //
+                    // This should only be absolute, skipping others.
+                    //
+                    if (entry->Other.Record.Type == IMAGE_REL_BASED_ABSOLUTE)
                     {
-                        rva = (ULONG_PTR)entry->FuncOverride.BlockRva + entry->FuncOverride.Record.Offset;
+                        rva = (ULONG_PTR)entry->Other.BlockRva + entry->Other.Record.Offset;
                         if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
                             size = 4;
                         else if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
                             size = 8;
                     }
-                    else
-                    {
-                        //
-                        // This should only be absolute, skipping others.
-                        //
-                        if (entry->Other.Record.Type == IMAGE_REL_BASED_ABSOLUTE)
-                        {
-                            rva = (ULONG_PTR)entry->Other.BlockRva + entry->Other.Record.Offset;
-                            if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                                size = 4;
-                            else if (context->MappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                                size = 8;
-                        }
-                    }
-
-                    if (rva && size)
-                    {
-                        PhAddItemSimpleHashtable(context->MappedImageReloc,
-                                                 (PVOID)rva,
-                                                 (PVOID)size);
-                    }
                 }
 
-                PhFreeMappedImageDynamicRelocations(&dynRelocs);
+                if (rva && size)
+                {
+                    PhAddItemSimpleHashtable(context->MappedImageReloc,
+                                             (PVOID)rva,
+                                             (PVOID)size);
+                }
             }
-        }
 
+            PhFreeMappedImageDynamicRelocations(&dynRelocs);
+        }
 
         if (NT_SUCCESS(PhGetMappedImageDataEntry(&context->MappedImage,
                                                  IMAGE_DIRECTORY_ENTRY_IAT,
