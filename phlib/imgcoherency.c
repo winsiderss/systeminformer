@@ -33,7 +33,7 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
     NTSTATUS MappedImageStatus;               /**< Status of initializing MappedImage */
     PH_MAPPED_IMAGE MappedImage;              /**< On-disk image mapping */
     PPH_HASHTABLE MappedImageReloc;           /**< On-disk mapped image relocations table */
-    ULONG MappedImageBaseRva;                 /**< On-disk optional header imbase base RVA. */
+    ULONG MappedImageBaseRva;                 /**< On-disk optional header image base RVA. */
     ULONG MappedImageIatRva;                  /**< On-disk import address table RVA */
     ULONG MappedImageIatSize;                 /**< On-disk import address table size */
 
