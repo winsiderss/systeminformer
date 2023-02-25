@@ -95,11 +95,19 @@ VOID PvEnumerateDynamicRelocationEntries(
                     break;
                 }
             }
+            else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
+            {
+                PhPrintPointer(value, PTR_ADD_OFFSET(entry->SwitchBranch.BlockRva, entry->SwitchBranch.Record.PageRelativeOffset));
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"SWTICH BRANCH");
+                // TODO(jxy-s) map register numbers to names 
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhFormatString(L"Register %u", entry->SwitchBranch.Record.RegisterNumber)->Buffer);
+            }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
             {
                 PhPrintPointer(value, PTR_ADD_OFFSET(entry->FuncOverride.BlockRva, entry->FuncOverride.Record.Offset));
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
-                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"FNOVR");
+                PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"FUNC OVERRIDE");
                 switch (entry->FuncOverride.Record.Type)
                 {
                 case IMAGE_FUNCTION_OVERRIDE_X64_REL32:

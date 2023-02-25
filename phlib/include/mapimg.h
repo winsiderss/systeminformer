@@ -885,6 +885,14 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
 
     union
     {
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION Record;
+        } SwitchBranch;
+
         // IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE
         struct
         {

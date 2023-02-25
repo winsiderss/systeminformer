@@ -282,6 +282,15 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                             break;
                     }
                 }
+                else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
+                {
+                    rva = (ULONG_PTR)entry->SwitchBranch.BlockRva + entry->SwitchBranch.Record.PageRelativeOffset;
+                    //
+                    // FF D0                    jmp rax
+                    // CC CC CC                 int 3
+                    //
+                    size = 5;
+                }
                 else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
                 {
                     rva = (ULONG_PTR)entry->FuncOverride.BlockRva + entry->FuncOverride.Record.Offset;
