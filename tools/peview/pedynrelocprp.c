@@ -122,6 +122,7 @@ VOID PvEnumerateDynamicRelocationEntries(
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, value);
                 switch (entry->Other.Record.Type)
                 {
+                // this should only be "ABS", putting the rest here for visibility
                 case IMAGE_REL_BASED_ABSOLUTE:
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"ABS");
                     break;
@@ -136,6 +137,12 @@ VOID PvEnumerateDynamicRelocationEntries(
                     break;
                 case IMAGE_REL_BASED_DIR64:
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"DIR64");
+                    break;
+                case IMAGE_REL_BASED_ARM_MOV32:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"MOV32");
+                    break;
+                case IMAGE_REL_BASED_THUMB_MOV32:
+                    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"MOV32(T)");
                     break;
                 }
 
