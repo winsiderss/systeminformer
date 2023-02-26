@@ -671,6 +671,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->CpuKernelText);
     PhClearReference(&ProcessNode->CpuUserText);
     PhClearReference(&ProcessNode->GrantedAccessText);
+    PhClearReference(&ProcessNode->ElevationText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -2921,8 +2922,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 #endif
                 break;
             case PHPRTLC_ELEVATION:
-                getCellText->Text = PhGetStringRef(PhGetElevationTypeString(processItem->IsElevated ? TRUE : FALSE, processItem->ElevationType));
-                PhDereferenceObject(&getCellText->Text);
+                PPH_STRING elevationText;
+                elevationText = PhGetElevationTypeString(processItem->IsElevated ? TRUE : FALSE, processItem->ElevationType);
+                PhMoveReference(&node->ElevationText, elevationText);              
+                getCellText->Text = PhGetStringRef(node->ElevationText);
                 break;
             case PHPRTLC_WINDOWTITLE:
                 PhpUpdateProcessNodeWindow(node);
