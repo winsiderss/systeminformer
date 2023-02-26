@@ -519,7 +519,6 @@ PWSTR PhGetPrivilegeAttributesString(
 }
 
 PPH_STRING PhGetElevationTypeString(
-    _In_ BOOLEAN IsTokenAccessible,
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType
     )
@@ -528,7 +527,7 @@ PPH_STRING PhGetElevationTypeString(
 
     PhInitializeStringBuilder(&sb, 13);
 
-    if (IsTokenAccessible)
+    if (ElevationType)
     {
         PhAppendStringBuilder2(&sb, IsElevated ? L"Yes" : L"No");
 
@@ -536,7 +535,7 @@ PPH_STRING PhGetElevationTypeString(
             PhAppendStringBuilder2(&sb, L" (Full)");
         else if (ElevationType == TokenElevationTypeLimited)
             PhAppendStringBuilder2(&sb, L" (Limited)");
-        else
+        else if (ElevationType == TokenElevationTypeDefault)
             PhAppendStringBuilder2(&sb, L" (Default)");
     }
     else
@@ -1031,7 +1030,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
                     NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                 {
-                    tokenElevated = PH_AUTO(PhGetElevationTypeString(TRUE, isElevated, elevationType));
+                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
                 }
                 PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"Unknown"));
 
@@ -2026,7 +2025,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
                     NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                 {
-                    tokenElevated = PH_AUTO(PhGetElevationTypeString(TRUE, isElevated, elevationType));
+                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
                     hasLinkedToken = elevationType != TokenElevationTypeDefault;
                 }
 

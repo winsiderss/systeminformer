@@ -29,13 +29,14 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     if (!NT_SUCCESS(PhOpenProcess(
         &processHandle,
         PROCESS_QUERY_INFORMATION,
-        (HANDLE)Context)))
+        (HANDLE)Context
+        )))
     {
         if (!NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
             PROCESS_QUERY_LIMITED_INFORMATION,
             (HANDLE)Context
-        )))
+            )))
         return status;
     }
 

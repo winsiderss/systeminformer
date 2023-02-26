@@ -39,10 +39,9 @@
 #include <procprv.h>
 
 extern PPH_STRING PhGetElevationTypeString(
-    _In_ BOOLEAN IsTokenAccessible,
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType
-);
+    );
 
 typedef enum _PHP_AGGREGATE_TYPE
 {
@@ -1935,12 +1934,12 @@ BEGIN_SORT_FUNCTION(Elevation)
     ULONG key1 = 0;
     ULONG key2 = 0;
 
-    if (processItem1->IsTokenAccessible)
+    if (processItem1->ElevationType)
     {
         key1 = (processItem1->IsElevated ? 1 : 5) + processItem1->ElevationType;
     }
 
-    if (processItem2->IsTokenAccessible)
+    if (processItem2->ElevationType)
     {
         key2 = (processItem2->IsElevated ? 1 : 5) + processItem2->ElevationType;
     }
@@ -2922,9 +2921,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 #endif
                 break;
             case PHPRTLC_ELEVATION:
-                {   
-                    getCellText->Text = PhGetElevationTypeString(processItem->IsTokenAccessible ? TRUE : FALSE, processItem->IsElevated ? TRUE : FALSE, processItem->ElevationType)->sr;
-                }
+                getCellText->Text = PhGetStringRef(PhGetElevationTypeString(processItem->IsElevated ? TRUE : FALSE, processItem->ElevationType));
+                PhDereferenceObject(&getCellText->Text);
                 break;
             case PHPRTLC_WINDOWTITLE:
                 PhpUpdateProcessNodeWindow(node);
