@@ -4002,11 +4002,55 @@ VOID PhpFillDynamicRelocations(
         }
     }
     else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
+             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE)
     {
         // TODO(jxy-s) not yet implemented, skip the block 
         NOTHING;
+    }
+    else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
+    {
+        PIMAGE_BASE_RELOCATION base = BaseRelocs;
+
+        for (ULONG blockIndex = 0; ; blockIndex++)
+        {
+            ULONG relocationCount;
+            PIMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION relocations;
+
+            if (base->SizeOfBlock < sizeof(IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION))
+            {
+                break;
+            }
+
+            relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION);
+            relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+            for (ULONG i = 0; i < relocationCount; i++)
+            {
+                PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                RtlZeroMemory(&entry, sizeof(entry));
+
+                entry.Symbol = IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER;
+                entry.ImportControl.Record = relocations[i];
+                entry.ImportControl.BlockIndex = blockIndex;
+                entry.ImportControl.BlockRva = base->VirtualAddress;
+
+                entry.ImageBaseVa = PTR_ADD_OFFSET(
+                    MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                    UInt32Add32To64(entry.ImportControl.BlockRva, entry.ImportControl.Record.PageRelativeOffset)
+                    );
+                entry.MappedImageVa = PhMappedImageRvaToVa(
+                    MappedImage,
+                    UInt32Add32To64(entry.ImportControl.BlockRva, entry.ImportControl.Record.PageRelativeOffset),
+                    NULL
+                    );
+
+                PhAddItemArray(Array, &entry);
+            }
+
+            if (!PhPtrAdvance(&base, BaseRelocsEnd, base->SizeOfBlock))
+                break;
+        }
     }
     else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
     {
@@ -4028,6 +4072,12 @@ VOID PhpFillDynamicRelocations(
             for (ULONG i = 0; i < relocationCount; i++)
             {
                 PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                if (relocations[i].PageRelativeOffset == 0 ||
+                    ((PIMAGE_RELOCATION_RECORD)&relocations[i])->Type == 0)
+                {
+                    break;
+                }
 
                 RtlZeroMemory(&entry, sizeof(entry));
 
@@ -4073,6 +4123,11 @@ VOID PhpFillDynamicRelocations(
             for (ULONG i = 0; i < relocationCount; i++)
             {
                 PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                if (relocations[i].PageRelativeOffset == 0)
+                {
+                    break;
+                }
 
                 RtlZeroMemory(&entry, sizeof(entry));
 

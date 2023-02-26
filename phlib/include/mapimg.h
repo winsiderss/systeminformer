@@ -885,6 +885,14 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
 
     union
     {
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION Record;
+        } ImportControl;
+
         // IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER
         struct
         {

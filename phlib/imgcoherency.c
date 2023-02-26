@@ -282,6 +282,15 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
                             break;
                     }
                 }
+                else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
+                {
+                    rva = (ULONG_PTR)entry->ImportControl.BlockRva + entry->ImportControl.Record.PageRelativeOffset;
+                    //
+                    // 48 FF 15 XX XX XX XX     call qword ptr [_imp_<function>]
+                    // 0F 1F 44 00 00           nop
+                    //
+                    size = 12;
+                }
                 else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
                 {
                     rva = (ULONG_PTR)entry->IndirControl.BlockRva + entry->IndirControl.Record.PageRelativeOffset;
