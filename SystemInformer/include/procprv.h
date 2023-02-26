@@ -203,7 +203,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
             ULONG IsXfgAuditEnabled : 1;
-            ULONG Spare : 9;
+            ULONG Spare : 10;
         };
     };
 
