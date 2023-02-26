@@ -1297,6 +1297,8 @@ VOID PhpFillProcessItem(
             MANDATORY_LEVEL integrityLevel;
             PWSTR integrityString;
 
+            ProcessItem->IsTokenAccessible = TRUE;
+
             // User
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {

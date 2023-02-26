@@ -181,6 +181,7 @@ typedef struct _PH_PROCESS_ITEM
         ULONG Flags;
         struct
         {
+            ULONG IsTokenAccessible : 1;
             ULONG UpdateIsDotNet : 1;
             ULONG IsBeingDebugged : 1;
             ULONG IsDotNet : 1;
@@ -203,7 +204,7 @@ typedef struct _PH_PROCESS_ITEM
             ULONG IsCetEnabled : 1;
             ULONG IsXfgEnabled : 1;
             ULONG IsXfgAuditEnabled : 1;
-            ULONG Spare : 10;
+            ULONG Spare : 9;
         };
     };
 
