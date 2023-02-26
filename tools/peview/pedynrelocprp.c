@@ -103,9 +103,9 @@ VOID PvEnumerateDynamicRelocationEntries(
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, L"IMPORT");
                 PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3,
                                      PhFormatString(
-                                         L"IAT index %lu%ls",
+                                         L"IAT index %05x%ls",
                                          iatIndex,
-                                         (entry->ImportControl.Record.IndirectCall ? L" (indirect)" : L"")
+                                         (entry->ImportControl.Record.IndirectCall ? L" call" : L" branch")
                                          )->Buffer);
             }
             else if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
@@ -268,7 +268,7 @@ INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"RVA");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Type");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 140, L"Info");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 160, L"Info");
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Section");
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 300, L"Symbol");
             PhSetExtendedListView(context->ListViewHandle);

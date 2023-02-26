@@ -3764,12 +3764,20 @@ NTSTATUS PhGetMappedImageRelocations(
             entry.Record.Offset = relocations[i].Offset;
             entry.BlockRva = relocationDirectory->VirtualAddress;
 
-            if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
-            else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders32->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
+            if (entry.Record.Type == IMAGE_REL_BASED_ABSOLUTE)
+            {
+                entry.ImageBaseVa = NULL;
+                entry.MappedImageVa = NULL;
+            }
+            else
+            {
+                if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
+                else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders32->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
 
-            entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage, UInt32Add32To64(entry.BlockRva, entry.Record.Offset), NULL); __analysis_assume(entry.MappedImageVa);
+                entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage, UInt32Add32To64(entry.BlockRva, entry.Record.Offset), NULL); __analysis_assume(entry.MappedImageVa);
+            }
 
             PhAddItemArray(&relocationArray, &entry);
         }
