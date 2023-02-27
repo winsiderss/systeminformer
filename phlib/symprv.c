@@ -434,11 +434,11 @@ VOID PhpSymbolProviderCompleteInitialization(
         0
         )))
     {
-        PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot10")); // Windows 10 SDK
+        PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot10")); // Windows 10 SDK
         if (PhIsNullOrEmptyString(winsdkPath))
-            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
+            PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
         if (PhIsNullOrEmptyString(winsdkPath))
-            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot")); // Windows 8 SDK
+            PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot")); // Windows 8 SDK
 
         NtClose(keyHandle);
     }
@@ -454,11 +454,11 @@ VOID PhpSymbolProviderCompleteInitialization(
             0
             )))
         {
-            PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot10")); // Windows 10 SDK
+            PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot10")); // Windows 10 SDK
             if (PhIsNullOrEmptyString(winsdkPath))
-                PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
+                PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot81")); // Windows 8.1 SDK
             if (PhIsNullOrEmptyString(winsdkPath))
-                PhMoveReference(&winsdkPath, PhQueryRegistryString(keyHandle, L"KitsRoot")); // Windows 8 SDK
+                PhMoveReference(&winsdkPath, PhQueryRegistryStringZ(keyHandle, L"KitsRoot")); // Windows 8 SDK
 
             NtClose(keyHandle);
         }

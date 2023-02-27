@@ -1228,23 +1228,7 @@ PhExpandKeyName(
 PHLIBAPI
 PPH_STRING
 NTAPI
-PhQueryRegistryStringRef(
-    _In_ HANDLE KeyHandle,
-    _In_ PPH_STRINGREF ValueName
-    );
-
-PHLIBAPI
-ULONG
-NTAPI
-PhQueryRegistryUlongStringRef(
-    _In_ HANDLE KeyHandle,
-    _In_opt_ PPH_STRINGREF ValueName
-    );
-
-PHLIBAPI
-ULONG64
-NTAPI
-PhQueryRegistryUlong64StringRef(
+PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName
     );
@@ -1252,55 +1236,62 @@ PhQueryRegistryUlong64StringRef(
 FORCEINLINE
 PPH_STRING
 NTAPI
-PhQueryRegistryString(
+PhQueryRegistryStringZ(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_ PWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
+    PhInitializeStringRef(&valueName, ValueName);
 
-    return PhQueryRegistryStringRef(KeyHandle, &valueName);
+    return PhQueryRegistryString(KeyHandle, &valueName);
 }
 
-FORCEINLINE
+PHLIBAPI
 ULONG
 NTAPI
 PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+FORCEINLINE
+ULONG
+NTAPI
+PhQueryRegistryUlongZ(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
+    PhInitializeStringRef(&valueName, ValueName);
 
-    return PhQueryRegistryUlongStringRef(KeyHandle, &valueName);
+    return PhQueryRegistryUlong(KeyHandle, &valueName);
 }
 
-FORCEINLINE
+PHLIBAPI
 ULONG64
 NTAPI
 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
-    _In_opt_ PWSTR ValueName
+    _In_opt_ PPH_STRINGREF ValueName
+    );
+
+FORCEINLINE
+ULONG64
+NTAPI
+PhQueryRegistryUlong64Z(
+    _In_ HANDLE KeyHandle,
+    _In_ PWSTR ValueName
     )
 {
     PH_STRINGREF valueName;
 
-    if (ValueName)
-        PhInitializeStringRef(&valueName, ValueName);
-    else
-        PhInitializeEmptyStringRef(&valueName);
+    PhInitializeStringRef(&valueName, ValueName);
 
-    return PhQueryRegistryUlong64StringRef(KeyHandle, &valueName);
+    return PhQueryRegistryUlong64(KeyHandle, &valueName);
 }
 
 typedef struct _PH_FLAG_MAPPING

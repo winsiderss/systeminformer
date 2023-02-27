@@ -385,7 +385,7 @@ PPH_STRING PhGetProcessTooltipText(
 
         PhInitializeStringBuilder(&notes, 40);
 
-        if (Process->FileNameWin32)
+        if (Process->FileName)
         {
             if (Process->VerifyResult == VrTrusted)
             {
@@ -550,7 +550,7 @@ VOID PhpFillUmdfDrivers(
                         PH_STRINGREF deviceName;
                         PPH_STRING hardwareId;
 
-                        if (deviceDesc = PhQueryRegistryString(driverKeyHandle, L"DeviceDesc"))
+                        if (deviceDesc = PhQueryRegistryStringZ(driverKeyHandle, L"DeviceDesc"))
                         {
                             PH_STRINGREF firstPart;
                             PH_STRINGREF secondPart;
@@ -565,7 +565,7 @@ VOID PhpFillUmdfDrivers(
                             PhInitializeStringRef(&deviceName, L"Unknown Device");
                         }
 
-                        hardwareId = PhQueryRegistryString(driverKeyHandle, L"HardwareID");
+                        hardwareId = PhQueryRegistryStringZ(driverKeyHandle, L"HardwareID");
 
                         PhAppendStringBuilder(Drivers, &StandardIndent);
                         PhAppendStringBuilder(Drivers, &deviceName);

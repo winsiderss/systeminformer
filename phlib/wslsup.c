@@ -65,11 +65,11 @@ BOOLEAN PhGetWslDistributionFromPath(
                 0
                 )))
             {
-                PPH_STRING lxssBasePathName = PhQueryRegistryString(subKeyHandle, L"BasePath");
+                PPH_STRING lxssBasePathName = PhQueryRegistryStringZ(subKeyHandle, L"BasePath");
 
                 if (PhStartsWithString(FileName, lxssBasePathName, TRUE))
                 {
-                    lxssDistributionName = PhQueryRegistryString(subKeyHandle, L"DistributionName");
+                    lxssDistributionName = PhQueryRegistryStringZ(subKeyHandle, L"DistributionName");
 
                     if (LxssDistroPath)
                     {

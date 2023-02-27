@@ -279,6 +279,7 @@ BOOLEAN SetupOverwriteFile(
     _In_ ULONG BufferLength
     );
 
+_Success_(return)
 BOOLEAN SetupHashFile(
     _In_ PPH_STRING FileName,
     _Out_writes_all_(256 / 8) PBYTE Buffer

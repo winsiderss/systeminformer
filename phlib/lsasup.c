@@ -858,7 +858,7 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
         0
         )))
     {
-        if (guidString = PhQueryRegistryString(keyHandle, L"LegacyInterfaceClassGuid"))
+        if (guidString = PhQueryRegistryStringZ(keyHandle, L"LegacyInterfaceClassGuid"))
         {
             PH_CAPABILITY_GUID_ENTRY entry;
 

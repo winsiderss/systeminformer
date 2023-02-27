@@ -738,12 +738,12 @@ VOID PhEnumChildWindows(
     );
 
 HWND PhGetProcessMainWindow(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle
     );
 
 HWND PhGetProcessMainWindowEx(
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_opt_ HANDLE ProcessHandle,
     _In_ BOOLEAN SkipInvisible
     );

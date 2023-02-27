@@ -175,7 +175,7 @@ LONG PhGetUserOrMachineDpi(
 
     if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_USERS, &userKeyName, 0)))
     {
-        dpi = PhQueryRegistryUlong(keyHandle, L"LogPixels");
+        dpi = PhQueryRegistryUlongZ(keyHandle, L"LogPixels");
         NtClose(keyHandle);
     }
 
@@ -183,7 +183,7 @@ LONG PhGetUserOrMachineDpi(
     {
         if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &machineKeyName, 0)))
         {
-            dpi = PhQueryRegistryUlong(keyHandle, L"LogPixels");
+            dpi = PhQueryRegistryUlongZ(keyHandle, L"LogPixels");
             NtClose(keyHandle);
         }
     }
@@ -5136,9 +5136,9 @@ PPH_STRING PhExpandKeyName(
  * \return A pointer to a string containing the value, or NULL if the function failed. You must free
  * the string using PhDereferenceObject() when you no longer need it.
  */
-PPH_STRING PhQueryRegistryStringRef(
+PPH_STRING PhQueryRegistryString(
     _In_ HANDLE KeyHandle,
-    _In_ PPH_STRINGREF ValueName
+    _In_opt_ PPH_STRINGREF ValueName
     )
 {
     PPH_STRING string = NULL;
@@ -5162,7 +5162,7 @@ PPH_STRING PhQueryRegistryStringRef(
     return string;
 }
 
-ULONG PhQueryRegistryUlongStringRef(
+ULONG PhQueryRegistryUlong(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName
     )
@@ -5184,7 +5184,7 @@ ULONG PhQueryRegistryUlongStringRef(
     return ulong;
 }
 
-ULONG64 PhQueryRegistryUlong64StringRef(
+ULONG64 PhQueryRegistryUlong64(
     _In_ HANDLE KeyHandle,
     _In_opt_ PPH_STRINGREF ValueName
     )

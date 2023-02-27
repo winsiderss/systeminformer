@@ -486,7 +486,7 @@ PPH_STRING PhGetAppContainerName(
             0
             )))
         {
-            PhMoveReference(&appContainerName, PhQueryRegistryString(keyHandle, L"Moniker"));
+            PhMoveReference(&appContainerName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
             NtClose(keyHandle);
         }
 
@@ -549,7 +549,7 @@ PPH_STRING PhGetAppContainerPackageName(
         0
         )))
     {
-        PhMoveReference(&packageName, PhQueryRegistryString(keyHandle, L"Moniker"));
+        PhMoveReference(&packageName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
         NtClose(keyHandle);
     }
 
@@ -568,7 +568,7 @@ PPH_STRING PhGetAppContainerPackageName(
             0
             )))
         {
-            PhMoveReference(&packageName, PhQueryRegistryString(keyHandle, L"Moniker"));
+            PhMoveReference(&packageName, PhQueryRegistryStringZ(keyHandle, L"Moniker"));
             NtClose(keyHandle);
         }
 
@@ -600,7 +600,7 @@ PPH_STRING PhGetPackagePath(
         0
         )))
     {
-        packagePath = PhQueryRegistryString(keyHandle, L"PackageRootFolder");
+        packagePath = PhQueryRegistryStringZ(keyHandle, L"PackageRootFolder");
         NtClose(keyHandle);
     }
 

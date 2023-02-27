@@ -1495,7 +1495,7 @@ PPH_STRING PhSipGetCpuBrandString(
 
         if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
         {
-            brand = PhQueryRegistryString(keyHandle, L"ProcessorNameString");
+            brand = PhQueryRegistryStringZ(keyHandle, L"ProcessorNameString");
             NtClose(keyHandle);
         }
 

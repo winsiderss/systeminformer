@@ -420,7 +420,7 @@ BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
 
 VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ PPH_EMENU Menu,
-    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessId,
     _In_ BOOLEAN SetPriority,
     _In_ BOOLEAN SetIoPriority,
     _In_ BOOLEAN SetPagePriority

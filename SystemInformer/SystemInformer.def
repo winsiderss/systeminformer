@@ -442,9 +442,9 @@ EXPORTS
     PhParseCommandLine
     PhParseCommandLineFuzzy
     PhParseCommandLinePart
-    PhQueryRegistryStringRef
-    PhQueryRegistryUlongStringRef
-    PhQueryRegistryUlong64StringRef
+    PhQueryRegistryString
+    PhQueryRegistryUlong
+    PhQueryRegistryUlong64
     PhReferenceObjects
     PhSetFileDialogFileName
     PhSetFileDialogFilter
