@@ -1096,6 +1096,9 @@ VOID PhMwpOnProcessModified(
     )
 {
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+
+    if (SignedFilterEntry || MicrosoftSignedFilterEntry) // HACK: Invalidate filters when modified (dmex)
+        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 }
 
 VOID PhMwpOnProcessRemoved(
@@ -1206,9 +1209,6 @@ VOID PhMwpOnProcessesUpdated(
     {
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
     }
-
-    if (CurrentUserFilterEntry || SignedFilterEntry || MicrosoftSignedFilterEntry)
-        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
     if (count != 0)
         TreeNew_SetRedraw(PhMwpProcessTreeNewHandle, TRUE);
