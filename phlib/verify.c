@@ -15,6 +15,7 @@
 #include <appresolver.h>
 #include <mapldr.h>
 
+#define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS
 #include <wintrust.h>
 #include <softpub.h>
 
@@ -767,7 +768,7 @@ BOOLEAN PhGetSystemComponentFromCertificate(
 
     for (ULONG i = 0; i < usage->cUsageIdentifier; i++)
     {
-        if (PhEqualBytesZ(usage->rgpszUsageIdentifier[i], szOID_NT5_CRYPTO, FALSE))
+        if (PhEqualBytesZ(usage->rgpszUsageIdentifier[i], szOID_NT5_CRYPTO, FALSE)) // Windows System Component Verification (dmex)
         {
             found = TRUE;
             break;
@@ -1233,26 +1234,6 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
     return verifyResult;
 }
 
-BOOLEAN PhIsChainedToMicrosoftFromStateData(
-    _In_ HANDLE StateData
-    )
-{
-    static _WTHelperIsChainedToMicrosoftFromStateData WTHelperIsChainedToMicrosoftFromStateData_I = NULL;
-    PCRYPT_PROVIDER_DATA provData;
-
-    if (!WTHelperIsChainedToMicrosoftFromStateData_I)
-        WTHelperIsChainedToMicrosoftFromStateData_I = PhGetDllProcedureAddress(L"wintrust.dll", "WTHelperIsChainedToMicrosoftFromStateData", 0);
-    if (!WTHelperIsChainedToMicrosoftFromStateData_I)
-        return FALSE;
-
-    provData = PhGetCryptProviderDataFromStateData(StateData);
-
-    if (!provData)
-        return FALSE;
-
-    return !!WTHelperIsChainedToMicrosoftFromStateData_I(provData);
-}
-
 PPH_STRING PhGetProgramNameFromMessage(
     _In_ HCRYPTMSG CryptMsgHandle
     )
@@ -1321,6 +1302,150 @@ CleanupExit:
     PhFree(signerInfo);
 
     return signerName;
+}
+
+// rev from WTHelperIsChainedToMicrosoft (dmex)
+BOOLEAN PhIsChainedToMicrosoft(
+    _In_ PCCERT_CONTEXT Certificate,
+    _In_ HCERTSTORE SiblingStore,
+    _In_ BOOLEAN IncludeMicrosoftTestRootCerts
+    )
+{
+    BOOLEAN status = FALSE;
+    HCERTSTORE cryptStoreHandle;
+    CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
+    CERT_CHAIN_POLICY_STATUS policyStatus = { sizeof(CERT_CHAIN_POLICY_STATUS) };
+    CERT_CHAIN_PARA chainPara = { sizeof(CERT_CHAIN_PARA) };
+    PCCERT_CHAIN_CONTEXT chainContext;
+
+    if (!(Certificate && SiblingStore))
+        return FALSE;
+
+    if (cryptStoreHandle = CertOpenStore(CERT_STORE_PROV_COLLECTION, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0, 0, 0))
+    {
+        if (CertAddStoreToCollection(cryptStoreHandle, SiblingStore, 0, 0))
+        {
+            if (IncludeMicrosoftTestRootCerts)
+            {
+                PVOID wintrust = PhGetLoaderEntryDllBaseZ(L"wintrust.dll");
+                ULONG resourceLength;
+                PVOID resourceBuffer;
+            
+                policyPara.dwFlags = MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG;
+            
+                if (PhLoadResource(wintrust, MAKEINTRESOURCE(1), L"MSTESTROOT", &resourceLength, &resourceBuffer))
+                {
+                    CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
+                    HCERTSTORE siblingStore = NULL;
+
+                    if (CryptQueryObject(
+                        CERT_QUERY_OBJECT_BLOB,
+                        &certificateBlob,
+                        CERT_QUERY_CONTENT_FLAG_CERT,
+                        CERT_QUERY_FORMAT_FLAG_ALL,
+                        0, 0, 0, 0,
+                        &siblingStore,
+                        0,
+                        0
+                        ))
+                    {
+                        CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
+                    }
+                }
+
+                if (PhLoadResource(wintrust, MAKEINTRESOURCE(2), L"MSTESTROOT", &resourceLength, &resourceBuffer))
+                {
+                    CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
+                    HCERTSTORE siblingStore = NULL;
+
+                    if (CryptQueryObject(
+                        CERT_QUERY_OBJECT_BLOB,
+                        &certificateBlob,
+                        CERT_QUERY_CONTENT_FLAG_CERT,
+                        CERT_QUERY_FORMAT_FLAG_ALL,
+                        0, 0, 0, 0,
+                        &siblingStore,
+                        0,
+                        0
+                        ))
+                    {
+                        CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
+                    }
+                }
+            }
+
+            if (CertGetCertificateChain(
+                HCCE_CURRENT_USER,
+                Certificate,
+                0, 
+                cryptStoreHandle, 
+                &chainPara,
+                0,
+                0, 
+                &chainContext
+                ))
+            {
+                if (CertVerifyCertificateChainPolicy(
+                    CERT_CHAIN_POLICY_MICROSOFT_ROOT, 
+                    chainContext,
+                    &policyPara,
+                    &policyStatus
+                    ))
+                {
+                    status = (policyStatus.dwError == ERROR_SUCCESS);
+                }
+
+                CertFreeCertificateChain(chainContext);
+            }
+        }
+
+        CertCloseStore(cryptStoreHandle, 0);
+    }
+
+    return status;
+}
+
+// rev from WTHelperIsChainedToMicrosoftFromStateData (dmex)
+BOOLEAN PhIsChainedToMicrosoftFromStateData(
+    _In_ HANDLE StateData,
+    _In_ BOOLEAN IncludeMicrosoftTestRootCerts
+    )
+{
+    BOOLEAN status = FALSE;
+    PCRYPT_PROVIDER_DATA provData;
+    PCRYPT_PROVIDER_SGNR provSigner;
+    HCERTSTORE cryptStoreHandle;
+
+    provData = PhGetCryptProviderDataFromStateData(StateData);
+
+    if (!provData)
+        return FALSE;
+
+    provSigner = PhGetCryptProviderSignerFromChain(provData, 0, FALSE, 0);
+
+    if (!provSigner)
+        return FALSE;
+
+    cryptStoreHandle = CertOpenStore(
+        CERT_STORE_PROV_MSG,
+        provData->dwEncoding,
+        0,
+        0,
+        provData->hMsg
+        );
+
+    if (!cryptStoreHandle)
+        return FALSE;
+
+    status = PhIsChainedToMicrosoft(
+        provSigner->pasCertChain->pCert, 
+        cryptStoreHandle, 
+        IncludeMicrosoftTestRootCerts
+        );
+
+    CertCloseStore(cryptStoreHandle, 0);
+
+    return status;
 }
 
 // rev from ChainToMicrosoftRoot (dmex)
