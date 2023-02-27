@@ -317,7 +317,7 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (BooleanFlagOn(processNode->ProcessItem->VerifyResult, VrTrusted))
+    if (processNode->ProcessItem->VerifyResult == VrTrusted)
         return FALSE;
 
     return TRUE;
