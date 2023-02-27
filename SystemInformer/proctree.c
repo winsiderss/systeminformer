@@ -304,6 +304,11 @@ VOID PhLoadSettingsProcessTreeUpdateMask(
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
 
+    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_ARCHITECTURE, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE);
+
     PhInitializeProcessTreeColumnHeaderCache();
 }
 
