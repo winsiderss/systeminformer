@@ -577,16 +577,16 @@ VOID PhMwpInitializeProcessMenu(
             }
         }
 
-        // Delete tree functions if the process has no children
-        PPH_PROCESS_NODE node = PhFindProcessNode(Processes[0]->ProcessId);
-        if (!(node->Children && node->Children->Count))
+        // Disable Terminate/Suspend/Resume tree when the process has no children.
         {
-            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_TERMINATETREE))
-                PhDestroyEMenuItem(item);
-            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_SUSPENDTREE))
-                PhDestroyEMenuItem(item);
-            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_RESUMETREE))
-                PhDestroyEMenuItem(item);
+            PPH_PROCESS_NODE node = PhFindProcessNode(Processes[0]->ProcessId);
+
+            if (!(node->Children && node->Children->Count))
+            {
+                PhEnableEMenuItem(Menu, ID_PROCESS_TERMINATETREE, FALSE);
+                PhEnableEMenuItem(Menu, ID_PROCESS_SUSPENDTREE, FALSE);
+                PhEnableEMenuItem(Menu, ID_PROCESS_RESUMETREE, FALSE);
+            }
         }
 
         // Eco mode
