@@ -88,6 +88,7 @@ BOOLEAN PhInitializeComPolicy(
     );
 
 BOOLEAN PhPluginsEnabled = FALSE;
+BOOLEAN PhPortableEnabled = FALSE;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters = { 0 };
 
@@ -1100,7 +1101,6 @@ VOID PhpInitializeSettings(
 {
     PhSettingsInitialization();
     PhAddDefaultSettings();
-    PhUpdateCachedSettings();
 
     if (!PhStartupParameters.NoSettings)
     {
@@ -1132,6 +1132,7 @@ VOID PhpInitializeSettings(
                 if (PhDoesFileExistWin32(PhGetString(settingsFileName)))
                 {
                     PhSettingsFileName = settingsFileName;
+                    PhPortableEnabled = TRUE;
                 }
                 else
                 {
@@ -1153,7 +1154,6 @@ VOID PhpInitializeSettings(
             NTSTATUS status;
 
             status = PhLoadSettings(&PhSettingsFileName->sr);
-            PhUpdateCachedSettings();
 
             // If we didn't find the file, it will be created. Otherwise,
             // there was probably a parsing error and we don't want to
@@ -1198,6 +1198,8 @@ VOID PhpInitializeSettings(
             }
         }
     }
+
+    PhUpdateCachedSettings();
 
     // Apply basic global settings.
     PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
