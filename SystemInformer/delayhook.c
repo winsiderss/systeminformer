@@ -861,7 +861,7 @@ HRESULT PhDrawThemeBackgroundHook(
         }
     }
 
-    return CallWindowProc(PhDefaultDrawThemeBackground, Theme, Hdc, PartId, StateId, Rect, ClipRect);
+    return PhDefaultDrawThemeBackground(Theme, Hdc, PartId, StateId, Rect, ClipRect);
 }
 
 //HRESULT WINAPI PhDrawThemeBackgroundExHook(
