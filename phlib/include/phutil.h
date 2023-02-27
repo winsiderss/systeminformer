@@ -890,6 +890,20 @@ PhGetApplicationDirectoryFileName(
     _In_ BOOLEAN NativeFileName
     );
 
+FORCEINLINE
+PPH_STRING
+PhGetApplicationDirectoryFileNameZ(
+    _In_ PWSTR FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, FileName);
+
+    return PhGetApplicationDirectoryFileName(&string, NativeFileName);
+}
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1627,6 +1641,10 @@ PhGetFileText(
     _In_ HANDLE FileHandle,
     _In_ BOOLEAN Unicode
     );
+
+PVOID PhGetFileTextUnicode(
+    _In_ HANDLE FileHandle
+);
 
 PHLIBAPI
 PVOID

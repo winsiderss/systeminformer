@@ -165,7 +165,7 @@ VOID SetDbPath(
     _In_ PPH_STRING Path
     )
 {
-    PhSwapReference(&ObjectDbPath, Path);
+    PhSetReference(&ObjectDbPath, Path);
 }
 
 NTSTATUS LoadDb(
