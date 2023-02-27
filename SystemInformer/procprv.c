@@ -2061,7 +2061,7 @@ PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instru
     // usage is implemented for other architectures it assumes on the idle thread cycles are
     // the cycles *not* spent using the CPU, this assumption is incorrect for ARM.
     //
-    // The most accurate represetnation of the utilization of the CPU for ARM would show
+    // The most accurate representation of the utilization of the CPU for ARM would show
     // the idle process CPU usage *below* what is "not being used" by other processes. Since
     // this would indicate the idle thread being in the WFI state and not using CPU cycles.
     // For cycle-based CPU to make sense for ARM, we need a way to get or estimate the amount
