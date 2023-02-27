@@ -107,6 +107,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideOtherUserProcesses", L"0");
     PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
+    PhpAddIntegerSetting(L"HideMicrosoftProcesses", L"0");
     PhpAddIntegerSetting(L"HideWaitingConnections", L"0");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddStringSetting(L"IconTrayGuids", L"");

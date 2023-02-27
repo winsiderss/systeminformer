@@ -43,6 +43,7 @@ static ULONG ProcessEndToScrollTo = 0;
 static PPH_PROCESS_NODE ProcessToScrollTo = NULL;
 static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
+static PPH_TN_FILTER_ENTRY MicrosoftSignedFilterEntry = NULL;
 
 BOOLEAN PhMwpProcessesPageCallback(
     _In_ struct _PH_MAIN_TAB_PAGE *Page,
@@ -102,12 +103,15 @@ BOOLEAN PhMwpProcessesPageCallback(
 
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, L"&Hide processes from other users", NULL, NULL), startIndex);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDESIGNEDPROCESSES, L"Hide si&gned processes", NULL, NULL), startIndex + 1);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 2);
-            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 3);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_HIDEMICROSOFTPROCESSES, L"Hide &system processes", NULL, NULL), startIndex + 2);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SCROLLTONEWPROCESSES, L"Scrol&l to new processes", NULL, NULL), startIndex + 3);
+            PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SHOWCPUBELOW001, L"Show CPU &below 0.01", NULL, NULL), startIndex + 4);
 
             if (PhCsHideOtherUserProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhGetIntegerSetting(L"HideSignedProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDESIGNEDPROCESSES)))
+                menuItem->Flags |= PH_EMENU_CHECKED;
+            if (PhGetIntegerSetting(L"HideMicrosoftProcesses") && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_HIDEMICROSOFTPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
             if (PhCsScrollToNewProcesses && (menuItem = PhFindEMenuItem(menu, 0, NULL, ID_VIEW_SCROLLTONEWPROCESSES)))
                 menuItem->Flags |= PH_EMENU_CHECKED;
@@ -125,8 +129,8 @@ BOOLEAN PhMwpProcessesPageCallback(
                 }
             }
 
-            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), startIndex + 4);
-            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"Organi&ze column sets...", NULL, NULL), startIndex + 5);
+            PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), startIndex + 5);
+            PhInsertEMenuItem(menu, menuItem = PhCreateEMenuItem(0, ID_VIEW_ORGANIZECOLUMNSETS, L"Organi&ze column sets...", NULL, NULL), startIndex + 6);
             PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_VIEW_SAVECOLUMNSET, L"Sa&ve column set...", NULL, NULL), startIndex + 6);
             PhInsertEMenuItem(menu, columnSetMenuItem = PhCreateEMenuItem(0, 0, L"Loa&d column set", NULL, NULL), startIndex + 7);
 
@@ -278,6 +282,25 @@ VOID PhMwpToggleSignedProcessTreeFilter(
     PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
 }
 
+VOID PhMwpToggleMicrosoftProcessTreeFilter(
+    VOID
+    )
+{
+    if (!MicrosoftSignedFilterEntry)
+    {
+        MicrosoftSignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpMicrosoftProcessTreeFilter, NULL);
+    }
+    else
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), MicrosoftSignedFilterEntry);
+        MicrosoftSignedFilterEntry = NULL;
+    }
+
+    PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+
+    PhSetIntegerSetting(L"HideMicrosoftProcesses", !!MicrosoftSignedFilterEntry);
+}
+
 BOOLEAN PhMwpSignedProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
@@ -285,8 +308,44 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (processNode->ProcessItem->VerifyResult == VrTrusted)
+    if (BooleanFlagOn(processNode->ProcessItem->VerifyResult, VrTrusted))
         return FALSE;
+
+    return TRUE;
+}
+
+BOOLEAN PhMwpMicrosoftProcessTreeFilter(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
+
+    if (PhEnableServiceQueryStage2)
+    {
+        if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
+        {
+            static PH_STRINGREF microsoftSignerNameSr = PH_STRINGREF_INIT(L"Microsoft Windows");
+
+            if (PhEqualStringRef(&processNode->ProcessItem->VerifySignerName->sr, &microsoftSignerNameSr, TRUE))
+                return FALSE;
+        }
+    }
+    else
+    {
+        if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileName))
+        {
+            static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
+
+            if (
+                processNode->ProcessItem->VersionInfo.CompanyName && 
+                PhStartsWithStringRef(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE)
+                )
+            {
+                return FALSE;
+            }
+        }
+    }
 
     return TRUE;
 }

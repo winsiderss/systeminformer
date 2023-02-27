@@ -975,6 +975,11 @@ VOID PhMwpOnCommand(
             PhMwpToggleSignedProcessTreeFilter();
         }
         break;
+    case ID_VIEW_HIDEMICROSOFTPROCESSES:
+        {
+            PhMwpToggleMicrosoftProcessTreeFilter();
+        }
+        break;
     case ID_VIEW_SCROLLTONEWPROCESSES:
         {
             PH_SET_INTEGER_CACHED_SETTING(ScrollToNewProcesses, !PhCsScrollToNewProcesses);

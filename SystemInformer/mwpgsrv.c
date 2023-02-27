@@ -253,7 +253,6 @@ BOOLEAN PhMwpMicrosoftServiceTreeFilter(
         }
     }
 
-
     return TRUE;
 }
 
