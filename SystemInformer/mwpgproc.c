@@ -166,10 +166,14 @@ BOOLEAN PhMwpProcessesPageCallback(
         {
             PhLoadSettingsProcessTreeList();
 
-            CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+            if (PhCsHideOtherUserProcesses)
+                CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
 
             if (PhGetIntegerSetting(L"HideSignedProcesses"))
                 SignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpSignedProcessTreeFilter, NULL);
+
+            if (PhGetIntegerSetting(L"HideMicrosoftProcesses"))
+                MicrosoftSignedFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpMicrosoftProcessTreeFilter, NULL);
         }
         return TRUE;
     case MainTabPageSaveSettings:
@@ -225,12 +229,20 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     VOID
     )
 {
-    PhCsHideOtherUserProcesses = !PhGetIntegerSetting(L"HideOtherUserProcesses");
-    PhSetIntegerSetting(L"HideOtherUserProcesses", PhCsHideOtherUserProcesses);
-
-    PhExpandAllProcessNodes(TRUE);
+    if (!CurrentUserFilterEntry)
+    {
+        CurrentUserFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportProcessTreeList(), PhMwpCurrentUserProcessTreeFilter, NULL);
+    }
+    else
+    {
+        PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), CurrentUserFilterEntry);
+        CurrentUserFilterEntry = NULL;
+    }
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+
+    PhCsHideOtherUserProcesses = !PhGetIntegerSetting(L"HideOtherUserProcesses");
+    PhSetIntegerSetting(L"HideOtherUserProcesses", PhCsHideOtherUserProcesses);
 }
 
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
@@ -333,17 +345,12 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     }
     else
     {
-        if (!PhIsNullOrEmptyString(processNode->ProcessItem->FileName))
+        if (!PhIsNullOrEmptyString(processNode->ProcessItem->VersionInfo.CompanyName))
         {
             static PH_STRINGREF microsoftCompanyNameSr = PH_STRINGREF_INIT(L"Microsoft");
 
-            if (
-                processNode->ProcessItem->VersionInfo.CompanyName && 
-                PhStartsWithStringRef(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE)
-                )
-            {
+            if (PhStartsWithStringRef(&processNode->ProcessItem->VersionInfo.CompanyName->sr, &microsoftCompanyNameSr, TRUE))
                 return FALSE;
-            }
         }
     }
 
@@ -1203,7 +1210,7 @@ VOID PhMwpOnProcessesUpdated(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
     }
 
-    if (SignedFilterEntry)
+    if (CurrentUserFilterEntry || SignedFilterEntry || MicrosoftSignedFilterEntry)
         PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
     if (count != 0)
