@@ -802,23 +802,23 @@ namespace CustomBuildTool
                 Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
             }
 
-            try
-            {
-                Win32.DeleteFile("bin\\Release32\\usernotesdb.xml");
-                Win32.DeleteFile("bin\\Release64\\usernotesdb.xml");
-                Win32.DeleteFile("bin\\ReleaseARM64\\usernotesdb.xml");
-
-                if (Directory.Exists("bin\\Release32"))
-                    File.Create("bin\\Release32\\usernotesdb.xml").Dispose();
-                if (Directory.Exists("bin\\Release64"))
-                    File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
-                if (Directory.Exists("bin\\ReleaseARM64"))
-                    File.Create("bin\\ReleaseARM64\\usernotesdb.xml").Dispose();
-            }
-            catch (Exception ex)
-            {
-                Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
-            }
+            //try
+            //{
+            //    Win32.DeleteFile("bin\\Release32\\usernotesdb.xml");
+            //    Win32.DeleteFile("bin\\Release64\\usernotesdb.xml");
+            //    Win32.DeleteFile("bin\\ReleaseARM64\\usernotesdb.xml");
+            //
+            //    if (Directory.Exists("bin\\Release32"))
+            //        File.Create("bin\\Release32\\usernotesdb.xml").Dispose();
+            //    if (Directory.Exists("bin\\Release64"))
+            //        File.Create("bin\\Release64\\usernotesdb.xml").Dispose();
+            //    if (Directory.Exists("bin\\ReleaseARM64"))
+            //        File.Create("bin\\ReleaseARM64\\usernotesdb.xml").Dispose();
+            //}
+            //catch (Exception ex)
+            //{
+            //    Program.PrintColorMessage($"[WARN] {ex}", ConsoleColor.Yellow);
+            //}
 
             try
             {
