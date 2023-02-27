@@ -276,7 +276,7 @@ NTSTATUS KsiInitializeCallbackThread(
         goto CleanupExit;
     if (!(fileName = PhGetApplicationFileNameWin32()))
         goto CleanupExit;
-    if (!(ksiFileName = PhGetBaseNameChangeExtension(fileName, &driverExtension)))
+    if (!(ksiFileName = PhGetBaseNameChangeExtension(&fileName->sr, &driverExtension)))
         goto CleanupExit;
 
     if (PhDoesFileExistWin32(PhGetString(ksiFileName)))

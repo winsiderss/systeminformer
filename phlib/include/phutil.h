@@ -829,7 +829,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetBaseNameChangeExtension(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ PPH_STRINGREF FileExtension
     );
 

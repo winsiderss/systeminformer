@@ -3125,7 +3125,7 @@ PPH_STRING PhGetBaseName(
 }
 
 PPH_STRING PhGetBaseNameChangeExtension(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ PPH_STRINGREF FileExtension
     )
 {
@@ -3134,9 +3134,9 @@ PPH_STRING PhGetBaseNameChangeExtension(
     PH_STRINGREF baseFileName;
     PH_STRINGREF baseFilePath;
 
-    if ((indexOfBackslash = PhFindLastCharInString(FileName, 0, OBJ_NAME_PATH_SEPARATOR)) == SIZE_MAX)
+    if ((indexOfBackslash = PhFindLastCharInStringRef(FileName, OBJ_NAME_PATH_SEPARATOR, FALSE)) == SIZE_MAX)
         return NULL;
-    if ((indexOfLastDot = PhFindLastCharInString(FileName, 0, L'.')) == SIZE_MAX)
+    if ((indexOfLastDot = PhFindLastCharInStringRef(FileName, L'.', FALSE)) == SIZE_MAX)
         return NULL;
     if (indexOfLastDot < indexOfBackslash)
         return NULL;
