@@ -1813,6 +1813,11 @@ NTSTATUS PhExecuteRunAsCommand(
     UNICODE_STRING portNameUs;
     ULONG attempts;
 
+    status = PhSetDesktopWinStaAccess(Parameters->WindowHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
         return PhGetLastWin32ErrorAsNtStatus();
 
@@ -1847,8 +1852,6 @@ NTSTATUS PhExecuteRunAsCommand(
     {
         return NTSTATUS_FROM_WIN32(win32Result);
     }
-
-    PhSetDesktopWinStaAccess(Parameters->WindowHandle);
 
     StartService(serviceHandle, 0, NULL);
     DeleteService(serviceHandle);
