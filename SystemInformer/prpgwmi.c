@@ -875,7 +875,7 @@ PPH_STRING PhpQueryWmiDefaultNamespace(
         0
         )))
     {
-        defaultNameSpace = PhQueryRegistryString(keyHandle, L"Default Namespace");
+        defaultNameSpace = PhQueryRegistryStringZ(keyHandle, L"Default Namespace");
         NtClose(keyHandle);
     }
 

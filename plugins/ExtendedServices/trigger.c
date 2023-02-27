@@ -361,7 +361,7 @@ BOOLEAN NTAPI EspEtwPublishersEnumerateKeyCallback(
             0
             )))
         {
-            publisherName = PhQueryRegistryString(keyHandle, NULL);
+            publisherName = PhQueryRegistryStringZ(keyHandle, NULL);
 
             if (publisherName)
             {

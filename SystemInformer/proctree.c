@@ -1549,11 +1549,7 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
             {
                 OBJECT_BASIC_INFORMATION basicInfo;
 
-                status = PhGetObjectBasicInformation(
-                    NtCurrentProcess(),
-                    processHandle, 
-                    &basicInfo
-                    );
+                status = PhQueryObjectBasicInformation(processHandle, &basicInfo);
 
                 if (NT_SUCCESS(status))
                 {

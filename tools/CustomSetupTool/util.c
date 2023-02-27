@@ -215,10 +215,14 @@ VOID SetupDeleteUninstallFile(
     {
         PPH_STRING tempFileName = PhGetTemporaryDirectoryRandomAlphaFileName();
 
-        PhMoveFileWin32(PhGetString(uninstallFilePath), PhGetString(tempFileName), FALSE);
-    }
+        PhMoveFileWin32(
+            PhGetString(uninstallFilePath), 
+            PhGetString(tempFileName), 
+            FALSE
+            );
 
-CleanupExit:
+        PhDereferenceObject(tempFileName);
+    }
 
     PhDereferenceObject(uninstallFilePath);
 }
@@ -896,7 +900,7 @@ PPH_STRING GetApplicationInstallPath(
         0
         )))
     {
-        installPath = PhQueryRegistryString(keyHandle, L"InstallLocation");
+        installPath = PhQueryRegistryStringZ(keyHandle, L"InstallLocation");
         NtClose(keyHandle);
     }
 
@@ -1116,6 +1120,7 @@ CleanupExit:
     return result;
 }
 
+_Success_(return)
 BOOLEAN SetupHashFile(
     _In_ PPH_STRING FileName,
     _Out_writes_all_(256 / 8) PBYTE Buffer

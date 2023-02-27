@@ -641,8 +641,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 0
                 )))
             {
-                KnownCommandLine->ComSurrogate.Name =
-                    PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
+                KnownCommandLine->ComSurrogate.Name = PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
 
                 if (NT_SUCCESS(PhOpenKey(
                     &inprocServer32KeyHandle,
@@ -652,12 +651,9 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                     0
                     )))
                 {
-                    KnownCommandLine->ComSurrogate.FileName =
-                        PH_AUTO(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
+                    KnownCommandLine->ComSurrogate.FileName = PH_AUTO(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
 
-                    if (fileName = PH_AUTO(PhExpandEnvironmentStrings(
-                        &KnownCommandLine->ComSurrogate.FileName->sr
-                        )))
+                    if (fileName = PH_AUTO(PhExpandEnvironmentStrings(&KnownCommandLine->ComSurrogate.FileName->sr)))
                     {
                         KnownCommandLine->ComSurrogate.FileName = fileName;
                     }
@@ -675,8 +671,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 0
                 )))
             {
-                KnownCommandLine->ComSurrogate.Name =
-                    PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
+                KnownCommandLine->ComSurrogate.Name = PH_AUTO(PhQueryRegistryString(rootKeyHandle, NULL));
                 NtClose(rootKeyHandle);
             }
         }

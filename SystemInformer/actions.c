@@ -2562,7 +2562,7 @@ BOOLEAN PhUiDebugProcess(
 
     if (NT_SUCCESS(status))
     {
-        if (debugger = PH_AUTO(PhQueryRegistryString(keyHandle, L"Debugger")))
+        if (debugger = PH_AUTO(PhQueryRegistryStringZ(keyHandle, L"Debugger")))
         {
             if (PhSplitStringRefAtChar(&debugger->sr, L'"', &dummy, &commandPart) &&
                 PhSplitStringRefAtChar(&commandPart, L'"', &commandPart, &dummy))

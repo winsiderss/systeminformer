@@ -377,7 +377,7 @@ static VOID PhpUpdateServiceNodeDescription(
             PPH_STRING descriptionString;
             PPH_STRING serviceDescriptionString;
 
-            if (descriptionString = PhQueryRegistryString(keyHandle, L"Description"))
+            if (descriptionString = PhQueryRegistryStringZ(keyHandle, L"Description"))
             {
                 if (serviceDescriptionString = PhLoadIndirectString(&descriptionString->sr))
                     PhMoveReference(&ServiceNode->Description, serviceDescriptionString);

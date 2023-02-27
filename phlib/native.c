@@ -7683,7 +7683,7 @@ VOID PhUpdateMupDevicePrefixes(
         0
         )))
     {
-        providerOrder = PhQueryRegistryString(orderKeyHandle, L"ProviderOrder");
+        providerOrder = PhQueryRegistryStringZ(orderKeyHandle, L"ProviderOrder");
         NtClose(orderKeyHandle);
     }
 
@@ -7730,7 +7730,7 @@ VOID PhUpdateMupDevicePrefixes(
                 0
                 )))
             {
-                if (deviceName = PhQueryRegistryString(networkProviderKeyHandle, L"DeviceName"))
+                if (deviceName = PhQueryRegistryStringZ(networkProviderKeyHandle, L"DeviceName"))
                 {
                     PhDeviceMupPrefixes[PhDeviceMupPrefixesCount] = deviceName;
                     PhDeviceMupPrefixesCount++;

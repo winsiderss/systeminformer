@@ -126,7 +126,7 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
         );
 }
 
-NTSTATUS PhGetObjectBasicInformation(
+NTSTATUS PhpGetObjectBasicInformation(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
@@ -398,58 +398,15 @@ NTSTATUS PhQueryObjectName(
     _Out_ PPH_STRING *ObjectName
     )
 {
-    NTSTATUS status;
-    POBJECT_NAME_INFORMATION buffer;
-    ULONG bufferSize;
-    ULONG attempts = 8;
+    return PhpGetObjectName(NtCurrentProcess(), Handle, FALSE, ObjectName);
+}
 
-    bufferSize = sizeof(OBJECT_NAME_INFORMATION) + (MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR));
-    buffer = PhAllocate(bufferSize);
-
-    do
-    {
-        if (KphLevel() >= KphLevelMed)
-        {
-            status = KphQueryInformationObject(
-                NtCurrentProcess(),
-                Handle,
-                KphObjectNameInformation,
-                buffer,
-                bufferSize,
-                &bufferSize
-                );
-        }
-        else
-        {
-            status = NtQueryObject(
-                Handle,
-                ObjectNameInformation,
-                buffer,
-                bufferSize,
-                &bufferSize
-                );
-        }
-
-        if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_INFO_LENGTH_MISMATCH ||
-            status == STATUS_BUFFER_TOO_SMALL)
-        {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
-        }
-        else
-        {
-            break;
-        }
-    } while (--attempts);
-
-    if (NT_SUCCESS(status))
-    {
-        *ObjectName = PhCreateStringFromUnicodeString(&buffer->Name);
-    }
-
-    PhFree(buffer);
-
-    return status;
+NTSTATUS PhQueryObjectBasicInformation(
+    _In_ HANDLE Handle,
+    _Out_ POBJECT_BASIC_INFORMATION BasicInformation
+    )
+{
+    return PhpGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
 }
 
 NTSTATUS PhpGetEtwObjectName(
@@ -1909,7 +1866,7 @@ NTSTATUS PhGetHandleInformationEx(
     // Get basic information.
     if (BasicInformation)
     {
-        status = PhGetObjectBasicInformation(
+        status = PhpGetObjectBasicInformation(
             ProcessHandle,
             useKph ? Handle : dupHandle,
             BasicInformation
