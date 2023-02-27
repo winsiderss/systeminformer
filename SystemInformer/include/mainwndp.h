@@ -321,7 +321,16 @@ VOID PhMwpToggleSignedProcessTreeFilter(
     VOID
     );
 
+VOID PhMwpToggleMicrosoftProcessTreeFilter(
+    VOID
+    );
+
 BOOLEAN PhMwpSignedProcessTreeFilter(
+    _In_ PPH_TREENEW_NODE Node,
+    _In_opt_ PVOID Context
+    );
+
+BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PVOID Context
     );
