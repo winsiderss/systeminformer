@@ -502,6 +502,11 @@ VOID PhMwpInitializeControls(
         treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
     }
 
+    if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
+    {
+        treelistCreateParams.RowHeight = PhGetIntegerSetting(L"TreeListCustomRowSize");
+    }
+
     TabControlHandle = CreateWindow(
         WC_TABCONTROL,
         NULL,
@@ -571,18 +576,6 @@ VOID PhMwpInitializeControls(
     PhMwpCreateInternalPage(L"Network", 0, PhMwpNetworkPageCallback);
     PhNetworkTreeListInitialization();
     PhInitializeNetworkTreeList(PhMwpNetworkTreeNewHandle);
-
-    if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
-    {
-        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
-
-        if (treelistCustomRowSize < 15)
-            treelistCustomRowSize = 15;
-
-        TreeNew_SetRowHeight(PhMwpProcessTreeNewHandle, treelistCustomRowSize);
-        TreeNew_SetRowHeight(PhMwpServiceTreeNewHandle, treelistCustomRowSize);
-        TreeNew_SetRowHeight(PhMwpNetworkTreeNewHandle, treelistCustomRowSize);
-    }
 
     CurrentPage = PageList->Items[0];
 }
