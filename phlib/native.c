@@ -7967,7 +7967,7 @@ PPH_STRING PhGetFileName(
         memcpy(newFileName->Buffer, systemRoot.Buffer, systemRoot.Length);
         memcpy(PTR_ADD_OFFSET(newFileName->Buffer, systemRoot.Length), &FileName->Buffer[11], FileName->Length - 11 * sizeof(WCHAR));
     }
-    // System32, SysWOW64, SysArm32, and SyChpe32 are all identicle length, fixup is the same
+    // System32, SysWOW64, SysArm32, and SyChpe32 are all identical length, fixup is the same
     else if (
         // "System32\" means "C:\Windows\System32\".
         PhStartsWithString2(FileName, L"System32\\", TRUE)

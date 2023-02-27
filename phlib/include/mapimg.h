@@ -849,8 +849,7 @@ typedef struct _PH_IMAGE_RELOC_ENTRY
 {
     ULONG BlockIndex;
     ULONG BlockRva;
-    ULONG Type;
-    ULONG Offset;
+    IMAGE_RELOCATION_RECORD Record;
     PVOID ImageBaseVa;
     PVOID MappedImageVa;
 } PH_IMAGE_RELOC_ENTRY, *PPH_IMAGE_RELOC_ENTRY;
@@ -886,6 +885,30 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
 
     union
     {
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION Record;
+        } ImportControl;
+
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION Record;
+        } IndirControl;
+
+        // IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH
+        struct
+        {
+            ULONG BlockIndex;
+            ULONG BlockRva;
+            IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION Record;
+        } SwitchBranch;
+
         // IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE
         struct
         {

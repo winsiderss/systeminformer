@@ -3760,16 +3760,24 @@ NTSTATUS PhGetMappedImageRelocations(
             PH_IMAGE_RELOC_ENTRY entry;
 
             entry.BlockIndex = relocationIndex;
-            entry.Type = relocations[i].Type;
-            entry.Offset = relocations[i].Offset;
+            entry.Record.Type = relocations[i].Type;
+            entry.Record.Offset = relocations[i].Offset;
             entry.BlockRva = relocationDirectory->VirtualAddress;
 
-            if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-                entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Offset));
-            else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-                entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders32->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Offset));
+            if (entry.Record.Type == IMAGE_REL_BASED_ABSOLUTE)
+            {
+                entry.ImageBaseVa = NULL;
+                entry.MappedImageVa = NULL;
+            }
+            else
+            {
+                if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
+                else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    entry.ImageBaseVa = PTR_ADD_OFFSET(MappedImage->NtHeaders32->OptionalHeader.ImageBase, UInt32Add32To64(entry.BlockRva, entry.Record.Offset));
 
-            entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage, UInt32Add32To64(entry.BlockRva, entry.Offset), NULL); __analysis_assume(entry.MappedImageVa);
+                entry.MappedImageVa = PhMappedImageRvaToVa(MappedImage, UInt32Add32To64(entry.BlockRva, entry.Record.Offset), NULL); __analysis_assume(entry.MappedImageVa);
+            }
 
             PhAddItemArray(&relocationArray, &entry);
         }
@@ -4002,13 +4010,157 @@ VOID PhpFillDynamicRelocations(
         }
     }
     else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_PROLOGUE ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER ||
-             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
+             Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_RF_EPILOGUE)
     {
         // TODO(jxy-s) not yet implemented, skip the block 
         NOTHING;
+    }
+    else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER)
+    {
+        PIMAGE_BASE_RELOCATION base = BaseRelocs;
+
+        for (ULONG blockIndex = 0; ; blockIndex++)
+        {
+            ULONG relocationCount;
+            PIMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION relocations;
+
+            if (base->SizeOfBlock < sizeof(IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION))
+            {
+                break;
+            }
+
+            relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_IMPORT_CONTROL_TRANSFER_DYNAMIC_RELOCATION);
+            relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+            for (ULONG i = 0; i < relocationCount; i++)
+            {
+                PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                RtlZeroMemory(&entry, sizeof(entry));
+
+                entry.Symbol = IMAGE_DYNAMIC_RELOCATION_GUARD_IMPORT_CONTROL_TRANSFER;
+                entry.ImportControl.Record = relocations[i];
+                entry.ImportControl.BlockIndex = blockIndex;
+                entry.ImportControl.BlockRva = base->VirtualAddress;
+
+                entry.ImageBaseVa = PTR_ADD_OFFSET(
+                    MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                    UInt32Add32To64(entry.ImportControl.BlockRva, entry.ImportControl.Record.PageRelativeOffset)
+                    );
+                entry.MappedImageVa = PhMappedImageRvaToVa(
+                    MappedImage,
+                    UInt32Add32To64(entry.ImportControl.BlockRva, entry.ImportControl.Record.PageRelativeOffset),
+                    NULL
+                    );
+
+                PhAddItemArray(Array, &entry);
+            }
+
+            if (!PhPtrAdvance(&base, BaseRelocsEnd, base->SizeOfBlock))
+                break;
+        }
+    }
+    else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER)
+    {
+        PIMAGE_BASE_RELOCATION base = BaseRelocs;
+
+        for (ULONG blockIndex = 0; ; blockIndex++)
+        {
+            ULONG relocationCount;
+            PIMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION relocations;
+
+            if (base->SizeOfBlock < sizeof(IMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION))
+            {
+                break;
+            }
+
+            relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_INDIR_CONTROL_TRANSFER_DYNAMIC_RELOCATION);
+            relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+            for (ULONG i = 0; i < relocationCount; i++)
+            {
+                PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                if (relocations[i].PageRelativeOffset == 0 ||
+                    ((PIMAGE_RELOCATION_RECORD)&relocations[i])->Type == 0)
+                {
+                    break;
+                }
+
+                RtlZeroMemory(&entry, sizeof(entry));
+
+                entry.Symbol = IMAGE_DYNAMIC_RELOCATION_GUARD_INDIR_CONTROL_TRANSFER;
+                entry.IndirControl.Record = relocations[i];
+                entry.IndirControl.BlockIndex = blockIndex;
+                entry.IndirControl.BlockRva = base->VirtualAddress;
+
+                entry.ImageBaseVa = PTR_ADD_OFFSET(
+                    MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                    UInt32Add32To64(entry.IndirControl.BlockRva, entry.IndirControl.Record.PageRelativeOffset)
+                    );
+                entry.MappedImageVa = PhMappedImageRvaToVa(
+                    MappedImage,
+                    UInt32Add32To64(entry.IndirControl.BlockRva, entry.IndirControl.Record.PageRelativeOffset),
+                    NULL
+                    );
+
+                PhAddItemArray(Array, &entry);
+            }
+
+            if (!PhPtrAdvance(&base, BaseRelocsEnd, base->SizeOfBlock))
+                break;
+        }
+    }
+    else if (Symbol == IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH)
+    {
+        PIMAGE_BASE_RELOCATION base = BaseRelocs;
+
+        for (ULONG blockIndex = 0; ; blockIndex++)
+        {
+            ULONG relocationCount;
+            PIMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION relocations;
+
+            if (base->SizeOfBlock < sizeof(IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION))
+            {
+                break;
+            }
+
+            relocationCount = (base->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(IMAGE_SWITCHTABLE_BRANCH_DYNAMIC_RELOCATION);
+            relocations = PTR_ADD_OFFSET(base, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BASE_RELOCATION, SizeOfBlock));
+
+            for (ULONG i = 0; i < relocationCount; i++)
+            {
+                PH_IMAGE_DYNAMIC_RELOC_ENTRY entry;
+
+                if (relocations[i].PageRelativeOffset == 0)
+                {
+                    break;
+                }
+
+                RtlZeroMemory(&entry, sizeof(entry));
+
+                entry.Symbol = IMAGE_DYNAMIC_RELOCATION_GUARD_SWITCHTABLE_BRANCH;
+                entry.SwitchBranch.Record.PageRelativeOffset = relocations[i].PageRelativeOffset;
+                entry.SwitchBranch.Record.RegisterNumber = relocations[i].RegisterNumber;
+                entry.SwitchBranch.BlockIndex = blockIndex;
+                entry.SwitchBranch.BlockRva = base->VirtualAddress;
+
+                entry.ImageBaseVa = PTR_ADD_OFFSET(
+                    MappedImage->NtHeaders->OptionalHeader.ImageBase,
+                    UInt32Add32To64(entry.SwitchBranch.BlockRva, entry.SwitchBranch.Record.PageRelativeOffset)
+                    );
+                entry.MappedImageVa = PhMappedImageRvaToVa(
+                    MappedImage,
+                    UInt32Add32To64(entry.SwitchBranch.BlockRva, entry.SwitchBranch.Record.PageRelativeOffset),
+                    NULL
+                    );
+
+                PhAddItemArray(Array, &entry);
+            }
+
+            if (!PhPtrAdvance(&base, BaseRelocsEnd, base->SizeOfBlock))
+                break;
+        }
     }
     else if (Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
     {
