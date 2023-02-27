@@ -135,6 +135,24 @@ PPH_STRING PhGetJsonValueAsString(
     return NULL;
 }
 
+PPH_STRING PhGetJsonObjectString(
+    _In_ PVOID Object
+    )
+{
+    PCSTR value;
+    size_t length;
+
+    if (
+        (length = json_object_get_string_len(Object)) &&
+        (value = json_object_get_string(Object))
+        )
+    {
+        return PhConvertUtf8ToUtf16Ex((PSTR)value, length);
+    }
+
+    return PhReferenceEmptyString();
+}
+
 LONGLONG PhGetJsonValueAsInt64(
     _In_ PVOID Object,
     _In_ PSTR Key
@@ -357,12 +375,24 @@ PVOID PhLoadJsonObjectFromFile(
     return json_object_from_file(FileName->Buffer);
 }
 
-VOID PhSaveJsonObjectToFile(
+NTSTATUS PhSaveJsonObjectToFile(
     _In_ PPH_STRINGREF FileName,
     _In_ PVOID Object
     )
 {
-    json_object_to_file(FileName->Buffer, Object);
+#ifdef _DEBUG
+    if (json_object_to_file_ext(FileName->Buffer, Object, JSON_C_TO_STRING_PRETTY) == -1)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+#else
+    if (json_object_to_file_ext(FileName->Buffer, Object, 0) == -1)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+#endif
+
+    return STATUS_SUCCESS;
 }
 
 // XML support
