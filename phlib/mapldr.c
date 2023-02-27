@@ -787,7 +787,18 @@ PVOID PhGetLoaderEntryDllBase(
     PLDR_DATA_TABLE_ENTRY ldrEntry;
 
     RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
-    ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
+
+    if (WindowsVersion >= WINDOWS_8 && !FullDllName && BaseDllName)
+    {
+        ULONG baseNameHash = PhHashStringRefEx(BaseDllName, TRUE, PH_STRING_HASH_X65599);
+
+        ldrEntry = PhFindLoaderEntryNameHash(baseNameHash);
+    }
+    else
+    {
+        ldrEntry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
+    }
+
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
 
     if (ldrEntry)
