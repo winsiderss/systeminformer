@@ -245,10 +245,9 @@ VOID InitializeDbPath(
 {
     if (ProcessHacker_IsPortableMode())
     {
-        static PH_STRINGREF databaseFileName = PH_STRINGREF_INIT(L"usernotesdb.xml");
         PPH_STRING fileName;
 
-        fileName = PhGetApplicationDirectoryFileName(&databaseFileName, FALSE);
+        fileName = PhGetApplicationDirectoryFileNameZ(L"usernotesdb.xml", FALSE);
         SetDbPath(fileName);
     }
     else
