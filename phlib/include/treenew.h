@@ -16,6 +16,7 @@ typedef struct _PH_TREENEW_CREATEPARAMS
     COLORREF TextColor;
     COLORREF FocusColor;
     COLORREF SelectionColor;
+    ULONG RowHeight;
     // Add new fields here.
 } PH_TREENEW_CREATEPARAMS, *PPH_TREENEW_CREATEPARAMS;
 
