@@ -75,6 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
+extern BOOLEAN PhPortableEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 

@@ -4178,6 +4178,11 @@ PVOID PhPluginInvokeWindowCallback(
             return UlongToPtr(WindowsVersion);
         }
         break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE:
+        {
+            return (PVOID)PhPortableEnabled;
+        }
+        break;
     }
 
     return NULL;

@@ -243,18 +243,19 @@ VOID InitializeDbPath(
     VOID
     )
 {
-    static PH_STRINGREF databaseFileName = PH_STRINGREF_INIT(L"usernotesdb.xml");
-    PPH_STRING fileName;
-
-    fileName = PhGetApplicationDirectoryFileName(&databaseFileName, FALSE);
-
-    if (fileName && PhDoesFileExistWin32(PhGetString(fileName)))
+    if (ProcessHacker_IsPortableMode())
     {
+        static PH_STRINGREF databaseFileName = PH_STRINGREF_INIT(L"usernotesdb.xml");
+        PPH_STRING fileName;
+
+        fileName = PhGetApplicationDirectoryFileName(&databaseFileName, FALSE);
         SetDbPath(fileName);
     }
     else
     {
-        PhMoveReference(&fileName, PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml"));
+        PPH_STRING fileName;
+
+        fileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\usernotesdb.xml");
         SetDbPath(fileName);
     }
 }

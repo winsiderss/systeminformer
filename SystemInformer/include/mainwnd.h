@@ -56,6 +56,7 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_PROCEDURE,
     PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE,
     PH_MAINWINDOW_CALLBACK_TYPE_VERSION,
+    PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
@@ -118,6 +119,8 @@ PhPluginInvokeWindowCallback(
     ((HWND)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_WINDOW_HANDLE, 0, 0))
 #define ProcessHacker_GetWindowsVersion() \
     (PtrToUlong(PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_VERSION, 0, 0)))
+#define ProcessHacker_IsPortableMode() \
+    ((BOOLEAN)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE, 0, 0))
 
 #define PhWindowsVersion ProcessHacker_GetWindowsVersion() // Temporary backwards compat (dmex)
 #define PhMainWindowHandle ProcessHacker_GetWindowHandle() // Temporary backwards compat (dmex)
