@@ -735,6 +735,65 @@ static NTSTATUS PhpOpenSecurityDummyHandle(
     return STATUS_SUCCESS;
 }
 
+static NTSTATUS PhpOpenSecurityDesktopHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    HDESK desktopHandle;
+
+    if (desktopHandle = OpenDesktop(
+        L"Default",
+        0,
+        FALSE,
+        MAXIMUM_ALLOWED
+        ))
+    {
+        *Handle = desktopHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityDesktopHandle(
+    _In_ PVOID Context
+    )
+{
+    CloseDesktop(Context);
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenSecurityStationHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    HWINSTA stationHandle;
+
+    if (stationHandle = OpenWindowStation(
+        L"WinSta0",
+        FALSE,
+        MAXIMUM_ALLOWED
+        ))
+    {
+        *Handle = stationHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityStationHandle(
+    _In_ PVOID Context
+    )
+{
+    CloseWindowStation(Context);
+    return STATUS_SUCCESS;
+}
+
 VOID PhMwpOnCommand(
     _In_ HWND WindowHandle,
     _In_ ULONG Id
@@ -1184,6 +1243,30 @@ VOID PhMwpOnCommand(
                 L"WmiDefault",
                 PhpOpenSecurityDummyHandle,
                 NULL,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_DESKTOP_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"Current Window Desktop",
+                L"Desktop",
+                PhpOpenSecurityDesktopHandle,
+                PhpCloseSecurityDesktopHandle,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_STATION_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"Current Window Station",
+                L"WindowStation",
+                PhpOpenSecurityStationHandle,
+                PhpCloseSecurityStationHandle,
                 NULL
                 );
         }
@@ -2575,6 +2658,8 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_SCM_PERMISSIONS, L"Service Control Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_RDP_PERMISSIONS, L"Terminal Server Listener", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_WMI_PERMISSIONS, L"WMI Root Namespace", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_DESKTOP_PERMISSIONS, L"Current Window Desktop", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_STATION_PERMISSIONS, L"Current Window Station", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, menuItem, ULONG_MAX);
 
     return ToolsMenu;
