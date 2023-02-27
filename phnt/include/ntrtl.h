@@ -4832,7 +4832,7 @@ typedef struct _HEAP_INFORMATION_ITEM
 
 typedef NTSTATUS (NTAPI *PRTL_HEAP_EXTENDED_ENUMERATION_ROUTINE)(
     _In_ PHEAP_INFORMATION_ITEM Information,
-    _In_ PVOID Context
+    _In_opt_ PVOID Context
     );
 
 // HEAP_EXTENDED_INFORMATION Level
@@ -4861,7 +4861,7 @@ typedef struct _HEAP_EXTENDED_INFORMATION
 typedef NTSTATUS (NTAPI *RTL_HEAP_STACK_WRITE_ROUTINE)(
     _In_ PVOID Information, // TODO: 3 missing structures (dmex)
     _In_ ULONG Size,
-    _In_ PVOID Context
+    _In_opt_ PVOID Context
     );
 
 // rev
@@ -7717,7 +7717,7 @@ RtlRegisterWait(
     _Out_ PHANDLE WaitHandle,
     _In_ HANDLE Handle,
     _In_ WAITORTIMERCALLBACKFUNC Function,
-    _In_ PVOID Context,
+    _In_opt_ PVOID Context,
     _In_ ULONG Milliseconds,
     _In_ ULONG Flags
     );
@@ -7744,7 +7744,7 @@ NTSTATUS
 NTAPI
 RtlQueueWorkItem(
     _In_ WORKERCALLBACKFUNC Function,
-    _In_ PVOID Context,
+    _In_opt_ PVOID Context,
     _In_ ULONG Flags
     );
 
@@ -7907,8 +7907,8 @@ typedef NTSTATUS (NTAPI *PRTL_QUERY_REGISTRY_ROUTINE)(
     _In_ ULONG ValueType,
     _In_ PVOID ValueData,
     _In_ ULONG ValueLength,
-    _In_ PVOID Context,
-    _In_ PVOID EntryContext
+    _In_opt_ PVOID Context,
+    _In_opt_ PVOID EntryContext
     );
 
 typedef struct _RTL_QUERY_REGISTRY_TABLE
