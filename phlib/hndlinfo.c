@@ -259,7 +259,7 @@ NTSTATUS PhpGetObjectTypeName(
         }
 
         if (returnLength == 0)
-            return status;
+            return STATUS_UNSUCCESSFUL;
 
         buffer = PhAllocate(returnLength);
 
