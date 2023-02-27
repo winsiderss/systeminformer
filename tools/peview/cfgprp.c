@@ -219,7 +219,7 @@ INT_PTR CALLBACK PvpPeCgfDlgProc(
 
             PvpPeCgfEnumGuardFunctions(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

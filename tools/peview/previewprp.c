@@ -109,7 +109,7 @@ INT_PTR CALLBACK PvpPePreviewDlgProc(
 
             PvpShowFilePreview(hwndDlg);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

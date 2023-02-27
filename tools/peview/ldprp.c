@@ -448,7 +448,7 @@ INT_PTR CALLBACK PvPeLoadConfigDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

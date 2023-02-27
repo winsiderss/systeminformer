@@ -164,7 +164,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                 PhFree(debug.DebugEntries);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

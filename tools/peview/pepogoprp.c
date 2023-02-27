@@ -232,7 +232,7 @@ INT_PTR CALLBACK PvpPeDebugPogoDlgProc(
 
             PvEnumerateImagePogoSections(hwndDlg, context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
@@ -497,7 +497,7 @@ INT_PTR CALLBACK PvpPeDebugCrtDlgProc(
 
             PvEnumerateCrtInitializers(hwndDlg, context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

@@ -495,7 +495,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
                 PvpPeClrEnumSections(clrMetaData, context->ListViewHandle);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

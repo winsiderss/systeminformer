@@ -182,7 +182,7 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
 
 BOOLEAN PhEnableThemeSupport = FALSE;
 BOOLEAN PhEnableThemeAcrylicSupport = FALSE;
-BOOLEAN PhEnableThemeListviewBorder = TRUE;
+BOOLEAN PhEnableThemeListviewBorder = FALSE;
 HBRUSH PhThemeWindowBackgroundBrush = NULL;
 COLORREF PhThemeWindowForegroundColor = RGB(28, 28, 28);
 COLORREF PhThemeWindowBackgroundColor = RGB(43, 43, 43);

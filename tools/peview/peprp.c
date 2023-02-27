@@ -2039,8 +2039,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
 
-            if (PeEnableThemeSupport)
-                PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            if (PhEnableThemeSupport)
+                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
             SetTimer(hwndDlg, 1, 1000, NULL);
         }

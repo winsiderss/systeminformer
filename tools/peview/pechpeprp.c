@@ -10,7 +10,6 @@
  */
 
 #include <peview.h>
-#include <ntimage.h>
 
 typedef struct _PV_PE_CHPE_CONTEXT
 {
@@ -424,7 +423,7 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
