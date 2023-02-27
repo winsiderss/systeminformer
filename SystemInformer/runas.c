@@ -152,8 +152,8 @@ INT_PTR CALLBACK PhpRunFileWndProc(
     _In_ LPARAM lParam
     );
 
-VOID PhSetDesktopWinStaAccess(
-    VOID
+NTSTATUS PhSetDesktopWinStaAccess(
+    _In_ HWND WindowHandle
     );
 
 VOID PhpSplitUserName(
@@ -1361,7 +1361,10 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             if (!PhIsNullOrEmptyString(desktopName) && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE))
                                 createInfo.DesktopName = PhGetString(desktopName);
 
-                            PhSetDesktopWinStaAccess();
+                            status = PhSetDesktopWinStaAccess(hwndDlg);
+
+                            if (!NT_SUCCESS(status))
+                                goto CleanupAsUserExit;
 
                             status = PhCreateProcessAsUser(
                                 &createInfo,
@@ -1371,6 +1374,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 NULL
                                 );
 
+                           CleanupAsUserExit:
                             if (domainPart) PhDereferenceObject(domainPart);
                             if (userPart) PhDereferenceObject(userPart);
                         }
@@ -1487,6 +1491,11 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                                     NtClose(tokenHandle);
                                 }
+
+                                status = PhSetDesktopWinStaAccess(hwndDlg);
+
+                                if (!NT_SUCCESS(status))
+                                    goto CleanupExit;
 
                                 status = PhCreateProcessWin32Ex(
                                     NULL,
@@ -1698,8 +1707,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
  * Sets the access control lists of the current window station
  * and desktop to allow all access.
  */
-VOID PhSetDesktopWinStaAccess(
-    VOID
+NTSTATUS PhSetDesktopWinStaAccess(
+    _In_ HWND WindowHandle
     )
 {
     HWINSTA wsHandle;
@@ -1709,6 +1718,17 @@ VOID PhSetDesktopWinStaAccess(
     UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x50];
     PSECURITY_DESCRIPTOR securityDescriptor;
     PACL dacl;
+
+    if (WindowHandle && PhGetIntegerSetting(L"EnableWarnings") && PhShowMessage2(
+        WindowHandle,
+        TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+        TD_WARNING_ICON,
+        L"WARNING: This will grant Everyone access to the current window station and desktop.",
+        L"Are you sure you want to continue?"
+        ) == IDNO)
+    {
+        return STATUS_ACCESS_DENIED;
+    }
 
     // TODO: Set security on the correct window station and desktop.
 
@@ -1744,6 +1764,10 @@ VOID PhSetDesktopWinStaAccess(
         PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
         CloseWindowStation(wsHandle);
     }
+    else
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
 
     if (desktopHandle = OpenDesktop(
         L"Default",
@@ -1755,11 +1779,17 @@ VOID PhSetDesktopWinStaAccess(
         PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, securityDescriptor);
         CloseDesktop(desktopHandle);
     }
+    else
+    {
+        return PhGetLastWin32ErrorAsNtStatus();
+    }
 
 #ifdef DEBUG
     assert(allocationLength < sizeof(securityDescriptorBuffer));
     assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
+
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1818,7 +1848,7 @@ NTSTATUS PhExecuteRunAsCommand(
         return NTSTATUS_FROM_WIN32(win32Result);
     }
 
-    PhSetDesktopWinStaAccess();
+    PhSetDesktopWinStaAccess(Parameters->WindowHandle);
 
     StartService(serviceHandle, 0, NULL);
     DeleteService(serviceHandle);
@@ -1926,6 +1956,7 @@ NTSTATUS PhExecuteRunAsCommand3(
     parameters.DesktopName = DesktopName;
     parameters.UseLinkedToken = UseLinkedToken;
     parameters.CreateSuspendedProcess = CreateSuspendedProcess;
+    parameters.WindowHandle = hWnd;
 
     // Try to use an existing instance of the service if possible.
     if (RunAsOldServiceName[0] != UNICODE_NULL)
