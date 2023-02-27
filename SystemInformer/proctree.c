@@ -2341,6 +2341,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PriorityBoost)
 {
+    PhpUpdateProcessNodePriorityBoost(node1);
+    PhpUpdateProcessNodePriorityBoost(node2);
     sortResult = ucharcmp(node1->PriorityBoost, node2->PriorityBoost);
 }
 END_SORT_FUNCTION
@@ -2353,6 +2355,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(GrantedAccess)
 {
+    PhpUpdateProcessNodeGrantedAccess(node1);
+    PhpUpdateProcessNodeGrantedAccess(node2);
     sortResult = PhCompareStringWithNullSortOrder(node1->GrantedAccessText, node2->GrantedAccessText, ProcessTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
@@ -4660,6 +4664,28 @@ VOID PhGetSelectedProcessItems(
 
     *NumberOfProcesses = (ULONG)array.Count;
     *Processes = PhFinalArrayItems(&array);
+}
+
+VOID PhGetSelectedProcessNodes(
+    _Out_ PPH_PROCESS_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
+    )
+{
+    PH_ARRAY array;
+    ULONG i;
+
+    PhInitializeArray(&array, sizeof(PVOID), 2);
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        if (node->Node.Visible && node->Node.Selected)
+            PhAddItemArray(&array, &node);
+    }
+
+    *NumberOfNodes = (ULONG)array.Count;
+    *Nodes = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllProcessNodes(
