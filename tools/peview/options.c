@@ -260,7 +260,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
             PvLoadGeneralPage(context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

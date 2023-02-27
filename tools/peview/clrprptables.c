@@ -144,7 +144,7 @@ INT_PTR CALLBACK PvpPeClrTablesDlgProc(
 
             PvClrEnumerateTables(context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

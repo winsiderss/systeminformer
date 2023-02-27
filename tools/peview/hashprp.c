@@ -1307,7 +1307,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
 
             PhCreateThread2(PvPeFileHashThread, context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

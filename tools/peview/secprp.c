@@ -1504,7 +1504,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
 
             PvpPeEnumerateFileCertificates(context);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
