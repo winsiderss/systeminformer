@@ -193,6 +193,7 @@ struct json_object *json_object_from_file(wchar_t *filename)
         obj = json_tokener_parse(data);
 
         PhFree(data);
+        NtClose(fileHandle);
     }
 
     return obj;
