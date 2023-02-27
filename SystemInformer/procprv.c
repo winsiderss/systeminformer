@@ -112,8 +112,6 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
-
-    USHORT Architecture;
 } PH_PROCESS_QUERY_S2_DATA, *PPH_PROCESS_QUERY_S2_DATA;
 
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
@@ -874,7 +872,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Architecture
-    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId) && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
     {
         status = STATUS_NOT_FOUND;
 
@@ -953,20 +951,20 @@ VOID PhpProcessQueryStage2(
             Data->ImportFunctions = ULONG_MAX;
         }
 
-        if (processItem->Architecture == USHRT_MAX)
-        {
-            PH_MAPPED_IMAGE mappedImage;
-
-            // For backward compatibility we'll read the Machine from the file.
-            // If we fail to access the file we could go read from the remote
-            // process memory, but for now we only read from the file. (jxy-s)
-
-            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&processItem->FileName->sr, NULL, &mappedImage)))
-            {
-                Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
-                PhUnloadMappedImage(&mappedImage);
-            }
-        }
+        //if (processItem->Architecture == USHRT_MAX && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
+        //{
+        //    PH_MAPPED_IMAGE mappedImage;
+        //
+        //    // For backward compatibility we'll read the Machine from the file.
+        //    // If we fail to access the file we could go read from the remote
+        //    // process memory, but for now we only read from the file. (jxy-s)
+        //
+        //    if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&processItem->FileName->sr, NULL, &mappedImage)))
+        //    {
+        //        Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
+        //        PhUnloadMappedImage(&mappedImage);
+        //    }
+        //}
     }
 
     if (PhEnableImageCoherencySupport && processItem->FileName && !processItem->IsSubsystemProcess)
@@ -1145,10 +1143,10 @@ VOID PhpFillProcessItemStage2(
     }
 
     // Note: We query the architecture in stage1 so don't overwrite the previous data. (dmex)
-    if (processItem->Architecture == USHRT_MAX)
-    {
-        processItem->Architecture = Data->Architecture;
-    }
+    //if (processItem->Architecture == USHRT_MAX)
+    //{
+    //    processItem->Architecture = Data->Architecture;
+    //}
 }
 
 VOID PhpFillProcessItemExtension(
@@ -2908,6 +2906,26 @@ VOID PhProcessProviderUpdate(
                 {
                     processItem->IsProtectedHandle = filteredHandle;
                     modified = TRUE;
+                }
+            }
+
+            // Architecture
+            if (processItem->QueryHandle && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
+            {
+                if (processItem->Architecture == IMAGE_FILE_MACHINE_UNKNOWN)
+                {
+                    processItem->Architecture = IMAGE_FILE_MACHINE_TARGET_HOST;
+
+                    if (WindowsVersion >= WINDOWS_11)
+                    {
+                        USHORT processArchitecture;
+
+                        if (NT_SUCCESS(PhGetProcessArchitecture(processItem->QueryHandle, &processArchitecture)))
+                        {
+                            processItem->Architecture = processArchitecture;
+                            modified = TRUE;
+                        }
+                    }
                 }
             }
 
