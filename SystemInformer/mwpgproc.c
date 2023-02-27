@@ -241,7 +241,7 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
 
     PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
 
-    PhCsHideOtherUserProcesses = !PhGetIntegerSetting(L"HideOtherUserProcesses");
+    PhCsHideOtherUserProcesses = !PhCsHideOtherUserProcesses;
     PhSetIntegerSetting(L"HideOtherUserProcesses", PhCsHideOtherUserProcesses);
 }
 
@@ -252,14 +252,11 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (PhCsHideOtherUserProcesses)
-    {
-        if (!processNode->ProcessItem->Sid)
-            return FALSE;
+    if (!processNode->ProcessItem->Sid)
+        return FALSE;
 
-        if (!PhEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
-            return FALSE;
-    }
+    if (!PhEqualSid(processNode->ProcessItem->Sid, PhGetOwnTokenAttributes().TokenSid))
+        return FALSE;
 
     return TRUE;
 }
