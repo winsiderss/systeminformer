@@ -488,7 +488,7 @@ VOID PhMwpInitializeControls(
     ULONG treelistBorder;
     ULONG treelistCustomColors;
     ULONG treelistCustomHeaderDraw;
-    PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+    PH_TREENEW_CREATEPARAMS treelistCreateParams = { sizeof(PH_TREENEW_CREATEPARAMS) };
 
     thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
     treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhEnableThemeSupport) ? WS_BORDER : 0;
