@@ -191,7 +191,7 @@ typedef enum _PROCESSINFOCLASS
     ProcessWin32kSyscallFilterInformation, // q: WIN32K_SYSCALL_FILTER
     ProcessDisableSystemAllowedCpuSets, // 80
     ProcessWakeInformation, // PROCESS_WAKE_INFORMATION
-    ProcessEnergyTrackingState, // PROCESS_ENERGY_TRACKING_STATE
+    ProcessEnergyTrackingState, // qs: PROCESS_ENERGY_TRACKING_STATE
     ProcessManageWritesToExecutableMemory, // MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
     ProcessCaptureTrustletLiveDump,
     ProcessTelemetryCoverage,
@@ -709,6 +709,8 @@ typedef struct _PROCESS_MITIGATION_POLICY_INFORMATION
         PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY SideChannelIsolationPolicy;
         PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY UserShadowStackPolicy;
         PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY RedirectionTrustPolicy;
+        PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY UserPointerAuthPolicy;
+        PROCESS_MITIGATION_SEHOP_POLICY SEHOPPolicy;
     };
 } PROCESS_MITIGATION_POLICY_INFORMATION, *PPROCESS_MITIGATION_POLICY_INFORMATION;
 
@@ -1027,6 +1029,13 @@ typedef struct _PROCESS_MEMBERSHIP_INFORMATION
 } PROCESS_MEMBERSHIP_INFORMATION, *PPROCESS_MEMBERSHIP_INFORMATION;
 
 // end_private
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryPortInformationProcess(
+    VOID
+    );
 
 #endif
 
