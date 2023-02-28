@@ -309,6 +309,11 @@ VOID PhLoadSettingsProcessTreeUpdateMask(
     else
         ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_AVERAGE);
 
+    if (TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_ARCHITECTURE, &column) && column.Visible)
+        SetFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE);
+    else
+        ClearFlag(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE);
+
     PhInitializeProcessTreeColumnHeaderCache();
 }
 
@@ -1550,11 +1555,7 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
             {
                 OBJECT_BASIC_INFORMATION basicInfo;
 
-                status = PhGetObjectBasicInformation(
-                    NtCurrentProcess(),
-                    processHandle, 
-                    &basicInfo
-                    );
+                status = PhQueryObjectBasicInformation(processHandle, &basicInfo);
 
                 if (NT_SUCCESS(status))
                 {
@@ -2326,6 +2327,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PriorityBoost)
 {
+    PhpUpdateProcessNodePriorityBoost(node1);
+    PhpUpdateProcessNodePriorityBoost(node2);
     sortResult = ucharcmp(node1->PriorityBoost, node2->PriorityBoost);
 }
 END_SORT_FUNCTION
@@ -2338,6 +2341,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(GrantedAccess)
 {
+    PhpUpdateProcessNodeGrantedAccess(node1);
+    PhpUpdateProcessNodeGrantedAccess(node2);
     sortResult = PhCompareStringWithNullSortOrder(node1->GrantedAccessText, node2->GrantedAccessText, ProcessTreeListSortOrder, TRUE);
 }
 END_SORT_FUNCTION
@@ -2873,8 +2878,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_VERIFICATIONSTATUS:
-                if (processItem->VerifyResult == VrTrusted)
-                    PhInitializeStringRef(&getCellText->Text, L"Trusted");
+                getCellText->Text = PhVerifyResultToStringRef(processItem->VerifyResult);
                 break;
             case PHPRTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRef(processItem->VerifySignerName);
@@ -4628,6 +4632,28 @@ VOID PhGetSelectedProcessItems(
 
     *NumberOfProcesses = (ULONG)array.Count;
     *Processes = PhFinalArrayItems(&array);
+}
+
+VOID PhGetSelectedProcessNodes(
+    _Out_ PPH_PROCESS_NODE **Nodes,
+    _Out_ PULONG NumberOfNodes
+    )
+{
+    PH_ARRAY array;
+    ULONG i;
+
+    PhInitializeArray(&array, sizeof(PVOID), 2);
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        if (node->Node.Visible && node->Node.Selected)
+            PhAddItemArray(&array, &node);
+    }
+
+    *NumberOfNodes = (ULONG)array.Count;
+    *Nodes = PhFinalArrayItems(&array);
 }
 
 VOID PhDeselectAllProcessNodes(

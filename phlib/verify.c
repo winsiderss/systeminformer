@@ -15,6 +15,7 @@
 #include <appresolver.h>
 #include <mapldr.h>
 
+#define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS
 #include <wintrust.h>
 #include <softpub.h>
 
@@ -428,7 +429,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     _Out_ PULONG NumberOfSignatures
     )
 {
-    VERIFY_RESULT verifyResult = VrBadSignature;
+    VERIFY_RESULT verifyResult = VrUnknown;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
     WINTRUST_CATALOG_INFO catalogInfo;
@@ -461,7 +462,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             return VrNoSignature;
     }
 
-    if (PhpVerifyGetHashFromFileHandle(
+    if (!PhpVerifyGetHashFromFileHandle(
         FileHandle,
         HashAlgorithm,
         fileHashTag,
@@ -470,70 +471,70 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         &fileHashLength,
         &catAdminHandle
         ))
+        return VrBadSignature;
+
+    // Search the system catalogs.
+
+    catInfoHandle = CryptCATAdminEnumCatalogFromHash(
+        catAdminHandle,
+        fileHash,
+        fileHashLength,
+        0,
+        NULL
+        );
+
+    if (catInfoHandle)
     {
-        // Search the system catalogs.
+        CATALOG_INFO ci = { sizeof(CATALOG_INFO) };
+        DRIVER_VER_INFO verInfo = { 0 };
 
-        catInfoHandle = CryptCATAdminEnumCatalogFromHash(
-            catAdminHandle,
-            fileHash,
-            fileHashLength,
-            0,
-            NULL
-            );
-
-        if (catInfoHandle)
+        if (CryptCATCatalogInfoFromContext(catInfoHandle, &ci, 0))
         {
-            CATALOG_INFO ci = { sizeof(CATALOG_INFO) };
-            DRIVER_VER_INFO verInfo = { 0 };
+            // Disable OS version checking by passing in a DRIVER_VER_INFO structure.
+            verInfo.cbStruct = sizeof(DRIVER_VER_INFO);
 
-            if (CryptCATCatalogInfoFromContext(catInfoHandle, &ci, 0))
-            {
-                // Disable OS version checking by passing in a DRIVER_VER_INFO structure.
-                verInfo.cbStruct = sizeof(DRIVER_VER_INFO);
+            memset(&catalogInfo, 0, sizeof(catalogInfo));
+            catalogInfo.cbStruct = sizeof(catalogInfo);
+            catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
+            catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
+            catalogInfo.hMemberFile = FileHandle;
+            catalogInfo.pcwszMemberTag = fileHashTag;
+            catalogInfo.pbCalculatedFileHash = fileHash;
+            catalogInfo.cbCalculatedFileHash = fileHashLength;
+            catalogInfo.hCatAdmin = catAdminHandle;
+            verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &verInfo, &signatures, &numberOfSignatures);
 
-                memset(&catalogInfo, 0, sizeof(catalogInfo));
-                catalogInfo.cbStruct = sizeof(catalogInfo);
-                catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
-                catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
-                catalogInfo.hMemberFile = FileHandle;
-                catalogInfo.pcwszMemberTag = fileHashTag;
-                catalogInfo.pbCalculatedFileHash = fileHash;
-                catalogInfo.cbCalculatedFileHash = fileHashLength;
-                catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &verInfo, &signatures, &numberOfSignatures);
-
-                if (verInfo.pcSignerCertContext)
-                    CertFreeCertificateContext_I(verInfo.pcSignerCertContext);
-            }
-
-            CryptCATAdminReleaseCatalogContext(catAdminHandle, catInfoHandle, 0);
-        }
-        else
-        {
-            // Search any user-supplied catalogs.
-
-            for (ULONG i = 0; i < Information->NumberOfCatalogFileNames; i++)
-            {
-                PhFreeVerifySignatures(signatures, numberOfSignatures);
-
-                memset(&catalogInfo, 0, sizeof(catalogInfo));
-                catalogInfo.cbStruct = sizeof(catalogInfo);
-                catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
-                catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
-                catalogInfo.hMemberFile = FileHandle;
-                catalogInfo.pcwszMemberTag = fileHashTag;
-                catalogInfo.pbCalculatedFileHash = fileHash;
-                catalogInfo.cbCalculatedFileHash = fileHashLength;
-                catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
-
-                if (verifyResult == VrTrusted)
-                    break;
-            }
+            if (verInfo.pcSignerCertContext)
+                CertFreeCertificateContext_I(verInfo.pcSignerCertContext);
         }
 
-        CryptCATAdminReleaseContext(catAdminHandle, 0);
+        CryptCATAdminReleaseCatalogContext(catAdminHandle, catInfoHandle, 0);
     }
+    else
+    {
+        // Search any user-supplied catalogs.
+
+        for (ULONG i = 0; i < Information->NumberOfCatalogFileNames; i++)
+        {
+            PhFreeVerifySignatures(signatures, numberOfSignatures);
+
+            memset(&catalogInfo, 0, sizeof(catalogInfo));
+            catalogInfo.cbStruct = sizeof(catalogInfo);
+            catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
+            catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
+            catalogInfo.hMemberFile = FileHandle;
+            catalogInfo.pcwszMemberTag = fileHashTag;
+            catalogInfo.pbCalculatedFileHash = fileHash;
+            catalogInfo.cbCalculatedFileHash = fileHashLength;
+            catalogInfo.hCatAdmin = catAdminHandle;
+            verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
+
+            if (verifyResult == VrTrusted)
+                break;
+        }
+    }
+
+    CryptCATAdminReleaseContext(catAdminHandle, 0);
 
     *Signatures = signatures;
     *NumberOfSignatures = numberOfSignatures;
@@ -603,6 +604,9 @@ NTSTATUS PhVerifyFileEx(
                 &signatures,
                 &numberOfSignatures
                 );
+
+            if (verifyResult == VrUnknown)
+                verifyResult = VrNoSignature;
         }
     }
 
@@ -767,7 +771,7 @@ BOOLEAN PhGetSystemComponentFromCertificate(
 
     for (ULONG i = 0; i < usage->cUsageIdentifier; i++)
     {
-        if (PhEqualBytesZ(usage->rgpszUsageIdentifier[i], szOID_NT5_CRYPTO, FALSE))
+        if (PhEqualBytesZ(usage->rgpszUsageIdentifier[i], szOID_NT5_CRYPTO, FALSE)) // Windows System Component Verification (dmex)
         {
             found = TRUE;
             break;
@@ -775,6 +779,28 @@ BOOLEAN PhGetSystemComponentFromCertificate(
     }
 
     return found;
+}
+
+PH_STRINGREF PhVerifyResultToStringRef(
+    _In_ VERIFY_RESULT Result
+    )
+{
+    static PH_STRINGREF Results[] =
+    {
+        PH_STRINGREF_INIT(L""),
+        PH_STRINGREF_INIT(L"No signature"),
+        PH_STRINGREF_INIT(L"Trusted"),
+        PH_STRINGREF_INIT(L"Expired certificate"),
+        PH_STRINGREF_INIT(L"Revoked certificate"),
+        PH_STRINGREF_INIT(L"Not trusted"),
+        PH_STRINGREF_INIT(L"Security policy failure"),
+        PH_STRINGREF_INIT(L"Invalid hash"),
+    };
+
+    if (Result < RTL_NUMBER_OF(Results))
+        return Results[Result];
+    else
+        return Results[0];
 }
 
 /**
@@ -811,7 +837,7 @@ VERIFY_RESULT PhVerifyFile(
         if (SignerName)
             *SignerName = NULL;
 
-        return VrNoSignature;
+        return VrUnknown;
     }
 
     info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
@@ -840,7 +866,7 @@ VERIFY_RESULT PhVerifyFile(
 
         NtClose(fileHandle);
 
-        return VrNoSignature;
+        return VrUnknown;
     }
 }
 
@@ -928,7 +954,7 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
 
     if (!NT_SUCCESS(PhVerifyFileEx(Information, &result, &signatures, &numberOfSignatures)))
     {
-        result = VrNoSignature;
+        result = VrUnknown;
         signatures = NULL;
         numberOfSignatures = 0;
     }
@@ -983,7 +1009,7 @@ VERIFY_RESULT PhVerifyFileCached(
     if (!PhpVerifyCacheHashTable)
     {
         if (SignerName) *SignerName = NULL;
-        return VrNoSignature;
+        return VrUnknown;
     }
 
     if (NativeFileName)
@@ -999,7 +1025,7 @@ VERIFY_RESULT PhVerifyFileCached(
             )))
         {
             if (SignerName) *SignerName = NULL;
-            return VrNoSignature;
+            return VrUnknown;
         }
     }
     else
@@ -1015,7 +1041,7 @@ VERIFY_RESULT PhVerifyFileCached(
             )))
         {
             if (SignerName) *SignerName = NULL;
-            return VrNoSignature;
+            return VrUnknown;
         }
     }
 
@@ -1233,26 +1259,6 @@ VERIFY_RESULT PhVerifyFileSignatureInfo(
     return verifyResult;
 }
 
-BOOLEAN PhIsChainedToMicrosoftFromStateData(
-    _In_ HANDLE StateData
-    )
-{
-    static _WTHelperIsChainedToMicrosoftFromStateData WTHelperIsChainedToMicrosoftFromStateData_I = NULL;
-    PCRYPT_PROVIDER_DATA provData;
-
-    if (!WTHelperIsChainedToMicrosoftFromStateData_I)
-        WTHelperIsChainedToMicrosoftFromStateData_I = PhGetDllProcedureAddress(L"wintrust.dll", "WTHelperIsChainedToMicrosoftFromStateData", 0);
-    if (!WTHelperIsChainedToMicrosoftFromStateData_I)
-        return FALSE;
-
-    provData = PhGetCryptProviderDataFromStateData(StateData);
-
-    if (!provData)
-        return FALSE;
-
-    return !!WTHelperIsChainedToMicrosoftFromStateData_I(provData);
-}
-
 PPH_STRING PhGetProgramNameFromMessage(
     _In_ HCRYPTMSG CryptMsgHandle
     )
@@ -1321,6 +1327,150 @@ CleanupExit:
     PhFree(signerInfo);
 
     return signerName;
+}
+
+// rev from WTHelperIsChainedToMicrosoft (dmex)
+BOOLEAN PhIsChainedToMicrosoft(
+    _In_ PCCERT_CONTEXT Certificate,
+    _In_ HCERTSTORE SiblingStore,
+    _In_ BOOLEAN IncludeMicrosoftTestRootCerts
+    )
+{
+    BOOLEAN status = FALSE;
+    HCERTSTORE cryptStoreHandle;
+    CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
+    CERT_CHAIN_POLICY_STATUS policyStatus = { sizeof(CERT_CHAIN_POLICY_STATUS) };
+    CERT_CHAIN_PARA chainPara = { sizeof(CERT_CHAIN_PARA) };
+    PCCERT_CHAIN_CONTEXT chainContext;
+
+    if (!(Certificate && SiblingStore))
+        return FALSE;
+
+    if (cryptStoreHandle = CertOpenStore(CERT_STORE_PROV_COLLECTION, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0, 0, 0))
+    {
+        if (CertAddStoreToCollection(cryptStoreHandle, SiblingStore, 0, 0))
+        {
+            if (IncludeMicrosoftTestRootCerts)
+            {
+                PVOID wintrust = PhGetLoaderEntryDllBaseZ(L"wintrust.dll");
+                ULONG resourceLength;
+                PVOID resourceBuffer;
+            
+                policyPara.dwFlags = MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG;
+            
+                if (PhLoadResource(wintrust, MAKEINTRESOURCE(1), L"MSTESTROOT", &resourceLength, &resourceBuffer))
+                {
+                    CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
+                    HCERTSTORE siblingStore = NULL;
+
+                    if (CryptQueryObject(
+                        CERT_QUERY_OBJECT_BLOB,
+                        &certificateBlob,
+                        CERT_QUERY_CONTENT_FLAG_CERT,
+                        CERT_QUERY_FORMAT_FLAG_ALL,
+                        0, 0, 0, 0,
+                        &siblingStore,
+                        0,
+                        0
+                        ))
+                    {
+                        CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
+                    }
+                }
+
+                if (PhLoadResource(wintrust, MAKEINTRESOURCE(2), L"MSTESTROOT", &resourceLength, &resourceBuffer))
+                {
+                    CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
+                    HCERTSTORE siblingStore = NULL;
+
+                    if (CryptQueryObject(
+                        CERT_QUERY_OBJECT_BLOB,
+                        &certificateBlob,
+                        CERT_QUERY_CONTENT_FLAG_CERT,
+                        CERT_QUERY_FORMAT_FLAG_ALL,
+                        0, 0, 0, 0,
+                        &siblingStore,
+                        0,
+                        0
+                        ))
+                    {
+                        CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
+                    }
+                }
+            }
+
+            if (CertGetCertificateChain(
+                HCCE_CURRENT_USER,
+                Certificate,
+                0, 
+                cryptStoreHandle, 
+                &chainPara,
+                0,
+                0, 
+                &chainContext
+                ))
+            {
+                if (CertVerifyCertificateChainPolicy(
+                    CERT_CHAIN_POLICY_MICROSOFT_ROOT, 
+                    chainContext,
+                    &policyPara,
+                    &policyStatus
+                    ))
+                {
+                    status = (policyStatus.dwError == ERROR_SUCCESS);
+                }
+
+                CertFreeCertificateChain(chainContext);
+            }
+        }
+
+        CertCloseStore(cryptStoreHandle, 0);
+    }
+
+    return status;
+}
+
+// rev from WTHelperIsChainedToMicrosoftFromStateData (dmex)
+BOOLEAN PhIsChainedToMicrosoftFromStateData(
+    _In_ HANDLE StateData,
+    _In_ BOOLEAN IncludeMicrosoftTestRootCerts
+    )
+{
+    BOOLEAN status = FALSE;
+    PCRYPT_PROVIDER_DATA provData;
+    PCRYPT_PROVIDER_SGNR provSigner;
+    HCERTSTORE cryptStoreHandle;
+
+    provData = PhGetCryptProviderDataFromStateData(StateData);
+
+    if (!provData)
+        return FALSE;
+
+    provSigner = PhGetCryptProviderSignerFromChain(provData, 0, FALSE, 0);
+
+    if (!provSigner)
+        return FALSE;
+
+    cryptStoreHandle = CertOpenStore(
+        CERT_STORE_PROV_MSG,
+        provData->dwEncoding,
+        0,
+        0,
+        provData->hMsg
+        );
+
+    if (!cryptStoreHandle)
+        return FALSE;
+
+    status = PhIsChainedToMicrosoft(
+        provSigner->pasCertChain->pCert, 
+        cryptStoreHandle, 
+        IncludeMicrosoftTestRootCerts
+        );
+
+    CertCloseStore(cryptStoreHandle, 0);
+
+    return status;
 }
 
 // rev from ChainToMicrosoftRoot (dmex)

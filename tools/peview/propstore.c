@@ -193,7 +193,7 @@ INT_PTR CALLBACK PvpPePropStoreDlgProc(
             PvpPeEnumerateFilePropStore(context->ListViewHandle);
             //ExtendedListView_SortItems(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

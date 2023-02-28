@@ -955,7 +955,7 @@ BOOLEAN PhpIsDefaultTaskManager(
     {
         PhClearReference(&OldTaskMgrDebugger);
 
-        if (OldTaskMgrDebugger = PhQueryRegistryString(taskmgrKeyHandle, L"Debugger"))
+        if (OldTaskMgrDebugger = PhQueryRegistryStringZ(taskmgrKeyHandle, L"Debugger"))
         {
             alreadyReplaced = PathMatchesPh(OldTaskMgrDebugger);
         }
@@ -1318,7 +1318,7 @@ NTSTATUS PhpSetSilentProcessNotifyEnabled(
 
             if (NT_SUCCESS(status))
             {
-                ULONG globalFlags = PhQueryRegistryUlong(keyHandle, L"GlobalFlag");
+                ULONG globalFlags = PhQueryRegistryUlongZ(keyHandle, L"GlobalFlag");
 
                 if (globalFlags == ULONG_MAX) globalFlags = 0;
                 globalFlags = globalFlags | FLG_MONITOR_SILENT_PROCESS_EXIT;
@@ -2298,15 +2298,12 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                 {
                     PPH_SETTING setting = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
                     PPH_STRING settingValue = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
-                    LONG dpiValue;
-
-                    dpiValue = PhGetWindowDpi(hwndDlg);
 
                     if (!PhSettingFromString(
                         setting->Type,
                         &settingValue->sr,
                         settingValue,
-                        dpiValue,
+                        PhSystemDpi,
                         setting
                         ))
                     {
@@ -2314,7 +2311,7 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                             setting->Type,
                             &setting->DefaultValue,
                             NULL,
-                            dpiValue,
+                            PhSystemDpi,
                             setting
                             );
                     }

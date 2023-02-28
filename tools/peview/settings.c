@@ -12,7 +12,6 @@
 #include <peview.h>
 
 static PPH_STRING PvSettingsFileName = NULL;
-BOOLEAN PeEnableThemeSupport = FALSE;
 
 VOID PvAddDefaultSettings(
     VOID
@@ -96,8 +95,9 @@ VOID PvUpdateCachedSettings(
     VOID
     )
 {
-    //PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
-    PeEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
+    PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhEnableThemeListviewBorder = !!PhGetIntegerSetting(L"TreeListBorderEnable");
 }
 
 VOID PvInitializeSettings(
@@ -142,7 +142,6 @@ VOID PvInitializeSettings(
     if (!PhIsNullOrEmptyString(PvSettingsFileName))
     {
         status = PhLoadSettings(&PvSettingsFileName->sr);
-        PvUpdateCachedSettings();
 
         // If we didn't find the file, it will be created. Otherwise,
         // there was probably a parsing error and we don't want to
@@ -185,9 +184,6 @@ VOID PvInitializeSettings(
             }
         }
     }
-
-    // Apply basic global settings.
-    PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
 
     PvUpdateCachedSettings();
 }

@@ -144,7 +144,7 @@ INT_PTR CALLBACK PvpPeClrImportsDlgProc(
 
             PvpEnumerateClrImports(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

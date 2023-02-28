@@ -3454,7 +3454,7 @@ PPH_STRING PhpGetTokenFolderPath(
         {
             PPH_STRING profileImagePath;
 
-            if (profileFolderPath = PhQueryRegistryString(keyHandle, L"ProfileImagePath"))
+            if (profileFolderPath = PhQueryRegistryStringZ(keyHandle, L"ProfileImagePath"))
             {
                 if (profileImagePath = PhExpandEnvironmentStrings(&profileFolderPath->sr))
                 {

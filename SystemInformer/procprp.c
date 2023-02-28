@@ -539,7 +539,7 @@ VOID PhpCreateProcessPropSheetWaitContext(
         PhpProcessPropertiesWaitCallback,
         waitContext,
         INFINITE,
-        WT_EXECUTEONLYONCE | WT_EXECUTEINIOTHREAD
+        WT_EXECUTEONLYONCE | WT_EXECUTEINWAITTHREAD
         )))
     {
         PropContext->ProcessWaitContext = waitContext;
@@ -547,8 +547,12 @@ VOID PhpCreateProcessPropSheetWaitContext(
     else
     {
         PhDereferenceObject(waitContext->ProcessItem);
+        waitContext->ProcessItem = NULL;
+
+        NtClose(waitContext->ProcessHandle);
+        waitContext->ProcessHandle = NULL;
+
         PhDereferenceObject(waitContext);
-        NtClose(processHandle);
     }
 }
 
@@ -670,7 +674,7 @@ BOOLEAN PhPropPageDlgProcHeader(
     if (ProcessItem)
         *ProcessItem = propPageContext->PropContext->ProcessItem;
 
-    if (uMsg == WM_DESTROY)
+    if (uMsg == WM_NCDESTROY)
     {
         PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 

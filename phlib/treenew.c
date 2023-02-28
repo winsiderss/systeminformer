@@ -441,21 +441,36 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->Style & TN_STYLE_NO_COLUMN_HEADER))
         headerStyle |= WS_VISIBLE;
 
-    if (Context->Style & TN_STYLE_CUSTOM_COLORS)
+    if (createParamaters)
     {
-        Context->CustomTextColor = createParamaters->TextColor ? createParamaters->TextColor : RGB(0xff, 0xff, 0xff);
-        Context->CustomFocusColor = createParamaters->FocusColor ? createParamaters->FocusColor : RGB(0x0, 0x0, 0xff);
-        Context->CustomSelectedColor = createParamaters->SelectionColor ? createParamaters->SelectionColor : RGB(0x0, 0x0, 0x80);
-        Context->CustomColors = TRUE;
+        if (Context->Style & TN_STYLE_CUSTOM_COLORS && RTL_CONTAINS_FIELD(createParamaters, createParamaters->Size, SelectionColor))
+        {
+            Context->CustomTextColor = createParamaters->TextColor ? createParamaters->TextColor : RGB(0xff, 0xff, 0xff);
+            Context->CustomFocusColor = createParamaters->FocusColor ? createParamaters->FocusColor : RGB(0x0, 0x0, 0xff);
+            Context->CustomSelectedColor = createParamaters->SelectionColor ? createParamaters->SelectionColor : RGB(0x0, 0x0, 0x80);
+            Context->CustomColors = TRUE;
+        }
+        else
+        {
+            Context->CustomTextColor = GetSysColor(COLOR_WINDOWTEXT);
+            Context->CustomFocusColor = GetSysColor(COLOR_HOTLIGHT);
+            Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
+        }
+
+        if (RTL_CONTAINS_FIELD(createParamaters, createParamaters->Size, RowHeight) && createParamaters->RowHeight)
+        {
+            Context->CustomRowHeight = TRUE;
+            Context->RowHeight = max(createParamaters->RowHeight, 15);   
+        }
     }
     else
     {
+        Context->CustomTextColor = GetSysColor(COLOR_WINDOWTEXT);
         Context->CustomFocusColor = GetSysColor(COLOR_HOTLIGHT);
         Context->CustomSelectedColor = GetSysColor(COLOR_HIGHLIGHT);
     }
 
-    // TODO: HeaderCustomDraw doesn't support classic theme on Windows 7 (dmex)
-    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW && WindowsVersion > WINDOWS_7)
+    if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW)
         Context->HeaderCustomDraw = TRUE;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(

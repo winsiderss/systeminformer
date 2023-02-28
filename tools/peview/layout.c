@@ -1351,7 +1351,7 @@ INT_PTR CALLBACK PvpPeLayoutDlgProc(
 
             TreeNew_NodesStructured(context->TreeNewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

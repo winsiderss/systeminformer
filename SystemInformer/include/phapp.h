@@ -75,6 +75,7 @@ typedef struct _PH_STARTUP_PARAMETERS
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 extern BOOLEAN PhPluginsEnabled;
+extern BOOLEAN PhPortableEnabled;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 
@@ -623,6 +624,7 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     BOOLEAN UseLinkedToken;
     PWSTR ServiceName;
     BOOLEAN CreateSuspendedProcess;
+    HWND WindowHandle;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(

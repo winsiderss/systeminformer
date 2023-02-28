@@ -488,7 +488,7 @@ VOID PhMwpInitializeControls(
     ULONG treelistBorder;
     ULONG treelistCustomColors;
     ULONG treelistCustomHeaderDraw;
-    PH_TREENEW_CREATEPARAMS treelistCreateParams = { 0 };
+    PH_TREENEW_CREATEPARAMS treelistCreateParams = { sizeof(PH_TREENEW_CREATEPARAMS) };
 
     thinRows = PhGetIntegerSetting(L"ThinRows") ? TN_STYLE_THIN_ROWS : 0;
     treelistBorder = (PhGetIntegerSetting(L"TreeListBorderEnable") && !PhEnableThemeSupport) ? WS_BORDER : 0;
@@ -500,6 +500,11 @@ VOID PhMwpInitializeControls(
         treelistCreateParams.TextColor = PhGetIntegerSetting(L"TreeListCustomColorText");
         treelistCreateParams.FocusColor = PhGetIntegerSetting(L"TreeListCustomColorFocus");
         treelistCreateParams.SelectionColor = PhGetIntegerSetting(L"TreeListCustomColorSelection");
+    }
+
+    if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
+    {
+        treelistCreateParams.RowHeight = PhGetIntegerSetting(L"TreeListCustomRowSize");
     }
 
     TabControlHandle = CreateWindow(
@@ -571,18 +576,6 @@ VOID PhMwpInitializeControls(
     PhMwpCreateInternalPage(L"Network", 0, PhMwpNetworkPageCallback);
     PhNetworkTreeListInitialization();
     PhInitializeNetworkTreeList(PhMwpNetworkTreeNewHandle);
-
-    if (PhGetIntegerSetting(L"TreeListCustomRowSize"))
-    {
-        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
-
-        if (treelistCustomRowSize < 15)
-            treelistCustomRowSize = 15;
-
-        TreeNew_SetRowHeight(PhMwpProcessTreeNewHandle, treelistCustomRowSize);
-        TreeNew_SetRowHeight(PhMwpServiceTreeNewHandle, treelistCustomRowSize);
-        TreeNew_SetRowHeight(PhMwpNetworkTreeNewHandle, treelistCustomRowSize);
-    }
 
     CurrentPage = PageList->Items[0];
 }
@@ -732,6 +725,65 @@ static NTSTATUS PhpOpenSecurityDummyHandle(
     _In_opt_ PVOID Context
     )
 {
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenSecurityDesktopHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    HDESK desktopHandle;
+
+    if (desktopHandle = OpenDesktop(
+        L"Default",
+        0,
+        FALSE,
+        MAXIMUM_ALLOWED
+        ))
+    {
+        *Handle = desktopHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityDesktopHandle(
+    _In_ PVOID Context
+    )
+{
+    CloseDesktop(Context);
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpOpenSecurityStationHandle(
+    _Inout_ PHANDLE Handle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ PVOID Context
+    )
+{
+    HWINSTA stationHandle;
+
+    if (stationHandle = OpenWindowStation(
+        L"WinSta0",
+        FALSE,
+        MAXIMUM_ALLOWED
+        ))
+    {
+        *Handle = stationHandle;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+static NTSTATUS PhpCloseSecurityStationHandle(
+    _In_ PVOID Context
+    )
+{
+    CloseWindowStation(Context);
     return STATUS_SUCCESS;
 }
 
@@ -914,6 +966,11 @@ VOID PhMwpOnCommand(
     case ID_VIEW_HIDESIGNEDPROCESSES:
         {
             PhMwpToggleSignedProcessTreeFilter();
+        }
+        break;
+    case ID_VIEW_HIDEMICROSOFTPROCESSES:
+        {
+            PhMwpToggleMicrosoftProcessTreeFilter();
         }
         break;
     case ID_VIEW_SCROLLTONEWPROCESSES:
@@ -1184,6 +1241,30 @@ VOID PhMwpOnCommand(
                 L"WmiDefault",
                 PhpOpenSecurityDummyHandle,
                 NULL,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_DESKTOP_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"Current Window Desktop",
+                L"Desktop",
+                PhpOpenSecurityDesktopHandle,
+                PhpCloseSecurityDesktopHandle,
+                NULL
+                );
+        }
+        break;
+    case ID_TOOLS_STATION_PERMISSIONS:
+        {
+            PhEditSecurity(
+                NULL,
+                L"Current Window Station",
+                L"WindowStation",
+                PhpOpenSecurityStationHandle,
+                PhpCloseSecurityStationHandle,
                 NULL
                 );
         }
@@ -2575,6 +2656,8 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_SCM_PERMISSIONS, L"Service Control Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_RDP_PERMISSIONS, L"Terminal Server Listener", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_WMI_PERMISSIONS, L"WMI Root Namespace", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_DESKTOP_PERMISSIONS, L"Current Window Desktop", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_TOOLS_STATION_PERMISSIONS, L"Current Window Station", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, menuItem, ULONG_MAX);
 
     return ToolsMenu;
@@ -4176,6 +4259,11 @@ PVOID PhPluginInvokeWindowCallback(
     case PH_MAINWINDOW_CALLBACK_TYPE_VERSION:
         {
             return UlongToPtr(WindowsVersion);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_PORTABLE:
+        {
+            return (PVOID)PhPortableEnabled;
         }
         break;
     }

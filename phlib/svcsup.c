@@ -687,7 +687,7 @@ PPH_STRING PhGetServiceFileName(
 
     if (NT_SUCCESS(status))
     {
-        if (serviceDllString = PhQueryRegistryString(keyHandle, L"ImagePath"))
+        if (serviceDllString = PhQueryRegistryStringZ(keyHandle, L"ImagePath"))
         {
             PPH_STRING expandedString;
 
@@ -733,7 +733,7 @@ NTSTATUS PhpGetServiceDllName(
 
     if (NT_SUCCESS(status))
     {
-        if (serviceDllString = PhQueryRegistryString(keyHandle, L"ServiceDll"))
+        if (serviceDllString = PhQueryRegistryStringZ(keyHandle, L"ServiceDll"))
         {
             PPH_STRING expandedString;
 

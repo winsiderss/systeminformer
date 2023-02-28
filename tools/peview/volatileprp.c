@@ -194,7 +194,7 @@ INT_PTR CALLBACK PvpPeVolatileDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 1, L"Volatile RVA Table");
             PvEnumerateVolatileEntries(context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PeEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:

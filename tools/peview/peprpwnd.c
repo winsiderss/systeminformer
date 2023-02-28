@@ -726,7 +726,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PhAddLayoutItem(&PvTabWindowLayoutManager, GetDlgItem(hwndDlg, IDC_SECURITY), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&PvTabWindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            if (PeEnableThemeSupport)
+            if (PhEnableThemeSupport)
                 PhInitializeWindowTheme(hwndDlg, TRUE);
 
             {
@@ -1151,5 +1151,5 @@ VOID PvCreateTabSectionDialog(
         Section->Parameter
         );
 
-    PhInitializeWindowTheme(Section->DialogHandle, PeEnableThemeSupport);
+    PhInitializeWindowTheme(Section->DialogHandle, PhEnableThemeSupport);
 }

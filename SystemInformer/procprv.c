@@ -112,8 +112,6 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
-
-    USHORT Architecture;
 } PH_PROCESS_QUERY_S2_DATA, *PPH_PROCESS_QUERY_S2_DATA;
 
 typedef struct _PH_SID_FULL_NAME_CACHE_ENTRY
@@ -653,20 +651,6 @@ PPH_STRING PhpGetSidFullNameCached(
     _In_ PSID Sid
     )
 {
-    //if (!PhpSidFullNameCacheHashtable)
-    //{
-    //    PhpSidFullNameCacheHashtable = PhCreateHashtable(
-    //        sizeof(PH_SID_FULL_NAME_CACHE_ENTRY),
-    //        PhpSidFullNameCacheHashtableEqualFunction,
-    //        PhpSidFullNameCacheHashtableHashFunction,
-    //        16
-    //        );
-    //    // HACK pre-cache local SIDs (dmex)
-    //    PhpGetSidFullNameCachedSlow(&PhSeLocalSystemSid);
-    //    PhpGetSidFullNameCachedSlow(&PhSeLocalServiceSid);
-    //    PhpGetSidFullNameCachedSlow(&PhSeNetworkServiceSid);
-    //}
-
     if (PhpSidFullNameCacheHashtable)
     {
         PPH_SID_FULL_NAME_CACHE_ENTRY entry;
@@ -860,7 +844,7 @@ VOID PhpProcessQueryStage1(
     {
         OBJECT_BASIC_INFORMATION basicInfo;
 
-        if (NT_SUCCESS(PhGetObjectBasicInformation(NtCurrentProcess(), processHandleLimited, &basicInfo)))
+        if (NT_SUCCESS(PhQueryObjectBasicInformation(processHandleLimited, &basicInfo)))
         {
             if (!RtlAreAllAccessesGranted(basicInfo.GrantedAccess, PROCESS_QUERY_INFORMATION))
                 Data->IsFilteredHandle = TRUE;
@@ -888,7 +872,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Architecture
-    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId) && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
     {
         status = STATUS_NOT_FOUND;
 
@@ -967,20 +951,20 @@ VOID PhpProcessQueryStage2(
             Data->ImportFunctions = ULONG_MAX;
         }
 
-        if (processItem->Architecture == USHRT_MAX)
-        {
-            PH_MAPPED_IMAGE mappedImage;
-
-            // For backward compatibility we'll read the Machine from the file.
-            // If we fail to access the file we could go read from the remote
-            // process memory, but for now we only read from the file. (jxy-s)
-
-            if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&processItem->FileName->sr, NULL, &mappedImage)))
-            {
-                Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
-                PhUnloadMappedImage(&mappedImage);
-            }
-        }
+        //if (processItem->Architecture == USHRT_MAX && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
+        //{
+        //    PH_MAPPED_IMAGE mappedImage;
+        //
+        //    // For backward compatibility we'll read the Machine from the file.
+        //    // If we fail to access the file we could go read from the remote
+        //    // process memory, but for now we only read from the file. (jxy-s)
+        //
+        //    if (NT_SUCCESS(PhLoadMappedImageHeaderPageSize(&processItem->FileName->sr, NULL, &mappedImage)))
+        //    {
+        //        Data->Architecture = (USHORT)mappedImage.NtHeaders->FileHeader.Machine;
+        //        PhUnloadMappedImage(&mappedImage);
+        //    }
+        //}
     }
 
     if (PhEnableImageCoherencySupport && processItem->FileName && !processItem->IsSubsystemProcess)
@@ -1159,10 +1143,10 @@ VOID PhpFillProcessItemStage2(
     }
 
     // Note: We query the architecture in stage1 so don't overwrite the previous data. (dmex)
-    if (processItem->Architecture == USHRT_MAX)
-    {
-        processItem->Architecture = Data->Architecture;
-    }
+    //if (processItem->Architecture == USHRT_MAX)
+    //{
+    //    processItem->Architecture = Data->Architecture;
+    //}
 }
 
 VOID PhpFillProcessItemExtension(
@@ -2061,7 +2045,7 @@ PMCCNTR_EL0 continues to increment when clocks are stopped by WFI and WFE instru
     // usage is implemented for other architectures it assumes on the idle thread cycles are
     // the cycles *not* spent using the CPU, this assumption is incorrect for ARM.
     //
-    // The most accurate represetnation of the utilization of the CPU for ARM would show
+    // The most accurate representation of the utilization of the CPU for ARM would show
     // the idle process CPU usage *below* what is "not being used" by other processes. Since
     // this would indicate the idle thread being in the WFI state and not using CPU cycles.
     // For cycle-based CPU to make sense for ARM, we need a way to get or estimate the amount
@@ -2147,7 +2131,7 @@ VOID PhProcessProviderUpdate(
 
         PhFlushImageVersionInfoCache();
 
-        //PhFlushVerifyCache();
+        PhFlushVerifyCache();
     }
 
     if (!PhProcessStatisticsInitialized)
@@ -2895,18 +2879,7 @@ VOID PhProcessProviderUpdate(
                 OBJECT_BASIC_INFORMATION basicInfo;
                 BOOLEAN filteredHandle = FALSE;
 
-                if (NT_SUCCESS(PhGetHandleInformationEx(
-                    NtCurrentProcess(),
-                    processItem->QueryHandle,
-                    ULONG_MAX,
-                    0,
-                    NULL,
-                    &basicInfo,
-                    NULL,
-                    NULL,
-                    NULL,
-                    NULL
-                    )))
+                if (NT_SUCCESS(PhQueryObjectBasicInformation(processItem->QueryHandle, &basicInfo)))
                 {
                     if (!RtlAreAllAccessesGranted(basicInfo.GrantedAccess, PROCESS_QUERY_INFORMATION))
                     {
@@ -2922,6 +2895,26 @@ VOID PhProcessProviderUpdate(
                 {
                     processItem->IsProtectedHandle = filteredHandle;
                     modified = TRUE;
+                }
+            }
+
+            // Architecture
+            if (processItem->QueryHandle && FlagOn(PhProcessProviderFlagsMask, PH_PROCESS_PROVIDER_FLAG_ARCHITECTURE))
+            {
+                if (processItem->Architecture == IMAGE_FILE_MACHINE_UNKNOWN)
+                {
+                    processItem->Architecture = IMAGE_FILE_MACHINE_TARGET_HOST;
+
+                    if (WindowsVersion >= WINDOWS_11)
+                    {
+                        USHORT processArchitecture;
+
+                        if (NT_SUCCESS(PhGetProcessArchitecture(processItem->QueryHandle, &processArchitecture)))
+                        {
+                            processItem->Architecture = processArchitecture;
+                            modified = TRUE;
+                        }
+                    }
                 }
             }
 

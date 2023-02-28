@@ -377,7 +377,7 @@ static VOID PhpUpdateServiceNodeDescription(
             PPH_STRING descriptionString;
             PPH_STRING serviceDescriptionString;
 
-            if (descriptionString = PhQueryRegistryString(keyHandle, L"Description"))
+            if (descriptionString = PhQueryRegistryStringZ(keyHandle, L"Description"))
             {
                 if (serviceDescriptionString = PhLoadIndirectString(&descriptionString->sr))
                     PhMoveReference(&ServiceNode->Description, serviceDescriptionString);
@@ -778,8 +778,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 }
                 break;
             case PHSVTLC_VERIFICATIONSTATUS:
-                PhInitializeStringRef(&getCellText->Text,
-                    serviceItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
+                getCellText->Text = PhVerifyResultToStringRef(serviceItem->VerifyResult);
                 break;
             case PHSVTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
@@ -824,7 +823,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!serviceItem)
                 ; // Dummy
-            else if (PhEnableServiceQueryStage2 && PhCsUseColorUnknown && serviceItem->VerifyResult != VrTrusted)
+            else if (PhEnableServiceQueryStage2 && PhCsUseColorUnknown && PH_VERIFY_UNTRUSTED(serviceItem->VerifyResult))
             {
                 getNodeColor->BackColor = PhCsColorUnknown;
                 getNodeColor->Flags |= TN_AUTO_FORECOLOR;

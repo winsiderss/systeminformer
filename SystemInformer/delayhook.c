@@ -84,7 +84,7 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         break;
     }
 
-    return PhDefaultMenuWindowProcedure(WindowHandle, WindowMessage, wParam, lParam);
+    return CallWindowProc(PhDefaultMenuWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 LRESULT CALLBACK PhDialogWindowHookProcedure(
@@ -118,7 +118,7 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
         break;
     }
 
-    return PhDefaultDialogWindowProcedure(WindowHandle, WindowMessage, wParam, lParam);
+    return CallWindowProc(PhDefaultDialogWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 LRESULT CALLBACK PhRebarWindowHookProcedure(
@@ -142,7 +142,7 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
         break;
     }
 
-    return PhDefaultRebarWindowProcedure(WindowHandle, WindowMessage, wParam, lParam);
+    return CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 LRESULT CALLBACK PhComboBoxWindowHookProcedure(
@@ -152,7 +152,7 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
     _In_ LPARAM lParam
     )
 {
-    LRESULT result = PhDefaultComboBoxWindowProcedure(WindowHandle, WindowMessage, wParam, lParam);
+    LRESULT result = CallWindowProc(PhDefaultComboBoxWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 
     switch (WindowMessage)
     {
@@ -242,7 +242,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
         return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
     }
 
-    return PhDefaultStaticWindowProcedure(WindowHandle, WindowMessage, wParam, lParam);
+    return CallWindowProc(PhDefaultStaticWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
@@ -590,7 +590,7 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
         }
     }
 
-    return PhDefaultStatusbarWindowProcedure(WindowHandle, WindowMessage, wParam, lParam);
+    return CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 
 DefaultWndProc:
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
@@ -649,7 +649,7 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
         break;
     }
 
-    return PhDefaultEditWindowProcedure(WindowHandle, WindowMessage, wParam, lParam);
+    return CallWindowProc(PhDefaultEditWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 VOID PhRegisterDialogSuperClass(

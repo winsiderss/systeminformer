@@ -165,7 +165,7 @@ VOID SetDbPath(
     _In_ PPH_STRING Path
     )
 {
-    PhSwapReference(&ObjectDbPath, Path);
+    PhSetReference(&ObjectDbPath, Path);
 }
 
 NTSTATUS LoadDb(
@@ -504,7 +504,7 @@ BOOLEAN FindIfeoObject(
     {
         if (CpuPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoCpuPriorityClassKeyName)) != ULONG_MAX))
             {
                 *CpuPriorityClass = value;
             }
@@ -516,7 +516,7 @@ BOOLEAN FindIfeoObject(
 
         if (IoPriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoIoPriorityClassKeyName)) != ULONG_MAX))
             {
                 *IoPriorityClass = value;
             }
@@ -528,7 +528,7 @@ BOOLEAN FindIfeoObject(
 
         if (PagePriorityClass)
         {
-            if (status = ((value = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
+            if (status = ((value = PhQueryRegistryUlong(keyHandle, &IfeoPagePriorityClassKeyName)) != ULONG_MAX))
             {
                 *PagePriorityClass = value;
             }
@@ -703,15 +703,13 @@ NTSTATUS DeleteIfeoObject(
             status = PhDeleteValueKey(keyHandle, &IfeoPagePriorityClassKeyName);
         }
 
-        priorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoCpuPriorityClassKeyName);
-        ioPriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoIoPriorityClassKeyName);
-        pagePriorityClass = PhQueryRegistryUlongStringRef(keyHandle, &IfeoPagePriorityClassKeyName);
+        priorityClass = PhQueryRegistryUlong(keyHandle, &IfeoCpuPriorityClassKeyName);
+        ioPriorityClass = PhQueryRegistryUlong(keyHandle, &IfeoIoPriorityClassKeyName);
+        pagePriorityClass = PhQueryRegistryUlong(keyHandle, &IfeoPagePriorityClassKeyName);
 
-        if (
-            priorityClass == ULONG_MAX &&
+        if (priorityClass == ULONG_MAX &&
             ioPriorityClass == ULONG_MAX &&
-            pagePriorityClass == ULONG_MAX
-            )
+            pagePriorityClass == ULONG_MAX)
         {
             NtDeleteKey(keyHandle);
         }
@@ -719,11 +717,9 @@ NTSTATUS DeleteIfeoObject(
         NtClose(keyHandle);
     }
 
-    if (
-        priorityClass == ULONG_MAX &&
+    if (priorityClass == ULONG_MAX &&
         ioPriorityClass == ULONG_MAX &&
-        pagePriorityClass == ULONG_MAX
-        )
+        pagePriorityClass == ULONG_MAX)
     {
         NtDeleteKey(keyRootHandle);
     }

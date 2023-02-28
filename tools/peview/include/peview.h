@@ -154,8 +154,6 @@ PPH_STRING PvHashBuffer(
 
 // settings
 
-extern BOOLEAN PeEnableThemeSupport;
-
 VOID PvInitializeSettings(
     VOID
     );
