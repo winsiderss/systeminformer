@@ -778,7 +778,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 }
                 break;
             case PHSVTLC_VERIFICATIONSTATUS:
-                getCellText->Text = *PhVerifyResultToString(serviceItem->VerifyResult);
+                getCellText->Text = PhVerifyResultToStringRef(serviceItem->VerifyResult);
                 break;
             case PHSVTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRef(serviceItem->VerifySignerName);
