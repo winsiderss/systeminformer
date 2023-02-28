@@ -429,7 +429,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     _Out_ PULONG NumberOfSignatures
     )
 {
-    VERIFY_RESULT verifyResult = VrBadSignature;
+    VERIFY_RESULT verifyResult = VrUnknown;
     PCERT_CONTEXT *signatures;
     ULONG numberOfSignatures;
     WINTRUST_CATALOG_INFO catalogInfo;
@@ -462,7 +462,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
             return VrNoSignature;
     }
 
-    if (PhpVerifyGetHashFromFileHandle(
+    if (!PhpVerifyGetHashFromFileHandle(
         FileHandle,
         HashAlgorithm,
         fileHashTag,
@@ -471,70 +471,70 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         &fileHashLength,
         &catAdminHandle
         ))
+        return VrBadSignature;
+
+    // Search the system catalogs.
+
+    catInfoHandle = CryptCATAdminEnumCatalogFromHash(
+        catAdminHandle,
+        fileHash,
+        fileHashLength,
+        0,
+        NULL
+        );
+
+    if (catInfoHandle)
     {
-        // Search the system catalogs.
+        CATALOG_INFO ci = { sizeof(CATALOG_INFO) };
+        DRIVER_VER_INFO verInfo = { 0 };
 
-        catInfoHandle = CryptCATAdminEnumCatalogFromHash(
-            catAdminHandle,
-            fileHash,
-            fileHashLength,
-            0,
-            NULL
-            );
-
-        if (catInfoHandle)
+        if (CryptCATCatalogInfoFromContext(catInfoHandle, &ci, 0))
         {
-            CATALOG_INFO ci = { sizeof(CATALOG_INFO) };
-            DRIVER_VER_INFO verInfo = { 0 };
+            // Disable OS version checking by passing in a DRIVER_VER_INFO structure.
+            verInfo.cbStruct = sizeof(DRIVER_VER_INFO);
 
-            if (CryptCATCatalogInfoFromContext(catInfoHandle, &ci, 0))
-            {
-                // Disable OS version checking by passing in a DRIVER_VER_INFO structure.
-                verInfo.cbStruct = sizeof(DRIVER_VER_INFO);
+            memset(&catalogInfo, 0, sizeof(catalogInfo));
+            catalogInfo.cbStruct = sizeof(catalogInfo);
+            catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
+            catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
+            catalogInfo.hMemberFile = FileHandle;
+            catalogInfo.pcwszMemberTag = fileHashTag;
+            catalogInfo.pbCalculatedFileHash = fileHash;
+            catalogInfo.cbCalculatedFileHash = fileHashLength;
+            catalogInfo.hCatAdmin = catAdminHandle;
+            verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &verInfo, &signatures, &numberOfSignatures);
 
-                memset(&catalogInfo, 0, sizeof(catalogInfo));
-                catalogInfo.cbStruct = sizeof(catalogInfo);
-                catalogInfo.pcwszCatalogFilePath = ci.wszCatalogFile;
-                catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
-                catalogInfo.hMemberFile = FileHandle;
-                catalogInfo.pcwszMemberTag = fileHashTag;
-                catalogInfo.pbCalculatedFileHash = fileHash;
-                catalogInfo.cbCalculatedFileHash = fileHashLength;
-                catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &DriverActionVerify, &verInfo, &signatures, &numberOfSignatures);
-
-                if (verInfo.pcSignerCertContext)
-                    CertFreeCertificateContext_I(verInfo.pcSignerCertContext);
-            }
-
-            CryptCATAdminReleaseCatalogContext(catAdminHandle, catInfoHandle, 0);
-        }
-        else
-        {
-            // Search any user-supplied catalogs.
-
-            for (ULONG i = 0; i < Information->NumberOfCatalogFileNames; i++)
-            {
-                PhFreeVerifySignatures(signatures, numberOfSignatures);
-
-                memset(&catalogInfo, 0, sizeof(catalogInfo));
-                catalogInfo.cbStruct = sizeof(catalogInfo);
-                catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
-                catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
-                catalogInfo.hMemberFile = FileHandle;
-                catalogInfo.pcwszMemberTag = fileHashTag;
-                catalogInfo.pbCalculatedFileHash = fileHash;
-                catalogInfo.cbCalculatedFileHash = fileHashLength;
-                catalogInfo.hCatAdmin = catAdminHandle;
-                verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
-
-                if (verifyResult == VrTrusted)
-                    break;
-            }
+            if (verInfo.pcSignerCertContext)
+                CertFreeCertificateContext_I(verInfo.pcSignerCertContext);
         }
 
-        CryptCATAdminReleaseContext(catAdminHandle, 0);
+        CryptCATAdminReleaseCatalogContext(catAdminHandle, catInfoHandle, 0);
     }
+    else
+    {
+        // Search any user-supplied catalogs.
+
+        for (ULONG i = 0; i < Information->NumberOfCatalogFileNames; i++)
+        {
+            PhFreeVerifySignatures(signatures, numberOfSignatures);
+
+            memset(&catalogInfo, 0, sizeof(catalogInfo));
+            catalogInfo.cbStruct = sizeof(catalogInfo);
+            catalogInfo.pcwszCatalogFilePath = Information->CatalogFileNames[i];
+            catalogInfo.pcwszMemberFilePath = NULL; // Information->FileName
+            catalogInfo.hMemberFile = FileHandle;
+            catalogInfo.pcwszMemberTag = fileHashTag;
+            catalogInfo.pbCalculatedFileHash = fileHash;
+            catalogInfo.cbCalculatedFileHash = fileHashLength;
+            catalogInfo.hCatAdmin = catAdminHandle;
+            verifyResult = PhpVerifyFile(Information, WTD_CHOICE_CATALOG, &catalogInfo, &WinTrustActionGenericVerifyV2, NULL, &signatures, &numberOfSignatures);
+
+            if (verifyResult == VrTrusted)
+                break;
+        }
+    }
+
+    CryptCATAdminReleaseContext(catAdminHandle, 0);
 
     *Signatures = signatures;
     *NumberOfSignatures = numberOfSignatures;
@@ -604,6 +604,9 @@ NTSTATUS PhVerifyFileEx(
                 &signatures,
                 &numberOfSignatures
                 );
+
+            if (verifyResult == VrUnknown)
+                verifyResult = VrNoSignature;
         }
     }
 
@@ -778,6 +781,28 @@ BOOLEAN PhGetSystemComponentFromCertificate(
     return found;
 }
 
+PPH_STRINGREF PhVerifyResultToString(
+    _In_ VERIFY_RESULT Result
+    )
+{
+    static PH_STRINGREF Results[] =
+    {
+        PH_STRINGREF_INIT(L""),
+        PH_STRINGREF_INIT(L"No signature"),
+        PH_STRINGREF_INIT(L"Trusted"),
+        PH_STRINGREF_INIT(L"Expired certificate"),
+        PH_STRINGREF_INIT(L"Revoked certificate"),
+        PH_STRINGREF_INIT(L"Not trusted"),
+        PH_STRINGREF_INIT(L"Security policy failure"),
+        PH_STRINGREF_INIT(L"Invalid hash"),
+    };
+
+    if (Result < RTL_NUMBER_OF(Results))
+        return &Results[Result];
+    else
+        return &Results[0];
+}
+
 /**
  * Verifies a file's digital signature.
  *
@@ -812,7 +837,7 @@ VERIFY_RESULT PhVerifyFile(
         if (SignerName)
             *SignerName = NULL;
 
-        return VrNoSignature;
+        return VrUnknown;
     }
 
     info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
@@ -841,7 +866,7 @@ VERIFY_RESULT PhVerifyFile(
 
         NtClose(fileHandle);
 
-        return VrNoSignature;
+        return VrUnknown;
     }
 }
 
@@ -929,7 +954,7 @@ VERIFY_RESULT PhVerifyFileWithAdditionalCatalog(
 
     if (!NT_SUCCESS(PhVerifyFileEx(Information, &result, &signatures, &numberOfSignatures)))
     {
-        result = VrNoSignature;
+        result = VrUnknown;
         signatures = NULL;
         numberOfSignatures = 0;
     }
@@ -984,7 +1009,7 @@ VERIFY_RESULT PhVerifyFileCached(
     if (!PhpVerifyCacheHashTable)
     {
         if (SignerName) *SignerName = NULL;
-        return VrNoSignature;
+        return VrUnknown;
     }
 
     if (NativeFileName)
@@ -1000,7 +1025,7 @@ VERIFY_RESULT PhVerifyFileCached(
             )))
         {
             if (SignerName) *SignerName = NULL;
-            return VrNoSignature;
+            return VrUnknown;
         }
     }
     else
@@ -1016,7 +1041,7 @@ VERIFY_RESULT PhVerifyFileCached(
             )))
         {
             if (SignerName) *SignerName = NULL;
-            return VrNoSignature;
+            return VrUnknown;
         }
     }
 

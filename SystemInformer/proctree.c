@@ -2888,8 +2888,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 }
                 break;
             case PHPRTLC_VERIFICATIONSTATUS:
-                if (processItem->VerifyResult == VrTrusted)
-                    PhInitializeStringRef(&getCellText->Text, L"Trusted");
+                getCellText->Text = *PhVerifyResultToString(processItem->VerifyResult);
                 break;
             case PHPRTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRef(processItem->VerifySignerName);

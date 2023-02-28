@@ -29,6 +29,15 @@ typedef enum _VERIFY_RESULT
     VrBadSignature
 } VERIFY_RESULT, *PVERIFY_RESULT;
 
+#define PH_VERIFY_UNTRUSTED(x) (x != VrUnknown && x != VrTrusted) 
+
+PHLIBAPI
+PPH_STRINGREF
+NTAPI
+PhVerifyResultToString(
+    _In_ VERIFY_RESULT Result
+    );
+
 #define PH_VERIFY_PREVENT_NETWORK_ACCESS 0x1
 #define PH_VERIFY_VIEW_PROPERTIES 0x2
 
