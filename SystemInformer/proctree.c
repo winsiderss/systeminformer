@@ -38,6 +38,11 @@
 #include <phsettings.h>
 #include <procprv.h>
 
+extern PPH_STRING PhGetElevationTypeString(
+    _In_ BOOLEAN IsElevated,
+    _In_ TOKEN_ELEVATION_TYPE ElevationType
+    );
+
 typedef enum _PHP_AGGREGATE_TYPE
 {
     AggregateTypeFloat,
@@ -671,6 +676,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->CpuKernelText);
     PhClearReference(&ProcessNode->CpuUserText);
     PhClearReference(&ProcessNode->GrantedAccessText);
+    PhClearReference(&ProcessNode->ElevationText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1927,33 +1933,17 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Elevation)
 {
-    ULONG key1;
-    ULONG key2;
+    ULONG key1 = 0;
+    ULONG key2 = 0;
 
-    switch (processItem1->ElevationType)
+    if (processItem1->ElevationType)
     {
-    case TokenElevationTypeFull:
-        key1 = 2;
-        break;
-    case TokenElevationTypeLimited:
-        key1 = 1;
-        break;
-    default:
-        key1 = 0;
-        break;
+        key1 = (processItem1->IsElevated ? 1 : 5) + processItem1->ElevationType;
     }
 
-    switch (processItem2->ElevationType)
+    if (processItem2->ElevationType)
     {
-    case TokenElevationTypeFull:
-        key2 = 2;
-        break;
-    case TokenElevationTypeLimited:
-        key2 = 1;
-        break;
-    default:
-        key2 = 0;
-        break;
+        key2 = (processItem2->IsElevated ? 1 : 5) + processItem2->ElevationType;
     }
 
     sortResult = uintcmp(key1, key2);
@@ -2936,27 +2926,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 #endif
                 break;
             case PHPRTLC_ELEVATION:
-                {
-                    PWSTR type;
-
-                    switch (processItem->ElevationType)
-                    {
-                    case TokenElevationTypeDefault:
-                        type = L"N/A";
-                        break;
-                    case TokenElevationTypeLimited:
-                        type = L"Limited";
-                        break;
-                    case TokenElevationTypeFull:
-                        type = L"Full";
-                        break;
-                    default:
-                        type = L"N/A";
-                        break;
-                    }
-
-                    PhInitializeStringRefLongHint(&getCellText->Text, type);
-                }
+                PPH_STRING elevationText;
+                elevationText = PhGetElevationTypeString(processItem->IsElevated ? TRUE : FALSE, processItem->ElevationType);
+                PhMoveReference(&node->ElevationText, elevationText);              
+                getCellText->Text = PhGetStringRef(node->ElevationText);
                 break;
             case PHPRTLC_WINDOWTITLE:
                 PhpUpdateProcessNodeWindow(node);
