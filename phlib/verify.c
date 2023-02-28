@@ -781,7 +781,7 @@ BOOLEAN PhGetSystemComponentFromCertificate(
     return found;
 }
 
-PPH_STRINGREF PhVerifyResultToString(
+PH_STRINGREF PhVerifyResultToStringRef(
     _In_ VERIFY_RESULT Result
     )
 {
@@ -798,9 +798,9 @@ PPH_STRINGREF PhVerifyResultToString(
     };
 
     if (Result < RTL_NUMBER_OF(Results))
-        return &Results[Result];
+        return Results[Result];
     else
-        return &Results[0];
+        return Results[0];
 }
 
 /**

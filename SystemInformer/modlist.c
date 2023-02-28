@@ -951,7 +951,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
                     {
-                        getCellText->Text = *PhVerifyResultToString(moduleItem->VerifyResult);
+                        getCellText->Text = PhVerifyResultToStringRef(moduleItem->VerifyResult);
                     }
                     else
                     {

@@ -32,9 +32,9 @@ typedef enum _VERIFY_RESULT
 #define PH_VERIFY_UNTRUSTED(x) (x != VrUnknown && x != VrTrusted) 
 
 PHLIBAPI
-PPH_STRINGREF
+PH_STRINGREF
 NTAPI
-PhVerifyResultToString(
+PhVerifyResultToStringRef(
     _In_ VERIFY_RESULT Result
     );
 
