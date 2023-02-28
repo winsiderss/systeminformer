@@ -26,19 +26,12 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     if (!Context || !PH_IS_REAL_PROCESS_ID(Context))
         return STATUS_UNSUCCESSFUL;
 
-    if (!NT_SUCCESS(PhOpenProcess(
+    if (!NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        PROCESS_QUERY_INFORMATION,
+        PROCESS_QUERY_LIMITED_INFORMATION,
         (HANDLE)Context
         )))
-    {
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_LIMITED_INFORMATION,
-            (HANDLE)Context
-            )))
         return status;
-    }
 
     if (!NT_SUCCESS(status = PhOpenProcessToken(
         processHandle,

@@ -450,11 +450,13 @@ PPH_STRING PhGetProcessTooltipText(
         if (Process->IsElevated)
         {
             if (Process->ElevationType == TokenElevationTypeDefault)
-                PhAppendStringBuilder2(&notes, L"    Process is per default elevated.\n");
+                PhAppendStringBuilder2(&notes, L"    Process is default elevated.\n");
             else if (Process->ElevationType == TokenElevationTypeFull)
                 PhAppendStringBuilder2(&notes, L"    Process is full elevated.\n");
             else if (Process->ElevationType == TokenElevationTypeLimited)
                 PhAppendStringBuilder2(&notes, L"    Process is limited elevated.\n");
+            else
+                PhAppendStringBuilder2(&notes, L"    Process is elevated.\n");
         }
         if (Process->IsImmersive)
             PhAppendStringBuilder2(&notes, L"    Process is a Modern UI app.\n");

@@ -518,32 +518,29 @@ PWSTR PhGetPrivilegeAttributesString(
     }
 }
 
-PPH_STRING PhGetElevationTypeString(
+PH_STRINGREF PhGetElevationTypeStringRef(
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType
     )
 {
-    PH_STRING_BUILDER sb;
-
-    PhInitializeStringBuilder(&sb, 13);
-
-    if (ElevationType)
+    static PH_STRINGREF Types[] =
     {
-        PhAppendStringBuilder2(&sb, IsElevated ? L"Yes" : L"No");
+        PH_STRINGREF_INIT(L""),
+        PH_STRINGREF_INIT(L"No (Default)"),
+        PH_STRINGREF_INIT(L"No (Full)"),
+        PH_STRINGREF_INIT(L"No (Limited)"),
+        PH_STRINGREF_INIT(L"Yes"),
+        PH_STRINGREF_INIT(L"Yes (Default)"),
+        PH_STRINGREF_INIT(L"Yes (Full)"),
+        PH_STRINGREF_INIT(L"Yes (Limited)")
+    };
 
-        if (ElevationType == TokenElevationTypeFull)
-            PhAppendStringBuilder2(&sb, L" (Full)");
-        else if (ElevationType == TokenElevationTypeLimited)
-            PhAppendStringBuilder2(&sb, L" (Limited)");
-        else if (ElevationType == TokenElevationTypeDefault)
-            PhAppendStringBuilder2(&sb, L" (Default)");
-    }
-    else
-    {
-        PhAppendStringBuilder2(&sb, L"Unknown");
-    }
+    ULONG index = (ULONG)ElevationType + (IsElevated ? 4 : 0);
 
-    return PhFinalStringBuilderString(&sb);
+    if (index < RTL_NUMBER_OF(Types))
+        return Types[index];
+
+    return Types[0];
 }
 
 VOID PhpTokenPageFreeListViewEntries(
@@ -991,7 +988,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 ULONG sessionId;
                 BOOLEAN isElevated;
                 TOKEN_ELEVATION_TYPE elevationType;
-                PPH_STRING tokenElevated = NULL;
+                PH_STRINGREF tokenElevated;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 PH_TOKEN_APPCONTAINER tokenAppContainer;
@@ -1027,12 +1024,14 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &sessionId)))
                     PhSetDialogItemValue(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
 
-                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
-                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                {
-                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
-                }
-                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"Unknown"));
+                if (!NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    isElevated = FALSE;
+                if (!NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                    elevationType = 0;
+
+                tokenElevated = PhGetElevationTypeStringRef(isElevated, elevationType);
+
+                PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated.Length ? tokenElevated.Buffer : L"Unknown");
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -1977,7 +1976,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             PPH_STRING tokenOwnerName = NULL;
             PPH_STRING tokenPrimaryGroupName = NULL;
             ULONG tokenSessionId = ULONG_MAX;
-            PPH_STRING tokenElevated = NULL;
+            PH_STRINGREF tokenElevated = { 0 };
             BOOLEAN hasLinkedToken = FALSE;
             PWSTR tokenVirtualization = L"N/A";
             PWSTR tokenUIAccess = L"Unknown";
@@ -2022,12 +2021,15 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
 
                 PhGetTokenSessionId(tokenHandle, &tokenSessionId);
 
-                if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)) &&
-                    NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
-                {
-                    tokenElevated = PH_AUTO(PhGetElevationTypeString(isElevated, elevationType));
+                if (!NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
+                    isElevated = FALSE;
+
+                if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
                     hasLinkedToken = elevationType != TokenElevationTypeDefault;
-                }
+                else
+                    elevationType = 0;
+
+                tokenElevated = PhGetElevationTypeStringRef(isElevated, elevationType);
 
                 if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                 {
@@ -2086,7 +2088,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
             else
                 PhSetDialogItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
 
-            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, PhGetStringOrDefault(tokenElevated, L"Unknown"));
+            PhSetDialogItemText(hwndDlg, IDC_ELEVATED, tokenElevated.Length ? tokenElevated.Buffer : L"Unknown");
             PhSetDialogItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
             PhSetDialogItemText(hwndDlg, IDC_UIACCESS, tokenUIAccess);
             PhSetDialogItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);

@@ -38,7 +38,7 @@
 #include <phsettings.h>
 #include <procprv.h>
 
-extern PPH_STRING PhGetElevationTypeString(
+extern PH_STRINGREF PhGetElevationTypeStringRef(
     _In_ BOOLEAN IsElevated,
     _In_ TOKEN_ELEVATION_TYPE ElevationType
     );
@@ -1933,18 +1933,8 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Elevation)
 {
-    ULONG key1 = 0;
-    ULONG key2 = 0;
-
-    if (processItem1->ElevationType)
-    {
-        key1 = (processItem1->IsElevated ? 1 : 5) + processItem1->ElevationType;
-    }
-
-    if (processItem2->ElevationType)
-    {
-        key2 = (processItem2->IsElevated ? 1 : 5) + processItem2->ElevationType;
-    }
+    ULONG key1 = (ULONG)processItem1->ElevationType + (processItem1->IsElevated ? 4 : 0);
+    ULONG key2 = (ULONG)processItem2->ElevationType + (processItem2->IsElevated ? 4 : 0);
 
     sortResult = uintcmp(key1, key2);
 }
@@ -2926,10 +2916,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 #endif
                 break;
             case PHPRTLC_ELEVATION:
-                PPH_STRING elevationText;
-                elevationText = PhGetElevationTypeString(processItem->IsElevated ? TRUE : FALSE, processItem->ElevationType);
-                PhMoveReference(&node->ElevationText, elevationText);              
-                getCellText->Text = PhGetStringRef(node->ElevationText);
+                getCellText->Text = PhGetElevationTypeStringRef(!!processItem->IsElevated, processItem->ElevationType);
                 break;
             case PHPRTLC_WINDOWTITLE:
                 PhpUpdateProcessNodeWindow(node);
