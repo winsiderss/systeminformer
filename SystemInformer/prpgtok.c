@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 #include <procprp.h>
+#include <procprv.h>
 
 NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _Out_ PHANDLE Handle,
@@ -22,15 +23,22 @@ NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (!Context)
+    if (!Context || !PH_IS_REAL_PROCESS_ID(Context))
         return STATUS_UNSUCCESSFUL;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(
+    if (!NT_SUCCESS(PhOpenProcess(
         &processHandle,
-        PROCESS_QUERY_LIMITED_INFORMATION,
+        PROCESS_QUERY_INFORMATION,
         (HANDLE)Context
         )))
+    {
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            (HANDLE)Context
+            )))
         return status;
+    }
 
     if (!NT_SUCCESS(status = PhOpenProcessToken(
         processHandle,
