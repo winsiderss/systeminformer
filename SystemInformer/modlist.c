@@ -951,8 +951,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
                     {
-                        PhInitializeStringRef(&getCellText->Text,
-                            moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not trusted");
+                        getCellText->Text = *PhVerifyResultToString(moduleItem->VerifyResult);
                     }
                     else
                     {
@@ -1181,7 +1180,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 ; // Dummy
             else if (PhEnableProcessQueryStage2 &&
                 context->HighlightUntrustedModules &&
-                moduleItem->VerifyResult != VrTrusted &&
+                PH_VERIFY_UNTRUSTED(moduleItem->VerifyResult) &&
                 (moduleItem->Type == PH_MODULE_TYPE_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
                 moduleItem->Type == PH_MODULE_TYPE_MAPPED_IMAGE ||
