@@ -218,6 +218,8 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             TCITEM tabItem;
             WCHAR text[128] = L"";
 
+            KillTimer(hwnd, 2000);
+
             // Save the window position and size.
 
             PhSaveWindowPlacementToSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
