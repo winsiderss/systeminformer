@@ -535,7 +535,8 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                 PhInitializeStringRefLongHint(&getCellText->Text, handleItem->HandleString);
                 break;
             case PHHNTLC_OBJECTADDRESS:
-                PhInitializeStringRefLongHint(&getCellText->Text, handleItem->ObjectString);
+                if (handleItem->Object)
+                    PhInitializeStringRefLongHint(&getCellText->Text, handleItem->ObjectString);
                 break;
             case PHHNTLC_ATTRIBUTES:
                 switch (handleItem->Attributes & (OBJ_PROTECT_CLOSE | OBJ_INHERIT))

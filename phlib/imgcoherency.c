@@ -627,16 +627,11 @@ VOID PhpAnalyzeImageCoherencyCommonByRvaExpectBytes(
 */
 ULONG CALLBACK PhpImgCoherencySkip(
     _In_ ULONG Rva,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_IMAGE_COHERENCY_CONTEXT context;
     PVOID* entry;
-
-    if (!Context)
-    {
-        return 0;
-    }
 
     context = (PPH_IMAGE_COHERENCY_CONTEXT)Context;
 

@@ -120,7 +120,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 static NTSTATUS PhpDuplicateHandleFromProcess(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PHANDLE_PROPERTIES_CONTEXT context = Context;
@@ -128,9 +128,6 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     HANDLE processHandle;
 
     *Handle = NULL;
-
-    if (!context)
-        return STATUS_UNSUCCESSFUL;
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,

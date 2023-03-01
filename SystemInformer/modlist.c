@@ -1011,14 +1011,14 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 break;
             case PHMOTLC_LOADREASON:
                 {
-                    PWSTR string = L"";
-
                     if (moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE)
                     {
-                        string = L"Dynamic";
+                        PhInitializeStringRefLongHint(&getCellText->Text, L"Dynamic");
                     }
                     else if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                     {
+                        PWSTR string = L"N/A";
+
                         switch (moduleItem->LoadReason)
                         {
                         case LoadReasonStaticDependency:
@@ -1051,13 +1051,15 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                         default:
                             if (WindowsVersion >= WINDOWS_8)
                                 string = L"Unknown";
-                            else
-                                string = L"N/A";
                             break;
                         }
-                    }
 
-                    PhInitializeStringRefLongHint(&getCellText->Text, string);
+                        PhInitializeStringRefLongHint(&getCellText->Text, string);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
                 }
                 break;
             case PHMOTLC_FILEMODIFIEDTIME:

@@ -1780,15 +1780,13 @@ typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
 
 BOOL CALLBACK PhpGetProcessMainWindowEnumWindowsProc(
     _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PGET_PROCESS_MAIN_WINDOW_CONTEXT context = (PGET_PROCESS_MAIN_WINDOW_CONTEXT)Context;
     ULONG processId;
     WINDOWINFO windowInfo;
 
-    if (!context)
-        return TRUE;
     if (context->SkipInvisible && !IsWindowVisible(WindowHandle))
         return TRUE;
 

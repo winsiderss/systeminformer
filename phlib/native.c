@@ -5132,7 +5132,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         }
     }
 
-    if (WindowsVersion >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode)
     {
         LDR_DDAG_NODE ldrDagNode;
 
@@ -5519,7 +5519,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
         nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
     }
 
-    if (WindowsVersion >= WINDOWS_8)
+    if (WindowsVersion >= WINDOWS_8 && Entry->DdagNode)
     {
         LDR_DDAG_NODE32 ldrDagNode32 = { 0 };
 
@@ -6804,15 +6804,12 @@ typedef struct _PHP_PIPE_NAME_HASH
 
 static BOOLEAN NTAPI PhpDotNetCorePipeHashCallback(
     _In_ PVOID Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PFILE_DIRECTORY_INFORMATION fileInfo = Information;
     PHP_PIPE_NAME_HASH objectPipe;
     PH_STRINGREF objectName;
-
-    if (!Context)
-        return FALSE;
 
     objectName.Length = fileInfo->FileNameLength;
     objectName.Buffer = fileInfo->FileName;
@@ -8092,15 +8089,12 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 
 static BOOLEAN EnumGenericProcessModulesCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context = Context;
     PH_MODULE_INFO moduleInfo;
     BOOLEAN cont;
-
-    if (!context)
-        return FALSE;
 
     // Check if we have a duplicate base address.
     if (PhFindEntryHashtable(context->BaseAddressHashtable, &Module->DllBase))
