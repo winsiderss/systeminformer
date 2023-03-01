@@ -1241,13 +1241,10 @@ typedef struct _PHP_LOAD_PROCESS_SYMBOLS_CONTEXT
 
 static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPHP_LOAD_PROCESS_SYMBOLS_CONTEXT context = Context;
-
-    if (!context)
-        return TRUE;
 
     // If we're loading kernel module symbols for a process other than
     // System, ignore modules which are in user space. This may happen

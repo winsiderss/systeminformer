@@ -837,15 +837,12 @@ typedef struct _PH_CAPABILITY_KEY_CALLBACK
 BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     HANDLE keyHandle;
     PPH_STRING guidString;
     PH_STRINGREF keyName;
-
-    if (!Context)
-        return FALSE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
@@ -878,15 +875,12 @@ BOOLEAN NTAPI PhpAccessManagerEnumerateKeyCallback(
 BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPH_CAPABILITY_KEY_CALLBACK context = Context;
     HANDLE keyHandle;
     PH_STRINGREF keyName;
-
-    if (!Context)
-        return FALSE;
 
     keyName.Buffer = Information->Name;
     keyName.Length = Information->NameLength;
@@ -914,7 +908,7 @@ BOOLEAN NTAPI PhpDeviceAccessSubKeyEnumerateKeyCallback(
 BOOLEAN NTAPI PhpDeviceAccessEnumerateKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     HANDLE keyHandle;

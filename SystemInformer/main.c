@@ -407,14 +407,11 @@ typedef struct _PHP_PREVIOUS_MAIN_WINDOW_CONTEXT
 
 static BOOL CALLBACK PhpPreviousInstanceWindowEnumProc(
     _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT context = (PPHP_PREVIOUS_MAIN_WINDOW_CONTEXT)Context;
     ULONG processId = ULONG_MAX;
-
-    if (!context)
-        return TRUE;
 
     GetWindowThreadProcessId(WindowHandle, &processId);
 

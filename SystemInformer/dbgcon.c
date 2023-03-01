@@ -131,12 +131,9 @@ static BOOL ConsoleHandlerRoutine(
 
 static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
     _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
-    if (!Context)
-        return TRUE;
-
     if (!PhLoadModuleSymbolProvider(
         (PPH_SYMBOL_PROVIDER)Context,
         Module->FileName,

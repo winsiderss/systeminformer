@@ -17,13 +17,13 @@
 NTSTATUS NTAPI PhpOpenProcessTokenForPage(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ PVOID Context
+    _In_ PVOID Context
     )
 {
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (!Context || !PH_IS_REAL_PROCESS_ID(Context))
+    if (!PH_IS_REAL_PROCESS_ID(Context))
         return STATUS_UNSUCCESSFUL;
 
     if (!NT_SUCCESS(status = PhOpenProcess(
