@@ -13110,8 +13110,8 @@ BOOLEAN PhIsFirmwareSupported(
 NTSTATUS PhGetFirmwareEnvironmentVariable(
     _In_ PPH_STRINGREF VariableName,
     _In_ PPH_STRINGREF VendorGuid,
-    _Out_ PVOID* VariableValueBuffer,
-    _Out_opt_ PULONG VariableValueLength
+    _Out_writes_bytes_opt_(*ValueLength) PVOID* ValueBuffer,
+    _Inout_ PULONG ValueLength
     )
 {
     NTSTATUS status;
@@ -13147,21 +13147,55 @@ NTSTATUS PhGetFirmwareEnvironmentVariable(
     status = NtQuerySystemEnvironmentValueEx(
         &variableName,
         &vendorGuid,
-        variableValueBuffer,
+        NULL,
         &variableValueLength,
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        if (VariableValueLength)
-            *VariableValueLength = variableValueLength;
-        *VariableValueBuffer = variableValueBuffer;
+        if (ValueBuffer)
+            *ValueBuffer = variableValueBuffer;
+        if (ValueLength)
+            *ValueLength = variableValueLength;
     }
     else
     {
         PhFree(variableValueBuffer);
     }
+
+    return status;
+}
+
+NTSTATUS PhSetFirmwareEnvironmentVariable(
+    _In_ PPH_STRINGREF VariableName,
+    _In_ PPH_STRINGREF VendorGuid,
+    _In_reads_bytes_opt_(ValueLength) PVOID ValueBuffer,
+    _In_ ULONG ValueLength,
+    _In_ ULONG Attributes
+    )
+{
+    NTSTATUS status;
+    GUID vendorGuid;
+    UNICODE_STRING variableName;
+
+    PhStringRefToUnicodeString(VariableName, &variableName);
+
+    status = PhStringToGuid(
+        VendorGuid,
+        &vendorGuid
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtSetSystemEnvironmentValueEx(
+        &variableName,
+        &vendorGuid,
+        ValueBuffer,
+        ValueLength,
+        Attributes
+        );
 
     return status;
 }

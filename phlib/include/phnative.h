@@ -2502,8 +2502,19 @@ NTAPI
 PhGetFirmwareEnvironmentVariable(
     _In_ PPH_STRINGREF VariableName,
     _In_ PPH_STRINGREF VendorGuid,
-    _Out_ PVOID* VariableValueBuffer,
-    _Out_opt_ PULONG VariableValueLength
+    _Out_writes_bytes_opt_(*ValueLength) PVOID* ValueBuffer,
+    _Inout_ PULONG ValueLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetFirmwareEnvironmentVariable(
+    _In_ PPH_STRINGREF VariableName,
+    _In_ PPH_STRINGREF VendorGuid,
+    _In_reads_bytes_opt_(ValueLength) PVOID ValueBuffer,
+    _In_ ULONG ValueLength,
+    _In_ ULONG Attributes
     );
 
 #define PH_FIRST_FIRMWARE_VALUE(Variables) ((PVARIABLE_NAME_AND_VALUE)(Variables))
