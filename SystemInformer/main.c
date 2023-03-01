@@ -107,6 +107,11 @@ INT WINAPI wWinMain(
     _In_ INT CmdShow
     )
 {
+    PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY controlFlowGuardPolicy;
+    controlFlowGuardPolicy.Flags = 0;
+    controlFlowGuardPolicy.StrictMode = 1;
+    SetProcessMitigationPolicy(ProcessControlFlowGuardPolicy, &controlFlowGuardPolicy, sizeof(controlFlowGuardPolicy));
+    
     LONG result;
 #ifdef DEBUG
     PHP_BASE_THREAD_DBG dbg;
