@@ -38,11 +38,6 @@
 #include <phsettings.h>
 #include <procprv.h>
 
-extern PH_STRINGREF PhGetElevationTypeStringRef(
-    _In_ BOOLEAN IsElevated,
-    _In_ TOKEN_ELEVATION_TYPE ElevationType
-    );
-
 typedef enum _PHP_AGGREGATE_TYPE
 {
     AggregateTypeFloat,
@@ -676,7 +671,6 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->CpuKernelText);
     PhClearReference(&ProcessNode->CpuUserText);
     PhClearReference(&ProcessNode->GrantedAccessText);
-    PhClearReference(&ProcessNode->ElevationText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1891,7 +1885,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VerificationStatus)
 {
-    sortResult = intcmp(processItem1->VerifyResult, processItem2->VerifyResult);
+    sortResult = uintcmp(processItem1->VerifyResult, processItem2->VerifyResult);
 }
 END_SORT_FUNCTION
 
@@ -2208,13 +2202,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Subprocesses)
 {
-    sortResult = int64cmp(node1->Children->Count, node2->Children->Count);
+    sortResult = uint64cmp(node1->Children->Count, node2->Children->Count);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(JobObjectId)
 {
-    sortResult = int64cmp(processItem1->JobObjectId, processItem2->JobObjectId);
+    sortResult = uint64cmp(processItem1->JobObjectId, processItem2->JobObjectId);
 }
 END_SORT_FUNCTION
 
@@ -2532,7 +2526,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRef(processItem->ProcessName);
                 break;
             case PHPRTLC_PID:
-                PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdString);
+                {
+                    if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+                    {
+                        PhInitializeStringRefLongHint(&getCellText->Text, processItem->ProcessIdString);
+                    }
+                }
                 break;
             case PHPRTLC_CPU:
                 {
@@ -3323,8 +3322,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_SUBPROCESSCOUNT:
                 {
-                    PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, TRUE));
-                    getCellText->Text = node->SubprocessCountText->sr;
+                    if (node->Children && node->Children->Count != 0)
+                    {
+                        PhMoveReference(&node->SubprocessCountText, PhFormatUInt64(node->Children->Count, TRUE));
+                        getCellText->Text = node->SubprocessCountText->sr;
+                    }
                 }
                 break;
             case PHPRTLC_JOBOBJECTID:

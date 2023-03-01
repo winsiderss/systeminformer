@@ -768,6 +768,11 @@ PWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
     );
 
+PH_STRINGREF PhGetElevationTypeStringRef(
+    _In_ BOOLEAN IsElevated,
+    _In_ TOKEN_ELEVATION_TYPE ElevationType
+    );
+
 VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
