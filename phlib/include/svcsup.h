@@ -186,6 +186,20 @@ PhGetServiceDllParameter(
     _Out_ PPH_STRING *ServiceDll
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetServiceAppUserModelId(
+    _In_ PPH_STRINGREF ServiceName
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetServicePackageFullName(
+    _In_ PPH_STRINGREF ServiceName
+    );
+
 #ifdef __cplusplus
 }
 #endif
