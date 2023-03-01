@@ -330,7 +330,7 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
 {
     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)Node;
 
-    if (PhEnableServiceQueryStage2)
+    if (PhEnableProcessQueryStage2)
     {
         if (!PhIsNullOrEmptyString(processNode->ProcessItem->VerifySignerName))
         {
