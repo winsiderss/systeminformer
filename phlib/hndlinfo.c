@@ -398,6 +398,9 @@ NTSTATUS PhQueryObjectName(
     _Out_ PPH_STRING *ObjectName
     )
 {
+    if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
+        return STATUS_INVALID_HANDLE;
+
     return PhpGetObjectName(NtCurrentProcess(), Handle, FALSE, ObjectName);
 }
 
@@ -406,6 +409,9 @@ NTSTATUS PhQueryObjectBasicInformation(
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
     )
 {
+    if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
+        return STATUS_INVALID_HANDLE;
+
     return PhpGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
 }
 
