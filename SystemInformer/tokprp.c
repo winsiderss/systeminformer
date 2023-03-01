@@ -525,7 +525,7 @@ PH_STRINGREF PhGetElevationTypeStringRef(
 {
     static PH_STRINGREF Types[] =
     {
-        PH_STRINGREF_INIT(L""),
+        { 0, NULL },
         PH_STRINGREF_INIT(L"No (Default)"),
         PH_STRINGREF_INIT(L"No (Full)"),
         PH_STRINGREF_INIT(L"No (Limited)"),

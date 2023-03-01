@@ -787,7 +787,7 @@ PH_STRINGREF PhVerifyResultToStringRef(
 {
     static PH_STRINGREF Results[] =
     {
-        PH_STRINGREF_INIT(L""),
+        { 0, NULL },
         PH_STRINGREF_INIT(L"No signature"),
         PH_STRINGREF_INIT(L"Trusted"),
         PH_STRINGREF_INIT(L"Expired certificate"),

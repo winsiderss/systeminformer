@@ -278,7 +278,6 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING CpuKernelText;
     PPH_STRING CpuUserText;
     PPH_STRING GrantedAccessText;
-    PPH_STRING ElevationText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;
