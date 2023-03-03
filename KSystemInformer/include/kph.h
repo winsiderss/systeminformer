@@ -293,6 +293,8 @@ NTSTATUS KphLocateKernelImage(
 
 #define IsKernelHandle(Handle) ((LONG_PTR)(Handle) < 0)
 #define MakeKernelHandle(Handle) ((HANDLE)((ULONG_PTR)(Handle) | KERNEL_HANDLE_BIT))
+#define IsPseudoHandle(Handle) (((ULONG_PTR)(Handle) <= (ULONG_PTR)-1) &&\
+                                ((ULONG_PTR)(Handle) >= (ULONG_PTR)-6))
 
 _Acquires_lock_(Process)
 _IRQL_requires_max_(PASSIVE_LEVEL)
