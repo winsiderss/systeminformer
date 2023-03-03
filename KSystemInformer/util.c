@@ -1741,26 +1741,24 @@ NTSTATUS KphLocateKernelRevision(
                                NULL,
                                NULL);
 
-    status = IoCreateFileEx(&fileHandle,
-                            FILE_READ_ACCESS,
-                            &objectAttributes,
-                            &ioStatusBlock,
-                            NULL,
-                            FILE_ATTRIBUTE_NORMAL,
-                            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                            FILE_OPEN,
-                            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
-                            NULL,
-                            0,
-                            CreateFileTypeNone,
-                            NULL,
-                            IO_IGNORE_SHARE_ACCESS_CHECK,
-                            NULL);
+    status = KphCreateFile(&fileHandle,
+                           FILE_READ_ACCESS | SYNCHRONIZE,
+                           &objectAttributes,
+                           &ioStatusBlock,
+                           NULL,
+                           FILE_ATTRIBUTE_NORMAL,
+                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                           FILE_OPEN,
+                           FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+                           NULL,
+                           0,
+                           IO_IGNORE_SHARE_ACCESS_CHECK,
+                           KernelMode);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       HASH,
-                      "IoCreateFileEx failed: %!STATUS!",
+                      "KphCreateFile failed: %!STATUS!",
                       status);
 
         fileHandle = NULL;

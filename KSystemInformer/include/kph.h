@@ -96,6 +96,10 @@ SIZE_T InterlockedExchangeIfGreaterSizeT(
 _Pragma("warning(suppress : 6001)")\
 ProbeForWrite(pointer, sizeof(type), TYPE_ALIGNMENT(type))
 
+#define ProbeInputType(pointer, type)\
+_Pragma("warning(suppress : 6001)")\
+ProbeForRead(pointer, sizeof(type), TYPE_ALIGNMENT(type))
+
 #define C_2sTo4(x) ((unsigned int)(signed short)(x))
 
 #define RebaseUnicodeString(string, oldBase, newBase)\
@@ -1508,6 +1512,24 @@ NTSTATUS KphQueryVolumeInformationFile(
     _Out_writes_bytes_(FsInformationLength) PVOID FsInformation,
     _In_ ULONG FsInformationLength,
     _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_ KPROCESSOR_MODE AccessMode
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
+    _In_ ULONG EaLength,
+    _In_ ULONG Options,
     _In_ KPROCESSOR_MODE AccessMode
     );
 

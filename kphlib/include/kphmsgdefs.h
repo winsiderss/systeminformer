@@ -257,6 +257,24 @@ typedef struct _KPHM_QUERY_PERFORMANCE_COUNTER
 
 } KPHM_QUERY_PERFORMANCE_COUNTER, *PKPHM_QUERY_PERFORMANCE_COUNTER;
 
+typedef struct _KPHM_CREATE_FILE
+{
+    NTSTATUS Status;
+    PHANDLE FileHandle;
+    ACCESS_MASK DesiredAccess;
+    POBJECT_ATTRIBUTES ObjectAttributes;
+    PIO_STATUS_BLOCK IoStatusBlock;
+    PLARGE_INTEGER AllocationSize;
+    ULONG FileAttributes;
+    ULONG ShareAccess;
+    ULONG CreateDisposition;
+    ULONG CreateOptions;
+    PVOID EaBuffer;
+    ULONG EaLength;
+    ULONG Options;
+
+} KPHM_CREATE_FILE, *PKPHM_CREATE_FILE;
+
 //
 // KPH -> PH
 //
