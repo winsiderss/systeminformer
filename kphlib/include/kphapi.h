@@ -369,12 +369,26 @@ typedef enum _KPH_SYSTEM_CONTROL_CLASS
 
 // Verification
 
-#define KPH_PROCESS_READ_ACCESS (STANDARD_RIGHTS_READ | SYNCHRONIZE |  PROCESS_QUERY_INFORMATION | \
-    PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ)
-#define KPH_THREAD_READ_ACCESS (STANDARD_RIGHTS_READ | SYNCHRONIZE | THREAD_QUERY_INFORMATION | \
-    THREAD_QUERY_LIMITED_INFORMATION | THREAD_GET_CONTEXT)
-#define KPH_TOKEN_READ_ACCESS (STANDARD_RIGHTS_READ | SYNCHRONIZE | TOKEN_QUERY | TOKEN_QUERY_SOURCE)
-#define KPH_JOB_READ_ACCESS (STANDARD_RIGHTS_READ | SYNCHRONIZE | JOB_OBJECT_QUERY)
+#define KPH_PROCESS_READ_ACCESS (STANDARD_RIGHTS_READ |\
+                                 SYNCHRONIZE |\
+                                 PROCESS_QUERY_INFORMATION |\
+                                 PROCESS_QUERY_LIMITED_INFORMATION |\
+                                 PROCESS_VM_READ)
+
+#define KPH_THREAD_READ_ACCESS  (STANDARD_RIGHTS_READ |\
+                                 SYNCHRONIZE |\
+                                 THREAD_QUERY_INFORMATION |\
+                                 THREAD_QUERY_LIMITED_INFORMATION |\
+                                 THREAD_GET_CONTEXT)
+
+#define KPH_TOKEN_READ_ACCESS   (STANDARD_RIGHTS_READ |\
+                                 SYNCHRONIZE |\
+                                 TOKEN_QUERY |\
+                                 TOKEN_QUERY_SOURCE)
+
+#define KPH_JOB_READ_ACCESS     (STANDARD_RIGHTS_READ |\
+                                 SYNCHRONIZE |\
+                                 JOB_OBJECT_QUERY)
 
 // Informer
 
