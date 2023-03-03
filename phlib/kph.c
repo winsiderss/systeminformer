@@ -1516,3 +1516,38 @@ NTSTATUS KphDuplicateObject(
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
 }
+
+NTSTATUS KphQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter,
+    _Out_opt_ PLARGE_INTEGER PerformanceFrequency
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryPerformanceCounter);
+    status = KphCommsSendMessage(msg);
+
+    if (NT_SUCCESS(status))
+    {
+        *PerformanceCounter = msg->User.QueryPerformanceCounter.PerformanceCounter;
+        if (PerformanceFrequency)
+        {
+            *PerformanceFrequency = msg->User.QueryPerformanceCounter.PerformanceFrequency;
+        }
+    }
+    else
+    {
+        PerformanceCounter->QuadPart = 0;
+        if (PerformanceFrequency)
+        {
+            PerformanceFrequency->QuadPart = 0;
+        }
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}
