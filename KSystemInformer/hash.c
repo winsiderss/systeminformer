@@ -456,16 +456,16 @@ NTSTATUS KphHashFile(
     NT_ASSERT(algHandle);
 
     viewSize = 0;
-    status = KphMapViewOfFileInSystemProcess(FileHandle,
-                                             0,
-                                             &mappedBase,
-                                             &viewSize,
-                                             &apcState);
+    status = KphMapViewInSystem(FileHandle,
+                                0,
+                                &mappedBase,
+                                &viewSize,
+                                &apcState);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       HASH,
-                      "KphMapViewOfFileInSystemProcess failed: %!STATUS!",
+                      "KphMapViewInSystem failed: %!STATUS!",
                       status);
 
         mappedBase = NULL;
@@ -584,7 +584,7 @@ Exit:
 
     if (mappedBase)
     {
-        KphUnmapViewInSystemProcess(mappedBase, &apcState);
+        KphUnmapViewInSystem(mappedBase, &apcState);
     }
 
     return status;
@@ -717,16 +717,16 @@ NTSTATUS KphGetAuthenticodeInfo(
     NT_ASSERT(KphpHashingInfra->BCryptSha256Provider);
 
     viewSize = 0;
-    status = KphMapViewOfFileInSystemProcess(FileHandle,
-                                             0,
-                                             &mappedBase,
-                                             &viewSize,
-                                             &apcState);
+    status = KphMapViewInSystem(FileHandle,
+                                0,
+                                &mappedBase,
+                                &viewSize,
+                                &apcState);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       HASH,
-                      "KphMapViewOfFileInSystemProcess failed: %!STATUS!",
+                      "KphMapViewInSystem failed: %!STATUS!",
                       status);
 
         mappedBase = NULL;
@@ -734,11 +734,6 @@ NTSTATUS KphGetAuthenticodeInfo(
     }
 
     mappedEnd = Add2Ptr(mappedBase, viewSize);
-
-    //
-    // KphMapViewOfFileInSystemProcess guarantees this.
-    //
-    NT_ASSERT((mappedEnd >= mappedBase) && (mappedEnd <= MmHighestUserAddress));
 
     __try
     {
@@ -1037,7 +1032,7 @@ Exit:
 
     if (mappedBase)
     {
-        KphUnmapViewInSystemProcess(mappedBase, &apcState);
+        KphUnmapViewInSystem(mappedBase, &apcState);
     }
 
     return status;
