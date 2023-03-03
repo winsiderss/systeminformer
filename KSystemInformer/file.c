@@ -305,3 +305,100 @@ Exit:
 
     return status;
 }
+
+/**
+ * \brief Creates a file.
+ *
+ * \param[out] FileHandle Populated with file handle on success.
+ * \param[in] DesiredAccess The desired access to the file.
+ * \param[in] ObjectAttributes Object attributes for the create.
+ * \param[out] IoStatusBlock Receives final completion status and information.
+ * \param[in] AllocationSize Optional allocation size, in bytes, for the file.
+ * \param[in] FileAttributes Explicitly specified attributes are applied only
+ * when the file is created, superseded, or, in some cases, overwritten.
+ * \param[in] ShareAccess Specifies the type of share access to the file that
+ * the caller would like.
+ * \param[in] CreateDisposition Value that determines how the file should be
+ * handled when the file already exists. 
+ * \param[in] CreateOptions Specifies the options to be applied when creating
+ * or opening the file.
+ * \param[in] EaBuffer Optional pointer to an EA buffer.
+ * \param[in] EaLength Length of EA buffer.
+ * \param[in] Options Specifies options to be used during the generation of
+ * the create request.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _Out_ PIO_STATUS_BLOCK IoStatusBlock,
+    _In_opt_ PLARGE_INTEGER AllocationSize,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions,
+    _In_reads_bytes_opt_(EaLength) PVOID EaBuffer,
+    _In_ ULONG EaLength,
+    _In_ ULONG Options,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+
+    PAGED_PASSIVE();
+
+    if (AccessMode != KernelMode)
+    {
+        if (ExGetPreviousMode() == KernelMode)
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Unexpected previous mode");
+
+            NT_ASSERT(ExGetPreviousMode() != KernelMode);
+            status = STATUS_INVALID_LEVEL;
+            goto Exit;
+        }
+
+        if (Options & ~(IO_OPEN_TARGET_DIRECTORY |
+                        IO_STOP_ON_SYMLINK |
+                        IO_IGNORE_SHARE_ACCESS_CHECK))
+        {
+            KphTracePrint(TRACE_LEVEL_ERROR,
+                          GENERAL,
+                          "Invalid options 0x%lx",
+                          Options);
+
+            status = STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+    }
+    else
+    {
+        Options |= (IO_NO_PARAMETER_CHECKING | IO_CHECK_CREATE_PARAMETERS);
+    }
+
+    status = IoCreateFile(FileHandle,
+                          DesiredAccess,
+                          ObjectAttributes,
+                          IoStatusBlock,
+                          AllocationSize,
+                          FileAttributes,
+                          ShareAccess,
+                          CreateDisposition,
+                          CreateOptions,
+                          EaBuffer,
+                          EaLength,
+                          CreateFileTypeNone,
+                          NULL,
+                          Options);
+
+Exit:
+
+    return status;
+}

@@ -36,65 +36,65 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
 
 #if KPH_PROTECTION_SUPPRESSED
 
-#define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_VERIFIED_PROCESS |\
-                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
+#define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_VERIFIED_PROCESS             |\
+                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES          |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION)
 
-#define KPH_PROCESS_STATE_HIGH    (KPH_PROCESS_VERIFIED_PROCESS |\
-                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
+#define KPH_PROCESS_STATE_HIGH    (KPH_PROCESS_VERIFIED_PROCESS             |\
+                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES          |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION)
 
-#define KPH_PROCESS_STATE_MEDIUM  (KPH_PROCESS_VERIFIED_PROCESS |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
+#define KPH_PROCESS_STATE_MEDIUM  (KPH_PROCESS_VERIFIED_PROCESS             |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION)
 
 #else
 
-#define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_SECURELY_CREATED |\
-                                   KPH_PROCESS_VERIFIED_PROCESS |\
-                                   KPH_PROCESS_PROTECTED_PROCESS |\
-                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
-                                   KPH_PROCESS_NO_FILE_TRANSACTION |\
+#define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_SECURELY_CREATED             |\
+                                   KPH_PROCESS_VERIFIED_PROCESS             |\
+                                   KPH_PROCESS_PROTECTED_PROCESS            |\
+                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES          |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
+                                   KPH_PROCESS_NO_FILE_TRANSACTION          |\
                                    KPH_PROCESS_NOT_BEING_DEBUGGED)
 
-#define KPH_PROCESS_STATE_HIGH    (KPH_PROCESS_VERIFIED_PROCESS |\
-                                   KPH_PROCESS_PROTECTED_PROCESS |\
-                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
-                                   KPH_PROCESS_NO_FILE_TRANSACTION |\
+#define KPH_PROCESS_STATE_HIGH    (KPH_PROCESS_VERIFIED_PROCESS             |\
+                                   KPH_PROCESS_PROTECTED_PROCESS            |\
+                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES          |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
+                                   KPH_PROCESS_NO_FILE_TRANSACTION          |\
                                    KPH_PROCESS_NOT_BEING_DEBUGGED)
 
-#define KPH_PROCESS_STATE_MEDIUM  (KPH_PROCESS_VERIFIED_PROCESS |\
-                                   KPH_PROCESS_PROTECTED_PROCESS |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
+#define KPH_PROCESS_STATE_MEDIUM  (KPH_PROCESS_VERIFIED_PROCESS             |\
+                                   KPH_PROCESS_PROTECTED_PROCESS            |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION)
 
 #endif
 
-#define KPH_PROCESS_STATE_LOW     (KPH_PROCESS_VERIFIED_PROCESS |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
+#define KPH_PROCESS_STATE_LOW     (KPH_PROCESS_VERIFIED_PROCESS             |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION)
 
-#define KPH_PROCESS_STATE_MINIMUM (KPH_PROCESS_HAS_FILE_OBJECT |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES |\
+#define KPH_PROCESS_STATE_MINIMUM (KPH_PROCESS_HAS_FILE_OBJECT              |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION)
 
 typedef enum _KPH_PROCESS_INFORMATION_CLASS
@@ -369,26 +369,34 @@ typedef enum _KPH_SYSTEM_CONTROL_CLASS
 
 // Verification
 
-#define KPH_PROCESS_READ_ACCESS (STANDARD_RIGHTS_READ |\
-                                 SYNCHRONIZE |\
-                                 PROCESS_QUERY_INFORMATION |\
-                                 PROCESS_QUERY_LIMITED_INFORMATION |\
-                                 PROCESS_VM_READ)
+#define KPH_PROCESS_READ_ACCESS   (STANDARD_RIGHTS_READ                 |\
+                                   SYNCHRONIZE                          |\
+                                   PROCESS_QUERY_INFORMATION            |\
+                                   PROCESS_QUERY_LIMITED_INFORMATION    |\
+                                   PROCESS_VM_READ)
 
-#define KPH_THREAD_READ_ACCESS  (STANDARD_RIGHTS_READ |\
-                                 SYNCHRONIZE |\
-                                 THREAD_QUERY_INFORMATION |\
-                                 THREAD_QUERY_LIMITED_INFORMATION |\
-                                 THREAD_GET_CONTEXT)
+#define KPH_THREAD_READ_ACCESS    (STANDARD_RIGHTS_READ                 |\
+                                   SYNCHRONIZE                          |\
+                                   THREAD_QUERY_INFORMATION             |\
+                                   THREAD_QUERY_LIMITED_INFORMATION     |\
+                                   THREAD_GET_CONTEXT)
 
-#define KPH_TOKEN_READ_ACCESS   (STANDARD_RIGHTS_READ |\
-                                 SYNCHRONIZE |\
-                                 TOKEN_QUERY |\
-                                 TOKEN_QUERY_SOURCE)
+#define KPH_TOKEN_READ_ACCESS     (STANDARD_RIGHTS_READ                 |\
+                                   SYNCHRONIZE                          |\
+                                   TOKEN_QUERY                          |\
+                                   TOKEN_QUERY_SOURCE)
 
-#define KPH_JOB_READ_ACCESS     (STANDARD_RIGHTS_READ |\
-                                 SYNCHRONIZE |\
-                                 JOB_OBJECT_QUERY)
+#define KPH_JOB_READ_ACCESS       (STANDARD_RIGHTS_READ                 |\
+                                   SYNCHRONIZE                          |\
+                                   JOB_OBJECT_QUERY)
+
+#define KPH_FILE_READ_ACCESS      (STANDARD_RIGHTS_READ                 |\
+                                   SYNCHRONIZE                          |\
+                                   FILE_READ_DATA                       |\
+                                   FILE_READ_ATTRIBUTES                 |\
+                                   FILE_READ_EA)
+
+#define KPH_FILE_READ_DISPOSITION (FILE_OPEN)
 
 // Informer
 
