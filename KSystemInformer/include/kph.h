@@ -756,7 +756,7 @@ NTSTATUS KphMappedImageRvaToVa(
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphMapViewOfFileInSystemProcess(
+NTSTATUS KphMapViewInSystem(
     _In_ HANDLE FileHandle,
     _In_ ULONG Flags,
     _Outptr_result_bytebuffer_(*ViewSize) PVOID *MappedBase,
@@ -765,7 +765,7 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
     );
 
 _IRQL_always_function_max_(PASSIVE_LEVEL)
-VOID KphUnmapViewInSystemProcess(
+VOID KphUnmapViewInSystem(
     _In_ PVOID MappedBase,
     _In_ PKAPC_STATE ApcState
     );

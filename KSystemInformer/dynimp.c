@@ -39,6 +39,7 @@ VOID KphDynamicImport(
     KphDynPsGetThreadExitStatus = (PPS_GET_THREAD_EXIT_STATUS)KphGetSystemRoutineAddress(L"PsGetThreadExitStatus");
     KphDynIoQueryFullDriverPath = (PIO_QUERY_FULL_DRIVER_PATH)KphGetSystemRoutineAddress(L"IoQueryFullDriverPath");
     KphDynMmProtectDriverSection = (PMM_PROTECT_DRIVER_SECTION)KphGetSystemRoutineAddress(L"MmProtectDriverSection");
+    KphDynMmMapViewInSystemSpaceEx = (PMM_MAP_VIEW_IN_SYSTEM_SPACE_EX)KphGetSystemRoutineAddress(L"MmMapViewInSystemSpaceEx");
 }
 
 /**

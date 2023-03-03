@@ -1092,23 +1092,21 @@ NTSTATUS KphMappedImageRvaToVa(
 }
 
 /**
- * \brief Maps view into the system process address space. On success the
- * caller is attached to the system process. The call to unmap the view
- * will detach from the system process. The caller should unmap the view by
- * calling KphUnmapViewInSystemProcess.
+ * \brief Maps view into the system address space. The caller should unmap the
+ * view by calling KphUnmapViewInSystem.
  *
  * \param[in] FileHandle Handle to file to map.
  * \param[in] Flags Options for the mapping (see: KPH_MAP..).
  * \param[out] MappedBase Base address of the mapping.
  * \param[out] ViewSize Size of the mapped view. If not an image mapping and
  * if the view exceeds the file size, it is clamped to the file size.
- * \param[out] ApcState APC state to be passed to KphUnmapViewInSystemProcess.
+ * \param[out] ApcState APC state to be passed to KphUnmapViewInSystem.
  *
  * \return Successful or errant status.
  */
 _IRQL_always_function_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphMapViewOfFileInSystemProcess(
+NTSTATUS KphMapViewInSystem(
     _In_ HANDLE FileHandle,
     _In_ ULONG Flags,
     _Outptr_result_bytebuffer_(*ViewSize) PVOID *MappedBase,
@@ -1118,17 +1116,25 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
 {
     NTSTATUS status;
     HANDLE sectionHandle;
+    PVOID sectionObject;
     OBJECT_ATTRIBUTES objectAttributes;
     ULONG allocationAttributes;
-    PVOID mappedEnd;
     SIZE_T fileSize;
 
     PAGED_PASSIVE();
 
     sectionHandle = NULL;
+    sectionObject = NULL;
     *MappedBase = NULL;
 
-    KeStackAttachProcess(PsInitialSystemProcess, ApcState);
+    if (KphDynMmMapViewInSystemSpaceEx)
+    {
+        RtlZeroMemory(ApcState, sizeof(KAPC_STATE));
+    }
+    else
+    {
+        KeStackAttachProcess(PsInitialSystemProcess, ApcState);
+    }
 
     if (BooleanFlagOn(Flags, KPH_MAP_IMAGE))
     {
@@ -1198,16 +1204,44 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
     }
 
     *MappedBase = NULL;
-    status = ZwMapViewOfSection(sectionHandle,
-                                ZwCurrentProcess(),
-                                MappedBase,
-                                0,
-                                0,
-                                NULL,
-                                ViewSize,
-                                ViewUnmap,
-                                0,
-                                PAGE_READONLY);
+
+    if (KphDynMmMapViewInSystemSpaceEx)
+    {
+        LARGE_INTEGER sectionOffset;
+
+        status = ObReferenceObjectByHandle(sectionHandle,
+                                           SECTION_MAP_READ,
+                                           *MmSectionObjectType,
+                                           KernelMode,
+                                           &sectionObject,
+                                           NULL);
+        if (!NT_SUCCESS(status))
+        {
+            sectionObject = NULL;
+            goto Exit;
+        }
+
+        sectionOffset.QuadPart = 0;
+        status = KphDynMmMapViewInSystemSpaceEx(sectionObject,
+                                                MappedBase,
+                                                ViewSize,
+                                                &sectionOffset,
+                                                MM_SYSTEM_VIEW_EXCEPTIONS_FOR_INPAGE_ERRORS);
+    }
+    else
+    {
+        status = ZwMapViewOfSection(sectionHandle,
+                                    ZwCurrentProcess(),
+                                    MappedBase,
+                                    0,
+                                    0,
+                                    NULL,
+                                    ViewSize,
+                                    ViewUnmap,
+                                    0,
+                                    PAGE_READONLY);
+    }
+
     if (!NT_SUCCESS(status))
     {
         *MappedBase = NULL;
@@ -1220,25 +1254,21 @@ NTSTATUS KphMapViewOfFileInSystemProcess(
         *ViewSize = fileSize;
     }
 
-    mappedEnd = Add2Ptr(*MappedBase, *ViewSize);
-    if ((mappedEnd < *MappedBase) || (mappedEnd >= MmHighestUserAddress))
-    {
-        *MappedBase = NULL;
-        *ViewSize = 0;
-        status = STATUS_BUFFER_OVERFLOW;
-        goto Exit;
-    }
-
     status = STATUS_SUCCESS;
 
 Exit:
+
+    if (sectionObject)
+    {
+        ObDereferenceObject(sectionObject);
+    }
 
     if (sectionHandle)
     {
         ObCloseHandle(sectionHandle, KernelMode);
     }
 
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status) && !KphDynMmMapViewInSystemSpaceEx)
     {
         KeUnstackDetachProcess(ApcState);
     }
@@ -1250,18 +1280,26 @@ Exit:
  * \brief Unmaps view from the system process address space.
  *
  * \param[in] MappedBase Base address of the mapping.
- * \param[in] ApcState APC state from KphMapViewInSystemProcess.
+ * \param[in] ApcState APC state from KphMapViewInSystem.
  */
 _IRQL_always_function_max_(PASSIVE_LEVEL)
-VOID KphUnmapViewInSystemProcess(
+VOID KphUnmapViewInSystem(
     _In_ PVOID MappedBase,
     _In_ PKAPC_STATE ApcState
     )
 {
     PAGED_PASSIVE();
-    NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
-    ZwUnmapViewOfSection(ZwCurrentProcess(), MappedBase);
-    KeUnstackDetachProcess(ApcState);
+
+    if (KphDynMmMapViewInSystemSpaceEx)
+    {
+        MmUnmapViewInSystemSpace(MappedBase);
+    }
+    else
+    {
+        NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
+        ZwUnmapViewOfSection(ZwCurrentProcess(), MappedBase);
+        KeUnstackDetachProcess(ApcState);
+    }
 }
 
 /**
@@ -1730,16 +1768,16 @@ NTSTATUS KphLocateKernelRevision(
     }
 
     imageSize = 0;
-    status = KphMapViewOfFileInSystemProcess(fileHandle,
-                                             KPH_MAP_IMAGE,
-                                             &imageBase,
-                                             &imageSize,
-                                             &apcState);
+    status = KphMapViewInSystem(fileHandle,
+                                KPH_MAP_IMAGE,
+                                &imageBase,
+                                &imageSize,
+                                &apcState);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       HASH,
-                      "KphMapViewOfFileInSystemProcess failed: %!STATUS!",
+                      "KphMapViewInSystem failed: %!STATUS!",
                       status);
 
         imageBase = NULL;
@@ -1882,7 +1920,7 @@ Exit:
 
     if (imageBase)
     {
-        KphUnmapViewInSystemProcess(imageBase, &apcState);
+        KphUnmapViewInSystem(imageBase, &apcState);
     }
 
     if (fileHandle)
