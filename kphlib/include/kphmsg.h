@@ -48,6 +48,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgQueryVolumeInformationFile,
     KphMsgDuplicateObject,
     KphMsgQueryPerformanceCounter,
+    KphMsgCreateFile,
 
     MaxKphMsgClient,
     MaxKphMsgClientAllowed = 0x40000000,
@@ -168,6 +169,7 @@ typedef struct _KPH_MESSAGE
             KPHM_QUERY_VOLUME_INFORMATION_FILE QueryVolumeInformationFile;
             KPHM_DUPLICATE_OBJECT DuplicateObject;
             KPHM_QUERY_PERFORMANCE_COUNTER QueryPerformanceCounter;
+            KPHM_CREATE_FILE CreateFile;
 
         } User;
 
