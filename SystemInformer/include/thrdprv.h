@@ -40,6 +40,8 @@ typedef struct _PH_THREAD_ITEM
     BOOLEAN IsGuiThread;
     BOOLEAN JustResolved;
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
+
+    IO_COUNTERS IoCounters;
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
 
 typedef enum _PH_KNOWN_PROCESS_TYPE PH_KNOWN_PROCESS_TYPE;

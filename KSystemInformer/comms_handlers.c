@@ -37,6 +37,7 @@ KPHM_DEFINE_HANDLER(KphpCommsQueryVolumeInformationFile);
 KPHM_DEFINE_HANDLER(KphpCommsDuplicateObject);
 KPHM_DEFINE_HANDLER(KphpCommsQueryPerformanceCounter);
 KPHM_DEFINE_HANDLER(KphpCommsCreateFile);
+KPHM_DEFINE_HANDLER(KphpCommsQueryInformationThread);
 
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMaximum);
 KPHM_DEFINE_REQUIRED_STATE(KphpCommsRequireMedium);
@@ -79,6 +80,7 @@ KPH_MESSAGE_HANDLER KphCommsMessageHandlers[] =
 { KphMsgDuplicateObject,             KphpCommsDuplicateObject,             KphpCommsRequireMaximum },
 { KphMsgQueryPerformanceCounter,     KphpCommsQueryPerformanceCounter,     KphpCommsRequireLow },
 { KphMsgCreateFile,                  KphpCommsCreateFile,                  KphpCommsCreateFileRequires },
+{ KphMsgQueryInformationThread,      KphpCommsQueryInformationThread,      KphpCommsRequireMedium },
 };
 
 ULONG KphCommsMessageHandlerCount = ARRAYSIZE(KphCommsMessageHandlers);
@@ -911,6 +913,31 @@ NTSTATUS KSIAPI KphpCommsCreateFile(
                                 msg->EaLength,
                                 msg->Options,
                                 UserMode);
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(KPHM_HANDLER)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KSIAPI KphpCommsQueryInformationThread(
+    _Inout_ PKPH_MESSAGE Message
+    )
+{
+    PKPHM_QUERY_INFORMATION_THREAD msg;
+
+    PAGED_PASSIVE();
+    NT_ASSERT(ExGetPreviousMode() == UserMode);
+    NT_ASSERT(Message->Header.MessageId == KphMsgQueryInformationThread);
+
+    msg = &Message->User.QueryInformationThread;
+
+    msg->Status = KphQueryInformationThread(msg->ThreadHandle,
+                                            msg->ThreadInformationClass,
+                                            msg->ThreadInformation,
+                                            msg->ThreadInformationLength,
+                                            msg->ReturnLength,
+                                            UserMode);
 
     return STATUS_SUCCESS;
 }

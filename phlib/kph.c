@@ -1598,3 +1598,34 @@ NTSTATUS KphCreateFile(
     PhFreeToFreeList(&KphMessageFreeList, msg);
     return status;
 }
+
+NTSTATUS KphQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    )
+{
+    NTSTATUS status;
+    PKPH_MESSAGE msg;
+
+    KSI_COMMS_INIT_ASSERT();
+
+    msg = PhAllocateFromFreeList(&KphMessageFreeList);
+    KphMsgInit(msg, KphMsgQueryInformationThread);
+    msg->User.QueryInformationThread.ThreadHandle = ThreadHandle;
+    msg->User.QueryInformationThread.ThreadInformationClass = ThreadInformationClass;
+    msg->User.QueryInformationThread.ThreadInformation = ThreadInformation;
+    msg->User.QueryInformationThread.ThreadInformationLength = ThreadInformationLength;
+    msg->User.QueryInformationThread.ReturnLength = ReturnLength;
+    status = KphCommsSendMessage(msg);
+
+    if (!NT_SUCCESS(status))
+    {
+        status = msg->User.QueryInformationThread.Status;
+    }
+
+    PhFreeToFreeList(&KphMessageFreeList, msg);
+    return status;
+}

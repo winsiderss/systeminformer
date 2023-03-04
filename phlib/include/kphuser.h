@@ -431,6 +431,17 @@ KphCreateFile(
     _In_ ULONG Options
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
 EXTERN_C_END
 
 #endif

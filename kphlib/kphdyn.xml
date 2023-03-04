@@ -67,6 +67,12 @@ dt nt!_ALPC_PORT State
             <field value="0x38"   name="AlpcPortContext"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
+            <field value="0x380"  name="KtReadOperationCount"/>
+            <field value="0x388"  name="KtWriteOperationCount"/>
+            <field value="0x390"  name="KtOtherOperationCount"/>
+            <field value="0x398"  name="KtReadTransferCount"/>
+            <field value="0x3a0"  name="KtWriteTransferCount"/>
+            <field value="0x3a8"  name="KtOtherTransferCount"/>
         </data>
         <data name="10.0.19042 - 10.0.22621">
             <field value="10"     name="MajorVersion"/>
@@ -97,12 +103,18 @@ dt nt!_ALPC_PORT State
             <field value="0x38"   name="AlpcPortContext"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
+            <field value="0x380"  name="KtReadOperationCount"/>
+            <field value="0x388"  name="KtWriteOperationCount"/>
+            <field value="0x390"  name="KtOtherOperationCount"/>
+            <field value="0x398"  name="KtReadTransferCount"/>
+            <field value="0x3a0"  name="KtWriteTransferCount"/>
+            <field value="0x3a8"  name="KtOtherTransferCount"/>
         </data>
-        <data name="10.0.18363.693 - 10.0.19042">
+        <data name="10.0.19041.264 - 10.0.19042">
             <field value="10"     name="MajorVersion"/>
             <field value="0"      name="MinorVersion"/>
-            <field value="18363"  name="BuildNumberMin"/>
-            <field value="693"    name="RevisionMin"/>
+            <field value="19041"  name="BuildNumberMin"/>
+            <field value="264"    name="RevisionMin"/>
             <field value="19042"  name="BuildNumberMax"/>
             <field value="65535"  name="RevisionMax"/>
 
@@ -127,11 +139,53 @@ dt nt!_ALPC_PORT State
             <field value="0x38"   name="AlpcPortContext"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
+            <field value="0x380"  name="KtReadOperationCount"/>
+            <field value="0x388"  name="KtWriteOperationCount"/>
+            <field value="0x390"  name="KtOtherOperationCount"/>
+            <field value="0x398"  name="KtReadTransferCount"/>
+            <field value="0x3a0"  name="KtWriteTransferCount"/>
+            <field value="0x3a8"  name="KtOtherTransferCount"/>
         </data>
-        <data name="10.0.10240 - 10.0.18363.693">
+        <data name="10.0.18363.693 - 10.0.19041.264">
             <field value="10"     name="MajorVersion"/>
             <field value="0"      name="MinorVersion"/>
-            <field value="10240"  name="BuildNumberMin"/>
+            <field value="18363"  name="BuildNumberMin"/>
+            <field value="693"    name="RevisionMin"/>
+            <field value="19041"  name="BuildNumberMax"/>
+            <field value="264"    name="RevisionMax"/>
+
+            <field value="0x28"   name="EgeGuid"/>
+            <field value="0x418"  name="EpObjectTable"/>
+            <field value="0x20"   name="EreGuidEntry"/>
+            <field value="0x30"   name="HtHandleContentionEvent"/>
+            <field value="0x10"   name="OtName"/>
+            <field value="0x28"   name="OtIndex"/>
+            <field value="16"     name="ObDecodeShift"/>
+            <field value="17"     name="ObAttributesShift"/>
+            <field value="2"      name="CiVersion"/>
+            <field value="0x10"   name="AlpcCommunicationInfo"/>
+            <field value="0x18"   name="AlpcOwnerProcess"/>
+            <field value="0x0"    name="AlpcConnectionPort"/>
+            <field value="0x8"    name="AlpcServerCommunicationPort"/>
+            <field value="0x10"   name="AlpcClientCommunicationPort"/>
+            <field value="0x28"   name="AlpcHandleTable"/>
+            <field value="0x10"   name="AlpcHandleTableLock"/>
+            <field value="0x100"  name="AlpcAttributes"/>
+            <field value="0x0"    name="AlpcAttributesFlags"/>
+            <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x190"  name="AlpcSequenceNo"/>
+            <field value="0x1a0"  name="AlpcState"/>
+            <field value="0x5a8"  name="KtReadOperationCount"/>
+            <field value="0x5b0"  name="KtWriteOperationCount"/>
+            <field value="0x5b8"  name="KtOtherOperationCount"/>
+            <field value="0x5c0"  name="KtReadTransferCount"/>
+            <field value="0x5c8"  name="KtWriteTransferCount"/>
+            <field value="0x5d0"  name="KtOtherTransferCount"/>
+        </data>
+        <data name="10.0.14393.0 - 10.0.18363.693">
+            <field value="10"     name="MajorVersion"/>
+            <field value="0"      name="MinorVersion"/>
+            <field value="14393"  name="BuildNumberMin"/>
             <field value="0"      name="RevisionMin"/>
             <field value="18363"  name="BuildNumberMax"/>
             <field value="693"    name="RevisionMax"/>
@@ -157,6 +211,48 @@ dt nt!_ALPC_PORT State
             <field value="0x38"   name="AlpcPortContext"/>
             <field value="0x190"  name="AlpcSequenceNo"/>
             <field value="0x1a0"  name="AlpcState"/>
+            <field value="0x5a8"  name="KtReadOperationCount"/>
+            <field value="0x5b0"  name="KtWriteOperationCount"/>
+            <field value="0x5b8"  name="KtOtherOperationCount"/>
+            <field value="0x5c0"  name="KtReadTransferCount"/>
+            <field value="0x5c8"  name="KtWriteTransferCount"/>
+            <field value="0x5d0"  name="KtOtherTransferCount"/>
+        </data>
+        <data name="10.0.10240 - 10.0.14393.0">
+            <field value="10"     name="MajorVersion"/>
+            <field value="0"      name="MinorVersion"/>
+            <field value="10240"  name="BuildNumberMin"/>
+            <field value="0"      name="RevisionMin"/>
+            <field value="14393"  name="BuildNumberMax"/>
+            <field value="0"      name="RevisionMax"/>
+
+            <field value="0x18"   name="EgeGuid"/>
+            <field value="0x418"  name="EpObjectTable"/>
+            <field value="0x20"   name="EreGuidEntry"/>
+            <field value="0x30"   name="HtHandleContentionEvent"/>
+            <field value="0x10"   name="OtName"/>
+            <field value="0x28"   name="OtIndex"/>
+            <field value="16"     name="ObDecodeShift"/>
+            <field value="17"     name="ObAttributesShift"/>
+            <field value="2"      name="CiVersion"/>
+            <field value="0x10"   name="AlpcCommunicationInfo"/>
+            <field value="0x18"   name="AlpcOwnerProcess"/>
+            <field value="0x0"    name="AlpcConnectionPort"/>
+            <field value="0x8"    name="AlpcServerCommunicationPort"/>
+            <field value="0x10"   name="AlpcClientCommunicationPort"/>
+            <field value="0x28"   name="AlpcHandleTable"/>
+            <field value="0x10"   name="AlpcHandleTableLock"/>
+            <field value="0x100"  name="AlpcAttributes"/>
+            <field value="0x0"    name="AlpcAttributesFlags"/>
+            <field value="0x38"   name="AlpcPortContext"/>
+            <field value="0x190"  name="AlpcSequenceNo"/>
+            <field value="0x1a0"  name="AlpcState"/>
+            <field value="0x5a0"  name="KtReadOperationCount"/>
+            <field value="0x5a8"  name="KtWriteOperationCount"/>
+            <field value="0x5b0"  name="KtOtherOperationCount"/>
+            <field value="0x5b8"  name="KtReadTransferCount"/>
+            <field value="0x5c0"  name="KtWriteTransferCount"/>
+            <field value="0x5c8"  name="KtOtherTransferCount"/>
         </data>
     </arch>
     <arch id="32">

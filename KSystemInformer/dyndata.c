@@ -136,6 +136,12 @@ NTSTATUS KphpSetDynamicConfigiration(
     KphDynAlpcPortContext = C_2sTo4(Configuration->AlpcPortContext);
     KphDynAlpcSequenceNo = C_2sTo4(Configuration->AlpcSequenceNo);
     KphDynAlpcState = C_2sTo4(Configuration->AlpcState);
+    KphDynKtReadOperationCount = C_2sTo4(Configuration->KtReadOperationCount);
+    KphDynKtWriteOperationCount = C_2sTo4(Configuration->KtWriteOperationCount);
+    KphDynKtOtherOperationCount= C_2sTo4(Configuration->KtOtherOperationCount);
+    KphDynKtReadTransferCount = C_2sTo4(Configuration->KtReadTransferCount);
+    KphDynKtWriteTransferCount = C_2sTo4(Configuration->KtWriteTransferCount);
+    KphDynKtOtherTransferCount = C_2sTo4(Configuration->KtOtherTransferCount);
 
     return STATUS_SUCCESS;
 }

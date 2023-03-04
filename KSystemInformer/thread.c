@@ -1093,3 +1093,169 @@ Exit:
 
     return status;
 }
+
+/**
+ * \brief Queries thread information.
+ *
+ * \param[in] ThreadHandle Handle to thread to query information of.
+ * \param[in] ThreadInformationClass Information class to query.
+ * \param[out] ThreadInformation Populated with thread information by class.
+ * \param[in] ThreadInformationLength Length of the thread information buffer.
+ * \param[out] ReturnLength Number of bytes written or necessary for the
+ * information.
+ * \param[in] AccessMode The mode in which to perform access checks.
+ *
+ * \return Successful or errant status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphQueryInformationThread(
+    _In_ HANDLE ThreadHandle,
+    _In_ KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    _Out_writes_bytes_opt_(ThreadInformationLength) PVOID ThreadInformation,
+    _In_ ULONG ThreadInformationLength,
+    _Out_opt_ PULONG ReturnLength,
+    _In_ KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status;
+    PETHREAD threadObject;
+    ULONG returnLength;
+
+    PAGED_PASSIVE();
+
+    threadObject = NULL;
+    returnLength = 0;
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            if (ThreadInformation)
+            {
+                ProbeForWrite(ThreadInformation, ThreadInformationLength, 1);
+            }
+
+            if (ReturnLength)
+            {
+                ProbeOutputType(ReturnLength, ULONG);
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+            goto Exit;
+        }
+    }
+
+    status = ObReferenceObjectByHandle(ThreadHandle,
+                                       0,
+                                       *PsThreadType,
+                                       AccessMode,
+                                       &threadObject,
+                                       NULL);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
+                      status);
+
+        threadObject = NULL;
+        goto Exit;
+    }
+
+    switch (ThreadInformationClass)
+    {
+        case KphThreadIoCounters:
+        {
+            PIO_COUNTERS counters;
+            PULONGLONG value;
+            
+            if ((KphDynKtReadOperationCount == ULONG_MAX) ||
+                (KphDynKtWriteOperationCount == ULONG_MAX) ||
+                (KphDynKtOtherOperationCount == ULONG_MAX) ||
+                (KphDynKtReadTransferCount == ULONG_MAX) ||
+                (KphDynKtWriteTransferCount == ULONG_MAX) ||
+                (KphDynKtOtherTransferCount == ULONG_MAX))
+            {
+                status = STATUS_NOINTERFACE;
+                goto Exit;
+            }
+
+            if (!ThreadInformation ||
+                (ThreadInformationLength < sizeof(IO_COUNTERS)))
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+                returnLength = sizeof(IO_COUNTERS);
+                goto Exit;
+            }
+
+            counters = ThreadInformation;
+
+            __try
+            {
+                value = Add2Ptr(threadObject, KphDynKtReadOperationCount);
+                counters->ReadOperationCount = *value;
+
+                value = Add2Ptr(threadObject, KphDynKtWriteOperationCount);
+                counters->WriteOperationCount = *value;
+
+                value = Add2Ptr(threadObject, KphDynKtOtherOperationCount);
+                counters->OtherOperationCount = *value;
+
+                value = Add2Ptr(threadObject, KphDynKtReadTransferCount);
+                counters->ReadTransferCount = *value;
+
+                value = Add2Ptr(threadObject, KphDynKtWriteTransferCount);
+                counters->WriteTransferCount = *value;
+
+                value = Add2Ptr(threadObject, KphDynKtOtherTransferCount);
+                counters->OtherTransferCount = *value;
+
+                returnLength = sizeof(IO_COUNTERS);
+                status = STATUS_SUCCESS;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+                goto Exit;
+            }
+
+            break;
+        }
+        default:
+        {
+            status = STATUS_INVALID_INFO_CLASS;
+            break;
+        }
+    }
+
+Exit:
+
+    if (ReturnLength)
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *ReturnLength = returnLength;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                NOTHING;
+            }
+        }
+        else
+        {
+            *ReturnLength = returnLength;
+        }
+    }
+
+    if (threadObject)
+    {
+        ObDereferenceObject(threadObject);
+    }
+
+    return status;
+}

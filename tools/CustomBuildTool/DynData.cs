@@ -26,7 +26,7 @@ namespace CustomBuildTool
         private const string Includes =
 @"#include <kphlibbase.h>";
 
-        private const UInt32 Version = 6;
+        private const UInt32 Version = 7;
 
         private static string DynConfigC =
 $@"#define KPH_DYN_CONFIGURATION_VERSION { Version }
@@ -67,6 +67,12 @@ typedef struct _KPH_DYN_CONFIGURATION
     USHORT AlpcPortContext;              // dt nt!_ALPC_PORT PortContext
     USHORT AlpcSequenceNo;               // dt nt!_ALPC_PORT SequenceNo
     USHORT AlpcState;                    // dt nt!_ALPC_PORT State
+    USHORT KtReadOperationCount;         // dt nt!_KTHREAD ReadOperationCount
+    USHORT KtWriteOperationCount;        // dt nt!_KTHREAD WriteOperationCount
+    USHORT KtOtherOperationCount;        // dt nt!_KTHREAD OtherOperationCount
+    USHORT KtReadTransferCount;          // dt nt!_KTHREAD ReadTransferCount
+    USHORT KtWriteTransferCount;         // dt nt!_KTHREAD WriteTransferCount
+    USHORT KtOtherTransferCount;         // dt nt!_KTHREAD OtherTransferCount
 
 }} KPH_DYN_CONFIGURATION, *PKPH_DYN_CONFIGURATION;
 
@@ -111,6 +117,12 @@ typedef struct _KPH_DYNDATA
             public UInt16 AlpcPortContext;
             public UInt16 AlpcSequenceNo;
             public UInt16 AlpcState;
+            public UInt16 KtReadOperationCount;
+            public UInt16 KtWriteOperationCount;
+            public UInt16 KtOtherOperationCount;
+            public UInt16 KtReadTransferCount;
+            public UInt16 KtWriteTransferCount;
+            public UInt16 KtOtherTransferCount;
 
             public DynConfig()
             {
@@ -142,6 +154,12 @@ typedef struct _KPH_DYNDATA
                 AlpcPortContext = ushort.MaxValue;
                 AlpcSequenceNo = ushort.MaxValue;
                 AlpcState = ushort.MaxValue;
+                KtReadOperationCount = ushort.MaxValue;
+                KtWriteOperationCount = ushort.MaxValue;
+                KtOtherOperationCount = ushort.MaxValue;
+                KtReadTransferCount = ushort.MaxValue;
+                KtWriteTransferCount = ushort.MaxValue;
+                KtOtherTransferCount = ushort.MaxValue;
             }
         }
 
@@ -360,8 +378,9 @@ typedef struct _KPH_DYNDATA
                     Program.PrintColorMessage($"{configName} - BuildNumber range is invalid", ConsoleColor.Red);
                     valid = false;
                 }
-
-                if (config.RevisionMax < config.RevisionMin)
+                
+                if (config.BuildNumberMax == config.BuildNumberMin &&
+                    config.RevisionMax < config.RevisionMin)
                 {
                     Program.PrintColorMessage($"{configName} - Revision range is invalid", ConsoleColor.Red);
                     valid = false;
