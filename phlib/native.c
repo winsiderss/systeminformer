@@ -9389,6 +9389,27 @@ NTSTATUS PhCreateFileWin32Ex(
         0
         );
 
+    if (status == STATUS_SHARING_VIOLATION &&
+        KphLevel() >= KphLevelMed &&
+        (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
+        CreateDisposition == KPH_FILE_READ_DISPOSITION)
+    {
+        status = KphCreateFile(
+            &fileHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &ioStatusBlock,
+            AllocationSize,
+            FileAttributes,
+            ShareAccess,
+            CreateDisposition,
+            CreateOptions,
+            NULL,
+            0,
+            IO_IGNORE_SHARE_ACCESS_CHECK
+            );
+    }
+
     RtlFreeUnicodeString(&fileName);
 
     if (NT_SUCCESS(status))
@@ -9457,6 +9478,27 @@ NTSTATUS PhCreateFileWin32ExAlt(
         sizeof(EXTENDED_CREATE_INFORMATION)
         );
 
+    if (status == STATUS_SHARING_VIOLATION &&
+        KphLevel() >= KphLevelMed &&
+        (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
+        CreateDisposition == KPH_FILE_READ_DISPOSITION)
+    {
+        status = KphCreateFile(
+            &fileHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &ioStatusBlock,
+            AllocationSize,
+            FileAttributes,
+            ShareAccess,
+            CreateDisposition,
+            CreateOptions | FILE_CONTAINS_EXTENDED_CREATE_INFORMATION,
+            &extendedInfo,
+            sizeof(EXTENDED_CREATE_INFORMATION),
+            IO_IGNORE_SHARE_ACCESS_CHECK
+            );
+    }
+
     RtlFreeUnicodeString(&fileName);
 
     if (NT_SUCCESS(status))
@@ -9510,6 +9552,27 @@ NTSTATUS PhCreateFile(
         NULL,
         0
         );
+
+    if (status == STATUS_SHARING_VIOLATION &&
+        KphLevel() >= KphLevelMed &&
+        (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess &&
+        CreateDisposition == KPH_FILE_READ_DISPOSITION)
+    {
+        status = KphCreateFile(
+            &fileHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &ioStatusBlock,
+            NULL,
+            FileAttributes,
+            ShareAccess,
+            CreateDisposition,
+            CreateOptions,
+            NULL,
+            0,
+            IO_IGNORE_SHARE_ACCESS_CHECK
+            );
+    }
 
     if (NT_SUCCESS(status))
     {
@@ -9756,6 +9819,28 @@ NTSTATUS PhReOpenFile(
         NULL,
         0
         );
+
+    if (status == STATUS_SHARING_VIOLATION &&
+        KphLevel() >= KphLevelMed &&
+        (DesiredAccess & KPH_FILE_READ_ACCESS) == DesiredAccess)
+    {
+        assert(KPH_FILE_READ_DISPOSITION == FILE_OPEN);
+
+        status = KphCreateFile(
+            &fileHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &ioStatusBlock,
+            NULL,
+            0,
+            ShareAccess,
+            FILE_OPEN,
+            OpenOptions,
+            NULL,
+            0,
+            IO_IGNORE_SHARE_ACCESS_CHECK
+            );
+    }
 
     if (NT_SUCCESS(status))
     {
