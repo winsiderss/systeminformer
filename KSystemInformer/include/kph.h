@@ -1151,6 +1151,7 @@ typedef struct _KPH_PROCESS_CONTEXT
     KPH_RWLOCK ThreadListLock;
     SIZE_T NumberOfThreads;
     LIST_ENTRY ThreadListHead;
+    SIZE_T NumberOfUnlinkedThreads;
 
     //
     // Masks are only valid if Protected flag is set.
@@ -1318,6 +1319,11 @@ _IRQL_requires_max_(APC_LEVEL)
 VOID KphEnumerateCidContexts(
     _In_ KPH_ENUM_CID_CONTEXTS_CALLBACK Callback,
     _In_opt_ PVOID Parameter
+    );
+
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphUnlinkProcessContextThreadContexts(
+    _In_ PKPH_PROCESS_CONTEXT Process
     );
 
 // protection

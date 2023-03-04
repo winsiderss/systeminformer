@@ -515,23 +515,7 @@ BOOLEAN CIDAPI KphpCidCleanupCallback(
 
         process = object;
 
-        KphAcquireRWLockExclusive(&process->ThreadListLock);
-
-        while (!IsListEmpty(&process->ThreadListHead))
-        {
-            PKPH_THREAD_CONTEXT thread;
-
-            thread = CONTAINING_RECORD(RemoveHeadList(&process->ThreadListHead),
-                                       KPH_THREAD_CONTEXT,
-                                       ThreadListEntry);
-            NT_ASSERT(thread->InThreadList);
-            process->NumberOfThreads--;
-            thread->InThreadList = FALSE;
-
-            KphDereferenceObject(thread);
-        }
-
-        KphReleaseRWLock(&process->ThreadListLock);
+        KphUnlinkProcessContextThreadContexts(process);
     }
 
     KphDereferenceObject(object);
@@ -1355,4 +1339,37 @@ VOID KphEnumerateCidContexts(
     context.Parameter = Parameter;
 
     CidEnumerate(&KphpCidTable, KphpEnumerateContexts, &context);
+}
+
+/**
+ * \brief Unlinks thread contexts from a process context.
+ *
+ * \param[in] Process The process context to unlink thread contexts from.
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID KphUnlinkProcessContextThreadContexts(
+    _In_ PKPH_PROCESS_CONTEXT Process
+    )
+{
+    PAGED_CODE();
+
+    KphAcquireRWLockExclusive(&Process->ThreadListLock);
+
+    while (!IsListEmpty(&Process->ThreadListHead))
+    {
+        PKPH_THREAD_CONTEXT thread;
+
+        thread = CONTAINING_RECORD(RemoveHeadList(&Process->ThreadListHead),
+                                   KPH_THREAD_CONTEXT,
+                                   ThreadListEntry);
+        NT_ASSERT(thread->InThreadList);
+
+        Process->NumberOfThreads--;
+        Process->NumberOfUnlinkedThreads++;
+
+        thread->InThreadList = FALSE;
+        KphDereferenceObject(thread);
+    }
+
+    KphReleaseRWLock(&Process->ThreadListLock);
 }
