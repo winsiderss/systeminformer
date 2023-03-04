@@ -644,7 +644,7 @@ NTSTATUS KphQueryInformationProcess(
                       "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
-        process = NULL;
+        processObject = NULL;
         goto Exit;
     }
 

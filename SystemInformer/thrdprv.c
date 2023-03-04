@@ -23,6 +23,7 @@
 #include <svcsup.h>
 #include <symprv.h>
 #include <workqueue.h>
+#include <kphuser.h>
 
 #include <extmgri.h>
 #include <procprv.h>
@@ -1161,6 +1162,18 @@ VOID PhpThreadProviderUpdate(
 
                 if (threadItem->IsGuiThread != oldIsGuiThread)
                     modified = TRUE;
+            }
+
+            if (!threadItem->ThreadHandle || KphLevel() < KphLevelMed || 
+                !NT_SUCCESS(KphQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    KphThreadIoCounters,
+                    &threadItem->IoCounters,
+                    sizeof(IO_COUNTERS),
+                    NULL
+                    )))
+            {
+                RtlZeroMemory(&threadItem->IoCounters, sizeof(IO_COUNTERS));
             }
 
             threadItem->JustResolved = FALSE;

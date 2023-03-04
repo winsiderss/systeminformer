@@ -129,6 +129,7 @@ typedef enum _KPH_THREAD_INFORMATION_CLASS
     KphThreadIdealProcessorEx,       // s: PROCESSOR_NUMBER
     KphThreadActualGroupAffinity,    // s: GROUP_AFFINITY
     KphThreadPowerThrottlingState,   // s: POWER_THROTTLING_THREAD_STATE
+    KphThreadIoCounters,             // q: IO_COUNTERS
 
 } KPH_THREAD_INFORMATION_CLASS;
 

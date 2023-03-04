@@ -276,6 +276,17 @@ typedef struct _KPHM_CREATE_FILE
 
 } KPHM_CREATE_FILE, *PKPHM_CREATE_FILE;
 
+typedef struct _KPHM_QUERY_INFORMATION_THREAD
+{
+    NTSTATUS Status;
+    HANDLE ThreadHandle;
+    KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
+    PVOID ThreadInformation;
+    ULONG ThreadInformationLength;
+    PULONG ReturnLength;
+
+} KPHM_QUERY_INFORMATION_THREAD, *PKPHM_QUERY_INFORMATION_THREAD;
+
 //
 // KPH -> PH
 //

@@ -122,6 +122,12 @@ VOID PhInitializeThreadList(
     //PhAddTreeNewColumnEx2(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_CPUHISTORY, FALSE, L"CPU history", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_STACKUSAGE, FALSE, L"Stack usage", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_WAITTIME, FALSE, L"Wait time", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOREADS, FALSE, L"I/O reads", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITES, FALSE, L"I/O writes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHER, FALSE, L"I/O other", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOREADBYTES, FALSE, L"I/O read bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES, FALSE, L"I/O write bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(TreeNewHandle, PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES, FALSE, L"I/O other bytes", 50, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
@@ -1138,6 +1144,42 @@ BEGIN_SORT_FUNCTION(WaitTime)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(IoReads)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.ReadOperationCount, threadItem2->IoCounters.ReadOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWrites)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.WriteOperationCount, threadItem2->IoCounters.WriteOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOther)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.OtherOperationCount, threadItem2->IoCounters.OtherOperationCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReadBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.ReadTransferCount, threadItem2->IoCounters.ReadTransferCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWriteBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.WriteTransferCount, threadItem2->IoCounters.WriteTransferCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOtherBytes)
+{
+    sortResult = uint64cmp(threadItem1->IoCounters.OtherTransferCount, threadItem2->IoCounters.OtherTransferCount);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpThreadTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1197,6 +1239,12 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     SORT_FUNCTION(CpuKernel),
                     SORT_FUNCTION(StackUsage),
                     SORT_FUNCTION(WaitTime),
+                    SORT_FUNCTION(IoReads),
+                    SORT_FUNCTION(IoWrites),
+                    SORT_FUNCTION(IoOther),
+                    SORT_FUNCTION(IoReadBytes),
+                    SORT_FUNCTION(IoWriteBytes),
+                    SORT_FUNCTION(IoOtherBytes),
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -1902,6 +1950,61 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
                     PhPrintTimeSpan(node->WaitTimeText, threadItem->WaitTime, PH_TIMESPAN_HMSM);
 
                     PhInitializeStringRefLongHint(&getCellText->Text, node->WaitTimeText);
+                }
+                break;
+
+            case PH_THREAD_TREELIST_COLUMN_IOREADS:
+                {
+                    if (threadItem->IoCounters.ReadOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoReads, threadItem->IoCounters.ReadOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoReads);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOWRITES:
+                {
+                    if (threadItem->IoCounters.WriteOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoWrites, threadItem->IoCounters.WriteOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoWrites);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOOTHER:
+                {
+                    if (threadItem->IoCounters.OtherOperationCount != 0)
+                    {
+                        PhPrintUInt64(node->IoOther, threadItem->IoCounters.OtherOperationCount);
+                        PhInitializeStringRefLongHint(&getCellText->Text, node->IoOther);
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOREADBYTES:
+                {
+                    if (threadItem->IoCounters.ReadTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoReadBytes, PhFormatSize(threadItem->IoCounters.ReadTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoReadBytes->sr;
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOWRITEBYTES:
+                {
+                    if (threadItem->IoCounters.WriteTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoWriteBytes, PhFormatSize(threadItem->IoCounters.WriteTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoWriteBytes->sr;
+                    }
+                }
+                break;
+            case PH_THREAD_TREELIST_COLUMN_IOOTHERBYTES:
+                {
+                    if (threadItem->IoCounters.OtherTransferCount != 0)
+                    {
+                        PhMoveReference(&node->IoOtherBytes, PhFormatSize(threadItem->IoCounters.OtherTransferCount, ULONG_MAX));
+                        getCellText->Text = node->IoOtherBytes->sr;
+                    }
                 }
                 break;
             default:
