@@ -226,6 +226,19 @@ typedef struct _KPH_MESSAGE
 
 typedef const KPH_MESSAGE* PCKPH_MESSAGE;
 
+//
+// ABI breaking asserts. KPH_MESSAGE_VESRSION must be updated.
+// const int size = sizeof(KPH_MESSAGE);
+// const int offset = FIELD_OFFSET(KPH_MESSAGE, _Dyn);
+//
+#ifdef _WIN64
+C_ASSERT(sizeof(KPH_MESSAGE) == 3312);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 104);
+#else
+C_ASSERT(sizeof(KPH_MESSAGE) == 3288);
+C_ASSERT(FIELD_OFFSET(KPH_MESSAGE, _Dyn) == 80);
+#endif
+
 #define KPH_MESSAGE_MIN_SIZE RTL_SIZEOF_THROUGH_FIELD(KPH_MESSAGE, _Dyn.Entries)
 
 #pragma warning(pop)
