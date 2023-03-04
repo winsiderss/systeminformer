@@ -113,6 +113,8 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 
         process->ExitNotification = TRUE;
 
+        KphUnlinkProcessContextThreadContexts(process);
+
         NT_ASSERT(process->NumberOfThreads == 0);
         NT_ASSERT(IsListEmpty(&process->ThreadListHead));
 
