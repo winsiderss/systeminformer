@@ -1144,7 +1144,8 @@ typedef struct _KPH_PROCESS_CONTEXT
             ULONG Protected : 1;
             ULONG IsLsass : 1;
             ULONG IsWow64 : 1;
-            ULONG Reserved : 25;
+            ULONG IsSubsystemProcess : 1;
+            ULONG Reserved : 24;
         };
     };
 

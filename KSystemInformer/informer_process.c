@@ -137,6 +137,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
     process->CreateNotification = TRUE;
     process->CreatorClientId.UniqueProcess = PsGetCurrentProcessId();
     process->CreatorClientId.UniqueThread = PsGetCurrentThreadId();
+    process->IsSubsystemProcess = CreateInfo->IsSubsystemProcess;
 
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   TRACKING,
@@ -456,6 +457,14 @@ VOID KphpPerformProcessCreationTracking(
     if (!actor || !actor->ProcessContext)
     {
         KphTracePrint(TRACE_LEVEL_ERROR, TRACKING, "Insufficient tracking.");
+        goto Exit;
+    }
+
+    if (actor->ProcessContext->IsSubsystemProcess)
+    {
+        KphTracePrint(TRACE_LEVEL_WARNING, 
+                      TRACKING, 
+                      "Skipping for subsystem process.");
         goto Exit;
     }
 

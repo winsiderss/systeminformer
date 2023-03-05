@@ -267,9 +267,9 @@ VOID KphpExecuteThreadNotifyRoutine(
         thread->ExecuteNotification = TRUE;
 
         KphpCreateThreadNotifyInformer(thread,
-                                      ProcessId,
-                                      ThreadId,
-                                      KphThreadNotifyExecute);
+                                       ProcessId,
+                                       ThreadId,
+                                       KphThreadNotifyExecute);
 
         KphDereferenceObject(thread);
     }
@@ -301,9 +301,9 @@ VOID KphpCreateThreadNotifyRoutine(
     NT_ASSERT(threadObject);
 
     thread = KphpPerformThreadTracking(ProcessId,
-                                      ThreadId,
-                                      Create,
-                                      threadObject);
+                                       ThreadId,
+                                       Create,
+                                       threadObject);
 
     if (!thread)
     {
@@ -313,16 +313,16 @@ VOID KphpCreateThreadNotifyRoutine(
     if (Create)
     {
         KphpCreateThreadNotifyInformer(thread,
-                                      ProcessId,
-                                      ThreadId,
-                                      KphThreadNotifyCreate);
+                                       ProcessId,
+                                       ThreadId,
+                                       KphThreadNotifyCreate);
     }
     else
     {
         KphpCreateThreadNotifyInformer(thread,
-                                      ProcessId,
-                                      ThreadId,
-                                      KphThreadNotifyExit);
+                                       ProcessId,
+                                       ThreadId,
+                                       KphThreadNotifyExit);
     }
 
 Exit:
@@ -352,7 +352,7 @@ NTSTATUS KphThreadInformerStart(
 
     if (KphDynPsSetCreateThreadNotifyRoutineEx)
     {
-        status = KphDynPsSetCreateThreadNotifyRoutineEx(PsCreateProcessNotifySubsystems,
+        status = KphDynPsSetCreateThreadNotifyRoutineEx(PsCreateThreadNotifySubsystems,
                                                         (PVOID)KphpCreateThreadNotifyRoutine);
         if (!NT_SUCCESS(status))
         {
