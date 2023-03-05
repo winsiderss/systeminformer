@@ -710,6 +710,7 @@ NTSTATUS KphQueryInformationProcess(
                         MmDoesFileHaveUserWritableReferences(process->FileObject->SectionObjectPointer);
                 }
 
+                returnLength = sizeof(KPH_PROCESS_BASIC_INFORMATION);
                 status = STATUS_SUCCESS;
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
@@ -737,6 +738,7 @@ NTSTATUS KphQueryInformationProcess(
             __try
             {
                 *state = KphGetProcessState(process);
+                returnLength = sizeof(KPH_PROCESS_STATE);
                 status = STATUS_SUCCESS;
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
