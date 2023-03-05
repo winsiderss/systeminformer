@@ -3410,7 +3410,7 @@ NTSTATUS PhGetMappedImageEhCont32(
     EhContConfig->EhContTable = PhMappedImageVaToVa(MappedImage, config32->GuardEHContinuationTable, NULL);
     EhContConfig->NumberOfEhContEntries = config32->GuardEHContinuationCount;
 
-    // taken from from nt!RtlGuardRestoreContext
+    // taken from nt!RtlGuardRestoreContext
     EhContConfig->EntrySize = ((config32->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) + sizeof(ULONG);
 
     if (EhContConfig->EhContTable && EhContConfig->NumberOfEhContEntries)
@@ -3450,7 +3450,7 @@ NTSTATUS PhGetMappedImageEhCont64(
     EhContConfig->EhContTable = PhMappedImageVaToVa(MappedImage, config64->GuardEHContinuationTable, NULL);
     EhContConfig->NumberOfEhContEntries = config64->GuardEHContinuationCount;
 
-    // taken from from nt!RtlGuardRestoreContext
+    // taken from nt!RtlGuardRestoreContext
     EhContConfig->EntrySize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) + sizeof(ULONG);
 
     if (EhContConfig->EhContTable && EhContConfig->NumberOfEhContEntries)
@@ -4254,6 +4254,7 @@ VOID PhpFillDynamicRelocations(
                             UInt32Add32To64(entry.FuncOverride.BlockRva, entry.FuncOverride.Record.Offset),
                             NULL
                             );
+                        __analysis_assume(entry.MappedImageVa);
 
                         PhAddItemArray(Array, &entry);
                     }
@@ -4311,6 +4312,7 @@ VOID PhpFillDynamicRelocations(
                     UInt32Add32To64(entry.Other.BlockRva, entry.Other.Record.Offset),
                     NULL
                     );
+                __analysis_assume(entry.MappedImageVa);
 
                 PhAddItemArray(Array, &entry);
             }
@@ -4911,17 +4913,17 @@ PPH_STRING PhGetMappedImageAuthenticodeHash(
     if (imageSecurityAddress && imageSecuritySize)
     {
         // Security directory -> Certificate data
-        imageHashBlock[2].Offset = imageSecurityOffset + sizeof(IMAGE_DATA_DIRECTORY);
+        imageHashBlock[2].Offset = UInt32Add32To64(imageSecurityOffset, sizeof(IMAGE_DATA_DIRECTORY));
         imageHashBlock[2].Length = imageSecurityAddress - imageHashBlock[2].Offset;
 
         // Certificate data -> End of file
-        imageHashBlock[3].Offset = imageSecurityAddress + imageSecuritySize;
+        imageHashBlock[3].Offset = UInt32Add32To64(imageSecurityAddress, imageSecuritySize);
         imageHashBlock[3].Length = MappedImage->Size - imageHashBlock[3].Offset;
     }
     else
     {
         // Security directory -> End of file
-        imageHashBlock[2].Offset = imageSecurityOffset + sizeof(IMAGE_DATA_DIRECTORY);
+        imageHashBlock[2].Offset = UInt32Add32To64(imageSecurityOffset, sizeof(IMAGE_DATA_DIRECTORY));
         imageHashBlock[2].Length = MappedImage->Size - imageHashBlock[2].Offset;
     }
 
