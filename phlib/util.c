@@ -2840,7 +2840,7 @@ BOOLEAN PhInitializeImageVersionInfoCached(
 
     if (IsSubsystemProcess)
     {
-        if (!PhInitializeLxssImageVersionInfo(&versionInfo, FileName))
+        if (!PhInitializeLxssImageVersionInfo(&versionInfo, &FileName->sr))
             return FALSE;
     }
     else
