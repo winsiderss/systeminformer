@@ -699,7 +699,7 @@ VOID PhpProcessQueryStage1(
     // Version info
     if (!processItem->IsSubsystemProcess)
     {
-        if (!PhIsNullOrEmptyString(processItem->FileName) && PhDoesFileExist(&processItem->FileName->sr))
+        if (!PhIsNullOrEmptyString(processItem->FileName))
         {
             Data->IconEntry = PhImageListExtractIcon(
                 processItem->FileName,
@@ -1006,9 +1006,9 @@ VOID PhpProcessQueryStage2(
         }
     }
 
-    if (PhEnableLinuxSubsystemSupport && processItem->FileNameWin32 && processItem->IsSubsystemProcess)
+    if (PhEnableLinuxSubsystemSupport && processItem->FileName && processItem->IsSubsystemProcess)
     {
-        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileNameWin32, TRUE, PhEnableVersionShortText);
+        PhInitializeImageVersionInfoCached(&Data->VersionInfo, processItem->FileName, TRUE, PhEnableVersionShortText);
     }
 }
 
