@@ -24,7 +24,7 @@ BOOLEAN NTAPI PhpWslDistributionNamesCallback(
 
 _Success_(return)
 BOOLEAN PhGetWslDistributionFromPath(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _Out_opt_ PPH_STRING *LxssDistroName,
     _Out_opt_ PPH_STRING *LxssDistroPath,
     _Out_opt_ PPH_STRING *LxssFileName
@@ -66,8 +66,9 @@ BOOLEAN PhGetWslDistributionFromPath(
                 )))
             {
                 PPH_STRING lxssBasePathName = PhQueryRegistryStringZ(subKeyHandle, L"BasePath");
+                PhMoveReference(&lxssBasePathName, PhDosPathNameToNtPathName(&lxssBasePathName->sr));
 
-                if (PhStartsWithString(FileName, lxssBasePathName, TRUE))
+                if (lxssBasePathName && PhStartsWithStringRef(FileName, &lxssBasePathName->sr, TRUE))
                 {
                     lxssDistributionName = PhQueryRegistryStringZ(subKeyHandle, L"DistributionName");
 
@@ -78,13 +79,13 @@ BOOLEAN PhGetWslDistributionFromPath(
 
                     if (LxssFileName)
                     {
-                        lxssFileName = PhDuplicateString(FileName);
+                        lxssFileName = PhCreateString2(FileName);
                         PhSkipStringRef(&lxssFileName->sr, lxssBasePathName->Length);
                         PhSkipStringRef(&lxssFileName->sr, sizeof(L"rootfs"));
                     }
                 }
 
-                PhDereferenceObject(lxssBasePathName);
+                PhClearReference(&lxssBasePathName);
                 NtClose(subKeyHandle);
             }
 
@@ -139,10 +140,9 @@ BOOLEAN PhGetWslDistributionFromPath(
     return FALSE;
 }
 
-_Success_(return)
 BOOLEAN PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    _In_ PPH_STRING FileName
+    _In_ PPH_STRINGREF FileName
     )
 {
     static PH_STRINGREF lxssDpkgCommandLine = PH_STRINGREF_INIT(L"dpkg -S ");
