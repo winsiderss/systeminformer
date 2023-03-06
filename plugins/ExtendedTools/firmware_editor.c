@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2016-2022
+ *     dmex    2016-2023
  *
  */
 
@@ -43,7 +43,8 @@ NTSTATUS EtFirmwareQueryVariable(
         &Name->sr,
         &Guid->sr,
         &variableValue,
-        &variableValueLength
+        &variableValueLength,
+        NULL
         );
 
     if (NT_SUCCESS(status))
@@ -313,12 +314,12 @@ NTSTATUS EtFirmwareEditorDialogThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    windowHandle = CreateDialogParam(
+    windowHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_FIRMWARE_EDITVAR),
         !!PhGetIntegerSetting(L"ForceNoParent") ? NULL : context->ParentWindowHandle,
         EtFirmwareEditorDlgProc,
-        (LPARAM)context
+        context
         );
 
     ShowWindow(windowHandle, SW_SHOW);
