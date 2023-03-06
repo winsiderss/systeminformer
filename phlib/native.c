@@ -13190,14 +13190,16 @@ NTSTATUS PhGetFirmwareEnvironmentVariable(
     _In_ PPH_STRINGREF VariableName,
     _In_ PPH_STRINGREF VendorGuid,
     _Out_writes_bytes_opt_(*ValueLength) PVOID* ValueBuffer,
-    _Inout_ PULONG ValueLength
+    _Out_opt_ PULONG ValueLength,
+    _Out_opt_ PULONG ValueAttributes
     )
 {
     NTSTATUS status;
     GUID vendorGuid;
     UNICODE_STRING variableName;
-    PVOID variableValueBuffer = NULL;
-    ULONG variableValueLength = 0;
+    PVOID valueBuffer;
+    ULONG valueLength = 0;
+    ULONG valueAttributes = 0;
 
     PhStringRefToUnicodeString(VariableName, &variableName);
 
@@ -13212,35 +13214,41 @@ NTSTATUS PhGetFirmwareEnvironmentVariable(
     status = NtQuerySystemEnvironmentValueEx(
         &variableName,
         &vendorGuid,
-        variableValueBuffer,
-        &variableValueLength,
-        NULL
+        NULL,
+        &valueLength,
+        &valueAttributes
         );
 
     if (status != STATUS_BUFFER_TOO_SMALL)
         return STATUS_UNSUCCESSFUL;
 
-    variableValueBuffer = PhAllocate(variableValueLength);
-    memset(variableValueBuffer, 0, variableValueLength);
+    valueBuffer = PhAllocate(valueLength);
+    memset(valueBuffer, 0, valueLength);
 
     status = NtQuerySystemEnvironmentValueEx(
         &variableName,
         &vendorGuid,
-        NULL,
-        &variableValueLength,
-        NULL
+        valueBuffer,
+        &valueLength,
+        &valueAttributes
         );
 
     if (NT_SUCCESS(status))
     {
         if (ValueBuffer)
-            *ValueBuffer = variableValueBuffer;
+            *ValueBuffer = valueBuffer;
+        else
+            PhFree(valueBuffer);
+
         if (ValueLength)
-            *ValueLength = variableValueLength;
+            *ValueLength = valueLength;
+
+        if (ValueAttributes)
+            *ValueAttributes = valueAttributes;
     }
     else
     {
-        PhFree(variableValueBuffer);
+        PhFree(valueBuffer);
     }
 
     return status;

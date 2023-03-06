@@ -2503,7 +2503,8 @@ PhGetFirmwareEnvironmentVariable(
     _In_ PPH_STRINGREF VariableName,
     _In_ PPH_STRINGREF VendorGuid,
     _Out_writes_bytes_opt_(*ValueLength) PVOID* ValueBuffer,
-    _Inout_ PULONG ValueLength
+    _Out_opt_ PULONG ValueLength,
+    _Out_opt_ PULONG ValueAttributes
     );
 
 PHLIBAPI
