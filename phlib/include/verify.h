@@ -61,6 +61,14 @@ PhVerifyFile(
     _Out_opt_ PPH_STRING *SignerName
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhVerifyFileIsChainedToMicrosoft(
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
+    );
+
 typedef struct _CERT_CONTEXT CERT_CONTEXT;
 typedef CERT_CONTEXT *PCERT_CONTEXT;
 

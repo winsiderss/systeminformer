@@ -160,6 +160,173 @@ PCRYPT_PROVIDER_SGNR PhGetCryptProviderSignerFromChain(
     return signer;
 }
 
+// rev from WTHelperIsChainedToMicrosoft (dmex)
+BOOLEAN PhIsChainedToMicrosoft(
+    _In_ PCCERT_CONTEXT Certificate,
+    _In_ HCERTSTORE SiblingStore,
+    _In_ BOOLEAN IncludeMicrosoftTestRootCerts
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HCERTSTORE (WINAPI* CertOpenStore_I)(
+        _In_ LPCSTR lpszStoreProvider,
+        _In_ ULONG dwEncodingType,
+        _In_opt_ HCRYPTPROV_LEGACY hCryptProv,
+        _In_ ULONG dwFlags,
+        _In_opt_ const void* pvPara
+        ) = NULL;
+    static BOOL (WINAPI* CertAddStoreToCollection_I)(
+        _In_ HCERTSTORE hCollectionStore,
+        _In_opt_ HCERTSTORE hSiblingStore,
+        _In_ ULONG dwUpdateFlags,
+        _In_ ULONG dwPriority
+        ) = NULL;
+    static BOOL (WINAPI* CertGetCertificateChain_I)(
+        _In_opt_ HCERTCHAINENGINE hChainEngine,
+        _In_ PCCERT_CONTEXT pCertContext,
+        _In_opt_ LPFILETIME pTime,
+        _In_opt_ HCERTSTORE hAdditionalStore,
+        _In_ PCERT_CHAIN_PARA pChainPara,
+        _In_ ULONG dwFlags,
+        _Reserved_ LPVOID pvReserved,
+        _Out_ PCCERT_CHAIN_CONTEXT * ppChainContext
+        ) = NULL;
+    static BOOL (WINAPI* CertVerifyCertificateChainPolicy_I)(
+        _In_ LPCSTR pszPolicyOID,
+        _In_ PCCERT_CHAIN_CONTEXT pChainContext,
+        _In_ PCERT_CHAIN_POLICY_PARA pPolicyPara,
+        _Inout_ PCERT_CHAIN_POLICY_STATUS pPolicyStatus
+        ) = NULL;
+    static VOID (WINAPI* CertFreeCertificateChain_I)(
+        _In_ PCCERT_CHAIN_CONTEXT pChainContext
+        ) = NULL;
+    static BOOL (WINAPI* CertCloseStore_I)(
+        _In_opt_ HCERTSTORE hCertStore,
+        _In_ ULONG dwFlags
+        ) = NULL;
+    BOOLEAN status = FALSE;
+    HCERTSTORE cryptStoreHandle;
+    CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
+    CERT_CHAIN_POLICY_STATUS policyStatus = { sizeof(CERT_CHAIN_POLICY_STATUS) };
+    CERT_CHAIN_PARA chainPara = { sizeof(CERT_CHAIN_PARA) };
+    PCCERT_CHAIN_CONTEXT chainContext;
+
+    if (!(Certificate && SiblingStore))
+        return FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID crypt32;
+
+        if (crypt32 = PhLoadLibrary(L"crypt32.dll"))
+        {
+            CertOpenStore_I = PhGetDllBaseProcedureAddress(crypt32, "CertOpenStore", 0);
+            CertAddStoreToCollection_I = PhGetDllBaseProcedureAddress(crypt32, "CertAddStoreToCollection", 0);
+            CertGetCertificateChain_I = PhGetDllBaseProcedureAddress(crypt32, "CertGetCertificateChain", 0);
+            CertVerifyCertificateChainPolicy_I = PhGetDllBaseProcedureAddress(crypt32, "CertVerifyCertificateChainPolicy", 0);
+            CertFreeCertificateChain_I = PhGetDllBaseProcedureAddress(crypt32, "CertFreeCertificateChain", 0);
+            CertCloseStore_I = PhGetDllBaseProcedureAddress(crypt32, "CertCloseStore", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!(
+        CertOpenStore_I &&
+        CertAddStoreToCollection_I &&
+        CertGetCertificateChain_I &&
+        CertVerifyCertificateChainPolicy_I &&
+        CertFreeCertificateChain_I &&
+        CertCloseStore_I
+        ))
+    {
+        return FALSE;
+    }
+
+    if (cryptStoreHandle = CertOpenStore_I(CERT_STORE_PROV_COLLECTION, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0, 0, 0))
+    {
+        if (CertAddStoreToCollection_I(cryptStoreHandle, SiblingStore, 0, 0))
+        {
+            //if (IncludeMicrosoftTestRootCerts)
+            //{
+            //    PVOID wintrust = PhGetLoaderEntryDllBaseZ(L"wintrust.dll");
+            //    ULONG resourceLength;
+            //    PVOID resourceBuffer;
+            //
+            //    policyPara.dwFlags = MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG;
+            //
+            //    if (PhLoadResource(wintrust, MAKEINTRESOURCE(1), L"MSTESTROOT", &resourceLength, &resourceBuffer))
+            //    {
+            //        CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
+            //        HCERTSTORE siblingStore = NULL;
+            //
+            //        if (CryptQueryObject(
+            //            CERT_QUERY_OBJECT_BLOB,
+            //            &certificateBlob,
+            //            CERT_QUERY_CONTENT_FLAG_CERT,
+            //            CERT_QUERY_FORMAT_FLAG_ALL,
+            //            0, 0, 0, 0,
+            //            &siblingStore,
+            //            0,
+            //            0
+            //            ))
+            //        {
+            //            CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
+            //        }
+            //    }
+            //
+            //    if (PhLoadResource(wintrust, MAKEINTRESOURCE(2), L"MSTESTROOT", &resourceLength, &resourceBuffer))
+            //    {
+            //        CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
+            //        HCERTSTORE siblingStore = NULL;
+            //
+            //        if (CryptQueryObject(
+            //            CERT_QUERY_OBJECT_BLOB,
+            //            &certificateBlob,
+            //            CERT_QUERY_CONTENT_FLAG_CERT,
+            //            CERT_QUERY_FORMAT_FLAG_ALL,
+            //            0, 0, 0, 0,
+            //            &siblingStore,
+            //            0,
+            //            0
+            //            ))
+            //        {
+            //            CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
+            //        }
+            //    }
+            //}
+
+            if (CertGetCertificateChain_I(
+                HCCE_CURRENT_USER,
+                Certificate,
+                0, 
+                cryptStoreHandle, 
+                &chainPara,
+                0,
+                0, 
+                &chainContext
+                ))
+            {
+                if (CertVerifyCertificateChainPolicy_I(
+                    CERT_CHAIN_POLICY_MICROSOFT_ROOT, 
+                    chainContext,
+                    &policyPara,
+                    &policyStatus
+                    ))
+                {
+                    status = (policyStatus.dwError == ERROR_SUCCESS);
+                }
+
+                CertFreeCertificateChain_I(chainContext);
+            }
+        }
+
+        CertCloseStore_I(cryptStoreHandle, 0);
+    }
+
+    return status;
+}
+
 _Success_(return)
 BOOLEAN PhpGetSignaturesFromStateData(
     _In_ HANDLE StateData,
@@ -870,6 +1037,71 @@ VERIFY_RESULT PhVerifyFile(
     }
 }
 
+BOOLEAN PhVerifyFileIsChainedToMicrosoft(
+    _In_ PPH_STRING FileName,
+    _In_ BOOLEAN NativeFileName
+    )
+{
+    BOOLEAN result = FALSE;
+    PH_VERIFY_FILE_INFO info = { 0 };
+    HANDLE fileHandle;
+    VERIFY_RESULT verifyResult;
+    PCERT_CONTEXT *signatures;
+    ULONG numberOfSignatures;
+
+    if (NativeFileName)
+    {
+        if (!NT_SUCCESS(PhCreateFile(
+            &fileHandle,
+            &FileName->sr,
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            return FALSE;
+        }
+    }
+    else
+    {
+        if (!NT_SUCCESS(PhCreateFileWin32(
+            &fileHandle,
+            PhGetString(FileName),
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            return FALSE;
+        }
+    }
+
+    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+    info.FileHandle = fileHandle;
+
+    if (NT_SUCCESS(PhVerifyFileEx(&info, &verifyResult, &signatures, &numberOfSignatures)))
+    {
+        if (verifyResult == VrTrusted && numberOfSignatures != 0)
+        {
+            result = PhIsChainedToMicrosoft(
+                signatures[0],
+                signatures[0]->hCertStore,
+                FALSE
+                );
+        }
+
+        PhFreeVerifySignatures(signatures, numberOfSignatures);
+    }
+
+    NtClose(fileHandle);
+
+    return result;
+}
+
 BOOLEAN PhpVerifyCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
     _In_ PVOID Entry2
@@ -1327,107 +1559,6 @@ CleanupExit:
     PhFree(signerInfo);
 
     return signerName;
-}
-
-// rev from WTHelperIsChainedToMicrosoft (dmex)
-BOOLEAN PhIsChainedToMicrosoft(
-    _In_ PCCERT_CONTEXT Certificate,
-    _In_ HCERTSTORE SiblingStore,
-    _In_ BOOLEAN IncludeMicrosoftTestRootCerts
-    )
-{
-    BOOLEAN status = FALSE;
-    HCERTSTORE cryptStoreHandle;
-    CERT_CHAIN_POLICY_PARA policyPara = { sizeof(CERT_CHAIN_POLICY_PARA) };
-    CERT_CHAIN_POLICY_STATUS policyStatus = { sizeof(CERT_CHAIN_POLICY_STATUS) };
-    CERT_CHAIN_PARA chainPara = { sizeof(CERT_CHAIN_PARA) };
-    PCCERT_CHAIN_CONTEXT chainContext;
-
-    if (!(Certificate && SiblingStore))
-        return FALSE;
-
-    if (cryptStoreHandle = CertOpenStore(CERT_STORE_PROV_COLLECTION, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0, 0, 0))
-    {
-        if (CertAddStoreToCollection(cryptStoreHandle, SiblingStore, 0, 0))
-        {
-            if (IncludeMicrosoftTestRootCerts)
-            {
-                PVOID wintrust = PhGetLoaderEntryDllBaseZ(L"wintrust.dll");
-                ULONG resourceLength;
-                PVOID resourceBuffer;
-            
-                policyPara.dwFlags = MICROSOFT_ROOT_CERT_CHAIN_POLICY_ENABLE_TEST_ROOT_FLAG;
-            
-                if (PhLoadResource(wintrust, MAKEINTRESOURCE(1), L"MSTESTROOT", &resourceLength, &resourceBuffer))
-                {
-                    CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
-                    HCERTSTORE siblingStore = NULL;
-
-                    if (CryptQueryObject(
-                        CERT_QUERY_OBJECT_BLOB,
-                        &certificateBlob,
-                        CERT_QUERY_CONTENT_FLAG_CERT,
-                        CERT_QUERY_FORMAT_FLAG_ALL,
-                        0, 0, 0, 0,
-                        &siblingStore,
-                        0,
-                        0
-                        ))
-                    {
-                        CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
-                    }
-                }
-
-                if (PhLoadResource(wintrust, MAKEINTRESOURCE(2), L"MSTESTROOT", &resourceLength, &resourceBuffer))
-                {
-                    CERT_BLOB certificateBlob = { resourceLength, resourceBuffer };
-                    HCERTSTORE siblingStore = NULL;
-
-                    if (CryptQueryObject(
-                        CERT_QUERY_OBJECT_BLOB,
-                        &certificateBlob,
-                        CERT_QUERY_CONTENT_FLAG_CERT,
-                        CERT_QUERY_FORMAT_FLAG_ALL,
-                        0, 0, 0, 0,
-                        &siblingStore,
-                        0,
-                        0
-                        ))
-                    {
-                        CertAddStoreToCollection(cryptStoreHandle, siblingStore, 0, 0);
-                    }
-                }
-            }
-
-            if (CertGetCertificateChain(
-                HCCE_CURRENT_USER,
-                Certificate,
-                0, 
-                cryptStoreHandle, 
-                &chainPara,
-                0,
-                0, 
-                &chainContext
-                ))
-            {
-                if (CertVerifyCertificateChainPolicy(
-                    CERT_CHAIN_POLICY_MICROSOFT_ROOT, 
-                    chainContext,
-                    &policyPara,
-                    &policyStatus
-                    ))
-                {
-                    status = (policyStatus.dwError == ERROR_SUCCESS);
-                }
-
-                CertFreeCertificateChain(chainContext);
-            }
-        }
-
-        CertCloseStore(cryptStoreHandle, 0);
-    }
-
-    return status;
 }
 
 // rev from WTHelperIsChainedToMicrosoftFromStateData (dmex)
