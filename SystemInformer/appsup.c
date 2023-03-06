@@ -2190,7 +2190,7 @@ HBITMAP PhGetShieldBitmap(
         shieldIcon = PhLoadIcon(
             PhInstanceHandle,
             MAKEINTRESOURCE(IDI_UACSHIELD),
-            PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+            PH_LOAD_ICON_SIZE_SMALL,
             0,
             0,
             dpiValue
@@ -2201,7 +2201,7 @@ HBITMAP PhGetShieldBitmap(
             shieldIcon = PhLoadIcon(
                 NULL,
                 IDI_SHIELD,
-                PH_LOAD_ICON_SIZE_SMALL | PH_LOAD_ICON_STRICT,
+                PH_LOAD_ICON_SIZE_SMALL,
                 0,
                 0,
                 dpiValue
@@ -2253,21 +2253,64 @@ HICON PhGetApplicationIcon(
     return SmallIcon ? smallIcon : largeIcon;
 }
 
+HICON PhGetApplicationIconEx(
+    _In_ BOOLEAN SmallIcon,
+    _In_opt_ LONG WindowDpi
+    )
+{
+    if (SmallIcon)
+        return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
+    return PhLoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
+}
+
 VOID PhSetApplicationWindowIcon(
     _In_ HWND WindowHandle
     )
 {
     HICON smallIcon;
     HICON largeIcon;
+    HICON destroyIcon;
 
     if (smallIcon = PhGetApplicationIcon(TRUE))
     {
-        SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
     }
 
     if (largeIcon = PhGetApplicationIcon(FALSE))
     {
-        SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)largeIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
+    }
+}
+
+VOID PhSetApplicationWindowIconEx(
+    _In_ HWND WindowHandle,
+    _In_opt_ LONG WindowDpi
+    )
+{
+    HICON smallIcon;
+    HICON largeIcon;
+    HICON destroyIcon;
+
+    if (smallIcon = PhGetApplicationIconEx(TRUE, WindowDpi))
+    {
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
+    }
+
+    if (largeIcon = PhGetApplicationIconEx(FALSE, WindowDpi))
+    {
+        if (destroyIcon = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)largeIcon))
+        {
+            DestroyIcon(destroyIcon);
+        }
     }
 }
 
