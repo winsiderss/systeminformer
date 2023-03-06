@@ -1339,7 +1339,7 @@ TryAppLocal:
 
         PhMoveReference(&fileName, PhGetFileName(fileName));
 
-        if (PhVerifyFileIsChainedToMicrosoft(fileName, FALSE))
+        if (PhVerifyFileIsChainedToMicrosoft(&fileName->sr, FALSE))
         {
             HANDLE processHandle;
             HANDLE tokenHandle = NULL;
@@ -1439,7 +1439,7 @@ TryAppLocal:
 
                 if (NT_SUCCESS(status))
                 {
-                    if (PhVerifyFileIsChainedToMicrosoft(fileName, FALSE))
+                    if (PhVerifyFileIsChainedToMicrosoft(&fileName->sr, FALSE))
                     {
                         mscordacBaseAddress = PhLoadLibrary(PhGetString(fileName));
                     }

@@ -1038,7 +1038,7 @@ VERIFY_RESULT PhVerifyFile(
 }
 
 BOOLEAN PhVerifyFileIsChainedToMicrosoft(
-    _In_ PPH_STRING FileName,
+    _In_ PPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName
     )
 {
@@ -1053,7 +1053,7 @@ BOOLEAN PhVerifyFileIsChainedToMicrosoft(
     {
         if (!NT_SUCCESS(PhCreateFile(
             &fileHandle,
-            &FileName->sr,
+            FileName,
             FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -1068,7 +1068,7 @@ BOOLEAN PhVerifyFileIsChainedToMicrosoft(
     {
         if (!NT_SUCCESS(PhCreateFileWin32(
             &fileHandle,
-            PhGetString(FileName),
+            PhGetStringRefZ(FileName),
             FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
