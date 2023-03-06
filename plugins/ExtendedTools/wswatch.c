@@ -683,7 +683,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             point.y = GET_Y_LPARAM(lParam);
 
             if (point.x == -1 && point.y == -1)
-                PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
             if (!(listviewItem = PhGetSelectedListViewItemParam(context->ListViewHandle)))
                 break;
