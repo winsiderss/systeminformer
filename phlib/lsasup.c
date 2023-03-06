@@ -594,6 +594,33 @@ PPH_STRING PhSidToStringSid(
     }
 }
 
+NTSTATUS PhSidToStringBuffer(
+    _In_ PSID Sid,
+    _Writable_bytes_(BufferLength) PWCHAR Buffer,
+    _In_ USHORT BufferLength,
+    _Out_opt_ PUSHORT ReturnLength
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING unicodeString;
+
+    RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
+
+    status = RtlConvertSidToUnicodeString(
+        &unicodeString,
+        Sid,
+        FALSE
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ReturnLength)
+            *ReturnLength = unicodeString.Length;
+    }
+
+    return status;
+}
+
 PPH_STRING PhGetTokenUserString(
     _In_ HANDLE TokenHandle,
     _In_ BOOLEAN IncludeDomain
