@@ -631,6 +631,7 @@ appCaptureServices
 appCaptureSettings
 appDiagnostics
 applicationDefaults
+applicationDefaultsUserChoice
 applicationViewActivation
 appLicensing
 appManagementSystem
@@ -690,6 +691,7 @@ deviceEncryptionManagement
 deviceIdentityManagement
 deviceLockManagement
 deviceManagementAdministrator
+deviceManagementDeclaredConfiguration
 deviceManagementDeviceLockPolicies
 deviceManagementDmAccount
 deviceManagementEmailAccount
@@ -702,6 +704,7 @@ deviceUnlock
 diagnostics
 displayDeviceSettings
 documentsLibrary
+downloadsFolder
 dualSimTiles
 email
 emailSystem
@@ -729,6 +732,7 @@ gamingContainerResources
 gazeInput
 globalMediaControl
 graphicsCapture
+graphicsCaptureProgrammatic
 graphicsCaptureWithoutBorder
 hevcPlayback
 hfxSystem
@@ -743,11 +747,16 @@ inputForegroundObservation
 inputInjection
 inputInjectionBrokered
 inputObservation
+inputOverride
 inputSettings
 inputSuppression
 internetClient
 internetClientServer
 interopServices
+isolatedWin32-print
+isolatedWin32-profilesRootMinimal
+isolatedWin32-userProfileMinimal
+isolatedWin32-volumeRootMinimal
 keyboardDeviceSettings
 kinectAudio
 kinectExpressions
@@ -759,6 +768,7 @@ kinectVision
 languageAndRegionDeviceSettings
 languageSettings
 liveIdService
+localExperienceCumulativeInternal
 localExperienceInternal
 location
 locationHistory
@@ -772,6 +782,7 @@ lpacChromeNetworkSandbox
 lpacClipboard
 lpacCom
 lpacCryptoServices
+lpacDeviceAccess
 lpacEdgeWdagComms
 lpacEnterprisePolicyChangeNotifications
 lpacIdentityServices
@@ -803,6 +814,7 @@ musicLibrary
 networkConnectionManagerProvisioning
 networkDataPlanProvisioning
 networkDataUsageManagement
+networkDeviceAdminSettings
 networkDeviceSettings
 networkDiagnostics
 networkingVpnProvider
@@ -834,6 +846,7 @@ phoneCallSystem
 phoneLineTransportManagement
 picturesLibrary
 pointOfService
+policyManager
 powerDeviceSettings
 preemptiveCamera
 previewHfx
@@ -850,6 +863,7 @@ recordedCallsFolder
 regionSettings
 registryRead
 relatedPackages
+remoteAutomationHost
 remoteFileAccess
 remotePassportAuthentication
 remoteSystem
@@ -910,6 +924,7 @@ userDataTasks
 userDataTasksSystem
 userManagementSystem
 userNotificationListener
+userOnboardingState
 userPrincipalName
 userSigninSupport
 userSystemId
@@ -925,6 +940,7 @@ webPlatformMediaExtension
 wiFiControl
 wifiData
 wiFiDirect
+windowInfo
 windowManagement
 windowManagementSystem
 windowsHelloCredentialAccess
