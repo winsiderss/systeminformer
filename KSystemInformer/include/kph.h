@@ -116,15 +116,16 @@ typedef struct _KPH_SIZED_BUFFER
 
 extern PDRIVER_OBJECT KphDriverObject;
 extern KPH_INFORMER_SETTINGS KphInformerSettings;
-extern BOOLEAN KphIgnoreDebuggerPresence;
+extern BOOLEAN KphIgnoreProtectionSuppression;
 extern SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo;
+extern SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo;
 
 FORCEINLINE
-BOOLEAN KphKdPresent(
+BOOLEAN KphSuppressProtections(
     VOID
     )
 {
-    if (KphIgnoreDebuggerPresence)
+    if (KphIgnoreProtectionSuppression)
     {
         return FALSE;
     }
@@ -135,7 +136,22 @@ BOOLEAN KphKdPresent(
         return FALSE;
     }
 
-    return !KD_DEBUGGER_NOT_PRESENT;
+    if (!KD_DEBUGGER_ENABLED)
+    {
+        return FALSE;
+    }
+
+    if (!FlagOn(KphCodeIntegrityInfo.CodeIntegrityOptions,
+                CODEINTEGRITY_OPTION_ENABLED) &&
+        FlagOn(KphCodeIntegrityInfo.CodeIntegrityOptions,
+               CODEINTEGRITY_OPTION_TESTSIGN) &&
+        FlagOn(KphCodeIntegrityInfo.CodeIntegrityOptions,
+               CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 // alloc

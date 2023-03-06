@@ -20,8 +20,9 @@ PDRIVER_OBJECT KphDriverObject = NULL;
 KPH_INFORMER_SETTINGS KphInformerSettings;
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static BYTE KphpProtectedSection = 0;
-BOOLEAN KphIgnoreDebuggerPresence = FALSE;
+BOOLEAN KphIgnoreProtectionSuppression = FALSE;
 SYSTEM_SECUREBOOT_INFORMATION KphSecureBootInfo = { 0 };
+SYSTEM_CODEINTEGRITY_INFORMATION KphCodeIntegrityInfo = { 0 };
 RTL_OSVERSIONINFOEXW KphOsVersionInfo = { 0 };
 USHORT KphOsRevision = 0;
 KPH_OSVERSION KphOsVersion = KphWinUnknown;
@@ -192,6 +193,15 @@ NTSTATUS DriverEntry(
                                              NULL)))
     {
         RtlZeroMemory(&KphSecureBootInfo, sizeof(KphSecureBootInfo));
+    }
+
+    KphCodeIntegrityInfo.Length = sizeof(KphCodeIntegrityInfo);
+    if (!NT_SUCCESS(ZwQuerySystemInformation(SystemCodeIntegrityInformation,
+                                             &KphCodeIntegrityInfo,
+                                             sizeof(KphCodeIntegrityInfo),
+                                             NULL)))
+    {
+        RtlZeroMemory(&KphCodeIntegrityInfo, sizeof(KphCodeIntegrityInfo));
     }
 
     KphInitializeAlloc();
@@ -370,7 +380,7 @@ Exit:
     {
         KphpDriverCleanup();
 
-        KphTracePrint(TRACE_LEVEL_INFORMATION,
+        KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Driver Load Failed: %!STATUS!",
                       status);
