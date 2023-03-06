@@ -741,6 +741,7 @@ EXPORTS
 
 ; verify
     PhVerifyFile
+    PhVerifyFileIsChainedToMicrosoft
 
 ; workqueue
     PhDeleteWorkQueue
