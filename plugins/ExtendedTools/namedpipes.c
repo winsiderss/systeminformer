@@ -156,7 +156,7 @@ INT_PTR CALLBACK EtPipeEnumDlgProc(
             else
                 PhCenterWindow(hwndDlg, context->ParentWindowHandle);
 
-            PhSetListViewStyle(context->ListViewWndHandle, FALSE, TRUE);
+            PhSetListViewStyle(context->ListViewWndHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewWndHandle, L"explorer");
             PhAddListViewColumn(context->ListViewWndHandle, 0, 0, 0, LVCFMT_LEFT, 40, L"#");
             PhAddListViewColumn(context->ListViewWndHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name");
