@@ -106,6 +106,16 @@ PhSidToStringSid(
     );
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhSidToStringBuffer(
+    _In_ PSID Sid,
+    _Writable_bytes_(BufferLength) PWCHAR Buffer,
+    _In_ USHORT BufferLength,
+    _Out_opt_ PUSHORT ReturnLength
+    );
+
+PHLIBAPI
 PPH_STRING
 NTAPI
 PhGetTokenUserString(
