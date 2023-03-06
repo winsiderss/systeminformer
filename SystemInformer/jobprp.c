@@ -519,7 +519,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 point.y = GET_Y_LPARAM(lParam);
 
                 if (point.x == -1 && point.y == -1)
-                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+                    PhGetListViewContextMenuPoint(listViewHandle, &point);
 
                 PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems);
 
