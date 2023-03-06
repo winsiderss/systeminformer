@@ -107,6 +107,7 @@ NTSTATUS EtEnumerateFirmwareEntries(
             PEFI_ENTRY entry;
 
             entry = PhAllocateZero(sizeof(EFI_ENTRY));
+            entry->Attributes = i->Attributes;
             entry->Length = i->ValueLength;
             entry->Name = PhCreateString(i->Name);
             entry->GuidString = PhFormatGuid(&i->VendorGuid);
@@ -152,17 +153,33 @@ NTSTATUS EtEnumerateFirmwareEntries(
     return status;
 }
 
-VOID EtShowFirmwareMenu(
+VOID EtFirmwareDeleteEntry(
     _In_ PUEFI_WINDOW_CONTEXT Context,
-    _In_ HWND hwndDlg
+    _In_ PEFI_ENTRY Entry
     )
 {
-    PPH_STRING name;
+    NTSTATUS status;
 
-    if (name = PhGetSelectedListViewItemText(Context->ListViewHandle))
+    status = PhSetFirmwareEnvironmentVariable(
+        &Entry->Name->sr, 
+        &Entry->GuidString->sr,
+        NULL,
+        0,
+        Entry->Attributes
+        );
+
+    if (NT_SUCCESS(status))
     {
-        // Nothing
-        PhDereferenceObject(name);
+        INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, Entry);
+
+        if (index != INT_ERROR)
+        {
+            PhRemoveListViewItem(Context->ListViewHandle, index);
+        }
+    }
+    else
+    {
+        PhShowStatus(Context->WindowHandle, L"Unable to delete firmware variable.", status, 0);
     }
 }
 
@@ -216,12 +233,13 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(hwndDlg);
-
+            context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_BOOT_LIST);
             context->ParentWindowHandle = (HWND)lParam;
 
-            PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
+            PhSetApplicationWindowIcon(hwndDlg);
+
+            PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Attributes");
@@ -290,12 +308,6 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
 
             switch (hdr->code)
             {
-            case NM_RCLICK:
-                {
-                    if (hdr->hwndFrom == context->ListViewHandle)
-                        EtShowFirmwareMenu(context, hwndDlg);
-                }
-                break;
             case NM_DBLCLK:
                 {
                     if (hdr->hwndFrom == context->ListViewHandle)
@@ -309,6 +321,69 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
                     }
                 }
                 break;
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+                PPH_EMENU item;
+                PVOID* listviewItems;
+                ULONG numberOfItems;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+
+                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
+
+                if (numberOfItems != 0)
+                {
+                    menu = PhCreateEMenu();
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Edit", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"&Delete", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PHAPP_IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
+                    PhInsertCopyListViewEMenuItem(menu, PHAPP_IDC_COPY, context->ListViewHandle);
+
+                    item = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (item)
+                    {
+                        if (!PhHandleCopyListViewEMenuItem(item))
+                        {
+                            switch (item->Id)
+                            {
+                            case 1:
+                                EtShowFirmwareEditDialog(hwndDlg, listviewItems[0]);
+                                break;
+                            case 2:
+                                EtFirmwareDeleteEntry(context, listviewItems[0]);
+                                break;
+                            case PHAPP_IDC_COPY:
+                                PhCopyListView(context->ListViewHandle);
+                                break;
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+
+                PhFree(listviewItems);
             }
         }
         break;
