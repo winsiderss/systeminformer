@@ -2199,6 +2199,7 @@ typedef struct _PHP_RUNFILEDLG
     HWND RunAsInstallerCheckboxHandle;
     HIMAGELIST ImageListHandle;
     BOOLEAN RunAsInstallerCheckboxDisabled;
+    LONG WindowDpi;
 } PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
 
 PPH_STRING PhpQueryRunFileParentDirectory(
@@ -2769,9 +2770,6 @@ static VOID PhpRunFileSetImageList(
     )
 {
     HICON shieldIcon;
-    LONG dpiValue;
-
-    dpiValue = PhGetWindowDpi(Context->WindowHandle);
 
     if (shieldIcon = PhLoadIcon(
         NULL,
@@ -2779,13 +2777,13 @@ static VOID PhpRunFileSetImageList(
         PH_LOAD_ICON_SIZE_SMALL,
         0,
         0,
-        dpiValue
+        Context->WindowDpi
         ))
     {
         if (Context->ImageListHandle) PhImageListDestroy(Context->ImageListHandle);
         Context->ImageListHandle = PhImageListCreate(
-            PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-            PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+            PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi),
+            PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi),
             ILC_MASK | ILC_COLOR32,
             1,
             1
@@ -2832,8 +2830,10 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             context->ComboBoxHandle = GetDlgItem(hwndDlg, IDC_PROGRAMCOMBO);
             context->RunAsCheckboxHandle = GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION);
             context->RunAsInstallerCheckboxHandle = GetDlgItem(hwndDlg, IDC_TRUSTEDINSTALLER);
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIconEx(hwndDlg, context->WindowDpi);
+            SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)PhGetApplicationIconEx(FALSE, context->WindowDpi), 0);
 
             PhpAddProgramsToComboBox(context->ComboBoxHandle);
             ComboBox_SetCurSel(context->ComboBoxHandle, 0);
@@ -2872,6 +2872,11 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         break;
     case WM_DPICHANGED:
         {
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
+
+            PhSetApplicationWindowIconEx(hwndDlg, context->WindowDpi);
+            SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)PhGetApplicationIconEx(FALSE, context->WindowDpi), 0);
+
             PhpRunFileSetImageList(context);
         }
         break;
@@ -2963,20 +2968,17 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         {
             HDC hdc = (HDC)wParam;
             RECT clientRect;
-            LONG dpiValue;
 
             if (!GetClientRect(hwndDlg, &clientRect))
                 break;
 
-            dpiValue = PhGetWindowDpi(hwndDlg);
-
             SetBkMode(hdc, TRANSPARENT);
 
-            clientRect.bottom -= PhGetDpi(60, dpiValue);
+            clientRect.bottom -= PhGetDpi(60, context->WindowDpi);
             FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PhGetDpi(60, dpiValue);
+            clientRect.bottom = clientRect.top + PhGetDpi(60, context->WindowDpi);
             FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
@@ -3010,7 +3012,6 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                             case CDDS_PREPAINT:
                                 {
                                     PPH_STRING buttonText;
-                                    LONG dpiValue;
                                     LONG width;
 
                                     SetTextColor(customDraw->hdc, RGB(0, 0, 0));
@@ -3019,9 +3020,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
 
                                     if (buttonText = PhGetWindowText(customDraw->hdr.hwndFrom))
                                     {
-                                        dpiValue = PhGetWindowDpi (hwndDlg);
-
-                                        width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+                                        width = PhGetSystemMetrics(SM_CXSMICON, context->WindowDpi);
 
                                         customDraw->rc.left += width;
                                         DrawText(
