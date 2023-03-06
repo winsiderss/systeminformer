@@ -17,8 +17,6 @@
 #pragma warning(push)
 #pragma warning(disable : 4201)
 
-#define KPH_PROTECTION_SUPPRESSED 0
-
 // Process
 
 typedef ULONG KPH_PROCESS_STATE;
@@ -33,30 +31,6 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
 #define KPH_PROCESS_NO_USER_WRITABLE_REFERENCES          0x00000040ul
 #define KPH_PROCESS_NO_FILE_TRANSACTION                  0x00000080ul
 #define KPH_PROCESS_NOT_BEING_DEBUGGED                   0x00000100ul
-
-#if KPH_PROTECTION_SUPPRESSED
-
-#define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_VERIFIED_PROCESS             |\
-                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES          |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
-                                   KPH_PROCESS_NO_FILE_TRANSACTION)
-
-#define KPH_PROCESS_STATE_HIGH    (KPH_PROCESS_VERIFIED_PROCESS             |\
-                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES          |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
-                                   KPH_PROCESS_NO_FILE_TRANSACTION)
-
-#define KPH_PROCESS_STATE_MEDIUM  (KPH_PROCESS_VERIFIED_PROCESS             |\
-                                   KPH_PROCESS_HAS_FILE_OBJECT              |\
-                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
-                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
-                                   KPH_PROCESS_NO_FILE_TRANSACTION)
-
-#else
 
 #define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_SECURELY_CREATED             |\
                                    KPH_PROCESS_VERIFIED_PROCESS             |\
@@ -83,8 +57,6 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
                                    KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS  |\
                                    KPH_PROCESS_NO_USER_WRITABLE_REFERENCES  |\
                                    KPH_PROCESS_NO_FILE_TRANSACTION)
-
-#endif
 
 #define KPH_PROCESS_STATE_LOW     (KPH_PROCESS_VERIFIED_PROCESS             |\
                                    KPH_PROCESS_HAS_FILE_OBJECT              |\
