@@ -393,12 +393,12 @@ NTSTATUS EtShowPoolMonDialogThread(
 
     PhInitializeAutoPool(&autoPool);
 
-    EtPoolTagDialogHandle = CreateDialogParam(
+    EtPoolTagDialogHandle = PhCreateDialog(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_POOL),
         NULL,
         EtPoolMonDlgProc,
-        (LPARAM)Parameter
+        Parameter
         );
 
     PhSetEvent(&EtPoolTagDialogInitializedEvent);

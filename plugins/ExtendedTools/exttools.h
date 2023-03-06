@@ -1210,6 +1210,7 @@ VOID EtShowPipeEnumDialog(
 
 typedef struct _UEFI_WINDOW_CONTEXT
 {
+    HWND WindowHandle;
     HWND ListViewHandle;
     HWND ParentWindowHandle;
     PH_LAYOUT_MANAGER LayoutManager;
@@ -1217,6 +1218,7 @@ typedef struct _UEFI_WINDOW_CONTEXT
 
 typedef struct _EFI_ENTRY
 {
+    ULONG Attributes;
     ULONG Length;
     PPH_STRING Name;
     PPH_STRING GuidString;
