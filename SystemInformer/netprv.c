@@ -1137,11 +1137,11 @@ BOOLEAN PhGetNetworkConnections(
         udp6Table = NULL;
     }
 
-    if (PhEnableNetworkBoundConnections)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5)
     {
         // Bound TCP IPv4
 
-        if (InternalGetBoundTcpEndpointTable && InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (InternalGetBoundTcpEndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcpTable = table;
             count += boundTcpTable->dwNumEntries;
@@ -1153,7 +1153,7 @@ BOOLEAN PhGetNetworkConnections(
 
         // Bound TCP IPv6
 
-        if (InternalGetBoundTcp6EndpointTable && InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
+        if (InternalGetBoundTcp6EndpointTable(&table, PhHeapHandle, 0) == NO_ERROR)
         {
             boundTcp6Table = table;
             count += boundTcp6Table->dwNumEntries;
@@ -1290,7 +1290,7 @@ BOOLEAN PhGetNetworkConnections(
         PhFree(udp6Table);
     }
 
-    if (PhEnableNetworkBoundConnections)
+    if (PhEnableNetworkBoundConnections && WindowsVersion >= WINDOWS_10_RS5)
     {
         if (boundTcpTable)
         {
