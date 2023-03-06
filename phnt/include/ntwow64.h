@@ -177,6 +177,9 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
     ULONG ReferenceCount;
     ULONG DependentLoadFlags;
     UCHAR SigningLevel; // since REDSTONE2
+    ULONG CheckSum; // since 22H1
+    WOW64_POINTER(PVOID) ActivePatchImageBase;
+    LDR_HOT_PATCH_STATE HotPatchState;
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
 
 typedef struct _CURDIR32
