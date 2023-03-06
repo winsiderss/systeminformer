@@ -736,15 +736,15 @@ NTSTATUS PhGetProcessImageFileNameWin32(
             return STATUS_UNSUCCESSFUL;
         }
 
-        // Note: ProcessImageFileNameWin32 returns the NT device path
-        // instead of the Win32 path in cases were the disk volume driver
-        // hasn't registerd with the volume manager and/or ignored the
-        // mount manager ioctls (e.g. ImDisk). We workaround this issue
-        // by calling PhGetFileName and resolving the NT device prefix. (dmex)
-
         fileNameWin32 = PhCreateStringFromUnicodeString(fileName);
 
-        if (fileNameWin32->Length != 0 && fileNameWin32->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
+        // Note: ProcessImageFileNameWin32 returns the NT device path
+        // instead of the Win32 path in some cases were drivers haven't 
+        // registered with the volume manager or have ignored the mount
+        // manager (e.g. ImDisk). We workaround these issues by calling 
+        // PhGetFileName and resolving the NT device prefix. (dmex)
+
+        if (fileNameWin32->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
         {
             PhMoveReference(&fileNameWin32, PhGetFileName(fileNameWin32));
         }

@@ -1633,10 +1633,6 @@ PhGetFileText(
     _In_ BOOLEAN Unicode
     );
 
-PVOID PhGetFileTextUnicode(
-    _In_ HANDLE FileHandle
-);
-
 PHLIBAPI
 PVOID
 NTAPI
