@@ -1726,7 +1726,7 @@ FoundUString:
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
@@ -1773,7 +1773,7 @@ BOOLEAN PhSplitStringRefAtChar(
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
@@ -1821,7 +1821,7 @@ BOOLEAN PhSplitStringRefAtLastChar(
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  *
@@ -1883,7 +1883,7 @@ BOOLEAN PhSplitStringRefAtString(
  * \param FirstPart A variable which receives the part of \a Input before the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * \a Input.
- * \param SecondPart A variable which recieves the part of \a Input after the separator. This may be
+ * \param SecondPart A variable which receives the part of \a Input after the separator. This may be
  * the same variable as \a Input. If the separator is not found in \a Input, this variable is set to
  * an empty string.
  * \param SeparatorPart A variable which receives the part of \a Input that is the separator. If the

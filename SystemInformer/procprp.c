@@ -881,9 +881,11 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     }
 
     // WMI Provider Host
-    // Note: The Winmgmt service includes WMI providers but the process doesn't get tagged with WmiProviderHostType
-    // and the perf cost adding service detection is too high for just this one usage case. (dmex)
-    //if ((PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType)
+    // Note: The Winmgmt service has WMI providers but doesn't get tagged with WmiProviderHostType. (dmex)
+    if (
+        (PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == WmiProviderHostType || 
+        (PropContext->ProcessItem->KnownProcessType & KnownProcessTypeMask) == ServiceHostProcessType
+        )
     {
         newPage = PhCreateProcessPropPageContext(
             MAKEINTRESOURCE(IDD_PROCWMIPROVIDERS),
