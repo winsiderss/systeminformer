@@ -2079,10 +2079,14 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 PhInitializeWindowTheme(context->ParentWindow, PhEnableThemeSupport);
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
+
+            SetTimer(hwndDlg, 1, 1000, NULL);
         }
         break;
     case WM_DESTROY:
         {
+            KillTimer(hwndDlg, 1);
+
             PhUnregisterWindowCallback(context->ParentWindow);
 
             PhSaveWindowPlacementToSetting(L"HandlePropertiesWindowPosition", NULL, context->ParentWindow); // HACK
@@ -2096,6 +2100,11 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             PhLayoutManagerLayout(&context->LayoutManager);
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
+    case WM_TIMER:
+        {
+            PhpUpdateHandleGeneral(context);
         }
         break;
     case WM_NOTIFY:
@@ -2135,7 +2144,6 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 if (numberOfItems != 0)
                 {
                     menu = PhCreateEMenu();
-
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
                     PhInsertCopyListViewEMenuItem(menu, IDC_COPY, context->ListViewHandle);
 
