@@ -48,7 +48,7 @@ NTSTATUS SetupUpdateBuild(
     SetupSetWindowsOptions(Context);
 
     // Create shortcuts.
-    SetupChangeNotifyShortcuts(Context);
+    //SetupChangeNotifyShortcuts(Context);
 
     // Set the default image execution options.
     //SetupCreateImageFileExecutionOptions();
