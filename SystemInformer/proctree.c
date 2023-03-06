@@ -25,18 +25,20 @@
 #include <cpysave.h>
 #include <emenu.h>
 #include <hndlinfo.h>
+#include <kphuser.h>
 #include <mapimg.h>
-#include <verify.h>
 #include <secedit.h>
 #include <settings.h>
+#include <verify.h>
 
 #include <colmgr.h>
 #include <extmgri.h>
 #include <mainwnd.h>
-#include <math.h>
 #include <phplug.h>
 #include <phsettings.h>
 #include <procprv.h>
+
+#include <math.h>
 
 typedef enum _PHP_AGGREGATE_TYPE
 {
@@ -1534,8 +1536,12 @@ static VOID PhpUpdateProcessNodeGrantedAccess(
             HANDLE processHandle;
             ACCESS_MASK processAccess;
 
-            if (ProcessNode->ProcessItem->IsProtectedProcess)
+            if (ProcessNode->ProcessItem->IsProtectedProcess && ProcessNode->ProcessItem->Protection.Type == PsProtectedTypeProtectedLight)
                 processAccess = PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_LIMITED_INFORMATION;
+            else if (ProcessNode->ProcessItem->IsProtectedProcess && ProcessNode->ProcessItem->Protection.Type == PsProtectedTypeProtected)
+                processAccess = PROCESS_QUERY_LIMITED_INFORMATION;
+            else if (ProcessNode->ProcessItem->IsSubsystemProcess && KphLevel() != KphLevelMax)
+                processAccess = PROCESS_QUERY_LIMITED_INFORMATION;
             else
                 processAccess = MAXIMUM_ALLOWED;
 
